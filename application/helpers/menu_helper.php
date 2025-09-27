@@ -242,7 +242,8 @@ if (!function_exists('main_menu_array')) {
                 'librarybooktype'       => array('index','create','edit','delete'),
                 'librarysubject'        => array('index','create','edit','delete'),
                 'librarypositionrack'   => array('index','create','edit','delete'),
-                'librarypositionshelf'  => array('index','create','edit','delete'),   
+                'librarypositionshelf'  => array('index','create','edit','delete'),
+                'opaq'      => array('index','getopaqlist'), // Added OPAQ controller and its methods
             ), 
             
             'inventory' => array(               

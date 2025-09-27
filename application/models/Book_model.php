@@ -252,4 +252,72 @@ class Book_model extends MY_Model
         return $query->result_array();
     }
 
+    public function getOpaqBooklist($search_params)
+    {
+        $this->datatables
+            ->select('books.*,IFNULL(total_issue, "0") as `total_issue` ')
+            ->join(" (SELECT COUNT(*) as `total_issue`, book_id from book_issues  where is_returned= 0  GROUP by book_id) as `book_count`", "books.id=book_count.book_id", "left")
+            ->sort('books.id','desc')
+            ->from('books');
+
+        if (!empty($search_params['book_title'])) {
+            $this->datatables->where('book_title', $search_params['book_title']);
+        }
+        if (!empty($search_params['author'])) {
+            $this->datatables->where('author', $search_params['author']);
+        }
+        if (!empty($search_params['barcode'])) {
+            $this->datatables->where('barcode', $search_params['barcode']);
+        }
+        if (!empty($search_params['accession_no'])) {
+            $this->datatables->where('book_no', $search_params['accession_no']); // Assuming accession_no maps to book_no
+        }
+        if (!empty($search_params['publisher'])) {
+            $this->datatables->where('publish', $search_params['publisher']);
+        }
+        if (!empty($search_params['subject'])) {
+            $this->datatables->where('subject', $search_params['subject']);
+        }
+
+        return $this->datatables->generate('json');
+    }
+
+    public function get_all_book_titles()
+    {
+        $this->db->select('book_title')->from('books')->distinct();
+        $this->db->order_by('book_title', 'asc');
+        $query = $this->db->get();
+        return $query->result_array();
+    }
+
+    public function get_all_authors()
+    {
+        $this->db->select('author')->from('books')->distinct();
+        $this->db->where('author IS NOT NULL');
+        $this->db->where('author != ""');
+        $this->db->order_by('author', 'asc');
+        $query = $this->db->get();
+        return $query->result_array();
+    }
+
+    public function get_all_publishers()
+    {
+        $this->db->select('publish')->from('books')->distinct();
+        $this->db->where('publish IS NOT NULL');
+        $this->db->where('publish != ""');
+        $this->db->order_by('publish', 'asc');
+        $query = $this->db->get();
+        return $query->result_array();
+    }
+
+    public function get_all_subjects()
+    {
+        $this->db->select('subject')->from('books')->distinct();
+        $this->db->where('subject IS NOT NULL');
+        $this->db->where('subject != ""');
+        $this->db->order_by('subject', 'asc');
+        $query = $this->db->get();
+        return $query->result_array();
+    }
+
 }

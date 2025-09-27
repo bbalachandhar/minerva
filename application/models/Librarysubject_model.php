@@ -97,4 +97,9 @@ class Librarysubject_model extends MY_Model
             return $insert_id;
         }
     }
+
+    public function get_all_subjects()
+    {
+        return $this->get(); // Calls the existing get() method to fetch all subjects
+    }
 }
