@@ -20,76 +20,74 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                         <div class="row">
                             <form role="form" action="<?php echo site_url('admin/opaq/getopaqlist') ?>" method="post" class="form-horizontal" id="opaq_search_form">
                                 <div class="box-body">
-                                    <div class="col-sm-6 col-md-3">
-                                        <div class="form-group">
-                                            <label><?php echo $this->lang->line('book_title'); ?></label>
-                                            <select class="form-control" name="book_title" id="book_title">
-                                                <option value=""><?php echo $this->lang->line('select'); ?></option>
-                                                <?php foreach ($book_titles as $title_item) { ?>
-                                                    <option value="<?php echo $title_item['book_title']; ?>"><?php echo $title_item['book_title']; ?></option>
-                                                <?php } ?>
-                                            </select>
+                                    <div class="row"> <!-- First Row -->
+                                        <div class="col-sm-6 col-md-3">
+                                            <div class="form-group" style="margin-right: 15px; margin-bottom: 15px;">
+                                                <label><?php echo $this->lang->line('book_title'); ?></label>
+                                                <select class="form-control" name="book_title" id="book_title">
+                                                    <option value=""><?php echo $this->lang->line('select'); ?></option>
+                                                    <?php foreach ($book_titles as $title_item) { ?>
+                                                        <option value="<?php echo $title_item['book_title']; ?>"><?php echo $title_item['book_title']; ?></option>
+                                                    <?php } ?>
+                                                </select>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div class="col-sm-6 col-md-3">
-                                        <div class="form-group">
-                                            <label><?php echo $this->lang->line('author'); ?></label>
-                                            <select class="form-control" name="author" id="author">
-                                                <option value=""><?php echo $this->lang->line('select'); ?></option>
-                                                <?php foreach ($authors as $author_item) { ?>
-                                                    <option value="<?php echo $author_item['author']; ?>"><?php echo $author_item['author']; ?></option>
-                                                <?php } ?>
-                                            </select>
+                                        <div class="col-sm-6 col-md-3">
+                                            <div class="form-group" style="margin-right: 15px; margin-bottom: 15px;">
+                                                <label><?php echo $this->lang->line('author'); ?></label>
+                                                <select class="form-control" name="author" id="author">
+                                                    <option value=""><?php echo $this->lang->line('select'); ?></option>
+                                                    <?php foreach ($authors as $author_item) { ?>
+                                                        <option value="<?php echo $author_item['author']; ?>"><?php echo $author_item['author']; ?></option>
+                                                    <?php } ?>
+                                                </select>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div class="col-sm-6 col-md-3">
-                                        <div class="form-group">
-                                            <label><?php echo $this->lang->line('barcode'); ?></label>
-                                            <input type="text" name="barcode" id="barcode" class="form-control">
+                                        <div class="col-sm-6 col-md-3">
+                                            <div class="form-group" style="margin-right: 15px; margin-bottom: 15px;">
+                                                <label><?php echo $this->lang->line('barcode'); ?></label>
+                                                <input type="text" name="barcode" id="barcode" class="form-control">
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div class="col-sm-6 col-md-3">
-                                        <div class="form-group">
-                                            <label><?php echo $this->lang->line('accession_no'); ?></label>
-                                            <input type="text" name="accession_no" id="accession_no" class="form-control">
+                                    </div> <!-- End First Row -->
+                                    <div class="row"> <!-- Second Row -->
+                                        <div class="col-sm-6 col-md-3">
+                                            <div class="form-group" style="margin-right: 15px; margin-bottom: 15px;">
+                                                <label for="accession_no"><?php echo $this->lang->line('accession_no'); ?></label>
+                                                <input type="text" name="accession_no" id="accession_no" class="form-control">
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div class="col-sm-6 col-md-3">
-                                        <div class="form-group">
-                                            <label><?php echo $this->lang->line('publisher'); ?></label>
-                                            <select class="form-control" name="publisher" id="publisher">
-                                                <option value=""><?php echo $this->lang->line('select'); ?></option>
-                                                <?php foreach ($publishers as $publisher_item) { ?>
-                                                    <option value="<?php echo $publisher_item['publish']; ?>"><?php echo $publisher_item['publish']; ?></option>
-                                                <?php } ?>
-                                            </select>
+                                        <div class="col-sm-6 col-md-3">
+                                            <div class="form-group" style="margin-right: 15px; margin-bottom: 15px;">
+                                                <label><?php echo $this->lang->line('publisher'); ?></label>
+                                                <select class="form-control" name="publisher" id="publisher">
+                                                    <option value=""><?php echo $this->lang->line('select'); ?></option>
+                                                    <?php foreach ($publishers as $publisher_item) { ?>
+                                                        <option value="<?php echo $publisher_item['publish']; ?>"><?php echo $publisher_item['publish']; ?></option>
+                                                    <?php } ?>
+                                                </select>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div class="col-sm-6 col-md-3">
-                                        <div class="form-group">
-                                            <label><?php echo $this->lang->line('subject'); ?></label>
-                                            <select class="form-control" name="subject" id="subject">
-                                                <option value=""><?php echo $this->lang->line('select'); ?></option>
-                                                <?php foreach ($subjects as $subject_item) { ?>
-                                                    <option value="<?php echo $subject_item['subject']; ?>"><?php echo $subject_item['subject']; ?></option>
-                                                <?php } ?>
-                                            </select>
+                                        <div class="col-sm-6 col-md-3">
+                                            <div class="form-group" style="margin-right: 15px; margin-bottom: 15px;">
+                                                <label><?php echo $this->lang->line('subject'); ?></label>
+                                                <select class="form-control" name="subject" id="subject">
+                                                    <option value=""><?php echo $this->lang->line('select'); ?></option>
+                                                    <?php foreach ($subjects as $subject_item) { ?>
+                                                        <option value="<?php echo $subject_item['subject']; ?>"><?php echo $subject_item['subject']; ?></option>
+                                                    <?php } ?>
+                                                </select>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div class="col-sm-12">
-                                        <div class="form-group">
-                                            <button type="submit" name="search" value="search_filter" class="btn btn-primary btn-sm pull-right"><i class="fa fa-search"></i> <?php echo $this->lang->line('search'); ?></button>
+                                        <div class="col-sm-6 col-md-3"> <!-- New column for the search button -->
+                                            <div class="form-group" style="margin-bottom: 15px; margin-top: 25px;"> <!-- Added margin-top to align with dropdowns -->
+                                                <button type="submit" name="search" value="search_filter" class="btn btn-primary btn-sm"><i class="fa fa-search"></i> <?php echo $this->lang->line('search'); ?></button>
+                                            </div>
                                         </div>
-                                    </div>
+                                    </div> <!-- End Second Row -->
                                 </div>
                             </form>
                         </div><!--./row-->
-                        <div class="row" style="margin-bottom: 10px;">
-                            <div class="col-md-12">
-                                <span style="font-weight: bold; font-size: 16px;"><?php echo "Total Books: " . $total_books; ?></span>
-                                <span style="font-weight: bold; font-size: 16px; margin-left: 20px;"><?php echo "Available Books: " . $available_books; ?></span>
-                            </div>
-                        </div>
                         <div class="mailbox-controls">
                             <!-- Check all button -->
                             <?php if ($this->session->flashdata('msg')) { ?>
@@ -196,6 +194,12 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
 <script>
 $(document).ready(function() {
     emptyDatatable('opaq-list','data'); // Changed table ID
+
+    // Initialize Select2 on the dropdowns
+    $('#book_title').select2();
+    $('#author').select2();
+    $('#publisher').select2();
+    $('#subject').select2();
 });
 
     ( function ( $ ) {

@@ -260,23 +260,29 @@ class Book_model extends MY_Model
             ->sort('books.id','desc')
             ->from('books');
 
+        $where_clauses = array();
+
         if (!empty($search_params['book_title'])) {
-            $this->datatables->where('book_title', $search_params['book_title']);
+            $where_clauses[] = "book_title = " . $this->db->escape($search_params['book_title']);
         }
         if (!empty($search_params['author'])) {
-            $this->datatables->where('author', $search_params['author']);
+            $where_clauses[] = "author = " . $this->db->escape($search_params['author']);
         }
         if (!empty($search_params['barcode'])) {
-            $this->datatables->where('barcode', $search_params['barcode']);
+            $where_clauses[] = "barcode = " . $this->db->escape($search_params['barcode']);
         }
         if (!empty($search_params['accession_no'])) {
-            $this->datatables->where('book_no', $search_params['accession_no']); // Assuming accession_no maps to book_no
+            $where_clauses[] = "book_no = " . $this->db->escape($search_params['accession_no']); // Assuming accession_no maps to book_no
         }
         if (!empty($search_params['publisher'])) {
-            $this->datatables->where('publish', $search_params['publisher']);
+            $where_clauses[] = "publish = " . $this->db->escape($search_params['publisher']);
         }
         if (!empty($search_params['subject'])) {
-            $this->datatables->where('subject', $search_params['subject']);
+            $where_clauses[] = "subject = " . $this->db->escape($search_params['subject']);
+        }
+
+        if (!empty($where_clauses)) {
+            $this->datatables->where(implode(' AND ', $where_clauses));
         }
 
         return $this->datatables->generate('json');
