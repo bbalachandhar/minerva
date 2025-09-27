@@ -40,7 +40,14 @@ class Opaq extends Admin_Controller {
     // This method will handle the AJAX request for the DataTable
     function getopaqlist() {
         if (!$this->rbac->hasPrivilege('books', 'can_view')) {
-            access_denied();
+            echo json_encode(array(
+                "draw" => 0,
+                "recordsTotal" => 0,
+                "recordsFiltered" => 0,
+                "data" => array(),
+                "error" => "Access Denied"
+            ));
+            exit(); // Exit after sending JSON error
         }
 
         $this->load->model('book_model');
@@ -93,7 +100,6 @@ class Opaq extends Admin_Controller {
                 
                 $row[] = $currency_symbol . amountFormat($value->perunitcost);
                 $row[] = !empty($value->postdate) ? $this->customlib->dateformat($value->postdate) : 'N/A';
-                $row[] = $editbtn . ' ' . $deletebtn . ' ' . "<a href='" . base_url() . "admin/book/bookdetail/" . $value->id . "' class='btn btn-default btn-xs'  data-toggle='tooltip' title='View Details'><i class='fa fa-reorder'></i></a>";
                 $dt_data[] = $row;
             }
         }
@@ -103,6 +109,7 @@ class Opaq extends Admin_Controller {
             "recordsTotal"    => intval($m->recordsTotal),
             "recordsFiltered" => intval(isset($m->recordsFiltered) ? $m->recordsFiltered : 0),
             "data"            => $dt_data,
+            "debug_search_params" => $search_params // Add search_params to the JSON response
         );
         echo json_encode($json_data);
     }

@@ -48,10 +48,13 @@ $feesinbackdate = $this->customlib->getfeesinbackdate();
     });
 </script>
 <script type="text/javascript">
-    $(document).ready(function () {
-        $(".studentsidebar").mCustomScrollbar({
-            theme: "minimal"
+    (function($) { // Wrap in self-executing anonymous function
+        $(document).ready(function () {
+            $(".studentsidebar").mCustomScrollbar({
+                theme: "minimal"
+            });
         });
+    })(jQuery); // Pass jQuery to avoid conflicts
 
         $('.studentsideclose, .overlay').on('click', function () {
             $('.studentsidebar').removeClass('active');
