@@ -52,12 +52,24 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
 </div>
 <div class="form-group col-md-3">
     <label for="exampleInputEmail1">Category Name <small class="req"> *</small></label>
-    <input id="category_name" name="category_name" placeholder="" type="text" class="form-control"  value="<?php echo set_value('category_name', $editbook['category_name']); ?>" />
+    <select id="category_name" name="category_name" class="form-control">
+        <option value="">Select Category</option>
+        <?php foreach($categorylist as $category) { ?>
+            <option value="<?php echo $category['category_name']; ?>" <?php if($editbook['category_name'] == $category['category_name']) echo 'selected'; ?>><?php echo $category['category_name']; ?></option>
+        <?php } ?>
+    </select>
     <span class="text-danger"><?php echo form_error('category_name'); ?></span>
 </div>
+<div class="clearfix"></div>
+
 <div class="form-group col-md-3">
     <label for="exampleInputEmail1">SubCategory Name</label>
-    <input id="subcategory_name" name="subcategory_name" placeholder="" type="text" class="form-control"  value="<?php echo set_value('subcategory_name', $editbook['subcategory_name']); ?>" />
+    <select id="subcategory_name" name="subcategory_name" class="form-control">
+        <option value="">Select SubCategory</option>
+        <?php foreach($subcategorylist as $subcategory) { ?>
+            <option value="<?php echo $subcategory['subcategory_name']; ?>" <?php if($editbook['subcategory_name'] == $subcategory['subcategory_name']) echo 'selected'; ?>><?php echo $subcategory['subcategory_name']; ?></option>
+        <?php } ?>
+    </select>
     <span class="text-danger"><?php echo form_error('subcategory_name'); ?></span>
 </div>
 <div class="form-group col-md-3">
@@ -67,15 +79,31 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
 </div>
 <div class="form-group col-md-3">
     <label for="exampleInputEmail1"><?php echo $this->lang->line('publisher'); ?></label>
-    <input id="amount" name="publish" placeholder="" type="text" class="form-control"  value="<?php echo set_value('publish', $editbook['publish']); ?>" />
+    <select id="publish" name="publish" class="form-control">
+        <option value="">Select Publisher</option>
+        <?php foreach($publisherlist as $publisher) { ?>
+            <option value="<?php echo $publisher['publisher_name']; ?>" <?php if($editbook['publish'] == $publisher['publisher_name']) echo 'selected'; ?>><?php echo $publisher['publisher_name']; ?></option>
+        <?php } ?>
+    </select>
     <span class="text-danger"><?php echo form_error('publish'); ?></span>
 </div>
+<div class="form-group col-md-3">
+    <label for="exampleInputEmail1">Vendor</label>
+    <select id="vendor" name="vendor" class="form-control">
+        <option value="">Select Vendor</option>
+        <?php foreach($vendorlist as $vendor) { ?>
+            <option value="<?php echo $vendor['vendor_name']; ?>" <?php if($editbook['vendor'] == $vendor['vendor_name']) echo 'selected'; ?>><?php echo $vendor['vendor_name']; ?></option>
+        <?php } ?>
+    </select>
+    <span class="text-danger"><?php echo form_error('vendor'); ?></span>
+</div>
+<div class="clearfix"></div>
+
 <div class="form-group col-md-3">
     <label for="exampleInputEmail1">Edition</label>
     <input id="edition" name="edition" placeholder="" type="text" class="form-control"  value="<?php echo set_value('edition', $editbook['edition']); ?>" />
     <span class="text-danger"><?php echo form_error('edition'); ?></span>
 </div>
-<div class="clearfix"></div>
 <div class="form-group col-md-3">
     <label for="exampleInputEmail1">Class No</label>
     <input id="class_no" name="class_no" placeholder="" type="text" class="form-control"  value="<?php echo set_value('class_no', $editbook['class_no']); ?>" />
@@ -91,6 +119,8 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
     <input id="publish_year" name="publish_year" placeholder="" type="text" class="form-control"  value="<?php echo set_value('publish_year', $editbook['publish_year']); ?>" />
     <span class="text-danger"><?php echo form_error('publish_year'); ?></span>
 </div>
+<div class="clearfix"></div>
+
 <div class="form-group col-md-3">
     <label for="exampleInputEmail1">Medium</label>
     <input id="medium" name="medium" placeholder="" type="text" class="form-control"  value="<?php echo set_value('medium', $editbook['medium']); ?>" />
@@ -98,7 +128,12 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
 </div>
 <div class="form-group col-md-3">
     <label for="exampleInputEmail1">BookType</label>
-    <input id="book_type" name="book_type" placeholder="" type="text" class="form-control"  value="<?php echo set_value('book_type', $editbook['book_type']); ?>" />
+    <select id="book_type" name="book_type" class="form-control">
+        <option value="">Select BookType</option>
+        <?php foreach($booktypelist as $booktype) { ?>
+            <option value="<?php echo $booktype['book_type']; ?>" <?php if($editbook['book_type'] == $booktype['book_type']) echo 'selected'; ?>><?php echo $booktype['book_type']; ?></option>
+        <?php } ?>
+    </select>
     <span class="text-danger"><?php echo form_error('book_type'); ?></span>
 </div>
 <div class="form-group col-md-3">
@@ -111,20 +146,36 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
     <input id="author2" name="author2" placeholder="" type="text" class="form-control"  value="<?php echo set_value('author2', $editbook['author2']); ?>" />
     <span class="text-danger"><?php echo form_error('author2'); ?></span>
 </div>
+<div class="clearfix"></div>
+
 <div class="form-group col-md-3">
     <label for="exampleInputEmail1"><?php echo $this->lang->line('subject'); ?> <small class="req"> *</small></label>
-    <input id="subject" name="subject" placeholder="" type="text" class="form-control"  value="<?php echo set_value('subject', $editbook['subject']); ?>" />
+    <select id="subject" name="subject" class="form-control">
+        <option value="">Select Subject</option>
+        <?php foreach($subjectlist as $subject) { ?>
+            <option value="<?php echo $subject['subject_name']; ?>" <?php if($editbook['subject'] == $subject['subject_name']) echo 'selected'; ?>><?php echo $subject['subject_name']; ?></option>
+        <?php } ?>
+    </select>
     <span class="text-danger"><?php echo form_error('subject'); ?></span>
 </div>
-<div class="clearfix"></div>
                             <div class="form-group col-md-3">
     <label for="exampleInputEmail1">Position Rack <small class="req"> *</small></label>
-    <input id="rack_no" name="rack_no" placeholder="" type="text" class="form-control"  value="<?php echo set_value('rack_no', $editbook['rack_no']); ?>" />
+    <select id="rack_no" name="rack_no" class="form-control">
+        <option value="">Select Position Rack</option>
+        <?php foreach($racklist as $rack) { ?>
+            <option value="<?php echo $rack['position']; ?>" <?php if($editbook['rack_no'] == $rack['position']) echo 'selected'; ?>><?php echo $rack['position']; ?></option>
+        <?php } ?>
+    </select>
     <span class="text-danger"><?php echo form_error('rack_no'); ?></span>
 </div>
 <div class="form-group col-md-3">
     <label for="exampleInputEmail1">Position Shelf</label>
-    <input id="shelf_id" name="shelf_id" placeholder="" type="text" class="form-control"  value="<?php echo set_value('shelf_id', $editbook['shelf_id']); ?>" />
+    <select id="shelf_id" name="shelf_id" class="form-control">
+        <option value="">Select Position Shelf</option>
+        <?php foreach($shelflist as $shelf) { ?>
+            <option value="<?php echo $shelf['position']; ?>" <?php if($editbook['shelf_id'] == $shelf['position']) echo 'selected'; ?>><?php echo $shelf['position']; ?></option>
+        <?php } ?>
+    </select>
     <span class="text-danger"><?php echo form_error('shelf_id'); ?></span>
 </div>
 <div class="form-group col-md-3">
@@ -132,6 +183,8 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
     <input id="amount" name="perunitcost" placeholder="" type="text" class="form-control"  value="<?php echo convertBaseAmountCurrencyFormat($editbook['perunitcost']); ?>" />
     <span class="text-danger"><?php echo form_error('perunitcost'); ?></span>
 </div>
+<div class="clearfix"></div>
+
 <div class="form-group col-md-3">
     <label for="exampleInputEmail1">Purchase Date</label>
     <input id="purchase_date" name="purchase_date" placeholder="" type="text" class="form-control date"  value="<?php echo set_value('purchase_date', $this->customlib->dateformat($editbook['purchase_date'])); ?>" />
@@ -152,18 +205,19 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
     <input id="pages" name="pages" placeholder="" type="text" class="form-control"  value="<?php echo set_value('pages', $editbook['pages']); ?>" />
     <span class="text-danger"><?php echo form_error('pages'); ?></span>
 </div>
+<div class="clearfix"></div>
+
 <div class="form-group col-md-3">
     <label for="exampleInputEmail1">Department <small class="req"> *</small></label>
     <input id="department" name="department" placeholder="" type="text" class="form-control"  value="<?php echo set_value('department', $editbook['department']); ?>" />
     <span class="text-danger"><?php echo form_error('department'); ?></span>
 </div>
-<div class="clearfix"></div>
 <div class="form-group col-md-3">
     <label for="exampleInputEmail1"><?php echo $this->lang->line('post_date'); ?></label>
     <input id="postdate" name="postdate"  placeholder="" type="text" class="form-control date"  value="<?php echo set_value('postdate', $this->customlib->dateformat($editbook['postdate'])); ?>" />
     <span class="text-danger"><?php echo form_error('postdate'); ?></span>
 </div>
-<div class="form-group col-md-3">
+<div class="form-group col-md-6">
     <label for="exampleInputEmail1"><?php echo $this->lang->line('description'); ?></label>
     <textarea class="form-control" id="description" name="description" placeholder="" rows="3" placeholder=""><?php echo set_value('description', $editbook['description']); ?></textarea>
     <span class="text-danger"><?php echo form_error('description'); ?></span>

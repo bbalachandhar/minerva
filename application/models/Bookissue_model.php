@@ -261,4 +261,10 @@ class Bookissue_model extends MY_Model
         return $query->result_array();
     }
 
+    public function count_issued_books()
+    {
+        $this->db->where('is_returned', 0);
+        return $this->db->count_all_results('book_issues');
+    }
+
 }

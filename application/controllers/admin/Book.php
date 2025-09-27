@@ -39,8 +39,15 @@ class Book extends Admin_Controller
         }
         $this->session->set_userdata('top_menu', 'Library');
         $this->session->set_userdata('sub_menu', 'book/getall');
+
+        $this->load->model('bookissue_model');
+
+        $data['total_books'] = $this->book_model->count_all_books();
+        $data['issued_books'] = $this->bookissue_model->count_issued_books();
+        $data['available_books'] = $data['total_books'] - $data['issued_books'];
+
         $this->load->view('layout/header');
-        $this->load->view('admin/book/getall');
+        $this->load->view('admin/book/getall', $data);
         $this->load->view('layout/footer');
     }
 
@@ -463,7 +470,7 @@ class Book extends Admin_Controller
                 $row[]     = $value->qty - $value->total_issue;
                 $row[]     = $currency_symbol . amountFormat($value->perunitcost);
                 $row[]     = $this->customlib->dateformat($value->postdate);
-                $row[]     = $editbtn . ' ' . $deletebtn;
+                $row[]     = $editbtn . ' ' . $deletebtn . ' ' . "<button type='button' class='btn btn-default btn-xs view-book-details' data-toggle='tooltip' title='View Details'><i class='fa fa-reorder'></i></button>";
                 $dt_data[] = $row;
             }
         }

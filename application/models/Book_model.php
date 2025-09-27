@@ -230,4 +230,9 @@ class Book_model extends MY_Model
         return false;
     }
 
+    public function count_all_books()
+    {
+        return $this->db->count_all_results('books');
+    }
+
 }
