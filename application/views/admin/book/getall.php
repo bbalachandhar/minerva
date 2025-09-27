@@ -60,6 +60,8 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                         <th><?php echo $this->lang->line('author'); ?></th>
                                         <th><?php echo $this->lang->line('subject'); ?></th>
                                         <th><?php echo $this->lang->line('rack_number'); ?></th>
+                                        <th><?php echo $this->lang->line('qty'); ?></th>
+                                        <th><?php echo $this->lang->line('available'); ?></th>
                                         <th class="text-right"><?php echo $this->lang->line('book_price'); ?></th>
                                         <th><?php echo $this->lang->line('post_date'); ?></th>
                                         <th class="no-print text text-right noExport "><?php echo $this->lang->line('action'); ?></th>
