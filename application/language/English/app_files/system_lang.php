@@ -2474,6 +2474,12 @@ $lang['book_type_master'] = "Book Type Master";
 $lang['subject_master'] = "Subject Master";
 $lang['position_rack_master'] = "Position Rack Master";
 $lang['position_shelf_master'] = "Position Shelf Master";
+$lang['shelf_number'] = "Shelf Number";
+$lang['opaq'] = "OPAQ";
+
+
+
+
 
 
 

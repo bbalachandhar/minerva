@@ -497,22 +497,18 @@ class Book extends Admin_Controller
                 }
 
                 $row   = array();
-                $row[] = $value->book_title;
-                if ($value->description == "") {
-                    $row[] = $this->lang->line('no_description');
-                } else {
-                    $row[] = $value->description;
-                }
-                $row[]     = $value->book_no;
-                $row[]     = $value->isbn_no;
-                $row[]     = $value->publish;
-                $row[]     = $value->author;
-                $row[]     = $value->subject;
-                $row[]     = $value->rack_no;
+                $row[] = !empty($value->book_title) ? $value->book_title : 'N/A';
+                $row[] = !empty($value->description) ? $value->description : 'N/A';
+                $row[] = !empty($value->book_no) ? $value->book_no : 'N/A';
+                $row[] = !empty($value->isbn_no) ? $value->isbn_no : 'N/A';
+                $row[] = !empty($value->publish) ? $value->publish : 'N/A';
+                $row[] = !empty($value->author) ? $value->author : 'N/A';
+                $row[] = !empty($value->subject) ? $value->subject : 'N/A';
+                $row[] = !empty($value->rack_no) ? $value->rack_no : 'N/A';
+                $row[] = !empty($value->shelf_id) ? $value->shelf_id : 'N/A'; // Added shelf_id
                 
-                
-                $row[]     = $currency_symbol . amountFormat($value->perunitcost);
-                $row[]     = $this->customlib->dateformat($value->postdate);
+                $row[] = $currency_symbol . amountFormat($value->perunitcost);
+                $row[] = !empty($value->postdate) ? $this->customlib->dateformat($value->postdate) : 'N/A';
                 $row[]     = $editbtn . ' ' . $deletebtn . ' ' . "<a href='" . base_url() . "admin/book/bookdetail/" . $value->id . "' class='btn btn-default btn-xs'  data-toggle='tooltip' title='View Details'><i class='fa fa-reorder'></i></a>";
                 $dt_data[] = $row;
             }

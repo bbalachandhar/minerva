@@ -1,11 +1,11 @@
 <div class="content-wrapper">
     <section class="content-header">
-        <h1><i class="fa fa-book"></i> <?php echo $this->lang->line('library'); ?></h1>
+        <h1 style="color: black;"><i class="fa fa-book"></i> <?php echo $title; ?></h1>
     </section>
     <section class="content">
         <div class="box box-primary">
             <div class="box-header with-border">
-                <h3 class="box-title"><?php echo $this->lang->line('book_details'); ?></h3>
+                <h3 class="box-title" style="color: black;">Book Details</h3>
             </div>
             <div class="box-body">
                 <?php if (!empty($book)) { ?>
@@ -39,6 +39,10 @@
                             <td><?php echo $book['rack_no']; ?></td>
                         </tr>
                         <tr>
+                            <th>Shelf Number</th>
+                            <td><?php echo !empty($book['shelf_id']) ? $book['shelf_id'] : 'N/A'; ?></td>
+                        </tr>
+                        <tr>
                             <th><?php echo $this->lang->line('book_price'); ?></th>
                             <td><?php echo $book['perunitcost']; ?></td>
                         </tr>
@@ -60,7 +64,7 @@
                 <?php } else { ?>
                     <div class="alert alert-info"><?php echo $this->lang->line('no_record_found'); ?></div>
                 <?php } ?>
-                <a href="<?php echo base_url('admin/book/getall'); ?>" class="btn btn-primary btn-lg" style="color: white;"><?php echo $this->lang->line('back_to_book_list'); ?></a>
+                <a href="<?php echo base_url('admin/book/getall'); ?>" class="btn btn-primary btn-lg" style="color: white;">Back</a>
             </div>
         </div>
     </section>
