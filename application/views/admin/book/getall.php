@@ -30,7 +30,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                         <div class="row" style="margin-bottom: 10px;">
                             <div class="col-md-12">
                                 <span style="font-weight: bold; font-size: 16px;"><?php echo "Total Books: " . $total_books; ?></span>
-                                <span style="font-weight: bold; font-size: 16px; margin-left: 20px;"><?php echo "Available Books: " . $available_books; ?></span>
+                                
                                 <span id="search_count" style="font-weight: bold; font-size: 16px; margin-left: 20px;"></span>
                             </div>
                         </div>
@@ -60,8 +60,8 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                         <th><?php echo $this->lang->line('author'); ?></th>
                                         <th><?php echo $this->lang->line('subject'); ?></th>
                                         <th><?php echo $this->lang->line('rack_number'); ?></th>
-                                        <th><?php echo $this->lang->line('qty'); ?></th>
-                                        <th><?php echo $this->lang->line('available'); ?></th>
+                                        
+                                        
                                         <th class="text-right"><?php echo $this->lang->line('book_price'); ?></th>
                                         <th><?php echo $this->lang->line('post_date'); ?></th>
                                         <th class="no-print text text-right noExport "><?php echo $this->lang->line('action'); ?></th>

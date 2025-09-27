@@ -466,8 +466,8 @@ class Book extends Admin_Controller
                 $row[]     = $value->author;
                 $row[]     = $value->subject;
                 $row[]     = $value->rack_no;
-                $row[]     = $value->qty;
-                $row[]     = $value->qty - $value->total_issue;
+                
+                
                 $row[]     = $currency_symbol . amountFormat($value->perunitcost);
                 $row[]     = $this->customlib->dateformat($value->postdate);
                 $row[]     = $editbtn . ' ' . $deletebtn . ' ' . "<button type='button' class='btn btn-default btn-xs view-book-details' data-toggle='tooltip' title='View Details'><i class='fa fa-reorder'></i></button>";
