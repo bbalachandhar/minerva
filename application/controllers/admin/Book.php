@@ -215,6 +215,49 @@ class Book extends Admin_Controller
         redirect('admin/book/getall');
     }
 
+    public function bookdetail($id)
+    {
+        if (!$this->rbac->hasPrivilege('books', 'can_view')) {
+            access_denied();
+        }
+        $this->session->set_userdata('top_menu', 'Library');
+        $this->session->set_userdata('sub_menu', 'library/book');
+        $book = $this->book_model->get($id);
+        $data['book'] = $book;
+        $data['title'] = 'Book Details - ' . $book['book_title'];
+
+        $this->load->model('bookissue_model'); // Load bookissue_model
+
+        $total_count = 0;
+        $available_count = 0;
+
+        if (!empty($book)) {
+            $matching_books = array();
+            if (!empty($book['isbn_no'])) {
+                // Search by ISBN
+                $matching_books = $this->book_model->getBooksByISBN($book['isbn_no']);
+            } else {
+                // Search by title and author
+                $matching_books = $this->book_model->getBooksByTitleAuthor($book['book_title'], $book['author']);
+            }
+
+            $total_count = count($matching_books);
+            $issued_count = 0;
+
+            foreach ($matching_books as $matching_book) {
+                $issued_count += $this->bookissue_model->countIssuedBookById($matching_book['id']);
+            }
+            $available_count = $total_count - $issued_count;
+        }
+
+        $data['total_count'] = $total_count;
+        $data['available_count'] = $available_count;
+
+        $this->load->view('layout/header');
+        $this->load->view('admin/book/bookdetail', $data);
+        $this->load->view('layout/footer');
+    }
+
     public function getAvailQuantity()
     {
         $book_id   = $this->input->post('book_id');
@@ -470,7 +513,7 @@ class Book extends Admin_Controller
                 
                 $row[]     = $currency_symbol . amountFormat($value->perunitcost);
                 $row[]     = $this->customlib->dateformat($value->postdate);
-                $row[]     = $editbtn . ' ' . $deletebtn . ' ' . "<button type='button' class='btn btn-default btn-xs view-book-details' data-toggle='tooltip' title='View Details'><i class='fa fa-reorder'></i></button>";
+                $row[]     = $editbtn . ' ' . $deletebtn . ' ' . "<a href='" . base_url() . "admin/book/bookdetail/" . $value->id . "' class='btn btn-default btn-xs'  data-toggle='tooltip' title='View Details'><i class='fa fa-reorder'></i></a>";
                 $dt_data[] = $row;
             }
         }

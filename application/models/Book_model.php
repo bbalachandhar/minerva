@@ -235,4 +235,21 @@ class Book_model extends MY_Model
         return $this->db->count_all_results('books');
     }
 
+    public function getBooksByISBN($isbn)
+    {
+        $this->db->select()->from('books');
+        $this->db->where('isbn_no', $isbn);
+        $query = $this->db->get();
+        return $query->result_array();
+    }
+
+    public function getBooksByTitleAuthor($title, $author)
+    {
+        $this->db->select()->from('books');
+        $this->db->where('book_title', $title);
+        $this->db->where('author', $author);
+        $query = $this->db->get();
+        return $query->result_array();
+    }
+
 }
