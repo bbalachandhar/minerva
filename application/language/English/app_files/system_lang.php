@@ -2466,3 +2466,14 @@ $lang['whatsapp_link'] = "Whatsapp Link";
 $lang['whatsapp_settings'] = "Whatsapp Settings";
 $lang['processing_fees_type'] = "Processing Fees Type";
 $lang['percentage_fix_amount'] = "Percentage/Fix Amount";
+$lang['category_master'] = "Category Master";
+$lang['sub_category_master'] = "Sub Category Master";
+$lang['publisher_master'] = "Publisher Master";
+$lang['vendor_master'] = "Vendor Master";
+$lang['book_type_master'] = "Book Type Master";
+$lang['subject_master'] = "Subject Master";
+$lang['position_rack_master'] = "Position Rack Master";
+$lang['position_shelf_master'] = "Position Shelf Master";
+
+
+

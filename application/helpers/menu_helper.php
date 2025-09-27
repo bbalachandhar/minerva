@@ -234,7 +234,15 @@ if (!function_exists('main_menu_array')) {
             
             'library' => array(               
                 'book'      => array('getall','edit','index','import'),    
-                'member'    => array('index','issue','student','teacher'),    
+                'member'    => array('index','issue','student','teacher'), 
+                'librarycategory'       => array('index','create','edit','delete'),
+                'librarysubcategory'    => array('index','create','edit','delete'),
+                'librarypublisher'      => array('index','create','edit','delete'),
+                'libraryvendor'         => array('index','create','edit','delete'),
+                'librarybooktype'       => array('index','create','edit','delete'),
+                'librarysubject'        => array('index','create','edit','delete'),
+                'librarypositionrack'   => array('index','create','edit','delete'),
+                'librarypositionshelf'  => array('index','create','edit','delete'),   
             ), 
             
             'inventory' => array(               
