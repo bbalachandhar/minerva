@@ -30,7 +30,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                         <div class="row" style="margin-bottom: 10px;">
                             <div class="col-md-12">
                                 <span style="font-weight: bold; font-size: 16px;"><?php echo "Total Books: " . $total_books; ?></span>
-                                
+                                <span style="font-weight: bold; font-size: 16px; margin-left: 20px;"><?php echo "Available Books: " . $available_books; ?></span>
                                 <span id="search_count" style="font-weight: bold; font-size: 16px; margin-left: 20px;"></span>
                             </div>
                         </div>
