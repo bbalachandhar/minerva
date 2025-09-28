@@ -10,6 +10,8 @@ class Classes extends Admin_Controller
     public function __construct()
     {
         parent::__construct();
+        $this->load->model('Department_model');
+        $this->sch_setting_detail = $this->setting_model->getSetting();
     }
 
     public function index()
@@ -22,6 +24,9 @@ class Classes extends Admin_Controller
         $data['title']      = 'Add Class';
         $data['title_list'] = 'Class List';
 
+        $data['sch_setting'] = $this->sch_setting_detail;
+        $data['department_list'] = $this->Department_model->getDepartmentType();
+
         $this->form_validation->set_rules(
             'class', $this->lang->line('class'), array(
                 'required',
@@ -30,12 +35,17 @@ class Classes extends Admin_Controller
         );
         $this->form_validation->set_rules('sections[]', $this->lang->line('section'), 'trim|required|xss_clean');
 
+        if ($this->sch_setting_detail->institution_type == 'college') {
+            $this->form_validation->set_rules('department_id', $this->lang->line('department'), 'trim|required|xss_clean');
+        }
+
         if ($this->form_validation->run() == false) {
 
         } else {
             $class       = $this->input->post('class');
             $class_array = array(
                 'class' => $this->input->post('class'),
+                'department_id' => $this->input->post('department_id'),
             );
             $sections = $this->input->post('sections');
             $this->classsection_model->add($class_array, $sections);

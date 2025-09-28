@@ -33,9 +33,31 @@
                                 }
                                 ?>
                                 <?php echo $this->customlib->getCSRF(); ?>
+                                <?php if ($sch_setting->institution_type == 'college') { ?>
+                                <div class="form-group">
+                                    <label for="exampleInputEmail1">Department</label><small class="req"> *</small>
+                                    <select id="department_id" name="department_id" class="form-control">
+                                        <option value=""><?php echo $this->lang->line('select'); ?></option>
+                                        <?php
+                                        foreach ($department_list as $department) {
+                                            ?>
+                                            <option value="<?php echo $department['id'] ?>"<?php
+                                            if (isset($vehroute) && $vehroute->department_id == $department['id']) {
+                                                echo "selected=selected";
+                                            } else if (set_value('department_id') == $department['id']) {
+                                                echo "selected=selected";
+                                            }
+                                            ?>><?php echo $department['department_name'] ?></option>
+                                            <?php
+                                        }
+                                        ?>
+                                    </select>
+                                    <span class="text-danger"><?php echo form_error('department_id'); ?></span>
+                                </div>
+                                <?php } ?>
                                 <div class="form-group">
                                     <label for="exampleInputEmail1"><?php echo $this->lang->line('class'); ?></label><small class="req"> *</small>
-                                    <input autofocus="" id="class" name="class" placeholder="" type="text" class="form-control"  value="<?php echo set_value('class'); ?>" />
+                                    <input autofocus="" id="class" name="class" placeholder="" type="text" class="form-control"  value="<?php echo set_value('class', isset($vehroute) ? $vehroute->class : ''); ?>" />
                                     <span class="text-danger"><?php echo form_error('class'); ?></span>
                                 </div>
 
