@@ -127,17 +127,28 @@ class Libraryattendance_model extends MY_Model
      */
     public function get_attendance_records_dt($date = null)
     {
-        $this->datatables
-            ->select('id, user_id, user_type, name, attendance_date, in_time, out_time, duration')
-            ->from('library_attendance');
+        $this->db->select('id, user_id, user_type, name, attendance_date, in_time, out_time, duration');
+        $this->db->from('library_attendance');
 
         if ($date) {
-            $this->datatables->where('attendance_date', $date);
+            $this->db->where('attendance_date', $date);
         }
         
-        $this->datatables->order_by('id', 'desc'); // Order by latest entry
+        $this->db->order_by('id', 'desc');
+        
+        $query = $this->db->get();
+        $result = $query->result_array();
+        
+        $total_records = count($result);
 
-        return $this->datatables->generate('json');
+        $json_response = [
+            "draw"            => intval($this->input->post('draw')),
+            "recordsTotal"    => $total_records,
+            "recordsFiltered" => $total_records,
+            "data"            => $result
+        ];
+
+        return json_encode($json_response);
     }
 
     /**

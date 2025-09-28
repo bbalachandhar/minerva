@@ -55,14 +55,10 @@ $(document).ready(function() {
     var attendanceTable = $('.attendance-list').DataTable({
         "processing": true,
         "serverSide": true,
-        "deferLoading": 0, // Start with no data
         "ajax": {
-            "url": base_url + 'admin/checkincheckout/get_attendance_dt',
+            "url": base_url + 'admin/library_checkin_checkout/get_attendance_dt',
             "type": "POST",
-            "data": function (d) {
-                // You can add date filter here if needed
-                // d.date = $('#filter_date').val();
-            }
+            "data": function (d) {}
         },
         "columns": [
             { "data": "user_id" },
@@ -82,9 +78,61 @@ $(document).ready(function() {
                 }
             }
         ],
-        "order": [[ 0, "desc" ]], // Order by latest entry
+        "order": [[ 0, "desc" ]],
         "pageLength": 100,
-        "dom": '<"top">rt<"bottom"ip><"clear">'
+        dom: '<"top"f><Bl>r<t>ip',
+        buttons: [
+            {
+                extend:    'copy',
+                text:      '<i class="fa fa-files-o"></i>',
+                titleAttr: 'Copy',
+                className: "btn-copy",
+                title: $('.attendance-list').data("exportTitle"),
+                exportOptions: {
+                    columns: ["thead th:not(.noExport)"]
+                }
+            },
+            {
+                extend:    'excel',
+                text:      '<i class="fa fa-file-excel-o"></i>',
+                titleAttr: 'Excel',
+                className: "btn-excel",
+                title: $('.attendance-list').data("exportTitle"),
+                exportOptions: {
+                    columns: ["thead th:not(.noExport)"]
+                }
+            },
+            {
+                extend:    'csv',
+                text:      '<i class="fa fa-file-text-o"></i>',
+                titleAttr: 'CSV',
+                className: "btn-csv",
+                title: $('.attendance-list').data("exportTitle"),
+                exportOptions: {
+                    columns: ["thead th:not(.noExport)"]
+                }
+            },
+            {
+                extend:    'pdf',
+                text:      '<i class="fa fa-file-pdf-o"></i>',
+                titleAttr: 'PDF',
+                className: "btn-pdf",
+                title: $('.attendance-list').data("exportTitle"),
+                exportOptions: {
+                    columns: ["thead th:not(.noExport)"]
+                }
+            },
+            {
+                extend:    'print',
+                text:      '<i class="fa fa-print"></i>',
+                titleAttr: 'Print',
+                className: "btn-print",
+                title: $('.attendance-list').data("exportTitle"),
+                exportOptions: {
+                    columns: ["thead th:not(.noExport)"]
+                }
+            }
+        ]
     });
 
     var typingTimer;                //timer identifier
