@@ -165,10 +165,12 @@ class Libraryattendance_model extends MY_Model
             $data[] = $row;
         }
 
+        $total_records = count($data);
+
         $json_response = [
-            "draw" => $this->input->post('draw'),
-            "recordsTotal" => $this->db->count_all('library_attendance'), // Total records without filter
-            "recordsFiltered" => count($data), // Filtered records (since we're doing simple filtering here)
+            "draw" => intval($this->input->post('draw')),
+            "recordsTotal" => $total_records,
+            "recordsFiltered" => $total_records,
             "data" => $data
         ];
 

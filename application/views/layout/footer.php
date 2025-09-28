@@ -48,26 +48,25 @@ $feesinbackdate = $this->customlib->getfeesinbackdate();
     });
 </script>
 <script type="text/javascript">
-    (function($) { // Wrap in self-executing anonymous function
+    (function ($) {
         $(document).ready(function () {
             $(".studentsidebar").mCustomScrollbar({
                 theme: "minimal"
             });
-        });
-    })(jQuery); // Pass jQuery to avoid conflicts
 
-        $('.studentsideclose, .overlay').on('click', function () {
-            $('.studentsidebar').removeClass('active');
-            $('.overlay').fadeOut();
-        });
+            $('.studentsideclose, .overlay').on('click', function () {
+                $('.studentsidebar').removeClass('active');
+                $('.overlay').fadeOut();
+            });
 
-        $('#sidebarCollapse').on('click', function () {
-            $('.studentsidebar').addClass('active');
-            $('.overlay').fadeIn();
-            $('.collapse.in').toggleClass('in');
-            $('a[aria-expanded=true]').attr('aria-expanded', 'false');
+            $('#sidebarCollapse').on('click', function () {
+                $('.studentsidebar').addClass('active');
+                $('.overlay').fadeIn();
+                $('.collapse.in').toggleClass('in');
+                $('a[aria-expanded=true]').attr('aria-expanded', 'false');
+            });
         });
-    });
+    })(jQuery);
 </script>
 
 <script src="<?php echo base_url(); ?>backend/plugins/iCheck/icheck.min.js"></script>

@@ -14,6 +14,29 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                         <h3 class="box-title titlefix"><?php echo $this->lang->line('library_checkout_pending'); ?></h3>
                     </div>
                     <div class="box-body">
+                        <div class="row">
+                            <form role="form" action="" method="post" class="form-horizontal" id="filter_form">
+                                <div class="box-body">
+                                    <div class="col-sm-6 col-md-3">
+                                        <div class="form-group" style="margin-right: 15px;">
+                                            <label><?php echo $this->lang->line('from_date'); ?></label>
+                                            <input type="text" name="start_date" id="start_date" class="form-control datepicker">
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-6 col-md-3">
+                                        <div class="form-group" style="margin-right: 15px;">
+                                            <label><?php echo $this->lang->line('to_date'); ?></label>
+                                            <input type="text" name="end_date" id="end_date" class="form-control datepicker">
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-6 col-md-3">
+                                        <div class="form-group" style="margin-top: 25px;">
+                                            <button type="submit" name="search" value="search_filter" class="btn btn-primary btn-sm"><i class="fa fa-search"></i> <?php echo $this->lang->line('filter'); ?></button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
                         <div class="mailbox-messages table-responsive overflow-visible-1">
                             <table width="100%" class="table table-striped table-bordered table-hover pending-attendance-list" data-export-title="<?php echo $this->lang->line('library_checkout_pending'); ?>">
                                 <thead>
@@ -40,34 +63,22 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
 
 <script>
 $(document).ready(function() {
-    // Initialize DataTables
-    var pendingAttendanceTable = $('.pending-attendance-list').DataTable({
-        "processing": true,
-        "serverSide": true,
-        "ajax": {
-            "url": base_url + 'admin/library_checkout_pending/get_pending_dt',
-            "type": "POST",
-            "data": function (d) {
-                // No specific filters for now, but can be added here
-            }
-        },
-        "columns": [
-            { "data": "user_id" },
-            { "data": "name" },
-            { "data": "attendance_date" },
-            { "data": "in_time" },
-            { "data": "out_time" },
-            { "data": "time_spent" }, // This is the calculated column from the model
-            {
-                "data": "out_time", // Still using out_time to determine status
-                "render": function (data, type, row) {
-                    // For pending, out_time should always be null, so status is 'In'
-                    return '<span class="label label-success"><?php echo $this->lang->line('in'); ?></span>';
-                }
-            }
-        ],
-        "order": [[ 0, "asc" ]], // Order by oldest check-in first
-        "dom": '<"top">rt<"bottom"ip><"clear">'
+    // Initialize the full datatable on page load to show all controls
+    initDatatable('pending-attendance-list', 'admin/library_checkout_pending/get_pending_dt', {}, [], 100, [], true, [], 'data');
+
+    // Handle the filter form submission to reload the table with new date parameters
+    $('#filter_form').on('submit', function(e) {
+        e.preventDefault();
+        
+        var start_date = $('#start_date').val();
+        var end_date = $('#end_date').val();
+
+        var params = {
+            start_date: start_date,
+            end_date: end_date
+        };
+
+        initDatatable('pending-attendance-list', 'admin/library_checkout_pending/get_pending_dt', params, [], 100, [], true, [], 'data');
     });
 });
 </script>
