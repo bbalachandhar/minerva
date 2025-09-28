@@ -236,7 +236,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
 
 <script>
 $(document).ready(function() {
-    emptyDatatable('opaq-list','data'); // Changed table ID
+
 
     // Initialize Select2 on the dropdowns
     $('#book_title').select2();
@@ -248,10 +248,37 @@ $(document).ready(function() {
     ( function ( $ ) {
     'use strict';
     $(document).ready(function () {
-        var table = initDatatable('opaq-list','admin/opaq/getopaqlist',[],[],100, // Changed table ID and URL
-            [
-                { "bSortable": false, "aTargets": [ -1 ] ,'sClass': 'dt-body-right'}
-            ]);
+        var table = $('.opaq-list').DataTable({
+            "processing": true,
+            "serverSide": true,
+            "ajax": {
+                "url": base_url + 'admin/opaq/getopaqlist',
+                "type": "POST",
+                "data": function (d) {
+                    d.book_title = $('#book_title').val();
+                    d.author = $('#author').val();
+                    d.barcode = $('#barcode').val();
+                    d.accession_no = $('#accession_no').val();
+                    d.publisher = $('#publisher').val();
+                    d.subject = $('#subject').val();
+                }
+            },
+            "columns": [
+                { "data": 0 }, // book_title
+                { "data": 1 }, // description
+                { "data": 2 }, // book_no
+                { "data": 3 }, // isbn_no
+                { "data": 4 }, // publish
+                { "data": 5 }, // author
+                { "data": 6 }, // subject
+                { "data": 7 }, // rack_no
+                { "data": 8 }, // shelf_id
+                { "data": 9 }, // perunitcost
+                { "data": 10 }  // postdate
+            ],
+            "order": [[ 0, "asc" ]],
+            "dom": '<"top">rt<"bottom"ip><"clear">'
+        });
 
         // Handle form submission for filtering
         $('#opaq_search_form').on('submit', function(e) {
@@ -261,7 +288,7 @@ $(document).ready(function() {
             $.each(form_data, function(i, field){
                 search_params[field.name] = field.value;
             });
-            table.ajax.url(base_url + 'admin/opaq/getopaqlist?' + $.param(search_params)).load();
+            table.ajax.reload();
         });
     });
     } ( jQuery ) )

@@ -255,7 +255,7 @@ class Book_model extends MY_Model
     public function getOpaqBooklist($search_params)
     {
         $this->datatables
-            ->select('books.*,IFNULL(total_issue, "0") as `total_issue` ')
+            ->select('books.book_title, books.description, books.book_no, books.isbn_no, books.publish, books.author, books.subject, books.rack_no, books.shelf_id, books.perunitcost, books.postdate, IFNULL(total_issue, "0") as `total_issue` ')
             ->join(" (SELECT COUNT(*) as `total_issue`, book_id from book_issues  where is_returned= 0  GROUP by book_id) as `book_count`", "books.id=book_count.book_id", "left")
             ->sort('books.id','desc')
             ->from('books');

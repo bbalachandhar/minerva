@@ -70,47 +70,6 @@ class Opaq extends Admin_Controller {
         );
 
         $listbook = $this->book_model->getOpaqBooklist($search_params); // New model method
-        $m = json_decode($listbook);
-        $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
-        $dt_data = array();
-
-        if (!empty($m->data)) {
-            foreach ($m->data as $key => $value) {
-                $editbtn   = '';
-                $deletebtn = '';
-
-                if ($this->rbac->hasPrivilege('books', 'can_edit')) {
-                    $editbtn = "<a href='" . base_url() . "admin/book/edit/" . $value->id . "'   class='btn btn-default btn-xs'  data-toggle='tooltip' title='" . $this->lang->line('edit') . "'><i class='fa fa-pencil'></i></a>";
-                }
-
-                if ($this->rbac->hasPrivilege('books', 'can_delete')) {
-                    $deletebtn = "<a onclick='return confirm(" . '"' . $this->lang->line('delete_confirm') . '"' . "  )' href='" . base_url() . "admin/book/delete/" . $value->id . "' class='btn btn-default btn-xs' title='" . $this->lang->line('delete') . "' data-toggle='tooltip'><i class='fa fa-trash'></i></a>";
-                }
-
-                $row   = array();
-                $row[] = !empty($value->book_title) ? $value->book_title : 'N/A';
-                $row[] = !empty($value->description) ? $value->description : 'N/A';
-                $row[] = !empty($value->book_no) ? $value->book_no : 'N/A';
-                $row[] = !empty($value->isbn_no) ? $value->isbn_no : 'N/A';
-                $row[] = !empty($value->publish) ? $value->publish : 'N/A';
-                $row[] = !empty($value->author) ? $value->author : 'N/A';
-                $row[] = !empty($value->subject) ? $value->subject : 'N/A';
-                $row[] = !empty($value->rack_no) ? $value->rack_no : 'N/A';
-                $row[] = !empty($value->shelf_id) ? $value->shelf_id : 'N/A';
-                
-                $row[] = $currency_symbol . amountFormat($value->perunitcost);
-                $row[] = !empty($value->postdate) ? $this->customlib->dateformat($value->postdate) : 'N/A';
-                $dt_data[] = $row;
-            }
-        }
-
-        $json_data = array(
-            "draw"            => intval($m->draw),
-            "recordsTotal"    => intval($m->recordsTotal),
-            "recordsFiltered" => intval(isset($m->recordsFiltered) ? $m->recordsFiltered : 0),
-            "data"            => $dt_data,
-            "debug_search_params" => $search_params // Add search_params to the JSON response
-        );
-        echo json_encode($json_data);
+        echo $listbook;
     }
 }
