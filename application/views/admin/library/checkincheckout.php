@@ -83,6 +83,7 @@ $(document).ready(function() {
             }
         ],
         "order": [[ 0, "desc" ]], // Order by latest entry
+        "pageLength": 100,
         "dom": '<"top">rt<"bottom"ip><"clear">'
     });
 
