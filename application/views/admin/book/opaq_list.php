@@ -21,7 +21,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                             <form role="form" action="<?php echo site_url('admin/opaq/getopaqlist') ?>" method="post" class="form-horizontal" id="opaq_search_form">
                                 <div class="box-body">
                                     <div class="row"> <!-- First Row -->
-                                        <div class="col-sm-6 col-md-3">
+                                        <div class="col-sm-6 col-md-6">
                                             <div class="form-group" style="margin-right: 15px; margin-bottom: 15px;">
                                                 <label><?php echo $this->lang->line('book_title'); ?></label>
                                                 <select class="form-control" name="book_title" id="book_title">
@@ -32,7 +32,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                                 </select>
                                             </div>
                                         </div>
-                                        <div class="col-sm-6 col-md-3">
+                                        <div class="col-sm-6 col-md-6">
                                             <div class="form-group" style="margin-right: 15px; margin-bottom: 15px;">
                                                 <label><?php echo $this->lang->line('author'); ?></label>
                                                 <select class="form-control" name="author" id="author">
@@ -43,21 +43,23 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                                 </select>
                                             </div>
                                         </div>
-                                        <div class="col-sm-6 col-md-3">
+                                    </div> <!-- End First Row -->
+                                    <div class="row"> <!-- Second Row -->
+                                        <div class="col-sm-6 col-md-6">
                                             <div class="form-group" style="margin-right: 15px; margin-bottom: 15px;">
                                                 <label><?php echo $this->lang->line('barcode'); ?></label>
                                                 <input type="text" name="barcode" id="barcode" class="form-control">
                                             </div>
                                         </div>
-                                    </div> <!-- End First Row -->
-                                    <div class="row"> <!-- Second Row -->
-                                        <div class="col-sm-6 col-md-3">
+                                        <div class="col-sm-6 col-md-6">
                                             <div class="form-group" style="margin-right: 15px; margin-bottom: 15px;">
                                                 <label for="accession_no"><?php echo $this->lang->line('accession_no'); ?></label>
                                                 <input type="text" name="accession_no" id="accession_no" class="form-control">
                                             </div>
                                         </div>
-                                        <div class="col-sm-6 col-md-3">
+                                    </div> <!-- End Second Row -->
+                                    <div class="row"> <!-- Third Row -->
+                                        <div class="col-sm-6 col-md-6">
                                             <div class="form-group" style="margin-right: 15px; margin-bottom: 15px;">
                                                 <label><?php echo $this->lang->line('publisher'); ?></label>
                                                 <select class="form-control" name="publisher" id="publisher">
@@ -68,7 +70,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                                 </select>
                                             </div>
                                         </div>
-                                        <div class="col-sm-6 col-md-3">
+                                        <div class="col-sm-6 col-md-6">
                                             <div class="form-group" style="margin-right: 15px; margin-bottom: 15px;">
                                                 <label><?php echo $this->lang->line('subject'); ?></label>
                                                 <select class="form-control" name="subject" id="subject">
@@ -79,12 +81,11 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                                 </select>
                                             </div>
                                         </div>
-                                        <div class="col-sm-6 col-md-3"> <!-- New column for the search button -->
-                                            <div class="form-group" style="margin-bottom: 15px; margin-top: 25px;"> <!-- Added margin-top to align with dropdowns -->
-                                                <button type="submit" name="search" value="search_filter" class="btn btn-primary btn-sm"><i class="fa fa-search"></i> <?php echo $this->lang->line('search'); ?></button>
+                                        <div class="col-sm-6 col-md-6 text-right"> <!-- Search button in its own column, aligned right -->
+                                            <div class="form-group" style="margin-bottom: 15px; margin-top: 25px;">
+                                                <button type="submit" name="search" value="search_filter" class="btn btn-primary"><i class="fa fa-search"></i> <?php echo $this->lang->line('search'); ?></button>
                                             </div>
                                         </div>
-                                    </div> <!-- End Second Row -->
                                 </div>
                             </form>
                         </div><!--./row-->
@@ -251,6 +252,7 @@ $(document).ready(function() {
         var table = $('.opaq-list').DataTable({
             "processing": true,
             "serverSide": true,
+            "deferLoading": 0,
             "ajax": {
                 "url": base_url + 'admin/opaq/getopaqlist',
                 "type": "POST",
@@ -264,17 +266,17 @@ $(document).ready(function() {
                 }
             },
             "columns": [
-                { "data": 0 }, // book_title
-                { "data": 1 }, // description
-                { "data": 2 }, // book_no
-                { "data": 3 }, // isbn_no
-                { "data": 4 }, // publish
-                { "data": 5 }, // author
-                { "data": 6 }, // subject
-                { "data": 7 }, // rack_no
-                { "data": 8 }, // shelf_id
-                { "data": 9 }, // perunitcost
-                { "data": 10 }  // postdate
+                { "data": "book_title" },
+                { "data": "description" },
+                { "data": "book_no" },
+                { "data": "isbn_no" },
+                { "data": "publish" },
+                { "data": "author" },
+                { "data": "subject" },
+                { "data": "rack_no" },
+                { "data": "shelf_id" },
+                { "data": "perunitcost" },
+                { "data": "postdate" } 
             ],
             "order": [[ 0, "asc" ]],
             "dom": '<"top">rt<"bottom"ip><"clear">'
