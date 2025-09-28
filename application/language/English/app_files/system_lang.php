@@ -2477,6 +2477,12 @@ $lang['position_shelf_master'] = "Position Shelf Master";
 $lang['shelf_number'] = "Shelf Number";
 $lang['opaq'] = "OPAQ";
 $lang['accession_no'] = "Accession Number";
+$lang['library_checkout_pending'] = "CheckOut Pendings";
+$lang['library_checkin_checkout'] = "CheckIn - CheckOut";
+$lang['check_in'] = "Check In";  
+$lang['check_out'] = "Check Out";
+
+
 
 
 
