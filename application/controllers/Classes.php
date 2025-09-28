@@ -151,4 +151,11 @@ class Classes extends Admin_Controller
         $this->load->view('class/_section_list', $data);
     }
 
+    public function getClassesByDepartment()
+    {
+        $department_id = $this->input->get('department_id');
+        $data = $this->class_model->getClassesByDepartment($department_id);
+        echo json_encode($data);
+    }
+
 }

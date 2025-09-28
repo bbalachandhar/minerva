@@ -47,6 +47,20 @@
                                     </div>
                                 </div><!--./row-->
                                 <div class="row">
+                                     <div class="col-md-6">
+                                        <div class="form-group row">
+                                            <label class="col-sm-4">Institution Type<small class="req"> *</small></label>
+                                            <div class="col-sm-8">
+                                                <select id="institution_type" name="institution_type" class="form-control">
+                                                    <option value="school" <?php if ($result->institution_type == 'school') echo 'selected'; ?>>School (K-12)</option>
+                                                    <option value="college" <?php if ($result->institution_type == 'college') echo 'selected'; ?>>College/Higher Education</option>
+                                                </select>
+                                                <span class="text-danger"><?php echo form_error('institution_type'); ?></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div><!--./row-->
+                                <div class="row">
                                     <div class="col-md-12">
                                         <div class="form-group row">
                                             <label class="col-sm-2"><?php echo $this->lang->line('address'); ?><small class="req"> *</small></label>

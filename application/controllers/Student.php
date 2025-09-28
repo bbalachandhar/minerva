@@ -20,7 +20,7 @@ class Student extends Admin_Controller
         $this->load->library('mailsmsconf');
         $this->load->library('encoding_lib');
         $this->load->model("classteacher_model");
-        $this->load->model(array("timeline_model", "student_edit_field_model", 'transportfee_model', 'marksdivision_model', 'module_model'));
+        $this->load->model(array("timeline_model", "student_edit_field_model", 'transportfee_model', 'marksdivision_model', 'module_model','Department_model'));
         $this->blood_group        = $this->config->item('bloodgroup');
         $this->sch_setting_detail = $this->setting_model->getSetting();
         $this->role;
@@ -437,6 +437,9 @@ class Student extends Admin_Controller
         $vehroute_result         = $this->vehroute_model->getRouteVehiclesList();
         $data['vehroutelist']    = $vehroute_result;
 
+        $department_result     = $this->Department_model->getDepartmentType();
+        $data['department_list'] = $department_result;
+
         //fees discount
         $feesdiscount_result     = $this->feediscount_model->get();
         $data['feediscountList'] = $feesdiscount_result;
@@ -468,11 +471,12 @@ class Student extends Admin_Controller
         $this->form_validation->set_rules('second_doc', $this->lang->line('image'), 'callback_handle_uploadfordoc[second_doc]');
         $this->form_validation->set_rules('fourth_doc', $this->lang->line('image'), 'callback_handle_uploadfordoc[fourth_doc]');
         $this->form_validation->set_rules('fifth_doc', $this->lang->line('image'), 'callback_handle_uploadfordoc[fifth_doc]');
-        $this->form_validation->set_rules('firstname', $this->lang->line('first_name'), 'trim|required|xss_clean');
-        $this->form_validation->set_rules('gender', $this->lang->line('gender'), 'trim|required|xss_clean');
-        $this->form_validation->set_rules('dob', $this->lang->line('date_of_birth'), 'trim|required|xss_clean');
         $this->form_validation->set_rules('class_id', $this->lang->line('class'), 'trim|required|xss_clean');
         $this->form_validation->set_rules('section_id', $this->lang->line('section'), 'trim|required|xss_clean');
+
+        if ($this->sch_setting_detail->institution_type == 'college') {
+            $this->form_validation->set_rules('department_id', $this->lang->line('department'), 'trim|required|xss_clean');
+        }
 
         if ($this->sch_setting_detail->guardian_name) {
             $this->form_validation->set_rules('guardian_name', $this->lang->line('guardian_name'), 'trim|required|xss_clean');
@@ -758,10 +762,10 @@ class Student extends Admin_Controller
 							$this->customfield_model->insertRecord($custom_value_array, $insert_id);
 						}
 
-						$data_new = array(
-							'student_id'            => $insert_id,
-							'class_id'              => $class_id,
-							'section_id'            => $section_id,
+												$data_new = array(
+													'student_id'            => $insert_id,
+						                            'department_id'         => $this->input->post('department_id'),
+													'class_id'              => $class_id,							'section_id'            => $section_id,
 							'session_id'            => $session,
 							'fees_discount'         => $fees_discount,
 							'route_pickup_point_id' => $route_pickup_point_id,
@@ -1386,6 +1390,9 @@ class Student extends Admin_Controller
         $data['siblings_counts']    = count($siblings);
         $custom_fields              = $this->customfield_model->getByBelong('students');
         $data['sch_setting']        = $this->sch_setting_detail;
+
+        $department_result     = $this->department_model->get();
+        $data['department_list'] = $department_result;
 
         //***fees discount***//
         $data['student_fees_discount']  = $this->feediscount_model->getStudentFeesDiscount($student['student_session_id']); //edit

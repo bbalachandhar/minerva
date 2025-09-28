@@ -86,20 +86,40 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                         <?php }?>
                                         <div class="col-md-3">
                                             <div class="form-group">
+                                                <label for="exampleInputEmail1">Department<?php if ($sch_setting->institution_type == 'college') { ?><small class="req"> *</small><?php } ?></label>
+                                                <select id="department_id" name="department_id" class="form-control">
+                                                    <option value=""><?php echo $this->lang->line('select'); ?></option>
+                                                    <?php
+                                                    foreach ($department_list as $department) {
+                                                        ?>
+                                                        <option value="<?php echo $department['id'] ?>"<?php
+                                                        if (set_value('department_id') == $department['id']) {
+                                                            echo "selected=selected";
+                                                        }
+                                                        ?>><?php echo $department['department_name'] ?></option>
+                                                        <?php
+                                                    }
+                                                    ?>
+                                                </select>
+                                                <span class="text-danger"><?php echo form_error('department_id'); ?></span>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="form-group">
                                                 <label for="exampleInputEmail1"><?php echo $this->lang->line('class'); ?></label><small class="req"> *</small>
                                                 <select  id="class_id" name="class_id" class="form-control"  >
                                                      <option value=""><?php echo $this->lang->line('select'); ?></option>
-                                                    <?php
-foreach ($classlist as $class) {
-    ?>
-                                                        <option value="<?php echo $class['id'] ?>"<?php
-if (set_value('class_id') == $class['id']) {
-        echo "selected=selected";
-    }
-    ?>><?php echo $class['class'] ?></option>
-                                                                <?php
-}
-?>
+                                                    <?php if($sch_setting->institution_type == 'school') {
+                                                        foreach ($classlist as $class) {
+                                                            ?>
+                                                            <option value="<?php echo $class['id'] ?>"<?php
+                                                            if (set_value('class_id') == $class['id']) {
+                                                                echo "selected=selected";
+                                                            }
+                                                            ?>><?php echo $class['class'] ?></option>
+                                                            <?php
+                                                        }
+                                                    } ?>
                                                 </select>
                                                 <span class="text-danger"><?php echo form_error('class_id'); ?></span>
                                             </div>
@@ -1384,6 +1404,64 @@ if (($userdata["role_id"] == 2)) {
         } else {
             $('.sibling_msg').html("<div class='alert alert-danger text-center'><?php echo $this->lang->line('no_student_selected') ?></div>");
         }
+    });
+
+    $(document).ready(function () {
+        var institution_type = '<?php echo $sch_setting->institution_type; ?>';
+
+        if (institution_type === 'college') {
+            // College: Class dropdown is dependent on Department
+            $(document).on('change', '#department_id', function (e) {
+                $('#class_id').html("");
+                $('#section_id').html("");
+                var department_id = $(this).val();
+                var base_url = '<?php echo base_url() ?>';
+                var div_data = '<option value=""><?php echo $this->lang->line('select'); ?></option>';
+                $.ajax({
+                    type: "GET",
+                    url: base_url + "classes/getClassesByDepartment",
+                    data: {'department_id': department_id},
+                    dataType: "json",
+                    beforeSend: function () {
+                        $('#class_id').addClass('dropdownloading');
+                    },
+                    success: function (data) {
+                        $.each(data, function (i, obj) {
+                            div_data += "<option value=" + obj.id + ">" + obj.class + "</option>";
+                        });
+                        $('#class_id').append(div_data);
+                    },
+                    complete: function () {
+                        $('#class_id').removeClass('dropdownloading');
+                    }
+                });
+            });
+        } 
+        // This part is for both school and college: fetching sections based on class
+        $(document).on('change', '#class_id', function (e) {
+            $('#section_id').html("");
+            var class_id = $(this).val();
+            var base_url = '<?php echo base_url() ?>';
+            var div_data = '<option value=""><?php echo $this->lang->line('select'); ?></option>';
+            $.ajax({
+                type: "GET",
+                url: base_url + "sections/getByClass",
+                data: {'class_id': class_id},
+                dataType: "json",
+                beforeSend: function () {
+                    $('#section_id').addClass('dropdownloading');
+                },
+                success: function (data) {
+                    $.each(data, function (i, obj) {
+                        div_data += "<option value=" + obj.section_id + ">" + obj.section + "</option>";
+                    });
+                    $('#section_id').append(div_data);
+                },
+                complete: function () {
+                    $('#section_id').removeClass('dropdownloading');
+                }
+            });
+        });
     });
 </script>
 

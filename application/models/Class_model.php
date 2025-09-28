@@ -189,4 +189,13 @@ class Class_model extends MY_Model
         return $this->db->select('sections.id,sections.section')->from('class_sections')->join('sections', 'class_sections.section_id=sections.id')->where('class_id', $id)->get()->result_array();
     }
 
+    public function getClassesByDepartment($department_id)
+    {
+        $this->db->select()->from('classes');
+        $this->db->where('department_id', $department_id);
+        $this->db->order_by('id');
+        $query = $this->db->get();
+        return $query->result_array();
+    }
+
 }
