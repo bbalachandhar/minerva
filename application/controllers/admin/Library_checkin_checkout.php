@@ -31,7 +31,9 @@ class Library_checkin_checkout extends Admin_Controller
 
     public function process_scan()
     {
-        $this->form_validation->set_rules('id_number', $this->lang->line('id_number'), 'trim|required|numeric|xss_clean');
+        error_reporting(E_ALL);
+        ini_set('display_errors', 1);
+        $this->form_validation->set_rules('id_number', $this->lang->line('id_number'), 'trim|required|xss_clean');
 
         if ($this->form_validation->run() == FALSE) {
             $error_array = $this->form_validation->error_array();

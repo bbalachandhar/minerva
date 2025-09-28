@@ -244,6 +244,8 @@ if (!function_exists('main_menu_array')) {
                 'librarypositionrack'   => array('index','create','edit','delete'),
                 'librarypositionshelf'  => array('index','create','edit','delete'),
                 'opaq'      => array('index','getopaqlist'), // Added OPAQ controller and its methods
+                'library_checkin_checkout' => array('index'),
+                'library_checkout_pending' => array('index'),
             ), 
             
             'inventory' => array(               

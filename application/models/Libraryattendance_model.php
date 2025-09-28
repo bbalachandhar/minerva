@@ -139,4 +139,39 @@ class Libraryattendance_model extends MY_Model
 
         return $this->datatables->generate('json');
     }
+
+    /**
+     * This function fetches pending checkout records for DataTables display.
+     * Records are those with in_time set and out_time is NULL.
+     * @return string JSON formatted data for DataTables.
+     */
+    public function get_pending_checkout_records_dt()
+    {
+        $this->db->select('id, user_id, user_type, name, attendance_date, in_time, out_time');
+        $this->db->from('library_attendance');
+        $this->db->where('out_time IS NULL');
+        $this->db->order_by('in_time', 'asc');
+        $query = $this->db->get();
+        $result = $query->result_array();
+
+        $data = [];
+        foreach ($result as $row) {
+            $in_timestamp = strtotime($row['in_time']);
+            $now_timestamp = time();
+            $duration_seconds = $now_timestamp - $in_timestamp;
+            $duration_time = gmdate('H:i:s', $duration_seconds);
+            
+            $row['time_spent'] = $duration_time;
+            $data[] = $row;
+        }
+
+        $json_response = [
+            "draw" => $this->input->post('draw'),
+            "recordsTotal" => $this->db->count_all('library_attendance'), // Total records without filter
+            "recordsFiltered" => count($data), // Filtered records (since we're doing simple filtering here)
+            "data" => $data
+        ];
+
+        return json_encode($json_response);
+    }
 }

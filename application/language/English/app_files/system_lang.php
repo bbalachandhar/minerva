@@ -2481,6 +2481,8 @@ $lang['library_checkout_pending'] = "CheckOut Pendings";
 $lang['library_checkin_checkout'] = "CheckIn - CheckOut";
 $lang['check_in'] = "Check In";  
 $lang['check_out'] = "Check Out";
+$lang['invalid_id_number'] = "Invalid ID Number. User not found.";
+$lang['time_spent'] = "Time Spent";
 
 
 

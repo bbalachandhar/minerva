@@ -87,15 +87,25 @@ $(document).ready(function() {
         "dom": '<"top">rt<"bottom"ip><"clear">'
     });
 
+    var typingTimer;                //timer identifier
+    var doneTypingInterval = 500;  //time in ms, 500ms (0.5 seconds)
+
     // Handle barcode scanner input
-    $('#id_number').on('change', function() {
-        var id_number = $(this).val();
+    $('#id_number').on('keyup', function() {
+        clearTimeout(typingTimer);
+        if ($('#id_number').val()) {
+            typingTimer = setTimeout(performScan, doneTypingInterval);
+        }
+    });
+
+    function performScan() {
+        var id_number = $('#id_number').val();
         $('#id_number_error').text(''); // Clear previous errors
         $('#feedback_message').hide().removeClass('alert-success alert-danger').text(''); // Clear feedback
 
         if (id_number) {
             $.ajax({
-                url: base_url + 'admin/checkincheckout/process_scan',
+                url: base_url + 'admin/library_checkin_checkout/process_scan',
                 type: 'POST',
                 data: { id_number: id_number },
                 dataType: 'json',
@@ -104,11 +114,11 @@ $(document).ready(function() {
                         $('#feedback_message').text(response.message).addClass('alert-success').show();
                         attendanceTable.ajax.reload(); // Refresh DataTables
                     } else {
-                        $('#feedback_message').text(response.message).addClass('alert-danger').show();
+                        $('#feedback_message').text(response.message).addClass('alert-danger text-white').show();
                     }
                 },
                 error: function(xhr, status, error) {
-                    $('#feedback_message').text('<?php echo $this->lang->line('an_error_occurred'); ?>').addClass('alert-danger').show(); // Assuming language key
+                    $('#feedback_message').text('<?php echo $this->lang->line('an_error_occurred'); ?>').addClass('alert-danger').show();
                     console.error("AJAX Error: " + status + error);
                 },
                 complete: function() {
@@ -116,9 +126,9 @@ $(document).ready(function() {
                 }
             });
         } else {
-            $('#id_number_error').text('<?php echo $this->lang->line('id_number_required'); ?>'); // Assuming language key
+            $('#id_number_error').text('<?php echo $this->lang->line('id_number_required'); ?>');
         }
-    });
+    }
 
     // Optional: Add a date filter for the attendance table
     // You would need an input field for this, e.g., <input type="date" id="filter_date">
