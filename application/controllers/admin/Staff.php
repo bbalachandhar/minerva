@@ -480,15 +480,22 @@ class Staff extends Admin_Controller
             $password = $this->role->get_random_password($chars_min = 6, $chars_max = 6, $use_upper_case = false, $include_numbers = true, $include_special_chars = false);
 
             $data_insert = array(
-                'password'        => $this->enc_lib->passHashEnc($password),
-                'employee_id'     => $employee_id,
-                'name'            => $name,
-                'email'           => $email,
-                'dob'             => date('Y-m-d', $this->customlib->datetostrtotime($dob)),
-                'date_of_leaving' => '',
-                'gender'          => $gender,
-                'payscale'        => '',
-                'is_active'       => 1,
+                'password'               => $this->enc_lib->passHashEnc($password),
+                'employee_id'            => $employee_id,
+                'name'                   => $name,
+                'email'                  => $email,
+                'dob'                    => date('Y-m-d', $this->customlib->datetostrtotime($dob)),
+                'date_of_leaving'        => '',
+                'gender'                 => $gender,
+                'payscale'               => '',
+                'is_active'              => 1,
+                'prefix'                 => $this->input->post('prefix'),
+                'ug_qualification'       => $this->input->post('ug_qualification'),
+                'pg_qualification'       => $this->input->post('pg_qualification'),
+                'higher_qualification'   => $this->input->post('higher_qualification'),
+                'qualified_exam'         => $this->input->post('qualified_exam'),
+                'subject_specialization' => $this->input->post('subject_specialization'),
+                'additional_qualification' => $this->input->post('additional_qualification'),
             );
 
             if (isset($surname)) {
@@ -1153,6 +1160,13 @@ class Staff extends Admin_Controller
                 'twitter'              => $twitter,
                 'linkedin'             => $linkedin,
                 'instagram'            => $instagram,
+                'prefix'                 => $this->input->post('prefix'),
+                'ug_qualification'       => $this->input->post('ug_qualification'),
+                'pg_qualification'       => $this->input->post('pg_qualification'),
+                'higher_qualification'   => $this->input->post('higher_qualification'),
+                'qualified_exam'         => $this->input->post('qualified_exam'),
+                'subject_specialization' => $this->input->post('subject_specialization'),
+                'additional_qualification' => $this->input->post('additional_qualification'),
             );
 
             $data1['date_of_joining'] = $this->customlib->dateFormatToYYYYMMDD($date_of_joining);
@@ -1478,6 +1492,7 @@ class Staff extends Admin_Controller
     {
         $data['field'] = array(
             "staff_id"                 => "staff_id",
+            "prefix"                   => "prefix",
             "first_name"               => "first_name",
             "last_name"                => "last_name",
             "father_name"              => "father_name",
@@ -1492,6 +1507,12 @@ class Staff extends Admin_Controller
             "current_address"          => "current_address",
             "permanent_address"        => "permanent_address",
             "qualification"            => "qualification",
+            "ug_qualification"         => "ug_qualification",
+            "pg_qualification"         => "pg_qualification",
+            "higher_qualification"     => "higher_qualification",
+            "qualified_exam"           => "qualified_exam",
+            "subject_specialization"   => "subject_specialization",
+            "additional_qualification" => "additional_qualification",
             "work_experience"          => "work_experience",
             "note"                     => "note",
         );
@@ -1535,6 +1556,13 @@ class Staff extends Admin_Controller
                                 $result[$r_key]['employee_id']          = $this->encoding_lib->toUTF8($result[$r_key]['employee_id']);
                                 $result[$r_key]['qualification']        = $this->encoding_lib->toUTF8($result[$r_key]['qualification']);
                                 $result[$r_key]['work_exp']             = $this->encoding_lib->toUTF8($result[$r_key]['work_exp']);
+                                $result[$r_key]['prefix']               = $this->encoding_lib->toUTF8($result[$r_key]['prefix']);
+                                $result[$r_key]['ug_qualification']     = $this->encoding_lib->toUTF8($result[$r_key]['ug_qualification']);
+                                $result[$r_key]['pg_qualification']     = $this->encoding_lib->toUTF8($result[$r_key]['pg_qualification']);
+                                $result[$r_key]['higher_qualification'] = $this->encoding_lib->toUTF8($result[$r_key]['higher_qualification']);
+                                $result[$r_key]['qualified_exam']       = $this->encoding_lib->toUTF8($result[$r_key]['qualified_exam']);
+                                $result[$r_key]['subject_specialization'] = $this->encoding_lib->toUTF8($result[$r_key]['subject_specialization']);
+                                $result[$r_key]['additional_qualification'] = $this->encoding_lib->toUTF8($result[$r_key]['additional_qualification']);
                                 $result[$r_key]['name']                 = $this->encoding_lib->toUTF8($result[$r_key]['name']);
                                 $result[$r_key]['surname']              = $this->encoding_lib->toUTF8($result[$r_key]['surname']);
                                 $result[$r_key]['father_name']          = $this->encoding_lib->toUTF8($result[$r_key]['father_name']);

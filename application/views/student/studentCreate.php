@@ -109,7 +109,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                                 <label for="exampleInputEmail1"><?php echo $this->lang->line('class'); ?></label><small class="req"> *</small>
                                                 <select  id="class_id" name="class_id" class="form-control"  >
                                                      <option value=""><?php echo $this->lang->line('select'); ?></option>
-                                                    <?php if($sch_setting->institution_type == 'school') {
+                                                    <?php if($sch_setting->institution_type == 'school') { // This block is conditional
                                                         foreach ($classlist as $class) {
                                                             ?>
                                                             <option value="<?php echo $class['id'] ?>"<?php
@@ -1406,6 +1406,7 @@ if (($userdata["role_id"] == 2)) {
         }
     });
 
+    <?php /*
     $(document).ready(function () {
         var institution_type = '<?php echo $sch_setting->institution_type; ?>';
 
@@ -1463,6 +1464,7 @@ if (($userdata["role_id"] == 2)) {
             });
         });
     });
+    */ ?>
 </script>
 
 <script type="text/javascript" src="<?php echo base_url(); ?>backend/dist/js/savemode.js"></script>

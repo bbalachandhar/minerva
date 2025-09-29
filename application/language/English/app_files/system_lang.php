@@ -1998,6 +1998,13 @@ $lang['student_details_for'] = "Student Details for";
 $lang['student_exam_rank'] = "Student Exam Rank";	
 $lang['student_exams_attempt_report'] = "Student Exams Attempt Report";	
 $lang['student_feature_disable'] = "Student Feature Disable";	
+$lang['prefix'] = "Prefix";
+$lang['ug_qualification'] = "UG Qualification";
+$lang['pg_qualification'] = "PG Qualification";
+$lang['higher_qualification'] = "Higher Qualification";
+$lang['qualified_exam'] = "Qualified Exam";
+$lang['subject_specialization'] = "Subject Specialization";
+$lang['additional_qualification'] = "Additional Qualification";
 $lang['student_fees'] = "Student Fees";	
 $lang['student_fees_master_id'] = "Student Fees Master ID";	
 $lang['student_gender_ratio_report'] = "Student Gender Ratio Report";	
@@ -2483,8 +2490,13 @@ $lang['check_in'] = "Check In";
 $lang['check_out'] = "Check Out";
 $lang['invalid_id_number'] = "Invalid ID Number. User not found.";
 $lang['time_spent'] = "Time Spent";
-
-
+$lang['prefix'] = "Prefix";   
+$lang['ug_qualification'] = "UG Qualification";   
+$lang['pg_qualification'] = "PG Qualification";   
+$lang['higher_qualification'] = "Higher Qualification";   
+$lang['qualified_exam'] = "Qualified Exam";   
+$lang['subject_specialization'] = "Subject Specialization";   
+$lang['additional_qualification'] = "Additional Qualification";
 
 
 

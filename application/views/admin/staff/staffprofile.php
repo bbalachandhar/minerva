@@ -139,6 +139,9 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                 <b><?php echo $this->lang->line('staff_id'); ?></b> <a class="pull-right text-aqua"><?php echo $staff['employee_id']; ?></a>
                             </li>
                             <li class="list-group-item listnoback">
+                                <b><?php echo $this->lang->line('prefix'); ?></b> <a class="pull-right text-aqua"><?php echo $staff['prefix']; ?></a>
+                            </li>
+                            <li class="list-group-item listnoback">
                                 <b><?php echo $this->lang->line('role'); ?></b> <a class="pull-right text-aqua"><?php echo $staff['user_type']; ?></a>
                             </li>
                             <?php if ($sch_setting->staff_designation) { ?>
@@ -408,6 +411,30 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                                 <tr>
                                                     <td><?php echo $this->lang->line('work_experience'); ?></td>
                                                     <td><?php echo $staff['work_exp']; ?></td>
+                                                </tr>
+                                                <tr>
+                                                    <td><?php echo $this->lang->line('ug_qualification'); ?></td>
+                                                    <td><?php echo $staff['ug_qualification']; ?></td>
+                                                </tr>
+                                                <tr>
+                                                    <td><?php echo $this->lang->line('pg_qualification'); ?></td>
+                                                    <td><?php echo $staff['pg_qualification']; ?></td>
+                                                </tr>
+                                                <tr>
+                                                    <td><?php echo $this->lang->line('higher_qualification'); ?></td>
+                                                    <td><?php echo $staff['higher_qualification']; ?></td>
+                                                </tr>
+                                                <tr>
+                                                    <td><?php echo $this->lang->line('qualified_exam'); ?></td>
+                                                    <td><?php echo $staff['qualified_exam']; ?></td>
+                                                </tr>
+                                                <tr>
+                                                    <td><?php echo $this->lang->line('subject_specialization'); ?></td>
+                                                    <td><?php echo $staff['subject_specialization']; ?></td>
+                                                </tr>
+                                                <tr>
+                                                    <td><?php echo $this->lang->line('additional_qualification'); ?></td>
+                                                    <td><?php echo $staff['additional_qualification']; ?></td>
                                                 </tr>
                                             <?php }
                                             if ($sch_setting->staff_note) { ?>

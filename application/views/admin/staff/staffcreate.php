@@ -117,6 +117,13 @@ foreach ($roles as $key => $role) {
                                     <div class="row">
                                         <div class="col-md-3">
                                             <div class="form-group">
+                                                <label for="exampleInputEmail1"><?php echo $this->lang->line('prefix'); ?></label>
+                                                <input id="prefix" name="prefix" placeholder="" type="text" class="form-control"  value="<?php echo set_value('prefix') ?>" />
+                                                <span class="text-danger"><?php echo form_error('prefix'); ?></span>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="form-group">
                                                 <label for="exampleInputEmail1"><?php echo $this->lang->line('first_name'); ?></label><small class="req"> *</small>
                                                 <input id="name" name="name" placeholder="" type="text" class="form-control"  value="<?php echo set_value('name') ?>" />
                                                 <span class="text-danger"><?php echo form_error('name'); ?></span>
@@ -279,6 +286,51 @@ foreach ($genderList as $key => $value) {
                                             </div>
                                         <?php }?>
                                     </div>
+                                    <div class="row">
+                                        <div class="col-md-3">
+                                            <div class="form-group">
+                                                <label for="ug_qualification"><?php echo $this->lang->line('ug_qualification'); ?></label>
+                                                <input id="ug_qualification" name="ug_qualification" placeholder="" type="text" class="form-control"  value="<?php echo set_value('ug_qualification') ?>" />
+                                                <span class="text-danger"><?php echo form_error('ug_qualification'); ?></span>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="form-group">
+                                                <label for="pg_qualification"><?php echo $this->lang->line('pg_qualification'); ?></label>
+                                                <input id="pg_qualification" name="pg_qualification" placeholder="" type="text" class="form-control"  value="<?php echo set_value('pg_qualification') ?>" />
+                                                <span class="text-danger"><?php echo form_error('pg_qualification'); ?></span>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="form-group">
+                                                <label for="higher_qualification"><?php echo $this->lang->line('higher_qualification'); ?></label>
+                                                <input id="higher_qualification" name="higher_qualification" placeholder="" type="text" class="form-control"  value="<?php echo set_value('higher_qualification') ?>" />
+                                                <span class="text-danger"><?php echo form_error('higher_qualification'); ?></span>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="form-group">
+                                                <label for="qualified_exam"><?php echo $this->lang->line('qualified_exam'); ?></label>
+                                                <input id="qualified_exam" name="qualified_exam" placeholder="" type="text" class="form-control"  value="<?php echo set_value('qualified_exam') ?>" />
+                                                <span class="text-danger"><?php echo form_error('qualified_exam'); ?></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label for="subject_specialization"><?php echo $this->lang->line('subject_specialization'); ?></label>
+                                                <input id="subject_specialization" name="subject_specialization" placeholder="" type="text" class="form-control"  value="<?php echo set_value('subject_specialization') ?>" />
+                                                <span class="text-danger"><?php echo form_error('subject_specialization'); ?></span>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label for="additional_qualification"><?php echo $this->lang->line('additional_qualification'); ?></label>
+                                                <textarea id="additional_qualification" name="additional_qualification" placeholder="" class="form-control"><?php echo set_value('additional_qualification') ?></textarea>
+                                                <span class="text-danger"><?php echo form_error('additional_qualification'); ?></span>
+                                            </div>
+                                        </div>
 
                                     <div class="row">
                                         <?php

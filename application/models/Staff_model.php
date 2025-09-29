@@ -583,7 +583,7 @@ class Staff_model extends MY_Model
  
     public function getProfile($id)
     {
-        $this->db->select('staff.*,staff_designation.designation as designation,staff_roles.role_id, department.department_name as department,roles.name as user_type');
+        $this->db->select('staff.*,staff_designation.designation as designation,staff_roles.role_id, department.department_name as department,roles.name as user_type, staff.prefix, staff.ug_qualification, staff.pg_qualification, staff.higher_qualification, staff.qualified_exam, staff.subject_specialization, staff.additional_qualification');
         $this->db->join("staff_designation", "staff_designation.id = staff.designation", "left");
         $this->db->join("department", "department.id = staff.department", "left");
         $this->db->join("staff_roles", "staff_roles.staff_id = staff.id", "left");
