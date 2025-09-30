@@ -2497,7 +2497,16 @@ $lang['higher_qualification'] = "Higher Qualification";
 $lang['qualified_exam'] = "Qualified Exam";   
 $lang['subject_specialization'] = "Subject Specialization";   
 $lang['additional_qualification'] = "Additional Qualification";
-
+$lang['register_no'] = "Register No";   
+$lang['emis_num'] = "EMIS Number";   
+$lang['regulation_id'] = "Regulation";   
+$lang['hsc_reg_no'] = "HSC Reg No";   
+$lang['ug_reg_no'] = "UG Reg No";   
+$lang['abc_id'] = "ABC ID";   
+$lang['father_adhar_no'] = "Father Adhar No";   
+$lang['mother_adhar_no'] = "Mother Adhar No";   
+$lang['migration_cert_num'] = "Migration Certificate Number";   
+$lang['medium'] = "Medium";
 
 
 
