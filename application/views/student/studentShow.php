@@ -794,13 +794,53 @@ $currency_symbol = $admin_session['currency_symbol'];
                                                     <td><?php echo $this->lang->line('bank_name'); ?></td>
                                                     <td><?php echo $student['bank_name']; ?></td>
                                                 </tr>
-                                            <?php }
-                                            if ($sch_setting->ifsc_code) { ?>
+                                            <?php } if ($sch_setting->ifsc_code) { ?>
                                                 <tr>
                                                     <td><?php echo $this->lang->line('ifsc_code'); ?></td>
                                                     <td><?php echo $student['ifsc_code']; ?></td>
                                                 </tr>
                                             <?php } ?>
+                                            <tr>
+                                                <td>Register No</td>
+                                                <td><?php echo $student['register_no']; ?></td>
+                                            </tr>
+                                            <tr>
+                                                <td>Regulation</td>
+                                                <td><?php echo $student['regulation_id']; ?></td>
+                                            </tr>
+                                            <tr>
+                                                <td>EMIS Number</td>
+                                                <td><?php echo $student['emis_num']; ?></td>
+                                            </tr>
+                                            <tr>
+                                                <td>HSC Reg No</td>
+                                                <td><?php echo $student['hsc_reg_no']; ?></td>
+                                            </tr>
+                                            <tr>
+                                                <td>UG Reg No</td>
+                                                <td><?php echo $student['ug_reg_no']; ?></td>
+                                            </tr>
+                                            <tr>
+                                                <td>ABC ID</td>
+                                                <td><?php echo $student['abc_id']; ?></td>
+                                            </tr>
+                                            <tr>
+                                                <td>Father Adhar No</td>
+                                                <td><?php echo $student['father_adhar_no']; ?></td>
+                                            </tr>
+                                            <tr>
+                                                <td>Mother Adhar No</td>
+                                                <td><?php echo $student['mother_adhar_no']; ?></td>
+                                            </tr>
+                                            <tr>
+                                                <td>Migration Certificate Number</td>
+                                                <td><?php echo $student['migration_cert_num']; ?></td>
+                                            </tr>
+                                            <tr>
+                                                <td>Medium</td>
+                                                <td><?php echo $student['medium']; ?></td>
+                                            </tr>
+
                                         </tbody>
                                     </table>
                                 </div>

@@ -38,14 +38,84 @@ echo $this->session->flashdata('msg');
                                                 </div>
                                             </div>
                                         <?php }if ($sch_setting->roll_no) {?>
-                                            <div class="col-md-3">
-                                                <div class="form-group">
-                                                    <label for="exampleInputEmail1"><?php echo $this->lang->line('roll_number'); ?></label>
-                                                    <input id="roll_no" name="roll_no" placeholder="" type="text" class="form-control"  value="<?php echo set_value('roll_no', $student['roll_no']); ?>" />
-                                                    <span class="text-danger"><?php echo form_error('roll_no'); ?></span>
-                                                </div>
-                                            </div>
-                                        <?php }?>
+                                                                                        <div class="col-md-3">
+                                                                                            <div class="form-group">
+                                                                                                <label for="exampleInputEmail1"><?php echo $this->lang->line('roll_number'); ?></label>
+                                                                                                <input id="roll_no" name="roll_no" placeholder="" type="text" class="form-control"  value="<?php echo set_value('roll_no', $student['roll_no']); ?>" />
+                                                                                                <span class="text-danger"><?php echo form_error('roll_no'); ?></span>
+                                                                                            </div>
+                                                                                        </div>
+                                                                                       <div class="col-md-3">
+                                                                                            <div class="form-group">
+                                                                                                <label for="exampleInputEmail1">Register No</label>
+                                                                                                <input id="register_no" name="register_no" placeholder="" type="text" class="form-control"  value="<?php echo set_value('register_no', $student['register_no']); ?>" />
+                                                                                                <span class="text-danger"><?php echo form_error('register_no'); ?></span>
+                                                                                            </div>
+                                                                                        </div>
+                                                                                       <div class="col-md-3">
+                                                                                            <div class="form-group">
+                                                                                                <label for="exampleInputEmail1">Regulation</label>
+                                                                                                <input id="regulation_id" name="regulation_id" placeholder="" type="text" class="form-control"  value="<?php echo set_value('regulation_id', $student['regulation_id']); ?>" />
+                                                                                                <span class="text-danger"><?php echo form_error('regulation_id'); ?></span>
+                                                                                            </div>
+                                                                                        </div>
+                                                                                       <div class="col-md-3">
+                                                                                            <div class="form-group">
+                                                                                                <label for="exampleInputEmail1">EMIS Number</label>
+                                                                                                <input id="emis_num" name="emis_num" placeholder="" type="text" class="form-control"  value="<?php echo set_value('emis_num', $student['emis_num']); ?>" />
+                                                                                                <span class="text-danger"><?php echo form_error('emis_num'); ?></span>
+                                                                                            </div>
+                                                                                        </div>
+                                                                                       <div class="col-md-3">
+                                                                                            <div class="form-group">
+                                                                                                <label for="exampleInputEmail1">HSC Reg No</label>
+                                                                                                <input id="hsc_reg_no" name="hsc_reg_no" placeholder="" type="text" class="form-control"  value="<?php echo set_value('hsc_reg_no', $student['hsc_reg_no']); ?>" />
+                                                                                                <span class="text-danger"><?php echo form_error('hsc_reg_no'); ?></span>
+                                                                                            </div>
+                                                                                        </div>
+                                                                                       <div class="col-md-3">
+                                                                                            <div class="form-group">
+                                                                                                <label for="exampleInputEmail1">UG Reg No</label>
+                                                                                                <input id="ug_reg_no" name="ug_reg_no" placeholder="" type="text" class="form-control"  value="<?php echo set_value('ug_reg_no', $student['ug_reg_no']); ?>" />
+                                                                                                <span class="text-danger"><?php echo form_error('ug_reg_no'); ?></span>
+                                                                                            </div>
+                                                                                        </div>
+                                                                                       <div class="col-md-3">
+                                                                                            <div class="form-group">
+                                                                                                <label for="exampleInputEmail1">ABC ID</label>
+                                                                                                <input id="abc_id" name="abc_id" placeholder="" type="text" class="form-control"  value="<?php echo set_value('abc_id', $student['abc_id']); ?>" />
+                                                                                                <span class="text-danger"><?php echo form_error('abc_id'); ?></span>
+                                                                                            </div>
+                                                                                        </div>
+                                                                                       <div class="col-md-3">
+                                                                                            <div class="form-group">
+                                                                                                <label for="exampleInputEmail1">Father Adhar No</label>
+                                                                                                <input id="father_adhar_no" name="father_adhar_no" placeholder="" type="text" class="form-control"  value="<?php echo set_value('father_adhar_no', $student['father_adhar_no']); ?>" />
+                                                                                                <span class="text-danger"><?php echo form_error('father_adhar_no'); ?></span>
+                                                                                            </div>
+                                                                                        </div>
+                                                                                       <div class="col-md-3">
+                                                                                            <div class="form-group">
+                                                                                                <label for="exampleInputEmail1">Mother Adhar No</label>
+                                                                                                <input id="mother_adhar_no" name="mother_adhar_no" placeholder="" type="text" class="form-control"  value="<?php echo set_value('mother_adhar_no', $student['mother_adhar_no']); ?>" />
+                                                                                                <span class="text-danger"><?php echo form_error('mother_adhar_no'); ?></span>
+                                                                                            </div>
+                                                                                        </div>
+                                                                                       <div class="col-md-3">
+                                                                                            <div class="form-group">
+                                                                                                <label for="exampleInputEmail1">Migration Certificate Number</label>
+                                                                                                <input id="migration_cert_num" name="migration_cert_num" placeholder="" type="text" class="form-control"  value="<?php echo set_value('migration_cert_num', $student['migration_cert_num']); ?>" />
+                                                                                                <span class="text-danger"><?php echo form_error('migration_cert_num'); ?></span>
+                                                                                            </div>
+                                                                                        </div>
+                                                                                       <div class="col-md-3">
+                                                                                            <div class="form-group">
+                                                                                                <label for="exampleInputEmail1">Medium</label>
+                                                                                                <input id="medium" name="medium" placeholder="" type="text" class="form-control"  value="<?php echo set_value('medium', $student['medium']); ?>" />
+                                                                                                <span class="text-danger"><?php echo form_error('medium'); ?></span>
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    <?php }?>
                                         <div class="col-md-3">
                                             <div class="form-group">
                                                 <label for="exampleInputEmail1"><?php echo $this->lang->line('class'); ?></label><small class="req"> *</small>

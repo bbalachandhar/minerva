@@ -576,33 +576,80 @@ class Student extends Admin_Controller
 						$hostel_room_id = 0;
 					}
 
+ 
+
 					$data_insert = array(
+
 						'firstname'         => $this->input->post('firstname'),
+
 						'rte'               => $this->input->post('rte'),
+
 						'state'             => $this->input->post('state'),
+
 						'city'              => $this->input->post('city'),
+
 						'pincode'           => $this->input->post('pincode'),
+
 						'cast'              => $this->input->post('cast'),
+
 						'previous_school'   => $this->input->post('previous_school'),
+
 						'dob'               => $this->customlib->dateFormatToYYYYMMDD($this->input->post('dob')),
+
 						'current_address'   => $this->input->post('current_address'),
+
 						'permanent_address' => $this->input->post('permanent_address'),
+
 						'adhar_no'          => $this->input->post('adhar_no'),
+
 						'samagra_id'        => $this->input->post('samagra_id'),
+
 						'bank_account_no'   => $this->input->post('bank_account_no'),
+
 						'bank_name'         => $this->input->post('bank_name'),
+
 						'ifsc_code'         => $this->input->post('ifsc_code'),
+
 						'guardian_email'    => $this->input->post('guardian_email'),
+
 						'gender'            => $this->input->post('gender'),
+
 						'guardian_name'     => $this->input->post('guardian_name'),
+
 						'guardian_relation' => $this->input->post('guardian_relation'),
+
 						'guardian_phone'    => $this->input->post('guardian_phone'),
+
 						'guardian_address'  => $this->input->post('guardian_address'),
+
 						'hostel_room_id'    => $hostel_room_id,
+
 						'note'              => $this->input->post('note'),
+
 						'is_active'         => 'yes',
+
+                                                'register_no'       => $this->input->post('register_no'),
+
+                                                'regulation_id'     => $this->input->post('regulation_id'),
+
+                                                'emis_num'          => $this->input->post('emis_num'),
+
+                                                'hsc_reg_no'        => $this->input->post('hsc_reg_no'),
+
+                                                'ug_reg_no'         => $this->input->post('ug_reg_no'),
+
+                                                'abc_id'            => $this->input->post('abc_id'),
+
+                                                'father_adhar_no'   => $this->input->post('father_adhar_no'),
+
+                                                'mother_adhar_no'   => $this->input->post('mother_adhar_no'),
+
+                                                'migration_cert_num'=> $this->input->post('migration_cert_num'),
+
+                                                'medium'            => $this->input->post('medium'),
+
 					);
-		
+
 					if ($this->sch_setting_detail->guardian_occupation) {
 						$data_insert['guardian_occupation'] = $this->input->post('guardian_occupation');
 					}
@@ -765,7 +812,7 @@ class Student extends Admin_Controller
 												$data_new = array(
 													'student_id'            => $insert_id,
 						                            'department_id'         => $this->input->post('department_id'),
-													'class_id'              => $class_id,							'section_id'            => $section_id,
+							'section_id'            => $section_id,
 							'session_id'            => $session,
 							'fees_discount'         => $fees_discount,
 							'route_pickup_point_id' => $route_pickup_point_id,
@@ -1131,7 +1178,7 @@ class Student extends Admin_Controller
 
         $category = $this->category_model->get();
 
-        $fields = array('admission_no', 'roll_no', 'firstname', 'middlename', 'lastname', 'gender', 'dob', 'category_id', 'religion', 'cast', 'mobileno', 'email', 'admission_date', 'blood_group', 'school_house_id', 'height', 'weight', 'measurement_date', 'father_name', 'father_phone', 'father_occupation', 'mother_name', 'mother_phone', 'mother_occupation', 'guardian_is', 'guardian_name', 'guardian_relation', 'guardian_email', 'guardian_phone', 'guardian_occupation', 'guardian_address', 'current_address', 'permanent_address', 'bank_account_no', 'bank_name', 'ifsc_code', 'adhar_no', 'samagra_id', 'rte', 'previous_school', 'note');
+        $fields = array('admission_no', 'roll_no', 'firstname', 'middlename', 'lastname', 'gender', 'dob', 'category_id', 'religion', 'cast', 'mobileno', 'email', 'admission_date', 'blood_group', 'school_house_id', 'height', 'weight', 'measurement_date', 'father_name', 'father_phone', 'father_occupation', 'mother_name', 'mother_phone', 'mother_occupation', 'guardian_is', 'guardian_name', 'guardian_relation', 'guardian_email', 'guardian_phone', 'guardian_occupation', 'guardian_address', 'current_address', 'permanent_address', 'bank_account_no', 'bank_name', 'ifsc_code', 'adhar_no', 'samagra_id', 'rte', 'previous_school', 'note', 'register_no', 'regulation_id', 'emis_num', 'hsc_reg_no', 'ug_reg_no', 'abc_id', 'father_adhar_no', 'mother_adhar_no', 'migration_cert_num', 'medium');
 
         $data["fields"]       = $fields;
         $data['categorylist'] = $category;
@@ -1533,7 +1580,19 @@ class Student extends Admin_Controller
                 'hostel_room_id'    => $hostel_room_id,
                 'note'              => $this->input->post('note'),
                 'is_active'         => 'yes',
+                'register_no'       => $this->input->post('register_no'),
+                'regulation_id'     => $this->input->post('regulation_id'),
+                'emis_num'          => $this->input->post('emis_num'),
+                'hsc_reg_no'        => $this->input->post('hsc_reg_no'),
+                'ug_reg_no'         => $this->input->post('ug_reg_no'),
+                'abc_id'            => $this->input->post('abc_id'),
+                'father_adhar_no'   => $this->input->post('father_adhar_no'),
+                'mother_adhar_no'   => $this->input->post('mother_adhar_no'),
+                'migration_cert_num'=> $this->input->post('migration_cert_num'),
+                'medium'            => $this->input->post('medium'),
             );
+
+
             if ($this->sch_setting_detail->guardian_occupation) {
                 $data['guardian_occupation'] = $this->input->post('guardian_occupation');
             }
