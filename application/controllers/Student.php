@@ -1207,6 +1207,9 @@ class Student extends Admin_Controller
                     $handle = fopen($file, "r");
                     if ($handle !== FALSE) {
                         $header = fgetcsv($handle, 1000, ",");
+                        if (isset($header[0]) && strpos($header[0], "\xef\xbb\xbf") === 0) {
+                            $header[0] = substr($header[0], 3);
+                        }
                         log_message('error', 'CSV Header: ' . print_r($header, true));
                         while (($data = fgetcsv($handle, 1000, ",")) !== FALSE) {
                             if (count($header) == count($data)) {
@@ -1221,6 +1224,9 @@ class Student extends Admin_Controller
                     }
 
                     if (!empty($result)) {
+                        $total_rows = count($result);
+                        $this->session->set_userdata('import_total_rows', $total_rows);
+                        $this->session->set_userdata('import_processed_rows', 0);
                         $rowcount = 0;
 
                         $all_classes = $this->class_model->get();
@@ -1236,6 +1242,8 @@ class Student extends Admin_Controller
                         }
 
                         for ($i = 1; $i <= count($result); $i++) {
+
+                            $this->session->set_userdata('import_processed_rows', $i);
 
                             $student_data[$i] = array();
                             $csv_class_name = '';
@@ -1308,7 +1316,7 @@ class Student extends Admin_Controller
                             }
 
                             $roll_no                           = $student_data[$i]["roll_no"];
-                            $adm_no                            = $student_data[$i]["admission_no"];
+                            $adm_no                            = isset($student_data[$i]["admission_no"]) ? $student_data[$i]["admission_no"] : '';
                             $mobile_no                         = $student_data[$i]["mobileno"];
                             $email                             = $student_data[$i]["email"];
                             $guardian_phone                    = $student_data[$i]["guardian_phone"];
@@ -1411,6 +1419,9 @@ class Student extends Admin_Controller
                                 $this->session->set_flashdata('msg', '<div class="alert alert-danger text-center">' . $this->lang->line('record_already_exist') . '</div>');
                             }
                         }
+                        $this->session->set_userdata('import_completed', true);
+                        $this->session->unset_userdata('import_total_rows');
+                        $this->session->unset_userdata('import_processed_rows');
                     } else {
 
                         $this->session->set_flashdata('msg', '<div class="alert alert-danger text-center">' . $this->lang->line('no_record_found') . '</div>');
@@ -1420,8 +1431,6 @@ class Student extends Admin_Controller
                     $this->session->set_flashdata('msg', '<div class="alert alert-danger text-center">' . $this->lang->line('please_upload_csv_file_only') . '</div>');
                 }
             }
-
-            redirect('student/import');
         }
     }
 
@@ -2789,6 +2798,22 @@ class Student extends Admin_Controller
         $mpdf->autoLangToFont    = true;
         $mpdf->WriteHTML($html, \Mpdf\HTMLParserMode::HTML_BODY);
         $content = $mpdf->Output(random_string() . '.pdf', 'I');
-        return $content;
+    }
+    public function import_progress()
+    {
+        $response = [];
+        if ($this->session->has_userdata('import_total_rows')) {
+            $response['total'] = $this->session->userdata('import_total_rows');
+            $response['processed'] = $this->session->userdata('import_processed_rows');
+            $response['status'] = 'processing';
+        } else if($this->session->has_userdata('import_completed')){
+            $response['status'] = 'completed';
+            $response['message'] = $this->session->flashdata('msg');
+            $this->session->unset_userdata('import_completed');
+        }
+        else {
+            $response['status'] = 'pending';
+        }
+        echo json_encode($response);
     }
 }

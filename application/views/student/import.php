@@ -131,8 +131,67 @@ foreach ($fields as $key => $value) {
                             </div>
                         </div>
                     </form>
+                    <div id="progress-container" style="display: none;">
+                        <div class="progress">
+                            <div id="progress-bar" class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%">
+                                <span id="progress-text"></span>
+                            </div>
+                        </div>
+                        <div id="message-box"></div>
+                    </div>
                     <div>
                     </div>
                 </div>
                 </section>
             </div>
+<script>
+$(document).ready(function (e) {
+    $('#employeeform').on('submit', (function (e) {
+        e.preventDefault();
+        $('#progress-container').show();
+        var $progressBar = $('#progress-bar');
+        var $progressText = $('#progress-text');
+        var $messageBox = $('#message-box');
+        var formData = new FormData(this);
+
+        $.ajax({
+            url: $(this).attr('action'),
+            type: "POST",
+            data: formData,
+            contentType: false,
+            cache: false,
+            processData: false,
+            success: function (data) {
+                //don't do anything, the progress checker will handle it
+            },
+            error: function () {
+                //handle error
+            }
+        });
+
+        var progressChecker = setInterval(function() {
+            $.ajax({
+                url: '<?php echo site_url('student/import_progress') ?>',
+                type: 'GET',
+                dataType: 'json',
+                success: function(response) {
+                    if (response.status === 'processing') {
+                        var percentComplete = (response.processed / response.total) * 100;
+                        $progressBar.width(percentComplete + '%');
+                        $progressText.text(response.processed + ' / ' + response.total);
+                    } else if (response.status === 'completed') {
+                        clearInterval(progressChecker);
+                        $progressBar.width('100%');
+                        $progressText.text('Completed');
+                        $messageBox.html(response.message);
+                        // Optionally, reload the page after a delay
+                        setTimeout(function() {
+                            location.reload();
+                        }, 2000);
+                    }
+                }
+            });
+        }, 1000);
+    }));
+});
+</script>
