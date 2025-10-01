@@ -1,6 +1,13 @@
 <footer class="main-footer">
     &copy;  <?php echo date('Y'); ?>
-    <?php echo $this->customlib->getAppName(); ?>
+    <?php 
+        $school_name = $this->setting_model->getSchoolDetail()->name;
+        if(!empty($school_name)){
+            echo $school_name;
+        }else{
+            echo "Your School Name";
+        }
+    ?>
 </footer>
 <div class="control-sidebar-bg"></div>
 </div>

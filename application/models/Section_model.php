@@ -174,9 +174,16 @@ class Section_model extends MY_Model {
                 $this->db->trans_rollback();
                 return false;
             } else {
-                //return $return_value;
+                return $id;
             }
         }
+    }
+
+    public function getSectionByName($name) {
+        $this->db->select()->from('sections');
+        $this->db->where('section', $name);
+        $query = $this->db->get();
+        return $query->row_array();
     }
 
 }

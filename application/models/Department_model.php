@@ -123,4 +123,10 @@ class Department_model extends MY_model
         }
     }
 
+    public function getDepartmentByName($name)
+    {
+        $query = $this->db->where("department_name", $name)->get('department');
+        return $query->row_array();
+    }
+
 }

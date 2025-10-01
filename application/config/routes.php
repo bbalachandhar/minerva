@@ -47,7 +47,15 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 |
 |
 */
-$route['default_controller'] = 'welcome';
+$route['default_controller'] = 'start';
+$route['admin/librarycategory/import'] = 'admin/librarycategory/import';
+$route['admin/librarysubcategory/import'] = 'admin/librarysubcategory/import';
+$route['admin/librarypublisher/import'] = 'admin/librarypublisher/import';
+$route['admin/libraryvendor/import'] = 'admin/libraryvendor/import';
+$route['admin/librarybooktype/import'] = 'admin/librarybooktype/import';
+$route['admin/librarysubject/import'] = 'admin/librarysubject/import';
+$route['admin/librarypositionrack/import'] = 'admin/librarypositionrack/import';
+$route['admin/librarypositionshelf/import'] = 'admin/librarypositionshelf/import';
 $route['404_override'] = '';
 $route['translate_uri_dashes'] = FALSE;
 

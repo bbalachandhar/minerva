@@ -1055,7 +1055,11 @@ $lang['import_student_step5'] = "For student Blood Group use O+, A+, B+, AB+, O-
 $lang['import_student_step6'] = "For RTE use Yes, No value.";	
 $lang['import_student_step7'] = "For If Guardian Is user father,mother,other value.";	
 $lang['import_student_step8'] = "Category name comes from other table so for category, enter Category Id (Category Id can be found on category page ).";	
-$lang['import_student_step9'] = "Student house comes from other table so for student house, enter Student House Id (Student House Id can be found on student house page ).";	
+$lang['import_student_step9'] = "Student house comes from other table so for student house, enter Student House Id (Student House Id can be found on student house page ).";
+$lang['import_class'] = "Import Class";
+$lang['class_name'] = "Class Name";
+$lang['section_name'] = "Section Name";
+$lang['department_name'] = "Department Name";	
 $lang['in_time'] = "In Time";	
 $lang['income'] = "Income";	
 $lang['income_group_report'] = "Income Group Report";	
@@ -2497,7 +2501,16 @@ $lang['higher_qualification'] = "Higher Qualification";
 $lang['qualified_exam'] = "Qualified Exam";   
 $lang['subject_specialization'] = "Subject Specialization";   
 $lang['additional_qualification'] = "Additional Qualification";
-
+$lang['register_no'] = "Register No";   
+$lang['emis_num'] = "EMIS Number";   
+$lang['regulation_id'] = "Regulation";   
+$lang['hsc_reg_no'] = "HSC Reg No";   
+$lang['ug_reg_no'] = "UG Reg No";   
+$lang['abc_id'] = "ABC ID";   
+$lang['father_adhar_no'] = "Father Adhar No";   
+$lang['mother_adhar_no'] = "Mother Adhar No";   
+$lang['migration_cert_num'] = "Migration Certificate Number";   
+$lang['medium'] = "Medium";
 
 
 

@@ -412,14 +412,11 @@ class Mailgateway
     public function getLoginCredentialContent($credential_for, $sender_details, $template)
     {
         if ($credential_for == "student") {
-            $student                        = $this->_CI->student_model->get($sender_details['id']);
             $sender_details['url']          = site_url('site/userlogin');
-            $sender_details['display_name'] = $this->_CI->customlib->getFullName($student['firstname'], $student['middlename'], $student['lastname'], $this->sch_setting->middlename, $this->sch_setting->lastname);
-            $sender_details['display_name'] = $student['firstname'] . ' ' . $student['lastname'];
+            $sender_details['display_name'] = $sender_details['firstname'] . ' ' . $sender_details['lastname'];
         } elseif ($credential_for == "parent") {
-            $parent = $this->_CI->student_model->get($sender_details['id']);
             $sender_details['url']          = site_url('site/userlogin');
-            $sender_details['display_name'] = $parent['guardian_name'];
+            $sender_details['display_name'] = $sender_details['guardian_name'];
         } elseif ($credential_for == "staff") {
             $staff                          = $this->_CI->staff_model->get($sender_details['id']);
             $sender_details['url']          = site_url('site/login');

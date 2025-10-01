@@ -291,6 +291,7 @@ class Schsettings extends Admin_Controller
             $this->session->userdata['admin']['start_week']      = date("w", strtotime($this->input->post('sch_start_week')));
             $this->session->userdata['admin']['timezone']        = $this->input->post('sch_timezone');
             $this->session->userdata['admin']['currency_place']  = $this->input->post('currency_place');
+            $this->session->userdata['admin']['sch_name'] = $this->input->post('sch_name');
             $array                                               = array('status' => 'success', 'error' => '', 'message' => $this->lang->line('success_message'));
             echo json_encode($array);
         }

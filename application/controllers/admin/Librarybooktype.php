@@ -84,4 +84,45 @@ class Librarybooktype extends Admin_Controller
         $this->session->set_flashdata('msg', '<div class="alert alert-success text-left">Book Type deleted successfully</div>');
         redirect('admin/librarybooktype/index');
     }
+
+    public function import()
+    {
+        if (!$this->rbac->hasPrivilege('library_book_type', 'can_add')) {
+            access_denied();
+        }
+        $this->load->library('CSVReader');
+        $this->form_validation->set_rules('file', 'File', 'required');
+
+        if ($this->form_validation->run() == FALSE) {
+            $this->load->view('layout/header');
+            $this->load->view('admin/librarybooktype/import');
+            $this->load->view('layout/footer');
+        } else {
+            $file = $_FILES['file']['tmp_name'];
+            $result = $this->csvreader->parse_file($file);
+            if (!empty($result)) {
+                foreach ($result as $row) {
+                    $data = array(
+                        'book_type_name' => $row['book_type_name'],
+                        'description' => $row['description'],
+                    );
+                    $this->librarybooktype_model->add($data);
+                }
+                $this->session->set_flashdata('msg', '<div class="alert alert-success text-left">Book Types imported successfully</div>');
+                redirect('admin/librarybooktype/index');
+            } else {
+                $this->session->set_flashdata('msg', '<div class="alert alert-danger text-left">No data found in the file.</div>');
+                redirect('admin/librarybooktype/import');
+            }
+        }
+    }
+
+    public function import_sample()
+    {
+        $this->load->helper('download');
+        $filepath = "./backend/import/import_booktype_sample_file.xls";
+        $data = file_get_contents($filepath);
+        $name = 'import_booktype_sample_file.xls';
+        force_download($name, $data);
+    }
 }

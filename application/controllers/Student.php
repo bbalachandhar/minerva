@@ -327,7 +327,6 @@ class Student extends Admin_Controller
 
         force_download($name, $data);
     }
-
     public function delete($id)
     {
         if (!$this->rbac->hasPrivilege('student', 'can_delete')) {
@@ -1166,6 +1165,7 @@ class Student extends Admin_Controller
 
     public function import()
     {
+        set_time_limit(0);
         if (!$this->rbac->hasPrivilege('import_student', 'can_view')) {
             access_denied();
         }
@@ -1178,12 +1178,10 @@ class Student extends Admin_Controller
 
         $category = $this->category_model->get();
 
-        $fields = array('admission_no', 'roll_no', 'firstname', 'middlename', 'lastname', 'gender', 'dob', 'category_id', 'religion', 'cast', 'mobileno', 'email', 'admission_date', 'blood_group', 'school_house_id', 'height', 'weight', 'measurement_date', 'father_name', 'father_phone', 'father_occupation', 'mother_name', 'mother_phone', 'mother_occupation', 'guardian_is', 'guardian_name', 'guardian_relation', 'guardian_email', 'guardian_phone', 'guardian_occupation', 'guardian_address', 'current_address', 'permanent_address', 'bank_account_no', 'bank_name', 'ifsc_code', 'adhar_no', 'samagra_id', 'rte', 'previous_school', 'note', 'register_no', 'regulation_id', 'emis_num', 'hsc_reg_no', 'ug_reg_no', 'abc_id', 'father_adhar_no', 'mother_adhar_no', 'migration_cert_num', 'medium');
+        $student_fields = array('admission_no', 'roll_no', 'firstname', 'middlename', 'lastname', 'gender', 'dob', 'category_id', 'religion', 'cast', 'mobileno', 'email', 'admission_date', 'blood_group', 'school_house_id', 'height', 'weight', 'measurement_date', 'father_name', 'father_phone', 'father_occupation', 'mother_name', 'mother_phone', 'mother_occupation', 'guardian_is', 'guardian_name', 'guardian_relation', 'guardian_email', 'guardian_phone', 'guardian_occupation', 'guardian_address', 'current_address', 'permanent_address', 'bank_account_no', 'bank_name', 'ifsc_code', 'adhar_no', 'samagra_id', 'rte', 'previous_school', 'note', 'register_no', 'regulation_id', 'emis_num', 'hsc_reg_no', 'ug_reg_no', 'abc_id', 'father_adhar_no', 'mother_adhar_no', 'migration_cert_num', 'medium');
 
-        $data["fields"]       = $fields;
+        $data["fields"]       = $student_fields;
         $data['categorylist'] = $category;
-        $this->form_validation->set_rules('class_id', $this->lang->line('class'), 'trim|required|xss_clean');
-        $this->form_validation->set_rules('section_id', $this->lang->line('section'), 'trim|required|xss_clean');
         $this->form_validation->set_rules('file', $this->lang->line('image'), 'callback_handle_csv_upload');
         if ($this->form_validation->run() == false) {
             $this->load->view('layout/header', $data);
@@ -1198,47 +1196,115 @@ class Student extends Admin_Controller
 
                 $section = $this->input->post('section_id');
             }
-            $class_id   = $this->input->post('class_id');
-            $section_id = $this->input->post('section_id');
 
             $session = $this->setting_model->getCurrentSession();
             if (isset($_FILES["file"]) && !empty($_FILES['file']['name'])) {
                 $ext = pathinfo($_FILES['file']['name'], PATHINFO_EXTENSION);
                 if ($ext == 'csv') {
                     $file = $_FILES['file']['tmp_name'];
-                    $this->load->library('CSVReader');
-                    $result = $this->csvreader->parse_file($file);
+                    $result = [];
+                    $i = 1;
+                    $handle = fopen($file, "r");
+                    if ($handle !== FALSE) {
+                        $header = fgetcsv($handle, 1000, ",");
+                        log_message('error', 'CSV Header: ' . print_r($header, true));
+                        while (($data = fgetcsv($handle, 1000, ",")) !== FALSE) {
+                            if (count($header) == count($data)) {
+                                $result[$i] = array_combine($header, $data);
+                                $i++;
+                            }
+                        }
+                        fclose($handle);
+                        if (!empty($result)) {
+                            log_message('error', 'First CSV Row Data: ' . print_r($result[1], true));
+                        }
+                    }
 
                     if (!empty($result)) {
                         $rowcount = 0;
+
+                        $all_classes = $this->class_model->get();
+                        $class_map = array();
+                        foreach ($all_classes as $class) {
+                            $class_map[strtolower($class['class'])] = $class['id'];
+                        }
+
+                        $all_sections = $this->section_model->get();
+                        $section_map = array();
+                        foreach ($all_sections as $section) {
+                            $section_map[strtolower($section['section'])] = $section['id'];
+                        }
+
                         for ($i = 1; $i <= count($result); $i++) {
 
                             $student_data[$i] = array();
-                            $n                = 0;
+                            $csv_class_name = '';
+                            $csv_section_name = '';
+
                             foreach ($result[$i] as $key => $value) {
-
-                                $student_data[$i][$fields[$n]] = $this->encoding_lib->toUTF8($result[$i][$key]);
-
-                                $student_data[$i]['is_active'] = 'yes';
-
-                                if (date('Y-m-d', strtotime($result[$i]['date_of_birth'])) === $result[$i]['date_of_birth']) {
-                                    $student_data[$i]['dob'] = date('Y-m-d', strtotime($result[$i]['date_of_birth']));
-                                } else {
-                                    $student_data[$i]['dob'] = null;
+                                $value = $this->encoding_lib->toUTF8($value);
+                                $lower_key = strtolower($key);
+                                if ($lower_key === 'class') {
+                                    $csv_class_name = $value;
+                                } elseif ($lower_key === 'section') {
+                                    $csv_section_name = $value;
+                                } elseif (in_array($key, $student_fields)) {
+                                    $student_data[$i][$key] = $value;
                                 }
+                            }
 
-                                if (date('Y-m-d', strtotime($result[$i]['measurement_date'])) === $result[$i]['measurement_date']) {
-                                    $student_data[$i]['measurement_date'] = date('Y-m-d', strtotime($result[$i]['measurement_date']));
-                                } else {
-                                    $student_data[$i]['measurement_date'] = '';
-                                }
+                            $student_data[$i]['is_active'] = 'yes';
 
-                                if (date('Y-m-d', strtotime($result[$i]['admission_date'])) === $result[$i]['admission_date']) {
-                                    $student_data[$i]['admission_date'] = date('Y-m-d', strtotime($result[$i]['admission_date']));
+                            if (isset($result[$i]['date_of_birth']) && date('Y-m-d', strtotime($result[$i]['date_of_birth'])) === $result[$i]['date_of_birth']) {
+                                $student_data[$i]['dob'] = date('Y-m-d', strtotime($result[$i]['date_of_birth']));
+                            } else {
+                                $student_data[$i]['dob'] = null;
+                            }
+
+                            if (isset($result[$i]['measurement_date']) && date('Y-m-d', strtotime($result[$i]['measurement_date'])) === $result[$i]['measurement_date']) {
+                                $student_data[$i]['measurement_date'] = date('Y-m-d', strtotime($result[$i]['measurement_date']));
+                            } else {
+                                $student_data[$i]['measurement_date'] = '';
+                            }
+
+                            if (isset($result[$i]['admission_date']) && date('Y-m-d', strtotime($result[$i]['admission_date'])) === $result[$i]['admission_date']) {
+                                $student_data[$i]['admission_date'] = date('Y-m-d', strtotime($result[$i]['admission_date']));
+                            } else {
+                                $student_data[$i]['admission_date'] = null;
+                            }
+
+                            $class_id = null;
+                            $section_id = null;
+
+                            // Log extracted class and section names
+                            log_message('debug', 'CSV Class Name: ' . $csv_class_name . ', CSV Section Name: ' . $csv_section_name);
+
+                            if (!empty($csv_class_name)) {
+                                $class_name_lower = strtolower($csv_class_name);
+                                if (isset($class_map[$class_name_lower])) {
+                                    $class_id = $class_map[$class_name_lower];
                                 } else {
-                                    $student_data[$i]['admission_date'] = null;
+                                    log_message('error', 'Class not found: ' . $csv_class_name);
+                                    $this->session->set_flashdata('msg', '<div class="alert alert-danger text-center">Class not found: ' . $csv_class_name . '</div>');
+                                    continue;
                                 }
-                                $n++;
+                            }
+
+                            if (!empty($csv_section_name) && !empty($class_id)) {
+                                $section_name_lower = strtolower($csv_section_name);
+                                if (isset($section_map[$section_name_lower])) {
+                                    $section_id = $section_map[$section_name_lower];
+                                } else {
+                                    log_message('error', 'Section not found: ' . $csv_section_name . ' for class: ' . $csv_class_name);
+                                    $this->session->set_flashdata('msg', '<div class="alert alert-danger text-center">Section not found: ' . $csv_section_name . ' for class: ' . $csv_class_name . '</div>');
+                                    continue;
+                                }
+                            }
+
+                            if(empty($class_id) || empty($section_id)){
+                                log_message('error', 'Skipping row due to missing Class ID or Section ID. Class Name: ' . $csv_class_name . ', Section Name: ' . $csv_section_name);
+                                $this->session->set_flashdata('msg', '<div class="alert alert-danger text-center">Skipping row due to missing Class ID or Section ID. Class Name: ' . $csv_class_name . ', Section Name: ' . $csv_section_name . '</div>');
+                                continue;
                             }
 
                             $roll_no                           = $student_data[$i]["roll_no"];
@@ -1251,6 +1317,7 @@ class Student extends Admin_Controller
                             $data_setting['id']                = $this->sch_setting_detail->id;
                             $data_setting['adm_auto_insert']   = $this->sch_setting_detail->adm_auto_insert;
                             $data_setting['adm_update_status'] = $this->sch_setting_detail->adm_update_status;
+                            $admission_no                      = $adm_no;                            
                             //-------------------------
 
                             if ($this->sch_setting_detail->adm_auto_insert) {
@@ -1321,10 +1388,10 @@ class Student extends Admin_Controller
                                 $sender_details = array('student_id' => $insert_id, 'contact_no' => $guardian_phone, 'email' => $guardian_email);
                                 $this->mailsmsconf->mailsms('student_admission', $sender_details);
 
-                                $student_login_detail = array('id' => $insert_id, 'credential_for' => 'student', 'username' => $this->student_login_prefix . $insert_id, 'password' => $user_password, 'contact_no' => $mobile_no, 'email' => $email, 'admission_no' => $admission_no);
+                                $student_login_detail = array('id' => $insert_id, 'credential_for' => 'student', 'username' => $this->student_login_prefix . $insert_id, 'password' => $user_password, 'contact_no' => $mobile_no, 'email' => $email, 'admission_no' => $admission_no, 'firstname' => $student_data[$i]['firstname'], 'lastname' => $student_data[$i]['lastname']);
                                 $this->mailsmsconf->mailsms('student_login_credential', $student_login_detail);
 
-                                $parent_login_detail = array('id' => $insert_id, 'credential_for' => 'parent', 'username' => $this->parent_login_prefix . $insert_id, 'password' => $parent_password, 'contact_no' => $guardian_phone, 'email' => $guardian_email, 'admission_no' => $admission_no);
+                                $parent_login_detail = array('id' => $insert_id, 'credential_for' => 'parent', 'username' => $this->parent_login_prefix . $insert_id, 'password' => $parent_password, 'contact_no' => $guardian_phone, 'email' => $guardian_email, 'admission_no' => $admission_no, 'guardian_name' => $student_data[$i]['guardian_name']);
 
                                 $this->mailsmsconf->mailsms('student_login_credential', $parent_login_detail);
 
@@ -1335,9 +1402,8 @@ class Student extends Admin_Controller
                                 $this->session->set_flashdata('msg', '<div class="alert alert-success text-center">' . $this->lang->line('total') . ' ' . count($result) . $this->lang->line('records_found_in_csv_file_total') . $rowcount . ' ' . $this->lang->line('records_imported_successfully') . '</div>');
 
                                 //generate student id card
-                                $student_details = $this->student_model->get($insert_id);
                                 $scan_type = $this->sch_setting_detail->scan_code_type;
-                                $this->customlib->generatebarcode($student_details['admission_no'], $student_details['id'], $scan_type);
+                                $this->customlib->generatebarcode($admission_no, $insert_id, $scan_type);
                                 //generate student id card
 
                             } else {

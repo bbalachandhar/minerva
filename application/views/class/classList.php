@@ -103,6 +103,9 @@
                     <div class="box-header ptbnull">
                         <h3 class="box-title titlefix"><?php echo $this->lang->line('class_list'); ?></h3>
                         <div class="box-tools pull-right">
+                             <?php if ($this->rbac->hasPrivilege('import_class', 'can_view')) {?>
+                             <a href="<?php echo site_url('classes/import') ?>" class="btn btn-sm btn-primary"><i class="fa fa-plus"></i> <?php echo $this->lang->line('import_class'); ?></a>
+                             <?php }?>
                         </div><!-- /.box-tools -->
                     </div><!-- /.box-header -->
                     <div class="box-body">

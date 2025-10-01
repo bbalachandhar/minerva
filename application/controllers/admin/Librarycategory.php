@@ -84,4 +84,45 @@ class Librarycategory extends Admin_Controller
         $this->session->set_flashdata('msg', '<div class="alert alert-success text-left">Category deleted successfully</div>');
         redirect('admin/librarycategory/index');
     }
+
+    public function import()
+    {
+        if (!$this->rbac->hasPrivilege('library_category', 'can_add')) {
+            access_denied();
+        }
+        $this->load->library('CSVReader');
+        $this->form_validation->set_rules('file', 'File', 'required');
+
+        if ($this->form_validation->run() == FALSE) {
+            $this->load->view('layout/header');
+            $this->load->view('admin/librarycategory/import');
+            $this->load->view('layout/footer');
+        } else {
+            $file = $_FILES['file']['tmp_name'];
+            $result = $this->csvreader->parse_file($file);
+            if (!empty($result)) {
+                foreach ($result as $row) {
+                    $data = array(
+                        'category_name' => $row['category_name'],
+                        'description' => $row['description'],
+                    );
+                    $this->librarycategory_model->add($data);
+                }
+                $this->session->set_flashdata('msg', '<div class="alert alert-success text-left">Categories imported successfully</div>');
+                redirect('admin/librarycategory/index');
+            } else {
+                $this->session->set_flashdata('msg', '<div class="alert alert-danger text-left">No data found in the file.</div>');
+                redirect('admin/librarycategory/import');
+            }
+        }
+    }
+
+    public function import_sample()
+    {
+        $this->load->helper('download');
+        $filepath = "./backend/import/import_category_sample_file.xls";
+        $data = file_get_contents($filepath);
+        $name = 'import_category_sample_file.xls';
+        force_download($name, $data);
+    }
 }

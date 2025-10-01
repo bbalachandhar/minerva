@@ -58,6 +58,11 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                     <div class="box-header ptbnull">
                         <h3 class="box-title titlefix">Vendor List</h3>
                         <div class="box-tools pull-right">
+                            <?php if ($this->rbac->hasPrivilege('library_vendor', 'can_add')) {
+                                ?>
+                                <a class="btn btn-sm btn-primary" href="<?php echo base_url(); ?>admin/libraryvendor/import" autocomplete="off"><i class="fa fa-plus"></i> Import Vendor</a> 
+                            <?php }
+                            ?>
                         </div><!-- /.box-tools -->
                     </div><!-- /.box-header -->
                     <div class="box-body">
