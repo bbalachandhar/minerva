@@ -102,4 +102,11 @@ class Librarysubject_model extends MY_Model
     {
         return $this->get(); // Calls the existing get() method to fetch all subjects
     }
+
+    public function get_subject_by_name_case_insensitive($name)
+    {
+        $this->db->where('LOWER(subject_name)', strtolower($name));
+        $query = $this->db->get('library_subjects');
+        return $query->row();
+    }
 }

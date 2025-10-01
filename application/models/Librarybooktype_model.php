@@ -97,4 +97,11 @@ class Librarybooktype_model extends MY_Model
             return $insert_id;
         }
     }
+
+    public function get_book_type_by_name_case_insensitive($name)
+    {
+        $this->db->where('LOWER(book_type_name)', strtolower($name));
+        $query = $this->db->get('library_book_types');
+        return $query->row();
+    }
 }

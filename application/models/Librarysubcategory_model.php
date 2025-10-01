@@ -98,4 +98,12 @@ class Librarysubcategory_model extends MY_Model
             return $insert_id;
         }
     }
+
+    public function get_subcategory_by_name_and_category_id_case_insensitive($name, $category_id)
+    {
+        $this->db->where('LOWER(subcategory_name)', strtolower($name));
+        $this->db->where('category_id', $category_id);
+        $query = $this->db->get('library_subcategories');
+        return $query->row();
+    }
 }

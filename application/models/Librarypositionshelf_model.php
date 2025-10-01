@@ -98,4 +98,12 @@ class Librarypositionshelf_model extends MY_Model
             return $insert_id;
         }
     }
+
+    public function get_shelf_by_name_and_rack_id_case_insensitive($name, $rack_id)
+    {
+        $this->db->where('LOWER(shelf_name)', strtolower($name));
+        $this->db->where('rack_id', $rack_id);
+        $query = $this->db->get('library_position_shelves');
+        return $query->row();
+    }
 }

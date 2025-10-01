@@ -41,6 +41,13 @@ class Librarycategory_model extends MY_Model
         return $query->row();
     }
 
+    public function get_category_by_name_case_insensitive($name)
+    {
+        $this->db->where('LOWER(category_name)', strtolower($name));
+        $query = $this->db->get('library_categories');
+        return $query->row();
+    }
+
     public function add($data)
     {
         $this->db->trans_start(); # Starting Transaction

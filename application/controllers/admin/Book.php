@@ -272,7 +272,7 @@ class Book extends Admin_Controller
 
     public function import()
     {
-        $data['fields'] = array('book_title', 'book_no', 'barcode', 'category_name', 'subcategory_name', 'isbn_no', 'subject', 'rack_no', 'shelf_id', 'class_no', 'publish', 'author', 'author2', 'edition', 'edition_type', 'medium', 'book_type', 'publish_year', 'perunitcost', 'purchase_date', 'bill_no', 'bill_date', 'pages', 'department', 'description', 'available', 'is_active');
+        $data['fields'] = array('book_title', 'book_no', 'barcode', 'category_name', 'subcategory_name', 'isbn_no', 'subject', 'rack_name', 'shelf_name', 'class_no', 'publisher_name', 'author', 'author2', 'edition', 'edition_type', 'medium', 'book_type_name', 'publish_year', 'perunitcost', 'purchase_date', 'bill_no', 'bill_date', 'pages', 'department', 'description', 'available', 'is_active');
         $this->form_validation->set_rules('file', $this->lang->line('images'), 'callback_handle_csv_upload');
         if ($this->form_validation->run() == false) {
 
@@ -290,57 +290,158 @@ class Book extends Admin_Controller
                     $rowcount = 0;
                     if (!empty($result)) {
                         foreach ($result as $r_key => $r_value) {
-                            
-                            if($this->encoding_lib->toUTF8($result[$r_key]['perunitcost'])){
+
+                            if ($this->encoding_lib->toUTF8($result[$r_key]['perunitcost'])) {
                                 $perunitcost = convertCurrencyFormatToBaseAmount($this->encoding_lib->toUTF8($result[$r_key]['perunitcost']));
-                            }else{
+                            } else {
                                 $perunitcost = 0;
                             }
-                            
-                            $result[$r_key]['book_title']  = $this->encoding_lib->toUTF8($result[$r_key]['book_title']);
-                            $result[$r_key]['book_no']     = $this->encoding_lib->toUTF8($result[$r_key]['book_no']);
-                            $result[$r_key]['isbn_no']     = $this->encoding_lib->toUTF8($result[$r_key]['isbn_no']);
-                            $result[$r_key]['subject']     = $this->encoding_lib->toUTF8($result[$r_key]['subject']);
-                            $result[$r_key]['rack_no']     = $this->encoding_lib->toUTF8($result[$r_key]['rack_no']);
-                            $result[$r_key]['publish']     = $this->encoding_lib->toUTF8($result[$r_key]['publish']);
-                            $result[$r_key]['author']      = $this->encoding_lib->toUTF8($result[$r_key]['author']);
-                            $result[$r_key]['perunitcost'] = $perunitcost;
-                            $result[$r_key]['postdate']    = $this->encoding_lib->toUTF8($result[$r_key]['postdate']);
-                            $result[$r_key]['description'] = $this->encoding_lib->toUTF8($result[$r_key]['description']);
-                            $result[$r_key]['available']   = $this->encoding_lib->toUTF8($result[$r_key]['available']);
-                            $result[$r_key]['is_active']   = $this->encoding_lib->toUTF8($result[$r_key]['is_active']);
-                            
-                            // New fields
-                            $result[$r_key]['barcode']          = $this->encoding_lib->toUTF8($result[$r_key]['barcode']);
-                            $result[$r_key]['category_name']    = $this->encoding_lib->toUTF8($result[$r_key]['category_name']);
-                            $result[$r_key]['subcategory_name'] = $this->encoding_lib->toUTF8($result[$r_key]['subcategory_name']);
-                            $result[$r_key]['author2']          = $this->encoding_lib->toUTF8($result[$r_key]['author2']);
-                            $result[$r_key]['edition']          = $this->encoding_lib->toUTF8($result[$r_key]['edition']);
-                            $result[$r_key]['medium']           = $this->encoding_lib->toUTF8($result[$r_key]['medium']);
-                            $result[$r_key]['book_type']        = $this->encoding_lib->toUTF8($result[$r_key]['book_type']);
-                            $result[$r_key]['shelf_id']         = $this->encoding_lib->toUTF8($result[$r_key]['shelf_id']);
-                            $result[$r_key]['class_no']         = $this->encoding_lib->toUTF8($result[$r_key]['class_no']);
-                            $result[$r_key]['edition_type']     = $this->encoding_lib->toUTF8($result[$r_key]['edition_type']);
-                            $result[$r_key]['publish_year']     = $this->encoding_lib->toUTF8($result[$r_key]['publish_year']);
-                            
+
+                            $book_data = array(
+                                'book_title'  => $this->encoding_lib->toUTF8($result[$r_key]['book_title']),
+                                'book_no'     => $this->encoding_lib->toUTF8($result[$r_key]['book_no']),
+                                'isbn_no'     => $this->encoding_lib->toUTF8($result[$r_key]['isbn_no']),
+                                'author'      => $this->encoding_lib->toUTF8($result[$r_key]['author']), // Direct field
+                                'author2'     => $this->encoding_lib->toUTF8($result[$r_key]['author2']), // Direct field
+                                'edition'     => $this->encoding_lib->toUTF8($result[$r_key]['edition']), // Direct field
+                                'medium'      => $this->encoding_lib->toUTF8($result[$r_key]['medium']), // Direct field
+                                'class_no'    => $this->encoding_lib->toUTF8($result[$r_key]['class_no']), // Direct field
+                                'edition_type' => $this->encoding_lib->toUTF8($result[$r_key]['edition_type']), // Direct field
+                                'publish_year' => $this->encoding_lib->toUTF8($result[$r_key]['publish_year']), // Direct field
+                                'perunitcost' => $perunitcost,
+                                'postdate'    => $this->encoding_lib->toUTF8($result[$r_key]['postdate']),
+                                'description' => $this->encoding_lib->toUTF8($result[$r_key]['description']),
+                                'available'   => $this->encoding_lib->toUTF8($result[$r_key]['available']),
+                                'is_active'   => $this->encoding_lib->toUTF8($result[$r_key]['is_active']),
+                                'barcode'     => $this->encoding_lib->toUTF8($result[$r_key]['barcode']),
+                                'bill_no'          => $this->encoding_lib->toUTF8($result[$r_key]['bill_no']),
+                                'pages'            => $this->encoding_lib->toUTF8($result[$r_key]['pages']),
+                                'department'       => $this->encoding_lib->toUTF8($result[$r_key]['department'])
+                            );
+
+                            // Handle category_name
+                            $category_name = trim($this->encoding_lib->toUTF8($result[$r_key]['category_name']));
+                            $category_id = null;
+                            if (!empty($category_name)) {
+                                $this->load->model('librarycategory_model');
+                                $category = $this->librarycategory_model->get_category_by_name_case_insensitive($category_name);
+                                if ($category) {
+                                    $category_id = $category->id;
+                                } else {
+                                    $new_category_data = array('category_name' => $category_name);
+                                    $category_id = $this->librarycategory_model->add($new_category_data);
+                                }
+                            }
+                            $book_data['category_id'] = $category_id;
+
+                            // Handle subcategory_name
+                            $subcategory_name = trim($this->encoding_lib->toUTF8($result[$r_key]['subcategory_name']));
+                            $subcategory_id = null;
+                            if (!empty($subcategory_name) && !empty($category_id)) {
+                                $this->load->model('librarysubcategory_model');
+                                $subcategory = $this->librarysubcategory_model->get_subcategory_by_name_and_category_id_case_insensitive($subcategory_name, $category_id);
+                                if ($subcategory) {
+                                    $subcategory_id = $subcategory->id;
+                                } else {
+                                    $new_subcategory_data = array('subcategory_name' => $subcategory_name, 'category_id' => $category_id);
+                                    $subcategory_id = $this->librarysubcategory_model->add($new_subcategory_data);
+                                }
+                            }
+                            $book_data['subcategory_id'] = $subcategory_id;
+
+                            // Handle publisher_name
+                            $publisher_name = trim($this->encoding_lib->toUTF8($result[$r_key]['publisher_name']));
+                            $publisher_id = null;
+                            if (!empty($publisher_name)) {
+                                $this->load->model('librarypublisher_model');
+                                $publisher = $this->librarypublisher_model->get_publisher_by_name_case_insensitive($publisher_name);
+                                if ($publisher) {
+                                    $publisher_id = $publisher->id;
+                                } else {
+                                    $new_publisher_data = array('publisher_name' => $publisher_name);
+                                    $publisher_id = $this->librarypublisher_model->add($new_publisher_data);
+                                }
+                            }
+                            $book_data['publisher_id'] = $publisher_id;
+
+                            // Handle rack_name (Position Rack)
+                            $rack_name = trim($this->encoding_lib->toUTF8($result[$r_key]['rack_name']));
+                            $rack_id = null;
+                            if (!empty($rack_name)) {
+                                $this->load->model('librarypositionrack_model');
+                                $rack = $this->librarypositionrack_model->get_rack_by_name_case_insensitive($rack_name);
+                                if ($rack) {
+                                    $rack_id = $rack->id;
+                                } else {
+                                    $new_rack_data = array('rack_name' => $rack_name);
+                                    $rack_id = $this->librarypositionrack_model->add($new_rack_data);
+                                }
+                            }
+                            $book_data['rack_id'] = $rack_id;
+
+                            // Handle shelf_name (Position Shelf)
+                            $shelf_name = trim($this->encoding_lib->toUTF8($result[$r_key]['shelf_id']));
+                            $shelf_id = null;
+                            if (!empty($shelf_name) && !empty($rack_id)) {
+                                $this->load->model('librarypositionshelf_model');
+                                $shelf = $this->librarypositionshelf_model->get_shelf_by_name_and_rack_id_case_insensitive($shelf_name, $rack_id);
+                                if ($shelf) {
+                                    $shelf_id = $shelf->id;
+                                } else {
+                                    $new_shelf_data = array('shelf_name' => $shelf_name, 'rack_id' => $rack_id);
+                                    $shelf_id = $this->librarypositionshelf_model->add($new_shelf_data);
+                                }
+                            }
+                            $book_data['shelf_id'] = $shelf_id;
+
+                            // Handle book_type
+                            $book_type_name = trim($this->encoding_lib->toUTF8($result[$r_key]['book_type_name']));
+                            $book_type_id = null;
+                            if (!empty($book_type_name)) {
+                                $this->load->model('librarybooktype_model');
+                                $book_type = $this->librarybooktype_model->get_book_type_by_name_case_insensitive($book_type_name);
+                                if ($book_type) {
+                                    $book_type_id = $book_type->id;
+                                } else {
+                                    $new_book_type_data = array('book_type_name' => $book_type_name);
+                                    $book_type_id = $this->librarybooktype_model->add($new_book_type_data);
+                                }
+                            }
+                            $book_data['book_type_id'] = $book_type_id;
+
+                            // Handle subject
+                            $subject_name = trim($this->encoding_lib->toUTF8($result[$r_key]['subject']));
+                            $subject_id = null;
+                            if (!empty($subject_name)) {
+                                $this->load->model('librarysubject_model');
+                                $subject = $this->librarysubject_model->get_subject_by_name_case_insensitive($subject_name);
+                                if ($subject) {
+                                    $subject_id = $subject->id;
+                                } else {
+                                    $new_subject_data = array('subject_name' => $subject_name);
+                                    $subject_id = $this->librarysubject_model->add($new_subject_data);
+                                }
+                            }
+                            $book_data['subject_id'] = $subject_id;
+
                             // Handle date fields
                             if (isset($result[$r_key]['purchase_date']) && $result[$r_key]['purchase_date'] != '') {
-                                $result[$r_key]['purchase_date'] = date('Y-m-d', $this->customlib->datetostrtotime($this->encoding_lib->toUTF8($result[$r_key]['purchase_date'])));
+                                $book_data['purchase_date'] = date('Y-m-d', $this->customlib->datetostrtotime($this->encoding_lib->toUTF8($result[$r_key]['purchase_date'])));
                             } else {
-                                $result[$r_key]['purchase_date'] = null;
+                                $book_data['purchase_date'] = null;
                             }
-                            
-                            $result[$r_key]['bill_no']          = $this->encoding_lib->toUTF8($result[$r_key]['bill_no']);
-                            
+
+                            $book_data['bill_no']          = $this->encoding_lib->toUTF8($result[$r_key]['bill_no']);
+
                             if (isset($result[$r_key]['bill_date']) && $result[$r_key]['bill_date'] != '') {
-                                $result[$r_key]['bill_date'] = date('Y-m-d', $this->customlib->datetostrtotime($this->encoding_lib->toUTF8($result[$r_key]['bill_date'])));
+                                $book_data['bill_date'] = date('Y-m-d', $this->customlib->datetostrtotime($this->encoding_lib->toUTF8($result[$r_key]['bill_date'])));
                             } else {
-                                $result[$r_key]['bill_date'] = null;
+                                $book_data['bill_date'] = null;
                             }
-                            
-                            $result[$r_key]['pages']            = $this->encoding_lib->toUTF8($result[$r_key]['pages']);
-                            $result[$r_key]['department']       = $this->encoding_lib->toUTF8($result[$r_key]['department']);
-                            
+
+                            $book_data['pages']            = $this->encoding_lib->toUTF8($result[$r_key]['pages']);
+                            $book_data['department']       = $this->encoding_lib->toUTF8($result[$r_key]['department']);
+
                             $rowcount++;
                         }
 
