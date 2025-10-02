@@ -13,7 +13,7 @@ class Librarybooktype extends Admin_Controller
         $this->load->model('librarybooktype_model');
     }
 
-    public function index()
+    public function index($id = null)
     {
         if (!$this->rbac->hasPrivilege('library_book_type', 'can_view')) {
             access_denied();
@@ -24,6 +24,12 @@ class Librarybooktype extends Admin_Controller
 
         $data['title']      = 'Add Book Type';
         $data['title_list'] = 'Book Type Details';
+
+        if ($id) {
+            $data['edit_booktype'] = $this->librarybooktype_model->get($id);
+        } else {
+            $data['edit_booktype'] = null;
+        }
         
         $this->form_validation->set_rules('book_type_name', 'Book Type Name', 'trim|required|xss_clean');
 
@@ -34,43 +40,23 @@ class Librarybooktype extends Admin_Controller
             $this->load->view('admin/librarybooktype/index', $data);
             $this->load->view('layout/footer');
         } else {
+            $book_type_name = $this->input->post('book_type_name');
+            $description    = $this->input->post('description');
+            $booktype_id   = $this->input->post('id'); // Get ID from hidden field if editing
+
             $data = array(
-                'book_type_name' => $this->input->post('book_type_name'),
-                'description'      => $this->input->post('description'),
+                'book_type_name' => $book_type_name,
+                'description'      => $description,
             );
-            $this->librarybooktype_model->add($data);
-            $this->session->set_flashdata('msg', '<div class="alert alert-success text-left">Book Type added successfully</div>');
-            redirect('admin/librarybooktype/index');
-        }
-    }
 
-    public function edit($id)
-    {
-        if (!$this->rbac->hasPrivilege('library_book_type', 'can_edit')) {
-            access_denied();
-        }
-
-        $data['title']      = 'Edit Book Type';
-        $data['id']         = $id;
-        $editbooktype           = $this->librarybooktype_model->get($id);
-        $data['editbooktype']   = $editbooktype;
-        
-        $this->form_validation->set_rules('book_type_name', 'Book Type Name', 'trim|required|xss_clean');
-
-        if ($this->form_validation->run() == false) {
-            $listbooktype         = $this->librarybooktype_model->get();
-            $data['listbooktype'] = $listbooktype;
-            $this->load->view('layout/header');
-            $this->load->view('admin/librarybooktype/index', $data);
-            $this->load->view('layout/footer');
-        } else {
-            $data = array(
-                'id'               => $id,
-                'book_type_name' => $this->input->post('book_type_name'),
-                'description'      => $this->input->post('description'),
-            );
-            $this->librarybooktype_model->add($data);
-            $this->session->set_flashdata('msg', '<div class="alert alert-success text-left">Book Type updated successfully</div>');
+            if ($booktype_id) {
+                $data['id'] = $booktype_id;
+                $this->librarybooktype_model->add($data); // add() handles both insert and update
+                $this->session->set_flashdata('msg', '<div class="alert alert-success text-left">' . $this->lang->line('update_message') . '</div>');
+            } else {
+                $this->librarybooktype_model->add($data);
+                $this->session->set_flashdata('msg', '<div class="alert alert-success text-left">' . $this->lang->line('success_message') . '</div>');
+            }
             redirect('admin/librarybooktype/index');
         }
     }
@@ -97,7 +83,8 @@ class Librarybooktype extends Admin_Controller
             $this->load->view('layout/header');
             $this->load->view('admin/librarybooktype/import');
             $this->load->view('layout/footer');
-        } else {
+        }
+        else {
             $file = $_FILES['file']['tmp_name'];
             $result = $this->csvreader->parse_file($file);
             if (!empty($result)) {
@@ -125,4 +112,4 @@ class Librarybooktype extends Admin_Controller
         $name = 'import_booktype_sample_file.xls';
         force_download($name, $data);
     }
-}
+} 

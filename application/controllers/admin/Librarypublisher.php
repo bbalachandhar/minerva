@@ -13,7 +13,7 @@ class Librarypublisher extends Admin_Controller
         $this->load->model('librarypublisher_model');
     }
 
-    public function index()
+    public function index($id = null)
     {
         if (!$this->rbac->hasPrivilege('library_publisher', 'can_view')) {
             access_denied();
@@ -24,6 +24,12 @@ class Librarypublisher extends Admin_Controller
 
         $data['title']      = 'Add Publisher';
         $data['title_list'] = 'Publisher Details';
+
+        if ($id) {
+            $data['edit_publisher'] = $this->librarypublisher_model->get($id);
+        } else {
+            $data['edit_publisher'] = null;
+        }
         
         $this->form_validation->set_rules('publisher_name', 'Publisher Name', 'trim|required|xss_clean');
 
@@ -34,43 +40,23 @@ class Librarypublisher extends Admin_Controller
             $this->load->view('admin/librarypublisher/index', $data);
             $this->load->view('layout/footer');
         } else {
+            $publisher_name = $this->input->post('publisher_name');
+            $description    = $this->input->post('description');
+            $publisher_id   = $this->input->post('id'); // Get ID from hidden field if editing
+
             $data = array(
-                'publisher_name' => $this->input->post('publisher_name'),
-                'description'      => $this->input->post('description'),
+                'publisher_name' => $publisher_name,
+                'description'      => $description,
             );
-            $this->librarypublisher_model->add($data);
-            $this->session->set_flashdata('msg', '<div class="alert alert-success text-left">Publisher added successfully</div>');
-            redirect('admin/librarypublisher/index');
-        }
-    }
 
-    public function edit($id)
-    {
-        if (!$this->rbac->hasPrivilege('library_publisher', 'can_edit')) {
-            access_denied();
-        }
-
-        $data['title']      = 'Edit Publisher';
-        $data['id']         = $id;
-        $editpublisher           = $this->librarypublisher_model->get($id);
-        $data['editpublisher']   = $editpublisher;
-        
-        $this->form_validation->set_rules('publisher_name', 'Publisher Name', 'trim|required|xss_clean');
-
-        if ($this->form_validation->run() == false) {
-            $listpublisher         = $this->librarypublisher_model->get();
-            $data['listpublisher'] = $listpublisher;
-            $this->load->view('layout/header');
-            $this->load->view('admin/librarypublisher/index', $data);
-            $this->load->view('layout/footer');
-        } else {
-            $data = array(
-                'id'               => $id,
-                'publisher_name' => $this->input->post('publisher_name'),
-                'description'      => $this->input->post('description'),
-            );
-            $this->librarypublisher_model->add($data);
-            $this->session->set_flashdata('msg', '<div class="alert alert-success text-left">Publisher updated successfully</div>');
+            if ($publisher_id) {
+                $data['id'] = $publisher_id;
+                $this->librarypublisher_model->add($data); // add() handles both insert and update
+                $this->session->set_flashdata('msg', '<div class="alert alert-success text-left">' . $this->lang->line('update_message') . '</div>');
+            } else {
+                $this->librarypublisher_model->add($data);
+                $this->session->set_flashdata('msg', '<div class="alert alert-success text-left">' . $this->lang->line('success_message') . '</div>');
+            }
             redirect('admin/librarypublisher/index');
         }
     }

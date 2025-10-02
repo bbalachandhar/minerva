@@ -40,7 +40,12 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                     <?php
                                     foreach ($listpositionrack as $rack) {
                                         ?>
-                                        <option value="<?php echo $rack['id'] ?>"<?php if (set_value('rack_id') == $rack['id']) echo "selected=selected" ?>><?php echo $rack['rack_name'] ?></option>
+                                        <option value="<?php echo $rack['id'] ?>"<?php
+                                        if(isset($edit_positionshelf) && $edit_positionshelf['rack_id'] == $rack['id']){
+                                            echo "selected=selected";
+                                        }else if (set_value('rack_id') == $rack['id']) {
+                                            echo "selected=selected";
+                                        }?>><?php echo $rack['rack_name'] ?></option>
                                         <?php
                                         $count++;
                                     }
@@ -50,14 +55,28 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                             </div>
                             <div class="form-group">
                                 <label for="exampleInputEmail1">Position Shelf Name</label><small class="req"> *</small>
-                                <input id="shelf_name" name="shelf_name" placeholder="" type="text" class="form-control"  value="<?php echo set_value('shelf_name'); ?>" />
+                                <input id="shelf_name" name="shelf_name" placeholder="" type="text" class="form-control"  value="<?php
+                                if(isset($edit_positionshelf)){
+                                    echo $edit_positionshelf['shelf_name'];
+                                }else{
+                                    echo set_value('shelf_name');
+                                }?>" />
                                 <span class="text-danger"><?php echo form_error('shelf_name'); ?></span>
                             </div>
                             <div class="form-group">
                                 <label for="exampleInputEmail1">Description</label>
-                                <textarea class="form-control" id="description" name="description" placeholder="" rows="3" placeholder="Enter ..."><?php echo set_value('description'); ?></textarea>
+                                <textarea class="form-control" id="description" name="description" placeholder="" rows="3" placeholder="Enter ..."><?php
+                                if(isset($edit_positionshelf)){
+                                    echo $edit_positionshelf['description'];
+                                }else{
+                                    echo set_value('description');
+                                }?></textarea>
                                 <span class="text-danger"><?php echo form_error('description'); ?></span>
                             </div>
+                            <?php
+                            if(isset($edit_positionshelf)){
+                                ?><input type="hidden" name="id" value="<?php echo $edit_positionshelf['id']; ?>"><?php
+                            }?>
                         </div><!-- /.box-body -->
                         <div class="box-footer">
                             <button type="submit" class="btn btn-info pull-right">Save</button>
@@ -113,7 +132,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                                 </td>
                                                 <td class="mailbox-date pull-right">
                                                     <?php if ($this->rbac->hasPrivilege('library_position_shelf', 'can_edit')) { ?>
-                                                        <a href="<?php echo base_url(); ?>admin/librarypositionshelf/edit/<?php echo $positionshelf['id'] ?>" class="btn btn-default btn-xs"  data-toggle="tooltip" title="Edit">
+                                                        <a href="<?php echo base_url(); ?>admin/librarypositionshelf/index/<?php echo $positionshelf['id'] ?>" class="btn btn-default btn-xs"  data-toggle="tooltip" title="Edit">
                                                             <i class="fa fa-pencil"></i>
                                                         </a>
                                                     <?php } ?>

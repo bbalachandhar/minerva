@@ -14,37 +14,53 @@ class Librarysubcategory extends Admin_Controller
         $this->load->model('librarycategory_model');
     }
 
-    public function index()
+    public function index($id = null)
     {
-        if (!$this->rbac->hasPrivilege('library_subcategory', 'can_view')) {
+        if (!$this->rbac->hasPrivilege('books', 'can_view')) {
             access_denied();
         }
 
         $this->session->set_userdata('top_menu', 'Library');
-        $this->session->set_userdata('sub_menu', 'librarysubcategory/index');
+        $this->session->set_userdata('sub_menu', 'library/subcategory');
 
-        $data['title']      = 'Add Sub Category';
-        $data['title_list'] = 'Sub Category Details';
-        
-        $this->form_validation->set_rules('subcategory_name', 'Sub Category Name', 'trim|required|xss_clean');
-        $this->form_validation->set_rules('category_id', 'Category', 'trim|required|xss_clean');
+        $data['title']      = 'Add Library Subcategory';
+        $data['title_list'] = 'Library Subcategory List';
+
+        if ($id) {
+            $data['edit_subcategory'] = $this->librarysubcategory_model->get($id);
+        } else {
+            $data['edit_subcategory'] = null;
+        }
+
+        $this->form_validation->set_rules('category_id', $this->lang->line('category'), 'trim|required|xss_clean');
+        $this->form_validation->set_rules('subcategory_name', $this->lang->line('subcategory_name'), 'trim|required|xss_clean');
 
         if ($this->form_validation->run() == false) {
-            $listsubcategory         = $this->librarysubcategory_model->get();
-            $data['listsubcategory'] = $listsubcategory;
-            $listcategory         = $this->librarycategory_model->get();
-            $data['listcategory'] = $listcategory;
+            $subcategorylist         = $this->librarysubcategory_model->get();
+            $data['subcategorylist'] = $subcategorylist;
+            $categorylist            = $this->librarycategory_model->get();
+            $data['categorylist']    = $categorylist;
             $this->load->view('layout/header');
             $this->load->view('admin/librarysubcategory/index', $data);
             $this->load->view('layout/footer');
         } else {
+            $subcategory_name = $this->input->post('subcategory_name');
+            $category_id      = $this->input->post('category_id');
+            $subcategory_id   = $this->input->post('id'); // Get ID from hidden field if editing
+
             $data = array(
-                'subcategory_name' => $this->input->post('subcategory_name'),
-                'category_id' => $this->input->post('category_id'),
-                'description'      => $this->input->post('description'),
+                'subcategory_name' => $subcategory_name,
+                'category_id'      => $category_id,
             );
-            $this->librarysubcategory_model->add($data);
-            $this->session->set_flashdata('msg', '<div class="alert alert-success text-left">Sub Category added successfully</div>');
+
+            if ($subcategory_id) {
+                $data['id'] = $subcategory_id;
+                $this->librarysubcategory_model->add($data); // add() handles both insert and update
+                $this->session->set_flashdata('msg', '<div class="alert alert-success text-left">' . $this->lang->line('update_message') . '</div>');
+            } else {
+                $this->librarysubcategory_model->add($data);
+                $this->session->set_flashdata('msg', '<div class="alert alert-success text-left">' . $this->lang->line('success_message') . '</div>');
+            }
             redirect('admin/librarysubcategory/index');
         }
     }

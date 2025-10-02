@@ -35,14 +35,28 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                             <?php echo $this->customlib->getCSRF(); ?>
                             <div class="form-group">
                                 <label for="exampleInputEmail1">Vendor Name</label><small class="req"> *</small>
-                                <input autofocus=""  id="vendor_name" name="vendor_name" placeholder="" type="text" class="form-control"  value="<?php echo set_value('vendor_name'); ?>" />
+                                <input autofocus=""  id="vendor_name" name="vendor_name" placeholder="" type="text" class="form-control"  value="<?php
+                                if(isset($edit_vendor)){
+                                    echo $edit_vendor['vendor_name'];
+                                }else{
+                                    echo set_value('vendor_name');
+                                }?>" />
                                 <span class="text-danger"><?php echo form_error('vendor_name'); ?></span>
                             </div>
                             <div class="form-group">
                                 <label for="exampleInputEmail1">Description</label>
-                                <textarea class="form-control" id="description" name="description" placeholder="" rows="3" placeholder="Enter ..."><?php echo set_value('description'); ?></textarea>
+                                <textarea class="form-control" id="description" name="description" placeholder="" rows="3" placeholder="Enter ..."><?php
+                                if(isset($edit_vendor)){
+                                    echo $edit_vendor['description'];
+                                }else{
+                                    echo set_value('description');
+                                }?></textarea>
                                 <span class="text-danger"><?php echo form_error('description'); ?></span>
                             </div>
+                            <?php
+                            if(isset($edit_vendor)){
+                                ?><input type="hidden" name="id" value="<?php echo $edit_vendor['id']; ?>"><?php
+                            }?>
                         </div><!-- /.box-body -->
                         <div class="box-footer">
                             <button type="submit" class="btn btn-info pull-right">Save</button>
@@ -94,7 +108,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                                 </td>
                                                 <td class="mailbox-date pull-right">
                                                     <?php if ($this->rbac->hasPrivilege('library_vendor', 'can_edit')) { ?>
-                                                        <a href="<?php echo base_url(); ?>admin/libraryvendor/edit/<?php echo $vendor['id'] ?>" class="btn btn-default btn-xs"  data-toggle="tooltip" title="Edit">
+                                                        <a href="<?php echo base_url(); ?>admin/libraryvendor/index/<?php echo $vendor['id'] ?>" class="btn btn-default btn-xs"  data-toggle="tooltip" title="Edit">
                                                             <i class="fa fa-pencil"></i>
                                                         </a>
                                                     <?php } ?>

@@ -13,7 +13,7 @@ class Libraryvendor extends Admin_Controller
         $this->load->model('libraryvendor_model');
     }
 
-    public function index()
+    public function index($id = null)
     {
         if (!$this->rbac->hasPrivilege('library_vendor', 'can_view')) {
             access_denied();
@@ -24,6 +24,12 @@ class Libraryvendor extends Admin_Controller
 
         $data['title']      = 'Add Vendor';
         $data['title_list'] = 'Vendor Details';
+
+        if ($id) {
+            $data['edit_vendor'] = $this->libraryvendor_model->get($id);
+        } else {
+            $data['edit_vendor'] = null;
+        }
         
         $this->form_validation->set_rules('vendor_name', 'Vendor Name', 'trim|required|xss_clean');
 
@@ -34,43 +40,23 @@ class Libraryvendor extends Admin_Controller
             $this->load->view('admin/libraryvendor/index', $data);
             $this->load->view('layout/footer');
         } else {
+            $vendor_name = $this->input->post('vendor_name');
+            $description    = $this->input->post('description');
+            $vendor_id   = $this->input->post('id'); // Get ID from hidden field if editing
+
             $data = array(
-                'vendor_name' => $this->input->post('vendor_name'),
-                'description'      => $this->input->post('description'),
+                'vendor_name' => $vendor_name,
+                'description'      => $description,
             );
-            $this->libraryvendor_model->add($data);
-            $this->session->set_flashdata('msg', '<div class="alert alert-success text-left">Vendor added successfully</div>');
-            redirect('admin/libraryvendor/index');
-        }
-    }
 
-    public function edit($id)
-    {
-        if (!$this->rbac->hasPrivilege('library_vendor', 'can_edit')) {
-            access_denied();
-        }
-
-        $data['title']      = 'Edit Vendor';
-        $data['id']         = $id;
-        $editvendor           = $this->libraryvendor_model->get($id);
-        $data['editvendor']   = $editvendor;
-        
-        $this->form_validation->set_rules('vendor_name', 'Vendor Name', 'trim|required|xss_clean');
-
-        if ($this->form_validation->run() == false) {
-            $listvendor         = $this->libraryvendor_model->get();
-            $data['listvendor'] = $listvendor;
-            $this->load->view('layout/header');
-            $this->load->view('admin/libraryvendor/index', $data);
-            $this->load->view('layout/footer');
-        } else {
-            $data = array(
-                'id'               => $id,
-                'vendor_name' => $this->input->post('vendor_name'),
-                'description'      => $this->input->post('description'),
-            );
-            $this->libraryvendor_model->add($data);
-            $this->session->set_flashdata('msg', '<div class="alert alert-success text-left">Vendor updated successfully</div>');
+            if ($vendor_id) {
+                $data['id'] = $vendor_id;
+                $this->libraryvendor_model->add($data); // add() handles both insert and update
+                $this->session->set_flashdata('msg', '<div class="alert alert-success text-left">' . $this->lang->line('update_message') . '</div>');
+            } else {
+                $this->libraryvendor_model->add($data);
+                $this->session->set_flashdata('msg', '<div class="alert alert-success text-left">' . $this->lang->line('success_message') . '</div>');
+            }
             redirect('admin/libraryvendor/index');
         }
     }

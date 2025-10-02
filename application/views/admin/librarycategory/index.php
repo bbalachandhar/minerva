@@ -35,8 +35,17 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                             <?php echo $this->customlib->getCSRF(); ?>
                             <div class="form-group">
                                 <label for="exampleInputEmail1">Category Name</label><small class="req"> *</small>
-                                <input autofocus=""  id="category_name" name="category_name" placeholder="" type="text" class="form-control"  value="<?php echo set_value('category_name'); ?>" />
+                                <input autofocus=""  id="category_name" name="category_name" placeholder="" type="text" class="form-control"  value="<?php
+                                if(isset($edit_category)){
+                                    echo $edit_category['category_name'];
+                                }else{
+                                    echo set_value('category_name');
+                                }?>" />
                                 <span class="text-danger"><?php echo form_error('category_name'); ?></span>
+                                <?php
+                                if(isset($edit_category)){
+                                    ?><input type="hidden" name="id" value="<?php echo $edit_category['id']; ?>"><?php
+                                }?>
                             </div>
                             <div class="form-group">
                                 <label for="exampleInputEmail1">Description</label>
@@ -77,13 +86,13 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <?php if (empty($listcategory)) {
+                                    <?php if (empty($categorylist)) {
                                         ?>
 
                                         <?php
                                     } else {
                                         $count = 1;
-                                        foreach ($listcategory as $category) {
+                                        foreach ($categorylist as $category) {
                                             ?>
                                             <tr>
                                                 <td class="mailbox-name">
@@ -94,7 +103,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                                 </td>
                                                 <td class="mailbox-date pull-right">
                                                     <?php if ($this->rbac->hasPrivilege('library_category', 'can_edit')) { ?>
-                                                        <a href="<?php echo base_url(); ?>admin/librarycategory/edit/<?php echo $category['id'] ?>" class="btn btn-default btn-xs"  data-toggle="tooltip" title="Edit">
+                                                        <a href="<?php echo base_url(); ?>admin/librarycategory/index/<?php echo $category['id'] ?>" class="btn btn-default btn-xs"  data-toggle="tooltip" title="Edit">
                                                             <i class="fa fa-pencil"></i>
                                                         </a>
                                                     <?php } ?>

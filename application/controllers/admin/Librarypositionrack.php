@@ -13,7 +13,7 @@ class Librarypositionrack extends Admin_Controller
         $this->load->model('librarypositionrack_model');
     }
 
-    public function index()
+    public function index($id = null)
     {
         if (!$this->rbac->hasPrivilege('library_position_rack', 'can_view')) {
             access_denied();
@@ -24,6 +24,12 @@ class Librarypositionrack extends Admin_Controller
 
         $data['title']      = 'Add Position Rack';
         $data['title_list'] = 'Position Rack Details';
+
+        if ($id) {
+            $data['edit_positionrack'] = $this->librarypositionrack_model->get($id);
+        } else {
+            $data['edit_positionrack'] = null;
+        }
         
         $this->form_validation->set_rules('rack_name', 'Position Rack Name', 'trim|required|xss_clean');
 
@@ -34,43 +40,23 @@ class Librarypositionrack extends Admin_Controller
             $this->load->view('admin/librarypositionrack/index', $data);
             $this->load->view('layout/footer');
         } else {
+            $rack_name = $this->input->post('rack_name');
+            $description    = $this->input->post('description');
+            $positionrack_id   = $this->input->post('id'); // Get ID from hidden field if editing
+
             $data = array(
-                'rack_name' => $this->input->post('rack_name'),
-                'description'      => $this->input->post('description'),
+                'rack_name' => $rack_name,
+                'description'      => $description,
             );
-            $this->librarypositionrack_model->add($data);
-            $this->session->set_flashdata('msg', '<div class="alert alert-success text-left">Position Rack added successfully</div>');
-            redirect('admin/librarypositionrack/index');
-        }
-    }
 
-    public function edit($id)
-    {
-        if (!$this->rbac->hasPrivilege('library_position_rack', 'can_edit')) {
-            access_denied();
-        }
-
-        $data['title']      = 'Edit Position Rack';
-        $data['id']         = $id;
-        $editpositionrack           = $this->librarypositionrack_model->get($id);
-        $data['editpositionrack']   = $editpositionrack;
-        
-        $this->form_validation->set_rules('rack_name', 'Position Rack Name', 'trim|required|xss_clean');
-
-        if ($this->form_validation->run() == false) {
-            $listpositionrack         = $this->librarypositionrack_model->get();
-            $data['listpositionrack'] = $listpositionrack;
-            $this->load->view('layout/header');
-            $this->load->view('admin/librarypositionrack/index', $data);
-            $this->load->view('layout/footer');
-        } else {
-            $data = array(
-                'id'               => $id,
-                'rack_name' => $this->input->post('rack_name'),
-                'description'      => $this->input->post('description'),
-            );
-            $this->librarypositionrack_model->add($data);
-            $this->session->set_flashdata('msg', '<div class="alert alert-success text-left">Position Rack updated successfully</div>');
+            if ($positionrack_id) {
+                $data['id'] = $positionrack_id;
+                $this->librarypositionrack_model->add($data); // add() handles both insert and update
+                $this->session->set_flashdata('msg', '<div class="alert alert-success text-left">' . $this->lang->line('update_message') . '</div>');
+            } else {
+                $this->librarypositionrack_model->add($data);
+                $this->session->set_flashdata('msg', '<div class="alert alert-success text-left">' . $this->lang->line('success_message') . '</div>');
+            }
             redirect('admin/librarypositionrack/index');
         }
     }

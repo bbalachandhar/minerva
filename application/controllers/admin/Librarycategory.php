@@ -13,33 +13,48 @@ class Librarycategory extends Admin_Controller
         $this->load->model('librarycategory_model');
     }
 
-    public function index()
+    public function index($id = null)
     {
-        if (!$this->rbac->hasPrivilege('library_category', 'can_view')) {
+        if (!$this->rbac->hasPrivilege('books', 'can_view')) {
             access_denied();
         }
 
         $this->session->set_userdata('top_menu', 'Library');
-        $this->session->set_userdata('sub_menu', 'librarycategory/index');
+        $this->session->set_userdata('sub_menu', 'library/category');
 
-        $data['title']      = 'Add Category';
-        $data['title_list'] = 'Category Details';
-        
-        $this->form_validation->set_rules('category_name', 'Category Name', 'trim|required|xss_clean');
+        $data['title']      = 'Add Library Category';
+        $data['title_list'] = 'Library Category List';
+
+        if ($id) {
+            $data['edit_category'] = $this->librarycategory_model->get($id);
+        } else {
+            $data['edit_category'] = null;
+        }
+
+        $this->form_validation->set_rules('category_name', $this->lang->line('category_name'), 'trim|required|xss_clean');
 
         if ($this->form_validation->run() == false) {
-            $listcategory         = $this->librarycategory_model->get();
-            $data['listcategory'] = $listcategory;
+            $categorylist         = $this->librarycategory_model->get();
+            $data['categorylist'] = $categorylist;
             $this->load->view('layout/header');
             $this->load->view('admin/librarycategory/index', $data);
             $this->load->view('layout/footer');
         } else {
+            $category_name = $this->input->post('category_name');
+            $category_id   = $this->input->post('id'); // Get ID from hidden field if editing
+
             $data = array(
-                'category_name' => $this->input->post('category_name'),
-                'description'      => $this->input->post('description'),
+                'category_name' => $category_name,
             );
-            $this->librarycategory_model->add($data);
-            $this->session->set_flashdata('msg', '<div class="alert alert-success text-left">Category added successfully</div>');
+
+            if ($category_id) {
+                $data['id'] = $category_id;
+                $this->librarycategory_model->add($data); // add() handles both insert and update
+                $this->session->set_flashdata('msg', '<div class="alert alert-success text-left">' . $this->lang->line('update_message') . '</div>');
+            } else {
+                $this->librarycategory_model->add($data);
+                $this->session->set_flashdata('msg', '<div class="alert alert-success text-left">' . $this->lang->line('success_message') . '</div>');
+            }
             redirect('admin/librarycategory/index');
         }
     }

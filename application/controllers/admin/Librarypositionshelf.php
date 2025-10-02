@@ -14,7 +14,7 @@ class Librarypositionshelf extends Admin_Controller
         $this->load->model('librarypositionrack_model');
     }
 
-    public function index()
+    public function index($id = null)
     {
         if (!$this->rbac->hasPrivilege('library_position_shelf', 'can_view')) {
             access_denied();
@@ -25,6 +25,12 @@ class Librarypositionshelf extends Admin_Controller
 
         $data['title']      = 'Add Position Shelf';
         $data['title_list'] = 'Position Shelf Details';
+
+        if ($id) {
+            $data['edit_positionshelf'] = $this->librarypositionshelf_model->get($id);
+        } else {
+            $data['edit_positionshelf'] = null;
+        }
         
         $this->form_validation->set_rules('shelf_name', 'Position Shelf Name', 'trim|required|xss_clean');
         $this->form_validation->set_rules('rack_id', 'Position Rack', 'trim|required|xss_clean');
@@ -38,48 +44,25 @@ class Librarypositionshelf extends Admin_Controller
             $this->load->view('admin/librarypositionshelf/index', $data);
             $this->load->view('layout/footer');
         } else {
+            $shelf_name = $this->input->post('shelf_name');
+            $rack_id    = $this->input->post('rack_id');
+            $description    = $this->input->post('description');
+            $positionshelf_id   = $this->input->post('id'); // Get ID from hidden field if editing
+
             $data = array(
-                'shelf_name' => $this->input->post('shelf_name'),
-                'rack_id' => $this->input->post('rack_id'),
-                'description'      => $this->input->post('description'),
+                'shelf_name' => $shelf_name,
+                'rack_id' => $rack_id,
+                'description'      => $description,
             );
-            $this->librarypositionshelf_model->add($data);
-            $this->session->set_flashdata('msg', '<div class="alert alert-success text-left">Position Shelf added successfully</div>');
-            redirect('admin/librarypositionshelf/index');
-        }
-    }
 
-    public function edit($id)
-    {
-        if (!$this->rbac->hasPrivilege('library_position_shelf', 'can_edit')) {
-            access_denied();
-        }
-
-        $data['title']      = 'Edit Position Shelf';
-        $data['id']         = $id;
-        $editpositionshelf           = $this->librarypositionshelf_model->get($id);
-        $data['editpositionshelf']   = $editpositionshelf;
-        
-        $this->form_validation->set_rules('shelf_name', 'Position Shelf Name', 'trim|required|xss_clean');
-        $this->form_validation->set_rules('rack_id', 'Position Rack', 'trim|required|xss_clean');
-
-        if ($this->form_validation->run() == false) {
-            $listpositionshelf         = $this->librarypositionshelf_model->get();
-            $data['listpositionshelf'] = $listpositionshelf;
-            $listpositionrack         = $this->librarypositionrack_model->get();
-            $data['listpositionrack'] = $listpositionrack;
-            $this->load->view('layout/header');
-            $this->load->view('admin/librarypositionshelf/index', $data);
-            $this->load->view('layout/footer');
-        } else {
-            $data = array(
-                'id'               => $id,
-                'shelf_name' => $this->input->post('shelf_name'),
-                'rack_id' => $this->input->post('rack_id'),
-                'description'      => $this->input->post('description'),
-            );
-            $this->librarypositionshelf_model->add($data);
-            $this->session->set_flashdata('msg', '<div class="alert alert-success text-left">Position Shelf updated successfully</div>');
+            if ($positionshelf_id) {
+                $data['id'] = $positionshelf_id;
+                $this->librarypositionshelf_model->add($data); // add() handles both insert and update
+                $this->session->set_flashdata('msg', '<div class="alert alert-success text-left">' . $this->lang->line('update_message') . '</div>');
+            } else {
+                $this->librarypositionshelf_model->add($data);
+                $this->session->set_flashdata('msg', '<div class="alert alert-success text-left">' . $this->lang->line('success_message') . '</div>');
+            }
             redirect('admin/librarypositionshelf/index');
         }
     }
@@ -114,7 +97,8 @@ class Librarypositionshelf extends Admin_Controller
                     $rack = $this->librarypositionrack_model->get_rack_by_name($row['rack_name']);
                     if($rack){
                         $rack_id = $rack->id;
-                    }else{
+                    }
+                    else{
                         $this->session->set_flashdata('msg', '<div class="alert alert-danger text-left">Rack not found for shelf '.$row['shelf_name'].'</div>');
                         redirect('admin/librarypositionshelf/import');
                     }

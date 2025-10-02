@@ -38,9 +38,14 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                 <select autofocus="" id="category_id" name="category_id" class="form-control" >
                                     <option value=""><?php echo $this->lang->line('select'); ?></option>
                                     <?php
-                                    foreach ($listcategory as $category) {
+                                    foreach ($categorylist as $category) {
                                         ?>
-                                        <option value="<?php echo $category['id'] ?>"<?php if (set_value('category_id') == $category['id']) echo "selected=selected" ?>><?php echo $category['category_name'] ?></option>
+                                        <option value="<?php echo $category['id'] ?>"<?php
+                                        if(isset($edit_subcategory) && $edit_subcategory['category_id'] == $category['id']){
+                                            echo "selected=selected";
+                                        }else if (set_value('category_id') == $category['id']) {
+                                            echo "selected=selected";
+                                        }?>><?php echo $category['category_name'] ?></option>
                                         <?php
                                         $count++;
                                     }
@@ -50,14 +55,28 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                             </div>
                             <div class="form-group">
                                 <label for="exampleInputEmail1">Sub Category Name</label><small class="req"> *</small>
-                                <input id="subcategory_name" name="subcategory_name" placeholder="" type="text" class="form-control"  value="<?php echo set_value('subcategory_name'); ?>" />
+                                <input id="subcategory_name" name="subcategory_name" placeholder="" type="text" class="form-control"  value="<?php
+                                if(isset($edit_subcategory)){
+                                    echo $edit_subcategory['subcategory_name'];
+                                }else{
+                                    echo set_value('subcategory_name');
+                                }?>" />
                                 <span class="text-danger"><?php echo form_error('subcategory_name'); ?></span>
                             </div>
                             <div class="form-group">
                                 <label for="exampleInputEmail1">Description</label>
-                                <textarea class="form-control" id="description" name="description" placeholder="" rows="3" placeholder="Enter ..."><?php echo set_value('description'); ?></textarea>
+                                <textarea class="form-control" id="description" name="description" placeholder="" rows="3" placeholder="Enter ..."><?php
+                                if(isset($edit_subcategory)){
+                                    echo $edit_subcategory['description'];
+                                }else{
+                                    echo set_value('description');
+                                }?></textarea>
                                 <span class="text-danger"><?php echo form_error('description'); ?></span>
                             </div>
+                            <?php
+                            if(isset($edit_subcategory)){
+                                ?><input type="hidden" name="id" value="<?php echo $edit_subcategory['id']; ?>"><?php
+                            }?>
                         </div><!-- /.box-body -->
                         <div class="box-footer">
                             <button type="submit" class="btn btn-info pull-right">Save</button>
@@ -93,13 +112,13 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <?php if (empty($listsubcategory)) {
+                                    <?php if (empty($subcategorylist)) {
                                         ?>
 
                                         <?php
                                     } else {
                                         $count = 1;
-                                        foreach ($listsubcategory as $subcategory) {
+                                        foreach ($subcategorylist as $subcategory) {
                                             ?>
                                             <tr>
                                                 <td class="mailbox-name">
@@ -113,7 +132,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                                 </td>
                                                 <td class="mailbox-date pull-right">
                                                     <?php if ($this->rbac->hasPrivilege('library_subcategory', 'can_edit')) { ?>
-                                                        <a href="<?php echo base_url(); ?>admin/librarysubcategory/edit/<?php echo $subcategory['id'] ?>" class="btn btn-default btn-xs"  data-toggle="tooltip" title="Edit">
+                                                        <a href="<?php echo base_url(); ?>admin/librarysubcategory/index/<?php echo $subcategory['id'] ?>" class="btn btn-default btn-xs"  data-toggle="tooltip" title="Edit">
                                                             <i class="fa fa-pencil"></i>
                                                         </a>
                                                     <?php } ?>
