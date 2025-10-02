@@ -272,6 +272,8 @@ class Book extends Admin_Controller
 
     public function import()
     {
+        set_time_limit(0); // Set time limit to infinite for bulk import
+        if (!$this->rbac->hasPrivilege('books', 'can_add')) {
         $data['fields'] = array('book_title', 'book_no', 'barcode', 'category_name', 'subcategory_name', 'isbn_no', 'subject', 'rack_name', 'shelf_name', 'class_no', 'publisher_name', 'author', 'author2', 'edition', 'edition_type', 'medium', 'book_type_name', 'publish_year', 'perunitcost', 'purchase_date', 'bill_no', 'bill_date', 'pages', 'department', 'description', 'available', 'is_active', 'publish', 'postdate', 'vendor');
         $this->form_validation->set_rules('file', $this->lang->line('images'), 'callback_handle_csv_upload');
         if ($this->form_validation->run() == false) {

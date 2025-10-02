@@ -47,7 +47,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 |
 |
 */
-$route['default_controller'] = 'start';
+$route['default_controller'] = 'site/login';
 $route['admin/librarycategory/import'] = 'admin/librarycategory/import';
 $route['admin/librarysubcategory/import'] = 'admin/librarysubcategory/import';
 $route['admin/librarypublisher/import'] = 'admin/librarypublisher/import';
