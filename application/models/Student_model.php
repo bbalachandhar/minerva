@@ -2289,15 +2289,21 @@ class Student_model extends MY_Model
         }        
     }
 
-	public function get_parent_dashboard_setting_status($fieldname){
-        $this->db->where('name', $fieldname);
-        $this->db->select('is_parent');
-        $this->db->from('student_dashboard_settings');
-        $query  = $this->db->get();
-        $result = $query->row_array();
-        if(!empty($result)){
-        return $result['is_parent'];
-        }        
-    }
-
-}
+	    public function get_parent_dashboard_setting_status($fieldname){
+	        $this->db->where('name', $fieldname);
+	        $this->db->select('is_parent');
+	        $this->db->from('student_dashboard_settings');
+	        $query  = $this->db->get();
+	        $result = $query->row_array();
+	        if(!empty($result)){
+	        return $result['is_parent'];
+	        }        
+	    }
+	
+	    public function is_admission_no_unique($admission_no)
+	    {
+	        $this->db->where('admission_no', $admission_no);
+	        $query = $this->db->get('students');
+	        return ($query->num_rows() > 0);
+	    }
+	}

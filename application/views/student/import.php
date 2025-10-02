@@ -125,7 +125,8 @@ foreach ($fields as $key => $value) {
                                             <span class="text-danger"><?php echo form_error('file'); ?></span></div>
                                     </div></div>
                                 <div class="col-md-6 pt20">
-                                    <button type="submit" class="btn btn-info pull-right"><?php echo $this->lang->line('import_student'); ?></button>
+                                    <button type="button" id="check_records_btn" class="btn btn-warning pull-right" style="margin-right: 10px;">Check Records</button>
+                                    <button type="submit" class="btn btn-info pull-right">Import Student</button>
                                 </div>
 
                             </div>
@@ -133,11 +134,24 @@ foreach ($fields as $key => $value) {
                     </form>
                     <div id="progress-container" style="display: none;">
                         <div class="progress">
-                            <div id="progress-bar" class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%">
+                            <div id="progress-bar" class="progress-bar-striped active" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%">
                                 <span id="progress-text"></span>
                             </div>
                         </div>
                         <div id="message-box"></div>
+                    </div>
+                    <div id="check-progress-container" style="display: none;">
+                        <div class="progress">
+                            <div id="check-progress-bar" class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%">
+                                <span id="check-progress-text"></span>
+                            </div>
+                        </div>
+                        <div id="check-message-box"></div>
+                    </div>
+                    <div id="validation_results" class="box-body" style="display: none;">
+                        <h4>Validation Results:</h4>
+                        <div id="valid_records"></div>
+                        <div id="invalid_records"></div>
                     </div>
                     <div>
                     </div>
@@ -149,6 +163,8 @@ $(document).ready(function (e) {
     $('#employeeform').on('submit', (function (e) {
         e.preventDefault();
         $('#progress-container').show();
+        $('#validation_results').hide(); // Hide validation results when importing
+        $('#check-progress-container').hide(); // Hide check progress bar when importing
         var $progressBar = $('#progress-bar');
         var $progressText = $('#progress-text');
         var $messageBox = $('#message-box');
@@ -193,5 +209,93 @@ $(document).ready(function (e) {
             });
         }, 1000);
     }));
+
+    // New event listener for check_records_btn
+    $('#check_records_btn').on('click', function(e) {
+        e.preventDefault();
+        $('#progress-container').hide(); // Hide import progress bar when checking records
+        $('#validation_results').hide(); // Hide validation results initially
+        $('#check-progress-container').show(); // Show check progress bar
+        $('#check-progress-bar').width('0%');
+        $('#check-progress-text').text('0 / 0');
+        $('#check-message-box').html('');
+
+        var $checkProgressBar = $('#check-progress-bar');
+        var $checkProgressText = $('#check-progress-text');
+        var $checkMessageBox = $('#check-message-box');
+
+        var formData = new FormData($('#employeeform')[0]);
+
+        $.ajax({
+            url: '<?php echo site_url('student/check_import_data') ?>',
+            type: "POST",
+            data: formData,
+            dataType: 'json',
+            contentType: false,
+            cache: false,
+            processData: false,
+            beforeSend: function() {
+                $checkMessageBox.html('<p>Checking records...</p>');
+            },
+            success: function (response) {
+                clearInterval(checkProgressChecker);
+                $('#check-progress-container').hide(); // Hide progress bar after completion
+                $('#validation_results').show(); // Show validation results
+
+                if (response.status === 'success') {
+                    var validHtml = '<h4>Valid Records: ' + response.valid_count + '</h4>';
+                    if (response.valid_records.length > 0) {
+                        validHtml += '<ul class="list-group">';
+                        $.each(response.valid_records, function(i, record) {
+                            validHtml += '<li class="list-group-item list-group-item-success">Row ' + record.row_number + ': ' + record.message + '</li>';
+                        });
+                        validHtml += '</ul>';
+                    } else {
+                        validHtml += '<p>No valid records found.</p>';
+                    }
+                    $('#valid_records').html(validHtml);
+
+                    var invalidHtml = '<h4>Invalid Records: ' + response.invalid_count + '</h4>';
+                    if (response.invalid_records.length > 0) {
+                        invalidHtml += '<ul class="list-group">';
+                        $.each(response.invalid_records, function(i, record) {
+                            invalidHtml += '<li class="list-group-item list-group-item-danger">Row ' + record.row_number + ': ' + record.message + '</li>';
+                        });
+                        invalidHtml += '</ul>';
+                    } else {
+                        invalidHtml += '<p>No invalid records found.</p>';
+                    }
+                    $('#invalid_records').html(invalidHtml);
+
+                } else {
+                    $('#validation_results').html('<div class="alert alert-danger">' + response.message + '</div>');
+                }
+            },
+            error: function (xhr, status, error) {
+                clearInterval(checkProgressChecker);
+                $('#check-progress-container').hide();
+                $('#validation_results').show();
+                $('#validation_results').html('<div class="alert alert-danger">An error occurred during validation: ' + xhr.responseText + '</div>');
+            }
+        });
+
+        var checkProgressChecker = setInterval(function() {
+            $.ajax({
+                url: '<?php echo site_url('student/check_progress') ?>',
+                type: 'GET',
+                dataType: 'json',
+                success: function(response) {
+                    if (response.status === 'processing') {
+                        var percentComplete = (response.processed / response.total) * 100;
+                        $checkProgressBar.width(percentComplete + '%');
+                        $checkProgressText.text(response.processed + ' / ' + response.total);
+                    } else if (response.status === 'completed') {
+                        clearInterval(checkProgressChecker);
+                        // The success callback of the main AJAX call will handle final display
+                    }
+                }
+            });
+        }, 1000);
+    });
 });
 </script>

@@ -198,4 +198,13 @@ class Class_model extends MY_Model
         return $query->result_array();
     }
 
+    public function get_by_name($class_name)
+    {
+        $this->db->where('class', $class_name);
+        $query = $this->db->get('classes');
+        if ($query->num_rows() > 0) {
+            return $query->row();
+        }
+        return false;
+    }
 }

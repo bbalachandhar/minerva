@@ -255,7 +255,7 @@ class Student extends Admin_Controller
 
         $data['reason'] = $this->disable_reason_model->get();
 
-        if ($student['is_active'] = 'no') {
+        if ($student['is_active'] == 'no') {
             $data['reason_data'] = $this->disable_reason_model->get($student['dis_reason']);
         }
 
@@ -1188,7 +1188,6 @@ class Student extends Admin_Controller
             $this->load->view('student/import', $data);
             $this->load->view('layout/footer', $data);
         } else {
-
             $student_categorize = 'class';
             if ($student_categorize == 'class') {
                 $section = 0;
@@ -1259,6 +1258,17 @@ class Student extends Admin_Controller
                                 } elseif (in_array($key, $student_fields)) {
                                     $student_data[$i][$key] = $value;
                                 }
+                            }
+
+                            if (empty($student_data[$i]['firstname'])) {
+                                log_message('error', 'Row ' . $i . ': First name is empty.');
+                                $this->session->set_flashdata('msg', '<div class="alert alert-danger text-center">Row ' . ($i+1) . ': First name is required.</div>');
+                                continue;
+                            }
+                            if (empty($student_data[$i]['gender'])) {
+                                log_message('error', 'Row ' . $i . ': Gender is empty.');
+                                $this->session->set_flashdata('msg', '<div class="alert alert-danger text-center">Row ' . ($i+1) . ': Gender is required.</div>');
+                                continue;
                             }
 
                             $student_data[$i]['is_active'] = 'yes';
@@ -1513,7 +1523,7 @@ class Student extends Admin_Controller
         $custom_fields              = $this->customfield_model->getByBelong('students');
         $data['sch_setting']        = $this->sch_setting_detail;
 
-        $department_result     = $this->department_model->get();
+        $department_result     = $this->department_model->getDepartmentType();
         $data['department_list'] = $department_result;
 
         //***fees discount***//
@@ -2810,6 +2820,180 @@ class Student extends Admin_Controller
             $response['status'] = 'completed';
             $response['message'] = $this->session->flashdata('msg');
             $this->session->unset_userdata('import_completed');
+        }
+        else {
+            $response['status'] = 'pending';
+        }
+        echo json_encode($response);
+    }
+    public function check_import_data()
+    {
+        if (!$this->rbac->hasPrivilege('import_student', 'can_view')) {
+            echo json_encode(['status' => 'error', 'message' => 'Access Denied']);
+            exit();
+        }
+
+        // Close session to allow other requests (progress checker) to access it
+        session_write_close();
+
+        $this->form_validation->set_rules('file', $this->lang->line('csv_file'), 'callback_handle_csv_upload');
+
+        if ($this->form_validation->run() == false) {
+            $errors = validation_errors();
+            echo json_encode(['status' => 'error', 'message' => $errors]);
+            exit();
+        }
+
+        $student_fields = array('admission_no', 'roll_no', 'firstname', 'middlename', 'lastname', 'gender', 'dob', 'category_id', 'religion', 'cast', 'mobileno', 'email', 'admission_date', 'blood_group', 'school_house_id', 'height', 'weight', 'measurement_date', 'father_name', 'father_phone', 'father_occupation', 'mother_name', 'mother_phone', 'mother_occupation', 'guardian_is', 'guardian_name', 'guardian_relation', 'guardian_email', 'guardian_phone', 'guardian_occupation', 'guardian_address', 'current_address', 'permanent_address', 'bank_account_no', 'bank_name', 'ifsc_code', 'adhar_no', 'samagra_id', 'rte', 'previous_school', 'note', 'register_no', 'regulation_id', 'emis_num', 'hsc_reg_no', 'ug_reg_no', 'abc_id', 'father_adhar_no', 'mother_adhar_no', 'migration_cert_num', 'medium');
+
+        $file = $_FILES['file']['tmp_name'];
+        $valid_records = [];
+        $invalid_records = [];
+        $row_number = 1; // Start row number from 1 for header
+
+        if (($handle = fopen($file, "r")) !== FALSE) {
+            $header = fgetcsv($handle, 1000, ",");
+            // Remove BOM from the first header element
+            if (isset($header[0]) && strpos($header[0], "\xef\xbb\xbf") === 0) {
+                $header[0] = substr($header[0], 3);
+            }
+
+            // Count total rows for progress tracking
+            $total_rows = 0;
+            while (fgetcsv($handle, 1000, ",")) {
+                $total_rows++;
+            }
+            rewind($handle); // Reset file pointer to the beginning
+            fgetcsv($handle, 1000, ","); // Skip header again
+
+            $this->session->set_userdata('check_total_rows', $total_rows);
+            $this->session->set_userdata('check_processed_rows', 0);
+            $this->session->set_userdata('check_completed', false);
+
+            $processed_count = 0;
+
+            // Create a map of lowercase header names to original header names for consistent access
+            $header_map = array_flip(array_map('strtolower', $header));
+
+            $all_classes = $this->class_model->get();
+            $class_map = array();
+            foreach ($all_classes as $class) {
+                $class_map[strtolower($class['class'])] = $class['id'];
+            }
+
+            while (($data = fgetcsv($handle, 1000, ",")) !== FALSE) {
+                $row_number++;
+                $processed_count++;
+                $this->session->set_userdata('check_processed_rows', $processed_count); // Update progress
+
+                if (count($header) != count($data)) {
+                    $invalid_records[] = ['row_number' => $row_number, 'message' => $this->lang->line('mismatch_between_header_and_data_columns')];
+                    continue;
+                }
+
+                $row_data = array_combine($header, $data);
+                $student_data = [];
+                $errors = [];
+
+                // Populate student_data using lowercase keys for consistency
+                foreach ($student_fields as $field) {
+                    if (isset($header_map[$field]) && isset($data[$header_map[$field]])) {
+                        $student_data[$field] = $this->encoding_lib->toUTF8($data[$header_map[$field]]);
+                    } else {
+                        $student_data[$field] = ''; // Ensure all fields are present, even if empty
+                    }
+                }
+
+                // Basic validation checks (can be expanded)
+                if (empty($student_data['firstname'])) {
+                    $errors[] = $this->lang->line('first_name_is_required');
+                }
+                if (empty($student_data['gender'])) {
+                    $errors[] = $this->lang->line('gender_is_required');
+                }
+                if (empty($student_data['class'])) {
+                    $errors[] = $this->lang->line('class_is_required');
+                }
+                if (empty($student_data['section'])) {
+                    $errors[] = $this->lang->line('section_is_required');
+                }
+
+                // Admission No validation
+                $adm_auto_insert = $this->sch_setting_detail->adm_auto_insert;
+                if (!$adm_auto_insert && empty($student_data['admission_no'])) {
+                    $errors[] = $this->lang->line('admission_no_is_required');
+                } elseif (!$adm_auto_insert && !empty($student_data['admission_no'])) {
+                    // Check if admission_no already exists (excluding current student if editing)
+                    if ($this->student_model->is_admission_no_unique($student_data['admission_no'])) {
+                        // It's unique, which is good for new records.
+                    } else {
+                        $errors[] = $this->lang->line('admission_no_already_exists') . ': ' . $student_data['admission_no'];
+                    }
+                }
+
+                // Class and Section existence check
+                $class_id = null;
+                $section_id = null;
+                if (!empty($student_data['class'])) {
+                    $class_name_lower = strtolower($student_data['class']);
+                    if (isset($class_map[$class_name_lower])) {
+                        $class_id = $class_map[$class_name_lower];
+                    } else {
+                        $errors[] = $this->lang->line('class_not_found') . ': ' . $student_data['class'];
+                    }
+                }
+                if (!empty($student_data['section']) && $class_id) {
+                    $sections_for_class = $this->student_model->getClassSection($class_id);
+                    $found_section = false;
+                    foreach ($sections_for_class as $section) {
+                        if (strcasecmp($section['section'], $student_data['section']) == 0) {
+                            $section_id = $section['id'];
+                            $found_section = true;
+                            break;
+                        }
+                    }
+                    if (!$found_section) {
+                        $errors[] = $this->lang->line('section_not_found') . ': ' . $student_data['section'] . ' for class ' . $student_data['class'];
+                    }
+                }
+                if (empty($class_id) || empty($section_id)) {
+                    $errors[] = $this->lang->line('class_or_section_invalid');
+                }
+
+
+                if (empty($errors)) {
+                    $valid_records[] = ['row_number' => $row_number, 'message' => $this->lang->line('record_is_valid')];
+                } else {
+                    $invalid_records[] = ['row_number' => $row_number, 'message' => implode(', ', $errors)];
+                }
+            }
+            fclose($handle);
+
+            $this->session->set_userdata('check_completed', true); // Mark as completed
+        } else {
+            echo json_encode(['status' => 'error', 'message' => $this->lang->line('error_opening_csv_file')]);
+            exit();
+        }
+
+        echo json_encode([
+            'status' => 'success',
+            'valid_count' => count($valid_records),
+            'invalid_count' => count($invalid_records),
+            'valid_records' => $valid_records,
+            'invalid_records' => $invalid_records,
+        ]);
+    }
+    public function check_progress()
+    {
+        $response = [];
+        if ($this->session->has_userdata('check_total_rows')) {
+            $response['total'] = $this->session->userdata('check_total_rows');
+            $response['processed'] = $this->session->userdata('check_processed_rows');
+            $response['status'] = 'processing';
+        } else if($this->session->userdata('check_completed')){
+            $response['status'] = 'completed';
+            $response['message'] = $this->session->flashdata('msg');
+            $this->session->unset_userdata('check_completed');
         }
         else {
             $response['status'] = 'pending';

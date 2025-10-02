@@ -186,4 +186,17 @@ class Section_model extends MY_Model {
         return $query->row_array();
     }
 
+    public function get_by_name_and_class($section_name, $class_id)
+    {
+        $this->db->select('sections.*');
+        $this->db->from('sections');
+        $this->db->join('class_sections', 'class_sections.section_id = sections.id');
+        $this->db->where('sections.section', $section_name);
+        $this->db->where('class_sections.class_id', $class_id);
+        $query = $this->db->get();
+        if ($query->num_rows() > 0) {
+            return $query->row();
+        }
+        return false;
+    }
 }
