@@ -325,6 +325,14 @@ class Book_model extends MY_Model
         return $query->result_array();
     }
 
+    public function book_exists_by_bookno_and_title($book_no, $book_title)
+    {
+        $this->db->where('LOWER(TRIM(book_no))', strtolower(trim($book_no)));
+        $this->db->where('LOWER(TRIM(book_title))', strtolower(trim($book_title)));
+        $query = $this->db->get('books');
+        return $query->num_rows() > 0;
+    }
+
     public function book_exists_by_bookno($book_no)
     {
         $this->db->where('LOWER(TRIM(book_no))', strtolower(trim($book_no)));

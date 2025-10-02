@@ -357,19 +357,19 @@ class Book extends Admin_Controller
                                 $skip_reason[] = 'Book Number is mandatory and cannot be empty.';
                             }
 
-                            // Check for existing book by book_no
                             $book_no_from_csv = array_key_exists('book_no', $r_value_lower_keys) ? $this->encoding_lib->toUTF8($r_value_lower_keys['book_no']) : '';
+                            $book_title_from_csv = array_key_exists('book_title', $r_value_lower_keys) ? $this->encoding_lib->toUTF8($r_value_lower_keys['book_title']) : '';
 
-                            log_message('debug', 'Checking existence for Book No: ' . $book_no_from_csv);
+                            log_message('debug', 'Checking existence for Book No: ' . $book_no_from_csv . ' and Book Title: ' . $book_title_from_csv);
                             $book_exists = false;
-                            if (!empty($book_no_from_csv)) {
-                                $book_exists = $this->book_model->book_exists_by_bookno($book_no_from_csv);
+                            if (!empty($book_no_from_csv) && !empty($book_title_from_csv)) {
+                                $book_exists = $this->book_model->book_exists_by_bookno_and_title($book_no_from_csv, $book_title_from_csv);
                                 log_message('debug', 'Book exists result: ' . ($book_exists ? 'true' : 'false'));
                             }
 
                             if ($book_exists) {
                                 $skip_row = true;
-                                $skip_reason[] = 'Book with this Book Number already exists.';
+                                $skip_reason[] = 'Book with this Book Number and Book Title already exists.';
                             }
 
                             if ($skip_row) {
