@@ -274,6 +274,8 @@ class Book extends Admin_Controller
     {
         set_time_limit(0); // Set time limit to infinite for bulk import
         if (!$this->rbac->hasPrivilege('books', 'can_add')) {
+            access_denied();
+        }
         $data['fields'] = array('book_title', 'book_no', 'barcode', 'category_name', 'subcategory_name', 'isbn_no', 'subject', 'rack_name', 'shelf_name', 'class_no', 'publisher_name', 'author', 'author2', 'edition', 'edition_type', 'medium', 'book_type_name', 'publish_year', 'perunitcost', 'purchase_date', 'bill_no', 'bill_date', 'pages', 'department', 'description', 'available', 'is_active', 'publish', 'postdate', 'vendor');
         $this->form_validation->set_rules('file', $this->lang->line('images'), 'callback_handle_csv_upload');
         if ($this->form_validation->run() == false) {
@@ -293,7 +295,7 @@ class Book extends Admin_Controller
                     if (!empty($result)) {
                         foreach ($result as $r_key => $r_value) {
 
-                            if (array_key_exists('perunitcost', $result[$r_key]) && $this->encoding_lib->toUTF8($result[$r_key]['perunitcost'])) {
+                            if (array_key_exists('perunitcost', $result[$r_key]) && !empty($result[$r_key]['perunitcost']) && is_numeric($this->encoding_lib->toUTF8($result[$r_key]['perunitcost']))) {
                                 $perunitcost = convertCurrencyFormatToBaseAmount($this->encoding_lib->toUTF8($result[$r_key]['perunitcost']));
                             } else {
                                 $perunitcost = 0;
