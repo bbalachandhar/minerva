@@ -106,4 +106,14 @@ class Librarysubcategory_model extends MY_Model
         $query = $this->db->get('library_subcategories');
         return $query->row();
     }
+
+    public function get_by_category_id($category_id)
+    {
+        $this->db->select('library_subcategories.*, library_categories.category_name')->from('library_subcategories');
+        $this->db->join('library_categories', 'library_categories.id = library_subcategories.category_id');
+        $this->db->where('library_subcategories.category_id', $category_id);
+        $this->db->order_by('library_subcategories.subcategory_name');
+        $query = $this->db->get();
+        return $query->result_array();
+    }
 }

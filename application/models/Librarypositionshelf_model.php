@@ -106,4 +106,14 @@ class Librarypositionshelf_model extends MY_Model
         $query = $this->db->get('library_position_shelves');
         return $query->row();
     }
+
+    public function get_by_rack_id($rack_id)
+    {
+        $this->db->select('library_position_shelves.*, library_position_racks.rack_name')->from('library_position_shelves');
+        $this->db->join('library_position_racks', 'library_position_racks.id = library_position_shelves.rack_id');
+        $this->db->where('library_position_shelves.rack_id', $rack_id);
+        $this->db->order_by('library_position_shelves.shelf_name');
+        $query = $this->db->get();
+        return $query->result_array();
+    }
 }

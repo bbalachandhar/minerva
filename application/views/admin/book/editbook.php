@@ -55,7 +55,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
     <select id="category_name" name="category_name" class="form-control">
         <option value="">Select Category</option>
         <?php foreach($categorylist as $category) { ?>
-            <option value="<?php echo $category['category_name']; ?>" <?php if($editbook['category_name'] == $category['category_name']) echo 'selected'; ?>><?php echo $category['category_name']; ?></option>
+            <option value="<?php echo $category['id']; ?>" <?php if($editbook['category_name'] == $category['category_name']) echo 'selected'; ?>><?php echo $category['category_name']; ?></option>
         <?php } ?>
     </select>
     <span class="text-danger"><?php echo form_error('category_name'); ?></span>
@@ -163,7 +163,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
     <select id="rack_no" name="rack_no" class="form-control">
         <option value="">Select Position Rack</option>
         <?php foreach($racklist as $rack) { ?>
-            <option value="<?php echo $rack['position']; ?>" <?php if($editbook['rack_no'] == $rack['position']) echo 'selected'; ?>><?php echo $rack['position']; ?></option>
+            <option value="<?php echo $rack['id']; ?>" <?php if($editbook['rack_no'] == $rack['rack_name']) echo 'selected'; ?>><?php echo $rack['rack_name']; ?></option>
         <?php } ?>
     </select>
     <span class="text-danger"><?php echo form_error('rack_no'); ?></span>
@@ -173,7 +173,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
     <select id="shelf_id" name="shelf_id" class="form-control">
         <option value="">Select Position Shelf</option>
         <?php foreach($shelflist as $shelf) { ?>
-            <option value="<?php echo $shelf['position']; ?>" <?php if($editbook['shelf_id'] == $shelf['position']) echo 'selected'; ?>><?php echo $shelf['position']; ?></option>
+            <option value="<?php echo $shelf['shelf_name']; ?>" <?php if($editbook['shelf_id'] == $shelf['shelf_name']) echo 'selected'; ?>><?php echo $shelf['shelf_name']; ?></option>
         <?php } ?>
     </select>
     <span class="text-danger"><?php echo form_error('shelf_id'); ?></span>
@@ -251,5 +251,70 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                 return $(this).closest('td').find('.fee_detail_popover').html();
             }
         });
+
+        // Category to Subcategory Dependent Dropdown
+        $('#category_name').on('change', function() {
+            var category_id = $(this).val();
+            var subcategory_dropdown = $('#subcategory_name');
+            subcategory_dropdown.html($('<option value="">Select SubCategory</option>'));
+
+            console.log('Category ID selected: ' + category_id);
+
+            if (category_id) {
+                $.ajax({
+                    url: '<?php echo site_url('admin/book/get_subcategories_by_category_id'); ?>',
+                    type: 'POST',
+                    data: {category_id: category_id},
+                    dataType: 'json',
+                    success: function(data) {
+                        console.log('Subcategories received: ', data);
+                        $.each(data, function(key, value) {
+                            subcategory_dropdown.append($('<option></option>').attr('value', value.subcategory_name).text(value.subcategory_name));
+                        });
+                        // Pre-select if editing and subcategory matches
+                        var edited_subcategory_name = '<?php echo isset($editbook['subcategory_name']) ? $editbook['subcategory_name'] : ''; ?>';
+                        if (edited_subcategory_name && subcategory_dropdown.find('option[value="' + edited_subcategory_name + '"]').length > 0) {
+                            subcategory_dropdown.val(edited_subcategory_name);
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('AJAX Error for subcategories: ' + status + ', ' + error + ', Response: ' + xhr.responseText);
+                        alert('Error loading subcategories. Check console for details.');
+                    }
+                });
+            }
+        });
+
+        // Rack to Shelf Dependent Dropdown
+        $('#rack_no').on('change', function() {
+            var rack_name = $(this).val();
+            var shelf_dropdown = $('#shelf_id');
+            shelf_dropdown.empty();
+            shelf_dropdown.append($('<option value="">Select Position Shelf</option>'));
+
+            if (rack_name) {
+                $.ajax({
+                    url: '<?php echo base_url(); ?>admin/book/get_shelves_by_rack_id',
+                    type: 'POST',
+                    data: {rack_id: rack_name},
+                    dataType: 'json',
+                    success: function(data) {
+                        $.each(data, function(key, value) {
+                            shelf_dropdown.append($('<option></option>').attr('value', value.shelf_name).text(value.shelf_name));
+                        });
+                        // Pre-select if editing
+                        if ('<?php echo isset($editbook['shelf_id']) ? $editbook['shelf_id'] : ''; ?>') {
+                            shelf_dropdown.val('<?php echo isset($editbook['shelf_id']) ? $editbook['shelf_id'] : ''; ?>');
+                        }
+                    }
+                });
+            }
+        });
+
+        // Trigger change on load if editing to populate dependent dropdowns
+        if ('<?php echo isset($editbook) ? 'true' : 'false'; ?>' == 'true') {
+            $('#category_name').trigger('change');
+            $('#rack_no').trigger('change');
+        }
     });
 </script>

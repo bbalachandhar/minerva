@@ -38,7 +38,7 @@ class Book_model extends MY_Model
     public function getbooklist()
     {
         $this->datatables
-            ->select('books.*,IFNULL(total_issue, "0") as `total_issue` ')
+            ->select('books.id,books.book_title,books.description,books.book_no,books.isbn_no,books.publish,books.author,books.subject,books.rack_no,books.shelf_id,books.perunitcost,books.postdate,books.barcode,books.category_name,books.subcategory_name,books.author2,books.edition,books.medium,books.book_type,books.class_no,books.edition_type,books.publish_year,books.purchase_date,books.bill_no,books.bill_date,books.pages,books.department,books.vendor,books.available,books.is_active,IFNULL(total_issue, "0") as `total_issue` ')
             ->searchable('book_title,description,book_no,isbn_no,publish,author,subject,rack_no," ",perunitcost,postdate," ",barcode,category_name,subcategory_name,author2,edition,medium,book_type,shelf_id,class_no,edition_type,publish_year,purchase_date,bill_no,bill_date,pages,department')
             ->orderable('book_title,description,book_no,isbn_no,publish,author,subject,rack_no," ",perunitcost,postdate," ",barcode,category_name,subcategory_name,author2,edition,medium,book_type,shelf_id,class_no,edition_type,publish_year,purchase_date,bill_no,bill_date,pages,department')
             ->join(" (SELECT COUNT(*) as `total_issue`, book_id from book_issues  where is_returned= 0  GROUP by book_id) as `book_count`", "books.id=book_count.book_id", "left")
@@ -325,4 +325,10 @@ class Book_model extends MY_Model
         return $query->result_array();
     }
 
+    public function book_exists_by_bookno($book_no)
+    {
+        $this->db->where('LOWER(TRIM(book_no))', strtolower(trim($book_no)));
+        $query = $this->db->get('books');
+        return $query->num_rows() > 0;
+    }
 }

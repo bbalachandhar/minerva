@@ -12,6 +12,15 @@ class Book extends Admin_Controller
         parent::__construct();
         $this->load->library('encoding_lib');
         $this->sch_setting_detail = $this->setting_model->getSetting();
+
+        $this->load->model('librarycategory_model');
+        $this->load->model('librarysubcategory_model');
+        $this->load->model('librarypublisher_model');
+        $this->load->model('libraryvendor_model');
+        $this->load->model('librarybooktype_model');
+        $this->load->model('librarysubject_model');
+        $this->load->model('librarypositionrack_model');
+        $this->load->model('librarypositionshelf_model');
     }
 
     public function index()
@@ -62,8 +71,6 @@ class Book extends Admin_Controller
         $this->form_validation->set_rules('perunitcost', $this->lang->line('book_price'), 'numeric');
         
         if ($this->form_validation->run() == false) {
-            $listbook         = $this->book_model->listbook();
-            $data['listbook'] = $listbook;
             $this->load->view('layout/header');
             $this->load->view('admin/book/createbook', $data);
             $this->load->view('layout/footer');
@@ -140,8 +147,24 @@ class Book extends Admin_Controller
 
         
         if ($this->form_validation->run() == false) {
-            $listbook         = $this->book_model->listbook();
-            $data['listbook'] = $listbook;
+            $data['categorylist'] = $this->librarycategory_model->get();
+            $data['subcategorylist'] = $this->librarysubcategory_model->get();
+            $data['publisherlist'] = $this->librarypublisher_model->get();
+            $data['vendorlist'] = $this->libraryvendor_model->get();
+            $data['booktypelist'] = $this->librarybooktype_model->get();
+            $data['subjectlist'] = $this->librarysubject_model->get();
+            $data['racklist'] = $this->librarypositionrack_model->get();
+            $data['shelflist'] = $this->librarypositionshelf_model->get();
+
+            log_message('debug', 'Category List: ' . print_r($data['categorylist'], true));
+            log_message('debug', 'Subcategory List: ' . print_r($data['subcategorylist'], true));
+            log_message('debug', 'Publisher List: ' . print_r($data['publisherlist'], true));
+            log_message('debug', 'Vendor List: ' . print_r($data['vendorlist'], true));
+            log_message('debug', 'Book Type List: ' . print_r($data['booktypelist'], true));
+            log_message('debug', 'Subject List: ' . print_r($data['subjectlist'], true));
+            log_message('debug', 'Rack List: ' . print_r($data['racklist'], true));
+            log_message('debug', 'Shelf List: ' . print_r($data['shelflist'], true));
+
             $this->load->view('layout/header');
             $this->load->view('admin/book/editbook', $data);
             $this->load->view('layout/footer');
@@ -210,8 +233,11 @@ class Book extends Admin_Controller
             access_denied();
         }
         $data['title'] = 'Fees Master List';
-        $this->book_model->remove($id);
-        $this->session->set_flashdata('msg', '<div class="alert alert-success text-left">' . $this->lang->line('delete_message') . '</div>');
+        if ($this->book_model->remove($id)) {
+            $this->session->set_flashdata('msg', '<div class="alert alert-success text-left">' . $this->lang->line('delete_message') . '</div>');
+        } else {
+            $this->session->set_flashdata('msg', '<div class="alert alert-danger text-left">' . $this->lang->line('error_delete_message') . '</div>');
+        }
         redirect('admin/book/getall');
     }
 
@@ -270,6 +296,20 @@ class Book extends Admin_Controller
         echo json_encode($result_final);
     }
 
+    public function get_subcategories_by_category_id()
+    {
+        $category_id = $this->input->post('category_id');
+        $subcategories = $this->librarysubcategory_model->get_by_category_id($category_id);
+        echo json_encode($subcategories);
+    }
+
+    public function get_shelves_by_rack_id()
+    {
+        $rack_id = $this->input->post('rack_id');
+        $shelves = $this->librarypositionshelf_model->get_by_rack_id($rack_id);
+        echo json_encode($shelves);
+    }
+
     public function import()
     {
         set_time_limit(0); // Set time limit to infinite for bulk import
@@ -290,10 +330,60 @@ class Book extends Admin_Controller
                     $file = $_FILES['file']['tmp_name'];
                     $this->load->library('CSVReader');
                     $result = $this->csvreader->parse_file($file);
+                    log_message('debug', 'Full CSV Result Array: ' . print_r($result, true));
 
                     $rowcount = 0;
+                    $skipped_records = [];
+                    $grouped_skipped_records = [];
+                    $insert_batch_data = []; // Initialize as empty array
                     if (!empty($result)) {
                         foreach ($result as $r_key => $r_value) {
+                            log_message('debug', 'Processing CSV Row Key: ' . $r_key . ' Value: ' . print_r($r_value, true));
+                            $r_value_lower_keys = array_change_key_case($r_value, CASE_LOWER);
+
+                            // --- Start of validation for skipping records ---
+                            $skip_row = false;
+                            $skip_reason = [];
+
+                            // Example: Check for mandatory book_title
+                            if (empty($r_value_lower_keys['book_title'])) {
+                                $skip_row = true;
+                                $skip_reason[] = 'Book Title is mandatory and cannot be empty.';
+                            }
+                            // Add more validation checks here for other mandatory fields
+                            // For example:
+                            if (empty($r_value_lower_keys['book_no'])) {
+                                $skip_row = true;
+                                $skip_reason[] = 'Book Number is mandatory and cannot be empty.';
+                            }
+
+                            // Check for existing book by book_no
+                            $book_no_from_csv = array_key_exists('book_no', $r_value_lower_keys) ? $this->encoding_lib->toUTF8($r_value_lower_keys['book_no']) : '';
+
+                            log_message('debug', 'Checking existence for Book No: ' . $book_no_from_csv);
+                            $book_exists = false;
+                            if (!empty($book_no_from_csv)) {
+                                $book_exists = $this->book_model->book_exists_by_bookno($book_no_from_csv);
+                                log_message('debug', 'Book exists result: ' . ($book_exists ? 'true' : 'false'));
+                            }
+
+                            if ($book_exists) {
+                                $skip_row = true;
+                                $skip_reason[] = 'Book with this Book Number already exists.';
+                            }
+
+                            if ($skip_row) {
+                                $reason_string = implode('; ', $skip_reason);
+                                if (!isset($grouped_skipped_records[$reason_string])) {
+                                    $grouped_skipped_records[$reason_string] = [];
+                                }
+                                $grouped_skipped_records[$reason_string][] = ['row' => $r_key + 1, 'data' => $r_value];
+                                $skipped_records[] = ['row' => $r_key + 1, 'reason' => $reason_string, 'data' => array_map(function($value) { return htmlspecialchars($value, ENT_QUOTES, 'UTF-8'); }, $r_value)];
+                                log_message('debug', 'Skipping row ' . ($r_key + 1) . ' due to: ' . $reason_string);
+                                log_message('debug', 'Skipped Records Array after adding: ' . print_r($skipped_records, true));
+                                continue; // Skip to the next row
+                            }
+                            // --- End of validation for skipping records ---
 
                             if (array_key_exists('perunitcost', $result[$r_key]) && !empty($result[$r_key]['perunitcost']) && is_numeric($this->encoding_lib->toUTF8($result[$r_key]['perunitcost']))) {
                                 $perunitcost = convertCurrencyFormatToBaseAmount($this->encoding_lib->toUTF8($result[$r_key]['perunitcost']));
@@ -301,32 +391,37 @@ class Book extends Admin_Controller
                                 $perunitcost = 0;
                             }
 
-                            $book_data = array(
-                                'book_title'  => array_key_exists('book_title', $result[$r_key]) ? $this->encoding_lib->toUTF8($result[$r_key]['book_title']) : null,
-                                'book_no'     => array_key_exists('book_no', $result[$r_key]) ? $this->encoding_lib->toUTF8($result[$r_key]['book_no']) : null,
-                                'isbn_no'     => array_key_exists('isbn_no', $result[$r_key]) ? $this->encoding_lib->toUTF8($result[$r_key]['isbn_no']) : null,
-                                'author'      => array_key_exists('author', $result[$r_key]) ? $this->encoding_lib->toUTF8($result[$r_key]['author']) : null,
-                                'author2'     => array_key_exists('author2', $result[$r_key]) ? $this->encoding_lib->toUTF8($result[$r_key]['author2']) : null,
-                                'edition'     => array_key_exists('edition', $result[$r_key]) ? $this->encoding_lib->toUTF8($result[$r_key]['edition']) : null,
-                                'medium'      => array_key_exists('medium', $result[$r_key]) ? $this->encoding_lib->toUTF8($result[$r_key]['medium']) : null,
-                                'class_no'    => array_key_exists('class_no', $result[$r_key]) ? $this->encoding_lib->toUTF8($result[$r_key]['class_no']) : null,
-                                'edition_type' => array_key_exists('edition_type', $result[$r_key]) ? $this->encoding_lib->toUTF8($result[$r_key]['edition_type']) : null,
-                                'publish_year' => array_key_exists('publish_year', $result[$r_key]) ? $this->encoding_lib->toUTF8($result[$r_key]['publish_year']) : null,
-                                'perunitcost' => $perunitcost,
-                                'postdate'    => array_key_exists('postdate', $result[$r_key]) ? $this->encoding_lib->toUTF8($result[$r_key]['postdate']) : null,
-                                'description' => array_key_exists('description', $result[$r_key]) ? $this->encoding_lib->toUTF8($result[$r_key]['description']) : null,
-                                'available'   => array_key_exists('available', $result[$r_key]) ? $this->encoding_lib->toUTF8($result[$r_key]['available']) : null,
-                                'is_active'   => array_key_exists('is_active', $result[$r_key]) ? $this->encoding_lib->toUTF8($result[$r_key]['is_active']) : null,
-                                'barcode'     => array_key_exists('barcode', $result[$r_key]) ? $this->encoding_lib->toUTF8($result[$r_key]['barcode']) : null,
-                                'bill_no'          => array_key_exists('bill_no', $result[$r_key]) ? $this->encoding_lib->toUTF8($result[$r_key]['bill_no']) : null,
-                                'pages'            => array_key_exists('pages', $result[$r_key]) ? $this->encoding_lib->toUTF8($result[$r_key]['pages']) : null,
-                                'department'       => array_key_exists('department', $result[$r_key]) ? $this->encoding_lib->toUTF8($result[$r_key]['department']) : null,
-                                'publish'          => array_key_exists('publish', $result[$r_key]) ? $this->encoding_lib->toUTF8($result[$r_key]['publish']) : null,
-                                'vendor'           => array_key_exists('vendor', $result[$r_key]) ? $this->encoding_lib->toUTF8($result[$r_key]['vendor']) : null
-                            );
+                            $bill_no_value = array_key_exists('bill_no', $r_value_lower_keys) ? $this->encoding_lib->toUTF8($r_value_lower_keys['bill_no']) : '';
+                            $pages_value = array_key_exists('pages', $r_value_lower_keys) ? $this->encoding_lib->toUTF8($r_value_lower_keys['pages']) : '';
+                            $department_value = array_key_exists('department', $r_value_lower_keys) ? $this->encoding_lib->toUTF8($r_value_lower_keys['department']) : '';
 
-                            if (array_key_exists('postdate', $result[$r_key]) && !empty($result[$r_key]['postdate'])) {
-                                $date_string = $this->encoding_lib->toUTF8($result[$r_key]['postdate']);
+                            $book_data = array(
+                                'book_title'  => array_key_exists('book_title', $r_value_lower_keys) ? $this->encoding_lib->toUTF8($r_value_lower_keys['book_title']) : '',
+                                'book_no'     => array_key_exists('book_no', $r_value_lower_keys) ? $this->encoding_lib->toUTF8($r_value_lower_keys['book_no']) : '',
+                                'isbn_no'     => array_key_exists('isbn_no', $r_value_lower_keys) ? $this->encoding_lib->toUTF8($r_value_lower_keys['isbn_no']) : '',
+                                'author'      => array_key_exists('author', $r_value_lower_keys) ? $this->encoding_lib->toUTF8($r_value_lower_keys['author']) : '',
+                                'author2'     => array_key_exists('author2', $r_value_lower_keys) ? $this->encoding_lib->toUTF8($r_value_lower_keys['author2']) : '',
+                                'edition'     => array_key_exists('edition', $r_value_lower_keys) ? $this->encoding_lib->toUTF8($r_value_lower_keys['edition']) : '',
+                                'medium'      => array_key_exists('medium', $r_value_lower_keys) ? $this->encoding_lib->toUTF8($r_value_lower_keys['medium']) : '',
+                                'class_no'    => array_key_exists('class_no', $r_value_lower_keys) ? $this->encoding_lib->toUTF8($r_value_lower_keys['class_no']) : '',
+                                'edition_type' => array_key_exists('edition_type', $r_value_lower_keys) ? $this->encoding_lib->toUTF8($r_value_lower_keys['edition_type']) : '',
+                                'publish_year' => array_key_exists('publish_year', $r_value_lower_keys) ? $this->encoding_lib->toUTF8($r_value_lower_keys['publish_year']) : '',
+                                'perunitcost' => $perunitcost,
+                                'postdate'    => array_key_exists('postdate', $r_value_lower_keys) ? $this->encoding_lib->toUTF8($r_value_lower_keys['postdate']) : null,
+                                'description' => array_key_exists('description', $r_value_lower_keys) ? $this->encoding_lib->toUTF8($r_value_lower_keys['description']) : '',
+                                'available'   => array_key_exists('available', $r_value_lower_keys) ? $this->encoding_lib->toUTF8($r_value_lower_keys['available']) : '',
+                                'is_active'   => array_key_exists('is_active', $r_value_lower_keys) ? $this->encoding_lib->toUTF8($r_value_lower_keys['is_active']) : '',
+                                'barcode'     => array_key_exists('barcode', $r_value_lower_keys) ? $this->encoding_lib->toUTF8($r_value_lower_keys['barcode']) : '',
+                                'bill_no'          => $bill_no_value,
+                                'pages'            => $pages_value,
+                                'department'       => $department_value,
+                                'publish'          => array_key_exists('publish', $r_value_lower_keys) ? $this->encoding_lib->toUTF8($r_value_lower_keys['publish']) : '',
+                                'vendor'           => array_key_exists('vendor', $r_value_lower_keys) ? $this->encoding_lib->toUTF8($r_value_lower_keys['vendor']) : '',
+                            );
+                            log_message('debug', 'Book Data after initial construction: ' . print_r($book_data, true));
+
+                            if (array_key_exists('postdate', $r_value_lower_keys) && !empty($r_value_lower_keys['postdate'])) {
+                                $date_string = $this->encoding_lib->toUTF8($r_value_lower_keys['postdate']);
                                 $valid_date = null;
                                 // Try common date formats
                                 $formats = array('Y-m-d', 'm-d-Y', 'd-m-Y', 'Y/m/d', 'm/d/Y', 'd/m/Y', 'Y.m.d', 'm.d.Y', 'd.m.Y');
@@ -352,7 +447,7 @@ class Book extends Admin_Controller
                             }
 
                             // Handle category_name
-                            $category_name = trim($this->encoding_lib->toUTF8(array_key_exists('category_name', $result[$r_key]) ? $result[$r_key]['category_name'] : ''));
+                            $category_name = trim($this->encoding_lib->toUTF8(array_key_exists('category_name', $r_value_lower_keys) ? $r_value_lower_keys['category_name'] : ''));
                             $category_id = null;
                             if (!empty($category_name)) {
                                 $this->load->model('librarycategory_model');
@@ -364,10 +459,10 @@ class Book extends Admin_Controller
                                     $category_id = $this->librarycategory_model->add($new_category_data);
                                 }
                             }
-                            $book_data['category_name'] = $category_name;
+                            $book_data['category_name'] = $category_name ? $category_name : '';
 
                             // Handle subcategory_name
-                            $subcategory_name = trim($this->encoding_lib->toUTF8(array_key_exists('subcategory_name', $result[$r_key]) ? $result[$r_key]['subcategory_name'] : ''));
+                            $subcategory_name = trim($this->encoding_lib->toUTF8(array_key_exists('subcategory_name', $r_value_lower_keys) ? $r_value_lower_keys['subcategory_name'] : ''));
                             $subcategory_id = null;
                             if (!empty($subcategory_name) && !empty($category_id)) {
                                 $this->load->model('librarysubcategory_model');
@@ -379,10 +474,10 @@ class Book extends Admin_Controller
                                     $subcategory_id = $this->librarysubcategory_model->add($new_subcategory_data);
                                 }
                             }
-                            $book_data['subcategory_name'] = $subcategory_name;
+                            $book_data['subcategory_name'] = $subcategory_name ? $subcategory_name : '';
 
                             // Handle publisher_name
-                            $publisher_name = trim($this->encoding_lib->toUTF8(array_key_exists('publisher_name', $result[$r_key]) ? $result[$r_key]['publisher_name'] : ''));
+                            $publisher_name = trim($this->encoding_lib->toUTF8(array_key_exists('publisher_name', $r_value_lower_keys) ? $r_value_lower_keys['publisher_name'] : ''));
                             $publisher_id = null;
                             if (!empty($publisher_name)) {
                                 $this->load->model('librarypublisher_model');
@@ -397,7 +492,7 @@ class Book extends Admin_Controller
                             $book_data['publish'] = $publisher_name;
 
                             // Handle rack_name (Position Rack)
-                            $rack_name = trim($this->encoding_lib->toUTF8(array_key_exists('rack_name', $result[$r_key]) ? $result[$r_key]['rack_name'] : ''));
+                            $rack_name = trim($this->encoding_lib->toUTF8(array_key_exists('rack_name', $r_value_lower_keys) ? $r_value_lower_keys['rack_name'] : ''));
                             $rack_id = null;
                             if (!empty($rack_name)) {
                                 $this->load->model('librarypositionrack_model');
@@ -409,10 +504,10 @@ class Book extends Admin_Controller
                                     $rack_id = $this->librarypositionrack_model->add($new_rack_data);
                                 }
                             }
-                            $book_data['rack_no'] = $rack_name;
+                            $book_data['rack_no'] = $rack_name ? $rack_name : '';
 
                             // Handle shelf_name (Position Shelf)
-                            $shelf_name = trim($this->encoding_lib->toUTF8(isset($result[$r_key]['shelf_name']) ? $result[$r_key]['shelf_name'] : ''));
+                            $shelf_name = trim($this->encoding_lib->toUTF8(array_key_exists('shelf_name', $r_value_lower_keys) ? $r_value_lower_keys['shelf_name'] : ''));
                             $shelf_id = null;
                             if (!empty($shelf_name) && !empty($rack_id)) {
                                 $this->load->model('librarypositionshelf_model');
@@ -424,10 +519,10 @@ class Book extends Admin_Controller
                                     $shelf_id = $this->librarypositionshelf_model->add($new_shelf_data);
                                 }
                             }
-                            $book_data['shelf_id'] = $shelf_name;
+                            $book_data['shelf_id'] = $shelf_name ? $shelf_name : '';
 
                             // Handle book_type
-                            $book_type_name = trim($this->encoding_lib->toUTF8(array_key_exists('book_type_name', $result[$r_key]) ? $result[$r_key]['book_type_name'] : ''));
+                            $book_type_name = trim($this->encoding_lib->toUTF8(array_key_exists('book_type_name', $r_value_lower_keys) ? $r_value_lower_keys['book_type_name'] : ''));
                             $book_type_id = null;
                             if (!empty($book_type_name)) {
                                 $this->load->model('librarybooktype_model');
@@ -439,10 +534,10 @@ class Book extends Admin_Controller
                                     $book_type_id = $this->librarybooktype_model->add($new_book_type_data);
                                 }
                             }
-                            $book_data['book_type'] = $book_type_name;
+                            $book_data['book_type'] = $book_type_name ? $book_type_name : '';
 
                             // Handle subject
-                            $subject_name = trim($this->encoding_lib->toUTF8(array_key_exists('subject', $result[$r_key]) ? $result[$r_key]['subject'] : ''));
+                            $subject_name = trim($this->encoding_lib->toUTF8(array_key_exists('subject', $r_value_lower_keys) ? $r_value_lower_keys['subject'] : ''));
                             $subject_id = null;
                             if (!empty($subject_name)) {
                                 $this->load->model('librarysubject_model');
@@ -459,10 +554,10 @@ class Book extends Admin_Controller
                                     }
                                 }
                             }
-                            $book_data['subject'] = $subject_name;
+                            $book_data['subject'] = $subject_name ? $subject_name : '';
 
                             // Handle vendor
-                            $vendor_name = trim($this->encoding_lib->toUTF8(array_key_exists('vendor', $result[$r_key]) ? $result[$r_key]['vendor'] : ''));
+                            $vendor_name = trim($this->encoding_lib->toUTF8(array_key_exists('vendor', $r_value_lower_keys) ? $r_value_lower_keys['vendor'] : ''));
                             $vendor_id = null;
                             if (!empty($vendor_name)) {
                                 $this->load->model('libraryvendor_model');
@@ -480,10 +575,11 @@ class Book extends Admin_Controller
                                 }
                             }
                             $book_data['vendor'] = $vendor_name;
+                            log_message('debug', 'Book Data after master data processing: ' . print_r($book_data, true));
 
                             // Handle date fields
-                            if (array_key_exists('purchase_date', $result[$r_key]) && !empty($result[$r_key]['purchase_date'])) {
-                                $date_string = $this->encoding_lib->toUTF8($result[$r_key]['purchase_date']);
+                            if (array_key_exists('purchase_date', $r_value_lower_keys) && !empty($r_value_lower_keys['purchase_date'])) {
+                                $date_string = $this->encoding_lib->toUTF8($r_value_lower_keys['purchase_date']);
                                 $valid_date = null;
                                 // Try common date formats
                                 $formats = array('Y-m-d', 'm-d-Y', 'd-m-Y', 'Y/m/d', 'm/d/Y', 'd/m/Y', 'Y.m.d', 'm.d.Y', 'd.m.Y');
@@ -508,10 +604,10 @@ class Book extends Admin_Controller
                                 $book_data['purchase_date'] = null;
                             }
 
-                            $book_data['bill_no']          = $this->encoding_lib->toUTF8($result[$r_key]['bill_no']);
+                            $book_data['bill_no']          = array_key_exists('bill_no', $result[$r_key]) ? $this->encoding_lib->toUTF8($result[$r_key]['bill_no']) : null;
 
-                            if (array_key_exists('bill_date', $result[$r_key]) && !empty($result[$r_key]['bill_date'])) {
-                                $date_string = $this->encoding_lib->toUTF8($result[$r_key]['bill_date']);
+                            if (array_key_exists('bill_date', $r_value_lower_keys) && !empty($r_value_lower_keys['bill_date'])) {
+                                $date_string = $this->encoding_lib->toUTF8($r_value_lower_keys['bill_date']);
                                 $valid_date = null;
                                 // Try common date formats
                                 $formats = array('Y-m-d', 'm-d-Y', 'd-m-Y', 'Y/m/d', 'm/d/Y', 'd/m/Y', 'Y.m.d', 'm.d.Y', 'd.m.Y');
@@ -536,13 +632,36 @@ class Book extends Admin_Controller
                                 $book_data['bill_date'] = null;
                             }
 
-                            $book_data['pages']            = $this->encoding_lib->toUTF8($result[$r_key]['pages']);
-                            $book_data['department']       = $this->encoding_lib->toUTF8($result[$r_key]['department']);
+                            $book_data['pages']            = array_key_exists('pages', $result[$r_key]) ? $this->encoding_lib->toUTF8($result[$r_key]['pages']) : null;
+                            $book_data['department']       = array_key_exists('department', $result[$r_key]) ? $this->encoding_lib->toUTF8($result[$r_key]['department']) : null;
 
                             $rowcount++;
+                            $insert_batch_data[] = $book_data;
                         }
 
-                        $this->db->insert('books', $book_data);
+                        log_message('debug', 'Final Insert Batch Data: ' . print_r($insert_batch_data, true));
+
+                        if (!empty($insert_batch_data)) {
+                            $this->db->insert_batch('books', $insert_batch_data);
+                        }
+
+                        $message = $this->lang->line('records_found_in_csv_file_total') . ' ' . count($result) . '. ';
+                        $message .= $this->lang->line('records_imported_successfully') . ': ' . count($insert_batch_data) . '.';
+
+                        if (!empty($grouped_skipped_records)) {
+                            $message .= '<br>Detailed Skipped Records:<br>';
+                            foreach ($skipped_records as $skipped_record) {
+                                $message .= 'Row ' . $skipped_record['row'] . ': ' . $skipped_record['reason'] . ' (Data: ' . implode(', ', $skipped_record['data']) . ')<br>';
+                            }
+                            $message .= '<br><br>Summary of Skipped Records:<br>';
+                            foreach ($grouped_skipped_records as $reason => $records) {
+                                $message .= '<strong>' . $reason . '</strong>: ' . count($records) . ' record(s).<br>';
+                            }
+                            $this->session->set_flashdata('msg', '<div class="alert alert-warning text-left">' . $message . '</div>');
+                        } else {
+                            $this->session->set_flashdata('msg', '<div class="alert alert-success text-left">' . $message . '</div>');
+                        }
+                        redirect('admin/book/import');
                     }
                     $array = array('status' => 'success', 'error' => '', 'message' => $this->lang->line('records_found_in_csv_file_total') . ' ' . $rowcount . ' ' . $this->lang->line('records_imported_successfully'));
                 }
@@ -678,7 +797,9 @@ class Book extends Admin_Controller
     public function getbooklist()
     {
         $listbook        = $this->book_model->getbooklist();
+        log_message('debug', 'Raw listbook JSON: ' . $listbook);
         $m               = json_decode($listbook);
+        log_message('debug', 'Decoded listbook object: ' . print_r($m, true));
         $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
         $dt_data         = array();
         if (!empty($m->data)) {
@@ -702,8 +823,8 @@ class Book extends Admin_Controller
                 $row[] = !empty($value->publish) ? $value->publish : 'N/A';
                 $row[] = !empty($value->author) ? $value->author : 'N/A';
                 $row[] = !empty($value->subject) ? $value->subject : 'N/A';
-                $row[] = !empty($value->rack_no) ? $value->rack_no : 'N/A';
-                $row[] = !empty($value->shelf_id) ? $value->shelf_id : 'N/A'; // Added shelf_id
+                $row[] = (isset($value->rack_no) && $value->rack_no !== '') ? $value->rack_no : 'N/A';
+                $row[] = (isset($value->shelf_id) && $value->shelf_id !== '') ? $value->shelf_id : 'N/A';
                 
                 $row[] = $currency_symbol . amountFormat($value->perunitcost);
                 $row[] = !empty($value->postdate) ? $this->customlib->dateformat($value->postdate) : 'N/A';
