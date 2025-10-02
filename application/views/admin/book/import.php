@@ -21,27 +21,15 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                         1. <?php echo $this->lang->line('book_instruction_one'); ?><br/>
                         2. <?php echo $this->lang->line('book_instruction_two'); ?><br/>
                         <hr/></div>
-                    <div class="box-body table-responsive overflow-visible">
+                    <div class="box-body table-responsive" style="overflow-x: auto;">
                         <table class="table table-striped table-bordered table-hover" id="sampledata">
                             <thead>
                                 <tr>
                                     <?php
-$mandatory_fields = array(
-    'book_title' => 'book_title',
-    'author' => 'author',
-    'category_name' => 'Category Name', // Hardcoded label
-    'book_no' => 'book_number',
-    'subject' => 'subject',
-    'rack_no' => 'Position Rack', // Custom label
-    'edition_type' => 'Edition Type', // Hardcoded label
-    'is_active' => 'Book Status', // Hardcoded label
-    'pages' => 'pages',
-    'department' => 'department'
-);
-
-foreach ($mandatory_fields as $key => $value) {
-    $add = "<span class='text-red d-inline'>* </span>";
-    $display_value = ($key == 'rack_no' || $key == 'category_name' || $key == 'edition_type' || $key == 'is_active') ? $value : $this->lang->line($value);
+$mandatory_fields_list = array('book_title', 'book_no', 'isbn_no', 'author');
+foreach ($fields as $field) {
+    $add = in_array($field, $mandatory_fields_list) ? "<span class='text-red d-inline'>* </span>" : "";
+    $display_value = $this->lang->line($field);
     ?>
                                         <th><?php echo $add . "<span>" . $display_value . "</span>"; ?></th>
                                     <?php }?>
@@ -49,7 +37,7 @@ foreach ($mandatory_fields as $key => $value) {
                             </thead>
                             <tbody>
                                 <tr>
-                                    <?php foreach ($mandatory_fields as $key => $value) { ?>
+                                    <?php foreach ($fields as $field) { ?>
                                         <td><?php echo "Sample Data" ?></td>
                                     <?php }?>
                                 </tr>

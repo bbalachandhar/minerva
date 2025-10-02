@@ -1,3 +1,1 @@
-book_title,book_no,isbn_no,subject,rack_no,publish,author,qty,perunitcost,postdate,description,available
-
-
+book_title,book_no,barcode,category_name,subcategory_name,isbn_no,subject,rack_name,shelf_name,class_no,publisher_name,author,author2,edition,edition_type,medium,book_type_name,publish_year,perunitcost,purchase_date,bill_no,bill_date,pages,department,description,available,is_active,publish,postdate,vendor

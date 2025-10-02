@@ -146,7 +146,8 @@ class Book_model extends MY_Model
                 'bill_no' => $data['bill_no'],
                 'bill_date' => $data['bill_date'],
                 'pages' => $data['pages'],
-                'department' => $data['department']
+                'department' => $data['department'],
+                'vendor' => $data['vendor']
             );
             $this->db->insert('books', $insert_data);
             $insert_id = $this->db->insert_id();
