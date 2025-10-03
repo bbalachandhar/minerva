@@ -1284,14 +1284,24 @@ class Student extends Admin_Controller
                                 $student_data[$i]['dob'] = null;
                             }
 
-                            if (isset($result[$i]['measurement_date']) && date('Y-m-d', strtotime($result[$i]['measurement_date'])) === $result[$i]['measurement_date']) {
-                                $student_data[$i]['measurement_date'] = date('Y-m-d', strtotime($result[$i]['measurement_date']));
+                            if (!empty($student_data[$i]['measurement_date'])) { // Use student_data['measurement_date']
+                                $parsed_date = strtotime($student_data[$i]['measurement_date']);
+                                if ($parsed_date !== false) {
+                                    $student_data[$i]['measurement_date'] = date('Y-m-d', $parsed_date);
+                                } else {
+                                    $student_data[$i]['measurement_date'] = null;
+                                }
                             } else {
-                                $student_data[$i]['measurement_date'] = '';
+                                $student_data[$i]['measurement_date'] = null;
                             }
 
-                            if (isset($result[$i]['admission_date']) && date('Y-m-d', strtotime($result[$i]['admission_date'])) === $result[$i]['admission_date']) {
-                                $student_data[$i]['admission_date'] = date('Y-m-d', strtotime($result[$i]['admission_date']));
+                            if (!empty($student_data[$i]['admission_date'])) { // Use student_data['admission_date']
+                                $parsed_date = strtotime($student_data[$i]['admission_date']);
+                                if ($parsed_date !== false) {
+                                    $student_data[$i]['admission_date'] = date('Y-m-d', $parsed_date);
+                                } else {
+                                    $student_data[$i]['admission_date'] = null;
+                                }
                             } else {
                                 $student_data[$i]['admission_date'] = null;
                             }
