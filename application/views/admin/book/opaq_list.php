@@ -279,17 +279,23 @@ $(document).ready(function() {
                 { "data": "postdate" } 
             ],
             "order": [[ 0, "asc" ]],
-            "dom": '<"top">rt<"bottom"ip><"clear">'
+            "dom": '<"top">rt<"bottom"ip><"clear">',
+            "drawCallback": function( settings ) {
+                if (window.resetForm) {
+                    $('#opaq_search_form')[0].reset();
+                    $('#book_title').val(null).trigger('change');
+                    $('#author').val(null).trigger('change');
+                    $('#publisher').val(null).trigger('change');
+                    $('#subject').val(null).trigger('change');
+                    window.resetForm = false;
+                }
+            }
         });
 
         // Handle form submission for filtering
         $('#opaq_search_form').on('submit', function(e) {
             e.preventDefault();
-            var form_data = $(this).serializeArray();
-            var search_params = {};
-            $.each(form_data, function(i, field){
-                search_params[field.name] = field.value;
-            });
+            window.resetForm = true;
             table.ajax.reload();
         });
     });
