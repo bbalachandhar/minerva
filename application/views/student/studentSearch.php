@@ -5,6 +5,8 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
     <section class="content-header">
          
     </section>
+    <link rel="stylesheet" href="<?php echo base_url(); ?>backend/plugins/select2/select2.min.css">
+    <script src="<?php echo base_url(); ?>backend/plugins/select2/select2.min.js"></script>
     <!-- Main content -->
     <section class="content">
         <div class="row">
@@ -417,7 +419,9 @@ $(document).on('submit','.class_search_form',function(e){
 
 
 <script type="text/javascript">
-    
+    $(document).ready(function() {
+        $('#class_id').select2();
+    });
     $(document).on('click', '.print_student_details', function() {
     let $button_ = $(this);
     var student_id = $(this).attr('data-student_id');
