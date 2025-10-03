@@ -1273,8 +1273,13 @@ class Student extends Admin_Controller
 
                             $student_data[$i]['is_active'] = 'yes';
 
-                            if (isset($result[$i]['date_of_birth']) && date('Y-m-d', strtotime($result[$i]['date_of_birth'])) === $result[$i]['date_of_birth']) {
-                                $student_data[$i]['dob'] = date('Y-m-d', strtotime($result[$i]['date_of_birth']));
+                            if (!empty($student_data[$i]['dob'])) { // Use student_data['dob'] which is populated from 'date_of_birth' CSV header
+                                $parsed_date = strtotime($student_data[$i]['dob']);
+                                if ($parsed_date !== false) {
+                                    $student_data[$i]['dob'] = date('Y-m-d', $parsed_date);
+                                } else {
+                                    $student_data[$i]['dob'] = null;
+                                }
                             } else {
                                 $student_data[$i]['dob'] = null;
                             }
