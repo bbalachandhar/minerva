@@ -255,36 +255,45 @@ class Book_model extends MY_Model
 
     public function getOpaqBooklist($search_params)
     {
-        $this->datatables
-            ->select('books.book_title, books.description, books.book_no, books.isbn_no, books.publish, books.author, books.subject, books.rack_no, books.shelf_id, books.perunitcost, books.postdate, IFNULL(total_issue, "0") as `total_issue` ')
+        $this->db->select('books.id, books.book_title, books.description, books.book_no, books.isbn_no, books.publish, books.author, books.subject, books.rack_no, books.shelf_id, books.perunitcost, books.postdate, IFNULL(total_issue, "0") as `total_issue` ')
             ->join(" (SELECT COUNT(*) as `total_issue`, book_id from book_issues  where is_returned= 0  GROUP by book_id) as `book_count`", "books.id=book_count.book_id", "left")
-            ->sort('books.id','desc')
             ->from('books');
 
-        $where_clauses = array();
-
         if (!empty($search_params['book_title'])) {
-            $this->datatables->like('book_title', $search_params['book_title']);
+            $this->db->like('book_title', $search_params['book_title']);
         }
         if (!empty($search_params['author'])) {
-            $this->datatables->like('author', $search_params['author']);
+            $this->db->like('author', $search_params['author']);
         }
         if (!empty($search_params['barcode'])) {
-            $this->datatables->like('barcode', $search_params['barcode']);
+            $this->db->like('barcode', $search_params['barcode']);
         }
         if (!empty($search_params['accession_no'])) {
-            $this->datatables->like('book_no', $search_params['accession_no']); // Assuming accession_no maps to book_no
+            $this->db->like('book_no', $search_params['accession_no']);
         }
         if (!empty($search_params['publisher'])) {
-            $this->datatables->like('publish', $search_params['publisher']);
+            $this->db->like('publish', $search_params['publisher']);
         }
         if (!empty($search_params['subject'])) {
-            $this->datatables->like('subject', $search_params['subject']);
+            $this->db->like('subject', $search_params['subject']);
         }
 
+        // Get total records
+        $total_records = $this->db->count_all_results('', false);
 
+        // Get filtered records
+        $this->db->order_by('books.id', 'desc');
+        $query = $this->db->get();
+        $result = $query->result_array();
 
-        return $this->datatables->generate('json');
+        $json_data = array(
+            "draw"            => intval( $this->input->post('draw') ),
+            "recordsTotal"    => intval( $total_records ),
+            "recordsFiltered" => intval( $total_records ),
+            "data"            => $result
+        );
+
+        return json_encode($json_data);
     }
 
     public function get_all_book_titles()

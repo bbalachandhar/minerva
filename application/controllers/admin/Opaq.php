@@ -22,15 +22,12 @@ class Opaq extends Admin_Controller {
 
         // Load necessary models for dropdowns
         $this->load->model('book_model');
-        $this->load->model('librarypublisher_model'); // Corrected model name
-        // $this->load->model('author_model'); // Removed, authors from book_model
-        $this->load->model('librarysubject_model'); // Corrected model name
 
-        // Fetch data for dropdowns (these models/methods might need to be created)
+        // Fetch data for dropdowns
         $data['book_titles'] = $this->book_model->get_all_book_titles();
-        $data['authors'] = $this->book_model->get_all_authors(); // Authors from book_model
-        $data['publishers'] = $this->librarypublisher_model->get_all_publishers(); // Method in librarypublisher_model
-        $data['subjects'] = $this->librarysubject_model->get_all_subjects(); // Method in librarysubject_model
+        $data['authors'] = $this->book_model->get_all_authors();
+        $data['publishers'] = $this->book_model->get_all_publishers();
+        $data['subjects'] = $this->book_model->get_all_subjects();
 
         $this->load->view('layout/header');
         $this->load->view('admin/book/opaq_list', $data); // New view file
