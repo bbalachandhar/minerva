@@ -225,6 +225,10 @@ $(document).ready(function (e) {
         var $checkMessageBox = $('#check-message-box');
 
         var formData = new FormData($('#employeeform')[0]);
+        var fileInput = $('#file')[0];
+        if (fileInput.files.length > 0) {
+            formData.append('file', fileInput.files[0]);
+        }
 
         $.ajax({
             url: '<?php echo site_url('student/check_import_data') ?>',

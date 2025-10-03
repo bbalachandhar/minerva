@@ -31,3 +31,4 @@ $lang['form_validation_greater_than']		= 'The {field} field must contain a numbe
 $lang['form_validation_greater_than_equal_to']	= 'The {field} field must contain a number greater than or equal to {param}.';
 $lang['form_validation_error_message_not_set']	= 'Unable to access an error message corresponding to your field name {field}.';
 $lang['form_validation_in_list']		= 'The {field} field must be one of: {param}.';
+$lang['csv_file_malformed_no_delimiters'] = 'The CSV file is malformed or not properly delimited. Please ensure columns are separated by commas.';

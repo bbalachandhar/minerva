@@ -1417,6 +1417,7 @@ class Student extends Admin_Controller
                                 $this->session->set_flashdata('msg', '<div class="alert alert-success text-center">' . $this->lang->line('students_imported_successfully') . '</div>');
 
                                 $rowcount++;
+                                $this->session->set_userdata('import_completed', true); // Set import_completed to true here
                                 $this->session->set_flashdata('msg', '<div class="alert alert-success text-center">' . $this->lang->line('total') . ' ' . count($result) . $this->lang->line('records_found_in_csv_file_total') . $rowcount . ' ' . $this->lang->line('records_imported_successfully') . '</div>');
 
                                 //generate student id card
@@ -1432,13 +1433,19 @@ class Student extends Admin_Controller
                         $this->session->set_userdata('import_completed', true);
                         $this->session->unset_userdata('import_total_rows');
                         $this->session->unset_userdata('import_processed_rows');
+                        echo json_encode(['status' => 'completed', 'message' => $this->session->flashdata('msg')]);
+                        exit();
                     } else {
 
                         $this->session->set_flashdata('msg', '<div class="alert alert-danger text-center">' . $this->lang->line('no_record_found') . '</div>');
+                        echo json_encode(['status' => 'error', 'message' => $this->session->flashdata('msg')]);
+                        exit();
                     }
                 } else {
 
                     $this->session->set_flashdata('msg', '<div class="alert alert-danger text-center">' . $this->lang->line('please_upload_csv_file_only') . '</div>');
+                    echo json_encode(['status' => 'error', 'message' => $this->session->flashdata('msg')]);
+                    exit();
                 }
             }
         }
@@ -2844,7 +2851,7 @@ class Student extends Admin_Controller
             exit();
         }
 
-        $student_fields = array('admission_no', 'roll_no', 'firstname', 'middlename', 'lastname', 'gender', 'dob', 'category_id', 'religion', 'cast', 'mobileno', 'email', 'admission_date', 'blood_group', 'school_house_id', 'height', 'weight', 'measurement_date', 'father_name', 'father_phone', 'father_occupation', 'mother_name', 'mother_phone', 'mother_occupation', 'guardian_is', 'guardian_name', 'guardian_relation', 'guardian_email', 'guardian_phone', 'guardian_occupation', 'guardian_address', 'current_address', 'permanent_address', 'bank_account_no', 'bank_name', 'ifsc_code', 'adhar_no', 'samagra_id', 'rte', 'previous_school', 'note', 'register_no', 'regulation_id', 'emis_num', 'hsc_reg_no', 'ug_reg_no', 'abc_id', 'father_adhar_no', 'mother_adhar_no', 'migration_cert_num', 'medium');
+        $student_fields = array('admission_no', 'roll_no', 'class', 'section', 'firstname', 'middlename', 'lastname', 'gender', 'dob', 'category_id', 'religion', 'cast', 'mobileno', 'email', 'admission_date', 'blood_group', 'school_house_id', 'height', 'weight', 'measurement_date', 'father_name', 'father_phone', 'father_occupation', 'mother_name', 'mother_phone', 'mother_occupation', 'guardian_is', 'guardian_name', 'guardian_relation', 'guardian_email', 'guardian_phone', 'guardian_occupation', 'guardian_address', 'current_address', 'permanent_address', 'bank_account_no', 'bank_name', 'ifsc_code', 'adhar_no', 'samagra_id', 'rte', 'previous_school', 'note', 'register_no', 'regulation_id', 'emis_num', 'hsc_reg_no', 'ug_reg_no', 'abc_id', 'father_adhar_no', 'mother_adhar_no', 'migration_cert_num', 'medium');
 
         $file = $_FILES['file']['tmp_name'];
         $valid_records = [];
@@ -2852,7 +2859,17 @@ class Student extends Admin_Controller
         $row_number = 1; // Start row number from 1 for header
 
         if (($handle = fopen($file, "r")) !== FALSE) {
-            $header = fgetcsv($handle, 1000, ",");
+            $delimiter = ","; // Assuming comma as default delimiter
+            $header = fgetcsv($handle, 1000, $delimiter);
+            log_message('error', 'CSV Delimiter used: ' . $delimiter);
+            log_message('error', 'Raw CSV Header: ' . print_r($header, true));
+
+            // Check if the header is malformed (e.g., no delimiters, resulting in a single column)
+            if (count($header) === 1 && strpos($header[0], $delimiter) === false) {
+                echo json_encode(['status' => 'error', 'message' => $this->lang->line('csv_file_malformed_no_delimiters')]);
+                exit();
+            }
+
             // Remove BOM from the first header element
             if (isset($header[0]) && strpos($header[0], "\xef\xbb\xbf") === 0) {
                 $header[0] = substr($header[0], 3);
@@ -2872,8 +2889,11 @@ class Student extends Admin_Controller
 
             $processed_count = 0;
 
-            // Create a map of lowercase header names to original header names for consistent access
-            $header_map = array_flip(array_map('strtolower', $header));
+            // Create a map of cleaned (trimmed, lowercase) header names to their original index
+            $cleaned_header_map = array();
+            foreach ($header as $index => $col_name) {
+                $cleaned_header_map[strtolower(trim($col_name))] = $index;
+            }
 
             $all_classes = $this->class_model->get();
             $class_map = array();
@@ -2882,6 +2902,9 @@ class Student extends Admin_Controller
             }
 
             while (($data = fgetcsv($handle, 1000, ",")) !== FALSE) {
+                if ($row_number <= 5) { // Log first 5 data rows
+                    log_message('error', 'Raw CSV Data Row ' . $row_number . ': ' . print_r($data, true));
+                }
                 $row_number++;
                 $processed_count++;
                 $this->session->set_userdata('check_processed_rows', $processed_count); // Update progress
@@ -2895,10 +2918,11 @@ class Student extends Admin_Controller
                 $student_data = [];
                 $errors = [];
 
-                // Populate student_data using lowercase keys for consistency
+                // Populate student_data using cleaned header map
                 foreach ($student_fields as $field) {
-                    if (isset($header_map[$field]) && isset($data[$header_map[$field]])) {
-                        $student_data[$field] = $this->encoding_lib->toUTF8($data[$header_map[$field]]);
+                    $cleaned_field = strtolower(trim($field));
+                    if (isset($cleaned_header_map[$cleaned_field]) && isset($data[$cleaned_header_map[$cleaned_field]])) {
+                        $student_data[$field] = $this->encoding_lib->toUTF8($data[$cleaned_header_map[$cleaned_field]]);
                     } else {
                         $student_data[$field] = ''; // Ensure all fields are present, even if empty
                     }
@@ -2911,6 +2935,7 @@ class Student extends Admin_Controller
                 if (empty($student_data['gender'])) {
                     $errors[] = $this->lang->line('gender_is_required');
                 }
+                // Class and Section validation using student_data
                 if (empty($student_data['class'])) {
                     $errors[] = $this->lang->line('class_is_required');
                 }
@@ -2918,16 +2943,17 @@ class Student extends Admin_Controller
                     $errors[] = $this->lang->line('section_is_required');
                 }
 
+
                 // Admission No validation
                 $adm_auto_insert = $this->sch_setting_detail->adm_auto_insert;
                 if (!$adm_auto_insert && empty($student_data['admission_no'])) {
                     $errors[] = $this->lang->line('admission_no_is_required');
                 } elseif (!$adm_auto_insert && !empty($student_data['admission_no'])) {
                     // Check if admission_no already exists (excluding current student if editing)
-                    if ($this->student_model->is_admission_no_unique($student_data['admission_no'])) {
-                        // It's unique, which is good for new records.
-                    } else {
+                    if ($this->student_model->check_adm_exists($student_data['admission_no'])) {
                         $errors[] = $this->lang->line('admission_no_already_exists') . ': ' . $student_data['admission_no'];
+                    } else {
+                        // It's unique, which is good for new records.
                     }
                 }
 
