@@ -81,6 +81,17 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                                 </select>
                                             </div>
                                         </div>
+                                        <div class="col-sm-6 col-md-6">
+                                            <div class="form-group" style="margin-right: 15px; margin-bottom: 15px;">
+                                                <label><?php echo $this->lang->line('department'); ?></label>
+                                                <select class="form-control" name="department" id="department">
+                                                    <option value=""><?php echo $this->lang->line('select'); ?></option>
+                                                    <?php foreach ($departments as $department_item) { ?>
+                                                        <option value="<?php echo $department_item['department']; ?>"><?php echo $department_item['department']; ?></option>
+                                                    <?php } ?>
+                                                </select>
+                                            </div>
+                                        </div>
                                         <div class="col-sm-6 col-md-6 text-right"> <!-- Search button in its own column, aligned right -->
                                             <div class="form-group" style="margin-bottom: 15px; margin-top: 25px;">
                                                 <button type="submit" name="search" value="search_filter" class="btn btn-primary"><i class="fa fa-search"></i> <?php echo $this->lang->line('search'); ?></button>
@@ -244,6 +255,7 @@ $(document).ready(function() {
     $('#author').select2();
     $('#publisher').select2();
     $('#subject').select2();
+    $('#department').select2();
 });
 
     ( function ( $ ) {
@@ -263,6 +275,7 @@ $(document).ready(function() {
                     d.accession_no = $('#accession_no').val();
                     d.publisher = $('#publisher').val();
                     d.subject = $('#subject').val();
+                    d.department = $('#department').val();
                 }
             },
             "columns": [
@@ -287,6 +300,7 @@ $(document).ready(function() {
                     $('#author').val(null).trigger('change');
                     $('#publisher').val(null).trigger('change');
                     $('#subject').val(null).trigger('change');
+                    $('#department').val(null).trigger('change');
                     window.resetForm = false;
                 }
             }

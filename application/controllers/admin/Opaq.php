@@ -28,6 +28,7 @@ class Opaq extends Admin_Controller {
         $data['authors'] = $this->book_model->get_all_authors();
         $data['publishers'] = $this->book_model->get_all_publishers();
         $data['subjects'] = $this->book_model->get_all_subjects();
+        $data['departments'] = $this->book_model->get_all_departments();
 
         $this->load->view('layout/header');
         $this->load->view('admin/book/opaq_list', $data); // New view file
@@ -56,6 +57,7 @@ class Opaq extends Admin_Controller {
         $accession_no = $this->input->post('accession_no');
         $publisher = $this->input->post('publisher');
         $subject = $this->input->post('subject');
+        $department = $this->input->post('department');
 
         $search_params = array(
             'book_title' => $book_title,
@@ -64,6 +66,7 @@ class Opaq extends Admin_Controller {
             'accession_no' => $accession_no,
             'publisher' => $publisher,
             'subject' => $subject,
+            'department' => $department,
         );
 
         $listbook = $this->book_model->getOpaqBooklist($search_params); // New model method

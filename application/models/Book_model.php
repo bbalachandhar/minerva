@@ -277,6 +277,9 @@ class Book_model extends MY_Model
         if (!empty($search_params['subject'])) {
             $this->db->like('subject', $search_params['subject']);
         }
+        if (!empty($search_params['department'])) {
+            $this->db->like('department', $search_params['department']);
+        }
 
         // Get total records
         $total_records = $this->db->count_all_results('', false);
@@ -330,6 +333,16 @@ class Book_model extends MY_Model
         $this->db->where('subject IS NOT NULL');
         $this->db->where('subject != ""');
         $this->db->order_by('subject', 'asc');
+        $query = $this->db->get();
+        return $query->result_array();
+    }
+
+    public function get_all_departments()
+    {
+        $this->db->select('department')->from('books')->distinct();
+        $this->db->where('department IS NOT NULL');
+        $this->db->where('department != ""');
+        $this->db->order_by('department', 'asc');
         $query = $this->db->get();
         return $query->result_array();
     }
