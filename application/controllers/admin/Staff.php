@@ -365,24 +365,22 @@ class Staff extends Admin_Controller
     {
         $this->session->set_userdata('top_menu', 'HR');
         $this->session->set_userdata('sub_menu', 'admin/staff');
-        $roles                       = $this->role_model->get();
-        $data["roles"]               = $roles;
+        $data['title'] = 'Add Staff';
+        $data['staffid_auto_insert'] = $this->sch_setting_detail->staffid_auto_insert;
+        $data['sch_setting'] = $this->sch_setting_detail;
+
+        $data['roles'] = $this->role_model->get();
+        $data['designation'] = $this->staff_model->getStaffDesignation();
+        $data['department'] = $this->staff_model->getDepartment();
         $genderList                  = $this->customlib->getGender();
         $data['genderList']          = $genderList;
         $payscaleList                = $this->staff_model->getPayroll();
         $leavetypeList               = $this->staff_model->getLeaveType();
         $data["leavetypeList"]       = $leavetypeList;
         $data["payscaleList"]        = $payscaleList;
-        $designation                 = $this->staff_model->getStaffDesignation();
-        $data["designation"]         = $designation;
-        $department                  = $this->staff_model->getDepartment();
-        $data["department"]          = $department;
         $marital_status              = $this->marital_status;
         $data["marital_status"]      = $marital_status;
-        $data['title']               = 'Add Staff';
         $data["contract_type"]       = $this->contract_type;
-        $data['sch_setting']         = $this->sch_setting_detail;
-        $data['staffid_auto_insert'] = $this->sch_setting_detail->staffid_auto_insert;
         $custom_fields               = $this->customfield_model->getByBelong('staff');
         foreach ($custom_fields as $custom_fields_key => $custom_fields_value) {
             if ($custom_fields_value['validation']) {
@@ -396,22 +394,13 @@ class Staff extends Admin_Controller
         $this->form_validation->set_rules('role', $this->lang->line('role'), 'trim|required|xss_clean');
         $this->form_validation->set_rules('gender', $this->lang->line('gender'), 'trim|required|xss_clean');
         $this->form_validation->set_rules('dob', $this->lang->line('date_of_birth'), 'trim|required|xss_clean');
-		
-		// $resource_params = ['resource' => 'no_of_staff'];
-        // $storage_params = [
-            // 'resource' => 'storage',
-            // 'fields'   => 'file,first_doc,second_doc,third_doc,fourth_doc'
-        // ];
-
-        // $this->form_validation->set_rules('validate_staff', "validate_staff", "callback_validateResource[" . json_encode($resource_params) . "]");
-        // $this->form_validation->set_rules('validate_storage', "validate_storage", "callback_validateStorage[" . json_encode($storage_params) . "]");
-		
+        
         $this->form_validation->set_rules('file', $this->lang->line('image'), 'callback_handle_upload');
         $this->form_validation->set_rules('first_doc', $this->lang->line('image'), 'callback_handle_first_upload');
         $this->form_validation->set_rules('second_doc', $this->lang->line('image'), 'callback_handle_second_upload');
         $this->form_validation->set_rules('third_doc', $this->lang->line('image'), 'callback_handle_third_upload');
         $this->form_validation->set_rules('fourth_doc', $this->lang->line('image'), 'callback_handle_fourth_upload');
-		
+        
         $this->form_validation->set_rules(
             'email', $this->lang->line('email'), array('required', 'valid_email',
                 array('check_exists', array($this->staff_model, 'valid_email_id')),
@@ -1491,38 +1480,67 @@ class Staff extends Admin_Controller
     public function import()
     {
         $data['field'] = array(
-            "staff_id"                 => "staff_id",
+            "employee_id"              => "employee_id",
             "prefix"                   => "prefix",
-            "first_name"               => "first_name",
-            "last_name"                => "last_name",
-            "father_name"              => "father_name",
-            "mother_name"              => "mother_name",
-            "email_login_username"     => "email",
-            "gender"                   => "gender",
-            "date_of_birth"            => "date_of_birth",
-            "date_of_joining"          => "date_of_joining",
-            "phone"                    => "phone",
-            "emergency_contact_number" => "emergency_contact_number",
-            "marital_status"           => "marital_status",
-            "current_address"          => "current_address",
-            "permanent_address"        => "permanent_address",
-            "qualification"            => "qualification",
             "ug_qualification"         => "ug_qualification",
             "pg_qualification"         => "pg_qualification",
             "higher_qualification"     => "higher_qualification",
             "qualified_exam"           => "qualified_exam",
             "subject_specialization"   => "subject_specialization",
             "additional_qualification" => "additional_qualification",
-            "work_experience"          => "work_experience",
+            "qualification"            => "qualification",
+            "work_exp"                 => "work_exp",
+            "name"                     => "name",
+            "surname"                  => "surname",
+            "father_name"              => "father_name",
+            "mother_name"              => "mother_name",
+            "contact_no"               => "contact_no",
+            "emergency_contact_no"     => "emergency_contact_no",
+            "email"                    => "email",
+            "dob"                      => "dob",
+            "marital_status"           => "marital_status",
+            "date_of_joining"          => "date_of_joining",
+            "date_of_leaving"          => "date_of_leaving",
+            "local_address"            => "local_address",
+            "permanent_address"        => "permanent_address",
             "note"                     => "note",
+            "gender"                   => "gender",
+            "account_title"            => "account_title",
+            "bank_account_no"          => "bank_account_no",
+            "bank_name"                => "bank_name",
+            "ifsc_code"                => "ifsc_code",
+            "bank_branch"              => "bank_branch",
+            "payscale"                 => "payscale",
+            "basic_salary"             => "basic_salary",
+            "epf_no"                   => "epf_no",
+            "contract_type"            => "contract_type",
+            "shift"                    => "shift",
+            "location"                 => "location",
+            "facebook"                 => "facebook",
+            "twitter"                  => "twitter",
+            "linkedin"                 => "linkedin",
+            "instagram"                => "instagram",
+            "resume"                   => "resume",
+            "joining_letter"           => "joining_letter",
+            "resignation_letter"       => "resignation_letter",
+            "designation"              => "designation",
+            "department"               => "department",
         );
 
         $roles               = $this->role_model->get();
         $data["roles"]       = $roles;
-        $designation         = $this->staff_model->getStaffDesignation();
-        $data["designation"] = $designation;
-        $department          = $this->staff_model->getDepartment();
-        $data["department"]  = $department;
+        $all_designations    = $this->staff_model->getStaffDesignation();
+        $designation_map     = [];
+        foreach ($all_designations as $designation_item) {
+            $designation_map[strtolower($designation_item['designation'])] = $designation_item['id'];
+        }
+        $all_departments     = $this->staff_model->getDepartment();
+        $department_map      = [];
+        foreach ($all_departments as $department_item) {
+            $department_map[strtolower($department_item['department_name'])] = $department_item['id'];
+        }
+        $data["designation"] = $all_designations;
+        $data["department"]  = $all_departments;
 
         $this->form_validation->set_rules('file', $this->lang->line('image'), 'callback_handle_csv_upload');
         $this->form_validation->set_rules('role', $this->lang->line('role'), 'required');
@@ -1543,90 +1561,88 @@ class Staff extends Admin_Controller
                     $result = $this->csvreader->parse_file($file);
 
                     $rowcount = 0;
+                    $inserted_count = 0;
+                    $updated_count = 0;
 
                     if (!empty($result)) {
-
+                        // Skip the header row if it's included in the result
+                        $header_skipped = false;
                         foreach ($result as $r_key => $r_value) {
+                            if (!$header_skipped) {
+                                $header_skipped = true;
+                                continue; // Skip the first row (header)
+                            }
 
-                            $check_exists      = $this->staff_model->import_check_data_exists($result[$r_key]['name'], $result[$r_key]['employee_id']);
-                            $check_emailexists = $this->staff_model->import_check_email_exists($result[$r_key]['name'], $result[$r_key]['email']);
+                            $staff_data = [];
+                            foreach ($data['field'] as $csv_header => $db_field) {
+                                $staff_data[$db_field] = isset($r_value[$csv_header]) ? $this->encoding_lib->toUTF8($r_value[$csv_header]) : '';
+                            }
 
-                            if ($check_exists == 0 && $check_emailexists == 0) {
+                            // Date parsing for dob and date_of_joining
+                            if (!empty($staff_data['dob'])) {
+                                $parsed_date = strtotime($staff_data['dob']);
+                                $staff_data['dob'] = ($parsed_date !== false) ? date('Y-m-d', $parsed_date) : null;
+                            } else {
+                                $staff_data['dob'] = null;
+                            }
 
-                                $result[$r_key]['employee_id']          = $this->encoding_lib->toUTF8($result[$r_key]['employee_id']);
-                                $result[$r_key]['qualification']        = $this->encoding_lib->toUTF8($result[$r_key]['qualification']);
-                                $result[$r_key]['work_exp']             = $this->encoding_lib->toUTF8($result[$r_key]['work_exp']);
-                                $result[$r_key]['prefix']               = $this->encoding_lib->toUTF8($result[$r_key]['prefix']);
-                                $result[$r_key]['ug_qualification']     = $this->encoding_lib->toUTF8($result[$r_key]['ug_qualification']);
-                                $result[$r_key]['pg_qualification']     = $this->encoding_lib->toUTF8($result[$r_key]['pg_qualification']);
-                                $result[$r_key]['higher_qualification'] = $this->encoding_lib->toUTF8($result[$r_key]['higher_qualification']);
-                                $result[$r_key]['qualified_exam']       = $this->encoding_lib->toUTF8($result[$r_key]['qualified_exam']);
-                                $result[$r_key]['subject_specialization'] = $this->encoding_lib->toUTF8($result[$r_key]['subject_specialization']);
-                                $result[$r_key]['additional_qualification'] = $this->encoding_lib->toUTF8($result[$r_key]['additional_qualification']);
-                                $result[$r_key]['name']                 = $this->encoding_lib->toUTF8($result[$r_key]['name']);
-                                $result[$r_key]['surname']              = $this->encoding_lib->toUTF8($result[$r_key]['surname']);
-                                $result[$r_key]['father_name']          = $this->encoding_lib->toUTF8($result[$r_key]['father_name']);
-                                $result[$r_key]['mother_name']          = $this->encoding_lib->toUTF8($result[$r_key]['mother_name']);
-                                $result[$r_key]['contact_no']           = $this->encoding_lib->toUTF8($result[$r_key]['contact_no']);
-                                $result[$r_key]['emergency_contact_no'] = $this->encoding_lib->toUTF8($result[$r_key]['emergency_contact_no']);
-                                $result[$r_key]['email']                = $this->encoding_lib->toUTF8($result[$r_key]['email']);
-                                $result[$r_key]['dob']                  = $this->encoding_lib->toUTF8($result[$r_key]['dob']);
-                                $result[$r_key]['marital_status']       = $this->encoding_lib->toUTF8($result[$r_key]['marital_status']);
-                                $result[$r_key]['date_of_joining']      = $this->encoding_lib->toUTF8($result[$r_key]['date_of_joining']);
-                                $result[$r_key]['date_of_leaving']      = $this->encoding_lib->toUTF8($result[$r_key]['date_of_leaving']);
-                                $result[$r_key]['local_address']        = $this->encoding_lib->toUTF8($result[$r_key]['local_address']);
-                                $result[$r_key]['permanent_address']    = $this->encoding_lib->toUTF8($result[$r_key]['permanent_address']);
-                                $result[$r_key]['note']                 = $this->encoding_lib->toUTF8($result[$r_key]['note']);
-                                $result[$r_key]['gender']               = $this->encoding_lib->toUTF8($result[$r_key]['gender']);
-                                $result[$r_key]['account_title']        = $this->encoding_lib->toUTF8($result[$r_key]['account_title']);
-                                $result[$r_key]['bank_account_no']      = $this->encoding_lib->toUTF8($result[$r_key]['bank_account_no']);
-                                $result[$r_key]['bank_name']            = $this->encoding_lib->toUTF8($result[$r_key]['bank_name']);
-                                $result[$r_key]['ifsc_code']            = $this->encoding_lib->toUTF8($result[$r_key]['ifsc_code']);
-                                $result[$r_key]['payscale']             = $this->encoding_lib->toUTF8($result[$r_key]['payscale']);
-                                $result[$r_key]['basic_salary']         = $this->encoding_lib->toUTF8($result[$r_key]['basic_salary']);
-                                $result[$r_key]['epf_no']               = $this->encoding_lib->toUTF8($result[$r_key]['epf_no']);
-                                $result[$r_key]['contract_type']        = $this->encoding_lib->toUTF8($result[$r_key]['contract_type']);
-                                $result[$r_key]['shift']                = $this->encoding_lib->toUTF8($result[$r_key]['shift']);
-                                $result[$r_key]['location']             = $this->encoding_lib->toUTF8($result[$r_key]['location']);
-                                $result[$r_key]['facebook']             = $this->encoding_lib->toUTF8($result[$r_key]['facebook']);
-                                $result[$r_key]['twitter']              = $this->encoding_lib->toUTF8($result[$r_key]['twitter']);
-                                $result[$r_key]['linkedin']             = $this->encoding_lib->toUTF8($result[$r_key]['linkedin']);
-                                $result[$r_key]['instagram']            = $this->encoding_lib->toUTF8($result[$r_key]['instagram']);
-                                $result[$r_key]['resume']               = $this->encoding_lib->toUTF8($result[$r_key]['resume']);
-                                $result[$r_key]['joining_letter']       = $this->encoding_lib->toUTF8($result[$r_key]['joining_letter']);
-                                $result[$r_key]['resignation_letter']   = $this->encoding_lib->toUTF8($result[$r_key]['resignation_letter']);
-                                $result[$r_key]['user_id']              = $this->input->post('role');
-                                $result[$r_key]['designation']          = $this->input->post('designation');
-                                $result[$r_key]['department']           = $this->input->post('department');
-                                $result[$r_key]['is_active']            = 1;
+                            if (!empty($staff_data['date_of_joining'])) {
+                                $parsed_date = strtotime($staff_data['date_of_joining']);
+                                $staff_data['date_of_joining'] = ($parsed_date !== false) ? date('Y-m-d', $parsed_date) : null;
+                            } else {
+                                $staff_data['date_of_joining'] = null;
+                            }
 
-                                $password = $this->role->get_random_password($chars_min = 6, $chars_max = 6, $use_upper_case = false, $include_numbers = true, $include_special_chars = false);
+                            // Handle designation mapping
+                            $csv_designation_name = strtolower(trim($staff_data['designation']));
+                            if (isset($designation_map[$csv_designation_name])) {
+                                $staff_data['designation'] = $designation_map[$csv_designation_name];
+                            } else {
+                                $staff_data['designation'] = null;
+                            }
 
-                                $result[$r_key]['password'] = $this->enc_lib->passHashEnc($password);
+                            // Handle department mapping
+                            $csv_department_name = strtolower(trim($staff_data['department']));
+                            if (isset($department_map[$csv_department_name])) {
+                                $staff_data['department'] = $department_map[$csv_department_name];
+                            } else {
+                                $staff_data['department'] = null;
+                            }
 
+                            $staff_data['is_active'] = 1;
+                            $password = $this->role->get_random_password($chars_min = 6, $chars_max = 6, $use_upper_case = false, $include_numbers = true, $include_special_chars = false);
+                            $staff_data['password'] = $this->enc_lib->passHashEnc($password);
+
+                            $existing_staff_id = $this->staff_model->getStaffIdByEmployeeIdOrEmail($staff_data['employee_id'], $staff_data['email']);
+
+                            if ($existing_staff_id) {
+                                $staff_data['id'] = $existing_staff_id; // Add ID for update
+                                $role_array = array('role_id' => $this->input->post('role'), 'staff_id' => $existing_staff_id); // Update staff_id in role_array
+                                $insert_id = $this->staff_model->batchInsert($staff_data, $role_array); // batchInsert calls add, which handles update if ID is present
+                                $staff_id = $existing_staff_id; // Use existing ID for barcode/email
+                                $updated_count++; // Keep track of updated records
+                            } else {
                                 $role_array = array('role_id' => $this->input->post('role'), 'staff_id' => 0);
-
-                                $insert_id = $this->staff_model->batchInsert($result[$r_key], $role_array);
+                                $insert_id = $this->staff_model->batchInsert($staff_data, $role_array);
                                 $staff_id  = $insert_id;
-                                if ($staff_id) {
+                                $inserted_count++; // Keep track of inserted records
+                            }
+
+                            if ($staff_id) {
                                 //***** generate barcode and qrcode of staff ******//
                                 $scan_type= $this->sch_setting_detail->scan_code_type;
-                                $this->customlib->generatestaffbarcode($result[$r_key]['employee_id'],$staff_id,$scan_type);
+                                $this->customlib->generatestaffbarcode($staff_data['employee_id'],$staff_id,$scan_type);
                                 //***** generate barcode and qrcode of staff ******//
-                                }
+                            }
 
-                                if ($staff_id) {
-
-                                    $teacher_login_detail = array('id' => $staff_id, 'credential_for' => 'staff', 'username' => $result[$r_key]['email'], 'password' => $password, 'contact_no' => $result[$r_key]['contact_no'], 'email' => $result[$r_key]['email']);
-
-                                    $this->mailsmsconf->mailsms('login_credential', $teacher_login_detail);
-                                }
-                                $rowcount++;
+                            if ($staff_id && !$existing_staff_id) { // Only send login credential for new inserts
+                                $teacher_login_detail = array('id' => $staff_id, 'credential_for' => 'staff', 'username' => $staff_data['email'], 'password' => $password, 'contact_no' => $staff_data['contact_no'], 'email' => $staff_data['email']);
+                                $this->mailsmsconf->mailsms('login_credential', $teacher_login_detail);
                             }
                         } ///Result loop
                     } //Not emprty l
 
-                    $array = array('status' => 'success', 'error' => '', 'message' => $this->lang->line('records_found_in_CSV_file_total') . $rowcount . $this->lang->line('records_imported_successfully'));
+                    $array = array('status' => 'success', 'error' => '', 'message' => $this->lang->line('records_found_in_CSV_file_total') . (count($result) - 1) . $this->lang->line('records_imported_successfully')); // Adjusted for header row
                 }
             } else {
                 $msg = array(
@@ -1635,7 +1651,7 @@ class Staff extends Admin_Controller
                 $array = array('status' => 'fail', 'error' => $msg, 'message' => '');
             }
 
-            $this->session->set_flashdata('msg', '<div class="alert alert-success text-center">' . $this->lang->line('total') . ' ' . count($result) . " " . $this->lang->line('records_found_in_CSV_file_total') . ' ' . $rowcount . ' ' . $this->lang->line('records_imported_successfully') . '</div>');
+            $this->session->set_flashdata('msg', '<div class="alert alert-success text-center">' . $this->lang->line('total') . ' ' . (count($result) - 1) . " " . $this->lang->line('records_found_in_CSV_file_total') . ' ' . $inserted_count . ' ' . $this->lang->line('records_inserted_successfully') . ' ' . $updated_count . ' ' . $this->lang->line('records_updated_successfully') . '</div>');
             redirect('admin/staff/import');
         }
     }

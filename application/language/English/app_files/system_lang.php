@@ -2523,6 +2523,23 @@ $lang['father_adhar_no'] = "Father Adhar No";
 $lang['mother_adhar_no'] = "Mother Adhar No";   
 $lang['migration_cert_num'] = "Migration Certificate Number";   
 $lang['medium'] = "Medium";
+$lang['records_inserted_successfully'] = 'records inserted successfully';
+$lang['records_updated_successfully'] = 'records updated successfully';
+$lang['employee_id'] = "Employee ID";
+$lang['work_exp'] = "Work Experience";
+$lang['surname'] = "Surname";
+$lang['emergency_contact_no'] = "Emergency Contact Number";
+$lang['dob'] = "Date of Birth";
+$lang['local_address'] = "Local Address";
+$lang['bank_branch'] = "Bank Branch";
+$lang['payscale'] = "Payscale";
+$lang['shift'] = "Shift";
+$lang['facebook'] = "Facebook";
+$lang['twitter'] = "Twitter";
+$lang['linkedin'] = "LinkedIn";
+$lang['instagram'] = "Instagram";
+$lang['records_found_in_CSV_file_total'] = "Total records found in CSV file";
+
 
 
 

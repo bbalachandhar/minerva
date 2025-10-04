@@ -57,6 +57,7 @@ class Admin_Controller extends MY_Controller
     {
         parent::__construct();
         $this->auth->is_logged_in();
+        $this->sch_setting_detail = $this->setting_model->getSchoolDetail();
         // $this->check_license();
         $this->load->library('rbac');
         $this->config->load('app-config');

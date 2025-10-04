@@ -20,6 +20,11 @@ class CSVReader
         if(empty($this->fields)){
             return $content;
         }
+        // --- Start of added code to handle BOM ---
+        if (isset($this->fields[0]) && strpos($this->fields[0], "\xef\xbb\xbf") === 0) {
+            $this->fields[0] = substr($this->fields[0], 3);
+        }
+        // --- End of added code to handle BOM ---
         $keys = $this->fields;
         $i = 1;
         while (($values = fgetcsv($file, $this->max_row_size, $this->separator, $this->enclosure)) !== false) {

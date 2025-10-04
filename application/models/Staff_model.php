@@ -236,10 +236,40 @@ class Staff_model extends MY_Model
     {
         $this->db->trans_start();
         $this->db->trans_strict(false);
-        $this->db->insert('staff', $data);
-        $staff_id          = $this->db->insert_id();
-        $roles['staff_id'] = $staff_id;
-        $this->db->insert_batch('staff_roles', array($roles));
+
+        if (isset($data['id']) && !empty($data['id'])) { // If 'id' is set, it's an update
+            $staff_id = $data['id'];
+            $this->db->where('id', $staff_id);
+            $this->db->update('staff', $data);
+
+            // Update staff_roles
+            $this->db->where('staff_id', $staff_id);
+            $this->db->update('staff_roles', $roles);
+
+            // Update staff_leave_details
+            if (!empty($leave_array)) {
+                $this->db->where('staff_id', $staff_id);
+                $this->db->delete('staff_leave_details'); // Delete existing leave details
+                foreach ($leave_array as $key => $value) {
+                    $leave_array[$key]['staff_id'] = $staff_id;
+                }
+                $this->db->insert_batch('staff_leave_details', $leave_array); // Insert new leave details
+            }
+
+        } else { // If 'id' is not set, it's an insert
+            $this->db->insert('staff', $data);
+            $staff_id          = $this->db->insert_id();
+            $roles['staff_id'] = $staff_id;
+            $this->db->insert_batch('staff_roles', array($roles));
+
+            if (!empty($leave_array)) {
+                foreach ($leave_array as $key => $value) {
+                    $leave_array[$key]['staff_id'] = $staff_id;
+                }
+                $this->db->insert_batch('staff_leave_details', $leave_array);
+            }
+        }
+
         if (!empty($data_setting)) {
             if ($data_setting['staffid_auto_insert']) {
                 if ($data_setting['staffid_update_status'] == 0) {
@@ -249,13 +279,6 @@ class Staff_model extends MY_Model
             }
         }
 
-        if (!empty($leave_array)) {
-            foreach ($leave_array as $key => $value) {
-                $leave_array[$key]['staff_id'] = $staff_id;
-            }
-
-            $this->db->insert_batch('staff_leave_details', $leave_array);
-        }
         $this->db->trans_complete();
         if ($this->db->trans_status() === false) {
             $this->db->trans_rollback();
@@ -579,6 +602,23 @@ class Staff_model extends MY_Model
         $data  = array('employee_id' => $empid);
         $query = $this->db->select('id')->where($data)->get("staff");
         return $query->row_array();
+    }
+ 
+    public function getStaffIdByEmployeeIdOrEmail($employee_id, $email)
+    {
+        $this->db->select('id');
+        $this->db->from('staff');
+        $this->db->group_start();
+        $this->db->where('employee_id', $employee_id);
+        $this->db->or_where('email', $email);
+        $this->db->group_end();
+        $query = $this->db->get();
+
+        if ($query->num_rows() > 0) {
+            return $query->row()->id;
+        } else {
+            return null;
+        }
     }
  
     public function getProfile($id)
