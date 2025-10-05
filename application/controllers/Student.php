@@ -3061,6 +3061,8 @@ class Student extends Admin_Controller
         $data['title'] = 'Birthday Report';
 
         if ($this->input->server('REQUEST_METHOD') == 'POST' && $this->input->is_ajax_request()) {
+            $this->load->model('Birthday_model'); // Load the new Birthday_model
+
             $date_from = $this->input->post('date_from');
             $date_to   = $this->input->post('date_to');
 
@@ -3084,7 +3086,7 @@ class Student extends Admin_Controller
             );
             $order_column_name = $columns[$order_column];
 
-            $result = $this->student_model->searchByBirthdayRangeDT($date_from, $date_to, $start, $length, $search_value, $order_column_name, $order_dir);
+            $result = $this->Birthday_model->searchByBirthdayRangeDT($date_from, $date_to, $start, $length, $search_value, $order_column_name, $order_dir);
             echo json_encode($result);
             exit;
         }

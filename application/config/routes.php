@@ -75,4 +75,4 @@ $route['admin/librarypositionrack'] = 'admin/librarypositionrack';
 $route['admin/librarypositionrack/(:any)'] = 'admin/librarypositionrack/$1';
 $route['admin/librarypositionshelf'] = 'admin/librarypositionshelf';
 $route['admin/librarypositionshelf/(:any)'] = 'admin/librarypositionshelf/$1';
-$route['admin/birthday_list'] = 'student/birthdays';
+$route['admin/birthday_list'] = 'admin/birthday/birthday_list';
