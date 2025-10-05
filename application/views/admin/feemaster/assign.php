@@ -16,7 +16,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                             <div class="col-sm-3">
                                 <div class="form-group">
                                     <label><?php echo $this->lang->line('class'); ?></label>
-                                    <select autofocus="" id="class_id" name="class_id" class="form-control">
+                                    <select autofocus="" id="class_id" name="class_id" class="form-control select2">
                                         <option value=""><?php echo $this->lang->line('select'); ?></option>
                                         <?php
                                         foreach ($classlist as $class) {
@@ -33,7 +33,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                             <div class="col-sm-3">
                                 <div class="form-group">   
                                     <label><?php echo $this->lang->line('section'); ?></label>
-                                    <select  id="section_id" name="section_id" class="form-control" >
+                                    <select  id="section_id" name="section_id" class="form-control select2" >
                                         <option value=""><?php echo $this->lang->line('select'); ?></option>
                                     </select>
                                     <span class="text-danger"><?php echo form_error('section_id'); ?></span>
@@ -43,7 +43,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                 <div class="col-sm-2">
                                     <div class="form-group">   
                                         <label><?php echo $this->lang->line('category'); ?></label>
-                                        <select  id="category_id" name="category_id" class="form-control" >
+                                        <select  id="category_id" name="category_id" class="form-control select2" >
                                             <option value=""><?php echo $this->lang->line('select'); ?></option>
                                             <?php
                                             foreach ($categorylist as $category) {
@@ -60,7 +60,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                             <div class="col-sm-2">
                                 <div class="form-group">  
                                     <label><?php echo $this->lang->line('gender'); ?></label>
-                                    <select class="form-control" name="gender">
+                                    <select class="form-control select2" name="gender">
                                         <option value=""><?php echo $this->lang->line('select'); ?></option>
                                         <?php
                                         foreach ($genderList as $key => $value) {
@@ -76,7 +76,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                 <div class="col-sm-2">
                                     <div class="form-group">  
                                         <label><?php echo $this->lang->line('rte'); ?></label>
-                                        <select  id="rte" name="rte" class="form-control" >
+                                        <select  id="rte" name="rte" class="form-control select2" >
                                             <option value=""><?php echo $this->lang->line('select'); ?></option>
                                             <?php
                                             foreach ($RTEstatusList as $k => $rte) {
@@ -268,7 +268,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
     });
 
     function getSectionByClass(class_id, section_id) {
-        if (class_id != "" && section_id != "") {
+        if (class_id != "") {
             $('#section_id').html("");
             var base_url = '<?php echo base_url() ?>';
             var div_data = '<option value=""><?php echo $this->lang->line('select'); ?></option>';
@@ -287,6 +287,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                         div_data += "<option value=" + obj.section_id + " " + sel + ">" + obj.section + "</option>";
                     });
                     $('#section_id').append(div_data);
+                    $('#section_id').trigger('change'); // Trigger change to update dependent dropdowns
                 }
             });
         }
@@ -344,5 +345,9 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
             });
         }
         e.preventDefault();
+    });
+
+    $(document).ready(function() {
+        $('.select2').select2();
     });
 </script>
