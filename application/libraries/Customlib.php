@@ -1118,9 +1118,9 @@ class Customlib
         return $date;
     }
 
-    public function dateformat($date = null)
+    public function dateformat($date)
     {
-        if (trim((string) $date) == "" || substr($date, 0, 10) == '0000-00-00') {
+        if ($date == "") {
             return "";
         }
 

@@ -104,7 +104,47 @@ if ($language_name != 'en') {
 <script type="text/javascript" src="<?php echo base_url(); ?>backend/dist/datatables/js/dataTables.responsive.min.js" ></script>
 <script type="text/javascript" src="<?php echo base_url(); ?>backend/dist/datatables/js/ss.custom.js" ></script>
 
-</body>
+<?php file_get_contents('application/views/layout/footer.php'); ?>
+<script type="text/javascript">
+$(document).ready(function () {
+    var table = $('#birthday_table').DataTable({
+        "processing": true,
+        "serverSide": true,
+        "ajax": {
+            "url": "<?php echo site_url('student/birthdays') ?>",
+            "type": "POST",
+            "data": function (d) {
+                d.date_from = $('#date_from').val();
+                d.date_to = $('#date_to').val();
+            }
+        },
+        "columns": [
+            { "data": "0" },
+            { "data": "1" },
+            { "data": "2" },
+            { "data": "3" },
+            { "data": "4" },
+            { "data": "5" },
+            { "data": "6" }
+        ],
+        "language": {
+            "url": "<?php echo base_url('backend/dist/datatables/locale/en.json'); ?>"
+        },
+        dom: 'Bfrtip',
+        buttons: [
+            'copy', 'csv', 'excel', 'pdf', 'print'
+        ]
+    });
+
+    $('#search_form').on('submit', function (e) {
+        e.preventDefault();
+        table.ajax.reload();
+        $('#date_from').val('');
+        $('#date_to').val('');
+    });
+});
+</script>
+
 </html>
 <!-- jQuery 3 -->
 <script src="<?php echo base_url() ?>backend/fullcalendar/dist/fullcalendar.min.js"></script>

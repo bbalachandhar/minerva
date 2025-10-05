@@ -2536,10 +2536,18 @@ class Student extends Admin_Controller
         } elseif ($search_type == "search_full") {
 
             $resultlist = $this->student_model->searchFullText($search_text, $carray);
+        } elseif ($search_type == "search_by_birthday") {
+            $date_from = $this->input->post('date_from');
+            $date_to = $this->input->post('date_to');
+            $resultlist = $this->student_model->searchByBirthdayRange($date_from, $date_to);
         }
 
         $students = array();
-        $students = json_decode($resultlist);
+        if (is_array($resultlist)) { // Check if it's an array (from searchByBirthdayRange)
+            $students = (object) array('data' => $resultlist, 'draw' => 1, 'recordsTotal' => count($resultlist), 'recordsFiltered' => count($resultlist));
+        } else { // Assume it's a JSON string (from other search methods)
+            $students = json_decode($resultlist);
+        }
 
         $dt_data = array();
         $fields  = $this->customfield_model->get_custom_fields('students', 1);
@@ -3040,5 +3048,49 @@ class Student extends Admin_Controller
             $response['status'] = 'pending';
         }
         echo json_encode($response);
+    }
+
+    public function birthdays()
+    {
+        if (!$this->rbac->hasPrivilege('student', 'can_view')) {
+            access_denied();
+        }
+
+        $this->session->set_userdata('top_menu', 'Student Information');
+        $this->session->set_userdata('sub_menu', 'student/birthdays');
+        $data['title'] = 'Birthday Report';
+
+        if ($this->input->server('REQUEST_METHOD') == 'POST' && $this->input->is_ajax_request()) {
+            $date_from = $this->input->post('date_from');
+            $date_to   = $this->input->post('date_to');
+
+            $draw = $this->input->post('draw');
+            $start = $this->input->post('start');
+            $length = $this->input->post('length');
+            $search_value = $this->input->post('search')['value'];
+            $order_column = $this->input->post('order')[0]['column'];
+            $order_dir = $this->input->post('order')[0]['dir'];
+
+            log_message('debug', 'Controller Birthdays AJAX - date_from: ' . $date_from . ', date_to: ' . $date_to . ', draw: ' . $draw . ', start: ' . $start . ', length: ' . $length . ', search_value: ' . $search_value . ', order_column: ' . $order_column . ', order_dir: ' . $order_dir);
+
+            $columns = array(
+                'admission_no',
+                'firstname',
+                'class',
+                'father_name',
+                'dob',
+                'gender',
+                'mobileno'
+            );
+            $order_column_name = $columns[$order_column];
+
+            $result = $this->student_model->searchByBirthdayRangeDT($date_from, $date_to, $start, $length, $search_value, $order_column_name, $order_dir);
+            echo json_encode($result);
+            exit;
+        }
+
+        $this->load->view('layout/header', $data);
+        $this->load->view('student/birthday_report', $data);
+        $this->load->view('layout/footer', $data);
     }
 }

@@ -18,6 +18,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                     <div class="box-body">
                        
                         <?php if ($this->session->flashdata('msg')) {?> <div class="alert alert-success">  <?php echo $this->session->flashdata('msg'); $this->session->unset_userdata('msg'); ?> </div> <?php }?>
+
                         <div class="row">
                               <form role="form" action="<?php echo site_url('student/searchvalidation') ?>" method="post" class="class_search_form">
                             <div class="col-md-6">
@@ -281,7 +282,7 @@ $(document).on('submit','.class_search_form',function(e){
     var form = $(this);
     var url = form.attr('action');
     var form_data = form.serializeArray();
-    form_data.push({name: 'search_type', value: $this.attr('value')});
+    form_data.push({name: 'srch_type', value: $this.attr('value')});
     $.ajax({
            url: url,
            type: "POST",

@@ -140,7 +140,7 @@ if (!function_exists('main_menu_array')) {
             ),
             
             'student_information' => array(                
-                'student'         => array('search','create','import','disablestudentslist','multiclass','bulkdelete','view','edit'),       
+                'student'         => array('search','create','import','disablestudentslist','multiclass','bulkdelete','view','edit','birthdays'),       
                 'onlinestudent'   => array('index','edit'),               
                 'category'        => array('index','edit'),               
                 'schoolhouse'     => array('index','edit'),               
@@ -442,9 +442,14 @@ if (!function_exists("activate_submenu")) {
         // Getting router class to active.
         $class  = $CI->router->fetch_class();
         $method = $CI->router->fetch_method();
+
+        log_message('debug', 'activate_submenu - Current Class: ' . $class . ', Current Method: ' . $method);
+        log_message('debug', 'activate_submenu - Arg Class: ' . $arg_class . ', Arg Methods: ' . implode(', ', $arg_methods));
+
         if (is_array($arg_methods)) {
             foreach ($arg_methods as $arg_methods_key => $arg_methods_value) {
                 if ($method == $arg_methods_value && $class == $arg_class) {
+                    log_message('debug', 'activate_submenu - Match Found!');
                     return $class_active;
                     break;
                 }

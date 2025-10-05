@@ -981,6 +981,7 @@ $lang['guardian_email'] = "Guardian Email";
 $lang['guardian_name'] = "Guardian Name";	
 $lang['guardian_occupation'] = "Guardian Occupation";	
 $lang['guardian_phone'] = "Guardian Phone";	
+$lang['student_phone'] = "Student Phone";	
 $lang['guardian_photo'] = "Guardian Photo";	
 $lang['guardian_relation'] = "Guardian Relation";	
 $lang['guardian_report'] = "Guardian Report";	
@@ -2539,6 +2540,11 @@ $lang['twitter'] = "Twitter";
 $lang['linkedin'] = "LinkedIn";
 $lang['instagram'] = "Instagram";
 $lang['records_found_in_CSV_file_total'] = "Total records found in CSV file";
+$lang['birthday_list'] = "Birthday List";
+$lang['birthday_report'] = "Birthday Report";
+
+
+
 
 
 
