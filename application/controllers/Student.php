@@ -2633,7 +2633,7 @@ class Student extends Admin_Controller
         $class_id   = $this->input->post('class_id');
         $section_id = $this->input->post('section_id');
 
-        $srch_type   = $this->input->post('search_type');
+        $srch_type   = $this->input->post('srch_type');
         $search_text = $this->input->post('search_text');
 
         if ($srch_type == 'search_filter') {
