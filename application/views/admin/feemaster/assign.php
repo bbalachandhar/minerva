@@ -8,7 +8,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
             <div class="col-md-12">
                 <div class="box box-primary">
                     <div class="box-header with-border">
-                        <h3 class="box-title"><i class="fa fa-search"></i> <?php echo $this->lang->line('select_criteria'); ?></h3>
+                        <h3 class="box-title"><i class="fa fa-search"></i> <?php echo $this->lang->line('select_criteria'); ?> for Fee Group - <b><?php echo $feegroup_name; ?></b></h3>
                     </div>
                     <div class="box-body">
                         <form role="form" action="<?php echo site_url('admin/feemaster/assign/' . $id) ?>" method="post" class="row">

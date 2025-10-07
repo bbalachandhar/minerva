@@ -149,7 +149,13 @@ class Feemaster extends Admin_Controller
         }
         $this->session->set_userdata('top_menu', 'Fees Collection');
         $this->session->set_userdata('sub_menu', 'admin/feemaster');
-        $data['id']                 =   $id;
+        $data['id']              = $id;
+        $feegroup_details = $this->feegroup_model->get($id);
+        log_message('debug', 'Feemaster::assign - feegroup_details type: ' . gettype($feegroup_details));
+        if (is_array($feegroup_details) || is_object($feegroup_details)) {
+            log_message('debug', 'Feemaster::assign - feegroup_details content: ' . print_r($feegroup_details, true));
+        }
+        $data['feegroup_name'] = $feegroup_details['name'];
         $cumulative_fine            =   $this->feesessiongroup_model->get_cumulative_fine($id);
         $data['cumulative_fine']    =   $cumulative_fine;
         $feegroup_type              =   $this->feegrouptype_model->get($id);
@@ -271,6 +277,8 @@ class Feemaster extends Admin_Controller
         $this->session->set_userdata('top_menu', 'Fees Collection');
         $this->session->set_userdata('sub_menu', 'admin/feemaster');
         $data['id']              = $id;
+        $feegroup_details = $this->feegroup_model->get($id);
+        $data['feegroup_name'] = $feegroup_details['name'];
         $data['title']           = $this->lang->line('student_fees');
         $class                   = $this->class_model->get();
         $data['classlist']       = $class;

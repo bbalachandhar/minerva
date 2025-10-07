@@ -3095,4 +3095,108 @@ class Student extends Admin_Controller
         $this->load->view('student/birthday_report', $data);
         $this->load->view('layout/footer', $data);
     }
+
+    public function exportall()
+    {
+        $this->load->helper('csv');
+        $search_type = $this->input->get('search_type');
+        $class_id = $this->input->get('class_id');
+        $section_id = $this->input->get('section_id');
+        $search_text = $this->input->get('search_text');
+
+        if ($search_type == "search_filter") {
+            $results = $this->student_model->searchByClassSection_export($class_id, $section_id);
+        } else if ($search_type == "search_full") {
+            $results = $this->student_model->searchFullText_export($search_text);
+        } else {
+            // Default case or error handling
+            $results = array();
+        }
+
+        $fields = $this->customfield_model->get_custom_fields('students', 1);
+        $sch_setting = $this->sch_setting_detail;
+
+        $headings = array(
+            'Admission No', 'Roll No', 'First Name', 'Middle Name', 'Last Name', 'Gender', 'Date of Birth', 'Category', 'Religion', 'Caste', 'Mobile No', 'Email', 'Admission Date', 'Blood Group', 'School House', 'Height', 'Weight', 'Measurement Date', 'Father Name', 'Father Phone', 'Father Occupation', 'Mother Name', 'Mother Phone', 'Mother Occupation', 'Guardian Name', 'Guardian Relation', 'Guardian Email', 'Guardian Phone', 'Guardian Occupation', 'Guardian Address', 'Current Address', 'Permanent Address', 'Bank Account No', 'Bank Name', 'IFSC Code', 'Aadhar No', 'Samagra ID', 'RTE', 'Previous School', 'Note', 'Image', 'Father Pic', 'Mother Pic', 'Guardian Pic', 'Is Active', 'Created At', 'Updated At', 'Parent ID', 'Guardian Is', 'State', 'City', 'Pincode', 'Register No', 'Regulation ID', 'EMIS Num', 'HSC Reg No', 'UG Reg No', 'ABC ID', 'Father Adhar No', 'Mother Adhar No', 'Migration Cert Num', 'Medium'
+        );
+
+        $data = array();
+        if (!empty($results)) {
+            foreach ($results as $student) {
+                $row = array();
+                $row[] = $student['admission_no'] ?? '';
+                $row[] = $student['roll_no'] ?? '';
+                $row[] = $student['firstname'] ?? '';
+                $row[] = $student['middlename'] ?? '';
+                $row[] = $student['lastname'] ?? '';
+                $row[] = $student['gender'] ?? '';
+                $row[] = isset($student['dob']) ? $this->customlib->dateformat($student['dob']) : '';
+                $row[] = $student['category'] ?? '';
+                $row[] = $student['religion'] ?? '';
+                $row[] = $student['cast'] ?? '';
+                $row[] = $student['mobileno'] ?? '';
+                $row[] = $student['email'] ?? '';
+                $row[] = isset($student['admission_date']) ? $this->customlib->dateformat($student['admission_date']) : '';
+                $row[] = $student['blood_group'] ?? '';
+                $row[] = $student['house_name'] ?? '';
+                $row[] = $student['height'] ?? '';
+                $row[] = $student['weight'] ?? '';
+                $row[] = isset($student['measurement_date']) ? $this->customlib->dateformat($student['measurement_date']) : '';
+                $row[] = $student['father_name'] ?? '';
+                $row[] = $student['father_phone'] ?? '';
+                $row[] = $student['father_occupation'] ?? '';
+                $row[] = $student['mother_name'] ?? '';
+                $row[] = $student['mother_phone'] ?? '';
+                $row[] = $student['mother_occupation'] ?? '';
+                $row[] = $student['guardian_name'] ?? '';
+                $row[] = $student['guardian_relation'] ?? '';
+                $row[] = $student['guardian_email'] ?? '';
+                $row[] = $student['guardian_phone'] ?? '';
+                $row[] = $student['guardian_occupation'] ?? '';
+                $row[] = $student['guardian_address'] ?? '';
+                $row[] = $student['current_address'] ?? '';
+                $row[] = $student['permanent_address'] ?? '';
+                $row[] = $student['bank_account_no'] ?? '';
+                $row[] = $student['bank_name'] ?? '';
+                $row[] = $student['ifsc_code'] ?? '';
+                $row[] = $student['adhar_no'] ?? '';
+                $row[] = $student['samagra_id'] ?? '';
+                $row[] = $student['rte'] ?? '';
+                $row[] = $student['previous_school'] ?? '';
+                $row[] = $student['note'] ?? '';
+                $row[] = $student['image'] ?? '';
+                $row[] = $student['father_pic'] ?? '';
+                $row[] = $student['mother_pic'] ?? '';
+                $row[] = $student['guardian_pic'] ?? '';
+                $row[] = $student['is_active'] ?? '';
+                $row[] = $student['created_at'] ?? '';
+                $row[] = $student['updated_at'] ?? '';
+                $row[] = $student['parent_id'] ?? '';
+                $row[] = $student['guardian_is'] ?? '';
+                $row[] = $student['state'] ?? '';
+                $row[] = $student['city'] ?? '';
+                $row[] = $student['pincode'] ?? '';
+                $row[] = $student['register_no'] ?? '';
+                $row[] = $student['regulation_id'] ?? '';
+                $row[] = $student['emis_num'] ?? '';
+                $row[] = $student['hsc_reg_no'] ?? '';
+                $row[] = $student['ug_reg_no'] ?? '';
+                $row[] = $student['abc_id'] ?? '';
+                $row[] = $student['father_adhar_no'] ?? '';
+                $row[] = $student['mother_adhar_no'] ?? '';
+                $row[] = $student['migration_cert_num'] ?? '';
+                $row[] = $student['medium'] ?? '';
+
+                $data[] = $row;
+            }
+        }
+
+        array_unshift($data, $headings);
+
+        $filename = "student_export_all.csv";
+        header("Content-type: application/csv");
+        header("Content-Disposition: attachment; filename=\"$filename\"");
+        echo array_to_csv($data);
+        exit();
+    }
 }

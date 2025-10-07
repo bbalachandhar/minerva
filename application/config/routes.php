@@ -75,4 +75,12 @@ $route['admin/librarypositionrack'] = 'admin/librarypositionrack';
 $route['admin/librarypositionrack/(:any)'] = 'admin/librarypositionrack/$1';
 $route['admin/librarypositionshelf'] = 'admin/librarypositionshelf';
 $route['admin/librarypositionshelf/(:any)'] = 'admin/librarypositionshelf/$1';
-$route['admin/birthday_list'] = 'admin/birthday/birthday_list';
+        $route['admin/birthday_list'] = 'admin/birthday/birthday_list';
+
+        // Hall Management Module Routes
+        $route['admin/hall/hall_master'] = 'admin/hall/hall_master';
+        $route['admin/hall/hall_bookings'] = 'admin/hall/hall_bookings';
+        $route['admin/hall/book'] = 'admin/hall/book';
+        $route['admin/hall/approval_configuration'] = 'admin/hall/approval_configuration';
+
+        $route['404_override'] = '';

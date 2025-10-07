@@ -63,6 +63,11 @@ class Admin_Controller extends MY_Controller
         $this->config->load('app-config');
         $this->config->load('ci-blog');
         $this->config->load('custom_filed-config');
+
+        // Load menu helper if not already loaded
+        $this->load->helper('menu');
+        $side_list = side_menu_list(1);
+        log_message('debug', 'Admin_Controller __construct - $side_list: ' . print_r($side_list, true));
     }
 
     public function check_license()

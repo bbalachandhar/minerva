@@ -144,7 +144,8 @@ if (!function_exists('main_menu_array')) {
                 'onlinestudent'   => array('index','edit'),               
                 'category'        => array('index','edit'),               
                 'schoolhouse'     => array('index','edit'),               
-                'disable_reason'  => array('index','edit'),                              
+                'disable_reason'  => array('index','edit'),
+                'birthday'        => array('birthday_list'),
             ),
             
             'fees_collection' => array(                             
@@ -369,37 +370,40 @@ if (!function_exists('main_menu_array')) {
                 'coursetag'   => array('index'),               
             ),
             
-            'cbse_exam' => array(               
-                'exam'          => array('index','examtimetable','examwiserank','templatewiserank'),               
-                'result'        => array('marksheet'),               
-                'grade'         => array('gradelist'),               
-                'observation'   => array('index','assign'),               
-                'observationparameter' => array('index','edit'),               
-                'assessment'    => array('index'),               
-                'term'          => array('index'),               
-                'template'      => array('index','templatewiserank'),               
-                'report'        => array('index','templatewise','examsubject'),               
-                'setting'       => array('index'),                              
-            ),
+                        'cbse_exam' => array(               
+                            'exam'          => array('index','examtimetable','examwiserank','templatewiserank'),               
+                            'result'        => array('marksheet'),               
+                            'grade'         => array('gradelist'),               
+                            'observation'   => array('index','assign'),               
+                            'observationparameter' => array('index','edit'),               
+                            'assessment'    => array('index'),               
+                            'term'          => array('index'),               
+                            'template'      => array('index','templatewiserank'),               
+                            'report'        => array('index','templatewise','examsubject'),               
+                            'setting'       => array('index'),                              
+                        ),
+                        
+                        'hall_management' => array(
+                            'hall' => array('hall_master', 'add', 'edit', 'delete', 'bookings', 'book', 'approval_config', 'approve_booking', 'reject_booking'),
+                        ),
             
-            'qr_code_attendance' => array(             
-                               
-                'attendance'    => array('index'),                
-                'setting'       => array('index'),                              
-            ),
-                
-            'holiday' => array(                            
-                'holiday'        => array('index','holidaytype','editholidaytype'),               
-            ),
-                
-            'student_cv' => array(                            
-                'resume'        => array('index','download','resume_setting','student_resume_details'),               
-            ),
-                
-            
-            
-        );
-        if (array_key_exists($find_array, $array)) {
+                        'qr_code_attendance' => array(             
+                                           
+                            'attendance'    => array('index'),                
+                            'setting'       => array('index'),                              
+                        ),
+                            
+                        'holiday' => array(                            
+                            'holiday'        => array('index','holidaytype','editholidaytype'),               
+                        ),
+                            
+                        'student_cv' => array(                            
+                            'resume'        => array('index','download','resume_setting','student_resume_details'),               
+                        ),
+                            
+                        
+                        
+                    );        if (array_key_exists($find_array, $array)) {
             return $array[$find_array];
         }
         return false;
@@ -413,23 +417,15 @@ if (!function_exists('activate_main_menu')) {
     {
         $CI     = get_instance();
         $class  = $CI->router->fetch_class();
-        $method = $CI->router->fetch_method();
+        // $method = $CI->router->fetch_method(); // Not needed for main menu activation
 
         $return_array = main_menu_array($menu);
         if ($return_array) {
             if (array_key_exists($class, $return_array)) {
-                $a = $return_array[$class];
-
-                if (!empty($a)) {
-                    foreach ($a as $method_key => $method_value) {
-                        if ($method_value == $method) {
-                            return $class_active;
-                            break;
-                        }
-                    }
-                }
+                return $class_active;
             }
         }
+        return ""; // Ensure something is returned if not active
     }
 }
 
@@ -439,22 +435,18 @@ if (!function_exists("activate_submenu")) {
     {
         $CI = get_instance();
 
-        // Getting router class to active.
         $class  = $CI->router->fetch_class();
         $method = $CI->router->fetch_method();
-
-        log_message('debug', 'activate_submenu - Current Class: ' . $class . ', Current Method: ' . $method);
-        log_message('debug', 'activate_submenu - Arg Class: ' . $arg_class . ', Arg Methods: ' . implode(', ', $arg_methods));
 
         if (is_array($arg_methods)) {
             foreach ($arg_methods as $arg_methods_key => $arg_methods_value) {
                 if ($method == $arg_methods_value && $class == $arg_class) {
-                    log_message('debug', 'activate_submenu - Match Found!');
                     return $class_active;
                     break;
                 }
             }
         }
+        return "";
     }
 
 }

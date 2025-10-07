@@ -368,6 +368,23 @@ $(document).on('submit','.class_search_form',function(e){
 
             }
         ],
+        'initComplete': function() {
+            var $button = $('<a class="btn btn-default dt-button buttons-csv buttons-html5 btn-csv" tabindex="0" aria-controls="DataTables_Table_0" href="#" title="CSV"><span><i class="fa fa-file-text-o"></i> Export All to CSV</span></a>');
+            $('.dt-buttons').append($button);
+
+            $button.on('click', function() {
+                var form = $('form.class_search_form');
+                var url = form.attr('action');
+                var form_data = form.serializeArray();
+                var search_type = $("button[type=submit][clicked=true]").val();
+                var class_id = $('#class_id').val();
+                var section_id = $('#section_id').val();
+                var search_text = $('#search_text').val();
+
+                var export_url = '<?php echo site_url("student/exportall") ?>' + '?search_type=' + search_type + '&class_id=' + class_id + '&section_id=' + section_id + '&search_text=' + search_text;
+                window.open(export_url, '_blank');
+            });
+        },
 
         "columnDefs": [ {
         "targets": -1,
