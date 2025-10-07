@@ -291,9 +291,12 @@ $("form.class_search_form button[type=submit]").click(function() {
     $(this).attr("clicked", "true");
 });
 
+var last_search_type = '';
+
 $(document).on('submit','.class_search_form',function(e){
    e.preventDefault(); // avoid to execute the actual submit of the form.
     var $this = $("button[type=submit][clicked=true]");
+    last_search_type = $this.attr('value');
     var form = $(this);
     var url = form.attr('action');
     var form_data = form.serializeArray();
@@ -391,12 +394,11 @@ $(document).on('submit','.class_search_form',function(e){
                 var form = $('form.class_search_form');
                 var url = form.attr('action');
                 var form_data = form.serializeArray();
-                var search_type = $("button[type=submit][clicked=true]").val();
                 var class_id = $('#class_id').val();
                 var section_id = $('#section_id').val();
                 var search_text = $('#search_text').val();
 
-                var export_url = '<?php echo site_url("student/exportall") ?>' + '?search_type=' + search_type + '&class_id=' + class_id.join(',') + '&section_id=' + section_id + '&search_text=' + search_text;
+                var export_url = '<?php echo site_url("student/exportall") ?>' + '?search_type=' + last_search_type + '&class_id=' + class_id.join(',') + '&section_id=' + section_id + '&search_text=' + search_text;
                 window.open(export_url, '_blank');
             });
         },

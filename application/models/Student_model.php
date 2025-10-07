@@ -2021,6 +2021,8 @@ class Student_model extends MY_Model
         $this->db->join('transport_route', 'vehicle_routes.route_id = transport_route.id', 'left');
         $this->db->join('vehicles', 'vehicle_routes.vehicle_id = vehicles.id', 'left');
         $this->db->join('school_houses', 'students.school_house_id = school_houses.id', 'left');
+        $this->db->join('users', 'users.user_id = students.id', 'left');
+        $this->db->where('student_session.session_id', $this->current_session);
                 $this->db->where('students.is_active', "yes");
                 if ($class_id != null) {
                     if(is_array($class_id)){
@@ -2124,8 +2126,9 @@ class Student_model extends MY_Model
         $userdata = $this->customlib->getUserData();
         $staff_id = $userdata['id'];
 
-        $i             = 1;
-        $custom_fields = $this->customfield_model->get_custom_fields('students', 1);
+        $i                   = 1;
+        $class_section_array = array(); // Initialize to empty array
+        $custom_fields       = $this->customfield_model->get_custom_fields('students', 1);
         if (($userdata["role_id"] == 2) && ($userdata["class_teacher"] == "yes") && (empty($class_section_array))) {
             $class_section_array = $this->customlib->get_myClassSection();
         }      
@@ -2145,12 +2148,16 @@ class Student_model extends MY_Model
         $field_name     = (empty($field_var_array_name)) ? "" : "," . implode(',', $field_var_array_name);
       
         $this->db->select('classes.id AS `class_id`,students.id,student_session.id as student_session_id,classes.class,sections.id AS `section_id`,sections.section,students.id,students.admission_no, students.roll_no,students.admission_date,students.firstname,students.middlename,students.lastname,students.image,students.mobileno, students.email ,students.state,students.city,students.pincode,students.religion,DATE(students.dob) as dob ,students.current_address,students.permanent_address,IFNULL(students.category_id, 0) as `category_id`,IFNULL(categories.category, "") as `category`,students.adhar_no,students.samagra_id,students.bank_account_no,students.bank_name, students.ifsc_code ,students.father_name,students.guardian_name, students.guardian_relation,students.guardian_phone,students.guardian_address,students.is_active ,students.created_at ,students.updated_at,students.gender,students.rte,student_session.session_id, students.cast, school_houses.house_name, students.height, students.weight, students.measurement_date, students.father_phone, students.father_occupation, students.mother_name, students.mother_phone, students.mother_occupation, students.guardian_occupation, students.blood_group, students.school_house_id, students.previous_school, students.note, users.username, users.password, students.dis_reason, students.dis_note, students.father_pic, students.mother_pic, students.guardian_pic, students.parent_id, students.guardian_is, students.register_no, students.regulation_id, students.emis_num, students.hsc_reg_no, students.ug_reg_no, students.abc_id, students.father_adhar_no, students.mother_adhar_no, students.migration_cert_num, students.medium, students.guardian_email' . $field_variable);
+        $this->db->from('students');
         $this->db->join('student_session', 'student_session.student_id = students.id');
         $this->db->join('classes', 'student_session.class_id = classes.id');
         $this->db->join('sections', 'sections.id = student_session.section_id');
         $this->db->join('categories', 'students.category_id = categories.id', 'left');
         $this->db->join('school_houses', 'students.school_house_id = school_houses.id', 'left');
         $this->db->join('users', 'users.user_id = students.id', 'left');
+
+        $this->db->where('student_session.session_id', $this->current_session);
+        $this->db->where('students.is_active', 'yes');       
 
         if (!empty($class_section_array)) {
             $this->db->group_start();
@@ -2165,45 +2172,18 @@ class Student_model extends MY_Model
             $this->db->group_end();
         }
 
-        $this->db->group_start();
-        $this->db->or_like('students.firstname', $searchterm);
-        $this->db->or_like('students.middlename', $searchterm);
-        $this->db->or_like('students.lastname', $searchterm);
-        $this->db->or_like('school_houses.house_name', $searchterm);
-        $this->db->or_like('students.guardian_name', $searchterm);
-        $this->db->or_like('students.adhar_no', $searchterm);
-        $this->db->or_like('students.samagra_id', $searchterm);
-        $this->db->or_like('students.roll_no', $searchterm);
-        $this->db->or_like('students.admission_no', $searchterm);
-        $this->db->or_like('students.mobileno', $searchterm);
-        $this->db->or_like('students.email', $searchterm);
-        $this->db->or_like('students.religion', $searchterm);
-        $this->db->or_like('students.cast', $searchterm);
-        $this->db->or_like('students.gender', $searchterm);
-        $this->db->or_like('students.current_address', $searchterm);
-        $this->db->or_like('students.permanent_address', $searchterm);
-        $this->db->or_like('students.blood_group', $searchterm);
-        $this->db->or_like('students.bank_name', $searchterm);
-        $this->db->or_like('students.ifsc_code', $searchterm);
-        $this->db->or_like('students.father_name', $searchterm);
-        $this->db->or_like('students.father_phone', $searchterm);
-        $this->db->or_like('students.father_occupation', $searchterm);
-        $this->db->or_like('students.mother_name', $searchterm);
-        $this->db->or_like('students.mother_phone', $searchterm);
-        $this->db->or_like('students.mother_occupation', $searchterm);
-        $this->db->or_like('students.guardian_name', $searchterm);
-        $this->db->or_like('students.guardian_relation', $searchterm);
-        $this->db->or_like('students.guardian_phone', $searchterm);
-        $this->db->or_like('students.guardian_occupation', $searchterm);
-        $this->db->or_like('students.guardian_address', $searchterm);
-        $this->db->or_like('students.guardian_email', $searchterm);
-        $this->db->or_like('students.previous_school', $searchterm);
-        $this->db->or_like('students.note', $searchterm);
-        $this->db->group_end();
-        $this->db->where('student_session.session_id', $this->current_session);
-        $this->db->where('students.is_active', 'yes');       
+        if($searchterm != '') {
+            $this->db->group_start();
+            $like_array = explode(',', 'students.firstname,students.middlename,students.lastname,school_houses.house_name,students.guardian_name,students.adhar_no,students.samagra_id,students.roll_no,students.admission_no,students.mobileno,students.email,students.religion,students.cast,students.gender,students.current_address,students.permanent_address,students.blood_group,students.bank_name,students.ifsc_code,students.father_name,students.father_phone,students.father_occupation,students.mother_name,students.mother_phone,students.mother_occupation,students.guardian_name,students.guardian_relation,students.guardian_phone,students.guardian_occupation,students.guardian_address,students.guardian_email,students.previous_school,students.note');
+            foreach ($like_array as $like_column) {
+                $this->db->or_like($like_column, $searchterm);
+            }
+            $this->db->group_end();
+        }
+        
+        $this->db->group_by('students.id');
         $this->db->order_by('students.id');
-        $query = $this->db->get('students');
+        $query = $this->db->get();
         $result = $query->result_array();
 
         if (($userdata["role_id"] == 2) && ($userdata["class_teacher"] == "yes") && (empty($class_section_array))) {
