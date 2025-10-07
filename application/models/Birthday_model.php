@@ -51,7 +51,7 @@ class Birthday_model extends MY_Model
             $this->db->group_start();
             $this->db->like('students.admission_no', $search_value);
             $this->db->or_like('students.firstname', $search_value);
-            $this->db->or_like('students->lastname', $search_value);
+            $this->db->or_like('students.lastname', $search_value);
             $this->db->or_like('classes.class', $search_value);
             $this->db->or_like('students.father_name', $search_value);
             $this->db->or_like('students.dob', $search_value);
@@ -62,7 +62,9 @@ class Birthday_model extends MY_Model
 
         $this->db->group_by('students.id');
         
-        $filtered_rows = $this->db->count_all_results('', false);
+        // Clone the current query builder state to get the filtered count
+        $temp_db = clone $this->db;
+        $filtered_rows = $temp_db->get()->num_rows();
 
         $this->db->order_by($order_column, $order_dir);
         $this->db->limit($length, $start);
