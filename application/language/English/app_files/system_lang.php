@@ -2542,15 +2542,20 @@ $lang['instagram'] = "Instagram";
 $lang['records_found_in_CSV_file_total'] = "Total records found in CSV file";
 $lang['birthday_list'] = "Birthday List";
 $lang['birthday_report'] = "Birthday Report";
-
-
-
-
-
-
-
-
-
-
-
-
+$lang['hall_management'] = "Hall Management";
+$lang['hall_master'] = "Hall Master";
+$lang['hall_bookings'] = "Hall Bookings";
+$lang['approval_configuration'] = "Hall Approval Config";
+$lang['add_hall'] = "Add Hall";
+$lang['hall_name'] = "Hall Name";
+$lang['capacity'] = "Capacity";
+$lang['available_equipment'] = "Available Equipment";
+$lang['hourly_rate'] = "Available Rate";
+$lang['min_booking_duration'] = "Available booking Duration";
+$lang['opening_time'] = "Open Time";
+$lang['closing_time'] = "Closing Time";
+$lang['is_active'] = "Is Active";
+$lang['hours'] = "Hours";
+$lang['hourly_rate'] = "Available Rate";
+$lang['hall_list'] = "Hall List";
+$lang['hall_image'] = "Hall Image";
