@@ -2542,12 +2542,7 @@ class Student extends Admin_Controller
             $resultlist = $this->student_model->searchByBirthdayRange($date_from, $date_to);
         }
 
-        $students = array();
-        if (is_array($resultlist)) { // Check if it's an array (from searchByBirthdayRange)
-            $students = (object) array('data' => $resultlist, 'draw' => 1, 'recordsTotal' => count($resultlist), 'recordsFiltered' => count($resultlist));
-        } else { // Assume it's a JSON string (from other search methods)
-            $students = json_decode($resultlist);
-        }
+        $students = json_decode($resultlist);
 
         $dt_data = array();
         $fields  = $this->customfield_model->get_custom_fields('students', 1);
@@ -2638,7 +2633,7 @@ class Student extends Admin_Controller
 
         if ($srch_type == 'search_filter') {
 
-            $this->form_validation->set_rules('class_id', $this->lang->line('class'), 'trim|required|xss_clean');
+            $this->form_validation->set_rules('class_id[]', $this->lang->line('class'), 'trim|required|xss_clean');
             if ($this->form_validation->run() == true) {
 
                 $params = array('srch_type' => $srch_type, 'class_id' => $class_id, 'section_id' => $section_id);
@@ -2647,7 +2642,7 @@ class Student extends Admin_Controller
             } else {
 
                 $error             = array();
-                $error['class_id'] = form_error('class_id');
+                $error['class_id'] = form_error('class_id[]');
                 $array             = array('status' => 0, 'error' => $error);
                 echo json_encode($array);
             }
@@ -3105,7 +3100,8 @@ class Student extends Admin_Controller
         $search_text = $this->input->get('search_text');
 
         if ($search_type == "search_filter") {
-            $results = $this->student_model->searchByClassSection_export($class_id, $section_id);
+            $class_id_array = explode(",", $class_id);
+            $results = $this->student_model->searchByClassSection_export($class_id_array, $section_id);
         } else if ($search_type == "search_full") {
             $results = $this->student_model->searchFullText_export($search_text);
         } else {

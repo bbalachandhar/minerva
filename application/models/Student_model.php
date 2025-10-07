@@ -1954,7 +1954,11 @@ class Student_model extends MY_Model
         $field_name     = (empty($field_var_array_name)) ? "" : "," . implode(',', $field_var_array_name);
 
         if ($class_id != null) {
-            $this->datatables->where('student_session.class_id', $class_id);
+            if(is_array($class_id)){
+                 $this->datatables->where_in('student_session.class_id', $class_id);
+            }else{
+                 $this->datatables->where('student_session.class_id', $class_id);
+            }
         }
         if ($section_id != null) {
             $this->datatables->where('student_session.section_id', $section_id);
@@ -2017,16 +2021,17 @@ class Student_model extends MY_Model
         $this->db->join('transport_route', 'vehicle_routes.route_id = transport_route.id', 'left');
         $this->db->join('vehicles', 'vehicle_routes.vehicle_id = vehicles.id', 'left');
         $this->db->join('school_houses', 'students.school_house_id = school_houses.id', 'left');
-        $this->db->join('users', 'users.user_id = students.id', 'left');
-        $this->db->where('student_session.session_id', $this->current_session);
-        $this->db->where('students.is_active', "yes");
-        if ($class_id != null) {
-            $this->db->where('student_session.class_id', $class_id);
-        }
-        if ($section_id != null) {
-            $this->db->where('student_session.section_id', $section_id);
-        }
-        if (!empty($class_section_array)) {
+                $this->db->where('students.is_active', "yes");
+                if ($class_id != null) {
+                    if(is_array($class_id)){
+                         $this->db->where_in('student_session.class_id', $class_id);
+                    }else{
+                         $this->db->where('student_session.class_id', $class_id);
+                    }
+                }
+                if ($section_id != null) {
+                    $this->db->where('student_session.section_id', $section_id);
+                }        if (!empty($class_section_array)) {
             $this->db->group_start();
             foreach ($class_section_array as $class_sectionkey => $class_sectionvalue) {
                 $query_string = "";

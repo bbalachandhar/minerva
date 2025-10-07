@@ -1,6 +1,11 @@
 <?php
 $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
 ?>
+<style>
+.select2-selection__choice {
+    color: blue !important;
+}
+</style>
 <div class="content-wrapper">
     <section class="content-header">
          
@@ -27,7 +32,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                         <div class="col-sm-6">
                                             <div class="form-group">
                                                 <label><?php echo $this->lang->line('class'); ?></label> <small class="req"> *</small>
-                                                <select autofocus="" id="class_id" name="class_id" class="form-control" >
+                                                <select autofocus="" id="class_id" name="class_id[]" class="form-control" multiple="multiple">
                                                     <option value=""><?php echo $this->lang->line('select'); ?></option>
                                                     <?php
 $count = 0;
@@ -212,26 +217,31 @@ if ($this->rbac->hasPrivilege('student', 'can_edit')) {
 <script type="text/javascript">
 
 function getSectionByClass(class_id, section_id) {
-    if (class_id != "" && section_id != "") {
+    if (class_id != "") {
         $('#section_id').html("");
         var base_url = '<?php echo base_url() ?>';
         var div_data = '<option value=""><?php echo $this->lang->line('select'); ?></option>';
-        $.ajax({
-            type: "GET",
-            url: base_url + "sections/getByClass",
-            data: {'class_id': class_id},
-            dataType: "json",
-            success: function (data) {
-                $.each(data, function (i, obj)
-                {
-                    var sel = "";
-                    if (section_id == obj.section_id) {
-                        sel = "selected";
-                    }
-                    div_data += "<option value=" + obj.section_id + " " + sel + ">" + obj.section + "</option>";
-                });
-                $('#section_id').append(div_data);
-            }
+        if (!Array.isArray(class_id)) {
+            class_id = [class_id];
+        }
+        class_id.forEach(function(class_id) {
+            $.ajax({
+                type: "GET",
+                url: base_url + "sections/getByClass",
+                data: {'class_id': class_id},
+                dataType: "json",
+                success: function (data) {
+                    $.each(data, function (i, obj)
+                    {
+                        var sel = "";
+                        if (section_id == obj.section_id) {
+                            sel = "selected";
+                        }
+                        div_data += "<option value=" + obj.section_id + " " + sel + ">" + obj.section + "</option>";
+                    });
+                    $('#section_id').append(div_data);
+                }
+            });
         });
     }
 }
@@ -245,18 +255,23 @@ $(document).ready(function () {
         var class_id = $(this).val();
         var base_url = '<?php echo base_url() ?>';
         var div_data = '<option value=""><?php echo $this->lang->line('select'); ?></option>';
-        $.ajax({
-            type: "GET",
-            url: base_url + "sections/getByClass",
-            data: {'class_id': class_id},
-            dataType: "json",
-            success: function (data) {
-                $.each(data, function (i, obj)
-                {
-                    div_data += "<option value=" + obj.section_id + ">" + obj.section + "</option>";
-                });
-                $('#section_id').append(div_data);
-            }
+        if (!Array.isArray(class_id)) {
+            class_id = [class_id];
+        }
+        class_id.forEach(function(class_id) {
+            $.ajax({
+                type: "GET",
+                url: base_url + "sections/getByClass",
+                data: {'class_id': class_id},
+                dataType: "json",
+                success: function (data) {
+                    $.each(data, function (i, obj)
+                    {
+                        div_data += "<option value=" + obj.section_id + ">" + obj.section + "</option>";
+                    });
+                    $('#section_id').append(div_data);
+                }
+            });
         });
     });
 });
@@ -381,7 +396,7 @@ $(document).on('submit','.class_search_form',function(e){
                 var section_id = $('#section_id').val();
                 var search_text = $('#search_text').val();
 
-                var export_url = '<?php echo site_url("student/exportall") ?>' + '?search_type=' + search_type + '&class_id=' + class_id + '&section_id=' + section_id + '&search_text=' + search_text;
+                var export_url = '<?php echo site_url("student/exportall") ?>' + '?search_type=' + search_type + '&class_id=' + class_id.join(',') + '&section_id=' + section_id + '&search_text=' + search_text;
                 window.open(export_url, '_blank');
             });
         },
@@ -438,7 +453,9 @@ $(document).on('submit','.class_search_form',function(e){
 
 <script type="text/javascript">
     $(document).ready(function() {
-        $('#class_id').select2();
+        $('#class_id').select2({
+            placeholder: "Select",
+        });
     });
     $(document).on('click', '.print_student_details', function() {
     let $button_ = $(this);
