@@ -53,7 +53,7 @@ class Class_model extends MY_Model
             if ($id != null) {
                 $this->db->where('id', $id);
             } else {
-                $this->db->order_by('id');
+                $this->db->order_by('class', 'asc');
             }
             $query = $this->db->get();
             if ($id != null) {
