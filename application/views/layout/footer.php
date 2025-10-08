@@ -146,9 +146,7 @@ $(document).ready(function () {
             { "data": "24" },
             { "data": "25" }
         ],
-        "language": {
-            "url": "<?php echo base_url('backend/dist/datatables/locale/en.json'); ?>"
-        },
+
         dom: 'Bfrtip',
         buttons: [
             'copy', 'csv', 'excel', 'pdf', 'print'
