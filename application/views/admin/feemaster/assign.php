@@ -8,11 +8,27 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
             <div class="col-md-12">
                 <div class="box box-primary">
                     <div class="box-header with-border">
-                        <h3 class="box-title"><i class="fa fa-search"></i> <?php echo $this->lang->line('select_criteria'); ?> for Fee Group - <b><?php echo $feegroup_name; ?></b></h3>
+                        <h3 class="box-title"><i class="fa fa-search"></i> <?php echo $this->lang->line('select_criteria'); ?></h3>
                     </div>
                     <div class="box-body">
-                        <form role="form" action="<?php echo site_url('admin/feemaster/assign/' . $id) ?>" method="post" class="row">
+                        <form role="form" action="<?php echo site_url('admin/feemaster/assign') ?>" method="post" class="row">
                             <?php echo $this->customlib->getCSRF(); ?>
+                            <div class="col-sm-3">
+                                <div class="form-group">
+                                    <label><?php echo $this->lang->line('fees_group'); ?></label>
+                                    <select id="feegroup_id" name="feegroup_id" class="form-control select2">
+                                        <option value=""><?php echo $this->lang->line('select'); ?></option>
+                                        <?php
+                                        foreach ($feegroups_for_dropdown as $feegroup) {
+                                            ?>
+                                            <option value="<?php echo $feegroup['id'] ?>" <?php if (set_value('feegroup_id') == $feegroup['id']) echo "selected=selected" ?>><?php echo $feegroup['name'] ?></option>
+                                            <?php
+                                        }
+                                        ?>
+                                    </select>
+                                    <span class="text-danger"><?php echo form_error('feegroup_id'); ?></span>
+                                </div>
+                            </div>
                             <div class="col-sm-3">
                                 <div class="form-group">
                                     <label><?php echo $this->lang->line('class'); ?></label>
@@ -23,7 +39,6 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                             ?>
                                             <option value="<?php echo $class['id'] ?>" <?php if (set_value('class_id') == $class['id']) echo "selected=selected" ?>><?php echo $class['class'] ?></option>
                                             <?php
-                                            $count++;
                                         }
                                         ?>
                                     </select>
@@ -50,7 +65,6 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                                 ?>
                                                 <option value="<?php echo $category['id'] ?>" <?php if (set_value('category_id') == $category['id']) echo "selected=selected"; ?>><?php echo $category['category'] ?></option>
                                                 <?php
-                                                $count++;
                                             }
                                             ?>
                                         </select>
@@ -83,7 +97,6 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                                 ?>
                                                 <option value="<?php echo $k; ?>" <?php if (set_value('rte') == $k) echo "selected"; ?>><?php echo $rte; ?></option>
                                                 <?php
-                                                $count++;
                                             }
                                             ?>
                                         </select>
@@ -117,48 +130,50 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                             <div class="col-md-4">
                                                 <div class="table-responsive">
                                                     <?php
-                                                    foreach ($feegroupList as $feegroup) {
-                                                        ?>
-                                                        <h4 class="mt2">
-                                                            <input type="hidden" name="fee_session_groups" value="<?php echo $feegroup->id; ?>">
-                                                            <a href="#" data-toggle="popover" class="detail_popover">
-                                                            
-                                                            <?php if($feegroup->is_system){ echo $this->lang->line($feegroup->group_name); }else{ echo $feegroup->group_name; }  ?>
-                                                            
-                                                            </a>
-                                                        </h4>
-                                                        <table class="table">
-                                                            <thead>
-                                                                <th><?php echo $this->lang->line('fees_code');?></th>
-                                                                <th class="text-right"><?php echo $this->lang->line('amount');?></th>
-                                                            
-                                                            </thead>                                                     
-                                                            
-                                                            <tbody>
-                                                                <?php
-                                                                if (empty($feegroup->feetypes)) {
-                                                                    ?>
-
-                                                                <td colspan="5" class="text-danger text-center"><?php echo $this->lang->line('no_record_found'); ?></td>
-                                                                <?php
-                                                            } else {
-                                                                foreach ($feegroup->feetypes as $feetype_key => $feetype_value) {
-                                                                    ?>
-                                                                    <tr class="mailbox-name">
-                                                                        <td>
-                                                                            <?php echo $feetype_value->code; ?>
-                                                                        </td>
-                                                                        <td class="text-right">
-                                                                            <?php echo $currency_symbol . amountFormat($feetype_value->amount); ?>
-                                                                        </td>
-                                                                    </tr>
-                                                                    <?php
-                                                                }
-                                                            }
+                                                    if(isset($selected_feegroup_details)){
+                                                        foreach ($selected_feegroup_details as $feegroup) {
                                                             ?>
-                                                            </tr>
-                                                            </tbody></table>
-                                                        <?php
+                                                            <h4 class="mt2">
+                                                                <input type="hidden" name="fee_session_groups" value="<?php echo $feegroup->id; ?>">
+                                                                <a href="#" data-toggle="popover" class="detail_popover">
+                                                                
+                                                                <?php if($feegroup->is_system){ echo $this->lang->line($feegroup->group_name); }else{ echo $feegroup->group_name; }  ?>
+                                                                
+                                                                </a>
+                                                            </h4>
+                                                            <table class="table">
+                                                                <thead>
+                                                                    <th><?php echo $this->lang->line('fees_code');?></th>
+                                                                    <th class="text-right"><?php echo $this->lang->line('amount');?></th>
+                                                                
+                                                                </thead>                                                     
+                                                                
+                                                                <tbody>
+                                                                    <?php
+                                                                    if (empty($feegroup->feetypes)) {
+                                                                        ?>
+
+                                                                    <td colspan="5" class="text-danger text-center"><?php echo $this->lang->line('no_record_found'); ?></td>
+                                                                    <?php
+                                                                } else {
+                                                                    foreach ($feegroup->feetypes as $feetype_key => $feetype_value) {
+                                                                        ?>
+                                                                        <tr class="mailbox-name">
+                                                                            <td>
+                                                                                <?php echo $feetype_value->code; ?>
+                                                                            </td>
+                                                                            <td class="text-right">
+                                                                                <?php echo $currency_symbol . amountFormat($feetype_value->amount); ?>
+                                                                            </td>
+                                                                        </tr>
+                                                                        <?php
+                                                                    }
+                                                                }
+                                                                ?>
+                                                                </tr>
+                                                                </tbody></table>
+                                                            <?php
+                                                        }
                                                     }
                                                     ?>
                                                 </div>
@@ -202,7 +217,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                                                                 $sel = "";
                                                                             }
                                                                             ?>
-                                                                            <input class="checkbox" type="checkbox" name="student_session_id[]"  value="<?php echo $student['student_session_id']; ?>" <?php echo $sel; ?>/>
+                                                                            <input class="checkbox student_checkbox" type="checkbox" name="student_session_id[]"  value="<?php echo $student['student_session_id']; ?>" <?php echo $sel; ?>/>
                                                                             <input type="hidden" name="student_fees_master_id_<?php echo $student['student_session_id']; ?>" value="<?php echo $student['student_fees_master_id']; ?>">
                                                                             <input type="hidden" name="student_ids[]" value="<?php echo $student['student_session_id']; ?>">
                                                                         </td>
@@ -249,22 +264,120 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
 </div>
 
 <script type="text/javascript">
+    $(document).ready(function () {
+        $('.select2').select2();
 
-//select all checkboxes
-    $("#select_all").change(function () {  //"select all" change 
-        $(".checkbox").prop('checked', $(this).prop("checked")); //change all ".checkbox" checked status
-    });
+        var class_id = $('#class_id').val();
+        var section_id = '<?php echo set_value('section_id') ?>';
+        getSectionByClass(class_id, section_id);
 
-//".checkbox" change 
-    $('.checkbox').change(function () {
-        //uncheck "select all", if one of the listed checkbox item is unchecked
-        if (false == $(this).prop("checked")) { //if this item is unchecked
-            $("#select_all").prop('checked', false); //change "select all" checked status to false
-        }
-        //check "select all" if all checkbox items are checked
-        if ($('.checkbox:checked').length == $('.checkbox').length) {
-            $("#select_all").prop('checked', true);
-        }
+        $(document).on('change', '#class_id', function (e) {
+            $('#section_id').html("");
+            var class_id = $(this).val();
+            var base_url = '<?php echo base_url() ?>';
+            var div_data = '<option value=""><?php echo $this->lang->line('select'); ?></option>';
+            $.ajax({
+                type: "GET",
+                url: base_url + "sections/getByClass",
+                data: {'class_id': class_id},
+                dataType: "json",
+                success: function (data) {
+                    $.each(data, function (i, obj)
+                    {
+                        div_data += "<option value=" + obj.section_id + ">" + obj.section + "</option>";
+                    });
+                    $('#section_id').append(div_data);
+                }
+            });
+        });
+
+        $(document).on('change', '#feegroup_id', function (e) {
+            var feegroup_id = $(this).val();
+            var base_url = '<?php echo base_url() ?>';
+            
+            $.ajax({
+                type: "POST",
+                url: base_url + "admin/feemaster/getFeeGroupDetails",
+                data: {'feegroup_id': feegroup_id},
+                dataType: "json",
+                success: function (data) {
+                    var table_html = '';
+                    if(data.length > 0){
+                        $.each(data, function (i, feegroup) {
+                            table_html += '<h4 class="mt2">';
+                            table_html += '<input type="hidden" name="fee_session_groups" value="' + feegroup.id + '">';
+                            table_html += '<a href="#" data-toggle="popover" class="detail_popover">';
+                            if(feegroup.is_system){
+                                table_html += feegroup.group_name; // I need to handle the language line here
+                            }else{
+                                table_html += feegroup.group_name;
+                            }
+                            table_html += '</a></h4>';
+                            table_html += '<table class="table">';
+                            table_html += '<thead>';
+                            table_html += '<th><?php echo $this->lang->line('fees_code');?></th>';
+                            table_html += '<th class="text-right"><?php echo $this->lang->line('amount');?></th>';
+                            table_html += '</thead>';
+                            table_html += '<tbody>';
+                            if (feegroup.feetypes.length == 0) {
+                                table_html += '<tr><td colspan="2" class="text-danger text-center"><?php echo $this->lang->line('no_record_found'); ?></td></tr>';
+                            } else {
+                                $.each(feegroup.feetypes, function (i, feetype) {
+                                    table_html += '<tr class="mailbox-name">';
+                                    table_html += '<td>' + feetype.code + '</td>';
+                                    table_html += '<td class="text-right"><?php echo $currency_symbol; ?>' + feetype.amount + '</td>';
+                                    table_html += '</tr>';
+                                });
+                            }
+                            table_html += '</tbody></table>';
+                        });
+                    }
+                    $('.table-responsive').html(table_html);
+                }
+            });
+        });
+
+        $(document).on('change', '#select_all', function () {
+            $(".student_checkbox").prop('checked', $(this).prop("checked"));
+        });
+
+        $(document).on('change', '.student_checkbox', function () {
+            if (false == $(this).prop("checked")) { 
+                $("#select_all").prop('checked', false);
+            }
+            if ($('.student_checkbox:checked').length == $('.student_checkbox').length) {
+                $("#select_all").prop('checked', true);
+            }
+        });
+
+        $("#assign_form").submit(function (e) {
+            if (confirm('<?php echo $this->lang->line('are_you_sure'); ?>')) {
+                var $this = $('.allot-fees');
+                $this.button('loading');
+                $.ajax({
+                    type: "POST",
+                    dataType: 'Json',
+                    url: $("#assign_form").attr('action'),
+                    data: $("#assign_form").serialize(), // serializes the form's elements.
+                    success: function (data)
+                    {
+                        if (data.status == "fail") {
+                            var message = "";
+                            $.each(data.error, function (index, value) {
+
+                                message += value;
+                            });
+                            errorMsg(message);
+                        } else {
+                            successMsg(data.message);
+                        }
+
+                        $this.button('reset');
+                    }
+                });
+            }
+            e.preventDefault();
+        });
     });
 
     function getSectionByClass(class_id, section_id) {
@@ -292,62 +405,4 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
             });
         }
     }
-
-    $(document).ready(function () {
-        var class_id = $('#class_id').val();
-        var section_id = '<?php echo set_value('section_id') ?>';
-        getSectionByClass(class_id, section_id);
-        $(document).on('change', '#class_id', function (e) {
-            $('#section_id').html("");
-            var class_id = $(this).val();
-            var base_url = '<?php echo base_url() ?>';
-            var div_data = '<option value=""><?php echo $this->lang->line('select'); ?></option>';
-            $.ajax({
-                type: "GET",
-                url: base_url + "sections/getByClass",
-                data: {'class_id': class_id},
-                dataType: "json",
-                success: function (data) {
-                    $.each(data, function (i, obj)
-                    {
-                        div_data += "<option value=" + obj.section_id + ">" + obj.section + "</option>";
-                    });
-                    $('#section_id').append(div_data);
-                }
-            });
-        });
-    });
-
-    $("#assign_form").submit(function (e) {
-        if (confirm('<?php echo $this->lang->line('are_you_sure'); ?>')) {
-            var $this = $('.allot-fees');
-            $this.button('loading');
-            $.ajax({
-                type: "POST",
-                dataType: 'Json',
-                url: $("#assign_form").attr('action'),
-                data: $("#assign_form").serialize(), // serializes the form's elements.
-                success: function (data)
-                {
-                    if (data.status == "fail") {
-                        var message = "";
-                        $.each(data.error, function (index, value) {
-
-                            message += value;
-                        });
-                        errorMsg(message);
-                    } else {
-                        successMsg(data.message);
-                    }
-
-                    $this.button('reset');
-                }
-            });
-        }
-        e.preventDefault();
-    });
-
-    $(document).ready(function() {
-        $('.select2').select2();
-    });
 </script>

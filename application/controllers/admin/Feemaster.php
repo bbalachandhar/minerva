@@ -269,21 +269,26 @@ class Feemaster extends Admin_Controller
         echo json_encode(array('status' => 1, 'msg' => $this->lang->line('success_message'), 'error' => ''));
     }
 
-    public function assign($id)
+    public function getFeeGroupDetails()
+    {
+        $feegroup_id = $this->input->post('feegroup_id');
+        $feegroup_result = $this->feesessiongroup_model->getFeesByGroup($feegroup_id);
+        echo json_encode($feegroup_result);
+    }
+
+    public function assign()
     {
         if (!$this->rbac->hasPrivilege('fees_group_assign', 'can_view')) {
             access_denied();
         }
         $this->session->set_userdata('top_menu', 'Fees Collection');
         $this->session->set_userdata('sub_menu', 'admin/feemaster');
-        $data['id']              = $id;
-        $feegroup_details = $this->feegroup_model->get($id);
-        $data['feegroup_name'] = $feegroup_details['name'];
+        
+        $data['feegroups_for_dropdown']    = $this->feegroup_model->get();
         $data['title']           = $this->lang->line('student_fees');
         $class                   = $this->class_model->get();
         $data['classlist']       = $class;
-        $feegroup_result         = $this->feesessiongroup_model->getFeesByGroup($id);
-        $data['feegroupList']    = $feegroup_result;
+        
         $data['adm_auto_insert'] = $this->sch_setting_detail->adm_auto_insert;
         $data['sch_setting']     = $this->sch_setting_detail;
         $genderList            = $this->customlib->getGender();
@@ -293,16 +298,23 @@ class Feemaster extends Admin_Controller
 
         $category             = $this->category_model->get();
         $data['categorylist'] = $category;
-
+        $data['feegroup_name'] = "";
+        
         if ($this->input->server('REQUEST_METHOD') == 'POST') {
-
+            $feegroup_id = $this->input->post('feegroup_id');
             $data['category_id'] = $this->input->post('category_id');
             $data['gender']      = $this->input->post('gender');
             $data['rte_status']  = $this->input->post('rte');
             $data['class_id']    = $this->input->post('class_id');
             $data['section_id']  = $this->input->post('section_id');
 
-            $resultlist         = $this->studentfeemaster_model->searchAssignFeeByClassSection($data['class_id'], $data['section_id'], $id, $data['category_id'], $data['gender'], $data['rte_status']);
+            if($feegroup_id){
+                $feegroup_details = $this->feegroup_model->get($feegroup_id);
+                $data['feegroup_name'] = $feegroup_details['name'];
+                $data['selected_feegroup_details'] = $this->feesessiongroup_model->getFeesByGroup($feegroup_id);
+            }
+
+            $resultlist         = $this->studentfeemaster_model->searchAssignFeeByClassSection($data['class_id'], $data['section_id'], $feegroup_id, $data['category_id'], $data['gender'], $data['rte_status']);
             $data['resultlist'] = $resultlist;
         }
 

@@ -173,6 +173,13 @@ class Studentfee extends Admin_Controller
             $data['select_all'] = $_POST['select_all'];
         }
 
+        if ($this->input->post('no_fees_assigned') == 1) {
+            $data['student_list'] = $this->studentfee_model->getStudentsWithoutFees();
+            $this->load->view('layout/header', $data);
+            $this->load->view('studentfee/studentSearchFee', $data);
+            $this->load->view('layout/footer', $data);
+            return;
+        }
         $this->form_validation->set_rules('feegroup[]', $this->lang->line('fee_group'), 'trim|required|xss_clean');
 
         if ($this->form_validation->run() == false) {

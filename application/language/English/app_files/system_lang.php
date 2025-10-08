@@ -1998,6 +1998,7 @@ $lang['student_certificate_list'] = "Student Certificate List";
 $lang['student_copy'] = "Student Copy";	
 $lang['student_count'] = "Student Count"; 	
 $lang['student_date'] = "Student / Date";	
+$lang['search_students_without_fees'] = "Search Students Without Fees";	
 $lang['student_details'] = "Student Details";	
 $lang['first_name_is_required'] = "First Name is required.";
 $lang['gender_is_required'] = "Gender is required.";

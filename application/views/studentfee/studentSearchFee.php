@@ -101,6 +101,16 @@ if (set_value('class_id') == $class['id']) {
                                 </div>
                                 <div class="col-md-12">
                                     <div class="form-group">
+                                        <div class="checkbox">
+                                            <label>
+                                                <input type="checkbox" name="no_fees_assigned" value="1" <?php echo set_checkbox('no_fees_assigned', '1'); ?>>
+                                                <?php echo $this->lang->line('search_students_without_fees'); ?>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-12">
+                                    <div class="form-group">
                                         <button type="submit" id="search_filter" class="btn btn-sm btn-primary pull-right"><i class="fa fa-search"></i> <?php echo $this->lang->line('search'); ?></button>
                                     </div>
                                 </div>
@@ -108,107 +118,136 @@ if (set_value('class_id') == $class['id']) {
                         </div>
                     </form>
 
-                    <?php
-if (isset($student_remain_fees)) {
-    ?>
+                                        <?php
+                    if (isset($student_list) || isset($student_remain_fees)) {
+                        ?>
                         <div class="" id="duefee">
                             <div class="box-header ptbnull"></div>
                             <div class="box-header ptbnull">
                                 <h3 class="box-title titlefix"><i class="fa fa-users"></i> <?php echo $this->lang->line('student_list'); ?></h3>
                             </div>
                             <div class="box-body table-responsive">
-                                <div class="download_label"><?php echo $this->lang->line('student_list'); ?></div>
-                                <table class="table table-striped table-bordered table-hover example">
-                                    <thead>
-                                        <tr>
-                                            <th><?php echo $this->lang->line('class'); ?></th>
-                                            <th><?php echo $this->lang->line('admission_no'); ?></th>
-                                            <th><?php echo $this->lang->line('student_name'); ?></th>
-                                            <th width="30%"><?php echo $this->lang->line('fees_group'); ?></th>
-                                            <th class="text text-right"><?php echo $this->lang->line('amount'); ?> <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
-                                            <th class="text text-right"><?php echo $this->lang->line('paid'); ?> <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
-                                            <th class="text text-right"><?php echo $this->lang->line('discount'); ?> <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
-                                            <th class="text text-right"><?php echo $this->lang->line('fine'); ?> <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
-                                            <th class="text text-right"><?php echo $this->lang->line('balance'); ?> <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
-                                            <th class="text text-right noExport"><?php echo $this->lang->line('action'); ?> </th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <?php 
-                                        
-                                        if (empty($student_remain_fees)) {
-        ?>
-
-                                            <?php
-} else {
-        $count = 1;
-        foreach ($student_remain_fees as $student) {
-            $amount          = 0;
-            $amount_deposite = 0;
-            $amount_discount = 0;
-            $amount_fine     = 0;
-            if (!empty($student['fees'])) {
-                foreach ($student['fees'] as $fee_key => $fee_value) {
-                    $amount += $fee_value['amount'];
-                    $amount_deposite += $fee_value['amount_deposite'];
-                    $amount_discount += $fee_value['amount_discount'];
-                    $amount_fine += $fee_value['amount_fine'];
-                }
-            }
-            
-            $balance = ($amount - ($amount_deposite + $amount_discount));
-            if($balance > 0){
-            ?>
-                                                <tr>
-                                                    <td><?php echo $student['class'] . "-" . $student['section']; ?></td>
-                                                    <td><?php echo $student['admission_no']; ?></td>
-                                                    <td><?php echo $this->customlib->getFullName($student['firstname'], $student['middlename'], $student['lastname'], $sch_setting->middlename, $sch_setting->lastname); ?></td>
-                                                    <td>
-                                                        <?php
-if (!empty($student['fees'])) {
-
-                echo implode(', ', array_map(
-                    function ($v) {
-                       return ($v['is_system']) ? $this->lang->line($v['fee_group']) . ' (' . $this->lang->line($v['fee_type']) . ')' :$v['fee_group'] . ' (' . $v['fee_type'] . ' : ' . $v['fee_code'] . ')';
-                   
-                    },
-                    $student['fees']));
-            }
-
-            ?>
-                                                    </td>
-                                                    <td class="text text-right"><?php echo amountFormat($amount); ?></td>
-                                                    <td class="text text-right"><?php echo amountFormat($amount_deposite); ?></td>
-                                                    <td class="text text-right"><?php echo amountFormat($amount_discount); ?></td>
-                                                    <td class="text text-right"><?php echo amountFormat($amount_fine); ?></td>
-                                                    <td class="text text-right"><?php
-echo amountFormat(($amount - ($amount_deposite + $amount_discount)));
-            ?></td>
-                                                    <td class="text text-right">
-                                                        <?php if ($this->rbac->hasPrivilege('collect_fees', 'can_add')) {?><a href="<?php echo base_url(); ?>studentfee/addfee/<?php echo $student['student_session_id'] ?>" class="btn btn-info btn-xs">
-                                                            <?php echo $currency_symbol; ?> <?php echo $this->lang->line('add_fees'); ?>
-                                                            </a>
-                                                <?php }?>
-                                                    </td>
-                                                </tr>
-        <?php }
-}
-        $count++;
-    }
-    ?>
-                                    </tbody>
-                                </table>
+                                <?php if (isset($student_list)) { ?>
+                                    <div class="download_label"><?php echo $this->lang->line('student_list'); ?></div>
+                                    <table class="table table-striped table-bordered table-hover example">
+                                        <thead>
+                                            <tr>
+                                                <th><?php echo $this->lang->line('class'); ?></th>
+                                                <th><?php echo $this->lang->line('admission_no'); ?></th>
+                                                                        <th><?php echo $this->lang->line('student_name'); ?></th>
+                                                                        <th><?php echo $this->lang->line('category'); ?></th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                    <?php
+                                                                    if (empty($student_list)) {
+                                                                        ?>
+                                                                        <tr>
+                                                                            <td colspan="4" class="text-danger text-center"><?php echo $this->lang->line('no_record_found'); ?></td>
+                                                                        </tr>
+                                                                        <?php
+                                                                    } else {
+                                                                        foreach ($student_list as $student) {
+                                                                            ?>
+                                                                            <tr>
+                                                                                <td><?php echo $student['class'] . "-" . $student['section']; ?></td>
+                                                                                <td><?php echo $student['admission_no']; ?></td>
+                                                                                <td><?php echo $this->customlib->getFullName($student['firstname'], $student['middlename'], $student['lastname'], $sch_setting->middlename, $sch_setting->lastname); ?></td>
+                                                                                <td><?php echo $student['category']; ?></td>
+                                                                            </tr>
+                                                                            <?php
+                                                                        }
+                                                                    }
+                                                                    ?>                                        </tbody>
+                                    </table>
+                                <?php } else { ?>
+                                    <div class="download_label"><?php echo $this->lang->line('student_list'); ?></div>
+                                    <table class="table table-striped table-bordered table-hover example">
+                                        <thead>
+                                            <tr>
+                                                <th><?php echo $this->lang->line('class'); ?></th>
+                                                <th><?php echo $this->lang->line('admission_no'); ?></th>
+                                                <th><?php echo $this->lang->line('student_name'); ?></th>
+                                                <th width="30%"><?php echo $this->lang->line('fees_group'); ?></th>
+                                                <th class="text text-right"><?php echo $this->lang->line('amount'); ?> <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
+                                                <th class="text text-right"><?php echo $this->lang->line('paid'); ?> <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
+                                                <th class="text text-right"><?php echo $this->lang->line('discount'); ?> <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
+                                                <th class="text text-right"><?php echo $this->lang->line('fine'); ?> <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
+                                                <th class="text text-right"><?php echo $this->lang->line('balance'); ?> <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
+                                                <th class="text text-right noExport"><?php echo $this->lang->line('action'); ?> </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <?php 
+                                            
+                                            if (empty($student_remain_fees)) {
+                            ?>
+                    
+                                                                <?php
+                    } else {
+                            $count = 1;
+                            foreach ($student_remain_fees as $student) {
+                                $amount          = 0;
+                                $amount_deposite = 0;
+                                $amount_discount = 0;
+                                $amount_fine     = 0;
+                                if (!empty($student['fees'])) {
+                                    foreach ($student['fees'] as $fee_key => $fee_value) {
+                                        $amount += $fee_value['amount'];
+                                        $amount_deposite += $fee_value['amount_deposite'];
+                                        $amount_discount += $fee_value['amount_discount'];
+                                        $amount_fine += $fee_value['amount_fine'];
+                                    }
+                                }
+                                
+                                $balance = ($amount - ($amount_deposite + $amount_discount));
+                                if($balance > 0){
+                                ?>
+                                                                    <tr>
+                                                                        <td><?php echo $student['class'] . "-" . $student['section']; ?></td>
+                                                                        <td><?php echo $student['admission_no']; ?></td>
+                                                                        <td><?php echo $this->customlib->getFullName($student['firstname'], $student['middlename'], $student['lastname'], $sch_setting->middlename, $sch_setting->lastname); ?></td>
+                                                                        <td>
+                                                                            <?php
+                    if (!empty($student['fees'])) {
+                    
+                                    echo implode(', ', array_map(
+                                        function ($v) {
+                                           return ($v['is_system']) ? $this->lang->line($v['fee_group']) . ' (' . $this->lang->line($v['fee_type']) . ')' :$v['fee_group'] . ' (' . $v['fee_type'] . ' : ' . $v['fee_code'] . ')';
+                                       
+                                        },
+                                        $student['fees']));
+                                }
+                    
+                                ?>
+                                                                        </td>
+                                                                        <td class="text text-right"><?php echo amountFormat($amount); ?></td>
+                                                                        <td class="text text-right"><?php echo amountFormat($amount_deposite); ?></td>
+                                                                        <td class="text text-right"><?php echo amountFormat($amount_discount); ?></td>
+                                                                        <td class="text text-right"><?php echo amountFormat($amount_fine); ?></td>
+                                                                        <td class="text text-right"><?php
+                                                                            echo amountFormat(($amount - ($amount_deposite + $amount_discount)));
+                                ?></td>
+                                                                        <td class="text text-right">
+                                                                            <?php if ($this->rbac->hasPrivilege('collect_fees', 'can_add')) {?><a href="<?php echo base_url(); ?>studentfee/addfee/<?php echo $student['student_session_id'] ?>" class="btn btn-info btn-xs">
+                                                                                <?php echo $currency_symbol; ?> <?php echo $this->lang->line('add_fees'); ?>
+                                                                                </a>
+                                                                    <?php }?>
+                                                                        </td>
+                                                                    </tr>
+                            <?php }
+                    }
+                            $count++;
+                        }
+                        ?>
+                                                        </tbody>
+                                                    </table>
+                                <?php } ?>
                             </div>
                         </div>
-                    </div>
-                </div>
-            </div>
-            <?php
-} else {
-
-}
-?>
-
+                        <?php
+                    }
+                    ?>
     </section>
 </div>
 <script type="text/javascript">

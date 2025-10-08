@@ -337,4 +337,17 @@ class Studentfee_model extends MY_Model {
         return $query->row();
     }
 
+    public function getStudentsWithoutFees() {
+        $this->db->select('students.id, students.admission_no, students.firstname, students.middlename, students.lastname, classes.class, sections.section, categories.category');
+        $this->db->from('students');
+        $this->db->join('student_session', 'student_session.student_id = students.id');
+        $this->db->join('classes', 'classes.id = student_session.class_id');
+        $this->db->join('sections', 'sections.id = student_session.section_id');
+        $this->db->join('categories', 'categories.id = students.category_id', 'left');
+        $this->db->join('student_fees_master', 'student_fees_master.student_session_id = student_session.id', 'left');
+        $this->db->where('student_session.session_id', $this->current_session);
+        $this->db->where('student_fees_master.id IS NULL');
+        $query = $this->db->get();
+        return $query->result_array();
+    }
 }
