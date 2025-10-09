@@ -993,46 +993,27 @@ class Customlib
 
     public function dateyyyymmddTodateformat($date)
     {
-        if ($date == "" || substr($date, 0, 10) == '0000-00-00') {
-            return "";
+        if ($date == "" || substr($date, 0, 10) == '0000-00-00' || $date == null) {
+            return null;
         }
+
+        // First, try to parse based on the school's date format setting.
         $format = $this->getSchoolDateFormat();
+        $d = DateTime::createFromFormat($format, $date);
 
-        if ($format == 'd-m-Y') {
-            list($month, $day, $year) = explode('-', $date);
+        if ($d && $d->format($format) === $date) {
+            // The date string was successfully parsed according to the school's format.
+            return $d->getTimestamp();
         }
 
-        if ($format == 'd/m/Y') {
-            list($month, $day, $year) = explode('-', $date);
+        // If that fails, fall back to strtotime() as it can handle other formats (like Y-m-d from the DB).
+        $timestamp = strtotime($date);
+        if ($timestamp !== false) {
+            return $timestamp;
         }
 
-        if ($format == 'd-M-Y') {
-            list($month, $day, $year) = explode('-', $date);
-        }
-
-        if ($format == 'd.m.Y') {
-            list($month, $day, $year) = explode('-', $date);
-        }
-
-        if ($format == 'm-d-Y') {
-            list($month, $day, $year) = explode('-', $date);
-        }
-
-        if ($format == 'm/d/Y') {
-            list($month, $day, $year) = explode('-', $date);
-        }
-
-        if ($format == 'm.d.Y') {
-            list($month, $day, $year) = explode('-', $date);
-        }
-
-        if ($format == 'Y/m/d') {
-            list($month, $day, $year) = explode('-', $date);
-        }
-
-        $date = $year . "-" . $day . "-" . $month;
-
-        return strtotime($date);
+        // If all parsing fails, return null.
+        return null;
     }
 
     public function dateFront()

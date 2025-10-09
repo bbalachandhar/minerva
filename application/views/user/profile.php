@@ -704,8 +704,10 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                                                 <td class="text text-left">
                                                                     <?php
                                                                     if ($fee_value->due_date) {
-                                                                        echo date($this->customlib->getSchoolDateFormat(), $this->customlib->dateyyyymmddTodateformat($fee_value->due_date));
-                                                                    } else {
+                                                                        $timestamp = $this->customlib->dateyyyymmddTodateformat($fee_value->due_date);
+                                                                        if ($timestamp !== null) {
+                                                                            echo date($this->customlib->getSchoolDateFormat(), $timestamp);
+                                                                        }
                                                                     }
                                                                     ?>
                                                                 </td>
