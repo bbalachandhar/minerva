@@ -1392,15 +1392,16 @@ $("#myfeeDiscountModal").on('shown.bs.modal', function (e) {
         return true;
     }
 
-    $('.detail_popover').popover({
-        placement: 'right',
-        title: '',
-        trigger: 'hover',
-        container: 'body',
-        html: true,
-        content: function() {
-            return $(this).closest('td').find('.fee_detail_popover').html();
-        }
+        $('.detail_popover').popover({
+            placement: 'right',
+            title: '',
+            trigger: 'hover',
+            container: 'body',
+            html: true,
+            content: function () {
+                return $(this).closest('td').find('.fee_detail_popover').html();
+            }
+        });
     });
 </script>
 

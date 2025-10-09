@@ -130,10 +130,12 @@ $(document).ready(function(){
 /*--end dropify--*/
 
 /*--nprogress--*/
+$(document).ready(function(){
  $('body').show();
     $('.version').text(NProgress.version);
     NProgress.start();
     setTimeout(function() { NProgress.done(); $('.fade').removeClass('out'); }, 1000);
+});
 /*--nprogress--*/    
 // _selector, // selector  class of table
 // _url, // url is url of controller where data to be fetch
