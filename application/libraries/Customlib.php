@@ -1730,6 +1730,8 @@ class Customlib
             'cash'   => $this->CI->lang->line('cash'),
             'cheque' => $this->CI->lang->line('cheque'),
             'online' => $this->CI->lang->line('transfer_to_bank_account'),
+            'govt_7_5_payment' => $this->CI->lang->line('govt_7_5_payment'),
+            'govt_fg_payment'  => $this->CI->lang->line('govt_fg_payment'),
         );
 
         return $mode;

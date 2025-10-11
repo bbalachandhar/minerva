@@ -156,6 +156,12 @@ if(!empty($discount_not_applied)){
                  <label class="radio-inline">
                      <input type="radio" name="payment_mode_fee" value="card"><?php echo $this->lang->line('card'); ?>
                  </label>
+                 <label class="radio-inline">
+                     <input type="radio" name="payment_mode_fee" value="govt_7_5_payment">Govt 7.5 Payment
+                 </label>
+                 <label class="radio-inline">
+                     <input type="radio" name="payment_mode_fee" value="govt_fg_payment">Govt FG Payment
+                 </label>
                  <span class="text-danger" id="payment_mode_error"></span>
              </div>
          </div>

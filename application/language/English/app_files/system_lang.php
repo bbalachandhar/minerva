@@ -2560,3 +2560,5 @@ $lang['hours'] = "Hours";
 $lang['hourly_rate'] = "Available Rate";
 $lang['hall_list'] = "Hall List";
 $lang['hall_image'] = "Hall Image";
+$lang['govt_7_5_payment'] = "Govt 7.5 Payment";
+$lang['govt_fg_payment'] = "Govt FG Payment";
