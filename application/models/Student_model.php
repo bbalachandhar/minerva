@@ -1641,6 +1641,17 @@ class Student_model extends MY_Model
         }
     }
 
+    public function get_student_by_admission_no($admission_no)
+    {
+        $this->db->where('admission_no', $admission_no);
+        $query = $this->db->get('students');
+        if ($query->num_rows() > 0) {
+            return $query->row();
+        } else {
+            return false;
+        }
+    }
+
     public function lastRecord()
     {
         $last_row = $this->db->select('*')->order_by('id', "desc")->limit(1)->get('students')->row();

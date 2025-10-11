@@ -12,20 +12,37 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
             <div class="col-md-12">
                 <div class="box box-primary">
                     <div class="box-header with-border">
-                        <h3 class="box-title"><i class="fa fa-search"></i> <?php echo $this->lang->line('select_criteria'); ?></h3>
+                        <h3 class="box-title"><i class="fa fa-search"></i> <?php echo $this->lang->line('select_criteria'); ?> - <?php echo $feediscountList['name']; ?></h3>
                     </div>
                     <div class="box-body">
                         <form role="form" action="<?php echo site_url('admin/feediscount/assign/' . $id) ?>" method="post" class="row">
                             <?php echo $this->customlib->getCSRF(); ?>
                             <div class="col-sm-3">
                                 <div class="form-group">
-                                    <label><?php echo $this->lang->line('class'); ?></label>
-                                    <select autofocus="" id="class_id" name="class_id" class="form-control" >
+                                    <label><?php echo $this->lang->line('fees_discount'); ?></label>
+                                    <select autofocus="" id="feediscount_id" name="feediscount_id" class="form-control" >
                                         <option value=""><?php echo $this->lang->line('select'); ?></option>
                                         <?php
+                                        foreach ($allFeediscountList as $feediscount) {
+                                            ?>
+                                            <option value="<?php echo $feediscount['id'] ?>" <?php if (set_value('feediscount_id') == $feediscount['id']) echo "selected=selected" ?>><?php echo $feediscount['name'] ?> (<?php echo $feediscount['code'] ?>)</option>
+                                            <?php
+                                        }
+                                        ?>
+                                    </select>
+                                    <span class="text-danger"><?php echo form_error('feediscount_id'); ?></span>
+                                </div>
+                            </div><!--./col-sm-3-->
+                            <div class="col-sm-3">
+                                <div class="form-group">
+                                    <label><?php echo $this->lang->line('class'); ?></label>
+                                    <select autofocus="" id="class_id" name="class_id[]" class="form-control" multiple="multiple" >
+                                        <option value=""><?php echo $this->lang->line('select'); ?></option>
+                                        <?php
+                                        $count = 0;
                                         foreach ($classlist as $class) {
                                             ?>
-                                            <option value="<?php echo $class['id'] ?>" <?php if (set_value('class_id') == $class['id']) echo "selected=selected" ?>><?php echo $class['class'] ?></option>
+                                            <option value="<?php echo $class['id'] ?>" <?php echo in_array($class['id'], set_value('class_id', array())) ? "selected=selected" : "" ?>><?php echo $class['class'] ?></option>
                                             <?php
                                             $count++;
                                         }
@@ -221,6 +238,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
 </div>
 
 <script type="text/javascript">
+    var allFeediscountList = <?php echo json_encode($allFeediscountList); ?>;
 
 //select all checkboxes
     $("#select_all").change(function () {  //"select all" change 
@@ -240,7 +258,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
     });
 
     function getSectionByClass(class_id, section_id) {
-        if (class_id != "" && section_id != "") {
+        if (class_id && class_id.length > 0) {
             $('#section_id').html("");
             var base_url = '<?php echo base_url() ?>';
             var div_data = '<option value=""><?php echo $this->lang->line('select'); ?></option>';
@@ -265,12 +283,40 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
     }
 
     $(document).ready(function () {
+        $('#feediscount_id').select2();
+        $('#class_id').select2({
+            closeOnSelect: false
+        });
+
+        $(document).on('change', '#feediscount_id', function () {
+            var selectedFeediscountId = $(this).val();
+            var selectedFeediscount = allFeediscountList.find(item => item.id == selectedFeediscountId);
+
+            if (selectedFeediscount) {
+                // Update heading
+                $('.box-title').html('<i class="fa fa-search"></i> <?php echo $this->lang->line('select_criteria'); ?> - ' + selectedFeediscount.name);
+
+                // Update fee discount details table
+                $('input[name="feediscount_id"]').val(selectedFeediscount.id);
+                $('.mailbox-name td:eq(0)').text(selectedFeediscount.code);
+                
+                var amountDisplay = '';
+                if (selectedFeediscount.type == "fix") {
+                    amountDisplay = '<?php echo $currency_symbol; ?>' + parseFloat(selectedFeediscount.amount).toFixed(2);
+                } else {
+                    amountDisplay = selectedFeediscount.percentage + '% ';
+                }
+                $('.mailbox-name td:eq(1)').text(amountDisplay);
+            }
+        });
+
         var class_id = $('#class_id').val();
         var section_id = '<?php echo set_value('section_id') ?>';
         getSectionByClass(class_id, section_id);
         $(document).on('change', '#class_id', function (e) {
             $('#section_id').html("");
             var class_id = $(this).val();
+            var section_id = '<?php echo set_value('section_id') ?>'; // Added this line
             var base_url = '<?php echo base_url() ?>';
             var div_data = '<option value=""><?php echo $this->lang->line('select'); ?></option>';
             $.ajax({
@@ -281,7 +327,11 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                 success: function (data) {
                     $.each(data, function (i, obj)
                     {
-                        div_data += "<option value=" + obj.section_id + ">" + obj.section + "</option>";
+                        var sel = "";
+                        if (section_id == obj.section_id) {
+                            sel = "selected";
+                        }
+                        div_data += "<option value=" + obj.section_id + " " + sel + ">" + obj.section + "</option>";
                     });
                     $('#section_id').append(div_data);
                 }

@@ -71,8 +71,14 @@ $this->load->view('layout/theme');
   <style type="text/css">
         span.flag-icon.flag-icon-us{text-orientation: mixed;}
   </style>
-    </head>
-    <body class="hold-transition skin-blue fixed sidebar-mini">
+                    <link rel="stylesheet" href="<?php echo base_url(); ?>backend/plugins/select2/css/select2.min.css">
+                    <style>
+            .select2-container--default .select2-selection--multiple .select2-selection__choice {
+                background-color: #007bff !important; /* Bootstrap primary blue */
+                color: white !important;
+            }
+            </style>
+                    </head>    <body class="hold-transition skin-blue fixed sidebar-mini">
 
 
 <script>

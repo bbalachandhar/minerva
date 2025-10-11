@@ -179,7 +179,11 @@ class Feediscount_model extends MY_Model
         " WHERE `student_session`.`session_id` = " . $this->current_session;
 
         if ($class_id != null) {
-            $sql .= " AND `student_session`.`class_id` = " . $this->db->escape($class_id);
+            if (is_array($class_id)) {
+                $sql .= " AND `student_session`.`class_id` IN (" . implode(',', array_map([$this->db, 'escape'], $class_id)) . ")";
+            } else {
+                $sql .= " AND `student_session`.`class_id` = " . $this->db->escape($class_id);
+            }
         }
         if ($section_id != null) {
             $sql .= " AND `student_session`.`section_id` =" . $this->db->escape($section_id);

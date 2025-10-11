@@ -140,12 +140,22 @@ class Feediscount extends Admin_Controller
         }
         $this->session->set_userdata('top_menu', 'Fees Collection');
         $this->session->set_userdata('sub_menu', 'admin/feediscount');
-        $data['id'] = $id;
+
+        $selected_feediscount_id = $id;
+        if ($this->input->server('REQUEST_METHOD') == 'POST') {
+            if ($this->input->post('feediscount_id')) {
+                $selected_feediscount_id = $this->input->post('feediscount_id');
+            }
+        }
+
+        $data['id'] = $selected_feediscount_id;
 
         $class                   = $this->class_model->get();
         $data['classlist']       = $class;
-        $feediscount_result      = $this->feediscount_model->get($id);
+        $feediscount_result      = $this->feediscount_model->get($selected_feediscount_id);
         $data['feediscountList'] = $feediscount_result;
+        $all_feediscount_result = $this->feediscount_model->get();
+        $data['allFeediscountList'] = $all_feediscount_result;
         $genderList            = $this->customlib->getGender();
         $data['genderList']    = $genderList;
         $RTEstatusList         = $this->customlib->getRteStatus();

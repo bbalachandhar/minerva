@@ -71,8 +71,13 @@ class Section_model extends MY_Model {
             $this->db->select('class_sections.id,class_sections.section_id,sections.section');
             $this->db->from('class_sections');
             $this->db->join('sections', 'sections.id = class_sections.section_id');
-            $this->db->where('class_sections.class_id', $classid);
-            $this->db->order_by('class_sections.id');
+            if (is_array($classid)) {
+                $this->db->where_in('class_sections.class_id', $classid);
+            } else {
+                $this->db->where('class_sections.class_id', $classid);
+            }
+            $this->db->group_by('sections.section'); // Added this line
+            $this->db->order_by('sections.section'); // Changed order by to section name for better grouping
             $query = $this->db->get();
             $section = $query->result_array();
         }
