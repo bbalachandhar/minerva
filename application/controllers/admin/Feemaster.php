@@ -114,9 +114,234 @@ class Feemaster extends Admin_Controller
             }
             }          
 
-            echo json_encode(array('status' => 1, 'msg' => "successfully_saved", 'error' => ''));                    
+            echo json_encode(array('status' => 1, 'msg' => $this->lang->line('success_message'), 'error' => ''));  
         }
+    }
 
+    public function bulk_import()
+    {
+        if (!$this->rbac->hasPrivilege('fees_master', 'can_add')) {
+            access_denied();
+        }
+        $this->session->set_userdata('top_menu', 'Fees Collection');
+        $this->session->set_userdata('sub_menu', 'admin/feemaster');
+
+        $data['title'] = $this->lang->line('bulk_import_fees_master');
+
+        $this->form_validation->set_rules('file', $this->lang->line('file'), 'callback_handle_csv_upload');
+
+        if ($this->form_validation->run() == false) {
+            $this->load->view('layout/header', $data);
+            $this->load->view('admin/feemaster/feemasterBulkImport', $data);
+            $this->load->view('layout/footer', $data);
+        } else {
+            if (isset($_FILES["file"]) && !empty($_FILES['file']['name'])) {
+                $ext = pathinfo($_FILES['file']['name'], PATHINFO_EXTENSION);
+                if ($ext == 'csv') {
+                    $file = $_FILES['file']['tmp_name'];
+                    $handle = fopen($file, "r");
+                    $header = fgetcsv($handle, 1000, ",");
+
+                    $has_fee_group_name_header = false;
+                    $has_fee_type_name_header = false;
+                    $has_amount_header = false;
+                    $has_due_date_header = false;
+                    $has_fine_type_header = false;
+                    $has_percentage_header = false;
+                    $has_fix_amount_header = false;
+
+                    foreach ($header as $header_key => $header_value) {
+                        if (trim(strtolower($header_value)) === 'fee_group_name') {
+                            $has_fee_group_name_header = true;
+                        } elseif (trim(strtolower($header_value)) === 'fee_type_name') {
+                            $has_fee_type_name_header = true;
+                        } elseif (trim(strtolower($header_value)) === 'amount') {
+                            $has_amount_header = true;
+                        } elseif (trim(strtolower($header_value)) === 'due_date') {
+                            $has_due_date_header = true;
+                        } elseif (trim(strtolower($header_value)) === 'fine_type') {
+                            $has_fine_type_header = true;
+                        } elseif (trim(strtolower($header_value)) === 'percentage') {
+                            $has_percentage_header = true;
+                        } elseif (trim(strtolower($header_value)) === 'fix_amount') {
+                            $has_fix_amount_header = true;
+                        }
+                    }
+
+                    if (!$has_fee_group_name_header || !$has_fee_type_name_header || !$has_amount_header || !$has_due_date_header || !$has_fine_type_header || !$has_percentage_header || !$has_fix_amount_header) {
+                        $this->session->set_flashdata('msg', '<div class="alert alert-danger text-left">' . $this->lang->line('csv_file_header_error') . '</div>');
+                        redirect('admin/feemaster/bulk_import');
+                    }
+
+                    while (($row = fgetcsv($handle, 1000, ",")) !== FALSE) {
+                        if (count($header) == count($row)) {
+                            $feemasters[] = array_combine($header, $row);
+                        }
+                    }
+                    fclose($handle);
+
+                    if (!empty($feemasters)) {
+                        $imported_count = 0;
+                        $failed_records = [];
+
+                        foreach ($feemasters as $feemaster_data) {
+                            $fee_group_name = isset($feemaster_data['fee_group_name']) ? trim($feemaster_data['fee_group_name']) : '';
+                            $fee_type_name = isset($feemaster_data['fee_type_name']) ? trim($feemaster_data['fee_type_name']) : '';
+                            $amount = isset($feemaster_data['amount']) ? trim($feemaster_data['amount']) : '';
+                            $due_date = isset($feemaster_data['due_date']) ? trim($feemaster_data['due_date']) : '';
+                            $fine_type = isset($feemaster_data['fine_type']) ? trim(strtolower($feemaster_data['fine_type'])) : 'none';
+                            $percentage = isset($feemaster_data['percentage']) ? trim($feemaster_data['percentage']) : 0;
+                            $fix_amount = isset($feemaster_data['fix_amount']) ? trim($feemaster_data['fix_amount']) : 0;
+
+                            if (empty($fee_group_name)) {
+                                $feemaster_data['reason'] = $this->lang->line('missing_fee_group_name');
+                                $failed_records[] = $feemaster_data;
+                                continue;
+                            }
+                            if (empty($fee_type_name)) {
+                                $feemaster_data['reason'] = $this->lang->line('missing_fee_type_name');
+                                $failed_records[] = $feemaster_data;
+                                continue;
+                            }
+                            if (empty($amount)) {
+                                $feemaster_data['reason'] = $this->lang->line('missing_amount');
+                                $failed_records[] = $feemaster_data;
+                                continue;
+                            }
+                            if (empty($due_date)) {
+                                $feemaster_data['reason'] = $this->lang->line('missing_due_date');
+                                $failed_records[] = $feemaster_data;
+                                continue;
+                            }
+
+                            if ($fine_type !== 'none') {
+                                if ($fine_type === 'percentage' && empty($percentage)) {
+                                    $feemaster_data['reason'] = $this->lang->line('missing_percentage_for_fine_type');
+                                    $failed_records[] = $feemaster_data;
+                                    continue;
+                                }
+                                if ($fine_type === 'fix' && empty($fix_amount)) {
+                                    $feemaster_data['reason'] = $this->lang->line('missing_fix_amount_for_fine_type');
+                                    $failed_records[] = $feemaster_data;
+                                    continue;
+                                }
+                            }
+
+                            // Check if fee group exists
+                            $fee_group = $this->feegroup_model->checkGroupExistsByName($fee_group_name);
+                            if (!$fee_group) {
+                                $feemaster_data['reason'] = $this->lang->line('fee_group_not_found') . ': ' . $fee_group_name;
+                                $failed_records[] = $feemaster_data;
+                                continue;
+                            }
+
+                            // Check if fee type exists
+                            $fee_type = $this->feetype_model->checkFeetypeByName($fee_type_name); 
+                            if (!$fee_type) {
+                                $feemaster_data['reason'] = $this->lang->line('fee_type_not_found') . ': ' . $fee_type_name;
+                                $failed_records[] = $feemaster_data;
+                                continue;
+                            }
+
+                            // Prepare data for upsert
+                            $insert_array = array(
+                                'fee_groups_id'   => $fee_group->id,
+                                'feetype_id'      => $fee_type->id,
+                                'amount'          => convertCurrencyFormatToBaseAmount($amount),
+                                'due_date'        => $this->customlib->dateFormatToYYYYMMDD($due_date),
+                                'session_id'      => $this->setting_model->getCurrentSession(),
+                                'fine_type'       => $fine_type,
+                                'fine_percentage' => ($fine_type === 'percentage') ? $percentage : 0,
+                                'fine_amount'     => ($fine_type === 'fix') ? convertCurrencyFormatToBaseAmount($fix_amount) : 0,
+                                'fine_per_day'    => 0, // Assuming fine_per_day is not part of bulk import for now
+                            );
+
+                            // Check if fee master record already exists for upsert
+                            $existing_feemaster = $this->feesessiongroup_model->check_exists($fee_group->id, $fee_type->id); 
+                            if ($existing_feemaster) {
+                                $insert_array['id'] = $existing_feemaster->id;
+                                $this->feesessiongroup_model->add($insert_array); 
+                            } else {
+                                $this->feesessiongroup_model->add($insert_array);
+                            }
+                            $imported_count++;
+                        }
+
+                        $message = '<div class="alert alert-success text-left">' . $imported_count . ' ' . $this->lang->line('records_imported_successfully') . '.</div>';
+
+                        if (!empty($failed_records)) {
+                            $message .= '<div class="alert alert-warning text-left">' . count($failed_records) . ' ' . $this->lang->line('records_not_imported') . ':<br>';
+                            foreach ($failed_records as $record) {
+                                $message .= 'Fee Group: ' . (isset($record['fee_group_name']) ? $record['fee_group_name'] : '') . ', Fee Type: ' . (isset($record['fee_type_name']) ? $record['fee_type_name'] : '') . ', Amount: ' . (isset($record['amount']) ? $record['amount'] : '') . ', Due Date: ' . (isset($record['due_date']) ? $record['due_date'] : '') . ', Fine Type: ' . (isset($record['fine_type']) ? $record['fine_type'] : '') . ', Percentage: ' . (isset($record['percentage']) ? $record['percentage'] : '') . ', Fix Amount: ' . (isset($record['fix_amount']) ? $record['fix_amount'] : '') . ' - Reason: ' . $record['reason'] . '<br>';
+                            }
+                            $message .= '</div>';
+                        }
+
+                        $this->session->set_flashdata('msg', $message);
+                        redirect('admin/feemaster/index');
+                    } else {
+                        $this->session->set_flashdata('msg', '<div class="alert alert-danger text-left">' . $this->lang->line('no_record_found') . '</div>');
+                        redirect('admin/feemaster/bulk_import');
+                    }
+                } else {
+                    $this->session->set_flashdata('msg', '<div class="alert alert-danger text-left">' . $this->lang->line('please_upload_csv_file_only') . '</div>');
+                    redirect('admin/feemaster/bulk_import');
+                }
+            } else {
+                $this->session->set_flashdata('msg', '<div class="alert alert-danger text-left">' . $this->lang->line('please_select_file') . '</div>');
+                redirect('admin/feemaster/bulk_import');
+            }
+        }
+    }
+
+    public function handle_csv_upload()
+    {
+        $error = "";
+        if (isset($_FILES["file"]) && !empty($_FILES['file']['name'])) {
+            $allowedExts = array('csv');
+            $mimes       = array(
+                'text/csv',
+                'text/plain',
+                'application/csv',
+                'text/comma-separated-values',
+                'application/excel',
+                'application/vnd.ms-excel',
+                'application/vnd.msexcel',
+                'text/anytext',
+                'application/octet-stream',
+                'application/txt'
+            );
+            $temp      = explode(".", $_FILES["file"]["name"]);
+            $extension = end($temp);
+            if ($_FILES["file"]["error"] > 0) {
+                $error .= "Error opening the file<br />";
+            }
+            if (!in_array($_FILES['file']['type'], $mimes)) {
+                $error .= "Error opening the file<br />";
+                $this->form_validation->set_message('handle_csv_upload', $this->lang->line('file_type_not_allowed'));
+                return false;
+            }
+            if (!in_array($extension, $allowedExts)) {
+                $error .= "Error opening the file<br />";
+                $this->form_validation->set_message('handle_csv_upload', $this->lang->line('extension_not_allowed'));
+                return false;
+            }
+            if ($error == "") {
+                return true;
+            }
+        } else {
+            $this->form_validation->set_message('handle_csv_upload', $this->lang->line('please_select_file'));
+            return false;
+        }
+    }
+
+    public function exportformat()
+    {
+        $this->load->helper('download');
+        $filepath = "./backend/import/import_feemaster_sample_file.csv";
+        $data     = file_get_contents($filepath);
+        $name     = 'import_feemaster_sample_file.csv';
+        force_download($name, $data);
     }
 
     public function get_fee_session_group_id($fee_groups_id){

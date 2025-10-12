@@ -180,10 +180,12 @@
             ?>">
                 <!-- Horizontal Form -->
                 <div class="box box-primary">
-                    <div class="box-header ptbnull">
-                        <h3 class="box-title titlefix"><?php echo $this->lang->line('fees_master_list') . " : " . $this->setting_model->getCurrentSessionName(); ?></h3>
-                    </div><!-- /.box-header -->
-                    <div class="box-body">
+                                            <div class="box-header ptbnull">
+                                                <h3 class="box-title titlefix"><?php echo $this->lang->line('fees_master_list') . " : " . $this->setting_model->getCurrentSessionName(); ?></h3>
+                                                <div class="box-tools pull-right">
+                                                    <a href="<?php echo base_url(); ?>admin/feemaster/bulk_import" class="btn btn-primary btn-sm"><i class="fa fa-upload"></i> <?php echo $this->lang->line('bulk_import'); ?></a>
+                                                </div>
+                                            </div><!-- /.box-header -->                    <div class="box-body">
                         <div class="download_label"><?php echo $this->lang->line('fees_master_list') . " : " . $this->setting_model->getCurrentSessionName(); ?></div>
                         <div class="mailbox-messages">
                             <div class="table-responsive">  
