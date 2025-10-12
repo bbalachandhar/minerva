@@ -17,7 +17,7 @@
                     </div>
                     <div class="box-body">
                         <p>1. Your CSV data should be in the format below. The first line of your CSV file should be the column headers as in the table example. Also make sure that your file is UTF-8 to avoid unnecessary encoding problems.</p>
-                        <p>2. The 'fee_group_name', 'fee_type_name', 'amount', and 'due_date' fields are mandatory. 'fine_type' can be 'none', 'percentage', or 'fix'. If 'fine_type' is 'percentage', then 'percentage' field is mandatory. If 'fine_type' is 'fix', then 'fix_amount' field is mandatory.</p>
+                        <p>2. The 'fee_group_name', 'fee_type_name', and 'amount' fields are mandatory. 'fine_type' can be 'none', 'percentage', or 'fix'. If 'fine_type' is 'percentage', then 'percentage' field is mandatory. If 'fine_type' is 'fix', then 'fix_amount' field is mandatory.</p>
                         <hr/>
                     </div>
                     <div class="box-body table-responsive">
@@ -27,7 +27,7 @@
                                     <th><?php echo $this->lang->line('fee_group_name'); ?>*</th>
                                     <th><?php echo $this->lang->line('fee_type_name'); ?>*</th>
                                     <th><?php echo $this->lang->line('amount'); ?>*</th>
-                                    <th><?php echo $this->lang->line('due_date'); ?>*</th>
+                                    <th><?php echo $this->lang->line('due_date'); ?></th>
                                     <th><?php echo $this->lang->line('fine_type'); ?></th>
                                     <th><?php echo $this->lang->line('percentage'); ?></th>
                                     <th><?php echo $this->lang->line('fix_amount'); ?></th>

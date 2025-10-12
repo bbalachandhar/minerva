@@ -73,7 +73,7 @@ class Feesforward extends Admin_Controller
 
                 $data['student_due_fee'] = $student_Array->student_Array;
                 $data['is_update']       = $student_Array->is_update;
-                $this->form_validation->set_rules('due_date', $this->lang->line('date'), 'required');
+                $this->form_validation->set_rules('due_date', $this->lang->line('date'), 'trim|xss_clean');
                 $counter = $this->input->post('student_counter');
                 if ($this->form_validation->run() == true) {
 

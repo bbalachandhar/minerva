@@ -18,14 +18,24 @@ class Feesessiongroup_model extends MY_Model
         $this->db->trans_start(); # Starting Transaction
         $this->db->trans_strict(false); # See Note 01. If you wish can remove as well
         //=======================Code Start===========================
-        $parentid                     = $this->group_exists($data['fee_groups_id']);
+        $parentid = $this->group_exists($data['fee_groups_id']);
         $data['fee_session_group_id'] = $parentid;
-        $this->db->insert('fee_groups_feetype', $data);
-        $id        = $this->db->insert_id();
-        $message   = INSERT_RECORD_CONSTANT . " On  fee groups feetype id " . $id;
-        $action    = "Insert";
-        $record_id = $id;
-        $this->log($message, $record_id, $action);
+
+        if (isset($data['id']) && $data['id'] > 0) {
+            $this->db->where('id', $data['id']);
+            $this->db->update('fee_groups_feetype', $data);
+            $message   = UPDATE_RECORD_CONSTANT . " On fee groups feetype id " . $data['id'];
+            $action    = "Update";
+            $record_id = $data['id'];
+            $this->log($message, $record_id, $action);
+        } else {
+            $this->db->insert('fee_groups_feetype', $data);
+            $id        = $this->db->insert_id();
+            $message   = INSERT_RECORD_CONSTANT . " On  fee groups feetype id " . $id;
+            $action    = "Insert";
+            $record_id = $id;
+            $this->log($message, $record_id, $action);
+        }
         //======================Code End==============================
 
         $this->db->trans_complete(); # Completing transaction
@@ -176,7 +186,7 @@ class Feesessiongroup_model extends MY_Model
         $q = $this->db->get('fee_groups_feetype');
 
         if ($q->num_rows() > 0) {
-            return $q->row()->id;
+            return $q->row();
         } else {
             return false;
         }
@@ -356,11 +366,4 @@ class Feesessiongroup_model extends MY_Model
             //return $return_value;
         }
     }
-
-
-
-
-
-     
-
 }

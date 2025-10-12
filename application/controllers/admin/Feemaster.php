@@ -43,11 +43,11 @@ class Feemaster extends Admin_Controller
 
         if (isset($_POST['account_type']) && $_POST['account_type'] == 'fix') {
             $this->form_validation->set_rules('fine_amount', $this->lang->line('fix_amount'), 'required|numeric');
-            $this->form_validation->set_rules('due_date', $this->lang->line('due_date'), 'trim|required|xss_clean');
+            $this->form_validation->set_rules('due_date', $this->lang->line('due_date'), 'trim|xss_clean');
         } elseif (isset($_POST['account_type']) && ($_POST['account_type'] == 'percentage')) {
             $this->form_validation->set_rules('fine_percentage', $this->lang->line('percentage'), 'required|numeric');
             $this->form_validation->set_rules('fine_amount', $this->lang->line('fix_amount'), 'required|numeric');
-            $this->form_validation->set_rules('due_date', $this->lang->line('due_date'), 'trim|required|xss_clean');
+            $this->form_validation->set_rules('due_date', $this->lang->line('due_date'), 'trim|xss_clean');
         }
 
         if($_POST['account_type'] == 'cumulative'){
@@ -168,7 +168,7 @@ class Feemaster extends Admin_Controller
                         }
                     }
 
-                    if (!$has_fee_group_name_header || !$has_fee_type_name_header || !$has_amount_header || !$has_due_date_header || !$has_fine_type_header || !$has_percentage_header || !$has_fix_amount_header) {
+                    if (!$has_fee_group_name_header || !$has_fee_type_name_header || !$has_amount_header) {
                         $this->session->set_flashdata('msg', '<div class="alert alert-danger text-left">' . $this->lang->line('csv_file_header_error') . '</div>');
                         redirect('admin/feemaster/bulk_import');
                     }
@@ -208,11 +208,7 @@ class Feemaster extends Admin_Controller
                                 $failed_records[] = $feemaster_data;
                                 continue;
                             }
-                            if (empty($due_date)) {
-                                $feemaster_data['reason'] = $this->lang->line('missing_due_date');
-                                $failed_records[] = $feemaster_data;
-                                continue;
-                            }
+
 
                             if ($fine_type !== 'none') {
                                 if ($fine_type === 'percentage' && empty($percentage)) {
@@ -257,7 +253,8 @@ class Feemaster extends Admin_Controller
                             );
 
                             // Check if fee master record already exists for upsert
-                            $existing_feemaster = $this->feesessiongroup_model->check_exists($fee_group->id, $fee_type->id); 
+                            $fee_session_group_id = $this->feesessiongroup_model->group_exists($fee_group->id);
+                            $existing_feemaster = $this->feesessiongroup_model->checkExists(['fee_session_group_id' => $fee_session_group_id, 'fee_groups_id' => $fee_group->id, 'feetype_id' => $fee_type->id]);
                             if ($existing_feemaster) {
                                 $insert_array['id'] = $existing_feemaster->id;
                                 $this->feesessiongroup_model->add($insert_array); 
@@ -409,11 +406,11 @@ class Feemaster extends Admin_Controller
 
         if (isset($_POST['account_type']) && $_POST['account_type'] == 'fix') {
             $this->form_validation->set_rules('fine_amount', $this->lang->line('fix_amount'), 'required|numeric');
-            $this->form_validation->set_rules('due_date', $this->lang->line('due_date'), 'trim|required|xss_clean');
+            $this->form_validation->set_rules('due_date', $this->lang->line('due_date'), 'trim|xss_clean');
         } elseif (isset($_POST['account_type']) && ($_POST['account_type'] == 'percentage')) {
             $this->form_validation->set_rules('fine_percentage', $this->lang->line('percentage'), 'required|numeric');
             $this->form_validation->set_rules('fine_amount', $this->lang->line('fix_amount'), 'required|numeric');
-            $this->form_validation->set_rules('due_date', $this->lang->line('due_date'), 'trim|required|xss_clean');
+            $this->form_validation->set_rules('due_date', $this->lang->line('due_date'), 'trim|xss_clean');
         }
 
         if($_POST['account_type'] == 'cumulative'){

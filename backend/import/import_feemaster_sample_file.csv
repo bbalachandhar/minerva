@@ -1,1 +1,1 @@
-fee_group_name,fee_type_name,amount,due_date
+fee_group_name,fee_type_name,amount,due_date,fine_type,percentage,fix_amount

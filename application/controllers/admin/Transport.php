@@ -43,7 +43,7 @@ class Transport extends Admin_Controller
 
         $month_row = 1;
         foreach ($month_list as $month_key => $month_value) {
-            $this->form_validation->set_rules('due_date_' . $month_row, $this->lang->line('due_date'), 'trim|required|xss_clean');
+            $this->form_validation->set_rules('due_date_' . $month_row, $this->lang->line('due_date'), 'trim|xss_clean');
             $month_row += 1;
         }
         
