@@ -1,6 +1,7 @@
 <?php
 $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
 ?>
+
 <link rel="stylesheet" href="<?php echo base_url(); ?>backend/plugins/datatables/extensions/FixedHeader/css/dataTables.fixedHeader.css">
 <div class="content-wrapper">
     <section class="content-header">
@@ -131,7 +132,24 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                     <?php
                                 }
                                 ?>
-                            </tbody>
+                            <?php if (!empty($student_due_fee)) { ?>
+                             <tfoot>
+                                <tr class="box box-solid total-bg">
+                                    <td></td>
+                                    <td></td>
+                                    <td class="text-right"><?php echo $this->lang->line('grand_total'); ?></td>
+                                    <td class="text-right"><?php echo $currency_symbol . amountFormat($total_last_yr_cf); ?></td>
+                                    <?php foreach ($discount_totals as $total) { ?>
+                                        <td class="text-right"><?php echo $currency_symbol . amountFormat($total); ?></td>
+                                    <?php } ?>
+                                    <td class="text-right"><?php echo $currency_symbol . amountFormat($total_fees); ?></td>
+                                    <td class="text-right"><?php echo $currency_symbol . amountFormat($total_paid); ?></td>
+                                    <td class="text-right"><?php echo $currency_symbol . amountFormat($total_discount); ?></td>
+                                    <td class="text-right"><?php echo $currency_symbol . amountFormat($total_fine); ?></td>
+                                    <td class="text-right"><?php echo $currency_symbol . amountFormat($total_balance); ?></td>
+                                </tr>
+                            </tfoot>
+                            <?php } ?>
                              <tfoot>
                                 <tr class="box box-solid total-bg">
                                     <td></td>
@@ -157,15 +175,15 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
         </div> <!-- /.row -->
     </section> <!-- /.content -->
 </div> <!-- /.content-wrapper -->
-<script src="<?php echo base_url(); ?>backend/plugins/datatables/jquery.dataTables.min.js"></script>
-<script src="<?php echo base_url(); ?>backend/plugins/datatables/extensions/FixedHeader/js/dataTables.fixedHeader.js"></script>
-<script src="<?php echo base_url(); ?>backend/dist/datatables/js/dataTables.buttons.min.js"></script>
-<script src="<?php echo base_url(); ?>backend/dist/datatables/js/buttons.html5.min.js"></script>
-<script src="<?php echo base_url(); ?>backend/dist/datatables/js/buttons.print.min.js"></script>
-<script src="<?php echo base_url(); ?>backend/dist/datatables/js/buttons.colVis.min.js"></script>
-<script src="<?php echo base_url(); ?>backend/dist/datatables/js/jszip.min.js"></script>
-<script src="<?php echo base_url(); ?>backend/dist/datatables/js/pdfmake.min.js"></script>
-<script src="<?php echo base_url(); ?>backend/dist/datatables/js/vfs_fonts.js"></script>
+<script type="text/javascript" src="<?php echo base_url(); ?>backend/dist/datatables/js/jquery.dataTables.min.js"></script>
+<script type="text/javascript" src="<?php echo base_url(); ?>backend/dist/datatables/js/dataTables.buttons.min.js"></script>
+<script type="text/javascript" src="<?php echo base_url(); ?>backend/dist/datatables/js/jszip.min.js"></script>
+<script type="text/javascript" src="<?php echo base_url(); ?>backend/dist/datatables/js/pdfmake.min.js"></script>
+<script type="text/javascript" src="<?php echo base_url(); ?>backend/dist/datatables/js/vfs_fonts.js"></script>
+<script type="text/javascript" src="<?php echo base_url(); ?>backend/dist/datatables/js/buttons.html5.min.js"></script>
+<script type="text/javascript" src="<?php echo base_url(); ?>backend/dist/datatables/js/buttons.print.min.js"></script>
+<script type="text/javascript" src="<?php echo base_url(); ?>backend/dist/datatables/js/buttons.colVis.min.js" ></script>
+<script type="text/javascript" src="<?php echo base_url(); ?>backend/dist/datatables/js/dataTables.responsive.min.js" ></script>
 <script type="text/javascript">
     $(document).ready(function () {
         var class_id = $('#class_id').val();
@@ -217,10 +235,12 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
 
     // DataTable initialization for fixed header/footer and scrolling body
     $('#headerTable').DataTable({
-        "paging": false, // Disable pagination if only scrolling is desired
-        "ordering": false, // Keep current ordering behavior
-        "info": false, // Hide "Showing X of Y entries" info
-        "searching": false, // Keep current searching behavior
+        "paging": false,
+        "ordering": false,
+        "info": false,
+        "searching": false,
+        "scrollY": "300px",
+        "scrollCollapse": true,
         dom: 'Bfrtip',
         buttons: [
             'copy', 'csv', 'excel', 'pdf', 'print'
