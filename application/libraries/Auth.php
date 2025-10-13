@@ -320,7 +320,7 @@ class Auth
     public function app_update()
     {
         $email                       = $this->CI->input->post('email');
-        $envato_market_purchase_code = $this->CI->input->post('envato_market_purchase_code');
+        $envato_market_purchase_code = $this->CI->input->post('beebasoft_market_purchase_code');
         $url                         = $this->CI->enc_lib->dycrypt(DEBUG_SYSTEM_UPDATE);
 
 
@@ -331,8 +331,7 @@ class Auth
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
         curl_setopt($ch, CURLOPT_POST, true);
         $data = array(
-            'email'         => $email,
-            'purchase_code' => $envato_market_purchase_code,
+'purchase_code' => $beebasoft_market_purchase_code,
             'base_url'      => base_url(),
         );
         curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
@@ -368,7 +367,7 @@ class Auth
     public function addon_update_check()
     {
         $this->CI->load->model('addons_model');
-        $envato_market_purchase_code = $this->CI->input->post('addon_check_update_envato_market_purchase_code');
+        $envato_market_purchase_code = $this->CI->input->post('addon_check_update_beebasoft_market_purchase_code');
         $addon_name = $this->CI->input->post('addon');
         $sslk                        = $this->CI->config->item('SSLK');        
         $url                         =  $this->enc_lib->dycrypt(DEBUG_SYSTEM_ADD_CK);      
@@ -383,9 +382,7 @@ class Auth
         curl_setopt($ch, CURLOPT_POST, true);
         $data = array(
             'sslk'          => $sslk,
-            'purchase_code' => $envato_market_purchase_code,
-            'base_url'      => base_url(),
-            'addon'         => $addon_name,
+'purchase_code' => $beebasoft_market_purchase_code,
             'addon_prod'    => $addon->addon_prod,
             'addon_ver'     => $addon->addon_ver
         );
@@ -417,8 +414,7 @@ class Auth
     }
     public function andapp_update()
     {
-        $email                       = $this->CI->input->post('app-email');
-        $envato_market_purchase_code = $this->CI->input->post('app-envato_market_purchase_code');
+$envato_market_purchase_code = $this->CI->input->post('app-beebasoft_market_purchase_code');
         $sslk                        = $this->CI->config->item('SSLK');
         $url                         = $this->CI->enc_lib->dycrypt(DEBUG_SYSTEM_APP);
         $ch                          = curl_init();
@@ -430,7 +426,7 @@ class Auth
         $data = array(
             'email'         => $email,
             'sslk'          => $sslk,
-            'purchase_code' => $envato_market_purchase_code,
+    'purchase_code' => $beebasoft_market_purchase_code,
             'base_url'      => base_url(),
         );
         curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
@@ -502,7 +498,7 @@ class Auth
         $email                       = $this->CI->input->post('app-email');
         $addon                       = $this->CI->input->post('addon');
         $addon_version               = $this->CI->input->post('addon_version');
-        $envato_market_purchase_code = $this->CI->input->post('app-envato_market_purchase_code');
+        $envato_market_purchase_code = $this->CI->input->post('app-beebasoft_market_purchase_code');
         $sslk                        = $this->CI->config->item('SSLK');
         $url                         = $this->CI->enc_lib->dycrypt(DEBUG_SYSTEM_ADDON);
         $ch                          = curl_init();
@@ -513,9 +509,7 @@ class Auth
         curl_setopt($ch, CURLOPT_POST, true);
         $data = array(
             'email'         => $email,
-            'sslk'          => $sslk,
-            'purchase_code' => $envato_market_purchase_code,
-            'addon_version' => $addon_version,
+'purchase_code' => $beebasoft_market_purchase_code,
             'addon'         => $addon,
             'base_url'      => base_url(),
         );

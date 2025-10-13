@@ -13,13 +13,13 @@
                     <input type="hidden" name="addon" class="addon_type" value="">
                     <input type="hidden" name="addon_version" class="addon_version" value="0">
                     <div class="form-group">
-                        <label class="ainline"><span>Envato Market Purchase Code for Addon ( <a target="_blank" href="https://help.market.envato.com/hc/en-us/articles/202822600-Where-Is-My-Purchase-Code-"> How to find it?</a> )</span></label>
-                        <input type="text" class="form-control" id="input-app-envato_market_purchase_code" name="app-envato_market_purchase_code">
+                        <label class="ainline"><span>BEEBASOFT Market Purchase Code for Addon ( <a target="_blank" href="https://help.market.beebasoft.com/hc/en-us/articles/202822600-Where-Is-My-Purchase-Code-"> How to find it?</a> )</span></label>
+                        <input type="text" class="form-control" id="input-app-beebasoft_market_purchase_code" name="app-beebasoft_market_purchase_code">
                         <div id="error" class="input-error text text-danger"></div>
                     </div>
 
                     <div class="form-group">
-                        <label for="exampleInputEmail1">Your Email registered with Envato</label>
+                        <label for="exampleInputEmail1">Your Email registered with BEEBASOFT</label>
                         <input type="text" class="form-control" id="input-app-email" name="app-email">
                         <div id="error" class="input-error text text-danger"></div>
                     </div>

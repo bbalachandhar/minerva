@@ -14,13 +14,13 @@
 
                     </div>
                     <div class="form-group">
-                        <label class="ainline"><span>Envato Market Purchase Code for Smart School ( <a target="_blank" href="https://help.market.envato.com/hc/en-us/articles/202822600-Where-Is-My-Purchase-Code-"> How to find it?</a> )</span></label>
-                        <input type="text" class="form-control" id="input-envato_market_purchase_code" name="envato_market_purchase_code">
+                        <label class="ainline"><span>BEEBASOFT Market Purchase Code for Smart School ( <a target="_blank" href="https://help.market.beebasoft.com/hc/en-us/articles/202822600-Where-Is-My-Purchase-Code-"> How to find it?</a> )</span></label>
+                        <input type="text" class="form-control" id="input-beebasoft_market_purchase_code" name="beebasoft_market_purchase_code">
                         <div id="error" class="text text-danger"></div>
                     </div>
 
                     <div class="form-group">
-                        <label for="exampleInputEmail1">Your Email registered with Envato</label>
+                        <label for="exampleInputEmail1">Your Email registered with BEEBASOFT</label>
                         <input type="text" class="form-control" id="input-email" name="email">
                         <div id="error" class="text text-danger"></div>
                     </div>

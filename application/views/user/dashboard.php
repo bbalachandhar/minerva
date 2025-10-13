@@ -9,8 +9,8 @@
 	                <div class="box-body direct-top-equal-scroll-22">
 	                	<div class="row">
 	                		<div class="col-lg-3 col-md-3 col-sm-3">
-								<?php   
-									if (!empty($student_data["image"])) {
+							<?php   
+							if (!empty($student_data["image"])) {
                                         $file = base_url() . $student_data["image"].img_time();
                                     } else {                            
                                         if ($student_data['gender'] == 'Female') {
@@ -19,17 +19,17 @@
                                             $file = base_url() . "uploads/student_images/default_male.jpg".img_time();
                                         }
                                     }
-								?>
+							?>
 							
-	                			<img src="<?php echo $file.''.img_time(); ?>" class="img-rounded img-responsive img-h-150 mb-xs-1">						
-								
-								
-											
-											
+	                		<img src="<?php echo $file.''.img_time(); ?>" class="img-rounded img-responsive img-h-150 mb-xs-1">						
+							
+							
+							
+							
 	                		</div><!--./col-lg-3-->
 	                		<div class="col-lg-9 col-md-9 col-sm-9">
 								
-								<?php 								
+								<?php 							
 								if($attendence_percentage == '-1' ){ ?>
 								
 									<h4 class="mt0"><?php echo $this->lang->line('welcome'); ?>, <?php echo $studentsession_username; ?></h4>
@@ -93,14 +93,14 @@
 					                </a><?php } ?>
 									</div>                
 
-			            		</div>   
+	            				</div>   
 				               
 			                </li><!-- /.item -->
 			            <?php } } ?>
-			                
+	                
 			            </ul>  
 						<?php }else{ ?>
-							<img src="https://smart-school.in/ssappresource/images/addnewitem.svg"  width="150" class="center-block mt20">
+							<img src="https://beebasoft.com/ssappresource/images/addnewitem.svg"  width="150" class="center-block mt20">
 						<?php } ?>
                     </div>                   
                 </div>	 
@@ -142,7 +142,7 @@
                     			
                     		</table>
 							<?php }else{  ?>
-								<img src="https://smart-school.in/ssappresource/images/addnewitem.svg"  width="150" class="center-block mt20">
+								<img src="https://beebasoft.com/ssappresource/images/addnewitem.svg"  width="150" class="center-block mt20">
 							<?php } ?>
                     	</div>
                     </div>
@@ -214,7 +214,7 @@
 			               
 			            </ul>
 						<?php }else{  ?>
-							<img src="https://smart-school.in/ssappresource/images/addnewitem.svg"  width="150" class="center-block mt20">
+							<img src="https://beebasoft.com/ssappresource/images/addnewitem.svg"  width="150" class="center-block mt20">
 						<?php } ?>
                     </div>
                 </div>
@@ -269,10 +269,10 @@
 					            </div>
 			            		</div> 
 			                </li><!-- /.item -->
-			            <?php } } ?>			                
+			            <?php } } ?>	                
 			            </ul> 
 						<?php }else{ ?>
-							<img src="https://smart-school.in/ssappresource/images/addnewitem.svg"  width="150" class="center-block mt20">
+							<img src="https://beebasoft.com/ssappresource/images/addnewitem.svg"  width="150" class="center-block mt20">
 						<?php } ?>
                     </div>
                 </div>
@@ -293,12 +293,12 @@
                     <div class="box-body direct-chat-messages">                    	
 						<?php  					 
 						 
-							if(!empty($teacherlist)){   
-								
+						if(!empty($teacherlist)){   
+							
 						?>
                     	<ul class="user-progress ps">
-                    		<?php foreach ($teacherlist as $teacher) {							 
-								
+                    		<?php foreach ($teacherlist as $teacher) {							
+							
 								$class_teacher = '';
 							
 								if ($teacher[0]->class_teacher == $teacher[0]->staff_id) {
@@ -329,10 +329,10 @@
 			            		</div>  
 			                </li>
 							
-			                <?php } ?>		            		                
+			                <?php } ?>		            	                
 			            </ul> 
 						<?php  }else{ ?>
-							<img src="https://smart-school.in/ssappresource/images/addnewitem.svg"  width="150" class="center-block mt20">
+							<img src="https://beebasoft.com/ssappresource/images/addnewitem.svg"  width="150" class="center-block mt20">
 						<?php } ?>
                     </div>
                 </div>
@@ -347,7 +347,7 @@
                     </div>
                     <div class="box-body direct-chat-messages">
 						<?php if(!empty($visitor_list)){ ?>
-                    	<ul class="user-progress ps">                    		 
+                    	<ul class="user-progress ps">                    	 
 	                    <?php 
 							foreach($visitor_list as $visitor_value){
 							?>
@@ -361,11 +361,11 @@
 			            		</div> 			               
 			                </li><!-- /.item -->
 			            <?php } ?>
-			                
+	                
 			            </ul>
 						<?php }else{ ?>
 						
-						<img src="https://smart-school.in/ssappresource/images/addnewitem.svg"  width="150" class="center-block mt20">
+						<img src="https://beebasoft.com/ssappresource/images/addnewitem.svg"  width="150" class="center-block mt20">
 						
 						<?php } ?>					
                     </div>                   
@@ -386,16 +386,15 @@
                     			<tr class="active">
                     				<th><?php echo $this->lang->line('book_no')?></th>
                     				<th><?php echo $this->lang->line('book_title')?></th>
-                    				<th><?php echo $this->lang->line('issue_date')?></th>                    				 
+                    				<th><?php echo $this->lang->line('issue_date')?></th>                    			 
                     				<th><?php echo $this->lang->line('due_return')?></th>
                     			</tr>                    			
                                 <tbody>
                                 <?php if (empty($bookList)) { ?>
 									<tr>
-										<td colspan="6">
-											<img src="https://smart-school.in/ssappresource/images/addnewitem.svg"  width="150" class="center-block mt20">
-										</td>
-									</tr>
+										                                        <td colspan="6">
+											<img src="https://beebasoft.com/ssappresource/images/addnewitem.svg"  width="150" class="center-block mt20">
+										</td>									</tr>
                                 <?php
                                     } else {									 
 									foreach($bookList as $key => $value){ 
@@ -434,4 +433,4 @@
 		
 		</div><!--./row--> 
 	</section>
-</div>		
+</div>

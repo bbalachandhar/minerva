@@ -131,12 +131,12 @@
                     <div class="error_message">
                     </div>
                     <div class="form-group">
-                        <label class="ainline"><span><?php echo $this->lang->line('envato_market_purchase_code_for_smart_school_android_app') ?> ( <a target="_blank" href="https://help.market.envato.com/hc/en-us/articles/202822600-Where-Is-My-Purchase-Code-"> <?php echo $this->lang->line('how_to_find_it') ?></a> )</span></label>
-                        <input type="text" class="form-control" id="input-app-envato_market_purchase_code" name="app-envato_market_purchase_code">
+                        <label class="ainline"><span><?php echo $this->lang->line('envato_market_purchase_code_for_smart_school_android_app') ?> ( <a target="_blank" href="https://help.market.beebasoft.com/hc/en-us/articles/202822600-Where-Is-My-Purchase-Code-"> <?php echo $this->lang->line('how_to_find_it') ?></a> )</span></label>
+                        <input type="text" class="form-control" id="input-app-beebasoft_market_purchase_code" name="app-beebasoft_market_purchase_code">
                         <div id="error" class="input-error text text-danger"></div>
                     </div>
                     <div class="form-group">
-                        <label for="exampleInputEmail1"><?php echo $this->lang->line('your_email_registered_with_envato') ?></label>
+                        <label for="exampleInputEmail1"><?php echo $this->lang->line('your_email_registered_with_beebasoft') ?></label>
                         <input type="text" class="form-control" id="input-app-email" name="app-email">
                         <div id="error" class="input-error text text-danger"></div>
                     </div>
