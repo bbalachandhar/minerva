@@ -373,11 +373,9 @@ class Feemaster extends Admin_Controller
         $this->session->set_userdata('sub_menu', 'admin/feemaster');
         $data['id']              = $id;
         $feegroup_details = $this->feegroup_model->get($id);
-        log_message('debug', 'Feemaster::assign - feegroup_details type: ' . gettype($feegroup_details));
-        if (is_array($feegroup_details) || is_object($feegroup_details)) {
-            log_message('debug', 'Feemaster::assign - feegroup_details content: ' . print_r($feegroup_details, true));
+        if ($feegroup_details) {
+            $data['feegroup_name'] = $feegroup_details['name'];
         }
-        $data['feegroup_name'] = $feegroup_details['name'];
         $cumulative_fine            =   $this->feesessiongroup_model->get_cumulative_fine($id);
         $data['cumulative_fine']    =   $cumulative_fine;
         $feegroup_type              =   $this->feegrouptype_model->get($id);
@@ -532,7 +530,9 @@ class Feemaster extends Admin_Controller
 
             if($feegroup_id){
                 $feegroup_details = $this->feegroup_model->get($feegroup_id);
-                $data['feegroup_name'] = $feegroup_details['name'];
+                if ($feegroup_details) {
+                    $data['feegroup_name'] = $feegroup_details['name'];
+                }
                 $data['selected_feegroup_details'] = $this->feesessiongroup_model->getFeesByGroup($feegroup_id);
             }
 
