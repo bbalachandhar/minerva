@@ -215,17 +215,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
         }
     }
 
-    // DataTable initialization for fixed header/footer and scrolling body
-    $('#headerTable').DataTable({
-        "paging": false, // Disable pagination if only scrolling is desired
-        "ordering": false, // Keep current ordering behavior
-        "info": false, // Hide "Showing X of Y entries" info
-        "searching": false, // Keep current searching behavior
-        dom: 'Bfrtip',
-        buttons: [
-            'copy', 'csv', 'excel', 'pdf', 'print'
-        ]
-    });
+
 </script>
 
 <style>
