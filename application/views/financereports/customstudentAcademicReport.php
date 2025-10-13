@@ -1,6 +1,7 @@
 <?php
 $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
 ?>
+<link rel="stylesheet" href="<?php echo base_url(); ?>backend/plugins/datatables/extensions/FixedHeader/css/dataTables.fixedHeader.css">
 <div class="content-wrapper">
     <section class="content-header">
         <h1><i class="fa fa-money"></i> <?php echo $this->lang->line('fees_collection'); ?></h1>
@@ -62,8 +63,9 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                     <div class="box-header ptbnull">
                         <h3 class="box-title titlefix"><i class="fa fa-users"></i> Custom Balance Fees Report</h3>
                     </div>
-                    <div class="box-body table-responsive">
-                        <table class="table table-striped table-hover" id="headerTable">
+                    <div class="box-body">
+                        <div class="dataTables_scrollBody" style="position: relative; overflow: auto; width: 100%; max-height: 300px;">
+                            <table class="table table-striped table-hover" id="headerTable">
                             <thead>
                                 <tr>
                                     <th><?php echo $this->lang->line('student_name'); ?></th>
@@ -147,6 +149,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                 </tr>
                             </tfoot>
                         </table>
+                        </div>
                     </div>
                     <?php } ?>
                 </div> <!-- /.box -->
@@ -154,6 +157,8 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
         </div> <!-- /.row -->
     </section> <!-- /.content -->
 </div> <!-- /.content-wrapper -->
+</script>
+<script src="<?php echo base_url(); ?>backend/plugins/datatables/extensions/FixedHeader/js/dataTables.fixedHeader.js"></script>
 <script type="text/javascript">
     $(document).ready(function () {
         var class_id = $('#class_id').val();
@@ -171,8 +176,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                 dataType: "json",
                 success: function (data) {
                     $.each(data, function (i, obj)
-                    {
-                        div_data += "<option value=" + obj.section_id + ">" + obj.section + "</option>";
+                    {                        div_data += "<option value=" + obj.section_id + ">" + obj.section + "</option>";
                     });
                     $('#section_id').html(div_data);
                 }
@@ -203,4 +207,28 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
             });
         }
     }
+
+    // DataTable initialization for fixed header/footer and scrolling body
+    $('#headerTable').DataTable({
+        "paging": false, // Disable pagination if only scrolling is desired
+        "ordering": false, // Keep current ordering behavior
+        "info": false, // Hide "Showing X of Y entries" info
+        "searching": false // Keep current searching behavior
+    });
 </script>
+
+<style>
+    #headerTable thead {
+        position: sticky;
+        top: 0;
+        z-index: 10; /* Ensure header is above scrolling content */
+        background-color: #f4f4f4; /* Or your table header background color */
+    }
+
+    #headerTable tfoot {
+        position: sticky;
+        bottom: 0;
+        z-index: 10; /* Ensure footer is above scrolling content */
+        background-color: #f4f4f4; /* Or your table footer background color */
+    }
+</style>
