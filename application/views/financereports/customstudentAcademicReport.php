@@ -157,8 +157,15 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
         </div> <!-- /.row -->
     </section> <!-- /.content -->
 </div> <!-- /.content-wrapper -->
-</script>
+<script src="<?php echo base_url(); ?>backend/plugins/datatables/jquery.dataTables.min.js"></script>
 <script src="<?php echo base_url(); ?>backend/plugins/datatables/extensions/FixedHeader/js/dataTables.fixedHeader.js"></script>
+<script src="<?php echo base_url(); ?>backend/dist/datatables/js/dataTables.buttons.min.js"></script>
+<script src="<?php echo base_url(); ?>backend/dist/datatables/js/buttons.html5.min.js"></script>
+<script src="<?php echo base_url(); ?>backend/dist/datatables/js/buttons.print.min.js"></script>
+<script src="<?php echo base_url(); ?>backend/dist/datatables/js/buttons.colVis.min.js"></script>
+<script src="<?php echo base_url(); ?>backend/dist/datatables/js/jszip.min.js"></script>
+<script src="<?php echo base_url(); ?>backend/dist/datatables/js/pdfmake.min.js"></script>
+<script src="<?php echo base_url(); ?>backend/dist/datatables/js/vfs_fonts.js"></script>
 <script type="text/javascript">
     $(document).ready(function () {
         var class_id = $('#class_id').val();
@@ -213,7 +220,11 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
         "paging": false, // Disable pagination if only scrolling is desired
         "ordering": false, // Keep current ordering behavior
         "info": false, // Hide "Showing X of Y entries" info
-        "searching": false // Keep current searching behavior
+        "searching": false, // Keep current searching behavior
+        dom: 'Bfrtip',
+        buttons: [
+            'copy', 'csv', 'excel', 'pdf', 'print'
+        ]
     });
 </script>
 
