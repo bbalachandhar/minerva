@@ -885,7 +885,13 @@ class Admin extends Admin_Controller
     public function updateandappCode()
     {
         $this->form_validation->set_rules('app-email', 'Email', 'required|valid_email|trim|xss_clean');
-'app-beebasoft_market_purchase_code' => form_error('app-beebasoft_market_purchase_code'),
+        $this->form_validation->set_rules('app-beebasoft_market_purchase_code', 'Purchase Code', 'required|trim|xss_clean');
+
+        if ($this->form_validation->run() == false) {
+            $data = array(
+                'app-email'                       => form_error('app-email'),
+                'app-beebasoft_market_purchase_code' => form_error('app-beebasoft_market_purchase_code'),
+            );
             $array = array('status' => '2', 'error' => $data);
 
             return $this->output
@@ -980,7 +986,7 @@ class Admin extends Admin_Controller
 
             $data = array(
                 'app-email'                       => form_error('app-email'),
-                'app-beebasoft_market_purchase_code' => form_error('app-beebasoft_market_purchase_code'),
+        'app-beebasoft_market_purchase_code' => form_error('app-beebasoft_market_purchase_code'),
             );
 
             $array = array('status' => '2', 'error' => $data);
