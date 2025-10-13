@@ -27,12 +27,12 @@ class Admin extends Admin_Controller
     public function updateAddonVerify()
     {
         $this->form_validation->set_rules('addon', 'Addon', 'required|trim|xss_clean');
-        $this->form_validation->set_rules('addon_check_update_envato_market_purchase_code', 'Purchase Code', 'required|trim|xss_clean');
+        $this->form_validation->set_rules('addon_check_update_beebasoft_market_purchase_code', 'Purchase Code', 'required|trim|xss_clean');
 
         if ($this->form_validation->run() == false) {
             $data = array(
                 'addon'                       => form_error('addon'),
-                'addon_check_update_envato_market_purchase_code' => form_error('addon_check_update_envato_market_purchase_code'),
+                'addon_check_update_beebasoft_market_purchase_code' => form_error('addon_check_update_beebasoft_market_purchase_code'),
             );
             $array = array('status' => '0', 'error' => $data);
 
@@ -501,11 +501,11 @@ class Admin extends Admin_Controller
     public function updatePurchaseCode()
     {
         $this->form_validation->set_rules('email', $this->lang->line('email'), 'required|valid_email|trim|xss_clean');
-        $this->form_validation->set_rules('envato_market_purchase_code', $this->lang->line('purchase_code'), 'required|trim|xss_clean');
+        $this->form_validation->set_rules('beebasoft_market_purchase_code', $this->lang->line('purchase_code'), 'required|trim|xss_clean');
         if ($this->form_validation->run() == false) {
             $data = array(
                 'email'                       => form_error('email'),
-                'envato_market_purchase_code' => form_error('envato_market_purchase_code'),
+                'beebasoft_market_purchase_code' => form_error('beebasoft_market_purchase_code'),
             );
             $array = array('status' => '2', 'error' => $data);
 
@@ -885,13 +885,7 @@ class Admin extends Admin_Controller
     public function updateandappCode()
     {
         $this->form_validation->set_rules('app-email', 'Email', 'required|valid_email|trim|xss_clean');
-        $this->form_validation->set_rules('app-envato_market_purchase_code', 'Purchase Code', 'required|trim|xss_clean');
-
-        if ($this->form_validation->run() == false) {
-            $data = array(
-                'app-email'                       => form_error('app-email'),
-                'app-envato_market_purchase_code' => form_error('app-envato_market_purchase_code'),
-            );
+'app-beebasoft_market_purchase_code' => form_error('app-beebasoft_market_purchase_code'),
             $array = array('status' => '2', 'error' => $data);
 
             return $this->output
@@ -980,13 +974,13 @@ class Admin extends Admin_Controller
     public function updateaddon()
     {
         $this->form_validation->set_rules('app-email', $this->lang->line('email'), 'required|valid_email|trim|xss_clean');
-        $this->form_validation->set_rules('app-envato_market_purchase_code', $this->lang->line('purchase_code'), 'required|trim|xss_clean');
+        $this->form_validation->set_rules('app-beebasoft_market_purchase_code', $this->lang->line('purchase_code'), 'required|trim|xss_clean');
 
         if ($this->form_validation->run() == false) {
 
             $data = array(
                 'app-email'                       => form_error('app-email'),
-                'app-envato_market_purchase_code' => form_error('app-envato_market_purchase_code'),
+                'app-beebasoft_market_purchase_code' => form_error('app-beebasoft_market_purchase_code'),
             );
 
             $array = array('status' => '2', 'error' => $data);

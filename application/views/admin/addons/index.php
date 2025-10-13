@@ -94,8 +94,8 @@
                     <input type="hidden" name="addon" class="addon_name" value="">
                     <input type="hidden" name="product_id" class="product_id" value="">
                     <div class="form-group">
-                        <label class="ainline"><span>Envato Market Purchase Code for Addon Update ( <a target="_blank" href="https://help.market.envato.com/hc/en-us/articles/202822600-Where-Is-My-Purchase-Code-"> How to find it?</a> )</span></label>
-                        <input type="text" class="form-control" id="input-addon_check_update_envato_market_purchase_code" name="addon_check_update_envato_market_purchase_code">
+                        <label class="ainline"><span>BEEBASOFT Market Purchase Code for Addon Update ( <a target="_blank" href="https://help.market.beebasoft.com/hc/en-us/articles/202822600-Where-Is-My-Purchase-Code-"> How to find it?</a> )</span></label>
+                        <input type="text" class="form-control" id="input-addon_check_update_beebasoft_market_purchase_code" name="addon_check_update_beebasoft_market_purchase_code">
                         <div id="error" class="input-error text text-danger"></div>
                     </div>
 

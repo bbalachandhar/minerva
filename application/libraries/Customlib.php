@@ -944,7 +944,7 @@ class Customlib
     public function getAppVersion()
     {
         //Build: 250225
-        $appVersion = "7.1.0";
+        $appVersion = "1.0";
         return $appVersion;
     }
 
