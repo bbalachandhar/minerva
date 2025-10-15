@@ -78,8 +78,7 @@ $this->load->view('layout/theme');
                 color: white !important;
             }
             </style>
-                    </head>    <body class="hold-transition skin-blue fixed sidebar-mini">
-
+                    </head>    <body class="skin-blue fixed sidebar-mini">
 
 <script>
 
