@@ -296,7 +296,7 @@ if (!function_exists('main_menu_array')) {
             ),            
             
             'reports' => array(  
-                'report'            => array('alumnireport','inventory','issueinventory','additem','inventorystock','library','studentbookissuereport','bookduereport','bookinventory','human_resource','staff_report','lesson_plan','teachersyllabusstatus','onlineexamrank','onlineexamattend','onlineexams','attendance','studentinformation','studentreport','online_admission_report','student_teacher_ratio','boys_girls_ratio','student_profile','sibling_report','admission_report','class_subject','classsectionreport','guardianreport','admissionreport','logindetailreport','parentlogindetailreport'),                
+                'report'            => array('alumnireport','inventory','issueinventory','additem','inventorystock','library','studentbookissuereport','bookduereport','bookinventory','human_resource','staff_report','lesson_plan','teachersyllabusstatus','onlineexamrank','onlineexamattend','onlineexams','attendance','studentinformation','studentreport','communitybasedreport','online_admission_report','student_teacher_ratio','boys_girls_ratio','student_profile','sibling_report','admission_report','class_subject','classsectionreport','guardianreport','admissionreport','logindetailreport','parentlogindetailreport'),                
                 'attendencereports' => array('attendance','classattendencereport','attendancereport','daily_attendance_report','staffattendancereport','biometric_attlog','reportbymonthstudent','reportbymonth','staffdaywiseattendancereport','daywiseattendancereport'), 
                 'payroll'           => array('payrollreport'), 
                 'onlineexam'        => array('report'),  

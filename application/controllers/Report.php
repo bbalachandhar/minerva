@@ -2035,6 +2035,34 @@ class Report extends Admin_Controller
         $this->load->view('layout/footer', $data);
     }
 
+    public function communitybasedreport()
+    {
+        if (!$this->rbac->hasPrivilege('student_report', 'can_view')) {
+            access_denied();
+        }
+
+        $this->session->set_userdata('top_menu', 'Reports');
+        $this->session->set_userdata('sub_menu', 'Reports/student_information');
+        $this->session->set_userdata('subsub_menu', 'Reports/student_information/community_based_report');
+        $data['title']           = 'Community Based Report';
+        $genderList              = $this->customlib->getGender();
+        $data['genderList']      = $genderList;
+        $RTEstatusList           = $this->customlib->getRteStatus();
+        $data['RTEstatusList']   = $RTEstatusList;
+        $class                   = $this->class_model->get();
+        $data['classlist']       = $class;
+        $data['sch_setting']     = $this->sch_setting_detail;
+        $data['adm_auto_insert'] = $this->sch_setting_detail->adm_auto_insert;
+        $userdata                = $this->customlib->getUserData();
+        $category                = $this->category_model->get();
+        $data['categorylist']    = $category;
+        $data['communitylist']   = $this->student_model->getCommunityList();
+        $this->load->view('layout/header', $data);
+        $this->load->view('reports/communitybasedreport', $data);
+        $this->load->view('layout/footer', $data);
+    }
+
+
     public function studentreportvalidation()
     {
         $class_id    = $this->input->post('class_id');
@@ -2042,6 +2070,7 @@ class Report extends Admin_Controller
         $category_id = $this->input->post('category_id');
         $gender      = $this->input->post('gender');
         $rte         = $this->input->post('rte');
+        $community   = $this->input->post('community');
 
         $srch_type = $this->input->post('search_type');
 
@@ -2050,7 +2079,7 @@ class Report extends Admin_Controller
             $this->form_validation->set_rules('class_id', $this->lang->line('class'), 'trim|required|xss_clean');
             if ($this->form_validation->run() == true) {
 
-                $params = array('srch_type' => $srch_type, 'class_id' => $class_id, 'section_id' => $section_id, 'category_id' => $category_id, 'gender' => $gender, 'rte' => $rte);
+                $params = array('srch_type' => $srch_type, 'class_id' => $class_id, 'section_id' => $section_id, 'category_id' => $category_id, 'gender' => $gender, 'rte' => $rte, 'community' => $community);
                 $array  = array('status' => 1, 'error' => '', 'params' => $params);
                 echo json_encode($array);
             } else {
@@ -2075,9 +2104,12 @@ class Report extends Admin_Controller
         $category_id     = $this->input->post('category_id');
         $gender          = $this->input->post('gender');
         $rte             = $this->input->post('rte');
+        $community       = $this->input->post('community');
         $sch_setting     = $this->sch_setting_detail;
 
-        $result     = $this->student_model->searchdatatableByClassSectionCategoryGenderRte($class, $section, $category_id, $gender, $rte);
+        $result     = $this->student_model->searchdatatableByClassSectionCategoryGenderRte(
+            $class, $section, $category_id, $gender, $rte, $community
+        );
         $resultlist = json_decode($result);
         $dt_data    = array();
         if (!empty($resultlist->data)) {

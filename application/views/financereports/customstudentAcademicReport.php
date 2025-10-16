@@ -65,7 +65,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                     </div>
                     <div class="box-body">
                         <div class="dataTables_scrollBody" style="position: relative; overflow: auto; width: 100%; max-height: 300px;">
-                            <table class="table table-striped table-hover" id="headerTable">
+                            <table class="table table-striped table-hover headerTable" id="headerTable">
                             <thead>
                                 <tr>
                                     <th><?php echo $this->lang->line('student_name'); ?></th>
@@ -214,8 +214,20 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
             });
         }
     }
+</script>
 
-
+<script>
+    $(document).ready(function() {
+        if ($.fn.DataTable.isDataTable('#headerTable')) {
+            $('#headerTable').DataTable().destroy();
+        }
+        $('#headerTable').DataTable({
+            dom: 'Bfrtip',
+            buttons: [
+                'copy', 'csv', 'excel', 'pdf', 'print'
+            ]
+        });
+    });
 </script>
 
 <style>

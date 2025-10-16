@@ -9,6 +9,8 @@
                     <?php if ($this->rbac->hasPrivilege('student_report', 'can_view')) { ?>
 					
                         <li class="col-lg-4 col-md-4 col-sm-6 <?php echo set_SubSubmenu('Reports/student_information/student_report'); ?> "><a href="<?php echo base_url(); ?>report/studentreport"><i class="fa fa-file-text-o"></i> <?php echo $this->lang->line('student_report'); ?></a></li>
+
+                        <li class="col-lg-4 col-md-4 col-sm-6 <?php echo set_SubSubmenu('Reports/student_information/community_based_report'); ?>"><a href="<?php echo base_url(); ?>report/communitybasedreport"><i class="fa fa-file-text-o"></i> <?php echo $this->lang->line('community_based_report'); ?></a></li>
 						
                         <li class="col-lg-4 col-md-4 col-sm-6 <?php echo set_SubSubmenu('Reports/student_information/classsectionreport'); ?>"><a href="<?php echo site_url('report/classsectionreport'); ?>"><i class="fa fa-file-text-o"></i>  <?php echo $this->lang->line('class_section_report'); ?></a></li>						  
 						  
