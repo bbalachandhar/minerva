@@ -250,7 +250,24 @@ class Staff extends Admin_Controller
         $data['stafflist']        = $stafflist;
 
         $this->load->view('layout/header', $data);
-        $this->load->view('admin/staff/staffprofile', $data);
+        $this->load->view('layout/footer', $data);
+    }
+
+    public function leaverequest()
+    {
+        if (!$this->rbac->hasPrivilege('staff_leave_request', 'can_view')) {
+            access_denied();
+        }
+        $this->session->set_userdata('top_menu', 'HR');
+        $this->session->set_userdata('sub_menu', 'HR/staff/leaverequest');
+        $data['title'] = 'Leave Request';
+
+        // Load leave requests from the model
+        $staff_id = $this->customlib->getStaffID(); // Assuming current staff's leave requests
+        $data['leaverequestlist'] = $this->leaverequest_model->staff_leave_request($staff_id); // Use the existing method
+
+        $this->load->view('layout/header', $data);
+        $this->load->view('admin/staff/leaverequest', $data); // Assuming a view file named leaverequest.php
         $this->load->view('layout/footer', $data);
     }
 

@@ -32,13 +32,25 @@ class Expense extends Admin_Controller
         $this->form_validation->set_rules('date', $this->lang->line('date'), 'trim|required|xss_clean');
         $this->form_validation->set_rules('documents', $this->lang->line('documents'), 'callback_handle_upload');
         if ($this->form_validation->run() == false) {
-
-            $upload_result = $this->media_storage->fileupload("documents", "./uploads/school_expense/");
-            if ($upload_result['status'] === false) {
-                $this->session->set_flashdata('error', $upload_result['message']);
-                redirect('admin/expense/index');
+            // Display the form
+            $expense_result      = $this->expense_model->get();
+            $data['expenselist'] = $expense_result;
+            $expnseHead          = $this->expensehead_model->get();
+            $data['expheadlist'] = $expnseHead;
+            $this->load->view('layout/header', $data);
+            $this->load->view('admin/expense/expenseList', $data);
+            $this->load->view('layout/footer', $data);
+        } else {
+            // Process form submission
+            $img_name = '';
+            if (isset($_FILES["documents"]) && $_FILES['documents']['name'] != '' && (!empty($_FILES['documents']['name']))) {
+                $upload_result = $this->media_storage->fileupload("documents", "./uploads/school_expense/");
+                if ($upload_result['status'] === false) {
+                    $this->session->set_flashdata('error', $upload_result['message']);
+                    redirect('admin/expense/index');
+                }
+                $img_name = $upload_result['message'];
             }
-            $img_name = $upload_result['message'];
 
             $data = array(
                 'exp_head_id' => $this->input->post('exp_head_id'),
@@ -55,13 +67,6 @@ class Expense extends Admin_Controller
             $this->session->set_flashdata('msg', '<div class="alert alert-success text-left">' . $this->lang->line('success_message') . '</div>');
             redirect('admin/expense/index');
         }
-        $expense_result      = $this->expense_model->get();
-        $data['expenselist'] = $expense_result;
-        $expnseHead          = $this->expensehead_model->get();
-        $data['expheadlist'] = $expnseHead;
-        $this->load->view('layout/header', $data);
-        $this->load->view('admin/expense/expenseList', $data);
-        $this->load->view('layout/footer', $data);
     }
 
     public function download($id)

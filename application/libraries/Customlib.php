@@ -919,7 +919,7 @@ class Customlib
     public function datetostrtotime($date)
     {
         if ($date == "") {
-            return "";
+            return null; // Return null instead of an empty string
         }
         $format = $this->getSchoolDateFormat();
         if ($format == 'd-m-Y') {
@@ -958,6 +958,8 @@ class Customlib
 
         return strtotime($date);
     }
+
+
 
     public function dateyyyymmddTodateformat($date)
     {

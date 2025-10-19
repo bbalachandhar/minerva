@@ -18,7 +18,7 @@ class Media_storage
 
     public function fileupload($media_name, $upload_path = "")
     {
-        if (file_exists($_FILES[$media_name]['tmp_name']) && !$_FILES[$media_name]['error'] == UPLOAD_ERR_NO_FILE) {
+        if (isset($_FILES[$media_name]) && is_array($_FILES[$media_name]) && file_exists($_FILES[$media_name]['tmp_name']) && !$_FILES[$media_name]['error'] == UPLOAD_ERR_NO_FILE) {
 
             $name        = $_FILES[$media_name]['name'];
             $file_name   = time() . "-" . uniqid(rand()) . "!" . $name;

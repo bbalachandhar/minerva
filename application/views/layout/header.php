@@ -46,7 +46,6 @@ $this->load->view('layout/theme');
         <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/0.8.2/css/flag-icon.min.css">
         <link rel="stylesheet" type="text/css" href="<?php echo base_url(); ?>backend/dist/css/bootstrap-select.min.css">
         <script src="<?php echo base_url(); ?>backend/custom/jquery.min.js"></script>
-        <script language="javascript" src="<?php echo base_url(); ?>backend/custom/jquery-2.2.4.js"></script>
         <script src="<?php echo base_url(); ?>backend/dist/js/moment.min.js"></script>
 
         <script src="<?php echo base_url(); ?>backend/datepicker/js/bootstrap-datetimepicker.js"></script>
@@ -54,6 +53,7 @@ $this->load->view('layout/theme');
         <script src="<?php echo base_url(); ?>backend/plugins/colorpicker/bootstrap-colorpicker.js"></script>
 
         <script src="<?php echo base_url(); ?>backend/dist/js/jquery-ui.min.js"></script>
+        <script src="<?php echo base_url(); ?>backend/dist/js/jquery.mCustomScrollbar.concat.min.js"></script>
         <script src="<?php echo base_url(); ?>backend/js/school-custom.js"></script>
         <script src="<?php echo base_url(); ?>backend/js/school-admin-custom.js?v=<?php echo time(); ?>"></script>
         <script src="<?php echo base_url(); ?>backend/js/sstoast.js"></script>
