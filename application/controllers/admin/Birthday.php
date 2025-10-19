@@ -37,12 +37,15 @@ class Birthday extends Admin_Controller
 
             $columns = array(
                 'admission_no',
+                'roll_no',
                 'firstname',
                 'class',
-                'father_name',
+                'section',
                 'dob',
                 'gender',
-                'mobileno'
+                'mobileno',
+                'email',
+                'current_address'
             );
             $order_column_name = $columns[$order_column];
 

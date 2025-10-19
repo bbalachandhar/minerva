@@ -263,7 +263,6 @@ class Schsettings extends Admin_Controller
         $this->form_validation->set_rules('sch_date_format', $this->lang->line('date_format'), 'trim|required|xss_clean');
         $this->form_validation->set_rules('sch_start_week', $this->lang->line('start_day_of_week'), 'trim|required|xss_clean');
         $this->form_validation->set_rules('institution_type', 'Institution Type', 'trim|required|xss_clean');
-        $this->form_validation->set_rules('base_url', $this->lang->line('url'), 'trim|required|xss_clean');
 
 
         if ($this->form_validation->run() == false) {
@@ -279,7 +278,6 @@ class Schsettings extends Admin_Controller
                 'currency_place'  => form_error('currency_place'),
                 'currency_format' => form_error('currency_format'),
                 'sch_date_format' => form_error('sch_date_format'),
-                'base_url'        => form_error('base_url'),
 
             );
             $array = array('status' => 'fail', 'error' => $data);

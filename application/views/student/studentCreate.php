@@ -4,7 +4,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
 <link href="<?php echo base_url(); ?>backend/multiselect/css/jquery.multiselect.css" rel="stylesheet">
 <script src="<?php echo base_url(); ?>backend/multiselect/js/jquery.min.js"></script>
 <script src="<?php echo base_url(); ?>backend/multiselect/js/jquery.multiselect.js"></script>
-<div class="content-wrapper">
+<div class="content-wrapper" style="min-height: 946px;">
     <!-- Main content -->
     <section class="content">
         <div class="row">
@@ -1537,10 +1537,13 @@ if (($userdata["role_id"] == 2)) {
         }
     });
 
+<!-- Commented out JavaScript blocks for debugging -->
 <script>
     $(document).ready(function () {
         var institution_type = '<?php echo $sch_setting->institution_type; ?>';
         console.log('Institution Type:', institution_type); // Added console.log
+        var classlist_data = <?php echo json_encode($classlist); ?>;
+        console.log('Classlist Data:', classlist_data);
 
         if (institution_type === 'college') {
             // College: Class dropdown is dependent on Department
@@ -1601,8 +1604,6 @@ if (($userdata["role_id"] == 2)) {
         });
     });
 </script>
-
-<!-- Commented out JavaScript blocks for debugging -->
 <?php /*
 <script type="text/javascript" src="<?php echo base_url(); ?>backend/dist/js/savemode.js"></script>
 

@@ -104,6 +104,7 @@ foreach ($side_list_value->submenus as $submenu_key => $submenu_value) {
     }
 }
 ?>
+?>
         <!-- //==================sidebar dynamic======================= -->
 
         </ul>

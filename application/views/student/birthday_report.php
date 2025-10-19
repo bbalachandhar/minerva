@@ -46,28 +46,11 @@
                                     <th><?php echo $this->lang->line('student_name'); ?></th>
                                     <th><?php echo $this->lang->line('class'); ?></th>
                                     <th><?php echo $this->lang->line('section'); ?></th>
-                                    <th><?php echo $this->lang->line('father_name'); ?></th>
                                     <th><?php echo $this->lang->line('date_of_birth'); ?></th>
                                     <th><?php echo $this->lang->line('gender'); ?></th>
                                     <th><?php echo $this->lang->line('mobile_no'); ?></th>
                                     <th><?php echo $this->lang->line('email'); ?></th>
-                                    <th><?php echo $this->lang->line('category'); ?></th>
-                                    <th><?php echo $this->lang->line('guardian_name'); ?></th>
-                                    <th><?php echo $this->lang->line('guardian_phone'); ?></th>
                                     <th><?php echo $this->lang->line('current_address'); ?></th>
-                                    <th><?php echo $this->lang->line('permanent_address'); ?></th>
-                                    <th><?php echo $this->lang->line('state'); ?></th>
-                                    <th><?php echo $this->lang->line('city'); ?></th>
-                                    <th><?php echo $this->lang->line('pincode'); ?></th>
-                                    <th><?php echo $this->lang->line('religion'); ?></th>
-                                    <th><?php echo $this->lang->line('adhar_no'); ?></th>
-                                    <th><?php echo $this->lang->line('samagra_id'); ?></th>
-                                    <th><?php echo $this->lang->line('bank_account_no'); ?></th>
-                                    <th><?php echo $this->lang->line('bank_name'); ?></th>
-                                    <th><?php echo $this->lang->line('ifsc_code'); ?></th>
-                                    <th><?php echo $this->lang->line('guardian_relation'); ?></th>
-                                    <th><?php echo $this->lang->line('guardian_address'); ?></th>
-                                    <th><?php echo $this->lang->line('rte'); ?></th>
                                 </tr>
                             </thead>
                             <tbody>

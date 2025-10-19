@@ -78,31 +78,14 @@ class Birthday_model extends MY_Model
             $data[] = [
                 $row['admission_no'],
                 $row['roll_no'],
-                $row['firstname'] . ' ' . $row['lastname'],
+                $row['firstname'] . ' ' . $row['lastname'], // student name
                 $row['class'],
                 $row['section'],
-                $row['father_name'],
-                $this->customlib->dateformat($row['dob']),
+                $this->customlib->dateformat($row['dob']), // dob
                 $row['gender'],
-                $row['mobileno'],
+                $row['mobileno'], // mobile
                 $row['email'],
-                $row['category'],
-                $row['guardian_name'],
-                $row['guardian_phone'],
-                $row['current_address'],
-                $row['permanent_address'],
-                $row['state'],
-                $row['city'],
-                $row['pincode'],
-                $row['religion'],
-                $row['adhar_no'],
-                $row['samagra_id'],
-                $row['bank_account_no'],
-                $row['bank_name'],
-                $row['ifsc_code'],
-                $row['guardian_relation'],
-                $row['guardian_address'],
-                $row['rte']
+                $row['current_address']
             ];
         }
 

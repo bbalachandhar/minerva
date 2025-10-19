@@ -119,35 +119,17 @@ $(document).ready(function () {
             }
         },
         "columns": [
-            { "data": "0" },
-            { "data": "1" },
-            { "data": "2" },
-            { "data": "3" },
-            { "data": "4" },
-            { "data": "5" },
-            { "data": "6" },
-            { "data": "7" },
-            { "data": "8" },
-            { "data": "9" },
-            { "data": "10" },
-            { "data": "11" },
-            { "data": "12" },
-            { "data": "13" },
-            { "data": "14" },
-            { "data": "15" },
-            { "data": "16" },
-            { "data": "17" },
-            { "data": "18" },
-            { "data": "19" },
-            { "data": "20" },
-            { "data": "21" },
-            { "data": "22" },
-            { "data": "23" },
-            { "data": "24" },
-            { "data": "25" }
-        ],
-
-        dom: 'Bfrtip',
+            { "data": "0" }, // admission_no
+            { "data": "1" }, // roll_no
+            { "data": "2" }, // student name
+            { "data": "3" }, // class
+            { "data": "4" }, // section
+            { "data": "5" }, // dob
+            { "data": "6" }, // gender
+            { "data": "7" }, // mobile_no
+            { "data": "8" }, // email
+            { "data": "9" }  // current_address
+        ],        dom: 'Bfrtip',
         buttons: [
             'copy', 'csv', 'excel', 'pdf', 'print'
         ]

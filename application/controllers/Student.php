@@ -422,7 +422,15 @@ class Student extends Admin_Controller
         $data['transport_fees']        = $this->transportfee_model->getSessionFees($session);
         $student_result                = $this->student_model->getRecentRecord();
         $data['studentlist']           = $student_result;
-        $class                         = $this->class_model->get('', $classteacher = 'yes');
+        $userdata                = $this->customlib->getUserData();
+        $role_id  = $userdata["role_id"];
+        $class_teacher = $userdata["class_teacher"];
+
+        if (isset($role_id) && ($role_id == 2) && ($class_teacher == "yes")) {
+            $class = $this->class_model->get('', 'yes');
+        } else {
+            $class = $this->class_model->get();
+        }
 
         $data['classlist']       = $class;
         $userdata                = $this->customlib->getUserData();
