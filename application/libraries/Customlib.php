@@ -25,45 +25,13 @@ class Customlib
 
     public function getBaseUrl()
     {
-        $student = $this->CI->session->userdata('student');
-        $admin    = $this->CI->session->userdata('admin');
-        
-        if ($admin) {
-            $base_url = $admin['db_array']['base_url'];
-        } else if ($this->CI->session->userdata('student')) {
-            $base_url = $student['db_array']['base_url'];
-        } else {
-			$setting_result = $this->CI->setting_model->get();
-			$base_url = $setting_result[0]["base_url"];
-		}      
-        
-        if ($base_url == "") {
-            $base_url = base_url();
-        }
-        return $base_url;
+        return base_url();
     }
 
-    public function getFolderPath()
-    {  
-
-        $student = $this->CI->session->userdata('student');
-        $admin       = $this->CI->session->userdata('admin');        
-        
-        if ($admin) {
-            $folder_path = $admin['db_array']['folder_path'];
-        } else if ($this->CI->session->userdata('student')) {
-             $folder_path = $student['db_array']['folder_path'];
-        } else {
-			$setting_result = $this->CI->setting_model->get();
-			$base_url = $setting_result[0]["folder_path"];
-		}    
-        
-        if ($folder_path == "") {
-            $folder_path = null;
+        public function getFolderPath()
+        {
+            return FCPATH;
         }
-        return $folder_path;
-    }
-
     public function getCSRF()
     {
         $csrf_input = "<input type='hidden' ";

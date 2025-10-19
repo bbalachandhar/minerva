@@ -121,7 +121,14 @@ class Alumni extends Admin_Controller
             $array = array('status' => 'fail', 'error' => $msg, 'message' => '');
         } else {
 
-            $img_name = $this->media_storage->fileupload("documents", "./uploads/alumni_student_images/");
+            $upload_result = $this->media_storage->fileupload("documents", "./uploads/alumni_student_images/");
+            if ($upload_result['status'] === false) {
+                $msg = array('file' => $upload_result['message']);
+                $array = array('status' => 'fail', 'error' => $msg, 'message' => '');
+                echo json_encode($array);
+                return;
+            }
+            $img_name = $upload_result['message'];
 
             $data = array(
                 'current_email' => $this->input->post('current_email'),
@@ -272,7 +279,12 @@ class Alumni extends Admin_Controller
 
             if ($this->input->post('id') == '') {
                 if (isset($_FILES["file"]) && $_FILES['file']['name'] != '' && (!empty($_FILES['file']['name']))) {
-                    $img_name = $this->media_storage->fileupload("file", "./uploads/alumni_event_images/");
+                    $upload_result = $this->media_storage->fileupload("file", "./uploads/alumni_event_images/");
+                    if ($upload_result['status'] === false) {
+                        $this->session->set_flashdata('error', $upload_result['message']);
+                        redirect('admin/alumni/add_event');
+                    }
+                    $img_name = $upload_result['message'];
                     $file_name = $_FILES['file']['name'];
                 }
               
@@ -281,7 +293,12 @@ class Alumni extends Admin_Controller
 
                 if (isset($_FILES["file"]) && $_FILES['file']['name'] != '' && (!empty($_FILES['file']['name']))) {
                   
-                    $img_name = $this->media_storage->fileupload("file", "./uploads/alumni_event_images/");
+                    $upload_result = $this->media_storage->fileupload("file", "./uploads/alumni_event_images/");
+                    if ($upload_result['status'] === false) {
+                        $this->session->set_flashdata('error', $upload_result['message']);
+                        redirect('admin/alumni/add_event');
+                    }
+                    $img_name = $upload_result['message'];
                     $file_name = $_FILES['file']['name'];
                 } else {
                     $img_name = $event_list['photo'];

@@ -72,7 +72,12 @@ class Frontcms extends Admin_Controller
             );
     
             if (isset($_FILES["logo"]) && !empty($_FILES["logo"]['name'])) {
-                $img_name = $this->media_storage->fileupload("logo", "./uploads/school_content/logo/");
+                $upload_result = $this->media_storage->fileupload("logo", "./uploads/school_content/logo/");
+                if ($upload_result['status'] === false) {
+                    $this->session->set_flashdata('error', $upload_result['message']);
+                    redirect('admin/frontcms');
+                }
+                $img_name = $upload_result['message'];
 
                 if ($this->input->post('id') != '') {
                     $row = $this->frontcms_setting_model->get($this->input->post('id'));
@@ -85,7 +90,12 @@ class Frontcms extends Admin_Controller
 
             }
             if (isset($_FILES["fav_icon"]) && !empty($_FILES["fav_icon"]['name'])) {
-                $img_name = $this->media_storage->fileupload("fav_icon", "./uploads/school_content/logo/");
+                $upload_result = $this->media_storage->fileupload("fav_icon", "./uploads/school_content/logo/");
+                if ($upload_result['status'] === false) {
+                    $this->session->set_flashdata('error', $upload_result['message']);
+                    redirect('admin/frontcms');
+                }
+                $img_name = $upload_result['message'];
 
                 if ($this->input->post('id') != '') {
                     $row = $this->frontcms_setting_model->get($this->input->post('id'));

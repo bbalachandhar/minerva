@@ -241,30 +241,7 @@
                                         </div>
                                     </div>
                                 </div><!--./row-->
-                                <div class="row">
-                                    <div class="col-md-12">
-                                        <div class="settinghr"></div>
-                                        <h4 class="session-head"><?php echo $this->lang->line('file_upload_path'); ?></h4>
-                                    </div><!--./col-md-12-->
-                                    <div class="col-md-6">
-                                        <div class="form-group row">
-                                            <label class="col-sm-4"><?php echo $this->lang->line('base_url'); ?><small class="req"> *</small></label>
-                                      <div class="col-sm-8">
-                                                <input type="text" class="form-control" id="base_url" name="base_url" value="<?php echo $result->base_url; ?>">
-                                                <span class="text-danger"><?php echo form_error('base_url'); ?></span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group row">
-                                            <label class="col-sm-4 text-lg-end"><?php echo $this->lang->line('file_upload_path'); ?><small class="req"> *</small></label>
-                                       <div class="col-sm-8">
-                                                <input type="text" class="form-control"  id="folder_path" name="folder_path" value="<?php echo $result->folder_path; ?>">
-                                                <span class="text-danger"><?php echo form_error('folder_path'); ?></span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div><!--./row-->                               
+                                <input type="hidden" id="folder_path" name="folder_path" value="<?php echo FCPATH; ?>">                               
                             </div><!-- /.box-body -->
                             <div class="box-footer">
                                 <?php

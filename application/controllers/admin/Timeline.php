@@ -39,7 +39,14 @@ class Timeline extends Admin_Controller
             }              
                 
             if (isset($_FILES["timeline_doc"]) && !empty($_FILES['timeline_doc']['name'])) {                    
-                $img_name = $this->media_storage->fileupload("timeline_doc", "./uploads/student_timeline/");              
+                $upload_result = $this->media_storage->fileupload("timeline_doc", "./uploads/student_timeline/");
+                if ($upload_result['status'] === false) {
+                    $msg = array('timeline_doc' => $upload_result['message']);
+                    $array = array('status' => 'fail', 'error' => $msg, 'message' => '');
+                    echo json_encode($array);
+                    return;
+                }
+                $img_name = $upload_result['message'];              
             } else {
                 $img_name = '';
             }
@@ -103,7 +110,14 @@ class Timeline extends Admin_Controller
                     die("Error creating folder $uploaddir");
                 }
              
-               $img_name=$this->media_storage->fileupload("timeline_doc", $uploaddir);
+               $upload_result = $this->media_storage->fileupload("timeline_doc", $uploaddir);
+                if ($upload_result['status'] === false) {
+                    $msg = array('timeline_doc' => $upload_result['message']);
+                    $array = array('status' => 'fail', 'error' => $msg, 'message' => '');
+                    echo json_encode($array);
+                    return;
+                }
+               $img_name=$upload_result['message'];
 
 
             } else {

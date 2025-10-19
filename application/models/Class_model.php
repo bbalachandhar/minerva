@@ -191,11 +191,15 @@ class Class_model extends MY_Model
 
     public function getClassesByDepartment($department_id)
     {
+        log_message('error', 'getClassesByDepartment called with department_id: ' . $department_id);
         $this->db->select()->from('classes');
         $this->db->where('department_id', $department_id);
         $this->db->order_by('id');
         $query = $this->db->get();
-        return $query->result_array();
+        log_message('error', 'getClassesByDepartment SQL query: ' . $this->db->last_query());
+        $result = $query->result_array();
+        log_message('error', 'getClassesByDepartment query result: ' . print_r($result, true));
+        return $result;
     }
 
     public function get_by_name($class_name)

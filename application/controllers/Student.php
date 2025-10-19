@@ -781,24 +781,40 @@ class Student extends Admin_Controller
 					}
 
 					if (isset($_FILES["file"]) && !empty($_FILES['file']['name'])) {
-						$img_name             = $this->media_storage->fileupload("file", "./uploads/student_images/");
-						$data_insert['image'] = "uploads/student_images/" . $img_name;
-					}
+						                $upload_result = $this->media_storage->fileupload("file", "./uploads/student_images/");
+						                if ($upload_result['status'] === false) {
+						                    $this->session->set_flashdata('error', $upload_result['message']);
+						                    redirect('student/create');
+						                }
+						                $img_name             = $upload_result['message'];
+						                $data_insert['image'] = "uploads/student_images/" . $img_name;					}
 		
 					if (isset($_FILES["father_pic"]) && !empty($_FILES['father_pic']['name'])) {
-						$img_name                  = $this->media_storage->fileupload("father_pic", "./uploads/student_images/");
-						$data_insert['father_pic'] = "uploads/student_images/" . $img_name;
-					}
+						                $upload_result = $this->media_storage->fileupload("father_pic", "./uploads/student_images/");
+						                if ($upload_result['status'] === false) {
+						                    $this->session->set_flashdata('error', $upload_result['message']);
+						                    redirect('student/create');
+						                }
+						                $img_name                  = $upload_result['message'];
+						                $data_insert['father_pic'] = "uploads/student_images/" . $img_name;					}
 		
 					if (isset($_FILES["mother_pic"]) && !empty($_FILES['mother_pic']['name'])) {
-						$img_name                  = $this->media_storage->fileupload("mother_pic", "./uploads/student_images/");
-						$data_insert['mother_pic'] = "uploads/student_images/" . $img_name;
-					}
+						                $upload_result = $this->media_storage->fileupload("mother_pic", "./uploads/student_images/");
+						                if ($upload_result['status'] === false) {
+						                    $this->session->set_flashdata('error', $upload_result['message']);
+						                    redirect('student/create');
+						                }
+						                $img_name                  = $upload_result['message'];
+						                $data_insert['mother_pic'] = "uploads/student_images/" . $img_name;					}
 		
 					if (isset($_FILES["guardian_pic"]) && !empty($_FILES['guardian_pic']['name'])) {
-						$img_name                    = $this->media_storage->fileupload("guardian_pic", "./uploads/student_images/");
-						$data_insert['guardian_pic'] = "uploads/student_images/" . $img_name;
-					}
+						                $upload_result = $this->media_storage->fileupload("guardian_pic", "./uploads/student_images/");
+						                if ($upload_result['status'] === false) {
+						                    $this->session->set_flashdata('error', $upload_result['message']);
+						                    redirect('student/create');
+						                }
+						                $img_name                    = $upload_result['message'];
+						                $data_insert['guardian_pic'] = "uploads/student_images/" . $img_name;					}
 
 					if ($insert) {
                         $data_insert['created_by'] = $this->session->userdata['admin']['id'];
@@ -897,29 +913,45 @@ class Student extends Admin_Controller
 						if (isset($_FILES["first_doc"]) && !empty($_FILES['first_doc']['name'])) {
 		
 							$first_title = $this->input->post('first_title');
-							$imp         = $this->media_storage->fileupload("first_doc", $upload_directory);
-							$data_img    = array('student_id' => $insert_id, 'title' => $first_title, 'doc' => $imp);
+							                            $upload_result = $this->media_storage->fileupload("first_doc", $upload_directory);
+							                            if ($upload_result['status'] === false) {
+							                                $this->session->set_flashdata('error', $upload_result['message']);
+							                                redirect('student/create');
+							                            }
+							                            $imp         = $upload_result['message'];							$data_img    = array('student_id' => $insert_id, 'title' => $first_title, 'doc' => $imp);
 							$this->student_model->adddoc($data_img);
 						}
 		
 						if (isset($_FILES["second_doc"]) && !empty($_FILES['second_doc']['name'])) {
 							$second_title = $this->input->post('second_title');
-							$imp          = $this->media_storage->fileupload("second_doc", $upload_directory);
-							$data_img     = array('student_id' => $insert_id, 'title' => $second_title, 'doc' => $imp);
+							                            $upload_result = $this->media_storage->fileupload("second_doc", $upload_directory);
+							                            if ($upload_result['status'] === false) {
+							                                $this->session->set_flashdata('error', $upload_result['message']);
+							                                redirect('student/create');
+							                            }
+							                            $imp          = $upload_result['message'];							$data_img     = array('student_id' => $insert_id, 'title' => $second_title, 'doc' => $imp);
 							$this->student_model->adddoc($data_img);
 						}
 		
 						if (isset($_FILES["fourth_doc"]) && !empty($_FILES['fourth_doc']['name'])) {
 							$fourth_title = $this->input->post('fourth_title');
-							$imp          = $this->media_storage->fileupload("fourth_doc", $upload_directory);
-							$data_img     = array('student_id' => $insert_id, 'title' => $fourth_title, 'doc' => $imp);
+							                            $upload_result = $this->media_storage->fileupload("fourth_doc", $upload_directory);
+							                            if ($upload_result['status'] === false) {
+							                                $this->session->set_flashdata('error', $upload_result['message']);
+							                                redirect('student/create');
+							                            }
+							                            $imp          = $upload_result['message'];							$data_img     = array('student_id' => $insert_id, 'title' => $fourth_title, 'doc' => $imp);
 							$this->student_model->adddoc($data_img);
 						}
 		
 						if (isset($_FILES["fifth_doc"]) && !empty($_FILES['fifth_doc']['name'])) {
 							$fifth_title = $this->input->post('fifth_title');
-							$imp         = $this->media_storage->fileupload("fifth_doc", $upload_directory);
-							$data_img    = array('student_id' => $insert_id, 'title' => $fifth_title, 'doc' => $imp);
+							                            $upload_result = $this->media_storage->fileupload("fifth_doc", $upload_directory);
+							                            if ($upload_result['status'] === false) {
+							                                $this->session->set_flashdata('error', $upload_result['message']);
+							                                redirect('student/create');
+							                            }
+							                            $imp         = $upload_result['message'];							$data_img    = array('student_id' => $insert_id, 'title' => $fifth_title, 'doc' => $imp);
 							$this->student_model->adddoc($data_img);
 						}
 
@@ -984,7 +1016,12 @@ class Student extends Admin_Controller
 
                 $fileInfo    = pathinfo($_FILES["first_doc"]["name"]);
                 $first_title = $this->input->post('first_title');
-                $imp         = $this->media_storage->fileupload("first_doc", './uploads/student_documents/' . $student_id . '/');
+                $upload_result = $this->media_storage->fileupload("first_doc", './uploads/student_documents/' . $student_id . '/');
+            if ($upload_result['status'] === false) {
+                $this->session->set_flashdata('error', $upload_result['message']);
+                redirect('student/view/' . $student_id);
+            }
+            $imp         = $upload_result['message'];
                 $data_img    = array('student_id' => $student_id, 'title' => $first_title, 'doc' => $imp);
                 $this->student_model->adddoc($data_img);
             }
@@ -1812,22 +1849,42 @@ class Student extends Admin_Controller
             }
 
             if (isset($_FILES["file"]) && !empty($_FILES['file']['name'])) {
-                $img_name      = $this->media_storage->fileupload("file", "./uploads/student_images/");
+                $upload_result = $this->media_storage->fileupload("file", "./uploads/student_images/");
+                if ($upload_result['status'] === false) {
+                    $this->session->set_flashdata('error', $upload_result['message']);
+                    redirect('student/edit/' . $id);
+                }
+                $img_name      = $upload_result['message'];
                 $data['image'] = "uploads/student_images/" . $img_name;
             }
 
             if (isset($_FILES["father_pic"]) && !empty($_FILES['father_pic']['name'])) {
-                $img_name           = $this->media_storage->fileupload("father_pic", "./uploads/student_images/");
+                $upload_result = $this->media_storage->fileupload("father_pic", "./uploads/student_images/");
+                if ($upload_result['status'] === false) {
+                    $this->session->set_flashdata('error', $upload_result['message']);
+                    redirect('student/edit/' . $id);
+                }
+                $img_name           = $upload_result['message'];
                 $data['father_pic'] = "uploads/student_images/" . $img_name;
             }
 
             if (isset($_FILES["mother_pic"]) && !empty($_FILES['mother_pic']['name'])) {
-                $img_name           = $this->media_storage->fileupload("mother_pic", "./uploads/student_images/");
+                $upload_result = $this->media_storage->fileupload("mother_pic", "./uploads/student_images/");
+                if ($upload_result['status'] === false) {
+                    $this->session->set_flashdata('error', $upload_result['message']);
+                    redirect('student/edit/' . $id);
+                }
+                $img_name           = $upload_result['message'];
                 $data['mother_pic'] = "uploads/student_images/" . $img_name;
             }
 
             if (isset($_FILES["guardian_pic"]) && !empty($_FILES['guardian_pic']['name'])) {
-                $img_name             = $this->media_storage->fileupload("guardian_pic", "./uploads/student_images/");
+                $upload_result = $this->media_storage->fileupload("guardian_pic", "./uploads/student_images/");
+                if ($upload_result['status'] === false) {
+                    $this->session->set_flashdata('error', $upload_result['message']);
+                    redirect('student/edit/' . $id);
+                }
+                $img_name             = $upload_result['message'];
                 $data['guardian_pic'] = "uploads/student_images/" . $img_name;
             }
 

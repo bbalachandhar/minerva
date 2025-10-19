@@ -104,7 +104,7 @@ if ($language_name != 'en') {
 <script type="text/javascript" src="<?php echo base_url(); ?>backend/dist/datatables/js/dataTables.responsive.min.js" ></script>
 <script type="text/javascript" src="<?php echo base_url(); ?>backend/dist/datatables/js/ss.custom.js" ></script>
 
-<?php file_get_contents('application/views/layout/footer.php'); ?>
+
 <script type="text/javascript">
 $(document).ready(function () {
     var table = $('#birthday_table').DataTable({

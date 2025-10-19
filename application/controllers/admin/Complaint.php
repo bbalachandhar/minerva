@@ -33,7 +33,12 @@ class Complaint extends Admin_Controller
             $this->load->view('admin/frontoffice/complaintview', $data);
             $this->load->view('layout/footer');
         } else {
-            $img_name  = $this->media_storage->fileupload("file", "./uploads/front_office/complaints/");
+            $upload_result = $this->media_storage->fileupload("file", "./uploads/front_office/complaints/");
+            if ($upload_result['status'] === false) {
+                $this->session->set_flashdata('error', $upload_result['message']);
+                redirect('admin/complaint');
+            }
+            $img_name  = $upload_result['message'];
             $complaint = array(
                 'complaint_type' => $this->input->post('complaint'),
                 'source'         => $this->input->post('source'),
@@ -85,7 +90,12 @@ class Complaint extends Admin_Controller
             );
            
             if (isset($_FILES["file"]) && $_FILES['file']['name'] != '' && (!empty($_FILES['file']['name']))) {
-                $img_name = $this->media_storage->fileupload("file", "./uploads/front_office/complaints/");
+                $upload_result = $this->media_storage->fileupload("file", "./uploads/front_office/complaints/");
+                if ($upload_result['status'] === false) {
+                    $this->session->set_flashdata('error', $upload_result['message']);
+                    redirect('admin/complaint');
+                }
+                $img_name = $upload_result['message'];
             } else {
                 $img_name = $data['complaint_data']['image'];
             }

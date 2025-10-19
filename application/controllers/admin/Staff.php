@@ -647,9 +647,13 @@ class Staff extends Admin_Controller
             if ($insert) {
 
                 if (isset($_FILES["file"]) && !empty($_FILES['file']['name'])) {
-                    $img_name             = $this->media_storage->fileupload("file", "./uploads/staff_images/");
-                    $data_insert['image'] = $img_name;
-                }
+                                    $upload_result = $this->media_storage->fileupload("file", "./uploads/staff_images/");
+                                    if ($upload_result['status'] === false) {
+                                        $this->session->set_flashdata('error', $upload_result['message']);
+                                        redirect('admin/staff/create');
+                                    }
+                                    $img_name             = $upload_result['message'];
+                                    $data_insert['image'] = $img_name;                }
 
                 $insert_id = $this->staff_model->batchInsert($data_insert, $role_array, $leave_array, $data_setting);
                 $staff_id  = $insert_id;
@@ -663,25 +667,45 @@ class Staff extends Admin_Controller
                 }
                     
                 if (isset($_FILES["first_doc"]) && !empty($_FILES['first_doc']['name'])) {
-                      $resume = $this->media_storage->fileupload("first_doc", $upload_dir);
+                      $upload_result = $this->media_storage->fileupload("first_doc", $upload_dir);
+                if ($upload_result['status'] === false) {
+                    $this->session->set_flashdata('error', $upload_result['message']);
+                    redirect('admin/staff/create');
+                }
+                $resume = $upload_result['message'];
                 } else {
                     $resume = "";
                 }
 
                 if (isset($_FILES["second_doc"]) && !empty($_FILES['second_doc']['name'])) {
-                     $joining_letter = $this->media_storage->fileupload("second_doc", $upload_dir);
+                     $upload_result = $this->media_storage->fileupload("second_doc", $upload_dir);
+                if ($upload_result['status'] === false) {
+                    $this->session->set_flashdata('error', $upload_result['message']);
+                    redirect('admin/staff/create');
+                }
+                $joining_letter = $upload_result['message'];
                 } else {
                     $joining_letter = "";
                 }
 
                 if (isset($_FILES["third_doc"]) && !empty($_FILES['third_doc']['name'])) {
-                    $resignation_letter = $this->media_storage->fileupload("third_doc", $upload_dir);
+                    $upload_result = $this->media_storage->fileupload("third_doc", $upload_dir);
+                if ($upload_result['status'] === false) {
+                    $this->session->set_flashdata('error', $upload_result['message']);
+                    redirect('admin/staff/create');
+                }
+                $resignation_letter = $upload_result['message'];
                 } else {
                     $resignation_letter = "";
                 }
 
                 if (isset($_FILES["fourth_doc"]) && !empty($_FILES['fourth_doc']['name'])) {
-                   $fourth_doc = $this->media_storage->fileupload("fourth_doc", $upload_dir);
+                   $upload_result = $this->media_storage->fileupload("fourth_doc", $upload_dir);
+                if ($upload_result['status'] === false) {
+                    $this->session->set_flashdata('error', $upload_result['message']);
+                    redirect('admin/staff/create');
+                }
+                $fourth_doc = $upload_result['message'];
                 } else {
                     $fourth_title = "";
                     $fourth_doc   = "";

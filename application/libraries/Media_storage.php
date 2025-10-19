@@ -24,10 +24,15 @@ class Media_storage
             $file_name   = time() . "-" . uniqid(rand()) . "!" . $name;
             $destination = $this->_CI->customlib->getFolderPath() . $upload_path . $file_name;
 
-            if (move_uploaded_file($_FILES[$media_name]["tmp_name"], $destination)) {
+                        if (move_uploaded_file($_FILES[$media_name]["tmp_name"], $destination)) {
 
-                return $file_name;
-            }
+                            return array('status' => true, 'message' => $file_name);
+
+                        } else {
+
+                            return array('status' => false, 'message' => 'File upload failed: Could not move uploaded file.');
+
+                        }
 
         }
 

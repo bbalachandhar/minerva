@@ -1,0 +1,7 @@
+.content-wrapper {
+    margin-left: 230px !important;
+}
+
+.sidebar-collapse .content-wrapper {
+    margin-left: 0 !important;
+}

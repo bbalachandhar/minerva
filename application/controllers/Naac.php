@@ -9,9 +9,14 @@ class Naac extends MY_Controller {
         $this->load->library('form_validation');
         $this->load->library('session');
         $this->load->library('rbac');
+        $this->load->library('breadcrumb');
     }
 
     public function index() {
+        $this->breadcrumb->add('Home', base_url());
+        $this->breadcrumb->add('NAAC', base_url('naac'));
+        $data['breadcrumb'] = $this->breadcrumb->output();
+
         $data['page_title'] = 'NAAC Module Home';
         $this->load->view('layout/header', $data);
         $this->load->view('naac/index');

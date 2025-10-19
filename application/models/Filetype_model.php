@@ -17,7 +17,19 @@ class Filetype_model extends MY_Model
     {
         $this->db->select()->from('filetypes');
         $query = $this->db->get();
-        return $query->row();
+        $result = $query->row();
+        
+        if (is_null($result)) {
+            $default_filetype = new stdClass();
+            $default_filetype->image_extension = '';
+            $default_filetype->file_extension = '';
+            $default_filetype->image_mime = '';
+            $default_filetype->file_mime = '';
+            $default_filetype->file_size = 0;
+            $default_filetype->image_size = 0;
+            return $default_filetype;
+        }
+        return $result;
     }
 
     public function add($data)

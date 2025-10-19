@@ -113,7 +113,14 @@ class approve_leave extends Admin_Controller
             $array = array('status' => 'fail', 'error' => $msg, 'message' => '');
         } else {          
 
-            $img_name = $this->media_storage->fileupload("userfile", "./uploads/student_leavedocuments/");
+            $upload_result = $this->media_storage->fileupload("userfile", "./uploads/student_leavedocuments/");
+            if ($upload_result['status'] === false) {
+                $msg = array('userfile' => $upload_result['message']);
+                $array = array('status' => 'fail', 'error' => $msg, 'message' => '');
+                echo json_encode($array);
+                return;
+            }
+            $img_name = $upload_result['message'];
 
             $data = array(
                 'apply_date'         => date('Y-m-d', $this->customlib->datetostrtotime($this->input->post('apply_date'))),

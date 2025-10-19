@@ -65,7 +65,7 @@ $this->load->view('layout/theme');
         <script type="text/javascript">
             var baseurl = "<?php echo base_url(); ?>";
             var start_week=<?php echo $this->customlib->getStartWeek(); ?>;
-            var chk_validate="<?php echo $this->config->item('SSLK') ?>";
+            // var chk_validate="<?php echo $this->config->item('SSLK') ?>"; // Commented out for debugging
         </script>
 
   <style type="text/css">

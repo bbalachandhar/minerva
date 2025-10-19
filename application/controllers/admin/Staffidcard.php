@@ -109,21 +109,36 @@ class Staffidcard extends Admin_Controller
             );
 
             if (!empty($_FILES['background_image']['name'])) {
-                $background_img_name = $this->media_storage->fileupload("background_image", "./uploads/staff_id_card/background/");
+                $upload_result = $this->media_storage->fileupload("background_image", "./uploads/staff_id_card/background/");
+                if ($upload_result['status'] === false) {
+                    $this->session->set_flashdata('error', $upload_result['message']);
+                    redirect('admin/staffidcard/create');
+                }
+                $background_img_name = $upload_result['message'];
             } else {
                 $background_img_name = '';
             }
             $data['background'] = $background_img_name;
 
             if (!empty($_FILES['logo_img']['name'])) {
-                $logo_img_name = $this->media_storage->fileupload("logo_img", "./uploads/staff_id_card/logo/");
+                $upload_result = $this->media_storage->fileupload("logo_img", "./uploads/staff_id_card/logo/");
+                if ($upload_result['status'] === false) {
+                    $this->session->set_flashdata('error', $upload_result['message']);
+                    redirect('admin/staffidcard/create');
+                }
+                $logo_img_name = $upload_result['message'];
             } else {
                 $logo_img_name = '';
             }
             $data['logo'] = $logo_img_name;
 
             if (!empty($_FILES['sign_image']['name'])) {
-                $sign_img_name = $this->media_storage->fileupload("sign_image", "./uploads/staff_id_card/signature/");
+                $upload_result = $this->media_storage->fileupload("sign_image", "./uploads/staff_id_card/signature/");
+                if ($upload_result['status'] === false) {
+                    $this->session->set_flashdata('error', $upload_result['message']);
+                    redirect('admin/staffidcard/create');
+                }
+                $sign_img_name = $upload_result['message'];
             } else {
                 $sign_img_name = '';
             }
@@ -250,7 +265,12 @@ class Staffidcard extends Admin_Controller
             }
 
             if (isset($_FILES["background_image"]) && $_FILES['background_image']['name'] != '' && (!empty($_FILES['background_image']['name']))) {
-                $background         = $this->media_storage->fileupload("background_image", "./uploads/staff_id_card/background/");
+                $upload_result = $this->media_storage->fileupload("background_image", "./uploads/staff_id_card/background/");
+                if ($upload_result['status'] === false) {
+                    $this->session->set_flashdata('error', $upload_result['message']);
+                    redirect('admin/staffidcard/edit/' . $id);
+                }
+                $background         = $upload_result['message'];
                 $data['background'] = $background;
             }
 
@@ -259,7 +279,12 @@ class Staffidcard extends Admin_Controller
             }
 
             if (isset($_FILES["logo_img"]) && $_FILES['logo_img']['name'] != '' && (!empty($_FILES['logo_img']['name']))) {
-                $logo_img     = $this->media_storage->fileupload("logo_img", "./uploads/staff_id_card/logo/");
+                $upload_result = $this->media_storage->fileupload("logo_img", "./uploads/staff_id_card/logo/");
+                if ($upload_result['status'] === false) {
+                    $this->session->set_flashdata('error', $upload_result['message']);
+                    redirect('admin/staffidcard/edit/' . $id);
+                }
+                $logo_img     = $upload_result['message'];
                 $data['logo'] = $logo_img;
             }
 
@@ -268,7 +293,12 @@ class Staffidcard extends Admin_Controller
             }
 
             if (isset($_FILES["sign_image"]) && $_FILES['sign_image']['name'] != '' && (!empty($_FILES['sign_image']['name']))) {
-                $sign_image         = $this->media_storage->fileupload("sign_image", "./uploads/staff_id_card/signature/");
+                $upload_result = $this->media_storage->fileupload("sign_image", "./uploads/staff_id_card/signature/");
+                if ($upload_result['status'] === false) {
+                    $this->session->set_flashdata('error', $upload_result['message']);
+                    redirect('admin/staffidcard/edit/' . $id);
+                }
+                $sign_image         = $upload_result['message'];
                 $data['sign_image'] = $sign_image;
             }
 

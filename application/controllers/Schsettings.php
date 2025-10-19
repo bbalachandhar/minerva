@@ -41,9 +41,14 @@ class Schsettings extends Admin_Controller
         $data['currencyList']     = $currency;
         $currencyPlace            = $this->customlib->getCurrencyPlace();
         $data['currencyPlace']    = $currencyPlace;
-        $setting                  = $this->setting_model->getSetting();
-        $setting->base_url        = ($setting->base_url == "") ? base_url() : $setting->base_url;
-        $setting->folder_path     = ($setting->folder_path == "") ? FCPATH : $setting->folder_path;
+        $setting              = $this->setting_model->getSetting();
+        if (is_null($setting)) {
+            $setting = new stdClass();
+            $setting->base_url = '';
+            $setting->folder_path = '';
+        }
+        $setting->base_url    = ($setting->base_url == "") ? base_url() : $setting->base_url;
+        $setting->folder_path = FCPATH;
         $data['result']           = $setting;
 	 
         $this->load->view('layout/header', $data);
@@ -68,7 +73,13 @@ class Schsettings extends Admin_Controller
 
             if (isset($_FILES["file"]) && $_FILES['file']['name'] != '' && (!empty($_FILES['file']['name']))) {
 
-                $img_name = $this->media_storage->fileupload("file", "./uploads/school_content/logo/");
+                $upload_result = $this->media_storage->fileupload("file", "./uploads/school_content/logo/");
+                if ($upload_result['status'] === false) {
+                    $array = array('success' => false, 'error' => array('file' => $upload_result['message']));
+                    echo json_encode($array);
+                    return;
+                }
+                $img_name = $upload_result['message'];
             } else {
                 $img_name = $setting->image;
             }
@@ -101,7 +112,13 @@ class Schsettings extends Admin_Controller
 
             if (isset($_FILES["file"]) && $_FILES['file']['name'] != '' && (!empty($_FILES['file']['name']))) {
 
-                $img_name = $this->media_storage->fileupload("file", "./uploads/school_content/admin_small_logo/");
+                $upload_result = $this->media_storage->fileupload("file", "./uploads/school_content/admin_small_logo/");
+                if ($upload_result['status'] === false) {
+                    $array = array('success' => false, 'error' => array('file' => $upload_result['message']));
+                    echo json_encode($array);
+                    return;
+                }
+                $img_name = $upload_result['message'];
             } else {
                 $img_name = $setting->admin_small_logo;
             }
@@ -133,7 +150,13 @@ class Schsettings extends Admin_Controller
 
             if (isset($_FILES["file"]) && $_FILES['file']['name'] != '' && (!empty($_FILES['file']['name']))) {
 
-                $img_name = $this->media_storage->fileupload("file", "./uploads/school_content/admin_logo/");
+                $upload_result = $this->media_storage->fileupload("file", "./uploads/school_content/admin_logo/");
+                if ($upload_result['status'] === false) {
+                    $array = array('success' => false, 'error' => array('file' => $upload_result['message']));
+                    echo json_encode($array);
+                    return;
+                }
+                $img_name = $upload_result['message'];
             } else {
                 $img_name = $setting->admin_logo;
             }
@@ -241,7 +264,7 @@ class Schsettings extends Admin_Controller
         $this->form_validation->set_rules('sch_start_week', $this->lang->line('start_day_of_week'), 'trim|required|xss_clean');
         $this->form_validation->set_rules('institution_type', 'Institution Type', 'trim|required|xss_clean');
         $this->form_validation->set_rules('base_url', $this->lang->line('url'), 'trim|required|xss_clean');
-        $this->form_validation->set_rules('folder_path', $this->lang->line('folder_path'), 'trim|required|xss_clean');
+
 
         if ($this->form_validation->run() == false) {
             $data = array(
@@ -257,7 +280,7 @@ class Schsettings extends Admin_Controller
                 'currency_format' => form_error('currency_format'),
                 'sch_date_format' => form_error('sch_date_format'),
                 'base_url'        => form_error('base_url'),
-                'folder_path'     => form_error('folder_path'),
+
             );
             $array = array('status' => 'fail', 'error' => $data);
             echo json_encode($array);
@@ -279,13 +302,13 @@ class Schsettings extends Admin_Controller
                 'currency_format' => $this->input->post('currency_format'),
                 'currency_place'  => $this->input->post('currency_place'),
                 'base_url'        => $this->input->post('base_url'),
-                'folder_path'     => $this->input->post('folder_path'),
+
             );
 
             $this->setting_model->add($data);
 
             $this->session->userdata['admin']['base_url']        = $this->input->post('base_url');
-            $this->session->userdata['admin']['folder_path']     = $this->input->post('folder_path');
+
             $this->session->userdata['admin']['currency_format'] = $this->input->post('currency_format');
             $this->session->userdata['admin']['date_format']     = $this->input->post('sch_date_format');
             $this->session->userdata['admin']['start_week']      = date("w", strtotime($this->input->post('sch_start_week')));
@@ -315,7 +338,13 @@ class Schsettings extends Admin_Controller
 
             if (isset($_FILES["file"]) && $_FILES['file']['name'] != '' && (!empty($_FILES['file']['name']))) {
 
-                $img_name = $this->media_storage->fileupload("file", "./uploads/school_content/logo/app_logo//");
+                $upload_result = $this->media_storage->fileupload("file", "./uploads/school_content/logo/app_logo//");
+                if ($upload_result['status'] === false) {
+                    $array = array('success' => false, 'error' => array('file' => $upload_result['message']));
+                    echo json_encode($array);
+                    return;
+                }
+                $img_name = $upload_result['message'];
             } else {
                 $img_name = $setting->app_logo;
             }
@@ -379,9 +408,14 @@ class Schsettings extends Admin_Controller
         $this->session->set_userdata('top_menu', 'System Settings');
         $this->session->set_userdata('sub_menu', 'schsettings/index');
         $this->session->set_userdata('subsub_menu', 'schsettings/miscellaneous');
-        $setting              = $this->setting_model->getSetting();
-        $setting->base_url    = ($setting->base_url == "") ? base_url() : $setting->base_url;
-        $setting->folder_path = ($setting->folder_path == "") ? FCPATH : $setting->folder_path;
+                $setting                  = $this->setting_model->getSetting();
+                if (is_null($setting)) {
+                    $setting = new stdClass();
+                    $setting->base_url = '';
+                    $setting->folder_path = '';
+                }
+                $setting->base_url        = ($setting->base_url == "") ? base_url() : $setting->base_url;
+                $setting->folder_path     = FCPATH;
         $data['result']       = $setting;
         $this->load->view('layout/header');
         $this->load->view('setting/miscellaneous', $data);
@@ -420,11 +454,14 @@ class Schsettings extends Admin_Controller
     {
         $this->session->set_userdata('top_menu', 'System Settings');
         $this->session->set_userdata('sub_menu', 'schsettings/index');
-        $this->session->set_userdata('subsub_menu', 'schsettings/backendtheme');
-        $setting              = $this->setting_model->getSetting();
-        $setting->base_url    = ($setting->base_url == "") ? base_url() : $setting->base_url;
-        $setting->folder_path = ($setting->folder_path == "") ? FCPATH : $setting->folder_path;
-        $data['result']       = $setting;
+                $setting              = $this->setting_model->getSetting();
+                if (is_null($setting)) {
+                    $setting = new stdClass();
+                    $setting->base_url = '';
+                    $setting->folder_path = '';
+                }
+                $setting->base_url    = ($setting->base_url == "") ? base_url() : $setting->base_url;
+                $setting->folder_path = FCPATH;        $data['result']       = $setting;
         $this->load->view('layout/header');
         $this->load->view('setting/backendtheme', $data);
         $this->load->view('layout/footer');
@@ -459,10 +496,14 @@ class Schsettings extends Admin_Controller
         $app_ver = $this->config->item('app_ver');
         $this->session->set_userdata('top_menu', 'System Settings');
         $this->session->set_userdata('sub_menu', 'schsettings/index');
-        $this->session->set_userdata('subsub_menu', 'schsettings/mobileapp');
         $setting              = $this->setting_model->getSetting();
+        if (is_null($setting)) {
+            $setting = new stdClass();
+            $setting->base_url = '';
+            $setting->folder_path = '';
+        }
         $setting->base_url    = ($setting->base_url == "") ? base_url() : $setting->base_url;
-        $setting->folder_path = ($setting->folder_path == "") ? FCPATH : $setting->folder_path;
+        $setting->folder_path = FCPATH;
         $data['result']       = $setting;
         $data['app_response'] = $this->auth->andapp_validate();
         $this->load->view('layout/header');
@@ -491,10 +532,14 @@ class Schsettings extends Admin_Controller
     {
         $this->session->set_userdata('top_menu', 'System Settings');
         $this->session->set_userdata('sub_menu', 'schsettings/index');
-        $this->session->set_userdata('subsub_menu', 'schsettings/studentguardianpanel');
         $setting              = $this->setting_model->getSetting();
+        if (is_null($setting)) {
+            $setting = new stdClass();
+            $setting->base_url = '';
+            $setting->folder_path = '';
+        }
         $setting->base_url    = ($setting->base_url == "") ? base_url() : $setting->base_url;
-        $setting->folder_path = ($setting->folder_path == "") ? FCPATH : $setting->folder_path;
+        $setting->folder_path = FCPATH;
         $data['result']       = $setting;
         $this->load->view('layout/header');
         $this->load->view('setting/studentguardianpanel', $data);
@@ -535,8 +580,13 @@ class Schsettings extends Admin_Controller
         $this->session->set_userdata('subsub_menu', 'schsettings/fees');
 
         $setting                        = $this->setting_model->getSetting();
+        if (is_null($setting)) {
+            $setting = new stdClass();
+            $setting->base_url = '';
+            $setting->folder_path = '';
+        }
         $setting->base_url              = ($setting->base_url == "") ? base_url() : $setting->base_url;
-        $setting->folder_path           = ($setting->folder_path == "") ? FCPATH : $setting->folder_path;
+        $setting->folder_path           = FCPATH;
         $data['result']                 = $setting;
         $data['duplicate_fees_invoice'] = explode(",", $setting->is_duplicate_fees_invoice);
         $this->load->view('layout/header');
@@ -595,8 +645,13 @@ class Schsettings extends Admin_Controller
         $digit                = $this->customlib->getDigits();
         $data['digitList']    = $digit;
         $setting              = $this->setting_model->getSetting();
+        if (is_null($setting)) {
+            $setting = new stdClass();
+            $setting->base_url = '';
+            $setting->folder_path = '';
+        }
         $setting->base_url    = ($setting->base_url == "") ? base_url() : $setting->base_url;
-        $setting->folder_path = ($setting->folder_path == "") ? FCPATH : $setting->folder_path;
+        $setting->folder_path = FCPATH;
         $data['result']       = $setting;
         $this->load->view('layout/header');
         $this->load->view('setting/idautogeneration', $data);
@@ -685,11 +740,14 @@ class Schsettings extends Admin_Controller
         }
         
         $class_list=$this->class_section_time_model->allClassSections();
-        $data['class_list']=$class_list;
-
         $setting              = $this->setting_model->getSetting();
+        if (is_null($setting)) {
+            $setting = new stdClass();
+            $setting->base_url = '';
+            $setting->folder_path = '';
+        }
         $setting->base_url    = ($setting->base_url == "") ? base_url() : $setting->base_url;
-        $setting->folder_path = ($setting->folder_path == "") ? FCPATH : $setting->folder_path;
+        $setting->folder_path = FCPATH;
         $data['result']       = $setting;
 
         //staff attedance settings
@@ -768,8 +826,13 @@ class Schsettings extends Admin_Controller
         $this->session->set_userdata('subsub_menu', 'schsettings/maintenance');
 
         $setting              = $this->setting_model->getSetting();
+        if (is_null($setting)) {
+            $setting = new stdClass();
+            $setting->base_url = '';
+            $setting->folder_path = '';
+        }
         $setting->base_url    = ($setting->base_url == "") ? base_url() : $setting->base_url;
-        $setting->folder_path = ($setting->folder_path == "") ? FCPATH : $setting->folder_path;
+        $setting->folder_path = FCPATH;
         $data['result']       = $setting;
         $this->load->view('layout/header', $data);
         $this->load->view('setting/maintenance', $data);
@@ -847,6 +910,13 @@ class Schsettings extends Admin_Controller
         $this->session->set_userdata('subsub_menu', 'schsettings/login_page_background');
     
         $setting              = $this->setting_model->getSetting();
+        if (is_null($setting)) {
+            $setting = new stdClass();
+            $setting->base_url = '';
+            $setting->folder_path = '';
+        }
+        $setting->base_url    = ($setting->base_url == "") ? base_url() : $setting->base_url;
+        $setting->folder_path = FCPATH;
         $data['result']       = $setting;
         $this->load->view('layout/header');
         $this->load->view('setting/login_page_background', $data);
@@ -875,7 +945,13 @@ class Schsettings extends Admin_Controller
             }
             
             if (isset($_FILES["file"]) && $_FILES['file']['name'] != '' && (!empty($_FILES['file']['name']))) {
-                $img_name = $this->media_storage->fileupload("file", "./uploads/school_content/login_image/");
+                $upload_result = $this->media_storage->fileupload("file", "./uploads/school_content/login_image/");
+                if ($upload_result['status'] === false) {
+                    $array = array('success' => false, 'error' => array('file' => $upload_result['message']));
+                    echo json_encode($array);
+                    return;
+                }
+                $img_name = $upload_result['message'];
             } else {
                 $img_name = $background;
             }
@@ -961,7 +1037,13 @@ class Schsettings extends Admin_Controller
         $this->session->set_userdata('sub_menu', 'schsettings/index');
         $this->session->set_userdata('subsub_menu', 'schsettings/whatsappsettings');
         $setting              = $this->setting_model->getSetting();
-        
+        if (is_null($setting)) {
+            $setting = new stdClass();
+            $setting->base_url = '';
+            $setting->folder_path = '';
+        }
+        $setting->base_url    = ($setting->base_url == "") ? base_url() : $setting->base_url;
+        $setting->folder_path = FCPATH;
         $data['result']       = $setting;
         $this->load->view('layout/header');
         $this->load->view('setting/whatsappsettings', $data);

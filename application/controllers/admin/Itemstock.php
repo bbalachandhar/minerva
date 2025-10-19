@@ -36,8 +36,14 @@ class Itemstock extends Admin_Controller
 
         } else {
 
-            $img_name = $this->media_storage->fileupload("item_photo", "./uploads/inventory_items/");
-
+                            $upload_result = $this->media_storage->fileupload("item_photo", "./uploads/inventory_items/");
+                            if ($upload_result['status'] === false) {
+                                $msg = array('item_photo' => $upload_result['message']);
+                                $array = array('status' => 'fail', 'error' => $msg, 'message' => '');
+                                echo json_encode($array);
+                                return;
+                            }
+                            $img_name = $upload_result['message'];
             $store_id = ($this->input->post('store_id')) ? $this->input->post('store_id') : null;
             
             $data     = array(
@@ -194,7 +200,14 @@ class Itemstock extends Admin_Controller
 
             if (isset($_FILES["item_photo"]) && $_FILES['item_photo']['name'] != '' && (!empty($_FILES['item_photo']['name']))) {
 
-                $img_name = $this->media_storage->fileupload("item_photo", "./uploads/inventory_items/");
+            $upload_result = $this->media_storage->fileupload("item_photo", "./uploads/inventory_items/");
+            if ($upload_result['status'] === false) {
+                $msg = array('item_photo' => $upload_result['message']);
+                $array = array('status' => 'fail', 'error' => $msg, 'message' => '');
+                echo json_encode($array);
+                return;
+            }
+            $img_name = $upload_result['message'];
             } else {
                 $img_name = $item['attachment'];
             }

@@ -567,31 +567,63 @@ class Welcome extends Front_Controller
                     $data['reference_no'] = $reference_no;
 
                     if (isset($_FILES["document"]) && !empty($_FILES['document']['name'])) {
-                        $img_name         = $this->media_storage->fileupload("document", "./uploads/student_documents/online_admission_doc/");     
+                        $upload_result = $this->media_storage->fileupload("document", "./uploads/student_documents/online_admission_doc/");
+        if ($upload_result['status'] === false) {
+            $this->session->set_flashdata('error', $upload_result['message']);
+            redirect('welcome/admission');
+        }
+        $img_name         = $upload_result['message'];
                         
                         $data['document'] = $img_name;
                     }
 
                     if (isset($_FILES["file"]) && !empty($_FILES['file']['name'])) {
-                        $img_name      = $this->media_storage->fileupload("file", "./uploads/student_images/online_admission_image/");
+                        $upload_result = $this->media_storage->fileupload("file", "./uploads/student_images/online_admission_image/");
+                        if ($upload_result['status'] === false) {
+                            $this->session->set_flashdata('error', $upload_result['message']);
+                            redirect('welcome/admission');
+                        }
+                        $img_name      = $upload_result['message'];
                         $data['image'] = 'uploads/student_images/online_admission_image/' . $img_name;
                     }
 
                     if (isset($_FILES["father_pic"]) && !empty($_FILES['father_pic']['name'])) {
-                        $img_name           = $this->media_storage->fileupload("father_pic", "./uploads/student_images/online_admission_image/");
+                        $upload_result = $this->media_storage->fileupload("father_pic", "./uploads/student_images/online_admission_image/");
+                        if ($upload_result['status'] === false) {
+                            $this->session->set_flashdata('error', $upload_result['message']);
+                            redirect('welcome/admission');
+                        }
+                        $img_name           = $upload_result['message'];
                         $data['father_pic'] = 'uploads/student_images/online_admission_image/' .$img_name;
                     }
 
                     if (isset($_FILES["mother_pic"]) && !empty($_FILES['mother_pic']['name'])) {
-                        $img_name           = $this->media_storage->fileupload("mother_pic", "./uploads/student_images/online_admission_image/");
+                        $upload_result = $this->media_storage->fileupload("mother_pic", "./uploads/student_images/online_admission_image/");
+                        if ($upload_result['status'] === false) {
+                            $this->session->set_flashdata('error', $upload_result['message']);
+                            redirect('welcome/admission');
+                        }
+                        $img_name           = $upload_result['message'];
                         $data['mother_pic'] = 'uploads/student_images/online_admission_image/' .$img_name;
                     }
 
-                    if (isset($_FILES["guardian_pic"]) && !empty($_FILES['guardian_pic']['name'])) {
+                                        if (isset($_FILES["guardian_pic"]) && !empty($_FILES['guardian_pic']['name'])) {
 
-                        $img_name             = $this->media_storage->fileupload("guardian_pic", "./uploads/student_images/online_admission_image/");
-                        $data['guardian_pic'] = 'uploads/student_images/online_admission_image/' .$img_name;
-                    }
+                                            $upload_result = $this->media_storage->fileupload("guardian_pic", "./uploads/student_images/online_admission_image/");
+
+                                            if ($upload_result['status'] === false) {
+
+                                                $this->session->set_flashdata('error', $upload_result['message']);
+
+                                                redirect('welcome/admission');
+
+                                            }
+
+                                            $img_name             = $upload_result['message'];
+
+                                            $data['guardian_pic'] = 'uploads/student_images/online_admission_image/' .$img_name;
+
+                                        }
                     $data['hostel_room_id']      = null;
                     
                     
@@ -1105,27 +1137,44 @@ class Welcome extends Front_Controller
                         if (isset($rte)) {
                             $data['rte'] = $this->input->post('rte');
                         }
-                        if (isset($_FILES["document"]) && !empty($_FILES['document']['name'])) {
-                            $img_name         = $this->media_storage->fileupload("document", "./uploads/student_documents/online_admission_doc/");
-                            $data['document'] = $img_name;
+                                            if (isset($_FILES["document"]) && !empty($_FILES['document']['name'])) {
+                                                $upload_result = $this->media_storage->fileupload("document", "./uploads/student_documents/online_admission_doc/");
+                                                if ($upload_result['status'] === false) {
+                                                    $this->session->set_flashdata('error', $upload_result['message']);
+                                                    redirect('welcome/admission');
+                                                }
+                                                $img_name         = $upload_result['message'];
+                                                $data['document'] = $img_name;
+                                            }                    if (isset($_FILES["file"]) && !empty($_FILES['file']['name'])) {
+                        $upload_result = $this->media_storage->fileupload("file", "./uploads/student_images/online_admission_image/");
+                        if ($upload_result['status'] === false) {
+                            $this->session->set_flashdata('error', $upload_result['message']);
+                            redirect('welcome/admission');
                         }
-                        if (isset($_FILES["file"]) && !empty($_FILES['file']['name'])) {
-                            $img_name      = $this->media_storage->fileupload("file", "./uploads/student_images/online_admission_image/");
-                            $data['image'] = 'uploads/student_images/online_admission_image/' .$img_name;
-                        }
-                        if (isset($_FILES["father_pic"]) && !empty($_FILES['father_pic']['name'])) {
-                            $img_name           = $this->media_storage->fileupload("father_pic", "./uploads/student_images/online_admission_image/");
-                            $data['father_pic'] = 'uploads/student_images/online_admission_image/' .$img_name;
-                        }
-                        if (isset($_FILES["mother_pic"]) && !empty($_FILES['mother_pic']['name'])) {
+                        $img_name      = $upload_result['message'];
+                        $data['image'] = 'uploads/student_images/online_admission_image/' .$img_name;
+                    }
+                                            if (isset($_FILES["father_pic"]) && !empty($_FILES['father_pic']['name'])) {
+                                                $upload_result = $this->media_storage->fileupload("father_pic", "./uploads/student_images/online_admission_image/");
+                                                if ($upload_result['status'] === false) {
+                                                    $this->session->set_flashdata('error', $upload_result['message']);
+                                                    redirect('welcome/admission');
+                                                }
+                                                $img_name           = $upload_result['message'];
+                                                $data['father_pic'] = 'uploads/student_images/online_admission_image/' .$img_name;
+                                            }                        if (isset($_FILES["mother_pic"]) && !empty($_FILES['mother_pic']['name'])) {
                             $img_name           = $this->media_storage->fileupload("mother_pic", "./uploads/student_images/online_admission_image/");
                             $data['mother_pic'] = 'uploads/student_images/online_admission_image/' .$img_name;
                         }
-                        if (isset($_FILES["guardian_pic"]) && !empty($_FILES['guardian_pic']['name'])) {
-
-                            $img_name             = $this->media_storage->fileupload("guardian_pic", "./uploads/student_images/online_admission_image/");
-                            $data['guardian_pic'] = 'uploads/student_images/online_admission_image/' .$img_name;
-                        }
+                                            if (isset($_FILES["guardian_pic"]) && !empty($_FILES['guardian_pic']['name'])) {
+                                                $upload_result = $this->media_storage->fileupload("guardian_pic", "./uploads/student_images/online_admission_image/");
+                                                if ($upload_result['status'] === false) {
+                                                    $this->session->set_flashdata('error', $upload_result['message']);
+                                                    redirect('welcome/admission');
+                                                }
+                                                $img_name             = $upload_result['message'];
+                                                $data['guardian_pic'] = 'uploads/student_images/online_admission_image/' .$img_name;
+                                            }
 
                         $this->onlinestudent_model->edit($data);
                         $sch_setting = $this->sch_setting_detail;

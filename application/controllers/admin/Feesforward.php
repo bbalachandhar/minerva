@@ -193,4 +193,110 @@ class Feesforward extends Admin_Controller
         return $amount;
     }
 
+    public function bulk_upload()
+    {
+        if (!$this->rbac->hasPrivilege('fees_carry_forward', 'can_view')) {
+            access_denied();
+        }
+
+        $this->session->set_userdata('top_menu', 'Fees Collection');
+        $this->session->set_userdata('sub_menu', 'feesforward/index');
+        $data['title'] = 'Bulk Upload Fees Forward';
+
+        if ($this->input->server('REQUEST_METHOD') == "POST") {
+            $this->form_validation->set_rules('file', $this->lang->line('file'), 'callback_handle_csv_upload');
+
+            if ($this->form_validation->run() == false) {
+                $this->load->view('layout/header', $data);
+                $this->load->view('admin/feesforward/bulk_upload', $data);
+                $this->load->view('layout/footer', $data);
+            } else {
+                $setting_result          = $this->setting_model->get();
+                $current_session         = $setting_result[0]['session_id'];
+                $pre_session             = $this->session_model->getPreSession($current_session);
+
+                $fees_due_days = $setting_result[0]['fee_due_days'];
+                if ($fees_due_days > 0 && $fees_due_days != "") {
+                    $due_date = date('Y-m-d', strtotime('+' . $fees_due_days . ' day'));
+                } else {
+                    $due_date = date('Y-m-d');
+                }
+
+                $file_path = $_FILES['file']['tmp_name'];
+                $this->load->library('csvreader');
+                $result = $this->csvreader->parse_file($file_path);
+
+                if (!empty($result)) {
+                    $student_data = [];
+                    $error_messages = [];
+                    foreach ($result as $row_num => $row) {
+                        $admission_no = $row['admission_no'] ?? '';
+                        $amount = $row['amount'] ?? '';
+
+                        if (empty($admission_no) || empty($amount)) {
+                            $error_messages[] = "Row " . ($row_num + 2) . ": Missing required fields.";
+                            continue;
+                        }
+
+                        $student = $this->student_model->getPreviousSessionStudentByAdmissionNo($admission_no, $pre_session->id);
+
+                        if (!$student) {
+                            $error_messages[] = "Row " . ($row_num + 2) . ": Student with Admission No. " . $admission_no . " not found in previous session.";
+                            continue;
+                        }
+
+                        $student_array = array();
+                        $student_array['student_session_id']   = $student->current_student_session_id;
+                        $student_array['amount']               = convertCurrencyFormatToBaseAmount($amount);
+                        $student_array['is_system']            = 1;
+                        $student_array['fee_session_group_id'] = 0;
+                        $student_data[]                        = $student_array;
+                    }
+
+                    if (empty($error_messages)) {
+                        $this->studentfeemaster_model->addPreviousBal($student_data, $due_date);
+                        $this->session->set_flashdata('msg', '<div class="alert alert-success text-center">' . $this->lang->line('fees_uploaded_successfully') . '</div>');
+                        redirect('admin/feesforward/bulk_upload');
+                    } else {
+                        $data['error_messages'] = $error_messages;
+                        $this->load->view('layout/header', $data);
+                        $this->load->view('admin/feesforward/bulk_upload', $data);
+                        $this->load->view('layout/footer', $data);
+                    }
+                } else {
+                    $this->session->set_flashdata('msg', '<div class="alert alert-danger text-center">' . $this->lang->line('error_processing_file') . '</div>');
+                    redirect('admin/feesforward/bulk_upload');
+                }
+            }
+        } else {
+            $this->load->view('layout/header', $data);
+            $this->load->view('admin/feesforward/bulk_upload', $data);
+            $this->load->view('layout/footer', $data);
+        }
+    }
+
+    public function handle_csv_upload()
+    {
+        if (isset($_FILES["file"]) && !empty($_FILES['file']['name'])) {
+            $allowedMimeTypes = array(
+                'text/csv',
+                'application/vnd.ms-excel',
+                'application/csv',
+                'application/x-csv',
+                'text/x-csv',
+                'text/plain',
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' // For .xlsx
+            );
+            $mime = get_mime_by_extension($_FILES['file']['name']);
+            if (!in_array($mime, $allowedMimeTypes)) {
+                $this->form_validation->set_message('handle_csv_upload', $this->lang->line('file_type_not_allowed'));
+                return false;
+            }
+            return true;
+        } else {
+            $this->form_validation->set_message('handle_csv_upload', $this->lang->line('the_file_field_is_required'));
+            return false;
+        }
+    }
+
 }

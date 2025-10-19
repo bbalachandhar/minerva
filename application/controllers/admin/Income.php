@@ -31,7 +31,12 @@ class Income extends Admin_Controller
         $this->form_validation->set_rules('documents', $this->lang->line('documents'), 'callback_handle_upload');
         if ($this->form_validation->run() == true) {
 
-            $img_name = $this->media_storage->fileupload("documents", "./uploads/school_income/");
+            $upload_result = $this->media_storage->fileupload("documents", "./uploads/school_income/");
+            if ($upload_result['status'] === false) {
+                $this->session->set_flashdata('error', $upload_result['message']);
+                redirect('admin/income/index');
+            }
+            $img_name = $upload_result['message'];
 
             $data = array(
                 'income_head_id' => $this->input->post('inc_head_id'),
@@ -203,7 +208,12 @@ class Income extends Admin_Controller
             );
 
             if (isset($_FILES["documents"]) && $_FILES['documents']['name'] != '' && (!empty($_FILES['documents']['name']))) {
-                $img_name = $this->media_storage->fileupload("documents", "./uploads/school_income/");
+                $upload_result = $this->media_storage->fileupload("documents", "./uploads/school_income/");
+                if ($upload_result['status'] === false) {
+                    $this->session->set_flashdata('error', $upload_result['message']);
+                    redirect('admin/income/edit/' . $id);
+                }
+                $img_name = $upload_result['message'];
             } else {
                 $img_name = $income['documents'];
             }

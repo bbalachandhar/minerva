@@ -172,12 +172,26 @@ class Syllabus extends Admin_Controller
             );
 
             if (isset($_FILES["file"]) && !empty($_FILES['file']['name'])) {
-                $attachment_img_name = $this->media_storage->fileupload("file", "./uploads/syllabus_attachment/");
+                $upload_result = $this->media_storage->fileupload("file", "./uploads/syllabus_attachment/");
+                if ($upload_result['status'] === false) {
+                    $msg = array('file' => $upload_result['message']);
+                    $array = array('status' => 'fail', 'error' => $msg, 'message' => '');
+                    echo json_encode($array);
+                    return;
+                }
+                $attachment_img_name = $upload_result['message'];
                 $data['attachment']  = $attachment_img_name;
             }
 
             if (isset($_FILES["lacture_video"]) && !empty($_FILES['lacture_video']['name'])) {
-                $lacture_video_img_name = $this->media_storage->fileupload("lacture_video", "./uploads/syllabus_attachment/lacture_video/");
+                $upload_result = $this->media_storage->fileupload("lacture_video", "./uploads/syllabus_attachment/lacture_video/");
+                if ($upload_result['status'] === false) {
+                    $msg = array('lacture_video' => $upload_result['message']);
+                    $array = array('status' => 'fail', 'error' => $msg, 'message' => '');
+                    echo json_encode($array);
+                    return;
+                }
+                $lacture_video_img_name = $upload_result['message'];
                 $data['lacture_video']  = $lacture_video_img_name;
             }
 

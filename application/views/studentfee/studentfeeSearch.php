@@ -13,6 +13,9 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                 <div class="box box-primary">
                     <div class="box-header with-border">
                         <h3 class="box-title"><i class="fa fa-search"></i> <?php echo $this->lang->line('select_criteria'); ?></h3>
+                        <div class="box-tools pull-right">
+                            <a href="<?php echo site_url('studentfee/bulk_upload_fees') ?>" class="btn btn-info btn-sm"><i class="fa fa-upload"></i> <?php echo $this->lang->line('bulk_upload_entries'); ?></a>
+                        </div>
                     </div>
                     <div class="box-body">
                         <form  action="<?php echo site_url('studentfee/search') ?>" method="post" class="class_search_form">

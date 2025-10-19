@@ -726,7 +726,12 @@ class Content extends Admin_Controller
                 $content_for[] = array('role' => $cont_avail_value);
             }
 
-            $img_name = $this->media_storage->fileupload("file", "./uploads/school_content/material/");
+            $upload_result = $this->media_storage->fileupload("file", "./uploads/school_content/material/");
+            if ($upload_result['status'] === false) {
+                $this->session->set_flashdata('error', $upload_result['message']);
+                redirect('admin/content');
+            }
+            $img_name = $upload_result['message'];
 
             $data = array(
                 'title'      => $this->input->post('content_title'),

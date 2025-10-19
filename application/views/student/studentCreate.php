@@ -1107,66 +1107,127 @@ echo set_value('rte') == "no" ? "checked" : "";
 </div>
 
 <div class="modal fade" id="mySiblingModal" role="dialog">
+
     <div class="modal-dialog">
+
         <div class="modal-content">
+
             <div class="modal-header">
+
                 <button type="button" class="close" data-dismiss="modal">&times;</button>
+
                 <h4 class="modal-title title modal_title"></h4>
+
             </div>
+
             <div class="modal-body pb0">
+
                 <div class="form-horizontal">
+
                     <div class="box-body pt0 pb0">
+
                         <input  type="hidden" class="form-control" id="transport_student_session_id"  value="0" readonly="readonly"/>
+
                         <div class="form-group">
+
                             <div class="sibling_msg">
+
                         </div>
+
                             <label for="inputEmail3" class="col-sm-2 control-label"><?php echo $this->lang->line('class'); ?></label>
+
                             <div class="col-sm-10">
+
                                 <select  id="sibiling_class_id" name="sibiling_class_id" class="form-control"  >
+
                                     <option value=""><?php echo $this->lang->line('select'); ?></option>
+
                                     <?php
+
 foreach ($classlist as $class) {
+
     ?>
+
                                         <option value="<?php echo $class['id'] ?>"<?php
+
 if (set_value('sibiling_class_id') == $class['id']) {
+
         echo "selected=selected";
+
     }
+
     ?>><?php echo $class['class'] ?></option>
+
                                                 <?php
+
 $count++;
+
 }
+
 ?>
+
                                 </select>
+
                             </div>
+
                         </div>
+
                         <div class="form-group">
+
                             <label for="inputPassword3" class="col-sm-2 control-label"><?php echo $this->lang->line('section'); ?></label>
+
                             <div class="col-sm-10">
+
                                 <select  id="sibiling_section_id" name="sibiling_section_id" class="form-control">
+
                                     <option value=""><?php echo $this->lang->line('select'); ?></option>
+
                                 </select>
+
                                 <span class="text-danger" id="transport_amount_error"></span>
+
                             </div>
+
                         </div>
+
                         <div class="form-group">
+
                             <label for="inputPassword3" class="col-sm-2 control-label"><?php echo $this->lang->line('student'); ?>
+
                             </label>
+
                             <div class="col-sm-10">
+
                                 <select  id="sibiling_student_id" name="sibiling_student_id" class="form-control" >
+
                                     <option value=""   ><?php echo $this->lang->line('select'); ?></option>
+
                                 </select>
+
                                 <span class="text-danger" id="sibiling_student_id
+
 "></span>
+
                             </div>
+
                         </div>
+
                     </div>
+
                 </div>
+
             </div>
+
             <div class="modal-footer">
+
                 <button type="button" class="btn btn-primary add_sibling" id="load" data-loading-text="<i class='fa fa-circle-o-notch fa-spin'></i> Processing"><i class="fa fa-user"></i> <?php echo $this->lang->line('add'); ?></button>
+
             </div>
+
         </div>
+
     </div>
+
 </div>
 
 <script type="text/javascript">
@@ -1476,13 +1537,15 @@ if (($userdata["role_id"] == 2)) {
         }
     });
 
-    <?php /*
+<script>
     $(document).ready(function () {
         var institution_type = '<?php echo $sch_setting->institution_type; ?>';
+        console.log('Institution Type:', institution_type); // Added console.log
 
         if (institution_type === 'college') {
             // College: Class dropdown is dependent on Department
             $(document).on('change', '#department_id', function (e) {
+                console.log('Department change event triggered'); // Added console.log
                 $('#class_id').html("");
                 $('#section_id').html("");
                 var department_id = $(this).val();
@@ -1490,7 +1553,7 @@ if (($userdata["role_id"] == 2)) {
                 var div_data = '<option value=""><?php echo $this->lang->line('select'); ?></option>';
                 $.ajax({
                     type: "GET",
-                    url: base_url + "classes/getClassesByDepartment",
+                    url: base_url + "admin/classes/getClassesByDepartment",
                     data: {'department_id': department_id},
                     dataType: "json",
                     beforeSend: function () {
@@ -1501,6 +1564,9 @@ if (($userdata["role_id"] == 2)) {
                             div_data += "<option value=" + obj.id + ">" + obj.class + "</option>";
                         });
                         $('#class_id').append(div_data);
+                    },
+                    error: function (xhr, status, error) {
+                        alert("Error: " + status + " - " + error);
                     },
                     complete: function () {
                         $('#class_id').removeClass('dropdownloading');
@@ -1534,9 +1600,10 @@ if (($userdata["role_id"] == 2)) {
             });
         });
     });
-    */ ?>
 </script>
 
+<!-- Commented out JavaScript blocks for debugging -->
+<?php /*
 <script type="text/javascript" src="<?php echo base_url(); ?>backend/dist/js/savemode.js"></script>
 
 <script>
@@ -1609,4 +1676,4 @@ $('#fee_session_group_id').multiselect({
     });
     
 //fee discount  
-</script>
+*/ ?>

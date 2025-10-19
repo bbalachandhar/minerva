@@ -121,6 +121,7 @@ html,body{min-height:100%}
 @media (max-width:767px){.content-wrapper,.right-side,.main-footer{margin-left:0}}
 @media (min-width:768px){.sidebar-collapse .content-wrapper,.sidebar-collapse .right-side,.sidebar-collapse .main-footer{margin-left:0}}@media (max-width:767px){.sidebar-open .content-wrapper,.sidebar-open .right-side,.sidebar-open .main-footer{-webkit-transform:translate(200px, 0);-ms-transform:translate(200px, 0);-o-transform:translate(200px, 0);transform:translate(200px, 0)}}
 .content-wrapper,.right-side{min-height:100%;background-color: #F3F3F3;z-index:800;}
+.content-wrapper,.right-side{min-height:100%;background-color: #F3F3F3;z-index:800;}
 .main-footer{background:#ececec;padding-top:2px;padding-bottom:2px;padding-left:15px;padding-right:15px;text-align:right;font-size:10px;color:#444;border-top:1px solid #d2d6de}.fixed .main-header,.fixed .main-sidebar,.fixed .left-side{position:fixed}
 .fixed .main-header{top:0;right:0;left:0;box-shadow:0 3px 6px rgba(0,0,0,.16),0 3px 6px rgba(0,0,0,.23); }
 .fixed .content-wrapper,.fixed .right-side{padding-top:50px}

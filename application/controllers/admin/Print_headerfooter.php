@@ -55,7 +55,12 @@ class Print_headerfooter extends Admin_Controller
 
                 if ($_POST['type'] == 'student_receipt') {
 
-                    $img_name = $this->media_storage->fileupload("header_image", "./uploads/print_headerfooter/student_receipt/");
+                    $upload_result = $this->media_storage->fileupload("header_image", "./uploads/print_headerfooter/student_receipt/");
+                    if ($upload_result['status'] === false) {
+                        $this->session->set_flashdata('error', $upload_result['message']);
+                        redirect('admin/print_headerfooter');
+                    }
+                    $img_name = $upload_result['message'];
 
                     $row = $this->setting_model->unlink_receiptheader();
 
@@ -64,7 +69,12 @@ class Print_headerfooter extends Admin_Controller
                     }
                 } else if ($_POST['type'] == 'online_admission_receipt') {
 
-                    $img_name = $this->media_storage->fileupload("header_image", "./uploads/print_headerfooter/online_admission_receipt/");
+                    $upload_result = $this->media_storage->fileupload("header_image", "./uploads/print_headerfooter/online_admission_receipt/");
+                    if ($upload_result['status'] === false) {
+                        $this->session->set_flashdata('error', $upload_result['message']);
+                        redirect('admin/print_headerfooter');
+                    }
+                    $img_name = $upload_result['message'];
 
                     $row = $this->setting_model->unlink_onlinereceiptheader();
                   
@@ -73,7 +83,12 @@ class Print_headerfooter extends Admin_Controller
                     }
                 } else if ($_POST['type'] == 'online_exam') {
 
-                    $img_name = $this->media_storage->fileupload("header_image", "./uploads/print_headerfooter/online_exam/");
+                    $upload_result = $this->media_storage->fileupload("header_image", "./uploads/print_headerfooter/online_exam/");
+                    if ($upload_result['status'] === false) {
+                        $this->session->set_flashdata('error', $upload_result['message']);
+                        redirect('admin/print_headerfooter');
+                    }
+                    $img_name = $upload_result['message'];
 
                     $row = $this->setting_model->get_onlineexamheader();
 
@@ -82,7 +97,12 @@ class Print_headerfooter extends Admin_Controller
                     }
                 }else if ($_POST['type'] == 'general_purpose') {
 
-                    $img_name = $this->media_storage->fileupload("header_image", "./uploads/print_headerfooter/general_purpose/");
+                    $upload_result = $this->media_storage->fileupload("header_image", "./uploads/print_headerfooter/general_purpose/");
+                    if ($upload_result['status'] === false) {
+                        $this->session->set_flashdata('error', $upload_result['message']);
+                        redirect('admin/print_headerfooter');
+                    }
+                    $img_name = $upload_result['message'];
                     $row = $this->setting_model->get_general_purpose_header();
 
                     if (!empty($row['header_image'])) {
@@ -90,7 +110,12 @@ class Print_headerfooter extends Admin_Controller
                     }
                 } else {
 
-                    $img_name = $this->media_storage->fileupload("header_image", "./uploads/print_headerfooter/staff_payslip/");
+                    $upload_result = $this->media_storage->fileupload("header_image", "./uploads/print_headerfooter/staff_payslip/");
+                    if ($upload_result['status'] === false) {
+                        $this->session->set_flashdata('error', $upload_result['message']);
+                        redirect('admin/print_headerfooter');
+                    }
+                    $img_name = $upload_result['message'];
 
                     $row = $this->setting_model->unlink_payslipheader();
 

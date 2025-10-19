@@ -15,39 +15,167 @@ class Studentfee extends Admin_Controller
         $this->load->library('customlib');
         $this->load->library('media_storage');
         $this->load->model("module_model");
-        $this->load->model("studentAppliedDiscount_model");
-        $this->load->model("transportfee_model");
-        $this->search_type        = $this->config->item('search_type');
-        $this->sch_setting_detail = $this->setting_model->getSetting();
-        $this->current_session = $this->setting_model->getCurrentSession();
-		
-		$this->thermal_print_module 	= 0;
-		$this->thermal_print_enable  	= 0;
-			
-		if ($this->module_lib->hasModule('thermal_print') && $this->module_lib->hasActive('thermal_print')) {
-			$this->load->model("thermal_print_model");
-			$this->thermal_print_result 	= $this->thermal_print_model->get();			
-			$this->thermal_print_module		= 1;			
-			$this->thermal_print_enable  	= $this->thermal_print_result['is_print'];				 
-		}		
-    }
-
-    public function index()
-    {
-        if (!$this->rbac->hasPrivilege('collect_fees', 'can_view')) {
-            access_denied();
-        }
-
-        $this->session->set_userdata('top_menu', $this->lang->line('fees_collection'));
-        $this->session->set_userdata('sub_menu', 'studentfee/index');
-        $data['sch_setting'] = $this->sch_setting_detail;
-        $data['title']       = 'student fees';
-        $class               = $this->class_model->get();
-        $data['classlist']   = $class;
-        $this->load->view('layout/header', $data);
-        $this->load->view('studentfee/studentfeeSearch', $data);
-        $this->load->view('layout/footer', $data);
-    }
+                $this->load->model("studentAppliedDiscount_model");
+                $this->load->model("transportfee_model");
+                $this->load->model("feetype_model");
+        $this->lang->load('custom', 'english');
+                $this->search_type        = $this->config->item('search_type');
+                $this->sch_setting_detail = $this->setting_model->getSetting();
+                $this->current_session = $this->setting_model->getCurrentSession();
+        		
+        		$this->thermal_print_module 	= 0;
+        		$this->thermal_print_enable  	= 0;
+        			
+        		if ($this->module_lib->hasModule('thermal_print') && $this->module_lib->hasActive('thermal_print')) {
+        			$this->load->model("thermal_print_model");
+        			$this->thermal_print_result 		= $this->thermal_print_model->get();			
+        			$this->thermal_print_module		= 1;			
+        			$this->thermal_print_enable  	= $this->thermal_print_result['is_print'];				 
+        		}		
+            }
+        
+            public function bulk_upload_fees()
+            {
+                if (!$this->rbac->hasPrivilege('collect_fees', 'can_view')) {
+                    access_denied();
+                }
+        
+                $this->session->set_userdata('top_menu', $this->lang->line('fees_collection'));
+                $this->session->set_userdata('sub_menu', 'studentfee/bulk_upload_fees');
+                $data['title'] = $this->lang->line('bulk_upload_fees');
+        
+                if ($this->input->server('REQUEST_METHOD') == "POST") {
+                    $this->form_validation->set_rules('file', $this->lang->line('file'), 'callback_handle_csv_upload');
+        
+                    if ($this->form_validation->run() == false) {
+                        $this->load->view('layout/header', $data);
+                        $this->load->view('studentfee/bulk_upload_fees', $data);
+                        $this->load->view('layout/footer', $data);
+                    } else {
+                        // File uploaded and validated, now process it
+                        $file_path = $_FILES['file']['tmp_name'];
+                        $this->load->library('csvreader');
+                        $result = $this->csvreader->parse_file($file_path);
+        
+                        if (!empty($result)) {
+                            $insert_data = [];
+                            $error_messages = [];
+                            foreach ($result as $row_num => $row) {
+                                // Assuming CSV columns are: admission_no, fee_type, amount, date, payment_mode, description
+                                // You'll need to adjust these column names based on your actual CSV format
+                                $admission_no = $row['admission_no'] ?? '';
+                                $fee_type = $row['fee_type'] ?? '';
+                                $amount = $row['amount'] ?? '';
+                                $date = $row['date'] ?? '';
+                                $payment_mode = $row['payment_mode'] ?? '';
+                                $description = $row['description'] ?? '';
+        
+                                // Basic validation (more comprehensive validation will be in the model)
+                                if (empty($admission_no) || empty($fee_type) || empty($amount) || empty($date) || empty($payment_mode)) {
+                                    $error_messages[] = "Row " . ($row_num + 2) . ": Missing required fields."; // +2 for header row and 0-based index
+                                    continue;
+                                }
+        
+                                // Find student_session_id based on admission_no
+                                $student = $this->student_model->getStudentByAdmissionNo($admission_no);
+                                if (!$student) {
+                                    $error_messages[] = "Row " . ($row_num + 2) . ": Student with Admission No. " . $admission_no . " not found.";
+                                    continue;
+                                }
+                                $student_session_id = $student['student_session_id'];
+        
+                                // Find fee_groups_feetype_id based on fee_type
+                                $fee_type_data = $this->feetype_model->getFeeTypeByName($fee_type);
+                                if (!$fee_type_data) {
+                                    $error_messages[] = "Row " . ($row_num + 2) . ": Fee Type '" . $fee_type . "' not found.";
+                                    continue;
+                                }
+                                $fee_groups_feetype_id = $fee_type_data['id']; // Assuming fee_type_data has an 'id' field
+        
+                                // Prepare data for fee_deposit
+                                $json_array = array(
+                                    'amount'          => convertCurrencyFormatToBaseAmount($amount),
+                                    'amount_discount' => 0, // Assuming no discount in bulk upload for now
+                                    'amount_fine'     => 0, // Assuming no fine in bulk upload for now
+                                    'date'            => date('Y-m-d', $this->customlib->datetostrtotime($date)),
+                                    'description'     => $description,
+                                    'collected_by'    => $this->customlib->getAdminSessionUserName(),
+                                    'payment_mode'    => $payment_mode,
+                                    'received_by'     => $this->customlib->getStaffID(),
+                                );
+        
+                                $insert_data[] = array(
+                                    'student_session_id'     => $student_session_id,
+                                    'fee_groups_feetype_id'  => $fee_groups_feetype_id,
+                                    'amount_detail'          => $json_array,
+                                    'fee_category'           => 'fees', // Assuming 'fees' category for now
+                                );
+                            }
+        
+                            if (empty($error_messages)) {
+                                // Call model to insert data
+                                $this->studentfeemaster_model->fee_deposit_bulk($insert_data); // Assuming a new bulk insert method in the model
+                                $this->session->set_flashdata('msg', '<div class="alert alert-success text-center">' . $this->lang->line('fees_uploaded_successfully') . '</div>');
+                                redirect('studentfee/bulk_upload_fees');
+                            } else {
+                                $data['error_messages'] = $error_messages;
+                                $this->load->view('layout/header', $data);
+                                $this->load->view('studentfee/bulk_upload_fees', $data);
+                                $this->load->view('layout/footer', $data);
+                            }
+        
+                        } else {
+                            $this->session->set_flashdata('msg', '<div class="alert alert-danger text-center">' . $this->lang->line('error_processing_file') . '</div>');
+                            redirect('studentfee/bulk_upload_fees');
+                        }
+                    }
+                } else {
+                    $this->load->view('layout/header', $data);
+                    $this->load->view('studentfee/bulk_upload_fees', $data);
+                    $this->load->view('layout/footer', $data);
+                }
+            }
+        
+            public function handle_csv_upload()
+            {
+                if (isset($_FILES["file"]) && !empty($_FILES['file']['name'])) {
+                    $allowedMimeTypes = array(
+                        'text/csv',
+                        'application/vnd.ms-excel',
+                        'application/csv',
+                        'application/x-csv',
+                        'text/x-csv',
+                        'text/plain',
+                        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' // For .xlsx
+                    );
+                    $mime = get_mime_by_extension($_FILES['file']['name']);
+                    if (!in_array($mime, $allowedMimeTypes)) {
+                        $this->form_validation->set_message('handle_csv_upload', $this->lang->line('file_type_not_allowed'));
+                        return false;
+                    }
+                    return true;
+                } else {
+                    $this->form_validation->set_message('handle_csv_upload', $this->lang->line('the_file_field_is_required'));
+                    return false;
+                }
+            }
+        
+            public function index()
+            {
+                if (!$this->rbac->hasPrivilege('collect_fees', 'can_view')) {
+                    access_denied();
+                }
+        
+                $this->session->set_userdata('top_menu', $this->lang->line('fees_collection'));
+                $this->session->set_userdata('sub_menu', 'studentfee/index');
+                $data['sch_setting'] = $this->sch_setting_detail;
+                $data['title']       = 'student fees';
+                $class               = $this->class_model->get();
+                $data['classlist']   = $class;
+                $this->load->view('layout/header', $data);
+                $this->load->view('studentfee/studentfeeSearch', $data);
+                $this->load->view('layout/footer', $data);
+            }
 
     public function pdf()
     {

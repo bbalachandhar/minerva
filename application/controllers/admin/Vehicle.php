@@ -46,7 +46,14 @@ class Vehicle extends Admin_Controller
             $array = array('status' => 'fail', 'error' => $msg, 'message' => '');
         } else {            
             
-            $vehicle_photo = $this->media_storage->fileupload("vehicle_photo", "./uploads/vehicle_photo/");
+            $upload_result = $this->media_storage->fileupload("vehicle_photo", "./uploads/vehicle_photo/");
+            if ($upload_result['status'] === false) {
+                $msg = array('vehicle_photo' => $upload_result['message']);
+                $array = array('status' => 'fail', 'error' => $msg, 'message' => '');
+                echo json_encode($array);
+                return;
+            }
+            $vehicle_photo = $upload_result['message'];
             
             $data = array(
                 'vehicle_no'           => $this->input->post('vehicle_no'),
@@ -116,7 +123,14 @@ class Vehicle extends Admin_Controller
             
             if (isset($_FILES["vehicle_photo"]) && $_FILES['vehicle_photo']['name'] != '' && (!empty($_FILES['vehicle_photo']['name']))) {
 
-                $img_name = $this->media_storage->fileupload("vehicle_photo", "./uploads/vehicle_photo/");
+                $upload_result = $this->media_storage->fileupload("vehicle_photo", "./uploads/vehicle_photo/");
+                if ($upload_result['status'] === false) {
+                    $msg = array('vehicle_photo' => $upload_result['message']);
+                    $array = array('status' => 'fail', 'error' => $msg, 'message' => '');
+                    echo json_encode($array);
+                    return;
+                }
+                $img_name = $upload_result['message'];
             } else {
                 $img_name = $vehicle->vehicle_photo;
             }

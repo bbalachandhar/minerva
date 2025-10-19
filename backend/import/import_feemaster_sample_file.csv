@@ -1,1 +1,4 @@
-fee_group_name,fee_type_name,amount,due_date,fine_type,percentage,fix_amount
+admission_no,fee_type,amount,date,payment_mode,description
+ADM001,Tuition Fee,1000.00,2023-10-26,Cash,Monthly tuition fee
+ADM002,Library Fine,50.00,2023-10-25,UPI,Overdue book fine
+ADM003,Exam Fee,1500.00,2023-10-27,Bank Transfer,Semester exam fee

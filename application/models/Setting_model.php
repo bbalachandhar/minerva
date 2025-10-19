@@ -100,19 +100,36 @@ class Setting_model extends MY_Model {
         $this->db->order_by('sch_settings.id');
         $query = $this->db->get();    
         
-        $result = $query->row();
-        
-        $json_languages = json_decode($result->activelanguage);        
-        foreach ($json_languages as $key => $value) {       
-       
-            $langresult  =        $this->language_model->get($value);							
-            $language[$key] =  $langresult;
-           					
-		}
-        
-        $result->activelanguage2    =   $language;        
-        return 	$result;
-    }
+                $result = $query->row();
+                
+                if (is_null($result)) {
+                    $default_setting = new stdClass();
+                    $default_setting->activelanguage = '[]'; // Default to empty JSON array
+                    $default_setting->activelanguage2 = [];
+                    // Add other default properties as needed to prevent null errors
+                    $default_setting->base_url = '';
+                    $default_setting->folder_path = '';
+                    $default_setting->image = '';
+                    $default_setting->admin_small_logo = '';
+                    $default_setting->admin_logo = '';
+                    $default_setting->app_logo = '';
+                    $default_setting->user_login_page_background = '';
+                    $default_setting->admin_login_page_background = '';
+                    return $default_setting;
+                }
+                
+                $json_languages = json_decode($result->activelanguage);        
+                $language = [];
+                if (!is_null($json_languages)) {
+                    foreach ($json_languages as $key => $value) {       
+                        $langresult  = $this->language_model->get($value);							
+                        $language[$key] =  $langresult;
+                   					
+        		    }
+                }
+                
+                $result->activelanguage2    =   $language;        
+                return 	$result;    }
 
     public function remove($id) {
         $this->db->trans_start(); # Starting Transaction
