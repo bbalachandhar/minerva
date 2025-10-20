@@ -34,6 +34,7 @@ class Leaverequest extends Admin_Controller
         $data["leave_request"] = $leave_request;
         $LeaveTypes            = $this->staff_model->getLeaveType();
         $userdata              = $this->customlib->getUserData();
+        $data['staff_id'] = $userdata['id'];
         $data["leavetype"]     = $LeaveTypes;
         $staffRole             = $this->staff_model->getStaffRole();
         $data["staffrole"]     = $staffRole;

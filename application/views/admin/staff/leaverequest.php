@@ -35,7 +35,7 @@
                                         <tbody>
                                             <?php
 $i = 0;
-foreach ($leave_request as $key => $value) {
+foreach ($leaverequestlist as $key => $value) {
     ?>
                                                 <tr>
 
@@ -250,8 +250,30 @@ foreach ($leavetype as $leave_key => $leave_value) {
         }
     }
 
+    function addLeave() {
+        console.log('addLeave() function called'); // Debug log
+
+        $('input[type=text]').val('');
+        $('textarea[name="reason"]').text('');
+        $("#resetbutton").click();
+        $("#clearform").click();
+
+        var date_format = '<?php echo $result = strtr($this->customlib->getSchoolDateFormat(), ['d' => 'dd', 'm' => 'mm', 'Y' => 'yyyy']) ?>';
+
+        $('#reservation').daterangepicker({
+            timePickerIncrement: 5, locale: {
+                format: calendar_date_time_format
+            }});
+        var date = '<?php echo set_value('date', date($this->customlib->getSchoolDateFormat())); ?>';
+        $('#addleave').modal({
+            show: true,
+            backdrop: 'static',
+            keyboard: false
+        });
+    }
+
     $(document).ready(function () {
-        getLeaveTypeDDL('<?php echo $staff_id ?>', '');
+        getLeaveTypeDDL(<?php echo json_encode($staff_id) ?>, '');
         $('.detail_popover').popover({
             placement: 'right',
             title: '',
@@ -274,29 +296,6 @@ foreach ($leavetype as $leave_key => $leave_value) {
                 format: calendar_date_time_format
             }});
     });
-
-    function addLeave() {
-
-        $('input[type=text]').val('');
-        $('textarea[name="reason"]').text('');
-        $("#resetbutton").click();
-        $("#clearform").click();
-
-        var date_format = '<?php echo $result = strtr($this->customlib->getSchoolDateFormat(), ['d' => 'dd', 'm' => 'mm', 'Y' => 'yyyy']) ?>';
-
-        $('#reservation').daterangepicker({
-            timePickerIncrement: 5, locale: {
-                format: calendar_date_time_format
-            }});
-        var date = '<?php echo set_value('date', date($this->customlib->getSchoolDateFormat())); ?>';
-        $('input[type=text][name=applieddate]').val(date);
-
-        $('#addleave').modal({
-            show: true,
-            backdrop: 'static',
-            keyboard: false
-        });
-    }
 
     function getRecord(id) {
 

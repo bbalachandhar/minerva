@@ -43,10 +43,10 @@
 foreach ($getStaffRole as $key => $role) {
     ?>
                                                         <option value="<?php echo $role["id"] ?>" <?php
-if ($staff["user_type"] == $role["type"]) {
+if ($staff["user_type"] == $role["name"]) {
         echo "selected";
     }
-    ?>><?php echo $role["type"] ?></option>
+    ?>><?php echo $role["name"] ?></option>
                                                             <?php }
 ?>
                                                 </select>
