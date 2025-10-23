@@ -1703,7 +1703,6 @@ $lang['reason'] ="Arrazoia";
 $lang['recently_added_student'] ="Berriki gehitutako ikaslea";
 $lang['recipient'] ="Hartzailea";
 $lang['record_already_exist'] ="Erregistroa dagoeneko existitzen da";
-$lang['record_deleted_successfully'] ="Erregistroa behar bezala ezabatu da";
 $lang['record_id'] ="Erregistroaren IDa";
 $lang['record_inserted_successfully'] ="Erregistroa ondo txertatu da";
 $lang['record_shared_successfully'] ="Grabaketa arrakastaz partekatu da";

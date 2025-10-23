@@ -18,25 +18,41 @@ class Media_storage
 
     public function fileupload($media_name, $upload_path = "")
     {
-        if (isset($_FILES[$media_name]) && is_array($_FILES[$media_name]) && file_exists($_FILES[$media_name]['tmp_name']) && !$_FILES[$media_name]['error'] == UPLOAD_ERR_NO_FILE) {
-
-            $name        = $_FILES[$media_name]['name'];
-            $file_name   = time() . "-" . uniqid(rand()) . "!" . $name;
-            $destination = $this->_CI->customlib->getFolderPath() . $upload_path . $file_name;
-
-                        if (move_uploaded_file($_FILES[$media_name]["tmp_name"], $destination)) {
-
-                            return array('status' => true, 'message' => $file_name);
-
-                        } else {
-
-                            return array('status' => false, 'message' => 'File upload failed: Could not move uploaded file.');
-
-                        }
-
+        if (!isset($_FILES[$media_name]) || !is_array($_FILES[$media_name]) || $_FILES[$media_name]['error'] == UPLOAD_ERR_NO_FILE) {
+            return array('status' => false, 'message' => 'No file was uploaded.');
         }
 
-        return null;
+        $error_code = $_FILES[$media_name]['error'];
+        switch ($error_code) {
+            case UPLOAD_ERR_INI_SIZE:
+                return array('status' => false, 'message' => 'The uploaded file exceeds the upload_max_filesize directive in php.ini.');
+            case UPLOAD_ERR_FORM_SIZE:
+                return array('status' => false, 'message' => 'The uploaded file exceeds the MAX_FILE_SIZE directive that was specified in the HTML form.');
+            case UPLOAD_ERR_PARTIAL:
+                return array('status' => false, 'message' => 'The uploaded file was only partially uploaded.');
+            case UPLOAD_ERR_NO_TMP_DIR:
+                return array('status' => false, 'message' => 'Missing a temporary folder.');
+            case UPLOAD_ERR_CANT_WRITE:
+                return array('status' => false, 'message' => 'Failed to write file to disk.');
+            case UPLOAD_ERR_EXTENSION:
+                return array('status' => false, 'message' => 'A PHP extension stopped the file upload.');
+        }
+
+        $name        = $_FILES[$media_name]['name'];
+        $file_name   = time() . "-" . uniqid(rand()) . "!" . $name;
+        $destination = $this->_CI->customlib->getFolderPath() . $upload_path . $file_name;
+
+        // Check if destination directory is writable
+        $destination_dir = dirname($destination);
+        if (!is_writable($destination_dir)) {
+            return array('status' => false, 'message' => 'Upload directory is not writable: ' . $destination_dir);
+        }
+
+        if (move_uploaded_file($_FILES[$media_name]["tmp_name"], $destination)) {
+            return array('status' => true, 'message' => $file_name);
+        } else {
+            return array('status' => false, 'message' => 'File upload failed: Could not move uploaded file to destination.');
+        }
     }
 
     public function filedownload($file_name, $download_path = "")

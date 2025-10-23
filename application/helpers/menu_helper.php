@@ -400,6 +400,9 @@ if (!function_exists('main_menu_array')) {
                         'student_cv' => array(                            
                             'resume'        => array('index','download','resume_setting','student_resume_details'),               
                         ),
+            'naac' => array(
+                            'naac' => array('configuration', 'iiqa', 'ssr', 'aqar'),
+                        ),
                             
                         
                         

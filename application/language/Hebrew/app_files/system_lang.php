@@ -1703,7 +1703,6 @@ $lang['reason'] ="סיבה";
 $lang['recently_added_student'] ="סטודנט נוסף לאחרונה";
 $lang['recipient'] ="מקבל";
 $lang['record_already_exist'] ="רשומה כבר קיימת";
-$lang['record_deleted_successfully'] ="הרשומה נמחקה בהצלחה";
 $lang['record_id'] ="תעודה מזהה";
 $lang['record_inserted_successfully'] ="הרשומה הוכנסה בהצלחה";
 $lang['record_shared_successfully'] ="הקלט שותף בהצלחה";

@@ -1703,7 +1703,6 @@ $lang['reason'] ="Dahilan";
 $lang['recently_added_student'] ="Kamakailang Idinagdag na Mag-aaral";
 $lang['recipient'] ="tatanggap";
 $lang['record_already_exist'] ="Umiiral na ang Record";
-$lang['record_deleted_successfully'] ="Matagumpay na Natanggal ang Record";
 $lang['record_id'] ="Record ID";
 $lang['record_inserted_successfully'] ="Matagumpay na Naipasok ang Record";
 $lang['record_shared_successfully'] ="Matagumpay na Nabahagi ang Record";

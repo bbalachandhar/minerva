@@ -1703,7 +1703,6 @@ $lang['reason'] ="Ástæða";
 $lang['recently_added_student'] ="Nýlega bætt við nemandi";
 $lang['recipient'] ="Viðtakandi";
 $lang['record_already_exist'] ="Upptaka er þegar til";
-$lang['record_deleted_successfully'] ="Upptöku eytt";
 $lang['record_id'] ="Skrá auðkenni";
 $lang['record_inserted_successfully'] ="Upptaka sett inn";
 $lang['record_shared_successfully'] ="Upptöku deilt tókst";

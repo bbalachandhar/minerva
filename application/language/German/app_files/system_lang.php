@@ -1703,7 +1703,6 @@ $lang['reason'] ="Grund";
 $lang['recently_added_student'] ="Kürzlich hinzugefügter Student";
 $lang['recipient'] ="Empfänger";
 $lang['record_already_exist'] ="Datensatz existiert bereits";
-$lang['record_deleted_successfully'] ="Datensatz erfolgreich gelöscht";
 $lang['record_id'] ="Datensatz-ID";
 $lang['record_inserted_successfully'] ="Datensatz erfolgreich eingefügt";
 $lang['record_shared_successfully'] ="Datensatz erfolgreich freigegeben";

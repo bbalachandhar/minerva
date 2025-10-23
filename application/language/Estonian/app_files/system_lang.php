@@ -1703,7 +1703,6 @@ $lang['reason'] ="Põhjus";
 $lang['recently_added_student'] ="Hiljuti lisatud õpilane";
 $lang['recipient'] ="Saaja";
 $lang['record_already_exist'] ="Kirje on juba olemas";
-$lang['record_deleted_successfully'] ="Kirje kustutatud edukalt";
 $lang['record_id'] ="Kirje ID";
 $lang['record_inserted_successfully'] ="Kirje sisestamine õnnestus";
 $lang['record_shared_successfully'] ="Kirjet jagati edukalt";

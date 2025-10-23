@@ -1703,7 +1703,6 @@ $lang['reason'] ="Причина";
 $lang['recently_added_student'] ="Недавно добавленный студент";
 $lang['recipient'] ="Получатель";
 $lang['record_already_exist'] ="Запись уже существует";
-$lang['record_deleted_successfully'] ="Запись успешно удалена";
 $lang['record_id'] ="Идентификатор записи";
 $lang['record_inserted_successfully'] ="Запись вставлена успешно";
 $lang['record_shared_successfully'] ="Запись успешно отправлена";

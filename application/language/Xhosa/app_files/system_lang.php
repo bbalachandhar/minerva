@@ -1703,7 +1703,6 @@ $lang['reason'] ="Isizathu";
 $lang['recently_added_student'] ="Umfundi osanda kufakwa";
 $lang['recipient'] ="Umamkeli";
 $lang['record_already_exist'] ="Ingxelo Seyikhona";
-$lang['record_deleted_successfully'] ="Ingxelo Icinywe ngempumelelo";
 $lang['record_id'] ="I-ID yokurekhoda";
 $lang['record_inserted_successfully'] ="Ingxelo ifakwe ngempumelelo";
 $lang['record_shared_successfully'] ="Ingxelo Ekwabelwana Ngayo ngempumelelo";

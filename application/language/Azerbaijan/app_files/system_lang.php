@@ -1703,7 +1703,6 @@ $lang['reason'] ="Səbəb";
 $lang['recently_added_student'] ="Son Əlavə edilmiş Tələbə";
 $lang['recipient'] ="alıcı";
 $lang['record_already_exist'] ="Qeyd Artıq Mövcuddur";
-$lang['record_deleted_successfully'] ="Qeyd Uğurla Silindi";
 $lang['record_id'] ="Qeyd ID";
 $lang['record_inserted_successfully'] ="Qeyd Uğurla Daxil edildi";
 $lang['record_shared_successfully'] ="Qeyd Uğurla Paylaşıldı";

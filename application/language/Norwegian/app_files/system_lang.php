@@ -1703,7 +1703,6 @@ $lang['reason'] ="Årsaken";
 $lang['recently_added_student'] ="Nylig lagt til student";
 $lang['recipient'] ="Mottaker";
 $lang['record_already_exist'] ="Opptak finnes allerede";
-$lang['record_deleted_successfully'] ="Opptaket ble slettet";
 $lang['record_id'] ="Registrer ID";
 $lang['record_inserted_successfully'] ="Opptaket ble satt inn";
 $lang['record_shared_successfully'] ="Opptak delt vellykket";

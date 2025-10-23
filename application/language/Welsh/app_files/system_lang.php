@@ -1703,7 +1703,6 @@ $lang['reason'] ="Rheswm";
 $lang['recently_added_student'] ="Myfyriwr a Ychwanegwyd yn Ddiweddar";
 $lang['recipient'] ="Derbynnydd";
 $lang['record_already_exist'] ="Cofnod Yn Bodoli&#39;n Eisoes";
-$lang['record_deleted_successfully'] ="Cofnod wedi&#39;i Dileu&#39;n Llwyddiannus";
 $lang['record_id'] ="ID Cofnod";
 $lang['record_inserted_successfully'] ="Cofnod Wedi&#39;i Mewnosod yn Llwyddiannus";
 $lang['record_shared_successfully'] ="Record Wedi&#39;i Rhannu&#39;n Llwyddiannus";

@@ -1703,7 +1703,6 @@ $lang['reason'] ="antony";
 $lang['recently_added_student'] ="Nampiana mpianatra vao haingana";
 $lang['recipient'] ="Mpandray";
 $lang['record_already_exist'] ="Efa misy ny rakitsoratra";
-$lang['record_deleted_successfully'] ="Voafafa soa aman-tsara";
 $lang['record_id'] ="Record ID";
 $lang['record_inserted_successfully'] ="Nahomby ny firaketana";
 $lang['record_shared_successfully'] ="Nozaraina soa aman-tsara";

@@ -1703,7 +1703,6 @@ $lang['reason'] ="Raġuni";
 $lang['recently_added_student'] ="Student Miżjud Riċentement";
 $lang['recipient'] ="Riċevitur";
 $lang['record_already_exist'] ="Rekord Diġà Teżisti";
-$lang['record_deleted_successfully'] ="Rekord imħassra b&#39;suċċess";
 $lang['record_id'] ="Rekord ID";
 $lang['record_inserted_successfully'] ="Rekord Insert b&#39;suċċess";
 $lang['record_shared_successfully'] ="Rekord Kondiviż b&#39;suċċess";

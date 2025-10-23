@@ -1703,7 +1703,6 @@ $lang['reason'] ="Grund";
 $lang['recently_added_student'] ="Nyligt tilføjet elev";
 $lang['recipient'] ="Modtager";
 $lang['record_already_exist'] ="Optagelse findes allerede";
-$lang['record_deleted_successfully'] ="Optagelsen blev slettet";
 $lang['record_id'] ="Optag ID";
 $lang['record_inserted_successfully'] ="Optagelsen blev indsat";
 $lang['record_shared_successfully'] ="Optagelse delt med succes";

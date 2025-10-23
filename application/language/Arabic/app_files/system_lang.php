@@ -1703,7 +1703,6 @@ $lang['reason'] ="سبب";
 $lang['recently_added_student'] ="طالب تم إضافته مؤخرًا";
 $lang['recipient'] ="متلقي";
 $lang['record_already_exist'] ="سجل موجود بالفعل";
-$lang['record_deleted_successfully'] ="تم حذف السجل بنجاح";
 $lang['record_id'] ="معرف التسجيل";
 $lang['record_inserted_successfully'] ="تم إدراج السجل بنجاح";
 $lang['record_shared_successfully'] ="سجل مشترك بنجاح";

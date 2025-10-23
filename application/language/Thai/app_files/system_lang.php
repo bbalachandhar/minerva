@@ -1703,7 +1703,6 @@ $lang['reason'] ="เหตุผล";
 $lang['recently_added_student'] ="นักเรียนที่เพิ่งเพิ่ม";
 $lang['recipient'] ="ผู้รับ";
 $lang['record_already_exist'] ="มีบันทึกอยู่แล้ว";
-$lang['record_deleted_successfully'] ="ลบบันทึกเรียบร้อยแล้ว";
 $lang['record_id'] ="รหัสระเบียน";
 $lang['record_inserted_successfully'] ="แทรกบันทึกเรียบร้อยแล้ว";
 $lang['record_shared_successfully'] ="บันทึกการแชร์สำเร็จ";

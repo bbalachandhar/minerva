@@ -1703,7 +1703,6 @@ $lang['reason'] ="მიზეზი";
 $lang['recently_added_student'] ="ახლახან დამატებული სტუდენტი";
 $lang['recipient'] ="მიმღები";
 $lang['record_already_exist'] ="ჩანაწერი უკვე არსებობს";
-$lang['record_deleted_successfully'] ="ჩანაწერი წარმატებით წაიშალა";
 $lang['record_id'] ="ჩანაწერის ID";
 $lang['record_inserted_successfully'] ="ჩანაწერი ჩასმულია წარმატებით";
 $lang['record_shared_successfully'] ="ჩანაწერი გაზიარებულია წარმატებით";

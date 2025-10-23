@@ -1703,7 +1703,6 @@ $lang['reason'] ="Alasan";
 $lang['recently_added_student'] ="Siswa Baru Ditambahkan";
 $lang['recipient'] ="Penerima";
 $lang['record_already_exist'] ="Rekam Sudah Ada";
-$lang['record_deleted_successfully'] ="Rekaman Berhasil Dihapus";
 $lang['record_id'] ="Rekam ID";
 $lang['record_inserted_successfully'] ="Rekaman Berhasil Dimasukkan";
 $lang['record_shared_successfully'] ="Rekaman Berhasil Dibagikan";

@@ -144,6 +144,20 @@ $(document).ready(function () {
 });
 </script>
 
+<script type="text/javascript">
+    $(document).ready(function () {
+        $('.time').timepicker({
+            showInputs: false,
+            icons: {
+                up: 'fa fa-chevron-up',
+                down: 'fa fa-chevron-down'
+            }
+        });
+
+        // Initialize Dropify
+        $('.dropify').dropify();
+    });
+</script>
 </html>
 <!-- jQuery 3 -->
 <script src="<?php echo base_url() ?>backend/fullcalendar/dist/fullcalendar.min.js"></script>

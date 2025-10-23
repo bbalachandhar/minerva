@@ -1703,7 +1703,6 @@ $lang['reason'] ="ratio";
 $lang['recently_added_student'] ="Nuper adiecit Student";
 $lang['recipient'] ="Recipient";
 $lang['record_already_exist'] ="Record iam Existere";
-$lang['record_deleted_successfully'] ="Record Deletum Feliciter";
 $lang['record_id'] ="Record ID";
 $lang['record_inserted_successfully'] ="Record inserta Feliciter";
 $lang['record_shared_successfully'] ="Record Shared Feliciter";

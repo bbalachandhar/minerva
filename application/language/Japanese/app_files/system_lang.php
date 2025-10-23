@@ -1703,7 +1703,6 @@ $lang['reason'] ="理由";
 $lang['recently_added_student'] ="最近追加された学生";
 $lang['recipient'] ="受信者";
 $lang['record_already_exist'] ="レコードは既に存在します";
-$lang['record_deleted_successfully'] ="レコードが正常に削除されました";
 $lang['record_id'] ="レコード ID";
 $lang['record_inserted_successfully'] ="レコードが正常に挿入されました";
 $lang['record_shared_successfully'] ="レコードが正常に共有されました";

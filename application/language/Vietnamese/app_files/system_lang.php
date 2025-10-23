@@ -1703,7 +1703,6 @@ $lang['reason'] ="Lý do";
 $lang['recently_added_student'] ="Học sinh được thêm gần đây";
 $lang['recipient'] ="Người nhận";
 $lang['record_already_exist'] ="Bản ghi đã tồn tại";
-$lang['record_deleted_successfully'] ="Đã xóa bản ghi thành công";
 $lang['record_id'] ="ID bản ghi";
 $lang['record_inserted_successfully'] ="Ghi chèn thành công";
 $lang['record_shared_successfully'] ="Bản ghi được chia sẻ thành công";

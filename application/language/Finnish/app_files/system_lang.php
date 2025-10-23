@@ -1703,7 +1703,6 @@ $lang['reason'] ="Syy";
 $lang['recently_added_student'] ="Äskettäin lisätty opiskelija";
 $lang['recipient'] ="Vastaanottaja";
 $lang['record_already_exist'] ="Levy on jo olemassa";
-$lang['record_deleted_successfully'] ="Tietueen poistaminen onnistui";
 $lang['record_id'] ="Tietueen tunnus";
 $lang['record_inserted_successfully'] ="Tietueen lisäys onnistui";
 $lang['record_shared_successfully'] ="Levy jaettu onnistuneesti";

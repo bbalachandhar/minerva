@@ -1703,7 +1703,6 @@ $lang['reason'] ="ಕಾರಣ";
 $lang['recently_added_student'] ="ಇತ್ತೀಚೆಗೆ ವಿದ್ಯಾರ್ಥಿಯನ್ನು ಸೇರಿಸಲಾಗಿದೆ";
 $lang['recipient'] ="ಸ್ವೀಕರಿಸುವವರು";
 $lang['record_already_exist'] ="ರೆಕಾರ್ಡ್ ಈಗಾಗಲೇ ಅಸ್ತಿತ್ವದಲ್ಲಿದೆ";
-$lang['record_deleted_successfully'] ="ರೆಕಾರ್ಡ್ ಅನ್ನು ಯಶಸ್ವಿಯಾಗಿ ಅಳಿಸಲಾಗಿದೆ";
 $lang['record_id'] ="ರೆಕಾರ್ಡ್ ಐಡಿ";
 $lang['record_inserted_successfully'] ="ರೆಕಾರ್ಡ್ ಅನ್ನು ಯಶಸ್ವಿಯಾಗಿ ಸೇರಿಸಲಾಗಿದೆ";
 $lang['record_shared_successfully'] ="ರೆಕಾರ್ಡ್ ಅನ್ನು ಯಶಸ್ವಿಯಾಗಿ ಹಂಚಿಕೊಳ್ಳಲಾಗಿದೆ";

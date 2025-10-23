@@ -162,7 +162,7 @@ class Examgroup extends Admin_Controller
         if (!$this->examgroup_model->delete_exam($id)) {
             echo json_encode(array('status' => 0, 'message' => $this->lang->line('something_went_wrong')));
         } else {
-            echo json_encode(array('status' => 1, 'message' => $this->lang->line('record_deleted_successfully')));
+            echo json_encode(array('status' => 1, 'message' => $this->lang->line('delete_message')));
         }
     }
 

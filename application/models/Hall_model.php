@@ -235,16 +235,50 @@ class Hall_model extends MY_Model
      * Get all approval configurations (with staff/role names)
      * @return array List of all approval configurations
      */
-    public function get_all_approval_configs()
+    public function get_all_approval_configs($start = 0, $length = 100, $order = array(), $search_value = '')
+    {
+        $this->_get_approval_configs_query($search_value);
+
+        if (!empty($order)) {
+            foreach ($order as $o) {
+                $this->db->order_by($this->db->escape_str($o['column']), $this->db->escape_str($o['dir']));
+            }
+        }
+
+        $this->db->limit($length, $start);
+        $query = $this->db->get();
+        return $query->result();
+    }
+
+    public function count_all_approval_configs()
+    {
+        $this->db->from('hall_approval_config hac');
+        return $this->db->count_all_results();
+    }
+
+    public function count_filtered_approval_configs($search_value)
+    {
+        $this->_get_approval_configs_query($search_value);
+        $query = $this->db->get();
+        return $query->num_rows();
+    }
+
+    private function _get_approval_configs_query($search_value = '')
     {
         $this->db->select('hac.*, h.name as hall_name, s.name as staff_name, s.employee_id, r.name as role_name');
         $this->db->from('hall_approval_config hac');
         $this->db->join('halls h', 'hac.hall_id = h.id', 'left');
         $this->db->join('staff s', 'hac.staff_id = s.id', 'left');
         $this->db->join('roles r', 'hac.role_id = r.id', 'left');
-        $this->db->order_by('hac.id', 'desc');
-        $query = $this->db->get();
-        return $query->result();
+
+        if (!empty($search_value)) {
+            $this->db->group_start();
+            $this->db->like('h.name', $search_value);
+            $this->db->or_like('s.name', $search_value);
+            $this->db->or_like('s.employee_id', $search_value);
+            $this->db->or_like('r.name', $search_value);
+            $this->db->group_end();
+        }
     }
 
     /**

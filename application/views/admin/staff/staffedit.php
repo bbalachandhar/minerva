@@ -204,7 +204,7 @@ if ($staff["date_of_joining"]) {
                                             <div class="col-md-3">
                                                 <div class="form-group">
                                                     <label for="exampleInputEmail1"><?php echo $this->lang->line('emergency_contact_number'); ?></label>
-                                                    <input id="mobileno" name="emergency_no" placeholder="" type="text" class="form-control"  value="<?php echo set_value('emergency_no', $staff["emergency_contact_no"]); ?>" />
+                                                    <input id="mobileno" name="emergency_no" placeholder="" type="text" class="form-control"  value="<?php echo set_value('emergency_no', $staff["emergency_contact_number"]); ?>" />
                                                     <span class="text-danger"><?php echo form_error('emergency_no'); ?></span>
                                                 </div>
                                             </div>
@@ -268,8 +268,8 @@ if ($staff["marital_status"] == $mavalue) {
 
                                                 <div class="form-group">
                                                     <label for="exampleInputEmail1"><?php echo $this->lang->line('work_experience'); ?></label>
-                                                    <textarea id="permanent_address" name="work_exp" placeholder="" class="form-control"><?php echo set_value('work_exp', $staff["work_exp"]) ?></textarea>
-                                                    <span class="text-danger"><?php echo form_error('work_exp'); ?></span>
+                                                    <textarea id="permanent_address" name="work_experience" placeholder="" class="form-control"><?php echo set_value('work_experience', $staff["work_experience"]) ?></textarea>
+                                                    <span class="text-danger"><?php echo form_error('work_experience'); ?></span>
                                                 </div>
                                             </div>
                                         <?php }if ($sch_setting->staff_note) {?>

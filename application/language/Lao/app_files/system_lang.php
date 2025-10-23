@@ -1703,7 +1703,6 @@ $lang['reason'] ="ເຫດ​ຜົນ";
 $lang['recently_added_student'] ="ນັກສຶກສາທີ່ເພີ່ມບໍ່ດົນມານີ້";
 $lang['recipient'] ="ຜູ້ຮັບ";
 $lang['record_already_exist'] ="ບັນທຶກມີຢູ່ແລ້ວ";
-$lang['record_deleted_successfully'] ="ບັນທຶກຖືກລຶບສຳເລັດແລ້ວ";
 $lang['record_id'] ="ID ບັນທຶກ";
 $lang['record_inserted_successfully'] ="ແຊກບັນທຶກສຳເລັດແລ້ວ";
 $lang['record_shared_successfully'] ="ແບ່ງປັນບັນທຶກສຳເລັດແລ້ວ";

@@ -22,10 +22,10 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
     ?> <div>  <?php echo $this->session->flashdata('msg');
     $this->session->unset_userdata('msg'); ?> </div> <?php }?>
                         <br/>
-                        1. <?php echo $this->lang->line('import_student_step1'); ?>
+                        1. <?php echo $this->lang->line('csv_import_instruction_step1'); ?>
                       <br/>
 
-                        2. <?php echo $this->lang->line('import_student_step2'); ?> <br/>
+                        2. <?php echo $this->lang->line('csv_import_instruction_step2_date_format'); ?> <br/>
                         3. <?php echo $this->lang->line('import_student_step3'); ?>
                         <br/>
                         4. <?php echo $this->lang->line('import_student_step4'); ?>

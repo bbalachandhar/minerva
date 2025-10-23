@@ -1703,7 +1703,6 @@ $lang['reason'] ="Razón";
 $lang['recently_added_student'] ="Estudiante agregado recientemente";
 $lang['recipient'] ="Recipiente";
 $lang['record_already_exist'] ="El registro ya existe";
-$lang['record_deleted_successfully'] ="Registro eliminado con éxito";
 $lang['record_id'] ="Identificación de registro";
 $lang['record_inserted_successfully'] ="Registro insertado correctamente";
 $lang['record_shared_successfully'] ="Registro compartido con éxito";

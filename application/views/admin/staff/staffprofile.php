@@ -364,7 +364,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                             if ($sch_setting->staff_emergency_contact) { ?>
                                                 <tr>
                                                     <td><?php echo $this->lang->line('emergency_contact_number'); ?></td>
-                                                    <td><?php echo $staff['emergency_contact_no']; ?></td>
+                                                    <td><?php echo $staff['emergency_contact_number']; ?></td>
                                                 </tr>
                                             <?php } ?>
                                             <tr>
@@ -410,7 +410,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                             if ($sch_setting->staff_work_experience) { ?>
                                                 <tr>
                                                     <td><?php echo $this->lang->line('work_experience'); ?></td>
-                                                    <td><?php echo $staff['work_exp']; ?></td>
+                                                    <td><?php echo $staff['work_experience']; ?></td>
                                                 </tr>
                                                 <tr>
                                                     <td><?php echo $this->lang->line('ug_qualification'); ?></td>

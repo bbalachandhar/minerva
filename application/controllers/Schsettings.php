@@ -228,7 +228,7 @@ class Schsettings extends Admin_Controller
             }
             return true;
         } else {
-            $this->form_validation->set_message('handle_upload', $this->lang->line('logo_file_is_required'));
+            $this->form_validation->set_message('handle_upload', $this->lang->line('the_file_field_is_required'));
             return false;
         }
     }

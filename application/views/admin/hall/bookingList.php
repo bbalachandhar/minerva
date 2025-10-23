@@ -10,14 +10,18 @@
             <div class="col-md-12">
                 <div class="box box-primary">
                     <div class="box-header with-border">
-                        <h3 class="box-title"><?php echo $this->lang->line('booking_list'); ?></h3>
+                        <h3 class="box-title"><?php echo $this->lang->line('hall_booking_request'); ?></h3>
+                        <div class="box-tools pull-right">
+                            <a href="<?php echo site_url('admin/hall/book') ?>" class="btn btn-primary btn-sm">
+                                <i class="fa fa-plus"></i> <?php echo $this->lang->line('book_hall'); ?></a>
+                        </div>
                     </div>
                     <div class="box-body">
                         <?php if ($this->session->flashdata('msg')) { ?>
                             <?php echo $this->session->flashdata('msg') ?>
                         <?php } ?>
                         <div class="table-responsive">
-                            <table class="table table-striped table-bordered table-hover example">
+                            <table class="table table-striped table-bordered table-hover booking-table">
                                 <thead>
                                     <tr>
                                         <th><?php echo $this->lang->line('hall_name'); ?></th>
@@ -131,4 +135,16 @@
         $('#approveRejectForm').attr('action', '<?php echo site_url('admin/hall/reject_booking/') ?>' + booking_id);
         $('#approveRejectModal').modal('show');
     }
+
+    $(document).ready(function() {
+        $('.booking-table').DataTable({
+            "paging": true,
+            "lengthChange": true,
+            "searching": true,
+            "ordering": true,
+            "info": true,
+            "autoWidth": false,
+            "lengthMenu": [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]]
+        });
+    });
 </script>

@@ -1703,7 +1703,6 @@ $lang['reason'] ="Sabab";
 $lang['recently_added_student'] ="Yaqinda qo&#39;shilgan talaba";
 $lang['recipient'] ="Qabul qiluvchi";
 $lang['record_already_exist'] ="Yozuv allaqachon mavjud";
-$lang['record_deleted_successfully'] ="Yozuv muvaffaqiyatli oʻchirildi";
 $lang['record_id'] ="Yozuv identifikatori";
 $lang['record_inserted_successfully'] ="Yozuv muvaffaqiyatli kiritildi";
 $lang['record_shared_successfully'] ="Yozuv muvaffaqiyatli ulashildi";

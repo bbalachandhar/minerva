@@ -22,8 +22,8 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                     <div class="box-body">
                         <?php if ($this->session->flashdata('msg')) {?> <div>  <?php echo $this->session->flashdata('msg') ?> </div> <?php }?>
                         <br/>
-                        1. <?php echo $this->lang->line('import_staff_step1'); ?><br/>
-                        2. <?php echo $this->lang->line('import_staff_step2'); ?><br/>
+                        1. <?php echo $this->lang->line('csv_import_instruction_step1'); ?><br/>
+                        2. <?php echo $this->lang->line('csv_import_instruction_step2_date_format'); ?><br/>
 
                         <hr/></div>
                     <div class="box-body table-responsive" style="overflow-x:auto;">

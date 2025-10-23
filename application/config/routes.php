@@ -84,3 +84,8 @@ $route['admin/librarypositionshelf/(:any)'] = 'admin/librarypositionshelf/$1';
         $route['admin/hall/approval_configuration'] = 'admin/hall/approval_configuration';
 
         $route['404_override'] = '';
+
+        $route['naac/configuration'] = 'admin/naac/configuration';
+        $route['naac/iiqa'] = 'admin/naac/iiqa';
+        $route['naac/ssr'] = 'admin/naac/ssr';
+        $route['naac/aqar'] = 'admin/naac/aqar';

@@ -277,7 +277,7 @@ function findOption($questionOpt, $find)
                 <div class="row">
                        <div class="col-md-6 col-sm-6">
                         <div class="form-group">
-                            <label><?php echo $this->lang->line('seach_by_keyword'); ?></label>
+                            <label><?php echo $this->lang->line('search_by_keyword'); ?></label>
                             <input type="text" class="form-control" name="keyword" id="keyword" >
                         </div>
                      </div>

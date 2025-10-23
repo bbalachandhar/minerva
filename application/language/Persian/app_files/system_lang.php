@@ -1703,7 +1703,6 @@ $lang['reason'] ="دلیل";
 $lang['recently_added_student'] ="دانشجو به تازگی اضافه شده است";
 $lang['recipient'] ="گیرنده";
 $lang['record_already_exist'] ="رکورد از قبل وجود دارد";
-$lang['record_deleted_successfully'] ="رکورد با موفقیت حذف شد";
 $lang['record_id'] ="شناسه ثبت";
 $lang['record_inserted_successfully'] ="رکورد با موفقیت درج شد";
 $lang['record_shared_successfully'] ="ضبط با موفقیت به اشتراک گذاشته شد";

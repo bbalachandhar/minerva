@@ -467,7 +467,7 @@ class Staff extends Admin_Controller
             $date_of_leaving   = $this->input->post("date_of_leaving");
             $address           = $this->input->post("address");
             $qualification     = $this->input->post("qualification");
-            $work_exp          = $this->input->post("work_exp");
+            $work_experience          = $this->input->post("work_experience");
             $basic_salary      = $this->input->post('basic_salary');
             $account_title     = $this->input->post("account_title");
             $bank_account_no   = $this->input->post("bank_account_no");
@@ -535,7 +535,7 @@ class Staff extends Admin_Controller
             }
 
             if (isset($emergency_no)) {
-                $data_insert['emergency_contact_no'] = $emergency_no;
+                $data_insert['emergency_contact_number'] = $emergency_no;
             }
 
             if (isset($marital_status)) {
@@ -550,12 +550,8 @@ class Staff extends Admin_Controller
                 $data_insert['permanent_address'] = $permanent_address;
             }
 
-            if (isset($qualification)) {
-                $data_insert['qualification'] = $qualification;
-            }
-
-            if (isset($work_exp)) {
-                $data_insert['work_exp'] = $work_exp;
+            if (isset($work_experience)) {
+                $data_insert['work_experience'] = $work_experience;
             }
 
             if (isset($note)) {
@@ -866,7 +862,7 @@ class Staff extends Admin_Controller
             $date_of_leaving = $this->input->post("date_of_leaving");
             $address = $this->input->post("address");
             $qualification = $this->input->post("qualification");
-            $work_exp = $this->input->post("work_exp");
+            $work_experience = $this->input->post("work_experience");
             $basic_salary = $this->input ->post('basic_salary');
             $account_title = $this->input->post("account_title");
             $bank_account_no = $this->input->post("bank_account_no");
@@ -929,7 +925,7 @@ class Staff extends Admin_Controller
             }
 
             if (isset($emergency_no)) {
-                $data_update['emergency_contact_no'] = $emergency_no;
+                $data_update['emergency_contact_number'] = $emergency_no;
             }
 
             if (isset($marital_status)) {
@@ -948,8 +944,8 @@ class Staff extends Admin_Controller
                 $data_update['qualification'] = $qualification;
             }
 
-            if (isset($work_exp)) {
-                $data_update['work_exp'] = $work_exp;
+            if (isset($work_experience)) {
+                $data_update['work_experience'] = $work_experience;
             }
 
             if (isset($note)) {
@@ -1238,13 +1234,13 @@ class Staff extends Admin_Controller
             "subject_specialization"   => "subject_specialization",
             "additional_qualification" => "additional_qualification",
             "qualification"            => "qualification",
-            "work_exp"                 => "work_exp",
+            "work_exp"                 => "work_experience",
             "name"                     => "name",
             "surname"                  => "surname",
             "father_name"              => "father_name",
             "mother_name"              => "mother_name",
             "contact_no"               => "contact_no",
-            "emergency_contact_no"     => "emergency_contact_no",
+            "emergency_contact_no"     => "emergency_contact_number",
             "email"                    => "email",
             "dob"                      => "dob",
             "marital_status"           => "marital_status",

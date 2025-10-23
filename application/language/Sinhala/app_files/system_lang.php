@@ -1703,7 +1703,6 @@ $lang['reason'] ="හේතුව";
 $lang['recently_added_student'] ="මෑතකදී එකතු කරන ලද ශිෂ්‍යයෙක්";
 $lang['recipient'] ="ලබන්නා";
 $lang['record_already_exist'] ="වාර්තාව දැනටමත් පවතී";
-$lang['record_deleted_successfully'] ="වාර්තාව සාර්ථකව මකා දමන ලදී";
 $lang['record_id'] ="වාර්තා හැඳුනුම්පත";
 $lang['record_inserted_successfully'] ="පටිගත කිරීම සාර්ථකව ඇතුළත් කර ඇත";
 $lang['record_shared_successfully'] ="පටිගත කිරීම සාර්ථකව බෙදා ගන්නා ලදී";

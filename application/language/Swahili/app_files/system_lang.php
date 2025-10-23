@@ -1703,7 +1703,6 @@ $lang['reason'] ="Sababu";
 $lang['recently_added_student'] ="Mwanafunzi Aliyeongezwa Hivi Karibuni";
 $lang['recipient'] ="Mpokeaji";
 $lang['record_already_exist'] ="Rekodi Tayari Zipo";
-$lang['record_deleted_successfully'] ="Rekodi Imefutwa Imefaulu";
 $lang['record_id'] ="Kitambulisho cha rekodi";
 $lang['record_inserted_successfully'] ="Rekodi Imeingizwa Imefaulu";
 $lang['record_shared_successfully'] ="Rekodi Imeshirikiwa kwa Mafanikio";

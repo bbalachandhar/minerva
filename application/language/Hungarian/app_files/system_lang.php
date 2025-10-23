@@ -1703,7 +1703,6 @@ $lang['reason'] ="Ok";
 $lang['recently_added_student'] ="Nemrég hozzáadott diák";
 $lang['recipient'] ="Befogadó";
 $lang['record_already_exist'] ="A rekord már létezik";
-$lang['record_deleted_successfully'] ="A rekord sikeresen törölve";
 $lang['record_id'] ="Record ID";
 $lang['record_inserted_successfully'] ="A rekord sikeresen beszúrva";
 $lang['record_shared_successfully'] ="A rekord sikeresen megosztva";

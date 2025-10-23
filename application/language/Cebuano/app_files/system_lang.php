@@ -1703,7 +1703,6 @@ $lang['reason'] ="Rason";
 $lang['recently_added_student'] ="Bag-o nga Nadugang nga Estudyante";
 $lang['recipient'] ="Tigdawat";
 $lang['record_already_exist'] ="Naglungtad na ang Rekord";
-$lang['record_deleted_successfully'] ="Malamposong Natangtang ang Rekord";
 $lang['record_id'] ="Irekord ang ID";
 $lang['record_inserted_successfully'] ="Malamposong Gisal-ot ang Rekord";
 $lang['record_shared_successfully'] ="Malamposong Gipaambit ang Rekord";

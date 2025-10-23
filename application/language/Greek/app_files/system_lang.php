@@ -1703,7 +1703,6 @@ $lang['reason'] ="Λόγος";
 $lang['recently_added_student'] ="Φοιτητής που προστέθηκε πρόσφατα";
 $lang['recipient'] ="Παραλήπτης";
 $lang['record_already_exist'] ="Η εγγραφή υπάρχει ήδη";
-$lang['record_deleted_successfully'] ="Η εγγραφή διαγράφηκε με επιτυχία";
 $lang['record_id'] ="Ταυτότητα εγγραφής";
 $lang['record_inserted_successfully'] ="Η εγγραφή εισήχθη με επιτυχία";
 $lang['record_shared_successfully'] ="Η εγγραφή μοιράστηκε με επιτυχία";

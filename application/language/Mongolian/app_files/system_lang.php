@@ -1703,7 +1703,6 @@ $lang['reason'] ="Шалтгаан";
 $lang['recently_added_student'] ="Саяхан нэмэгдсэн оюутан";
 $lang['recipient'] ="Хүлээн авагч";
 $lang['record_already_exist'] ="Бичлэг Аль хэдийн байгаа";
-$lang['record_deleted_successfully'] ="Бичлэгийг амжилттай устгалаа";
 $lang['record_id'] ="Бичлэгийн ID";
 $lang['record_inserted_successfully'] ="Бичлэгийг амжилттай орууллаа";
 $lang['record_shared_successfully'] ="Бичлэгийг амжилттай хуваалцлаа";

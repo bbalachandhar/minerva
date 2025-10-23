@@ -1703,7 +1703,6 @@ $lang['reason'] ="Powód";
 $lang['recently_added_student'] ="Ostatnio dodany uczeń";
 $lang['recipient'] ="Odbiorca";
 $lang['record_already_exist'] ="Rekord już istnieje";
-$lang['record_deleted_successfully'] ="Rekord został pomyślnie usunięty";
 $lang['record_id'] ="Identyfikator rekordu";
 $lang['record_inserted_successfully'] ="Rekord został pomyślnie wstawiony";
 $lang['record_shared_successfully'] ="Rekord został pomyślnie udostępniony";

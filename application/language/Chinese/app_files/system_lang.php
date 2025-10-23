@@ -1703,7 +1703,6 @@ $lang['reason'] ="原因";
 $lang['recently_added_student'] ="最近添加的学生";
 $lang['recipient'] ="接受者";
 $lang['record_already_exist'] ="记录已存在";
-$lang['record_deleted_successfully'] ="记录删除成功";
 $lang['record_id'] ="记录编号";
 $lang['record_inserted_successfully'] ="记录插入成功";
 $lang['record_shared_successfully'] ="记录分享成功";

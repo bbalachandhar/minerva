@@ -1703,7 +1703,6 @@ $lang['reason'] ="Motiv";
 $lang['recently_added_student'] ="Student adăugat recent";
 $lang['recipient'] ="Destinatar";
 $lang['record_already_exist'] ="Înregistrarea există deja";
-$lang['record_deleted_successfully'] ="Înregistrare a fost ștearsă cu succes";
 $lang['record_id'] ="ID înregistrare";
 $lang['record_inserted_successfully'] ="Înregistrarea a fost inserată cu succes";
 $lang['record_shared_successfully'] ="Înregistrare partajată cu succes";

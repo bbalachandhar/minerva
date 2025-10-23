@@ -1703,7 +1703,6 @@ $lang['reason'] ="Anledning";
 $lang['recently_added_student'] ="Nyligen tillagd student";
 $lang['recipient'] ="Mottagare";
 $lang['record_already_exist'] ="Record existerar redan";
-$lang['record_deleted_successfully'] ="Record raderades framgångsrikt";
 $lang['record_id'] ="Record ID";
 $lang['record_inserted_successfully'] ="Posten har infogats";
 $lang['record_shared_successfully'] ="Record har delats framgångsrikt";

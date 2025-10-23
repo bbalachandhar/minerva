@@ -1703,7 +1703,6 @@ $lang['reason'] ="Rede";
 $lang['recently_added_student'] ="Student wat onlangs bygevoeg is";
 $lang['recipient'] ="Ontvanger";
 $lang['record_already_exist'] ="Rekord bestaan reeds";
-$lang['record_deleted_successfully'] ="Rekord suksesvol uitgevee";
 $lang['record_id'] ="Rekord ID";
 $lang['record_inserted_successfully'] ="Rekord suksesvol ingevoeg";
 $lang['record_shared_successfully'] ="Rekord suksesvol gedeel";

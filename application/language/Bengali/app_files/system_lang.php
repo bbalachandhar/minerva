@@ -1703,7 +1703,6 @@ $lang['reason'] ="কারণ";
 $lang['recently_added_student'] ="সম্প্রতি যোগ করা ছাত্র";
 $lang['recipient'] ="প্রাপক";
 $lang['record_already_exist'] ="রেকর্ড ইতিমধ্যেই বিদ্যমান";
-$lang['record_deleted_successfully'] ="রেকর্ড সফলভাবে মুছে ফেলা হয়েছে";
 $lang['record_id'] ="রেকর্ড আইডি";
 $lang['record_inserted_successfully'] ="রেকর্ড সফলভাবে ঢোকানো হয়েছে";
 $lang['record_shared_successfully'] ="রেকর্ড সফলভাবে ভাগ করা হয়েছে";

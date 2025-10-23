@@ -1703,7 +1703,6 @@ $lang['reason'] ="Dôvod";
 $lang['recently_added_student'] ="Nedávno pridaný študent";
 $lang['recipient'] ="Príjemca";
 $lang['record_already_exist'] ="Záznam už existuje";
-$lang['record_deleted_successfully'] ="Záznam bol úspešne odstránený";
 $lang['record_id'] ="ID záznamu";
 $lang['record_inserted_successfully'] ="Záznam bol úspešne vložený";
 $lang['record_shared_successfully'] ="Záznam bol úspešne zdieľaný";

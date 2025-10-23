@@ -272,8 +272,8 @@ foreach ($genderList as $key => $value) {
 
                                                 <div class="form-group">
                                                     <label for="exampleInputEmail1"><?php echo $this->lang->line('work_experience'); ?></label>
-                                                    <textarea id="work_exp" name="work_exp" placeholder="" class="form-control"><?php echo set_value('work_exp') ?></textarea>
-                                                    <span class="text-danger"><?php echo form_error('work_exp'); ?></span>
+                                                    <textarea id="work_experience" name="work_experience" placeholder="" class="form-control"><?php echo set_value('work_experience') ?></textarea>
+                                                    <span class="text-danger"><?php echo form_error('work_experience'); ?></span>
                                                 </div>
                                             </div>
                                         <?php }if ($sch_setting->staff_note) {?>

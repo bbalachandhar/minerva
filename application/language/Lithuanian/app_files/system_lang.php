@@ -1703,7 +1703,6 @@ $lang['reason'] ="Priežastis";
 $lang['recently_added_student'] ="Neseniai pridėtas studentas";
 $lang['recipient'] ="Gavėjas";
 $lang['record_already_exist'] ="Įrašas jau egzistuoja";
-$lang['record_deleted_successfully'] ="Įrašas sėkmingai ištrintas";
 $lang['record_id'] ="Įrašo ID";
 $lang['record_inserted_successfully'] ="Įrašas sėkmingai įterptas";
 $lang['record_shared_successfully'] ="Įrašas sėkmingai bendrinamas";
