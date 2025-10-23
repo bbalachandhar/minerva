@@ -176,4 +176,144 @@ class Staffattendance extends Admin_Controller
         $this->load->view("layout/footer");
     }
 
+    public function import_biometric_attendance()
+    {
+        if (!($this->rbac->hasPrivilege('biometric_attendance', 'can_view'))) {
+            access_denied();
+        }
+
+        $this->session->set_userdata('top_menu', 'HR');
+        $this->session->set_userdata('sub_menu', 'admin/staffattendance/import_biometric_attendance');
+        $data['title'] = 'Import Biometric Attendance';
+
+        $this->load->library('form_validation');
+        $this->form_validation->set_rules('file', 'File', 'callback_handle_csv_upload');
+
+        if ($this->form_validation->run() == FALSE) {
+            $this->load->view('layout/header', $data);
+            $this->load->view('admin/staffattendance/import_biometric_attendance', $data);
+            $this->load->view('layout/footer', $data);
+        } else {
+            // File uploaded successfully, now process it
+            $file_mimes = array('text/x-comma-separated-values', 'text/comma-separated-values', 'application/octet-stream', 'application/vnd.ms-excel', 'application/x-csv', 'text/x-csv', 'text/csv', 'application/csv', 'application/excel', 'application/vnd.msexcel', 'text/plain');
+            $arr_file = explode('.', $_FILES['file']['name']);
+            $extension = end($arr_file);
+            if(('csv' == $extension) && in_array($_FILES['file']['type'], $file_mimes)){
+                $file_path = $_FILES['file']['tmp_name'];
+                $handle = fopen($file_path, "r");
+                $i = 0;
+                $attendance_data = [];
+                while (($row = fgetcsv($handle, 1000, ",")) !== FALSE) {
+                    if($i == 0){ // Skip header row
+                        $i++;
+                        continue;
+                    }
+                    // Assuming CSV format: staff_id, timestamp
+                    $staff_id = $row[0];
+                    $timestamp = $row[1]; // YYYY-MM-DD HH:MM:SS
+
+                    $attendance_data[] = [
+                        'staff_id' => $staff_id,
+                        'timestamp' => $timestamp
+                    ];
+                    $i++;
+                }
+                fclose($handle);
+
+                // Process attendance data
+                $processed_attendance = $this->process_biometric_data($attendance_data);
+
+                // Save attendance to database
+                foreach ($processed_attendance as $staff_attendance_record) {
+                    $this->staffattendancemodel->addorUpdate([$staff_attendance_record]);
+                }
+
+                $this->session->set_flashdata('msg', '<div class="alert alert-success">Biometric attendance imported successfully</div>');
+                redirect('admin/staffattendance/import_biometric_attendance');
+
+            } else {
+                $this->session->set_flashdata('msg', '<div class="alert alert-danger">Invalid file type. Please upload a CSV file.</div>');
+                redirect('admin/staffattendance/import_biometric_attendance');
+            }
+        }
+    }
+
+    private function process_biometric_data($attendance_data)
+    {
+        $staff_punches = [];
+        foreach ($attendance_data as $punch) {
+            $staff_id = $punch['staff_id'];
+            $timestamp = strtotime($punch['timestamp']);
+            $date = date('Y-m-d', $timestamp);
+            $time = date('H:i:s', $timestamp);
+
+            if (!isset($staff_punches[$staff_id])) {
+                $staff_punches[$staff_id] = [];
+            }
+            if (!isset($staff_punches[$staff_id][$date])) {
+                $staff_punches[$staff_id][$date] = [];
+            }
+            $staff_punches[$staff_id][$date][] = $time;
+        }
+
+        $processed_records = [];
+        foreach ($staff_punches as $staff_id => $dates) {
+            foreach ($dates as $date => $times) {
+                sort($times);
+                $in_time = $times[0];
+                $out_time = end($times);
+
+                // Determine attendance type based on staff settings
+                $staff_detail = $this->staff_model->get($staff_id);
+                $role_id = $staff_detail['role_id'];
+                $attendance_setting = $this->staffAttendaceSetting_model->getAttendanceTypeByRole($role_id, $in_time);
+
+                $attendencetype_id = $this->config_attendance['present']; // Default to present
+                if ($attendance_setting && $in_time > $attendance_setting->entry_time_to) {
+                    $attendencetype_id = $this->config_attendance['late']; // Late
+                }
+
+                $processed_records[] = [
+                    'staff_id' => $staff_id,
+                    'staff_attendance_type_id' => $attendencetype_id,
+                    'remark' => '',
+                    'in_time' => $in_time,
+                    'out_time' => $out_time,
+                    'date' => $date,
+                    'updated_at' => date('Y-m-d H:i:s'),
+                ];
+            }
+        }
+        return $processed_records;
+    }
+
+    public function handle_csv_upload()
+    {
+        $error = "";
+        if (isset($_FILES["file"]) && !empty($_FILES['file']['name'])) {
+            $allowedExts = array('csv');
+            $mimes       = array('text/x-comma-separated-values', 'text/comma-separated-values', 'application/octet-stream', 'application/vnd.ms-excel', 'application/x-csv', 'text/x-csv', 'text/csv', 'application/csv', 'application/excel', 'application/vnd.msexcel', 'text/plain');
+            $temp      = explode(".", $_FILES["file"]["name"]);
+            $extension = end($temp);
+            if ($_FILES["file"]["error"] > 0) {
+                $error .= "Error opening the file<br />";
+            }
+            if (!in_array($_FILES['file']['type'], $mimes)) {
+                $error .= "Error opening the file<br />";
+                $this->form_validation->set_message('handle_csv_upload', $this->lang->line('file_type_not_allowed'));
+                return false;
+            }
+            if (!in_array($extension, $allowedExts)) {
+                $error .= "Error opening the file<br />";
+                $this->form_validation->set_message('handle_csv_upload', $this->lang->line('extension_not_allowed'));
+                return false;
+            }
+            if ($error == "") {
+                return true;
+            }
+        } else {
+            $this->form_validation->set_message('handle_csv_upload', $this->lang->line('please_select_file'));
+            return false;
+        }
+    }
 }
