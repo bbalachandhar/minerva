@@ -22,6 +22,7 @@ class Staff extends Admin_Controller
         $this->load->model("staff_model");
         $this->load->library('encoding_lib');
         $this->load->model("leaverequest_model");
+        $this->load->model("biometric_device_model"); // Load the new model
         $this->contract_type      = $this->config->item('contracttype');
         $this->marital_status     = $this->config->item('marital_status');
         $this->staff_attendance   = $this->config->item('staffattendance');
@@ -131,7 +132,8 @@ class Staff extends Admin_Controller
         $data['enable_disable'] = 1;
         if ($this->customlib->getStaffID() == $id) {
             $data['enable_disable'] = 0;
-        } else if (!$this->rbac->hasPrivilege('staff', 'can_view')) {
+        }
+        else if (!$this->rbac->hasPrivilege('staff', 'can_view')) {
             access_denied();
         }
 
@@ -468,12 +470,12 @@ class Staff extends Admin_Controller
             $address           = $this->input->post("address");
             $qualification     = $this->input->post("qualification");
             $work_experience          = $this->input->post("work_experience");
-            $basic_salary      = $this->input->post('basic_salary');
-            $account_title     = $this->input->post("account_title");
+            $basic_salary      = $this->input.post('basic_salary');
+            $account_title     = $this->input.post("account_title");
             $bank_account_no   = $this->input->post("bank_account_no");
             $bank_name         = $this->input->post("bank_name");
             $ifsc_code         = $this->input->post("ifsc_code");
-            $bank_branch       = $this->input->post("bank_branch");
+            $bank_branch       = $this->input.post("bank_branch");
             $contract_type     = $this->input->post("contract_type");
             $shift             = $this->input->post("shift");
             $location          = $this->input->post("location");
@@ -486,8 +488,8 @@ class Staff extends Admin_Controller
             $father_name       = $this->input->post("father_name");
             $surname           = $this->input->post("surname");
             $mother_name       = $this->input->post("mother_name");
-            $note              = $this->input->post("note");
-            $epf_no            = $this->input->post("epf_no");
+            $note              = $this->input.post("note");
+            $epf_no            = $this->input.post("epf_no");
 
             $password = $this->role->get_random_password($chars_min = 6, $chars_max = 6, $use_upper_case = false, $include_numbers = true, $include_special_chars = false);
 
@@ -1375,7 +1377,7 @@ class Staff extends Admin_Controller
                                 }
 
                                 if ($staff_id) { // Only send login credential for new inserts
-                                    $teacher_login_detail = array('id' => $staff_id, 'credential_for' => 'staff', 'username' => $staff_data['email'], 'password' => $password, 'contact_no' => $staff_data['contact_no'], 'email' => $staff_data['email']);
+                                    $teacher_login_detail = array('id' => $staff_id, 'credential_for' => 'staff', 'first_name' => $this->input->post("name"), 'last_name' => $this->input->post("surname"), 'username' => $staff_data['email'], 'password' => $password, 'contact_no' => $staff_data['contact_no'], 'email' => $staff_data['email']);
                                     $this->mailsmsconf->mailsms('login_credential', $teacher_login_detail);
                                 }
                             }
@@ -1414,7 +1416,8 @@ class Staff extends Admin_Controller
             $temp      = explode(".", $_FILES["file"]["name"]);
             $extension = end($temp);
             if ($_FILES["file"]["error"] > 0) {
-                $error .= "Error opening the file<br />";
+                $this->form_validation->set_message('handle_csv_upload', $this->lang->line('error_opening_the_file'));
+                return false;
             }
             if (!in_array($_FILES['file']['type'], $mimes)) {
                 $error .= "Error opening the file<br />";
@@ -1466,6 +1469,125 @@ class Staff extends Admin_Controller
     {
         $this->staff_model->rating_remove($id);
         redirect('admin/staff/rating');
+    }
+
+    public function managebiometricdevice($id = null) {
+        if (!($this->rbac->hasPrivilege('biometric_device', 'can_view'))) {
+            access_denied();
+        }
+
+        $this->session->set_userdata('top_menu', 'System Settings');
+        $this->session->set_userdata('sub_menu', 'admin/staff/managebiometricdevice');
+        $data['title'] = $this->lang->line('biometric_device_management');
+        $data['device_list'] = $this->biometric_device_model->get();
+        $data['device_brands'] = [
+            'eSSL',
+            'ZKTeco',
+            'Matrix',
+            'Realtime',
+            'CP Plus',
+            'Hikvision',
+            'BioEnable',
+            'Suprema',
+            'Anviz',
+        ];
+
+        if ($id) {
+            $data['device_record'] = $this->biometric_device_model->get($id);
+        }
+
+        $this->load->view('layout/header', $data);
+        $this->load->view('admin/staff/managebiometricdevice', $data);
+        $this->load->view('layout/footer', $data);
+    }
+
+    public function add_biometric_device() {
+        if (!($this->rbac->hasPrivilege('biometric_device', 'can_add'))) {
+            access_denied();
+        }
+
+        $this->form_validation->set_rules('device_name', $this->lang->line('device_name'), 'required');
+        $this->form_validation->set_rules('brand', $this->lang->line('brand'), 'required');
+        $this->form_validation->set_rules('serial_number', $this->lang->line('serial_number'), 'required');
+        $this->form_validation->set_rules('api_endpoint', $this->lang->line('api_endpoint'), 'required');
+        $this->form_validation->set_rules('username', $this->lang->line('username'), 'required');
+        $this->form_validation->set_rules('password', $this->lang->line('password'), 'required');
+
+        if ($this->form_validation->run() == FALSE) {
+            $this->managebiometricdevice();
+        } else {
+            $data = array(
+                'device_name' => $this->input->post('device_name'),
+                'brand' => $this->input->post('brand'),
+                'serial_number' => $this->input->post('serial_number'),
+                'api_endpoint' => $this->input->post('api_endpoint'),
+                'username' => $this->input->post('username'),
+                'password' => $this->input->post('password'),
+                'is_active' => $this->input->post('is_active') ? 1 : 0,
+            );
+
+            if ($data['is_active']) {
+                $this->biometric_device_model->deactivateAllDevices();
+            }
+
+            $this->biometric_device_model->add($data);
+            $this->session->set_flashdata('msg', '<div class="alert alert-success">' . $this->lang->line('device_added_successfully') . '</div>');
+            redirect('admin/staff/managebiometricdevice');
+        }
+    }
+
+    public function edit_biometric_device($id) {
+        if (!($this->rbac->hasPrivilege('biometric_device', 'can_edit'))) {
+            access_denied();
+        }
+
+        $this->form_validation->set_rules('device_name', $this->lang->line('device_name'), 'required');
+        $this->form_validation->set_rules('brand', $this->lang->line('brand'), 'required');
+        $this->form_validation->set_rules('serial_number', $this->lang->line('serial_number'), 'required');
+        $this->form_validation->set_rules('api_endpoint', $this->lang->line('api_endpoint'), 'required');
+        $this->form_validation->set_rules('username', $this->lang->line('username'), 'required');
+        $this->form_validation->set_rules('password', $this->lang->line('password'), 'required');
+
+        if ($this->form_validation->run() == FALSE) {
+            $this->managebiometricdevice($id);
+        } else {
+            $data = array(
+                'device_name' => $this->input->post('device_name'),
+                'brand' => $this->input->post('brand'),
+                'serial_number' => $this->input->post('serial_number'),
+                'api_endpoint' => $this->input->post('api_endpoint'),
+                'username' => $this->input->post('username'),
+                'password' => $this->input->post('password'),
+                'is_active' => $this->input->post('is_active') ? 1 : 0,
+            );
+
+            if ($data['is_active']) {
+                $this->biometric_device_model->deactivateAllDevices();
+            }
+
+            $this->biometric_device_model->update($id, $data);
+            $this->session->set_flashdata('msg', '<div class="alert alert-success">' . $this->lang->line('device_updated_successfully') . '</div>');
+            redirect('admin/staff/managebiometricdevice');
+        }
+    }
+
+    public function delete_biometric_device($id) {
+        if (!($this->rbac->hasPrivilege('biometric_device', 'can_delete'))) {
+            access_denied();
+        }
+        $this->biometric_device_model->remove($id);
+        $this->session->set_flashdata('msg', '<div class="alert alert-success">' . $this->lang->line('device_deleted_successfully') . '</div>');
+        redirect('admin/staff/managebiometricdevice');
+    }
+
+    public function activate_biometric_device($id) {
+        if (!($this->rbac->hasPrivilege('biometric_device', 'can_edit'))) {
+            access_denied();
+        }
+        $this->biometric_device_model->deactivateAllDevices();
+        $this->biometric_device_model->update($id, ['is_active' => 1]);
+        $this->session->set_flashdata('msg', '<div class="alert alert-success">' . $this->lang->line('device_activated_successfully') . '</div>');
+        redirect('admin/staff/managebiometricdevice');
     }
 
 }

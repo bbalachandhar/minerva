@@ -89,3 +89,9 @@ $route['admin/librarypositionshelf/(:any)'] = 'admin/librarypositionshelf/$1';
         $route['naac/iiqa'] = 'admin/naac/iiqa';
         $route['naac/ssr'] = 'admin/naac/ssr';
         $route['naac/aqar'] = 'admin/naac/aqar';
+
+$route['admin/staff/managebiometricdevice'] = 'admin/staff/managebiometricdevice';
+$route['admin/staff/add_biometric_device'] = 'admin/staff/add_biometric_device';
+$route['admin/staff/edit_biometric_device/(:num)'] = 'admin/staff/edit_biometric_device/$1';
+$route['admin/staff/delete_biometric_device/(:num)'] = 'admin/staff/delete_biometric_device/$1';
+$route['admin/staff/activate_biometric_device/(:num)'] = 'admin/staff/activate_biometric_device/$1';

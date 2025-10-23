@@ -20,6 +20,9 @@ class Staffattendance extends Admin_Controller
         $this->load->model("staff_model");
         $this->load->model("payroll_model"); 
         $this->load->model("staffAttendaceSetting_model"); 
+        $this->load->model("biometric_device_model"); // Load the new model
+        $this->load->model("staff_biometric_punches_model"); // Load the new model
+        $this->load->library('biometric_api_client'); // Load the new library
     }
 
     public function index(){
@@ -176,115 +179,155 @@ class Staffattendance extends Admin_Controller
         $this->load->view("layout/footer");
     }
 
-    public function import_biometric_attendance()
+    public function sync_biometric_attendance()
     {
         if (!($this->rbac->hasPrivilege('biometric_attendance', 'can_view'))) {
             access_denied();
         }
 
         $this->session->set_userdata('top_menu', 'HR');
-        $this->session->set_userdata('sub_menu', 'admin/staffattendance/import_biometric_attendance');
-        $data['title'] = 'Import Biometric Attendance';
+        $this->session->set_userdata('sub_menu', 'admin/staffattendance/sync_biometric_attendance');
+        $data['title'] = $this->lang->line('sync_biometric_attendance');
 
         $this->load->library('form_validation');
-        $this->form_validation->set_rules('file', 'File', 'callback_handle_csv_upload');
+        $this->form_validation->set_rules('full_day_present_threshold', 'Full Day Present Threshold', 'required|numeric');
 
         if ($this->form_validation->run() == FALSE) {
+            $data['last_sync_datetime'] = $this->setting_model->getSetting()->last_biometric_sync_datetime;
+            $data['full_day_present_threshold'] = $this->setting_model->getSetting()->full_day_present_threshold; // Assuming this is also in settings
             $this->load->view('layout/header', $data);
-            $this->load->view('admin/staffattendance/import_biometric_attendance', $data);
+            $this->load->view('admin/staffattendance/biometric_sync_settings', $data);
             $this->load->view('layout/footer', $data);
         } else {
-            // File uploaded successfully, now process it
-            $file_mimes = array('text/x-comma-separated-values', 'text/comma-separated-values', 'application/octet-stream', 'application/vnd.ms-excel', 'application/x-csv', 'text/x-csv', 'text/csv', 'application/csv', 'application/excel', 'application/vnd.msexcel', 'text/plain');
-            $arr_file = explode('.', $_FILES['file']['name']);
-            $extension = end($arr_file);
-            if(('csv' == $extension) && in_array($_FILES['file']['type'], $file_mimes)){
-                $file_path = $_FILES['file']['tmp_name'];
-                $handle = fopen($file_path, "r");
-                $i = 0;
-                $attendance_data = [];
-                while (($row = fgetcsv($handle, 1000, ",")) !== FALSE) {
-                    if($i == 0){ // Skip header row
-                        $i++;
-                        continue;
-                    }
-                    // Assuming CSV format: staff_id, timestamp
-                    $staff_id = $row[0];
-                    $timestamp = $row[1]; // YYYY-MM-DD HH:MM:SS
+            $full_day_present_threshold = $this->input->post('full_day_present_threshold');
+            // Update the setting
+            $this->setting_model->update(array('full_day_present_threshold' => $full_day_present_threshold));
 
-                    $attendance_data[] = [
-                        'staff_id' => $staff_id,
-                        'timestamp' => $timestamp
-                    ];
-                    $i++;
-                }
-                fclose($handle);
+            $active_device = $this->biometric_device_model->getActiveDevice();
 
-                // Process attendance data
-                $processed_attendance = $this->process_biometric_data($attendance_data);
-
-                // Save attendance to database
-                foreach ($processed_attendance as $staff_attendance_record) {
-                    $this->staffattendancemodel->addorUpdate([$staff_attendance_record]);
-                }
-
-                $this->session->set_flashdata('msg', '<div class="alert alert-success">Biometric attendance imported successfully</div>');
-                redirect('admin/staffattendance/import_biometric_attendance');
-
-            } else {
-                $this->session->set_flashdata('msg', '<div class="alert alert-danger">Invalid file type. Please upload a CSV file.</div>');
-                redirect('admin/staffattendance/import_biometric_attendance');
+            if (empty($active_device)) {
+                $this->session->set_flashdata('msg', '<div class="alert alert-danger">No active biometric device configured.</div>');
+                redirect('admin/staffattendance/sync_biometric_attendance');
             }
-        }
-    }
 
-    private function process_biometric_data($attendance_data)
-    {
-        $staff_punches = [];
-        foreach ($attendance_data as $punch) {
-            $staff_id = $punch['staff_id'];
-            $timestamp = strtotime($punch['timestamp']);
-            $date = date('Y-m-d', $timestamp);
-            $time = date('H:i:s', $timestamp);
+            $this->biometric_api_client->initialize([
+                'api_endpoint' => $active_device['api_endpoint'],
+                'serial_number' => $active_device['serial_number'],
+                'username' => $active_device['username'],
+                'password' => $active_device['password'],
+            ]);
 
-            if (!isset($staff_punches[$staff_id])) {
-                $staff_punches[$staff_id] = [];
+            $last_sync_datetime = $this->setting_model->getSetting()->last_biometric_sync_datetime;
+            $fromDateTime = $last_sync_datetime ? date('Y-m-d H:i:s', strtotime($last_sync_datetime)) : date('Y-m-d 00:00:00', strtotime('-1 day')); // Default to yesterday if no last sync
+            $toDateTime = date('Y-m-d H:i:s');
+
+            $raw_punches = $this->biometric_api_client->getAttendanceLogs($fromDateTime, $toDateTime);
+
+            if ($raw_punches === false) {
+                $this->session->set_flashdata('msg', '<div class="alert alert-danger">Failed to fetch attendance logs from biometric device. Check API configuration and logs.</div>');
+                redirect('admin/staffattendance/sync_biometric_attendance');
             }
-            if (!isset($staff_punches[$staff_id][$date])) {
-                $staff_punches[$staff_id][$date] = [];
-            }
-            $staff_punches[$staff_id][$date][] = $time;
-        }
 
-        $processed_records = [];
-        foreach ($staff_punches as $staff_id => $dates) {
-            foreach ($dates as $date => $times) {
-                sort($times);
-                $in_time = $times[0];
-                $out_time = end($times);
+            $processed_attendance_summary = [];
+            $staff_punches_by_day = [];
+            $unmatched_staff_ids = [];
 
-                // Determine attendance type based on staff settings
-                $staff_detail = $this->staff_model->get($staff_id);
-                $role_id = $staff_detail['role_id'];
-                $attendance_setting = $this->staffAttendaceSetting_model->getAttendanceTypeByRole($role_id, $in_time);
+            foreach ($raw_punches as $punch) {
+                $staff_id = $punch['staff_id'];
+                $punch_time = $punch['punch_time'];
+                $punch_date = date('Y-m-d', strtotime($punch_time));
 
-                $attendencetype_id = $this->config_attendance['present']; // Default to present
-                if ($attendance_setting && $in_time > $attendance_setting->entry_time_to) {
-                    $attendencetype_id = $this->config_attendance['late']; // Late
-                }
-
-                $processed_records[] = [
+                // Store raw punch
+                $this->staff_biometric_punches_model->add([
                     'staff_id' => $staff_id,
-                    'staff_attendance_type_id' => $attendencetype_id,
-                    'remark' => '',
-                    'in_time' => $in_time,
-                    'out_time' => $out_time,
-                    'date' => $date,
-                    'updated_at' => date('Y-m-d H:i:s'),
-                ];
+                    'punch_time' => $punch_time,
+                    'created_at' => date('Y-m-d H:i:s'),
+                ]);
+
+                if (!isset($staff_punches_by_day[$staff_id])) {
+                    $staff_punches_by_day[$staff_id] = [];
+                }
+                if (!isset($staff_punches_by_day[$staff_id][$punch_date])) {
+                    $staff_punches_by_day[$staff_id][$punch_date] = [];
+                }
+                $staff_punches_by_day[$staff_id][$punch_date][] = strtotime($punch_time);
             }
+
+            foreach ($staff_punches_by_day as $staff_id => $dates) {
+                $staff_detail = $this->staff_model->get($staff_id);
+                if (empty($staff_detail)) {
+                    $unmatched_staff_ids[] = $staff_id;
+                    continue;
+                }
+                $role_id = $staff_detail['role_id'];
+
+                foreach ($dates as $date => $timestamps) {
+                    sort($timestamps);
+
+                    $in_time = date('H:i:s', $timestamps[0]);
+                    $out_time = date('H:i:s', end($timestamps));
+
+                    $total_seconds_worked = 0;
+                    for ($i = 0; $i < count($timestamps) - 1; $i += 2) {
+                        if (isset($timestamps[$i+1])) {
+                            $total_seconds_worked += ($timestamps[$i+1] - $timestamps[$i]);
+                        }
+                    }
+                    $total_hours_worked = round($total_seconds_worked / 3600, 2);
+
+                    $attendance_type_id = $this->config_attendance['present']; // Default to present
+                    $remark = '';
+
+                    // Determine attendance type based on staff settings and total hours
+                    $attendance_setting = $this->staffAttendaceSetting_model->getAttendanceTypeByRole($role_id, $in_time); // This method might need adjustment to consider total hours
+
+                    if ($attendance_setting && $in_time > $attendance_setting->entry_time_to) {
+                        $attendance_type_id = $this->config_attendance['late'];
+                        $remark = 'Late arrival';
+                    }
+
+                    // Apply full day present threshold logic
+                    if ($total_hours_worked < $full_day_present_threshold) {
+                        // This is where you'd differentiate between half-day, etc.
+                        // For now, let's assume anything less than threshold is half-day if not already late/absent
+                        if ($attendance_type_id == $this->config_attendance['present']) {
+                             $attendance_type_id = $this->config_attendance['half_day']; // Assuming a half_day config exists
+                             $remark = 'Half Day (less than ' . $full_day_present_threshold . ' hours)';
+                        }
+                    }
+
+                    // Check if attendance already exists for this staff and date
+                    $existing_attendance = $this->staffattendancemodel->getAttendanceByStaffIdAndDate($staff_id, $date);
+
+                    $attendance_record = [
+                        'staff_id' => $staff_id,
+                        'staff_attendance_type_id' => $attendance_type_id,
+                        'remark' => $remark,
+                        'in_time' => $in_time,
+                        'out_time' => $out_time,
+                        'date' => $date,
+                        'total_hours_worked' => $total_hours_worked,
+                        'updated_at' => date('Y-m-d H:i:s'),
+                    ];
+
+                    if ($existing_attendance) {
+                        $this->staffattendancemodel->update($existing_attendance['id'], $attendance_record);
+                    } else {
+                        $this->staffattendancemodel->add($attendance_record);
+                    }
+                }
+            }
+
+            // Update last sync datetime
+            $this->setting_model->update(array('last_biometric_sync_datetime' => $toDateTime));
+
+            $msg = '<div class="alert alert-success">Biometric attendance synchronized successfully.</div>';
+            if (!empty($unmatched_staff_ids)) {
+                $msg .= '<div class="alert alert-warning">Warning: Unmatched staff IDs: ' . implode(', ', $unmatched_staff_ids) . '</div>';
+            }
+            $this->session->set_flashdata('msg', $msg);
+            redirect('admin/staffattendance/sync_biometric_attendance');
         }
-        return $processed_records;
     }
 
     public function handle_csv_upload()
@@ -292,11 +335,21 @@ class Staffattendance extends Admin_Controller
         $error = "";
         if (isset($_FILES["file"]) && !empty($_FILES['file']['name'])) {
             $allowedExts = array('csv');
-            $mimes       = array('text/x-comma-separated-values', 'text/comma-separated-values', 'application/octet-stream', 'application/vnd.ms-excel', 'application/x-csv', 'text/x-csv', 'text/csv', 'application/csv', 'application/excel', 'application/vnd.msexcel', 'text/plain');
+            $mimes       = array('text/csv',
+                'text/plain',
+                'application/csv',
+                'text/comma-separated-values',
+                'application/excel',
+                'application/vnd.ms-excel',
+                'application/vnd.msexcel',
+                'text/anytext',
+                'application/octet-stream',
+                'application/txt');
             $temp      = explode(".", $_FILES["file"]["name"]);
             $extension = end($temp);
             if ($_FILES["file"]["error"] > 0) {
-                $error .= "Error opening the file<br />";
+                $this->form_validation->set_message('handle_csv_upload', $this->lang->line('error_opening_the_file'));
+                return false;
             }
             if (!in_array($_FILES['file']['type'], $mimes)) {
                 $error .= "Error opening the file<br />";
