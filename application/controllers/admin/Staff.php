@@ -1608,13 +1608,16 @@ class Staff extends Admin_Controller
         }
 
         $last_sync_datetime = $this->attendance_model->get_last_biometric_sync_datetime();
+        log_message('debug', 'Staff::sync_biometric_attendance - last_sync_datetime from model: ' . (is_string($last_sync_datetime) ? 'String: ' . $last_sync_datetime : 'Not a string, Type: ' . gettype($last_sync_datetime) . ', Value: ' . var_export($last_sync_datetime, true)));
         $from_datetime = $last_sync_datetime ? $last_sync_datetime : date('Y-m-d H:i:s', strtotime('-30 days')); // Default to 30 days ago if no previous sync
         $to_datetime = date('Y-m-d H:i:s');
 
         $punches = $this->biometric_api_model->get_punches_from_api($active_device, $from_datetime, $to_datetime);
+        log_message('debug', 'Punches received from API: ' . (is_array($punches) ? count($punches) : 'No punches received or API error.'));
 
         if ($punches !== false) { // Check for false to indicate API error
             $inserted_count = $this->attendance_model->save_raw_biometric_punches($punches);
+            log_message('debug', 'Inserted count from model: ' . $inserted_count);
             $this->attendance_model->update_last_biometric_sync_datetime($to_datetime);
             $this->session->set_flashdata('msg', '<div class="alert alert-success">' . $this->lang->line('biometric_sync_success') . ' ' . $inserted_count . ' ' . $this->lang->line('new_punches_recorded') . '</div>');
             log_message('info', 'Staff::sync_biometric_attendance - Sync successful. Redirecting to staffattendance/index.');

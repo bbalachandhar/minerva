@@ -86,15 +86,21 @@ class Biometric_api_client {
             // This regex assumes staff_id is alphanumeric and ends before the date.
             // It captures everything before the first digit of the year as staff_id
             // and the rest as timestamp.
-            if (preg_match('/^([A-Z0-9]+)(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})$/', $line, $matches)) {
-                $staff_id = $matches[1];
+            // Find the date pattern first
+            if (preg_match('/(.*)(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})$/', $line, $matches)) {
+                $staff_id = trim($matches[1]);
                 $timestamp = $matches[2];
-                $punches[] = [
-                    'staff_id' => $staff_id,
-                    'punch_time' => $timestamp
-                ];
+
+                if (!empty($staff_id)) {
+                    $punches[] = [
+                        'staff_id' => $staff_id,
+                        'punch_time' => $timestamp
+                    ];
+                } else {
+                    log_message('warning', "Biometric API: Could not extract staff ID from line: " . $line);
+                }
             } else {
-                log_message('warning', "Could not parse biometric log line: " . $line);
+                log_message('warning', "Biometric API: Could not parse biometric log line (no date found): " . $line);
             }
         }
         return $punches;

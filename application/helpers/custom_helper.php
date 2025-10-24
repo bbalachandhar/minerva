@@ -667,3 +667,37 @@ function is_value_exist($array,$value){
     }
     return false;
 }
+
+if (!function_exists('send_soap_request_curl')) {
+    function send_soap_request_curl($url, $soap_action, $xml_body) {
+        $headers = array(
+            "Content-type: text/xml; charset=utf-8",
+            "Accept: text/xml",
+            "Cache-Control: no-cache",
+            "Pragma: no-cache",
+            "SOAPAction: " . $soap_action,
+            "Content-length: " . strlen($xml_body),
+        );
+
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 60);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $xml_body);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // Only for development, remove in production
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false); // Only for development, remove in production
+
+        $response = curl_exec($ch);
+        $err = curl_error($ch);
+        curl_close($ch);
+
+        if ($err) {
+            log_message('error', "cURL Error #:" . $err);
+            return false;
+        } else {
+            return $response;
+        }
+    }
+}
