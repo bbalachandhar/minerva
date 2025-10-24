@@ -22,21 +22,36 @@ class Attendance_model extends CI_Model {
             return $inserted_count;
         }
 
-        foreach ($punches as $punch) {
-            // Check for duplicate before inserting
-            $this->db->where('staff_id', $punch['staff_id']);
-            $this->db->where('punch_time', $punch['punch_time']);
-            $query = $this->db->get('staff_biometric_punches');
+        $this->load->model('staff_model');
 
-            if ($query->num_rows() == 0) {
-                // No duplicate found, insert the punch
-                $this->db->insert('staff_biometric_punches', [
-                    'staff_id'   => $punch['staff_id'],
-                    'punch_time' => $punch['punch_time'],
-                ]);
-                if ($this->db->affected_rows() > 0) {
-                    $inserted_count++;
+        foreach ($punches as $punch) {
+            log_message('debug', 'Processing punch for employee_id: ' . $punch['staff_id']);
+            $staff = $this->staff_model->get_by_employee_id($punch['staff_id']);
+
+            if ($staff) {
+                log_message('debug', 'Staff found for employee_id: ' . $punch['staff_id'] . '. Staff ID: ' . $staff->id);
+                $staff_id = $staff->id;
+
+                // Check for duplicate before inserting
+                $this->db->where('staff_id', $staff_id);
+                $this->db->where('punch_time', $punch['punch_time']);
+                $query = $this->db->get('staff_biometric_punches');
+
+                if ($query->num_rows() == 0) {
+                    log_message('debug', 'No duplicate found. Inserting punch for staff_id: ' . $staff_id);
+                    // No duplicate found, insert the punch
+                    $this->db->insert('staff_biometric_punches', [
+                        'staff_id'   => $staff_id,
+                        'punch_time' => $punch['punch_time'],
+                    ]);
+                    if ($this->db->affected_rows() > 0) {
+                        $inserted_count++;
+                    }
+                } else {
+                    log_message('debug', 'Duplicate found for staff_id: ' . $staff_id . ' and punch_time: ' . $punch['punch_time']);
                 }
+            } else {
+                log_message('error', 'Biometric API: Staff with employee_id ' . $punch['staff_id'] . ' not found.');
             }
         }
         return $inserted_count;
