@@ -116,11 +116,19 @@ class Staffattendance extends Admin_Controller
             $attendencetypes             = $this->attendencetype_model->getStaffAttendanceType();
             $data['attendencetypeslist'] = $attendencetypes;        
             $resultlist                  = $this->staffattendancemodel->searchAttendenceUserType($user_type, date('Y-m-d', $this->customlib->datetostrtotime($date)));
+            
+            $this->load->model('attendance_model'); // Load the new attendance model
+
             if (!empty($resultlist)) {
-                foreach ($resultlist as $key => $value) {
+                foreach ($resultlist as $key => &$value) { // Use & to modify $value by reference
                     if (!IsNullOrEmptyString($value['staff_attendance_type_id'])) {
                         $is_first_time_attendance = false;
                     }
+                    // Fetch raw biometric punches for each staff member
+                    $staff_id = $value['staff_id'];
+                    $current_date = date('Y-m-d', $this->customlib->datetostrtotime($date));
+                    $raw_punches = $this->attendance_model->get_raw_biometric_punches_by_staff_id_and_date($staff_id, $current_date);
+                    $value['biometric_raw_punches'] = $raw_punches;
                 }
             }
             $data['is_first_time_attendance']  = $is_first_time_attendance;
@@ -206,8 +214,13 @@ class Staffattendance extends Admin_Controller
             $active_device = $this->biometric_device_model->getActiveDevice();
 
             if (empty($active_device)) {
-                $this->session->set_flashdata('msg', '<div class="alert alert-danger">No active biometric device configured.</div>');
-                redirect('admin/staffattendance/sync_biometric_attendance');
+                $data['last_sync_datetime'] = $this->setting_model->getSetting()->last_biometric_sync_datetime;
+                $data['full_day_present_threshold'] = $this->setting_model->getSetting()->full_day_present_threshold;
+                $this->load->view('layout/header', $data);
+                $this->load->view('admin/staffattendance/biometric_sync_settings', $data);
+                $this->load->view('layout/footer', $data);
+                log_message('error', 'Staffattendance::sync_biometric_attendance - No active biometric device. Loading biometric_sync_settings view.');
+                redirect('admin/staffattendance/index');
             }
 
             $this->biometric_api_client->initialize([
@@ -225,7 +238,8 @@ class Staffattendance extends Admin_Controller
 
             if ($raw_punches === false) {
                 $this->session->set_flashdata('msg', '<div class="alert alert-danger">Failed to fetch attendance logs from biometric device. Check API configuration and logs.</div>');
-                redirect('admin/staffattendance/sync_biometric_attendance');
+                log_message('error', 'Staffattendance::sync_biometric_attendance - Failed to fetch attendance logs. Redirecting to index.');
+                redirect('admin/staffattendance/index');
             }
 
             $processed_attendance_summary = [];
@@ -326,7 +340,8 @@ class Staffattendance extends Admin_Controller
                 $msg .= '<div class="alert alert-warning">Warning: Unmatched staff IDs: ' . implode(', ', $unmatched_staff_ids) . '</div>';
             }
             $this->session->set_flashdata('msg', $msg);
-            redirect('admin/staffattendance/sync_biometric_attendance');
+            log_message('error', 'Staffattendance::sync_biometric_attendance - Sync successful. Redirecting to index.');
+            redirect('admin/staffattendance/index');
         }
     }
 
@@ -369,4 +384,56 @@ class Staffattendance extends Admin_Controller
             return false;
         }
     }
+
+    public function process_biometric_attendance_for_date() {
+        // This method is intended to be called by a cron job for continuous biometric attendance synchronization.
+        // It fetches punches from the last sync datetime up to the current time.
+        // No RBAC check here as it's not directly user-facing.
+
+        $this->load->model('biometric_api_model');
+        $this->load->model('attendance_model');
+
+        log_message('info', 'Starting continuous biometric attendance synchronization via cron.');
+
+        $active_device = $this->attendance_model->get_active_biometric_device();
+
+        if (!$active_device) {
+            log_message('error', 'Cron: process_biometric_attendance_for_date - No active biometric device configured.');
+            return; // Exit if no active device
+        }
+
+        $last_sync_datetime = $this->attendance_model->get_last_biometric_sync_datetime();
+        $from_datetime = $last_sync_datetime ? $last_sync_datetime : date('Y-m-d H:i:s', strtotime('-30 days')); // Default to 30 days ago if no previous sync
+        $to_datetime = date('Y-m-d H:i:s');
+
+        log_message('info', 'Cron: Fetching punches from ' . $from_datetime . ' to ' . $to_datetime);
+
+        $punches = $this->biometric_api_model->get_punches_from_api($active_device, $from_datetime, $to_datetime);
+
+        if ($punches !== false) { // Check for false to indicate API error
+            $inserted_count = $this->attendance_model->save_raw_biometric_punches($punches);
+            $this->attendance_model->update_last_biometric_sync_datetime($to_datetime);
+            log_message('info', 'Cron: Biometric attendance synchronized successfully. ' . $inserted_count . ' new punches recorded.');
+        } else {
+            log_message('error', 'Cron: Biometric attendance synchronization failed. Check API configuration and logs.');
+        }
+        // This method does not return a view or redirect as it's for background processing.
+    }
+
+    public function trigger_process_biometric_attendance() {
+        if (!($this->rbac->hasPrivilege('biometric_attendance', 'can_view'))) {
+            access_denied();
+        }
+
+        // Call the CLI function directly
+        $this->process_biometric_attendance_for_date();
+
+        // Set a flash message based on the outcome (we'll need to refine this)
+        // For now, we'll assume success if no fatal error occurred.
+        // The actual success/failure messages are logged by process_biometric_attendance_for_date
+        $this->session->set_flashdata('msg', '<div class="alert alert-success">Biometric attendance processing triggered. Check logs for details.</div>');
+
+        redirect('admin/staffattendance/index');
+    }
+
 }

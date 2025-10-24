@@ -82,6 +82,12 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
     </div>
     <section class="content">
         <div class="row">
+            <div class="col-md-12">
+                <?php if ($this->session->flashdata('msg')) {
+                    echo $this->session->flashdata('msg');
+                    $this->session->unset_userdata('msg');
+                } ?>
+            </div>
             <div class="col-md-3">
                 <div class="box box-primary" <?php
                                                 if ($staff["is_active"] == 0) {
@@ -364,7 +370,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                             if ($sch_setting->staff_emergency_contact) { ?>
                                                 <tr>
                                                     <td><?php echo $this->lang->line('emergency_contact_number'); ?></td>
-                                                    <td><?php echo $staff['emergency_contact_number']; ?></td>
+                                                    <td><?php echo $staff['emergency_contact_no']; ?></td>
                                                 </tr>
                                             <?php } ?>
                                             <tr>
@@ -410,7 +416,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                             if ($sch_setting->staff_work_experience) { ?>
                                                 <tr>
                                                     <td><?php echo $this->lang->line('work_experience'); ?></td>
-                                                    <td><?php echo $staff['work_experience']; ?></td>
+                                                    <td><?php echo $staff['work_exp']; ?></td>
                                                 </tr>
                                                 <tr>
                                                     <td><?php echo $this->lang->line('ug_qualification'); ?></td>

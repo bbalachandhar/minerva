@@ -927,7 +927,7 @@ class Staff extends Admin_Controller
             }
 
             if (isset($emergency_no)) {
-                $data_update['emergency_contact_number'] = $emergency_no;
+                $data_update['emergency_contact_no'] = $emergency_no;
             }
 
             if (isset($marital_status)) {
@@ -947,7 +947,7 @@ class Staff extends Admin_Controller
             }
 
             if (isset($work_experience)) {
-                $data_update['work_experience'] = $work_experience;
+                $data_update['work_exp'] = $work_experience;
             }
 
             if (isset($note)) {
@@ -1043,7 +1043,7 @@ class Staff extends Admin_Controller
                 $data_update['image'] = $img_name;
             }
 
-            $this->staff_model->batchUpdate($data_update, $role_array, $leave_array);
+            $this->staff_model->add($data_update, $role_array, $leave_array);
             if (!empty($custom_value_array)) {
                 $this->customfield_model->updateRecord($custom_value_array, $id);
             }
@@ -1110,13 +1110,14 @@ class Staff extends Admin_Controller
 
     public function username_check($str)
     {
-        $id = $this->input->post('id');
+        log_message('debug', 'username_check called with: str=' . $str . ', id=' . $this->input->post('id') . ', editid=' . $this->input->post('editid'));
+        $id = $this->input->post('employee_id');
         if (!empty($id)) {
-            $data = $this->staff_model->valid_employee_id($str, $id);
+            $data = $this->staff_model->valid_employee_id($str);
         } else {
             $data = $this->staff_model->valid_employee_id($str);
         }
-        if ($data == true) {
+        if ($data == false) {
             $this->form_validation->set_message('username_check', $this->lang->line('staff_id_already_exists'));
             return false;
         } else {
@@ -1588,6 +1589,40 @@ class Staff extends Admin_Controller
         $this->biometric_device_model->update($id, ['is_active' => 1]);
         $this->session->set_flashdata('msg', '<div class="alert alert-success">' . $this->lang->line('device_activated_successfully') . '</div>');
         redirect('admin/staff/managebiometricdevice');
+    }
+
+    public function sync_biometric_attendance() {
+        if (!($this->rbac->hasPrivilege('biometric_device', 'can_view'))) {
+            access_denied();
+        }
+
+        $this->load->model('biometric_api_model');
+        $this->load->model('attendance_model');
+
+        $active_device = $this->attendance_model->get_active_biometric_device();
+
+        if (!$active_device) {
+            $this->session->set_flashdata('msg', '<div class="alert alert-danger">' . $this->lang->line('no_active_biometric_device') . '</div>');
+            log_message('error', 'Staff::sync_biometric_attendance - No active biometric device. Redirecting to staffattendance/index.');
+            redirect('admin/staffattendance/index');
+        }
+
+        $last_sync_datetime = $this->attendance_model->get_last_biometric_sync_datetime();
+        $from_datetime = $last_sync_datetime ? $last_sync_datetime : date('Y-m-d H:i:s', strtotime('-30 days')); // Default to 30 days ago if no previous sync
+        $to_datetime = date('Y-m-d H:i:s');
+
+        $punches = $this->biometric_api_model->get_punches_from_api($active_device, $from_datetime, $to_datetime);
+
+        if ($punches !== false) { // Check for false to indicate API error
+            $inserted_count = $this->attendance_model->save_raw_biometric_punches($punches);
+            $this->attendance_model->update_last_biometric_sync_datetime($to_datetime);
+            $this->session->set_flashdata('msg', '<div class="alert alert-success">' . $this->lang->line('biometric_sync_success') . ' ' . $inserted_count . ' ' . $this->lang->line('new_punches_recorded') . '</div>');
+            log_message('info', 'Staff::sync_biometric_attendance - Sync successful. Redirecting to staffattendance/index.');
+            redirect('admin/staffattendance/index');
+        } else {
+            $this->session->set_flashdata('msg', '<div class="alert alert-danger">' . $this->lang->line('biometric_sync_failed') . '</div>');
+            redirect('admin/staffattendance/index');
+        }
     }
 
 }

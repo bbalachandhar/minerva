@@ -132,6 +132,10 @@
                 <div class="box box-primary">
                     <div class="box-header with-border">
                         <h3 class="box-title"><i class="fa fa-search"></i> <?php echo $this->lang->line('select_criteria'); ?></h3>
+                        <div class="box-tools pull-right">
+                            <a href="<?php echo site_url('admin/staff/sync_biometric_attendance') ?>" class="btn btn-primary btn-sm"><i class="fa fa-refresh"></i> <?php echo $this->lang->line('sync_biometric_attendance'); ?></a>
+                            <a href="<?php echo site_url('admin/staffattendance/trigger_process_biometric_attendance') ?>" class="btn btn-success btn-sm"><i class="fa fa-calculator"></i> Process Attendance</a>
+                        </div>
                     </div>
                     <form id='form1' action="<?php echo site_url('admin/staffattendance/index') ?>" method="post" accept-charset="utf-8">
                         <div class="box-body">
@@ -249,6 +253,8 @@
                                                     <th width="8%" ><?php echo $this->lang->line('source'); ?></th>
                                                     <th class="white-space-nowrap"><?php echo $this->lang->line('entry_time'); ?></th>
                                                     <th class="white-space-nowrap"><?php echo $this->lang->line('exit_time'); ?></th>
+                                                    <th><?php echo $this->lang->line('total_hours'); ?></th>
+                                                    <th><?php echo $this->lang->line('raw_punches'); ?></th>
                                                     <th class="text-right"><?php echo $this->lang->line('note'); ?></th>
                                                 </tr>
                                             </thead>
@@ -373,6 +379,20 @@
                                                     <td class="relative">
                                                         <input  <?php echo $disable_input_attr;?>  type="text" value="<?php if($value["out_time"]!="00:00:00"){ echo $value["out_time"]; }else{ echo "";} ?>"  name="out_time_<?php echo $value["staff_id"] ?>"  id="out_time_<?php echo $value["staff_id"] ?>" class="form-control datetime out_time time out_time_<?php echo $value['role_id']; ?>">
                                                     </td>  
+                                                    <td>
+                                                        <?php echo isset($value['total_hours_worked']) ? $value['total_hours_worked'] : 'N/A'; ?>
+                                                    </td>
+                                                    <td>
+                                                        <?php if (!empty($value['biometric_raw_punches'])) { ?>
+                                                            <ul style="list-style: none; padding: 0; margin: 0;">
+                                                                <?php foreach ($value['biometric_raw_punches'] as $punch) { ?>
+                                                                    <li><?php echo date('H:i:s', strtotime($punch['punch_time'])); ?></li>
+                                                                <?php } ?>
+                                                            </ul>
+                                                        <?php } else { ?>
+                                                            N/A
+                                                        <?php } ?>
+                                                    </td>
                                                         <?php if ($value["date"] == 'xxx') { ?>
                                                             <td class="text-right"><input type="text"  class="form-control"  name="remark<?php echo $value["staff_id"] ?>"></td>
                                                         <?php } else { ?>

@@ -385,9 +385,12 @@ class Staff_model extends MY_Model
 
     public function check_data_exists($name, $id, $staff_id)
     {
+        log_message('debug', 'check_data_exists called with: name=' . $name . ', id=' . $id . ', staff_id=' . $staff_id);
         if ($staff_id != 0) {
             $data  = array('id != ' => $staff_id, 'employee_id' => $id);
-            $query = $this->db->where($data)->get('staff');
+            $this->db->where($data);
+            $query = $this->db->get('staff');
+            log_message('debug', 'check_data_exists (edit) SQL: ' . $this->db->last_query() . ' - Rows: ' . $query->num_rows());
             if ($query->num_rows() > 0) {
                 return true;
             } else {
@@ -396,6 +399,7 @@ class Staff_model extends MY_Model
         } else {
             $this->db->where('employee_id', $id);
             $query = $this->db->get('staff');
+            log_message('debug', 'check_data_exists (add) SQL: ' . $this->db->last_query() . ' - Rows: ' . $query->num_rows());
             if ($query->num_rows() > 0) {
                 return true;
             } else {
