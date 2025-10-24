@@ -18,7 +18,7 @@ class Studentfee extends Admin_Controller
                 $this->load->model("studentAppliedDiscount_model");
                 $this->load->model("transportfee_model");
                 $this->load->model("feetype_model");
-        $this->lang->load('custom', 'english');
+
                 $this->search_type        = $this->config->item('search_type');
                 $this->sch_setting_detail = $this->setting_model->getSetting();
                 $this->current_session = $this->setting_model->getCurrentSession();
