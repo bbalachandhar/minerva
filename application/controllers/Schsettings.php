@@ -768,6 +768,7 @@ class Schsettings extends Admin_Controller
             }
         }
         $data['list_attendance'] = $new_list_attendance;     
+        $data['all_roles_attendance_setting'] = $this->staffAttendaceSetting_model->getAllRolesAttendanceSetting();
         // staff attedance settings
 
         //student attedance settings
@@ -853,8 +854,14 @@ class Schsettings extends Admin_Controller
                 'id'               => $this->input->post('sch_id'),
                 'attendence_type'  => $this->input->post('attendence_type'),
                 'biometric_device' => $this->input->post('biometric_device'),
-                'biometric'        => $this->input->post('biometric'),
+                'student_biometric'        => $this->input->post('student_biometric'),
+                'staff_biometric'        => $this->input->post('staff_biometric'),
                 'low_attendance_limit' => $this->input->post('low_attendance_limit'),
+                'office_end_time' => $this->input->post('office_end_time'),
+                'morning_session_end_time' => $this->input->post('morning_session_end_time'),
+                'evening_session_end_time' => $this->input->post('evening_session_end_time'),
+                'max_late_allowed' => $this->input->post('max_late_allowed'),
+                'max_permission_allowed' => $this->input->post('max_permission_allowed'),
             );
             
             $this->setting_model->add($data);
@@ -968,6 +975,63 @@ class Schsettings extends Admin_Controller
             $array = array('success' => true, 'error' => '', 'message' => $this->lang->line('success_message'));
             echo json_encode($array);
         }
+    }
+
+    public function saveallrolessetting(){
+        $this->form_validation->set_rules('row[]', $this->lang->line('row'), 'trim|required|xss_clean');
+        $row = $this->input->post('row');
+        $time_valid = true;
+
+        if (!empty($row) && isset($row)) {
+            foreach ($row as $row_key => $row_value) {
+                $attendance_type      = $this->input->post('attendance_type_id_' . $row_value);
+                $entry_time_from      = $this->input->post('entry_time_from_' . $row_value);
+                $entry_time_to        = $this->input->post('entry_time_to_' . $row_value);
+                $total_institute_hour = $this->input->post('total_institute_hour_' . $row_value);
+             
+                if ($entry_time_from == "" || $entry_time_to == "" || $total_institute_hour == "" || $attendance_type == "") {
+                    $this->form_validation->set_rules(
+                        'fields',
+                        'fields --r',
+                        'trim|required|xss_clean',
+                        array('required' => $this->lang->line('fields_values_required'))
+                    );
+                    $time_valid = false;
+                    break;
+                }
+            }
+        }
+
+        if ($this->form_validation->run() == false){
+            $msg = array(
+                'row' => form_error('row'),
+                'fields' => form_error('fields')
+            );
+            $array = array('status' => 0, 'error' => $msg, 'message' => '');
+        } else {
+            $insert_array = array();
+            $user_roles = $this->staff_model->getStaffRole();
+            foreach ($user_roles as $role_key => $role_value) {
+                foreach ($row as $row_key => $row_value) {
+                    $attendance_type = $this->input->post('attendance_type_id_' . $row_value);
+                    $entry_time_from = $this->input->post('entry_time_from_' . $row_value);
+                    $entry_time_to = $this->input->post('entry_time_to_' . $row_value);
+                    $total_institute_hour = $this->input->post('total_institute_hour_' . $row_value);
+           
+                    $insert_array[] = array(
+                        'staff_attendence_type_id' => $attendance_type,
+                        'role_id'                  => $role_value['id'],
+                        'entry_time_from'          => $entry_time_from,
+                        'entry_time_to'            => $entry_time_to,
+                        'total_institute_hour'     => ($total_institute_hour)
+                    );
+                }
+            }
+
+            $this->staffAttendaceSetting_model->add_batch($insert_array);
+            $array = array('status' => 1, 'message' => $this->lang->line('update_message'));
+        }
+        echo json_encode($array);
     }
 
     //****staff attendance settings****//

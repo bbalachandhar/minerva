@@ -18,6 +18,14 @@ class StaffAttendaceSetting_model extends CI_Model
         return $query->result();
     }
 
+    public function add_batch($insert_array = [])
+    {
+        $this->db->empty_table('staff_attendence_schedules');
+        if (!empty($insert_array)) {
+            $this->db->insert_batch('staff_attendence_schedules', $insert_array);
+        }
+    }
+
     public function add($insert_array = [], $role_array = [])
     {
         if (!empty($role_array)) {
@@ -53,5 +61,12 @@ class StaffAttendaceSetting_model extends CI_Model
             $return_result = $q->row();
             return $return_result;
         }
+    }
+
+    public function getAllRolesAttendanceSetting()
+    {
+        $this->db->where('role_id', 0);
+        $query = $this->db->get('staff_attendence_schedules');
+        return $query->result();
     }
 }

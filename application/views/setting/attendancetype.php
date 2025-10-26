@@ -61,18 +61,18 @@
 
                                     <div class="col-md-6">
                                         <div class="form-group row">
-                                            <label class="col-sm-4"> <?php echo $this->lang->line('qrcode') .' / '. $this->lang->line('barcode') .' / '. $this->lang->line('biometric_attendance'); ?></label>
+                                            <label class="col-sm-4"> <?php echo $this->lang->line('qrcode') .' / '. $this->lang->line('barcode') .' / '. $this->lang->line('student_biometric_attendance'); ?></label>
                                             <div class="col-sm-8">
                                                 <label class="radio-inline">
-                                                    <input type="radio" name="biometric" value="0" <?php
-                                                    if (!$result->biometric) {
+                                                    <input type="radio" name="student_biometric" value="0" <?php
+                                                    if (!$result->student_biometric) {
                                                         echo "checked";
                                                     }
                                                     ?> ><?php echo $this->lang->line('disabled'); ?>
                                                 </label>
                                                 <label class="radio-inline">
-                                                    <input type="radio" name="biometric" value="1" <?php
-                                                    if ($result->biometric) {
+                                                    <input type="radio" name="student_biometric" value="1" <?php
+                                                    if ($result->student_biometric) {
                                                         echo "checked";
                                                     }
                                                     ?>><?php echo $this->lang->line('enabled'); ?>
@@ -80,6 +80,10 @@
                                             </div>
                                         </div>
                                     </div>
+
+
+
+
                                     <div class="row">
                                         <div class="col-md-12">
                                             <div class="form-group">
@@ -108,7 +112,85 @@
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>                               
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <div class="form-group row">
+                                            <label class="col-sm-4"> Staff Biometric Attendance</label>
+                                            <div class="col-sm-8">
+                                                <label class="radio-inline">
+                                                    <input type="radio" name="staff_biometric" value="0" <?php
+                                                    if (!$result->staff_biometric) {
+                                                        echo "checked";
+                                                    }
+                                                    ?> >Disabled                                                </label>
+                                                <label class="radio-inline">
+                                                    <input type="radio" name="staff_biometric" value="1" <?php
+                                                    if ($result->staff_biometric) {
+                                                        echo "checked";
+                                                    }
+                                                    ?> >Enabled                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+
+
+<div class="col-md-6">
+                                            <div class="form-group row">
+                                                <label class="col-sm-4"> Office End Time</label>
+                                                <div class="col-sm-8">
+                                                    <div class="input-group">
+                                                        <input type="text" class="form-control time" name="office_end_time" id="office_end_time" value="<?php echo $result->office_end_time; ?>" autocomplete="off">
+                                                        <div class="input-group-addon">
+                                                            <span class="fa fa-clock-o"></span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                    <div class="col-md-12">
+                                        <div class="form-group row">
+                                            <label class="col-sm-2"> Evening Session End Time</label>
+                                            <div class="col-sm-4">
+                                                <div class="input-group">
+                                                    <input type="text" class="form-control time" name="evening_session_end_time" id="evening_session_end_time" value="<?php echo $result->evening_session_end_time; ?>">
+                                                    <div class="input-group-addon">
+                                                        <span class="fa fa-clock-o"></span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <label class="col-sm-2"> Morning Session End Time</label>
+                                            <div class="col-sm-4">
+                                                <div class="input-group">
+                                                    <input type="text" class="form-control time" name="morning_session_end_time" id="morning_session_end_time" value="<?php echo $result->morning_session_end_time; ?>">
+                                                    <div class="input-group-addon">
+                                                        <span class="fa fa-clock-o"></span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+<div class="row">
+                                        <div class="col-md-6">
+                                            <div class="form-group row">
+                                                <label class="col-sm-4"> Max Late Allowed (Monthly)</label>
+                                                <div class="col-sm-8">
+                                                    <input type="number" class="form-control" name="max_late_allowed" id="max_late_allowed" value="<?php echo $result->max_late_allowed; ?>">
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-group row">
+                                                <label class="col-sm-4"> Max Permission Allowed (Monthly)</label>
+                                                <div class="col-sm-8">
+                                                    <input type="number" class="form-control" name="max_permission_allowed" id="max_permission_allowed" value="<?php echo $result->max_permission_allowed; ?>">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                               
                                 </div><!--./row--> 
                             </div><!-- /.box-body -->
                             <div class="box-footer">
@@ -121,100 +203,107 @@
                                 ?>
                             </div>
                         </form>
-                    </div><!-- /.box-body -->
-                </div>
-                <div class="box box-primary hide" id="save_class_time_hide_show">
-                    <div class="box-header ptbnull">
-                        <h3 class="box-title titlefix"><?php echo $this->lang->line('class_attendance_time_for_auto_attendance_submission'); ?> (<?php echo $this->lang->line('day_wise_with_cron_setting'); ?>)</h3>
-                        <div class="box-tools pull-right">
-                        </div><!-- /.box-tools -->
-                    </div><!-- /.box-header -->
-                    <?php  $count=1;
-                    if(!empty($class_list)){ ?>
-                    <form method="POST" action="<?php echo site_url('admin/stuattendence/saveclasstime');?>" id="form_timetable">               
-                    <div class="box-body">
-                        <div class="mailbox-messages">
-                            <div class="row">
-                                <div class="col-md-12">
-                                    <div class="checkbox mb0 mt0">
-                                    <label for="copy_other">
-                                        <input class="copy_other" id="copy_other" value="1" type="checkbox" > <?php echo $this->lang->line('copy_first_detail_for_all'); ?>
-                                    </label></div>
-                                </div>
-                            </div>
-                        <?php 
-                       
-    foreach ($class_list as $class_key => $class_value) {
-         ?>
-   <hr class="hrexam">
-         <div class="row block_row">     
-                           
-                                <div class="col-sm-4 col-lg-4 col-md-4">         
-                                    <h4 class="transport_fee_line"><?php echo $class_value['class']; ?></h4>
-                                </div>
-                                <div class="col-sm-8 col-lg-8 col-md-8">                                    
-                                    <div class="row">  
-
-                                        <div class="col-sm-12 col-lg-12 col-md-12">
-                                        <?php 
-                                        if(!empty($class_value['sections'])){
-foreach ($class_value['sections'] as $section_key => $section_value) {   
- ?>
-<div class="row">    
-     <div class="form-group col-md-6">
-    <label class="control-label col-sm-2" for="time"><?php echo $section_value->section ?></label>
-    <div class="col-sm-10">
-        <div class="input-group">
-                                          <input type="text" class="form-control datetimepicker" name="class_section_id[<?php echo $section_value->id;?>]" value
-      ="<?php echo ($section_value->time !=0) ? $section_value->time :"" ?>" id="time" placeholder="Enter time">
-
-                                        <div class="input-group-addon">
-                                            <span class="fa fa-clock-o"></span>
-                                        </div>
+                                        </div><!-- /.box-body -->
                                     </div>
-        <input type="hidden" name="row[]" value="<?php echo $count; ?>">
-        <input type="hidden" name="prev_record_id[<?php echo $section_value->id;?>]" value="<?php echo $section_value->class_section_times_id; ?>">  
-    </div>
-  </div>
-</div>
- <?php
- $count++;
-}
-
-}else{
-    ?>
-<div class="alert alert-info">
-  <?php echo $this->lang->line('no_section_found'); ?>
-</div>
-    <?php
-}
-                                         ?>
-                                        </div>              
-                                    </div>                                              
-                                </div>         
-                            </div>
-                              
-                            <?php
-    }
-
-                         ?>
-                         
-                        </div><!-- /.mail-box-messages -->
-                    </div><!-- /.box-body -->
-                    <div class="box-footer">
-                                                   
-                        <button type="submit" class="btn btn-primary pull-right" id="load" data-loading-text="<i class='fa fa-spinner fa-spin '></i> <?php echo $this->lang->line('please_wait') ?>"> <?php echo $this->lang->line('save') ?></button>
-                                
+                    
+                                    <div class="box box-primary <?php echo ($result->student_biometric == '0') ? 'hide' : ''; ?>" id="save_class_time_hide_show">
+                                        <div class="box-header ptbnull">
+                                            <h3 class="box-title titlefix"><?php echo $this->lang->line('class_attendance_time_for_auto_attendance_submission'); ?> (<?php echo $this->lang->line('day_wise_with_cron_setting'); ?>)</h3>
+                                            <div class="box-tools pull-right">
+                                            </div><!-- /.box-tools -->
+                                        </div><!-- /.box-header -->
+                                        <?php  $count=1;
+                                        if(!empty($class_list)){ ?>
+                                        <form method="POST" action="<?php echo site_url('admin/stuattendence/saveclasstime');?>" id="form_timetable">               
+                                        <div class="box-body">
+                                            <div class="mailbox-messages">
+                                                <div class="row">
+                                                    <div class="col-md-12">
+                                                        <div class="checkbox mb0 mt0">
+                                                        <label for="copy_other">
+                                                            <input class="copy_other" id="copy_other" value="1" type="checkbox" > <?php echo $this->lang->line('copy_first_detail_for_all'); ?>
+                                                        </label></div>
+                                                    </div>
+                                                </div>
+                                            <?php 
+                                           
+                        foreach ($class_list as $class_key => $class_value) {
+                             ?>
+                       <hr class="hrexam">
+                             <div class="row block_row">     
+                                               
+                                                    <div class="col-sm-4 col-lg-4 col-md-4">         
+                                                        <h4 class="transport_fee_line"><?php echo $class_value['class']; ?></h4>
+                                                    </div>
+                                                    <div class="col-sm-8 col-lg-8 col-md-8">                                    
+                                                        <div class="row">  
+                    
+                                                            <div class="col-sm-12 col-lg-12 col-md-12">
+                                                            <?php 
+                                                            if(!empty($class_value['sections'])){foreach ($class_value['sections'] as $section_key => $section_value) {   
+                     ?>
+                    <div class="row">    
+                         <div class="form-group col-md-6">
+                        <label class="control-label col-sm-2" for="time"><?php echo $section_value->section ?></label>
+                        <div class="col-sm-10">
+                            <div class="input-group">
+                                                              <input type="text" class="form-control datetimepicker" name="class_section_id[<?php echo $section_value->id;?>]" value
+                          ="<?php echo ($section_value->time !=0) ? $section_value->time :"" ?>" id="time" placeholder="Enter time">
+                    
+                                                            <div class="input-group-addon">
+                                                                <span class="fa fa-clock-o"></span>
+                                                            </div>
+                                                        </div>
+                            <input type="hidden" name="row[]" value="<?php echo $count; ?>">
+                            <input type="hidden" name="prev_record_id[<?php echo $section_value->id;?>]" value="<?php echo $section_value->class_section_times_id; ?>">  
                         </div>
-                    </form>
-                    <?php } ?>
-                </div>
-            </div><!--/.col (left) -->
-            <!-- right column -->
+                      </div>
+                    </div>
+                     <?php
+                     $count++;
+                    }
+                    
+                    }else{
+                        ?>
+                    <div class="alert alert-info">
+                      <?php echo $this->lang->line('no_section_found'); ?>
+                    </div>
+                        <?php
+                    }
+                                                             ?>
+                                                            </div>              
+                                                        </div>                                              
+                                                    </div>         
+                                                </div>
+                                                  
+                                                <?php
+                        }
+                    
+                                             ?>
+                                             
+                                            </div><!-- /.mail-box-messages -->
+                                        </div><!-- /.box-body -->
+                                        <div class="box-footer">
+                                                                       
+                                            <button type="submit" class="btn btn-primary pull-right" id="load" data-loading-text="<i class='fa fa-spinner fa-spin '></i> <?php echo $this->lang->line('please_wait') ?>"> <?php echo $this->lang->line('save') ?></button>
+                                                    
+                                            </div>
+                                        </form>
+                                        <?php } ?>
+                                    </div>
+                    
+                                </div><!--/.col (left) -->
+                        <!-- right column -->
 
-            <!-- staff attandance settings -->
-                <div class="col-md-2"></div>
-                <div class="col-md-10">
+            
+
+                        <!-- staff attandance settings -->
+
+                            <div class="col-md-2"></div>
+
+                            <div class="col-md-10">
+
+            
 				
 					<div class="nav-tabs-custom theme-shadow">
 						<ul class="nav nav-tabs"  id="myTab">
@@ -575,23 +664,27 @@ function get_student_input_value($array, $find_time)
 
 
 <script type="text/javascript">
-     $('input[type=radio][name=biometric]').change(function() {
+     $('input[type=radio][name=student_biometric]').change(function() {
         if (this.value == '1') {
-            $('#save_class_time_hide_show').removeClass('hide'); 
+            $('#save_class_time_hide_show').removeClass('hide');
+            $('#save_class_time_hide_show :input').prop('disabled', false);
         }
         else if (this.value == '0') {
-             $('#save_class_time_hide_show').addClass('hide');   
+             $('#save_class_time_hide_show').addClass('hide');
+             $('#save_class_time_hide_show :input').prop('disabled', true);
         }
     }); 
      
     window.onload = function(){  
-        var biometric = '<?php echo $result->biometric; ?>';  
-        if(biometric == '1'){
-            $('#save_class_time_hide_show').removeClass('hide'); 
-        }else if(biometric == '0'){
-            $('#save_class_time_hide_show').addClass('hide');   
+        var student_biometric_status = '<?php echo $result->student_biometric; ?>';
+        if(student_biometric_status == '1'){
+            $('#save_class_time_hide_show').removeClass('hide');
+            $('#save_class_time_hide_show :input').prop('disabled', false);
+        }else if(student_biometric_status == '0'){
+            $('#save_class_time_hide_show').addClass('hide');
+            $('#save_class_time_hide_show :input').prop('disabled', true);
         }
-    }  
+    }
 </script> 
 
 <script type="text/javascript">

@@ -247,7 +247,7 @@
                                                     <th><?php echo $this->lang->line('name'); ?></th>
                                                     <th><?php echo $this->lang->line('role'); ?></th>
                                                     <th ><?php echo $this->lang->line('attendance'); ?></th>
-                                                    <?php  if ($sch_setting->biometric) {  ?>
+                                                    <?php  if ($sch_setting->staff_biometric) {  ?>
                                                         <th width="10%"><?php echo $this->lang->line('date'); ?></th>
                                                     <?php  }  ?>
                                                     <th width="8%" ><?php echo $this->lang->line('source'); ?></th>
@@ -302,7 +302,7 @@
                                                                     ?>
 
                                                                         <?php
-                                                                        if ($sch_setting->biometric) {
+                                                                        if ($sch_setting->staff_biometric) {
                                                                         ?>
                                                                             <div class="radio radio-info radio-inline">
                                                                                 <input <?php if ($att_type == "absent") {
@@ -337,7 +337,7 @@
                                                                             ?>
                                                         </td>
                                                         <?php
-                                                        if ($sch_setting->biometric) {
+                                                        if ($sch_setting->staff_biometric) {
                                                         ?>
                                                             <td>
                                                             <?php

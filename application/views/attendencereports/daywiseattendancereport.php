@@ -121,7 +121,7 @@
                                                     <th><?php echo $this->lang->line('name'); ?></th>
                                                     <th width="10%" class="text text-center"><?php echo $this->lang->line('attendance'); ?></th>
                                                     <?php
-                                                    if ($sch_setting->biometric) {
+                                                    if ($sch_setting->student_biometric) {
                                                     ?>
                                                         <th><?php echo $this->lang->line('date'); ?></th>
                                                       
@@ -130,7 +130,7 @@
                                                     ?>    
                                                     <th width="10%"><?php echo $this->lang->line('source'); ?></th>
                                                     <?php
-                                                    if ($sch_setting->biometric) {
+                                                    if ($sch_setting->student_biometric) {
                                                     ?>
                                                       <th><?php echo $this->lang->line('ip_address'); ?></th>
                                                       <th><?php echo $this->lang->line('agent'); ?></th>
@@ -185,7 +185,7 @@
                                                             ?>
                                                         </td>
                                                         <?php
-                                                        if ($sch_setting->biometric) {
+                                                        if ($sch_setting->student_biometric) {
                                                         ?>
                                                             <td>
                                                                 <?php

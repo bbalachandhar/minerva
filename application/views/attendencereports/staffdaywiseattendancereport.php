@@ -115,16 +115,12 @@
                                                     <th><?php echo $this->lang->line('name'); ?></th>
                                                     <th width="10%" class="text text-center"><?php echo $this->lang->line('attendance'); ?></th>
                                                     <?php
-                                                    if ($sch_setting->biometric) {
-                                                    ?>
-                                                        <th><?php echo $this->lang->line('date'); ?></th>
+                                                    if ($sch_setting->staff_biometric) {
 
                                                     <?php
                                                     }
                                                     ?>
-                                                    <th width="10%"><?php echo $this->lang->line('source'); ?></th>
-                                                    <?php
-                                                    if ($sch_setting->biometric) {
+                                                        if ($sch_setting->staff_biometric) {
                                                     ?>
                                                         <th><?php echo $this->lang->line('ip_address'); ?></th>
                                                         <th><?php echo $this->lang->line('agent'); ?></th>

@@ -27,7 +27,7 @@ class Biometric extends MY_Controller
             $params           = json_decode(file_get_contents('php://input'), true);
             $settings         = $this->setting_model->getSchoolDetail();
 
-            if ($settings->biometric) {
+            if ($settings->student_biometric || $settings->staff_biometric) {
                 $total_devices = array_map('trim', explode(",", $settings->biometric_device));
                 if (!empty($params)) {
 
@@ -38,7 +38,7 @@ class Biometric extends MY_Controller
                          
  
                             if ($record_data) {
-                                if ($record_data->table_type == "staff") {
+                                if ($record_data->table_type == "staff" && $settings->staff_biometric) {
                                     $insert_record = array(
                                         'date'                  => date('Y-m-d', strtotime($params['t'])),
                                         'staff_id'               => $record_data->id,
@@ -49,7 +49,7 @@ class Biometric extends MY_Controller
                                         'biometric_device_data' => $attendence_param,
                                     );
                                     $insert_result = $this->staffattendancemodel->onlineattendence($insert_record, $record_data->staff_role);
-                                } elseif ($record_data->table_type == "student") {
+                                } elseif ($record_data->table_type == "student" && $settings->student_biometric) {
                                     $insert_record = array(
                                         'date'                  => date('Y-m-d', strtotime($params['t'])),
                                         'student_session_id'    => $record_data->id,
