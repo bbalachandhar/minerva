@@ -738,6 +738,7 @@ class Schsettings extends Admin_Controller
         }
         
         $class_list=$this->class_section_time_model->allClassSections();
+        $data['class_list'] = $class_list;
         $setting              = $this->setting_model->getSetting();
         if (is_null($setting)) {
             $setting = new stdClass();

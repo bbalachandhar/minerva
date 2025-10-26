@@ -203,95 +203,94 @@
                                 ?>
                             </div>
                         </form>
-                                        </div><!-- /.box-body -->
-                                    </div>
-                    
-                                    <div class="box box-primary <?php echo ($result->student_biometric == '0') ? 'hide' : ''; ?>" id="save_class_time_hide_show">
-                                        <div class="box-header ptbnull">
-                                            <h3 class="box-title titlefix"><?php echo $this->lang->line('class_attendance_time_for_auto_attendance_submission'); ?> (<?php echo $this->lang->line('day_wise_with_cron_setting'); ?>)</h3>
-                                            <div class="box-tools pull-right">
-                                            </div><!-- /.box-tools -->
-                                        </div><!-- /.box-header -->
-                                        <?php  $count=1;
-                                        if(!empty($class_list)){ ?>
-                                        <form method="POST" action="<?php echo site_url('admin/stuattendence/saveclasstime');?>" id="form_timetable">               
-                                        <div class="box-body">
-                                            <div class="mailbox-messages">
-                                                <div class="row">
-                                                    <div class="col-md-12">
-                                                        <div class="checkbox mb0 mt0">
-                                                        <label for="copy_other">
-                                                            <input class="copy_other" id="copy_other" value="1" type="checkbox" > <?php echo $this->lang->line('copy_first_detail_for_all'); ?>
-                                                        </label></div>
-                                                    </div>
-                                                </div>
-                                            <?php 
-                                           
-                        foreach ($class_list as $class_key => $class_value) {
-                             ?>
-                       <hr class="hrexam">
-                             <div class="row block_row">     
-                                               
-                                                    <div class="col-sm-4 col-lg-4 col-md-4">         
-                                                        <h4 class="transport_fee_line"><?php echo $class_value['class']; ?></h4>
-                                                    </div>
-                                                    <div class="col-sm-8 col-lg-8 col-md-8">                                    
-                                                        <div class="row">  
-                    
-                                                            <div class="col-sm-12 col-lg-12 col-md-12">
-                                                            <?php 
-                                                            if(!empty($class_value['sections'])){foreach ($class_value['sections'] as $section_key => $section_value) {   
-                     ?>
-                    <div class="row">    
-                         <div class="form-group col-md-6">
-                        <label class="control-label col-sm-2" for="time"><?php echo $section_value->section ?></label>
-                        <div class="col-sm-10">
-                            <div class="input-group">
-                                                              <input type="text" class="form-control datetimepicker" name="class_section_id[<?php echo $section_value->id;?>]" value
-                          ="<?php echo ($section_value->time !=0) ? $section_value->time :"" ?>" id="time" placeholder="Enter time">
-                    
-                                                            <div class="input-group-addon">
-                                                                <span class="fa fa-clock-o"></span>
-                                                            </div>
+                                                            </div><!-- /.box-body -->
                                                         </div>
-                            <input type="hidden" name="row[]" value="<?php echo $count; ?>">
-                            <input type="hidden" name="prev_record_id[<?php echo $section_value->id;?>]" value="<?php echo $section_value->class_section_times_id; ?>">  
-                        </div>
-                      </div>
-                    </div>
-                     <?php
-                     $count++;
-                    }
-                    
-                    }else{
-                        ?>
-                    <div class="alert alert-info">
-                      <?php echo $this->lang->line('no_section_found'); ?>
-                    </div>
-                        <?php
-                    }
-                                                             ?>
-                                                            </div>              
-                                                        </div>                                              
-                                                    </div>         
-                                                </div>
-                                                  
-                                                <?php
-                        }
-                    
-                                             ?>
-                                             
-                                            </div><!-- /.mail-box-messages -->
-                                        </div><!-- /.box-body -->
-                                        <div class="box-footer">
-                                                                       
-                                            <button type="submit" class="btn btn-primary pull-right" id="load" data-loading-text="<i class='fa fa-spinner fa-spin '></i> <?php echo $this->lang->line('please_wait') ?>"> <?php echo $this->lang->line('save') ?></button>
-                                                    
+                                        
+                                                        <div class="box box-primary <?php echo ($result->student_biometric == '0') ? 'hide' : ''; ?>" id="save_class_time_hide_show">
+                                                            <div class="box-header ptbnull">
+                                                                <h3 class="box-title titlefix"><?php echo $this->lang->line('class_attendance_time_for_auto_attendance_submission'); ?> (<?php echo $this->lang->line('day_wise_with_cron_setting'); ?>)</h3>
+                                                                <div class="box-tools pull-right">
+                                                                </div><!-- /.box-tools -->
+                                                            </div><!-- /.box-header -->
+                                                            <?php  $count=1;
+                                                            if(!empty($class_list)){ ?>
+                                                            <form method="POST" action="<?php echo site_url('admin/stuattendence/saveclasstime');?>" id="form_timetable">               
+                                                            <div class="box-body">
+                                                                <div class="mailbox-messages">
+                                                                    <div class="row">
+                                                                        <div class="col-md-12">
+                                                                            <div class="checkbox mb0 mt0">
+                                                                            <label for="copy_other">
+                                                                                <input class="copy_other" id="copy_other" value="1" type="checkbox" > <?php echo $this->lang->line('copy_first_detail_for_all'); ?>
+                                                                            </label></div>
+                                                                        </div>
+                                                                    </div>
+                                                                <?php 
+                                                               
+                                            foreach ($class_list as $class_key => $class_value) {
+                                                 ?>
+                                           <hr class="hrexam">
+                                                 <div class="row block_row">     
+                                                                   
+                                                                        <div class="col-sm-4 col-lg-4 col-md-4">         
+                                                                            <h4 class="transport_fee_line"><?php echo $class_value['class']; ?></h4>
+                                                                        </div>
+                                                                        <div class="col-sm-8 col-lg-8 col-md-8">                                    
+                                                                            <div class="row">  
+                                        
+                                                                                <div class="col-sm-12 col-lg-12 col-md-12">
+                                                                                <?php 
+                                                                                if(!empty($class_value['sections'])){foreach ($class_value['sections'] as $section_key => $section_value) {   
+                                         ?>
+                                        <div class="row">    
+                                             <div class="form-group col-md-6">
+                                            <label class="control-label col-sm-2" for="time"><?php echo $section_value->section ?></label>
+                                            <div class="col-sm-10">
+                                                <div class="input-group">
+                                                                                  <input type="text" class="form-control datetimepicker" name="class_section_id[<?php echo $section_value->id;?>]" value
+                                              ="<?php echo ($section_value->time !=0) ? $section_value->time :"" ?>" id="time" placeholder="Enter time">
+                                        
+                                                                                <div class="input-group-addon">
+                                                                                    <span class="fa fa-clock-o"></span>
+                                                                                </div>
+                                                                            </div>
+                                                <input type="hidden" name="row[]" value="<?php echo $count; ?>">
+                                                <input type="hidden" name="prev_record_id[<?php echo $section_value->id;?>]" value="<?php echo $section_value->class_section_times_id; ?>">  
                                             </div>
-                                        </form>
-                                        <?php } ?>
-                                    </div>
-                    
+                                          </div>
+                                        </div>
+                                         <?php
+                                         $count++;
+                                        }
+                                        
+                                        }else{
+                                            ?>
+                                        <div class="alert alert-info">
+                                          <?php echo $this->lang->line('no_section_found'); ?>
+                                        </div>
+                                            <?php
+                                        }
+                                                                                 ?>
+                                                                                </div>              
+                                                                            </div>                                              
+                                                                        </div>         
+                                                                    </div>
+                                                                      
+                                                                    <?php
+                                            }
+                                        
+                                                                 ?>
+                                                                 
+                                                                </div><!-- /.mail-box-messages -->
+                                                            </div><!-- /.box-body -->
+                                                            <div class="box-footer">
+                                                                                           
+                                                                <button type="submit" class="btn btn-primary pull-right" id="load" data-loading-text="<i class='fa fa-spinner fa-spin '></i> <?php echo $this->lang->line('please_wait') ?>"> <?php echo $this->lang->line('save') ?></button>
+                                                                        
+                                                                </div>
+                                                            </form>
+                                                            <?php } ?>
+                                                        </div>                    
                                 </div><!--/.col (left) -->
                         <!-- right column -->
 
