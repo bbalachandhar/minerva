@@ -385,53 +385,15 @@ class Staffattendance extends Admin_Controller
         }
     }
 
-    public function process_biometric_attendance_for_date() {
-        // This method is intended to be called by a cron job for continuous biometric attendance synchronization.
-        // It fetches punches from the last sync datetime up to the current time.
-        // No RBAC check here as it's not directly user-facing.
-
-        $this->load->model('biometric_api_model');
-        $this->load->model('attendance_model');
-
-        log_message('info', 'Starting continuous biometric attendance synchronization via cron.');
-
-        $active_device = $this->attendance_model->get_active_biometric_device();
-
-        if (!$active_device) {
-            log_message('error', 'Cron: process_biometric_attendance_for_date - No active biometric device configured.');
-            return; // Exit if no active device
-        }
-
-        $last_sync_datetime = $this->attendance_model->get_last_biometric_sync_datetime();
-        $from_datetime = $last_sync_datetime ? $last_sync_datetime : date('Y-m-d H:i:s', strtotime('-30 days')); // Default to 30 days ago if no previous sync
-        $to_datetime = date('Y-m-d H:i:s');
-
-        log_message('info', 'Cron: Fetching punches from ' . $from_datetime . ' to ' . $to_datetime);
-
-        $punches = $this->biometric_api_model->get_punches_from_api($active_device, $from_datetime, $to_datetime);
-
-        if ($punches !== false) { // Check for false to indicate API error
-            $inserted_count = $this->attendance_model->save_raw_biometric_punches($punches);
-            $this->attendance_model->update_last_biometric_sync_datetime($to_datetime);
-            log_message('info', 'Cron: Biometric attendance synchronized successfully. ' . $inserted_count . ' new punches recorded.');
-        } else {
-            log_message('error', 'Cron: Biometric attendance synchronization failed. Check API configuration and logs.');
-        }
-        // This method does not return a view or redirect as it's for background processing.
-    }
-
     public function trigger_process_biometric_attendance() {
         if (!($this->rbac->hasPrivilege('biometric_attendance', 'can_view'))) {
             access_denied();
         }
 
-        // Call the CLI function directly
-        $this->process_biometric_attendance_for_date();
+        $this->load->model('attendance_model');
+        $this->attendance_model->process_daily_biometric_attendance(date('Y-m-d'));
 
-        // Set a flash message based on the outcome (we'll need to refine this)
-        // For now, we'll assume success if no fatal error occurred.
-        // The actual success/failure messages are logged by process_biometric_attendance_for_date
-        $this->session->set_flashdata('msg', '<div class="alert alert-success">Biometric attendance processing triggered. Check logs for details.</div>');
+        $this->session->set_flashdata('msg', '<div class="alert alert-success">Biometric attendance processed successfully.</div>');
 
         redirect('admin/staffattendance/index');
     }

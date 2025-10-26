@@ -2667,3 +2667,5 @@ $lang['no_active_biometric_device'] = "No active biometric device configured.";
 $lang['sync_biometric_attendance'] = "Sync Biometric Attendance";
 $lang['total_hours'] = "Total Hours";
 $lang['raw_punches'] = "Raw Punches";
+$lang['sync_punches'] = "Sync Punches";
+$lang['process_biometric_attendance'] = "Process Biometric Attendance";

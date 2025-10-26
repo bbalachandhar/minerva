@@ -133,8 +133,8 @@
                     <div class="box-header with-border">
                         <h3 class="box-title"><i class="fa fa-search"></i> <?php echo $this->lang->line('select_criteria'); ?></h3>
                         <div class="box-tools pull-right">
-                            <a href="<?php echo site_url('admin/staff/sync_biometric_attendance') ?>" class="btn btn-primary btn-sm"><i class="fa fa-refresh"></i> <?php echo $this->lang->line('sync_biometric_attendance'); ?></a>
-                            <a href="<?php echo site_url('admin/staffattendance/trigger_process_biometric_attendance') ?>" class="btn btn-success btn-sm"><i class="fa fa-calculator"></i> Process Attendance</a>
+                            <a href="<?php echo site_url('admin/staff/sync_biometric_attendance') ?>" class="btn btn-primary btn-sm"><i class="fa fa-refresh"></i> <?php echo $this->lang->line('sync_punches'); ?></a>
+                            <a href="<?php echo site_url('admin/staffattendance/trigger_process_biometric_attendance') ?>" class="btn btn-success btn-sm"><i class="fa fa-calculator"></i> <?php echo $this->lang->line('process_biometric_attendance'); ?></a>
                         </div>
                     </div>
                     <form id='form1' action="<?php echo site_url('admin/staffattendance/index') ?>" method="post" accept-charset="utf-8">
