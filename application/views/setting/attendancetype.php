@@ -38,7 +38,7 @@
                                 <div class="row">
                                     <div class="col-md-6">
                                         <div class="form-group row">
-                                            <label class="col-sm-4"><?php echo $this->lang->line('attendance'); ?></label>
+                                            <label class="col-sm-4"><?php echo $this->lang->line('student_attendance'); ?></label>
                                             <div class="col-sm-8">
                                                 <label class="radio-inline">
                                                     <input type="radio" name="attendence_type" value="0" <?php
