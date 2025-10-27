@@ -153,8 +153,8 @@ class Hostelroom extends Admin_Controller
         $section_id  = $this->input->post('section_id');
         $hostel_name = $this->input->post('hostel_name');
 
-        $this->form_validation->set_rules('class_id', $this->lang->line('class'), 'trim|required|xss_clean');
-        $this->form_validation->set_rules('section_id', $this->lang->line('section'), 'trim|required|xss_clean');
+        $this->form_validation->set_rules('class_id', $this->lang->line('class'), 'trim|xss_clean');
+        $this->form_validation->set_rules('section_id', $this->lang->line('section'), 'trim|xss_clean');
 
         if ($this->form_validation->run() == true) {
 
@@ -223,6 +223,47 @@ class Hostelroom extends Admin_Controller
         );
         echo json_encode($json_data);
 
+    }
+
+    public function import()
+    {
+        $this->load->library('csvimport');
+        $this->form_validation->set_rules('file', 'CSV file', 'required');
+
+        if ($this->form_validation->run() == false) {
+            $this->load->view('layout/header');
+            $this->load->view('admin/hostelroom/import');
+            $this->load->view('layout/footer');
+        } else {
+            $file_data = $this->csvimport->get_array($_FILES["file"]["tmp_name"]);
+            if (!empty($file_data)) {
+                foreach ($file_data as $row) {
+                    $data = array(
+                        'hostel_id'    => $row['hostel_id'],
+                        'room_type_id' => $row['room_type_id'],
+                        'room_no'      => $row['room_no'],
+                        'no_of_bed'    => $row['no_of_bed'],
+                        'cost_per_bed' => $row['cost_per_bed'],
+                        'description'  => $row['description'],
+                    );
+                    $this->hostelroom_model->add($data);
+                }
+                $this->session->set_flashdata('msg', '<div class="alert alert-success text-center">' . $this->lang->line('records_found_in_csv_file_total') . ' ' . count($file_data) . ' ' . $this->lang->line('records_imported_successfully') . '</div>');
+                redirect('admin/hostelroom/index');
+            } else {
+                $this->session->set_flashdata('msg', '<div class="alert alert-danger text-center">' . $this->lang->line('no_record_found') . '</div>');
+                redirect('admin/hostelroom/import');
+            }
+        }
+    }
+
+    public function download_sample()
+    {
+        $this->load->helper('download');
+        $filepath = "./uploads/school_content/hostel_room_sample.csv";
+        $data     = file_get_contents($filepath);
+        $name     = 'hostel_room_sample.csv';
+        force_download($name, $data);
     }
 
 }
