@@ -499,96 +499,25 @@ class Studentfeemaster_model extends MY_Model
         return $query->row();
     }
 
-    public function fee_deposit_bulk($bulk_data, $fee_discounts = null)
-    {
-        $this->db->trans_start();
-        $fees_return = array();
-        $date=date("Y-m-d");
-        foreach ($bulk_data as $fee_key => $fee_data) {
-
-            if ($fee_data['fee_category'] == "fees") {
-
-                $fee_data['student_transport_fee_id'] = NULL;
-                $this->db->where('student_fees_master_id', $fee_data['student_fees_master_id']);
-                $this->db->where('fee_groups_feetype_id', $fee_data['fee_groups_feetype_id']);
-            } elseif ($fee_data['student_transport_fee_id'] > 0 && $fee_data['fee_category'] == "transport") {
-
-                $fee_data['student_fees_master_id'] = NULL;
-                $fee_data['fee_groups_feetype_id'] = NULL;
-                $this->db->where('student_transport_fee_id', $fee_data['student_transport_fee_id']);
-            }
-
-            $fee_category = $fee_data['fee_category'];
-            unset($fee_data['fee_category']);
-
-            $q = $this->db->get('student_fees_deposite');
-
-            if ($q->num_rows() > 0) {
-                $desc = $fee_data['amount_detail']['description'];
-                $row  = $q->row();
-                $this->db->where('id', $row->id);
-                $a                                   = json_decode($row->amount_detail, true);
-                $inv_no                              = max(array_keys($a)) + 1;
-                $fee_data['amount_detail']['inv_no'] = $inv_no;
-                $a[$inv_no]                          = $fee_data['amount_detail'];
-                $fee_data['amount_detail']           = json_encode($a);
-                $this->db->update('student_fees_deposite', $fee_data);               
-
-                if(!empty($fee_discounts)){
-                    $discount_array_bulk=[];
-                    foreach ($fee_discounts as $fee_discount_key => $fee_discount_value) {
-                        $discount_array_bulk[]=array('student_fees_deposite_id'=>$row->id,'student_fees_discount_id'=>$fee_discount_value,'date'=>$date,'invoice_id' => $row->id, 'sub_invoice_id' => $inv_no);
-                    }
-                    $this->db->insert_batch('student_applied_discounts', $discount_array_bulk);
+            public function fee_deposit_bulk($bulk_data)
+            {
+                $this->db->trans_start();
+                $this->db->trans_strict(FALSE);
+        
+                foreach ($bulk_data as $fee_data) {
+                    $this->db->insert('student_fees_deposite', $fee_data);
                 }
-
-                $fees_return[] = array(
-                    'invoice_id' => $row->id,
-                    'sub_invoice_id' => $inv_no,
-                    'fee_groups_feetype_id' => $fee_data['fee_groups_feetype_id'],
-                    'student_transport_fee_id' => $fee_data['student_transport_fee_id'],
-                    'fee_category' => $fee_category
-                );
-            } else {
-                $fee_data['amount_detail']['inv_no'] = 1;
-                $desc                                = $fee_data['amount_detail']['description'];
-                $fee_data['amount_detail']           = json_encode(array('1' => $fee_data['amount_detail']));
-                $this->db->insert('student_fees_deposite', $fee_data);
-                $inserted_id = $this->db->insert_id();
-                $message = INSERT_RECORD_CONSTANT . " On student fees deposite id " . $inserted_id;
-                $action = "Insert";
-                $record_id = $inserted_id;                
-
-                $inserted_id = $this->db->insert_id();
-                if (!empty($fee_discounts)) {
-                    $discount_array_bulk=[];
-                    foreach ($fee_discounts as $fee_discount_key => $fee_discount_value) {
-                        $discount_array_bulk[]=array('student_fees_deposite_id'=>$inserted_id,'student_fees_discount_id'=>$fee_discount_value,'date'=>$date,'invoice_id' => $inserted_id, 'sub_invoice_id' => 1);
-                    }
-                    $this->db->insert_batch('student_applied_discounts', $discount_array_bulk);
+        
+                $this->db->trans_complete();
+        
+                if ($this->db->trans_status() === FALSE) {
+                    $this->db->trans_rollback();
+                    return false;
+                } else {
+                    $this->db->trans_commit();
+                    return true;
                 }
-
-                $fees_return[] = array(
-                    'invoice_id' => $inserted_id,
-                    'sub_invoice_id' => 1,
-                    'fee_groups_feetype_id' => $fee_data['fee_groups_feetype_id'],
-                    'student_transport_fee_id' => $fee_data['student_transport_fee_id'],
-                    'fee_category' => $fee_category
-                );
-            }
-        }
-
-        $this->db->trans_complete();
-        if ($this->db->trans_status() === false) {
-            $this->db->trans_rollback();
-            return false;
-        } else {
-            $this->db->trans_commit();
-            return $fees_return;
-        }
-    }
-
-    public function fee_deposit($data, $send_to, $fee_discounts,$date)
+            }    public function fee_deposit($data, $send_to, $fee_discounts,$date)
     {
         if ($data['fee_category'] == "fees") {
             # code...

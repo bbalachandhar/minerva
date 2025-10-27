@@ -34,6 +34,7 @@ class Studentfee extends Admin_Controller
         		}		
             }
         
+        
             public function bulk_upload_fees()
             {
                 if (!$this->rbac->hasPrivilege('collect_fees', 'can_view')) {
@@ -82,7 +83,7 @@ class Studentfee extends Admin_Controller
                                     $error_messages[] = "Row " . ($row_num + 2) . ": Student with Admission No. " . $admission_no . " not found.";
                                     continue;
                                 }
-                                $student_session_id = $student['student_session_id'];
+                                $student_session_id = $student->student_session_id;
         
                                 // Find fee_groups_feetype_id based on fee_type
                                 $fee_type_data = $this->feetype_model->getFeeTypeByName($fee_type);
@@ -90,7 +91,7 @@ class Studentfee extends Admin_Controller
                                     $error_messages[] = "Row " . ($row_num + 2) . ": Fee Type '" . $fee_type . "' not found.";
                                     continue;
                                 }
-                                $fee_groups_feetype_id = $fee_type_data['id']; // Assuming fee_type_data has an 'id' field
+                                $fee_groups_feetype_id = $fee_type_data['id'];
         
                                 // Prepare data for fee_deposit
                                 $json_array = array(
