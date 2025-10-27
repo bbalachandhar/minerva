@@ -2475,4 +2475,13 @@ class Student_model extends MY_Model
         $query = $this->db->query($sql);
         return $query->row();
     }
+
+    public function updateStudentCreditBalance($student_id, $amount)
+    {
+        log_message('debug', 'Updating credit balance for student ID: ' . $student_id . ' with amount: ' . $amount);
+        $this->db->set('credit_balance', 'credit_balance + ' . $amount, FALSE);
+        $this->db->where('id', $student_id);
+        $this->db->update('students');
+        log_message('debug', 'Credit balance updated for student ID: ' . $student_id);
+    }
 }

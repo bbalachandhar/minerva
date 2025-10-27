@@ -499,6 +499,7 @@ class Studentfeemaster_model extends MY_Model
         return $query->row();
     }
 
+<<<<<<< Updated upstream
     public function fee_deposit_bulk($bulk_data, $fee_discounts = null)
     {
         $this->db->trans_start();
@@ -540,6 +541,58 @@ class Studentfeemaster_model extends MY_Model
                         $discount_array_bulk[]=array('student_fees_deposite_id'=>$row->id,'student_fees_discount_id'=>$fee_discount_value,'date'=>$date,'invoice_id' => $row->id, 'sub_invoice_id' => $inv_no);
                     }
                     $this->db->insert_batch('student_applied_discounts', $discount_array_bulk);
+=======
+            public function get_student_fees_master_id($student_session_id, $fee_session_group_id)
+    {
+        $this->db->select('id');
+        $this->db->from('student_fees_master');
+        $this->db->where('student_session_id', $student_session_id);
+        $this->db->where('fee_session_group_id', $fee_session_group_id);
+        $query = $this->db->get();
+        if ($query->num_rows() > 0) {
+            return $query->row()->id;
+        }
+        return null;
+    }
+
+    public function get_fee_group_feetype_and_session_id($student_session_id, $feetype_id)
+    {
+        $this->db->select('fee_groups_feetype.id as fee_groups_feetype_id, student_fees_master.fee_session_group_id');
+        $this->db->from('student_fees_master');
+        $this->db->join('fee_groups_feetype', 'fee_groups_feetype.fee_session_group_id = student_fees_master.fee_session_group_id');
+        $this->db->where('student_fees_master.student_session_id', $student_session_id);
+        $this->db->where('fee_groups_feetype.feetype_id', $feetype_id);
+        $query = $this->db->get();
+        if ($query->num_rows() > 0) {
+            return $query->row();
+        }
+        return null;
+    }
+
+    public function get_expected_amount_by_fee_groups_feetype_id($fee_groups_feetype_id)
+    {
+        log_message('debug', 'get_expected_amount_by_fee_groups_feetype_id called with fee_groups_feetype_id: ' . $fee_groups_feetype_id);
+        $this->db->select('amount');
+        $this->db->from('fee_groups_feetype');
+        $this->db->where('id', $fee_groups_feetype_id);
+        $query = $this->db->get();
+        if ($query->num_rows() > 0) {
+            $amount = $query->row()->amount;
+            log_message('debug', 'Retrieved amount for fee_groups_feetype_id ' . $fee_groups_feetype_id . ': ' . $amount);
+            return $amount;
+        }
+        log_message('debug', 'No amount found for fee_groups_feetype_id: ' . $fee_groups_feetype_id);
+        return null;
+    }
+
+    public function fee_deposit_bulk($bulk_data)
+            {
+                $this->db->trans_start();
+                $this->db->trans_strict(FALSE);
+        
+                foreach ($bulk_data as $fee_data) {
+                    $this->db->insert('student_fees_deposite', $fee_data);
+>>>>>>> Stashed changes
                 }
 
                 $fees_return[] = array(
@@ -1409,6 +1462,7 @@ class Studentfeemaster_model extends MY_Model
 
     public function add_bulk_fee_deposit($bulk_data, $fee_discounts = null)
     {
+        log_message('debug', 'add_bulk_fee_deposit called with bulk_data: ' . json_encode($bulk_data));
         $this->db->trans_start();
         $fees_return = array();
         $date = date("Y-m-d");
@@ -1449,6 +1503,7 @@ class Studentfeemaster_model extends MY_Model
                 $a[$inv_no] = $deposit_data['amount_detail'];
                 $deposit_data['amount_detail'] = json_encode($a);
                 $this->db->update('student_fees_deposite', $deposit_data);
+                log_message('debug', 'Updated existing fee deposit for student_fees_master_id: ' . $student_fees_master_id . ' with data: ' . json_encode($deposit_data));
 
                 if (!empty($fee_discounts)) {
                     $discount_array_bulk = [];
@@ -1462,6 +1517,7 @@ class Studentfeemaster_model extends MY_Model
                         );
                     }
                     $this->db->insert_batch('student_applied_discounts', $discount_array_bulk);
+                    log_message('debug', 'Inserted bulk discounts: ' . json_encode($discount_array_bulk));
                 }
 
                 $fees_return[] = array(
@@ -1476,6 +1532,7 @@ class Studentfeemaster_model extends MY_Model
                 $deposit_data['amount_detail'] = json_encode(array('1' => $deposit_data['amount_detail']));
                 $this->db->insert('student_fees_deposite', $deposit_data);
                 $inserted_id = $this->db->insert_id();
+                log_message('debug', 'Inserted new fee deposit with ID: ' . $inserted_id . ' and data: ' . json_encode($deposit_data));
 
                 if (!empty($fee_discounts)) {
                     $discount_array_bulk = [];
@@ -1489,6 +1546,7 @@ class Studentfeemaster_model extends MY_Model
                         );
                     }
                     $this->db->insert_batch('student_applied_discounts', $discount_array_bulk);
+                    log_message('debug', 'Inserted bulk discounts: ' . json_encode($discount_array_bulk));
                 }
 
                 $fees_return[] = array(
@@ -1504,11 +1562,26 @@ class Studentfeemaster_model extends MY_Model
         $this->db->trans_complete();
         if ($this->db->trans_status() === false) {
             $this->db->trans_rollback();
+            log_message('error', 'Transaction failed, rolling back.');
             return false;
         } else {
             $this->db->trans_commit();
+            log_message('debug', 'Transaction successful, returning fees_return: ' . json_encode($fees_return));
             return $fees_return;
         }
+    }
+
+    public function getStudentIdByStudentFeesMasterId($student_fees_master_id)
+    {
+        $this->db->select('student_id');
+        $this->db->from('student_fees_master');
+        $this->db->join('student_session', 'student_session.id = student_fees_master.student_session_id');
+        $this->db->where('student_fees_master.id', $student_fees_master_id);
+        $query = $this->db->get();
+        if ($query->num_rows() > 0) {
+            return $query->row()->student_id;
+        }
+        return null;
     }
 
 }
