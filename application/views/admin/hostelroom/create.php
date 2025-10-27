@@ -28,6 +28,9 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                         <div class="box-header with-border">
                             <h3 class="box-title"><?php echo $this->lang->line('add_hostel_room'); ?></h3>
                         </div><!-- /.box-header -->
+                        <div class="box-tools pull-right">
+                            <a href="<?php echo site_url('admin/hostelroom/import') ?>" class="btn btn-primary btn-sm"><i class="fa fa-upload"></i> <?php echo $this->lang->line('import_hostel_room'); ?></a>
+                        </div>
                         <!-- form start -->
                         <form id="form1" action="<?php echo site_url('admin/hostelroom/create') ?>"  id="employeeform" name="employeeform" method="post" accept-charset="utf-8">
                             <div class="box-body">
