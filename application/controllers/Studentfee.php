@@ -77,7 +77,7 @@ class Studentfee extends Admin_Controller
                                 }
         
                                 // Find student_session_id based on admission_no
-                                $student = $this->student_model->getStudentByAdmissionNo($admission_no);
+                                $student = $this->student_model->findByAdmission($admission_no);
                                 if (!$student) {
                                     $error_messages[] = "Row " . ($row_num + 2) . ": Student with Admission No. " . $admission_no . " not found.";
                                     continue;
@@ -146,6 +146,7 @@ class Studentfee extends Admin_Controller
                         'application/x-csv',
                         'text/x-csv',
                         'text/plain',
+                        'text/x-comma-separated-values',
                         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' // For .xlsx
                     );
                     $mime = get_mime_by_extension($_FILES['file']['name']);

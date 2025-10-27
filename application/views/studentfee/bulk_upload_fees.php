@@ -33,15 +33,13 @@
                             <div class="row">
                                 <div class="col-md-12">
                                     <div class="form-group">
-                                        <label for="exampleInputFile"><?php echo $this->lang->line('select_csv_file'); ?></label>
-                                        <div class="input-group">
-                                            <input class="form-control filestyle" type="file" name="file" id="file">
-                                            <div class="input-group-btn" style="padding-left: 10px;">
-                                                <button type="submit" class="btn btn-info"><?php echo $this->lang->line('upload'); ?></button>
-                                            </div>
-                                        </div>
-                                        <span class="text-danger"><?php echo form_error('file'); ?></span>
+                                        <label for="exampleInputFile"><?php echo $this->lang->line('select_csv_file'); ?></label><small class="req"> *</small>
+                                        <div><input class="filestyle form-control" type='file' name='file' id="file" size='20' />
+                                            <span class="text-danger"><?php echo form_error('file'); ?></span></div>
                                     </div>
+                                <div class="col-md-6 pt20">
+                                    <button type="submit" class="btn btn-info pull-right"><?php echo $this->lang->line('upload'); ?></button>
+                                </div>
                                 </div>
                             </div>
                         </div>
@@ -51,3 +49,14 @@
         </div>
     </section>
 </div>
+<script>
+$(document).ready(function() {
+    // Explicitly initialize Dropify
+    $('#file').dropify();
+
+    // Workaround: Manually trigger click on native file input when Dropify overlay is clicked
+    $('.dropify-wrapper').on('click', function() {
+        $('#file').trigger('click');
+    });
+});
+</script>
