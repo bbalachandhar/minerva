@@ -918,45 +918,44 @@ class Customlib
 
     public function datetostrtotime($date)
     {
-        if ($date == "") {
-            return null; // Return null instead of an empty string
-        }
-        $format = $this->getSchoolDateFormat();
-        if ($format == 'd-m-Y') {
-            list($day, $month, $year) = explode('-', $date);
+        if (empty($date) || $date === '0000-00-00') {
+            return null;
         }
 
-        if ($format == 'd/m/Y') {
-            list($day, $month, $year) = explode('/', $date);
+        $schoolDateFormat = $this->getSchoolDateFormat();
+
+        // Try to parse the date using the school's configured format
+        $dateTime = DateTime::createFromFormat($schoolDateFormat, $date);
+
+        // If parsing was successful and the date is valid according to the format
+        if ($dateTime && $dateTime->format($schoolDateFormat) === $date) {
+            return $dateTime->getTimestamp();
         }
 
-        if ($format == 'd-M-Y') {
-            list($day, $month, $year) = explode('-', $date);
+        // Fallback: Try common date formats if the school format doesn't match the input
+        $commonFormats = [
+            'Y-m-d', // e.g., 2023-10-27
+            'm/d/Y', // e.g., 10/27/2023
+            'd-m-Y', // e.g., 27-10-2023
+            'd/m/Y', // e.g., 27/10/2023
+            'm-d-Y', // e.g., 10-27-2023
+        ];
+
+        foreach ($commonFormats as $format) {
+            $dateTime = DateTime::createFromFormat($format, $date);
+            if ($dateTime && $dateTime->format($format) === $date) {
+                return $dateTime->getTimestamp();
+            }
         }
 
-        if ($format == 'd.m.Y') {
-            list($day, $month, $year) = explode('.', $date);
+        // As a last resort, try strtotime(). It's less reliable for arbitrary formats
+        // but can sometimes parse dates that createFromFormat might miss.
+        $timestamp = strtotime($date);
+        if ($timestamp !== false) {
+            return $timestamp;
         }
 
-        if ($format == 'm-d-Y') {
-            list($month, $day, $year) = explode('-', $date);
-        }
-
-        if ($format == 'm/d/Y') {
-            list($month, $day, $year) = explode('/', $date);
-        }
-
-        if ($format == 'm.d.Y') {
-            list($month, $day, $year) = explode('.', $date);
-        }
-
-        if ($format == 'Y/m/d') {
-            list($year, $month, $day) = explode('/', $date);
-        }
-
-        $date = $year . "-" . $month . "-" . $day;
-
-        return strtotime($date);
+        return null; // If date cannot be parsed by any method
     }
 
 

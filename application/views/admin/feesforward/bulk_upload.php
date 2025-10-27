@@ -31,19 +31,30 @@
                             <div class="row">
                                 <div class="col-md-12">
                                     <div class="form-group">
-                                        <label for="exampleInputFile"><?php echo $this->lang->line('select_csv_file'); ?></label>
-                                        <div class="input-group">
-                                            <input class="form-control filestyle" type="file" name="file" id="file">
-                                            <div class="input-group-btn" style="padding-left: 10px;">
-                                                <button type="submit" class="btn btn-info"><?php echo $this->lang->line('upload'); ?></button>
-                                            </div>
-                                        </div>
+                                        <label for="file"><?php echo $this->lang->line('select_csv_file'); ?></label>
+                                        <input type="file" name="file" id="file" class="form-control" autocomplete="off">
                                         <span class="text-danger"><?php echo form_error('file'); ?></span>
+                                    </div>
+                                    <div class="box-footer">
+                                        <button type="submit" class="btn btn-info pull-right"><?php echo $this->lang->line('upload'); ?></button>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </form>
+                    <?php if ($this->session->flashdata('msg')) { ?>
+                        <?php echo $this->session->flashdata('msg') ?>
+                    <?php } ?>
+
+                    <?php if (isset($error_messages) && !empty($error_messages)) { ?>
+                        <div class="alert alert-danger">
+                            <ul>
+                                <?php foreach ($error_messages as $error) { ?>
+                                    <li><?php echo $error; ?></li>
+                                <?php } ?>
+                            </ul>
+                        </div>
+                    <?php } ?>
                 </div>
             </div>
         </div>

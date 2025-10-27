@@ -287,7 +287,7 @@ class Feesforward extends Admin_Controller
                 'text/plain',
                 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' // For .xlsx
             );
-            $mime = get_mime_by_extension($_FILES['file']['name']);
+            $mime = get_mime_by_extension($_FILES['file']['name']); log_message('debug', 'Detected MIME type: ' . $mime);
             if (!in_array($mime, $allowedMimeTypes)) {
                 $this->form_validation->set_message('handle_csv_upload', $this->lang->line('file_type_not_allowed'));
                 return false;
