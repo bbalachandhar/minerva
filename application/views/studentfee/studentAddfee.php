@@ -206,15 +206,8 @@ foreach ($student_due_fee as $key => $fee) {
         $fee_fine         = 0;
         $fees_fine_amount = 0;
         $feetype_balance  = 0;
-        if (!empty($fee_value->amount_detail)) {
-            $fee_deposits = json_decode(($fee_value->amount_detail));
-
-            foreach ($fee_deposits as $fee_deposits_key => $fee_deposits_value) {
-                $fee_paid     = $fee_paid + $fee_deposits_value->amount;
-                $fee_discount = $fee_discount + $fee_deposits_value->amount_discount;
-                $fee_fine     = $fee_fine + $fee_deposits_value->amount_fine;
-            }
-        }
+                $fee_discount = $fee_discount + (isset($fee_deposits_value->amount_discount) ? $fee_deposits_value->amount_discount : 0);
+                $fee_fine     = $fee_fine + (isset($fee_deposits_value->amount_fine) ? $fee_deposits_value->amount_fine : 0);
         if (($fee_value->due_date != "0000-00-00" && $fee_value->due_date != null) && (strtotime($fee_value->due_date) < strtotime(date('Y-m-d')))) {
 		  // get cumulative fine amount as delay days 
             if($fee_value->fine_type=='cumulative'){
@@ -360,9 +353,9 @@ if ($fee_deposits_value->description == "") {
                                                         <td class="text text-left">
                                                             <?php if ($fee_deposits_value->date) {echo date($this->customlib->getSchoolDateFormat(), $this->customlib->dateyyyymmddTodateformat($fee_deposits_value->date));}?>
                                                         </td>
-                                                        <td class="text text-right"><a href="#" class="text text-right display-inline" title="<?php echo $this->lang->line('discount'); ?>" data-fee-deposite-id="<?php echo $fee_value->student_fees_deposite_id;?>" data-toggle="modal" data-target="#myfeeDiscountModal"><?php echo amountFormat($fee_deposits_value->amount_discount); ?></a>
+                                                        <td class="text text-right"><a href="#" class="text text-right display-inline" title="<?php echo $this->lang->line('discount'); ?>" data-fee-deposite-id="<?php echo $fee_value->student_fees_deposite_id;?>" data-toggle="modal" data-target="#myfeeDiscountModal"><?php echo amountFormat(isset($fee_deposits_value->amount_discount) ? $fee_deposits_value->amount_discount : 0); ?></a>
                                                     </td>
-                                                        <td class="text text-right"><?php echo amountFormat($fee_deposits_value->amount_fine); ?></td>
+                                                        <td class="text text-right"><?php echo amountFormat(isset($fee_deposits_value->amount_fine) ? $fee_deposits_value->amount_fine : 0); ?></td>
                                                         <td class="text text-right"><?php echo amountFormat($fee_deposits_value->amount); ?></td>
                                                         <td></td>
                                                         <td class="text text-right white-space-nowrap">
@@ -402,8 +395,8 @@ if (!empty($transport_fees)) {
             $fee_deposits = json_decode(($transport_fee_value->amount_detail));
             foreach ($fee_deposits as $fee_deposits_key => $fee_deposits_value) {
                 $fee_paid     = $fee_paid + $fee_deposits_value->amount;
-                $fee_discount = $fee_discount + $fee_deposits_value->amount_discount;
-                $fee_fine     = $fee_fine + $fee_deposits_value->amount_fine;
+                $fee_discount = $fee_discount + (isset($fee_deposits_value->amount_discount) ? $fee_deposits_value->amount_discount : 0);
+                $fee_fine     = $fee_fine + (isset($fee_deposits_value->amount_fine) ? $fee_deposits_value->amount_fine : 0);
             }
         }
 
@@ -514,8 +507,8 @@ if (!empty($transport_fee_value->amount_detail)) {
                                                         <td class="text text-left">
                                                             <?php echo date($this->customlib->getSchoolDateFormat(), $this->customlib->dateyyyymmddTodateformat($fee_deposits_value->date)); ?>
                                                         </td>
-														<td class="text text-right"><a href="#" class="text text-right display-inline" title="<?php echo $this->lang->line('discount'); ?>" data-fee-deposite-id="<?php echo $transport_fee_value->student_fees_deposite_id;?>" data-toggle="modal" data-target="#myfeeDiscountModal"><?php echo amountFormat($fee_deposits_value->amount_discount); ?></a></td>
-                                                        <td class="text text-right"><?php echo amountFormat($fee_deposits_value->amount_fine); ?></td>
+														<td class="text text-right"><a href="#" class="text text-right display-inline" title="<?php echo $this->lang->line('discount'); ?>" data-fee-deposite-id="<?php echo $transport_fee_value->student_fees_deposite_id;?>" data-toggle="modal" data-target="#myfeeDiscountModal"><?php echo amountFormat(isset($fee_deposits_value->amount_discount) ? $fee_deposits_value->amount_discount : 0); ?></a></td>
+                                                        <td class="text text-right"><?php echo amountFormat(isset($fee_deposits_value->amount_fine) ? $fee_deposits_value->amount_fine : 0); ?></td>
                                                         <td class="text text-right"><?php echo amountFormat($fee_deposits_value->amount); ?></td>
                                                         <td></td>
                                                         <td class="text text-right">

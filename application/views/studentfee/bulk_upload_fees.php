@@ -14,6 +14,9 @@
                         </div>
                     </div>
                     <div class="box-body">
+                        <?php if ($this->session->flashdata('msg')) { ?>
+                            <?php echo $this->session->flashdata('msg'); $this->session->unset_userdata('msg'); ?>
+                        <?php } ?>
                         <?php if (isset($error_messages) && !empty($error_messages)): ?>
                             <div class="alert alert-danger">
                                 <h4><i class="icon fa fa-ban"></i> <?php echo $this->lang->line('errors_found_in_csv'); ?></h4>

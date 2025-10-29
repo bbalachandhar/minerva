@@ -63,11 +63,16 @@ class Studentfee extends Admin_Controller
                             $error_messages = [];
                             $fees_to_deposit = [];
 
+                            $total_records = 0;
+                            $successful_records = 0;
+                            $failed_records = 0;
+
                             foreach ($result as $row_num => $row) {
+                                $total_records++;
                                 $current_row_errors = [];
                                 $admission_no = $row['admission_no'] ?? '';
                                 $total_amount_paid = $row['total_amount_paid'] ?? '';
-                                $old_bill_number = $row['old_bill_number'] ?? '';
+                                $old_bill_number = trim($row['old_bill_number'] ?? '');
                                 $old_bill_date = $row['old_bill_date'] ?? '';
                                 $payment_mode = $row['payment_mode'] ?? '';
                                 $description = $row['description'] ?? '';
@@ -88,6 +93,7 @@ class Studentfee extends Admin_Controller
 
                                 if (!empty($current_row_errors)) {
                                     $error_messages[] = "Row " . ($row_num + 2) . ": " . implode(", ", $current_row_errors);
+                                    $failed_records++;
                                     continue;
                                 }
 
@@ -95,14 +101,16 @@ class Studentfee extends Admin_Controller
                                 $student = $this->student_model->findByAdmission($admission_no);
                                 if (!$student) {
                                     $error_messages[] = "Row " . ($row_num + 2) . ": Student with Admission No. " . $admission_no . " not found in current session.";
+                                    $failed_records++;
                                     continue;
                                 }
                                 $student_session_id = $student->student_session_id;
                                 $student_id = $student->id;
 
                                 // Check for duplicate bill number
-                                if ($this->studentfeemaster_model->checkDuplicateBillNumber($student_session_id, $old_bill_number)) {
-                                    $error_messages[] = "Row " . ($row_num + 2) . ": Duplicate Bill Number '" . $old_bill_number . "' found for student " . $admission_no . ". Skipping this entry.";
+                                if ($this->studentfeemaster_model->checkDuplicateBillNumber($old_bill_number)) {
+                                    $error_messages[] = "Row " . ($row_num + 2) . ": Duplicate Bill Number '" . $old_bill_number . "' found. Skipping this entry.";
+                                    $failed_records++;
                                     continue;
                                 }
 
@@ -117,6 +125,10 @@ class Studentfee extends Admin_Controller
 
                                 // Define fee type priority
                                 $priority_order = ['carry_forwarded', 'tuition', 'other', 'hostel', 'other_fees'];
+
+                                if (isset($student->category) && $student->category == 'GOVT_7_5') {
+                                    $priority_order = ['carry_forwarded', 'hostel'];
+                                }
 
                                 // --- Phase 1: Consume existing advance_balance first ---
                                 if ($student_advance_balance > 0) {
@@ -147,7 +159,6 @@ class Studentfee extends Admin_Controller
                                                         'fee_groups_feetype_id'  => $fee_item->fee_groups_feetype_id,
                                                         'amount_detail'          => $amount_detail,
                                                         'fee_category'           => 'fees',
-                                                        'date'                   => date('Y-m-d'),
                                                         'old_bill_number'        => null,
                                                         'old_bill_date'          => null,
                                                     ];
@@ -192,7 +203,6 @@ class Studentfee extends Admin_Controller
                                                     'old_bill_number'        => $old_bill_number,
                                                     'old_bill_date'          => date('Y-m-d', $this->customlib->datetostrtotime($old_bill_date)),
                                                     'fee_category'           => 'fees',
-                                                    'date'                   => date('Y-m-d', $this->customlib->datetostrtotime($old_bill_date)),
                                                 ];
                                                 $remaining_payment -= $amount_to_pay;
                                             }
@@ -209,16 +219,32 @@ class Studentfee extends Admin_Controller
                                 
                                 if (!empty($payments_for_student)) {
                                     foreach($payments_for_student as $payment){
-                                        $this->studentfeemaster_model->fee_deposit($payment, null, [], $payment['date']);
+                                        log_message('error', 'PAYMENT_DATA_BEFORE_DEPOSIT: ' . print_r($payment, true));
+                                        $result = $this->studentfeemaster_model->fee_deposit($payment, null, [], $payment['amount_detail']['date']);
+                                        log_message('error', 'DEPOSIT_RESULT: ' . print_r($result, true));
+                                        if ($result === false) {
+                                            $error_messages[] = "Row " . ($row_num + 2) . ": Failed to deposit fee for student " . $admission_no . " with old bill number " . $old_bill_number . ".";
+                                            $failed_records++;
+                                        } else {
+                                            $successful_records++;
+                                        }
                                     }
+                                } else {
+                                    // If no payments were generated for a valid record, it's still a failure to insert.
+                                    $failed_records++;
+                                    $error_messages[] = "Row " . ($row_num + 2) . ": No payments generated for student " . $admission_no . " with old bill number " . $old_bill_number . ".";
                                 }
                             }
 
+                            $summary_message = $this->lang->line('total_records') . ": " . $total_records . ", " .
+                                               $this->lang->line('successful_records') . ": " . $successful_records . ", " .
+                                               $this->lang->line('failed_records') . ": " . $failed_records . ".";
+
                             if (empty($error_messages)) {
-                                $this->session->set_flashdata('msg', '<div class="alert alert-success text-center">' . $this->lang->line('fees_uploaded_successfully') . '</div>');
+                                $this->session->set_flashdata('msg', '<div class="alert alert-success text-center">' . $this->lang->line('fees_uploaded_successfully') . '. ' . $summary_message . '</div>');
                                 redirect('studentfee/bulk_upload_fees');
                             } else {
-                                $this->session->set_flashdata('msg', '<div class="alert alert-danger text-center">Some records failed to process. Please check the errors below.</div>');
+                                $this->session->set_flashdata('msg', '<div class="alert alert-danger text-center">Some records failed to process. ' . $summary_message . '</div>');
                                 $data['error_messages'] = $error_messages;
                                 $this->load->view('layout/header', $data);
                                 $this->load->view('studentfee/bulk_upload_fees', $data);

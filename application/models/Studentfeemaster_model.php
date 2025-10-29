@@ -1457,66 +1457,77 @@ class Studentfeemaster_model extends MY_Model
     {
         $fees = [];
 
-        // 1. Get Carry Forwarded Fees (if any)
-        // This is a special case, as it's handled by addPreviousBal.
-        // For now, we'll assume it's part of the regular fee types or handled separately.
-
-        // 2. Get regular fees (Tuition, Other, Hostel)
         $sql = "SELECT
                     sfm.id as student_fees_master_id,
                     fgf.id as fee_groups_feetype_id,
                     fg.name as fee_group_name,
                     ft.type as fee_type_name,
                     fgf.amount as fee_amount,
-                    fgf.due_date,
-                    (fgf.amount - IFNULL(sfd.amount_paid, 0)) as outstanding_amount
+                    fgf.due_date
                 FROM student_fees_master sfm
                 JOIN fee_session_groups fsg ON fsg.id = sfm.fee_session_group_id
                 JOIN fee_groups_feetype fgf ON fgf.fee_session_group_id = fsg.id
                 JOIN fee_groups fg ON fg.id = fgf.fee_groups_id
                 JOIN feetype ft ON ft.id = fgf.feetype_id
-                LEFT JOIN (
-                    SELECT student_fees_master_id, fee_groups_feetype_id, SUM(JSON_UNQUOTE(JSON_EXTRACT(amount_detail, '$.*.amount'))) as amount_paid
-                    FROM student_fees_deposite
-                    GROUP BY student_fees_master_id, fee_groups_feetype_id
-                ) sfd ON sfd.student_fees_master_id = sfm.id AND sfd.fee_groups_feetype_id = fgf.id
-                WHERE sfm.student_session_id = " . $this->db->escape($student_session_id) . "
-                AND (fgf.amount - IFNULL(sfd.amount_paid, 0)) > 0
-                ORDER BY fg.name ASC, fgf.due_date ASC"; // Order by fee group name and then due date
+                WHERE sfm.student_session_id = " . $this->db->escape($student_session_id);
 
         $query = $this->db->query($sql);
-        $regular_fees = $query->result();
+        $all_fees = $query->result();
 
-        // Categorize fees for easier processing
-        foreach ($regular_fees as $fee) {
-            if (strpos(strtolower($fee->fee_group_name), 'carry forwarded') !== false) {
-                $fees['carry_forwarded'][] = $fee;
-            } elseif (strpos(strtolower($fee->fee_type_name), 'tuition') !== false) {
-                $fees['tuition'][] = $fee;
-            } elseif (strpos(strtolower($fee->fee_type_name), 'other') !== false) {
-                $fees['other'][] = $fee;
-            } elseif (strpos(strtolower($fee->fee_type_name), 'hostel') !== false) {
-                $fees['hostel'][] = $fee;
-            } else {
-                $fees['other_fees'][] = $fee; // Catch-all for other fee types
+        // Fetch all deposits for the student in one go
+        $deposit_sql = "SELECT student_fees_master_id, fee_groups_feetype_id, amount_detail
+                        FROM student_fees_deposite sfd
+                        JOIN student_fees_master sfm ON sfm.id = sfd.student_fees_master_id
+                        WHERE sfm.student_session_id = " . $this->db->escape($student_session_id);
+        $deposit_query = $this->db->query($deposit_sql);
+        $all_deposits = $deposit_query->result_array();
+
+        $paid_amounts = [];
+        foreach ($all_deposits as $deposit) {
+            $master_id = $deposit['student_fees_master_id'];
+            $feetype_id = $deposit['fee_groups_feetype_id'];
+            $amount_detail = json_decode($deposit['amount_detail'], true);
+
+            if (!isset($paid_amounts[$master_id][$feetype_id])) {
+                $paid_amounts[$master_id][$feetype_id] = 0;
+            }
+
+            foreach ($amount_detail as $detail) {
+                $paid_amounts[$master_id][$feetype_id] += $detail['amount'];
             }
         }
 
-        // 3. Get Transport Fees (if any)
-        // This is a separate module, so we need to handle it separately.
-        // For now, we will not include transport fees in this bulk upload.
-        // If the user wants to include transport fees, we will need to add more logic here.
+        foreach ($all_fees as $fee) {
+            $amount_paid = isset($paid_amounts[$fee->student_fees_master_id][$fee->fee_groups_feetype_id]) ? $paid_amounts[$fee->student_fees_master_id][$fee->fee_groups_feetype_id] : 0;
+
+            $outstanding_amount = $fee->fee_amount - $amount_paid;
+
+            if ($outstanding_amount > 0) {
+                $fee->outstanding_amount = $outstanding_amount;
+
+                // Categorize fees for easier processing
+                if (strpos(strtolower($fee->fee_group_name), 'carry forwarded') !== false) {
+                    $fees['carry_forwarded'][] = $fee;
+                } elseif (strpos(strtolower($fee->fee_type_name), 'tuition') !== false) {
+                    $fees['tuition'][] = $fee;
+                } elseif (strpos(strtolower($fee->fee_type_name), 'other') !== false) {
+                    $fees['other'][] = $fee;
+                } elseif (strpos(strtolower($fee->fee_type_name), 'hostel') !== false) {
+                    $fees['hostel'][] = $fee;
+                } else {
+                    $fees['other_fees'][] = $fee;
+                }
+            }
+        }
 
         return $fees;
     }
 
-    public function checkDuplicateBillNumber($student_session_id, $old_bill_number)
+    public function checkDuplicateBillNumber($old_bill_number)
     {
-        $this->db->select('sfd.id');
-        $this->db->from('student_fees_deposite sfd');
-        $this->db->join('student_fees_master sfm', 'sfm.id = sfd.student_fees_master_id');
-        $this->db->where('sfm.student_session_id', $student_session_id);
-        $this->db->where('sfd.old_bill_number', $old_bill_number);
+        $this->db->select('id');
+        $this->db->from('student_fees_deposite');
+        $this->db->where('old_bill_number', $old_bill_number);
         $query = $this->db->get();
         return ($query->num_rows() > 0);
     }
