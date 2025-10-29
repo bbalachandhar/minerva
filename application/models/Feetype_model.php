@@ -158,6 +158,15 @@ class Feetype_model extends MY_Model
     }
     
 
-    
+    public function checkFeetypeByName($name)
+    {
+        $this->db->where('type', $name);
+        $query = $this->db->get('feetype');
+        if ($query->num_rows() > 0) {
+            return $query->row();
+        } else {
+            return false;
+        }
+    }
 
 }

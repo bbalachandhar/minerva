@@ -238,26 +238,30 @@ class Feesforward extends Admin_Controller
                             continue;
                         }
 
-                        $student = $this->student_model->getPreviousSessionStudentByAdmissionNo($admission_no, $pre_session->id);
+                        $student = $this->student_model->findByAdmission($admission_no);
 
                         if (!$student) {
-                            $error_messages[] = "Row " . ($row_num + 2) . ": Student with Admission No. " . $admission_no . " not found in previous session.";
+                            $error_messages[] = "Row " . ($row_num + 2) . ": Student with Admission No. " . $admission_no . " not found in current session.";
                             continue;
                         }
 
                         $student_array = array();
-                        $student_array['student_session_id']   = $student->current_student_session_id;
+                        $student_array['student_session_id']   = $student->student_session_id;
                         $student_array['amount']               = convertCurrencyFormatToBaseAmount($amount);
                         $student_array['is_system']            = 1;
                         $student_array['fee_session_group_id'] = 0;
                         $student_data[]                        = $student_array;
                     }
+                    
+                    if (!empty($student_data)) {
+                        $this->studentfeemaster_model->addPreviousBal($student_data, $due_date);
+                    }
 
                     if (empty($error_messages)) {
-                        $this->studentfeemaster_model->addPreviousBal($student_data, $due_date);
                         $this->session->set_flashdata('msg', '<div class="alert alert-success text-center">' . $this->lang->line('fees_uploaded_successfully') . '</div>');
                         redirect('admin/feesforward/bulk_upload');
                     } else {
+                        $this->session->set_flashdata('msg', '<div class="alert alert-danger text-center">'.count($error_messages).' records failed out of '.count($result).'</div>');
                         $data['error_messages'] = $error_messages;
                         $this->load->view('layout/header', $data);
                         $this->load->view('admin/feesforward/bulk_upload', $data);
@@ -277,24 +281,41 @@ class Feesforward extends Admin_Controller
 
     public function handle_csv_upload()
     {
+        $error = "";
         if (isset($_FILES["file"]) && !empty($_FILES['file']['name'])) {
-            $allowedMimeTypes = array(
+            $allowedExts = array('csv');
+            $mimes       = array(
                 'text/csv',
-                'application/vnd.ms-excel',
-                'application/csv',
-                'application/x-csv',
-                'text/x-csv',
                 'text/plain',
-                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' // For .xlsx
+                'application/csv',
+                'text/comma-separated-values',
+                'application/excel',
+                'application/vnd.ms-excel',
+                'application/vnd.msexcel',
+                'text/anytext',
+                'application/octet-stream',
+                'application/txt'
             );
-            $mime = get_mime_by_extension($_FILES['file']['name']); log_message('debug', 'Detected MIME type: ' . $mime);
-            if (!in_array($mime, $allowedMimeTypes)) {
+            $temp      = explode(".", $_FILES["file"]["name"]);
+            $extension = end($temp);
+            if ($_FILES["file"]["error"] > 0) {
+                $error .= "Error opening the file<br />";
+            }
+            if (!in_array($_FILES['file']['type'], $mimes)) {
+                $error .= "Error opening the file<br />";
                 $this->form_validation->set_message('handle_csv_upload', $this->lang->line('file_type_not_allowed'));
                 return false;
             }
-            return true;
+            if (!in_array($extension, $allowedExts)) {
+                $error .= "Error opening the file<br />";
+                $this->form_validation->set_message('handle_csv_upload', $this->lang->line('extension_not_allowed'));
+                return false;
+            }
+            if ($error == "") {
+                return true;
+            }
         } else {
-            $this->form_validation->set_message('handle_csv_upload', $this->lang->line('the_file_field_is_required'));
+            $this->form_validation->set_message('handle_csv_upload', $this->lang->line('please_select_file'));
             return false;
         }
     }

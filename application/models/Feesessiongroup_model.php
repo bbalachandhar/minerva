@@ -186,7 +186,7 @@ class Feesessiongroup_model extends MY_Model
         $q = $this->db->get('fee_groups_feetype');
 
         if ($q->num_rows() > 0) {
-            return $q->row();
+            return $q->row()->id;
         } else {
             return false;
         }
