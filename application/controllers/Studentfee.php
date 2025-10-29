@@ -93,7 +93,6 @@ class Studentfee extends Admin_Controller
                                 }
                                 $fee_groups_feetype_id = $fee_type_data['id'];
         
-                                // Prepare data for fee_deposit
                                 $json_array = array(
                                     'amount'          => convertCurrencyFormatToBaseAmount($amount),
                                     'amount_discount' => 0, // Assuming no discount in bulk upload for now
@@ -104,18 +103,20 @@ class Studentfee extends Admin_Controller
                                     'payment_mode'    => $payment_mode,
                                     'received_by'     => $this->customlib->getStaffID(),
                                 );
+                                $json_array_encoded = json_encode(array('1' => $json_array));
         
                                 $insert_data[] = array(
                                     'student_session_id'     => $student_session_id,
                                     'fee_groups_feetype_id'  => $fee_groups_feetype_id,
-                                    'amount_detail'          => $json_array,
-                                    'fee_category'           => 'fees', // Assuming 'fees' category for now
+                                    'amount_detail'          => $json_array_encoded,
+                                    'fee_category'           => 'fees',
                                 );
                             }
         
                             if (empty($error_messages)) {
                                 // Call model to insert data
-                                $this->studentfeemaster_model->fee_deposit_bulk($insert_data); // Assuming a new bulk insert method in the model
+                                log_message('debug', 'Insert Data for fee_deposit_bulk: ' . json_encode($insert_data));
+                    $this->studentfeemaster_model->fee_deposit_bulk($insert_data);
                                 $this->session->set_flashdata('msg', '<div class="alert alert-success text-center">' . $this->lang->line('fees_uploaded_successfully') . '</div>');
                                 redirect('studentfee/bulk_upload_fees');
                             } else {

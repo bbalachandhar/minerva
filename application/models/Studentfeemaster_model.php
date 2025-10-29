@@ -505,10 +505,12 @@ class Studentfeemaster_model extends MY_Model
                 $this->db->trans_strict(FALSE);
         
                 foreach ($bulk_data as $fee_data) {
+                    log_message('debug', 'Fee data being inserted: ' . json_encode($fee_data));
                     $this->db->insert('student_fees_deposite', $fee_data);
                 }
         
                 $this->db->trans_complete();
+                log_message('debug', 'Transaction Status: ' . ($this->db->trans_status() === FALSE ? 'Failed' : 'Success'));
         
                 if ($this->db->trans_status() === FALSE) {
                     $this->db->trans_rollback();
