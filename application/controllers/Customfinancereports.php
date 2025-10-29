@@ -86,10 +86,9 @@ class Customfinancereports extends Admin_Controller
                                         $amount_detail = json_decode($each_fee_value->amount_detail);
                                         if (is_object($amount_detail) && !empty($amount_detail)) {
                                             foreach ($amount_detail as $amount_detail_value) {
-                                                $deposit += $amount_detail_value->amount;
-                                                $fine += $amount_detail_value->amount_fine;
-                                                $discount += $amount_detail_value->amount_discount;
-                                            }
+                                                                                            $deposit += $amount_detail_value->amount;
+                                                                                            $fine += isset($amount_detail_value->amount_fine) ? $amount_detail_value->amount_fine : 0;
+                                                                                            $discount += isset($amount_detail_value->amount_discount) ? $amount_detail_value->amount_discount : 0;                                            }
                                         }
                                     }
                                 }
@@ -179,8 +178,8 @@ class Customfinancereports extends Admin_Controller
                                     if (is_object($amount_detail) && !empty($amount_detail)) {
                                         foreach ($amount_detail as $amount_detail_value) {
                                             $deposit += $amount_detail_value->amount;
-                                            $fine += $amount_detail_value->amount_fine;
-                                            $discount += $amount_detail_value->amount_discount;
+                                            $fine += isset($amount_detail_value->amount_fine) ? $amount_detail_value->amount_fine : 0;
+                                            $discount += isset($amount_detail_value->amount_discount) ? $amount_detail_value->amount_discount : 0;
                                         }
                                     }
                                 }

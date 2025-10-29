@@ -144,8 +144,8 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
 
                                                                 foreach ($fee_deposits as $fee_deposits_key => $fee_deposits_value) {
                                                                     $fee_paid += $fee_deposits_value->amount;
-                                                                    $fee_discount += $fee_deposits_value->amount_discount;
-                                                                    $fee_fine += $fee_deposits_value->amount_fine;
+                                                                    $fee_discount += isset($fee_deposits_value->amount_discount) ? $fee_deposits_value->amount_discount : 0;
+                                                                    $fee_fine += isset($fee_deposits_value->amount_fine) ? $fee_deposits_value->amount_fine : 0;
                                                                 }
                                                             }
                                                             
@@ -293,8 +293,8 @@ if (!empty($student_value['transport_fees'])) {
             $fee_deposits = json_decode(($transport_fee_value->amount_detail));
             foreach ($fee_deposits as $fee_deposits_key => $fee_deposits_value) {
                 $fee_paid     = $fee_paid + $fee_deposits_value->amount;
-                $fee_discount = $fee_discount + $fee_deposits_value->amount_discount;
-                $fee_fine     = $fee_fine + $fee_deposits_value->amount_fine;
+                $fee_discount = $fee_discount + (isset($fee_deposits_value->amount_discount) ? $fee_deposits_value->amount_discount : 0);
+                $fee_fine     = $fee_fine + (isset($fee_deposits_value->amount_fine) ? $fee_deposits_value->amount_fine : 0);
             }
         }
 
@@ -429,8 +429,8 @@ if ($fee_deposits_value->description == "") {
                                                     <td class="text text-left">
                                                         <?php echo date($this->customlib->getSchoolDateFormat(), $this->customlib->dateyyyymmddTodateformat($fee_deposits_value->date)); ?>
                                                     </td>
-                                                    <td class="text text-right"><?php echo amountFormat($fee_deposits_value->amount_discount); ?></td>
-                                                    <td class="text text-right"><?php echo amountFormat($fee_deposits_value->amount_fine); ?></td>
+                                                    <td class="text text-right"><?php echo amountFormat(isset($fee_deposits_value->amount_discount) ? $fee_deposits_value->amount_discount : 0); ?></td>
+                                                    <td class="text text-right"><?php echo amountFormat(isset($fee_deposits_value->amount_fine) ? $fee_deposits_value->amount_fine : 0); ?></td>
                                                     <td class="text text-right"><?php echo amountFormat($fee_deposits_value->amount); ?></td>
                                                     <td></td>
                                                    

@@ -71,6 +71,8 @@ class Studentfee extends Admin_Controller
                                 $total_records++;
                                 $current_row_errors = [];
                                 $admission_no = $row['admission_no'] ?? '';
+                                $row_failed = false; // Flag to track if current CSV row failed
+
                                 $total_amount_paid = $row['total_amount_paid'] ?? '';
                                 $old_bill_number = trim($row['old_bill_number'] ?? '');
                                 $old_bill_date = $row['old_bill_date'] ?? '';
@@ -93,8 +95,7 @@ class Studentfee extends Admin_Controller
 
                                 if (!empty($current_row_errors)) {
                                     $error_messages[] = "Row " . ($row_num + 2) . ": " . implode(", ", $current_row_errors);
-                                    $failed_records++;
-                                    continue;
+                                    $row_failed = true;
                                 }
 
                                 // Find student_session_id based on admission_no
@@ -217,22 +218,10 @@ class Studentfee extends Admin_Controller
                                     $this->db->update('students');
                                 }
                                 
-                                if (!empty($payments_for_student)) {
-                                    foreach($payments_for_student as $payment){
-                                        log_message('error', 'PAYMENT_DATA_BEFORE_DEPOSIT: ' . print_r($payment, true));
-                                        $result = $this->studentfeemaster_model->fee_deposit($payment, null, [], $payment['amount_detail']['date']);
-                                        log_message('error', 'DEPOSIT_RESULT: ' . print_r($result, true));
-                                        if ($result === false) {
-                                            $error_messages[] = "Row " . ($row_num + 2) . ": Failed to deposit fee for student " . $admission_no . " with old bill number " . $old_bill_number . ".";
-                                            $failed_records++;
-                                        } else {
-                                            $successful_records++;
-                                        }
-                                    }
-                                } else {
-                                    // If no payments were generated for a valid record, it's still a failure to insert.
+                                if ($row_failed) {
                                     $failed_records++;
-                                    $error_messages[] = "Row " . ($row_num + 2) . ": No payments generated for student " . $admission_no . " with old bill number " . $old_bill_number . ".";
+                                } else {
+                                    $successful_records++;
                                 }
                             }
 
