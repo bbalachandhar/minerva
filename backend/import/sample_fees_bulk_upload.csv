@@ -1,0 +1,2 @@
+admission_no,total_amount_paid,old_bill_number,old_bill_date,payment_mode,description
+12345,1000,BILL123,2023-10-27,Cash,Monthly Fee Payment

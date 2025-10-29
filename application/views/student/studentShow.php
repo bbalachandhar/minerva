@@ -1116,8 +1116,8 @@ $currency_symbol = $admin_session['currency_symbol'];
 
                                                         foreach ($fee_deposits as $fee_deposits_key => $fee_deposits_value) {
                                                             $fee_paid     = $fee_paid + $fee_deposits_value->amount;
-                                                            $fee_discount = $fee_discount + $fee_deposits_value->amount_discount;
-                                                            $fee_fine     = $fee_fine + $fee_deposits_value->amount_fine;
+                                                            $fee_discount = $fee_discount + (isset($fee_deposits_value->amount_discount) ? $fee_deposits_value->amount_discount : 0);
+                                                            $fee_fine     = $fee_fine + (isset($fee_deposits_value->amount_fine) ? $fee_deposits_value->amount_fine : 0);
                                                         }
                                                     }
                                                     $total_amount           = $total_amount + $fee_value->amount;
@@ -1281,8 +1281,8 @@ $currency_symbol = $admin_session['currency_symbol'];
 																			}
 																		?>
                                                                     </td>
-                                                                    <td class="text text-right"><?php echo amountFormat($fee_deposits_value->amount_discount); ?></td>
-                                                                    <td class="text text-right"><?php echo amountFormat($fee_deposits_value->amount_fine); ?></td>
+                                                                    <td class="text text-right"><?php echo amountFormat(isset($fee_deposits_value->amount_discount) ? $fee_deposits_value->amount_discount : 0); ?></td>
+                                                                    <td class="text text-right"><?php echo amountFormat(isset($fee_deposits_value->amount_fine) ? $fee_deposits_value->amount_fine : 0); ?></td>
                                                                     <td class="text text-right"><?php echo amountFormat($fee_deposits_value->amount); ?></td>
                                                                     <td></td>
                                                                 </tr>
@@ -1311,8 +1311,8 @@ $currency_symbol = $admin_session['currency_symbol'];
 
                                                             foreach ($fee_deposits as $fee_deposits_key => $fee_deposits_value) {
                                                                 $fee_paid     = $fee_paid + $fee_deposits_value->amount;
-                                                                $fee_discount = $fee_discount + $fee_deposits_value->amount_discount;
-                                                                $fee_fine     = $fee_fine + $fee_deposits_value->amount_fine;
+                                                                $fee_discount = $fee_discount + (isset($fee_deposits_value->amount_discount) ? $fee_deposits_value->amount_discount : 0);
+                                                                $fee_fine     = $fee_fine + (isset($fee_deposits_value->amount_fine) ? $fee_deposits_value->amount_fine : 0);
                                                             }
                                                         }
 
@@ -1434,8 +1434,8 @@ $currency_symbol = $admin_session['currency_symbol'];
 																				}
 																			?>
                                                                         </td>
-                                                                        <td class="text text-right"><?php echo amountFormat($fee_deposits_value->amount_discount); ?></td>
-                                                                        <td class="text text-right"><?php echo amountFormat($fee_deposits_value->amount_fine); ?></td>
+                                                                        <td class="text text-right"><?php echo amountFormat(isset($fee_deposits_value->amount_discount) ? $fee_deposits_value->amount_discount : 0); ?></td>
+                                                                        <td class="text text-right"><?php echo amountFormat(isset($fee_deposits_value->amount_fine) ? $fee_deposits_value->amount_fine : 0); ?></td>
                                                                         <td class="text text-right"><?php echo amountFormat($fee_deposits_value->amount); ?></td>
                                                                         <td></td>
                                                                     </tr>

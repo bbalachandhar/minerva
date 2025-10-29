@@ -9,6 +9,9 @@
                 <div class="box box-primary">
                     <div class="box-header with-border">
                         <h3 class="box-title"><i class="fa fa-upload"></i> <?php echo $this->lang->line('bulk_upload_fees'); ?></h3>
+                        <div class="box-tools pull-right">
+                            <a href="<?php echo site_url('studentfee/exportfeesformat'); ?>" class="btn btn-primary btn-sm"><i class="fa fa-download"></i> <?php echo $this->lang->line('download_sample_file'); ?></a>
+                        </div>
                     </div>
                     <div class="box-body">
                         <?php if (isset($error_messages) && !empty($error_messages)): ?>
@@ -21,6 +24,17 @@
                                 </ul>
                             </div>
                         <?php endif; ?>
+                        <div class="well">
+                            <h4><?php echo $this->lang->line('instruction'); ?></h4>
+                            <p><?php echo $this->lang->line('bulk_upload_instructions_1'); ?></p>
+                            <p><?php echo $this->lang->line('bulk_upload_instructions_2'); ?></p>
+                            <p><b><?php echo $this->lang->line('required_columns'); ?>:</b> admission_no, total_amount_paid, old_bill_number, old_bill_date, payment_mode, description</p>
+                            <p><b><?php echo $this->lang->line('example'); ?>:</b></p>
+                            <pre>
+admission_no,total_amount_paid,old_bill_number,old_bill_date,payment_mode,description
+12345,1000,BILL123,2023-10-27,Cash,Monthly Fee Payment
+                            </pre>
+                        </div>
                         <?php echo form_open_multipart('studentfee/bulk_upload_fees', array('id' => 'bulk_upload_form')); ?>
                         <div class="row">
                             <div class="col-md-6">

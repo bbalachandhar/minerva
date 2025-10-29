@@ -505,12 +505,18 @@ class Studentfeemaster_model extends MY_Model
                 $this->db->trans_strict(FALSE);
         
                 foreach ($bulk_data as $fee_data) {
+                    log_message('error', 'FEE_DATA_CONTENT: ' . print_r($fee_data, true));
+                    if (isset($fee_data['student_session_id'])) {
+                        unset($fee_data['student_session_id']);
+                    }
+                    if (isset($fee_data['date'])) {
+                        unset($fee_data['date']);
+                    }
                     log_message('debug', 'Fee data being inserted: ' . json_encode($fee_data));
                     $this->db->insert('student_fees_deposite', $fee_data);
                 }
         
                 $this->db->trans_complete();
-                log_message('debug', 'Transaction Status: ' . ($this->db->trans_status() === FALSE ? 'Failed' : 'Success'));
         
                 if ($this->db->trans_status() === FALSE) {
                     $this->db->trans_rollback();
@@ -530,6 +536,9 @@ class Studentfeemaster_model extends MY_Model
         }
 
         unset($data['fee_category']);
+        if (isset($data['date'])) {
+            unset($data['date']);
+        }
         $q = $this->db->get('student_fees_deposite');
         if ($q->num_rows() > 0) {
             $desc = $data['amount_detail']['description'];
@@ -718,8 +727,8 @@ class Studentfeemaster_model extends MY_Model
                         $a['is_system']              = $value->is_system;
                         $a['amount']                 = $r_value->amount;
                         $a['date']                   = $r_value->date;
-                        $a['amount_discount']        = $r_value->amount_discount;
-                        $a['amount_fine']            = $r_value->amount_fine;
+                        $a['amount_discount']        = isset($r_value->amount_discount) ? $r_value->amount_discount : 0;
+                        $a['amount_fine']            = isset($r_value->amount_fine) ? $r_value->amount_fine : 0;
                         $a['description']            = $r_value->description;
                         $a['payment_mode']           = $r_value->payment_mode;
                         $a['inv_no']                 = $r_value->inv_no;
@@ -814,8 +823,8 @@ class Studentfeemaster_model extends MY_Model
                         $a                    = array();
                         $a['amount']          = $r_value->amount;
                         $a['date']            = $r_value->date;
-                        $a['amount_discount'] = $r_value->amount_discount;
-                        $a['amount_fine']     = $r_value->amount_fine;
+                        $a['amount_discount'] = isset($r_value->amount_discount) ? $r_value->amount_discount : 0;
+                        $a['amount_fine']     = isset($r_value->amount_fine) ? $r_value->amount_fine : 0;
                         $a['description']     = $r_value->description;
                         $a['payment_mode']    = $r_value->payment_mode;
                         $a['inv_no']          = $r_value->inv_no;
@@ -1368,7 +1377,9 @@ class Studentfeemaster_model extends MY_Model
                 'fee_groups_feetype_id' => $fee_groups_feetype_id,
                 'student_transport_fee_id' => $student_transport_fee_id,
                 'collected_by' => $fee_data['collected_by'],
-                'collection_date' => $fee_data['collection_date']
+                'collection_date' => $fee_data['collection_date'],
+                'old_bill_number' => $fee_data['old_bill_number'] ?? null, // New field
+                'old_bill_date' => $fee_data['old_bill_date'] ?? null, // New field
             );
 
             if ($q->num_rows() > 0) {
@@ -1440,6 +1451,74 @@ class Studentfeemaster_model extends MY_Model
             $this->db->trans_commit();
             return $fees_return;
         }
+    }
+
+    public function getOutstandingFeesByStudentSessionId($student_session_id)
+    {
+        $fees = [];
+
+        // 1. Get Carry Forwarded Fees (if any)
+        // This is a special case, as it's handled by addPreviousBal.
+        // For now, we'll assume it's part of the regular fee types or handled separately.
+
+        // 2. Get regular fees (Tuition, Other, Hostel)
+        $sql = "SELECT
+                    sfm.id as student_fees_master_id,
+                    fgf.id as fee_groups_feetype_id,
+                    fg.name as fee_group_name,
+                    ft.type as fee_type_name,
+                    fgf.amount as fee_amount,
+                    fgf.due_date,
+                    (fgf.amount - IFNULL(sfd.amount_paid, 0)) as outstanding_amount
+                FROM student_fees_master sfm
+                JOIN fee_session_groups fsg ON fsg.id = sfm.fee_session_group_id
+                JOIN fee_groups_feetype fgf ON fgf.fee_session_group_id = fsg.id
+                JOIN fee_groups fg ON fg.id = fgf.fee_groups_id
+                JOIN feetype ft ON ft.id = fgf.feetype_id
+                LEFT JOIN (
+                    SELECT student_fees_master_id, fee_groups_feetype_id, SUM(JSON_UNQUOTE(JSON_EXTRACT(amount_detail, '$.*.amount'))) as amount_paid
+                    FROM student_fees_deposite
+                    GROUP BY student_fees_master_id, fee_groups_feetype_id
+                ) sfd ON sfd.student_fees_master_id = sfm.id AND sfd.fee_groups_feetype_id = fgf.id
+                WHERE sfm.student_session_id = " . $this->db->escape($student_session_id) . "
+                AND (fgf.amount - IFNULL(sfd.amount_paid, 0)) > 0
+                ORDER BY fg.name ASC, fgf.due_date ASC"; // Order by fee group name and then due date
+
+        $query = $this->db->query($sql);
+        $regular_fees = $query->result();
+
+        // Categorize fees for easier processing
+        foreach ($regular_fees as $fee) {
+            if (strpos(strtolower($fee->fee_group_name), 'carry forwarded') !== false) {
+                $fees['carry_forwarded'][] = $fee;
+            } elseif (strpos(strtolower($fee->fee_type_name), 'tuition') !== false) {
+                $fees['tuition'][] = $fee;
+            } elseif (strpos(strtolower($fee->fee_type_name), 'other') !== false) {
+                $fees['other'][] = $fee;
+            } elseif (strpos(strtolower($fee->fee_type_name), 'hostel') !== false) {
+                $fees['hostel'][] = $fee;
+            } else {
+                $fees['other_fees'][] = $fee; // Catch-all for other fee types
+            }
+        }
+
+        // 3. Get Transport Fees (if any)
+        // This is a separate module, so we need to handle it separately.
+        // For now, we will not include transport fees in this bulk upload.
+        // If the user wants to include transport fees, we will need to add more logic here.
+
+        return $fees;
+    }
+
+    public function checkDuplicateBillNumber($student_session_id, $old_bill_number)
+    {
+        $this->db->select('sfd.id');
+        $this->db->from('student_fees_deposite sfd');
+        $this->db->join('student_fees_master sfm', 'sfm.id = sfd.student_fees_master_id');
+        $this->db->where('sfm.student_session_id', $student_session_id);
+        $this->db->where('sfd.old_bill_number', $old_bill_number);
+        $query = $this->db->get();
+        return ($query->num_rows() > 0);
     }
 
 }

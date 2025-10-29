@@ -231,7 +231,7 @@ class Feesforward extends Admin_Controller
                     $error_messages = [];
                     foreach ($result as $row_num => $row) {
                         $admission_no = $row['admission_no'] ?? '';
-                        $amount = $row['amount'] ?? '';
+                        $amount = $row['amount'] ?? ''; // This is the amount from the CSV
 
                         if (empty($admission_no) || empty($amount)) {
                             $error_messages[] = "Row " . ($row_num + 2) . ": Missing required fields.";
@@ -243,6 +243,16 @@ class Feesforward extends Admin_Controller
                         if (!$student) {
                             $error_messages[] = "Row " . ($row_num + 2) . ": Student with Admission No. " . $admission_no . " not found in current session.";
                             continue;
+                        }
+
+                        // Handle negative amount as advance payment
+                        if ((float) $amount < 0) {
+                            $advance_amount = abs((float) $amount);
+                            $this->db->set('advance_balance', 'advance_balance + ' . $advance_amount, FALSE);
+                            $this->db->where('id', $student->id);
+                            $this->db->update('students');
+                            $error_messages[] = "Row " . ($row_num + 2) . ": Advance payment of " . $advance_amount . " recorded for student " . $admission_no . ".";
+                            continue; // Skip adding to student_data for addPreviousBal
                         }
 
                         $student_array = array();

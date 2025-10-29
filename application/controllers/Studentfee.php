@@ -59,73 +59,172 @@ class Studentfee extends Admin_Controller
                         $result = $this->csvreader->parse_file($file_path);
         
                         if (!empty($result)) {
-                            $insert_data = [];
+                            $processed_records = [];
                             $error_messages = [];
+                            $fees_to_deposit = [];
+
                             foreach ($result as $row_num => $row) {
-                                // Assuming CSV columns are: admission_no, fee_type, amount, date, payment_mode, description
-                                // You'll need to adjust these column names based on your actual CSV format
+                                $current_row_errors = [];
                                 $admission_no = $row['admission_no'] ?? '';
-                                $fee_type = $row['fee_type'] ?? '';
-                                $amount = $row['amount'] ?? '';
-                                $date = $row['date'] ?? '';
+                                $total_amount_paid = $row['total_amount_paid'] ?? '';
+                                $old_bill_number = $row['old_bill_number'] ?? '';
+                                $old_bill_date = $row['old_bill_date'] ?? '';
                                 $payment_mode = $row['payment_mode'] ?? '';
                                 $description = $row['description'] ?? '';
-        
-                                // Basic validation (more comprehensive validation will be in the model)
-                                if (empty($admission_no) || empty($fee_type) || empty($amount) || empty($date) || empty($payment_mode)) {
-                                    $error_messages[] = "Row " . ($row_num + 2) . ": Missing required fields."; // +2 for header row and 0-based index
+
+                                // Basic validation
+                                if (empty($admission_no) || empty($total_amount_paid) || empty($old_bill_number) || empty($old_bill_date) || empty($payment_mode)) {
+                                    $current_row_errors[] = "Missing required fields (admission_no, total_amount_paid, old_bill_number, old_bill_date, payment_mode).";
+                                }
+
+                                if (!is_numeric($total_amount_paid) || $total_amount_paid < 0) {
+                                    $current_row_errors[] = "Invalid amount paid. Must be a non-negative number.";
+                                }
+
+                                // Validate date format
+                                if (!preg_match("/^\d{4}-\d{2}-\d{2}$/", $old_bill_date)) {
+                                    $current_row_errors[] = "Invalid bill date format. Expected YYYY-MM-DD.";
+                                }
+
+                                if (!empty($current_row_errors)) {
+                                    $error_messages[] = "Row " . ($row_num + 2) . ": " . implode(", ", $current_row_errors);
                                     continue;
                                 }
-        
+
                                 // Find student_session_id based on admission_no
                                 $student = $this->student_model->findByAdmission($admission_no);
                                 if (!$student) {
-                                    $error_messages[] = "Row " . ($row_num + 2) . ": Student with Admission No. " . $admission_no . " not found.";
+                                    $error_messages[] = "Row " . ($row_num + 2) . ": Student with Admission No. " . $admission_no . " not found in current session.";
                                     continue;
                                 }
                                 $student_session_id = $student->student_session_id;
-        
-                                // Find fee_groups_feetype_id based on fee_type
-                                $fee_type_data = $this->feetype_model->getFeeTypeByName($fee_type);
-                                if (!$fee_type_data) {
-                                    $error_messages[] = "Row " . ($row_num + 2) . ": Fee Type '" . $fee_type . "' not found.";
+                                $student_id = $student->id;
+
+                                // Check for duplicate bill number
+                                if ($this->studentfeemaster_model->checkDuplicateBillNumber($student_session_id, $old_bill_number)) {
+                                    $error_messages[] = "Row " . ($row_num + 2) . ": Duplicate Bill Number '" . $old_bill_number . "' found for student " . $admission_no . ". Skipping this entry.";
                                     continue;
                                 }
-                                $fee_groups_feetype_id = $fee_type_data['id'];
-        
-                                $json_array = array(
-                                    'amount'          => convertCurrencyFormatToBaseAmount($amount),
-                                    'amount_discount' => 0, // Assuming no discount in bulk upload for now
-                                    'amount_fine'     => 0, // Assuming no fine in bulk upload for now
-                                    'date'            => date('Y-m-d', $this->customlib->datetostrtotime($date)),
-                                    'description'     => $description,
-                                    'collected_by'    => $this->customlib->getAdminSessionUserName(),
-                                    'payment_mode'    => $payment_mode,
-                                    'received_by'     => $this->customlib->getStaffID(),
-                                );
-                                $json_array_encoded = json_encode(array('1' => $json_array));
-        
-                                $insert_data[] = array(
-                                    'student_session_id'     => $student_session_id,
-                                    'fee_groups_feetype_id'  => $fee_groups_feetype_id,
-                                    'amount_detail'          => $json_array_encoded,
-                                    'fee_category'           => 'fees',
-                                );
+
+                                // Fetch outstanding fees for the student
+                                $outstanding_fees = $this->studentfeemaster_model->getOutstandingFeesByStudentSessionId($student_session_id);
+
+                                $remaining_payment = (float) $total_amount_paid;
+                                $payments_for_student = [];
+
+                                // Get student's current advance balance
+                                $student_advance_balance = isset($student->advance_balance) ? (float) $student->advance_balance : 0;
+
+                                // Define fee type priority
+                                $priority_order = ['carry_forwarded', 'tuition', 'other', 'hostel', 'other_fees'];
+
+                                // --- Phase 1: Consume existing advance_balance first ---
+                                if ($student_advance_balance > 0) {
+                                    foreach ($priority_order as $priority_fee_type) {
+                                        if ($student_advance_balance <= 0) {
+                                            break;
+                                        }
+                                        if (isset($outstanding_fees[$priority_fee_type]) && !empty($outstanding_fees[$priority_fee_type])) {
+                                            foreach ($outstanding_fees[$priority_fee_type] as $fee_item) {
+                                                if ($student_advance_balance <= 0) {
+                                                    break;
+                                                }
+                                                $outstanding_amount = (float) $fee_item->outstanding_amount;
+                                                $amount_from_advance = min($student_advance_balance, $outstanding_amount);
+
+                                                if ($amount_from_advance > 0) {
+                                                    $amount_detail = [
+                                                        'amount'                 => $amount_from_advance,
+                                                        'date'                   => date('Y-m-d'), // Date when advance is consumed
+                                                        'payment_mode'           => 'Advance', // Special payment mode for advance consumption
+                                                        'description'            => 'Payment from advance balance',
+                                                        'collected_by'           => $this->customlib->getAdminSessionUserName(),
+                                                        'received_by'            => $this->customlib->getStaffID(),
+                                                    ];
+
+                                                    $payments_for_student[] = [
+                                                        'student_fees_master_id' => $fee_item->student_fees_master_id,
+                                                        'fee_groups_feetype_id'  => $fee_item->fee_groups_feetype_id,
+                                                        'amount_detail'          => $amount_detail,
+                                                        'fee_category'           => 'fees',
+                                                        'date'                   => date('Y-m-d'),
+                                                        'old_bill_number'        => null,
+                                                        'old_bill_date'          => null,
+                                                    ];
+                                                    $student_advance_balance -= $amount_from_advance;
+                                                }
+                                            }
+                                        }
+                                    }
+                                    // Update student's advance_balance in DB after consumption
+                                    $this->db->set('advance_balance', $student_advance_balance);
+                                    $this->db->where('id', $student_id);
+                                    $this->db->update('students');
+                                }
+
+                                // --- Phase 2: Apply current payment from CSV ---
+                                foreach ($priority_order as $priority_fee_type) {
+                                    if ($remaining_payment <= 0) {
+                                        break;
+                                    }
+                                    if (isset($outstanding_fees[$priority_fee_type]) && !empty($outstanding_fees[$priority_fee_type])) {
+                                        foreach ($outstanding_fees[$priority_fee_type] as $fee_item) {
+                                            if ($remaining_payment <= 0) {
+                                                break;
+                                            }
+                                            $outstanding_amount = (float) $fee_item->outstanding_amount;
+                                            $amount_to_pay = min($remaining_payment, $outstanding_amount);
+
+                                            if ($amount_to_pay > 0) {
+                                                $amount_detail = [
+                                                    'amount'                 => $amount_to_pay,
+                                                    'date'                   => date('Y-m-d', $this->customlib->datetostrtotime($old_bill_date)),
+                                                    'payment_mode'           => $payment_mode,
+                                                    'description'            => $description,
+                                                    'collected_by'           => $this->customlib->getAdminSessionUserName(),
+                                                    'received_by'            => $this->customlib->getStaffID(),
+                                                ];
+
+                                                $payments_for_student[] = [
+                                                    'student_fees_master_id' => $fee_item->student_fees_master_id,
+                                                    'fee_groups_feetype_id'  => $fee_item->fee_groups_feetype_id,
+                                                    'amount_detail'          => $amount_detail,
+                                                    'old_bill_number'        => $old_bill_number,
+                                                    'old_bill_date'          => date('Y-m-d', $this->customlib->datetostrtotime($old_bill_date)),
+                                                    'fee_category'           => 'fees',
+                                                    'date'                   => date('Y-m-d', $this->customlib->datetostrtotime($old_bill_date)),
+                                                ];
+                                                $remaining_payment -= $amount_to_pay;
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // Handle any remaining payment as advance
+                                if ($remaining_payment > 0) {
+                                    $this->db->set('advance_balance', 'advance_balance + ' . $remaining_payment, FALSE);
+                                    $this->db->where('id', $student_id);
+                                    $this->db->update('students');
+                                }
+                                
+                                if (!empty($payments_for_student)) {
+                                    foreach($payments_for_student as $payment){
+                                        $this->studentfeemaster_model->fee_deposit($payment, null, [], $payment['date']);
+                                    }
+                                }
                             }
-        
+
                             if (empty($error_messages)) {
-                                // Call model to insert data
-                                log_message('debug', 'Insert Data for fee_deposit_bulk: ' . json_encode($insert_data));
-                    $this->studentfeemaster_model->fee_deposit_bulk($insert_data);
                                 $this->session->set_flashdata('msg', '<div class="alert alert-success text-center">' . $this->lang->line('fees_uploaded_successfully') . '</div>');
                                 redirect('studentfee/bulk_upload_fees');
                             } else {
+                                $this->session->set_flashdata('msg', '<div class="alert alert-danger text-center">Some records failed to process. Please check the errors below.</div>');
                                 $data['error_messages'] = $error_messages;
                                 $this->load->view('layout/header', $data);
                                 $this->load->view('studentfee/bulk_upload_fees', $data);
                                 $this->load->view('layout/footer', $data);
                             }
-        
+
                         } else {
                             $this->session->set_flashdata('msg', '<div class="alert alert-danger text-center">' . $this->lang->line('error_processing_file') . '</div>');
                             redirect('studentfee/bulk_upload_fees');
@@ -138,6 +237,16 @@ class Studentfee extends Admin_Controller
                 }
             }
         
+            public function exportfeesformat()
+            {
+                $this->load->helper('download');
+                $filepath = "./backend/import/sample_fees_bulk_upload.csv";
+                $data     = file_get_contents($filepath);
+                $name     = 'sample_fees_bulk_upload.csv';
+
+                force_download($name, $data);
+            }
+
             public function handle_csv_upload()
             {
                 if (isset($_FILES["file"]) && !empty($_FILES['file']['name'])) {
@@ -204,14 +313,6 @@ class Studentfee extends Admin_Controller
             }
 
             $array = array('status' => 0, 'error' => $error);
-            echo json_encode($array);
-        } else {
-            $search_type = $this->input->post('search_type');
-            $search_text = $this->input->post('search_text');
-            $class_id    = $this->input->post('class_id');
-            $section_id  = $this->input->post('section_id');
-            $params      = array('class_id' => $class_id, 'section_id' => $section_id, 'search_type' => $search_type, 'search_text' => $search_text);
-            $array       = array('status' => 1, 'error' => '', 'params' => $params);
             echo json_encode($array);
         }
     }
@@ -314,97 +415,6 @@ class Studentfee extends Admin_Controller
         $this->form_validation->set_rules('feegroup[]', $this->lang->line('fee_group'), 'trim|required|xss_clean');
 
         if ($this->form_validation->run() == false) {
-            $this->load->view('layout/header', $data);
-            $this->load->view('studentfee/studentSearchFee', $data);
-            $this->load->view('layout/footer', $data);
-        } else {
-            $feegroups = $this->input->post('feegroup');
-
-            $fee_group_array          = array();
-            $fee_groups_feetype_array = array();
-            $transport_groups_feetype_array = array();
-            foreach ($feegroups as $fee_grp_key => $fee_grp_value) {
-                $feegroup                   = explode("-", $fee_grp_value);
-
-                if ($feegroup[0] == "Transport") {
-                    $transport_groups_feetype_array[] = $feegroup[1];
-                } else {
-                    $fee_group_array[]          = $feegroup[0];
-                    $fee_groups_feetype_array[] = $feegroup[1];
-                }
-            }
-
-            $fee_group_comma = implode(', ', array_map(function ($val) {
-                return sprintf("'%s'", $val);
-            }, array_unique($fee_group_array)));
-            $fee_groups_feetype_comma = implode(', ', array_map(function ($val) {
-                return sprintf("'%s'", $val);
-            }, array_unique($fee_groups_feetype_array)));
-
-            $data['student_due_fee'] = array();
-
-            $class_id   = $this->input->post('class_id');
-            $section_id = $this->input->post('section_id');
-
-            $student_due_fee = $this->studentfee_model->getMultipleDueFees($fee_group_comma, $fee_groups_feetype_comma, $transport_groups_feetype_array, $class_id, $section_id);
-            $students = array();
-
-            if (!empty($student_due_fee)) {
-                foreach ($student_due_fee as $student_due_fee_key => $student_due_fee_value) {
-
-                    $amt_due = ($student_due_fee_value['is_system']) ? $student_due_fee_value['fee_master_amount'] : $student_due_fee_value['amount'];
-
-                    $a = json_decode($student_due_fee_value['amount_detail']);
-                    if (!empty($a)) {
-                        $amount          = 0;
-                        $amount_discount = 0;
-                        $amount_fine     = 0;
-
-                        foreach ($a as $a_key => $a_value) {
-                            $amount          = $amount + $a_value->amount;
-                            $amount_discount = $amount_discount + $a_value->amount_discount;
-                            $amount_fine     = $amount_fine + $a_value->amount_fine;
-                        }
-                        if ($amt_due <= ($amount + $amount_discount)) {
-                            unset($student_due_fee[$student_due_fee_key]);
-                        } else {
-
-                            if (!array_key_exists($student_due_fee_value['student_session_id'], $students)) {
-                                $students[$student_due_fee_value['student_session_id']] = $this->add_new_student($student_due_fee_value);
-                            }
-
-                            $students[$student_due_fee_value['student_session_id']]['fees'][] = array(
-                                'is_system' => $student_due_fee_value['is_system'],
-                                'amount'          => $amt_due,
-                                'amount_deposite' => $amount,
-                                'amount_discount' => $amount_discount,
-                                'amount_fine'     => $amount_fine,
-                                'fee_group'       => $student_due_fee_value['fee_group'],
-                                'fee_type'        => $student_due_fee_value['fee_type'],
-                                'fee_code'        => $student_due_fee_value['fee_code'],
-                            );
-                        }
-                    } else {
-
-                        if (!array_key_exists($student_due_fee_value['student_session_id'], $students)) {
-                            $students[$student_due_fee_value['student_session_id']] = $this->add_new_student($student_due_fee_value);
-                        }
-                        $students[$student_due_fee_value['student_session_id']]['fees'][] = array(
-                            'is_system' => $student_due_fee_value['is_system'],
-                            'amount'          => $amt_due,
-                            'amount_deposite' => 0,
-                            'amount_discount' => 0,
-                            'amount_fine'     => 0,
-                            'fee_group'       => $student_due_fee_value['fee_group'],
-                            'fee_type'        => $student_due_fee_value['fee_type'],
-                            'fee_code'        => $student_due_fee_value['fee_code'],
-                        );
-                    }
-                }
-            }
-
-            $data['student_remain_fees'] = $students;
-
             $this->load->view('layout/header', $data);
             $this->load->view('studentfee/studentSearchFee', $data);
             $this->load->view('layout/footer', $data);
@@ -597,8 +607,7 @@ class Studentfee extends Admin_Controller
         $this->studenttransportfee_model->remove($id);
         $array = array('status' => 'success', 'result' => 'success');
         echo json_encode($array);
-    }
-
+    }
     public function delete($id)
     {
         $data['title'] = 'studentfee List';
@@ -750,7 +759,7 @@ class Studentfee extends Admin_Controller
             $email              = $this->input->post('guardian_email');
             $parent_app_key     = $this->input->post('parent_app_key');
             $student_session_id = $this->input->post('student_session_id');
-            $inserted_id        = $this->studentfeemaster_model->fee_deposit($data, $send_to, $discounts,date('Y-m-d', $this->customlib->datetostrtotime($this->input->post('date'))));
+            $inserted_id        = $this->studentfeemaster_model->fee_deposit($data, $send_to, $discounts,date('Y-m-d', $this->input->post('date')));
 
             $print_record = array();
             if ($action == "print") {
@@ -971,7 +980,7 @@ class Studentfee extends Admin_Controller
                 $this->studentfeemaster_model->delete($fee_session_groups, $delete_student);
             }
 
-            $array = array('status' => 'success', 'error' => '', 'message' => $this->lang->line('success_message'));
+            $array = array('status' => 1, 'error' => '');
             echo json_encode($array);
         }
     }
@@ -1004,10 +1013,6 @@ class Studentfee extends Admin_Controller
                 $remain_amount_object = $this->getStudentTransportFeetypeBalance($trans_fee_id);
                 $remain_amount        = (float) json_decode($remain_amount_object)->balance;
                 $remain_amount_fine   = json_decode($remain_amount_object)->fine_amount;
-            } else {
-                $remain_amount_object   = $this->getStuFeetypeBalance($fee_groups_feetype_id, $student_fees_master_id);
-                $remain_amount          = json_decode($remain_amount_object)->balance;
-                $remain_amount_fine     = json_decode($remain_amount_object)->fine_amount;
             }
 
             $remain_amount = number_format($remain_amount, 2, ".", "");
@@ -1143,8 +1148,6 @@ class Studentfee extends Admin_Controller
                     if (convertBaseAmountCurrencyFormat($remain_amount) < $deposit_amount) {
                         $this->form_validation->set_message('check_deposit', $this->lang->line('deposit_amount_can_not_be_greater_than_remaining'));
                         return false;
-                    } else {
-                        return true;
                     }
                 }
                 return true;
@@ -1181,107 +1184,6 @@ class Studentfee extends Admin_Controller
                 'collected_date' => form_error('collected_date'),
             );
             $array = array('status' => 0, 'error' => $data);
-            echo json_encode($array);
-        } else {
-            $collected_array = array();
-            $staff_record    = $this->staff_model->get($this->customlib->getStaffID());
-            $collected_by    = $this->customlib->getAdminSessionUserName() . "(" . $staff_record['employee_id'] . ")";
-            $send_to            = $this->input->post('guardian_phone');
-            $email              = $this->input->post('guardian_email');
-            $parent_app_key     = $this->input->post('parent_app_key');
-            $student_session_id = $this->input->post('student_session_id');
-            $student = $this->student_model->getByStudentSession($student_session_id);
-            $total_row          = $this->input->post('row_counter');
-            
-            foreach ($total_row as $total_row_key => $total_row_value) {
-                $fee_category             = $this->input->post('fee_category_' . $total_row_value);
-                $student_transport_fee_id = $this->input->post('trans_fee_id_' . $total_row_value);
-                $json_array = array(
-                    'amount'          => $this->input->post('fee_amount_' . $total_row_value),
-                    'date'            => date('Y-m-d', $this->customlib->datetostrtotime($this->input->post('collected_date'))),
-                    'description'     => $this->input->post('fee_gupcollected_note'),
-                    'amount_discount' => 0,
-                    'collected_by'    => $collected_by,
-                    'amount_fine'     => $this->input->post('fee_groups_feetype_fine_amount_' . $total_row_value),
-                    'payment_mode'    => $this->input->post('payment_mode_fee'),
-                    'received_by'     => $staff_record['id'],
-                );
-                $collected_array[] = array(
-                    'fee_category'             => $fee_category,
-                    'student_transport_fee_id' => $student_transport_fee_id,
-                    'student_fees_master_id'   => $this->input->post('student_fees_master_id_' . $total_row_value),
-                    'fee_groups_feetype_id'    => $this->input->post('fee_groups_feetype_id_' . $total_row_value),
-                    'amount_detail'            => $json_array,
-                );
-            }
-
-            $deposited_fees = $this->studentfeemaster_model->fee_deposit_collections($collected_array);
-
-            if ($deposited_fees && is_array($deposited_fees)) {
-                foreach ($deposited_fees as $deposited_fees_key => $deposited_fees_value) {
-                    $fee_category = $deposited_fees_value['fee_category'];
-                    $invoice[]   = array(
-                        'invoice_id'     => $deposited_fees_value['invoice_id'],
-                        'sub_invoice_id' => $deposited_fees_value['sub_invoice_id'],
-                        'fee_category' => $fee_category,
-                    );
-
-                    if ($deposited_fees_value['student_transport_fee_id'] != 0 && $deposited_fees_value['fee_category'] == "transport") {
-
-                        $data['student_fees_master_id']   = null;
-                        $data['fee_groups_feetype_id']    = null;
-                        $data['student_transport_fee_id'] = $deposited_fees_value['student_transport_fee_id'];
-
-                        $mailsms_array     = $this->studenttransportfee_model->getTransportFeeMasterByStudentTransportID($deposited_fees_value['student_transport_fee_id']);
-                        $fee_group_name[]  = $this->lang->line("transport_fees");
-                        $type[]            = $mailsms_array->month;
-                        $code[]            = "-";
-                        $fine_type[]       = $mailsms_array->fine_type;
-                        $due_date[]        = $mailsms_array->due_date;
-                        $fine_percentage[] = $mailsms_array->fine_percentage;
-                        $fine_amount[]     = amountFormat($mailsms_array->fine_amount);
-                        $amount[]          = amountFormat($mailsms_array->amount);
-                    } else {
-
-                        $mailsms_array = $this->feegrouptype_model->getFeeGroupByIDAndStudentSessionID($deposited_fees_value['fee_groups_feetype_id'], $student_session_id);
-
-                        $fee_group_name[]  = $mailsms_array->fee_group_name;
-                        $type[]            = $mailsms_array->type;
-                        $code[]            = $mailsms_array->code;
-                        $fine_type[]       = $mailsms_array->fine_type;
-                        $due_date[]        = $mailsms_array->due_date;
-                        $fine_percentage[] = $mailsms_array->fine_percentage;
-                        $fine_amount[]     = amountFormat($mailsms_array->fine_amount);
-
-                        if ($mailsms_array->is_system) {
-                            $amount[] = amountFormat($mailsms_array->balance_fee_master_amount);
-                        } else {
-                            $amount[] = amountFormat($mailsms_array->amount);
-                        }
-                    }
-                }
-                $obj_mail                     = [];
-                $obj_mail['student_id']  = $student['id'];
-                $obj_mail['student_session_id'] = $student_session_id;
-                $obj_mail['invoice']         = $invoice;
-                $obj_mail['contact_no']      = $student['guardian_phone'];
-                $obj_mail['email']           = $student['email'];
-                $obj_mail['parent_app_key']  = $student['parent_app_key'];
-                $obj_mail['amount']          = "(" . implode(',', $amount) . ")";
-                $obj_mail['fine_type']       = "(" . implode(',', $fine_type) . ")";
-                $obj_mail['due_date']        = "(" . implode(',', $due_date) . ")";
-                $obj_mail['fine_percentage'] = "(" . implode(',', $fine_percentage) . ")";
-                $obj_mail['fine_amount']     = "(" . implode(',', $fine_amount) . ")";
-                $obj_mail['fee_group_name']  = "(" . implode(',', $fee_group_name) . ")";
-                $obj_mail['type']            = "(" . implode(',', $type) . ")";
-                $obj_mail['code']            = "(" . implode(',', $code) . ")";
-                $obj_mail['fee_category']    = $fee_category;
-                $obj_mail['send_type']    = 'group';
-
-                $this->mailsmsconf->mailsms('fee_submission', $obj_mail);
-            }
-
-            $array = array('status' => 1, 'error' => '');
             echo json_encode($array);
         }
     }
