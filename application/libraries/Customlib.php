@@ -922,6 +922,8 @@ class Customlib
             return null;
         }
 
+        $date = str_replace('-', '/', $date);
+
         $schoolDateFormat = $this->getSchoolDateFormat();
 
         // Try to parse the date using the school's configured format
@@ -934,11 +936,9 @@ class Customlib
 
         // Fallback: Try common date formats if the school format doesn't match the input
         $commonFormats = [
-            'Y-m-d', // e.g., 2023-10-27
+            'Y/m/d', // e.g., 2023/10/27
             'm/d/Y', // e.g., 10/27/2023
-            'd-m-Y', // e.g., 27-10-2023
             'd/m/Y', // e.g., 27/10/2023
-            'm-d-Y', // e.g., 10-27-2023
         ];
 
         foreach ($commonFormats as $format) {
@@ -952,9 +952,11 @@ class Customlib
         // but can sometimes parse dates that createFromFormat might miss.
         $timestamp = strtotime($date);
         if ($timestamp !== false) {
+            log_message('error', 'datetostrtotime returning from strtotime: ' . $timestamp);
             return $timestamp;
         }
 
+        log_message('error', 'datetostrtotime returning null.');
         return null; // If date cannot be parsed by any method
     }
 
@@ -962,26 +964,31 @@ class Customlib
 
     public function dateyyyymmddTodateformat($date)
     {
+        log_message('error', 'dateyyyymmddTodateformat called with date: ' . $date);
         if ($date == "" || substr($date, 0, 10) == '0000-00-00' || $date == null) {
             return null;
         }
 
         // First, try to parse based on the school's date format setting.
         $format = $this->getSchoolDateFormat();
+        log_message('error', 'dateyyyymmddTodateformat school date format: ' . $format);
         $d = DateTime::createFromFormat($format, $date);
 
         if ($d && $d->format($format) === $date) {
             // The date string was successfully parsed according to the school's format.
+            log_message('error', 'dateyyyymmddTodateformat returning from createFromFormat: ' . $d->getTimestamp());
             return $d->getTimestamp();
         }
 
         // If that fails, fall back to strtotime() as it can handle other formats (like Y-m-d from the DB).
         $timestamp = strtotime($date);
         if ($timestamp !== false) {
+            log_message('error', 'dateyyyymmddTodateformat returning from strtotime: ' . $timestamp);
             return $timestamp;
         }
 
         // If all parsing fails, return null.
+        log_message('error', 'dateyyyymmddTodateformat returning null.');
         return null;
     }
 

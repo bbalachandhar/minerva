@@ -148,7 +148,26 @@ class Studentfee extends Admin_Controller
 
                             if ($inserted_id) {
                                 if ($advance_amount > 0) {
-                                    $this->student_model->add_advance_payment($student->id, $advance_amount);
+                                    $advance_fee_ids = $this->studentfeemaster_model->get_or_create_advance_fee_ids($student_session_id);
+                                    $json_array_advance = [
+                                        'amount'          => $advance_amount,
+                                        'amount_discount' => 0,
+                                        'amount_fine'     => 0,
+                                        'date'            => date('Y-m-d', $this->customlib->datetostrtotime($old_bill_date)),
+                                        'description'     => 'Advance Payment',
+                                        'collected_by'    => $this->customlib->getAdminSessionUserName(),
+                                        'payment_mode'    => $payment_mode,
+                                        'received_by'     => $this->customlib->getStaffID(),
+                                    ];
+
+                                    $data_to_insert_advance = [
+                                        'fee_category'           => 'fees',
+                                        'student_fees_master_id' => $advance_fee_ids->student_fees_master_id,
+                                        'fee_groups_feetype_id'  => $advance_fee_ids->fee_groups_feetype_id,
+                                        'amount_detail'          => $json_array_advance,
+                                    ];
+
+                                    $this->studentfeemaster_model->fee_deposit($data_to_insert_advance, null, [], date('Y-m-d', $this->customlib->datetostrtotime($old_bill_date)));
                                 }
                                 $successful_records++;
                             } else {
@@ -632,15 +651,21 @@ class Studentfee extends Admin_Controller
 
     public function addstudentfee()
     {
+        log_message('error', 'addstudentfee method called.');
+
         $this->form_validation->set_rules('student_fees_master_id', $this->lang->line('fee_master'), 'required|trim|xss_clean');
         $this->form_validation->set_rules('date', $this->lang->line('date'), 'required|trim|xss_clean');
         $this->form_validation->set_rules('fee_groups_feetype_id', $this->lang->line('student'), 'required|trim|xss_clean');
         $this->form_validation->set_rules('amount', $this->lang->line('amount'), 'required|trim|xss_clean|numeric|callback_check_deposit');
         $this->form_validation->set_rules('amount_discount', $this->lang->line('discount'), 'required|trim|numeric|xss_clean');
         $this->form_validation->set_rules('amount_fine', $this->lang->line('fine'), 'required|trim|numeric|xss_clean');
-        $this->form_validation->set_rules('payment_mode', $this->lang->line('payment_mode'), 'required|trim|xss_clean');
+
+        if ($this->input->post('use_advance') != 'yes') {
+            $this->form_validation->set_rules('payment_mode', $this->lang->line('payment_mode'), 'required|trim|xss_clean');
+        }
 
         if ($this->form_validation->run() == false) {
+            log_message('error', 'addstudentfee form validation failed: ' . validation_errors());
             $data = array(
                 'amount'                 => form_error('amount'),
                 'student_fees_master_id' => form_error('student_fees_master_id'),
@@ -653,14 +678,24 @@ class Studentfee extends Admin_Controller
             $array = array('status' => 'fail', 'error' => $data);
             echo json_encode($array);
         } else {
+            log_message('error', 'addstudentfee form validation successful.');
+            log_message('error', 'Date from form: ' . $this->input->post('date'));
 
             $staff_record = $this->staff_model->get($this->customlib->getStaffID());
             $collected_by             = $this->customlib->getAdminSessionUserName() . "(" . $staff_record['employee_id'] . ")";
             $discounts = $this->input->post('discounts');
+            $use_advance = $this->input->post('use_advance');
 
             if(!isset($discounts)){
                 $discounts=[];
             }
+
+            if ($use_advance == 'yes') {
+                $payment_mode = 'Advance';
+            } else {
+                $payment_mode = $this->input->post('payment_mode');
+            }
+
             $json_array               = array(
                 'amount'          => convertCurrencyFormatToBaseAmount($this->input->post('amount')),
                 'amount_discount' => convertCurrencyFormatToBaseAmount($this->input->post('amount_discount')),
@@ -668,7 +703,7 @@ class Studentfee extends Admin_Controller
                 'date'            => date('Y-m-d', $this->customlib->datetostrtotime($this->input->post('date'))),
                 'description'     => $this->input->post('description'),
                 'collected_by'    => $collected_by,
-                'payment_mode'    => $this->input->post('payment_mode'),
+                'payment_mode'    => $payment_mode,
                 'received_by'     => $staff_record['id'],
             );
 
@@ -708,7 +743,36 @@ class Studentfee extends Admin_Controller
             $email              = $this->input->post('guardian_email');
             $parent_app_key     = $this->input->post('parent_app_key');
             $student_session_id = $this->input->post('student_session_id');
-            $inserted_id        = $this->studentfeemaster_model->fee_deposit($data, $send_to, $discounts,date('Y-m-d', $this->input->post('date')));
+
+            log_message('error', 'Calling fee_deposit with data: ' . print_r($data, true));
+            $inserted_id        = $this->studentfeemaster_model->fee_deposit($data, $send_to, $discounts,date('Y-m-d', $this->customlib->datetostrtotime($this->input->post('date'))));
+            log_message('error', 'fee_deposit returned: ' . $inserted_id);
+
+            if ($use_advance == 'yes') {
+                log_message('error', 'use_advance is yes, deducting from advance.');
+                $advance_fee_ids = $this->studentfeemaster_model->get_or_create_advance_fee_ids($student_session_id);
+                $json_array_advance = [
+                    'amount'          => -($this->input->post('amount')),
+                    'amount_discount' => 0,
+                    'amount_fine'     => 0,
+                    'date'            => date('Y-m-d', $this->customlib->datetostrtotime($this->input->post('date'))),
+                    'description'     => 'Advance amount used for fee payment',
+                    'collected_by'    => $collected_by,
+                    'payment_mode'    => 'Advance Adjustment',
+                    'received_by'     => $staff_record['id'],
+                ];
+
+                $data_to_insert_advance = [
+                    'fee_category'           => 'fees',
+                    'student_fees_master_id' => $advance_fee_ids->student_fees_master_id,
+                    'fee_groups_feetype_id'  => $advance_fee_ids->fee_groups_feetype_id,
+                    'amount_detail'          => $json_array_advance,
+                ];
+
+                log_message('error', 'Calling fee_deposit for advance deduction with data: ' . print_r($data_to_insert_advance, true));
+                $this->studentfeemaster_model->fee_deposit($data_to_insert_advance, null, [], date('Y-m-d', $this->customlib->datetostrtotime($this->input->post('date'))));
+                log_message('error', 'Advance deduction successful.');
+            }
 
             $print_record = array();
             if ($action == "print") {
@@ -751,6 +815,7 @@ class Studentfee extends Admin_Controller
 
             $this->mailsmsconf->mailsms('fee_submission', $mailsms_array);
 
+            log_message('error', 'addstudentfee successful, sending response.');
             $array = array('status' => 'success', 'error' => '', 'print' => $print_record);
             echo json_encode($array);
         }
@@ -954,6 +1019,7 @@ class Studentfee extends Admin_Controller
             $student_fees_master_id = $this->input->post('student_fees_master_id');
             $student_session_id   = $this->input->post('student_session_id');
             $student=$this->student_model->getByStudentSession($student_session_id);
+            $advance_balance = $this->studentfeemaster_model->get_advance_balance($student_session_id);
             $discount_not_applied = $this->getNotAppliedDiscount($student_session_id);
             $fee_category = $this->input->post('fee_category');
             $trans_fee_id         = $this->input->post('trans_fee_id');
@@ -972,6 +1038,7 @@ class Studentfee extends Admin_Controller
 
             $array = array(
                   'balance' => convertBaseAmountCurrencyFormat($remain_amount), 
+                  'advance_balance' => $advance_balance,
                   'discount_not_applied' => $discount_not_applied,
                   'remain_amount_fine' => convertBaseAmountCurrencyFormat($remain_amount_fine),
                   'student_fees' => convertBaseAmountCurrencyFormat(json_decode($remain_amount_object)->student_fees),

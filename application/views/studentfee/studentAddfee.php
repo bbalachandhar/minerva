@@ -357,7 +357,10 @@ if ($fee_deposits_value->description == "") {
                 ?>
                                                             </div>
                                                         </td>
-                                                        <td class="text text-left"><?php echo $this->lang->line(strtolower($fee_deposits_value->payment_mode)); ?></td>
+                                                                                                                <td class="text text-left">
+                                                                                                                    <script>console.log('Payment Mode for display: ', '<?php echo $fee_deposits_value->payment_mode; ?>');</script>
+                                                                                                                    <?php echo $this->lang->line(strtolower($fee_deposits_value->payment_mode)); ?>
+                                                                                                                </td>
                                                         <td class="text text-left">
                                                             <?php if ($fee_deposits_value->date) {echo date($this->customlib->getSchoolDateFormat(), $this->customlib->dateyyyymmddTodateformat($fee_deposits_value->date));}?>
                                                         </td>
@@ -871,13 +874,16 @@ echo $currency_symbol . amountFormat(($total_balance_amount - $alot_fee_discount
             selectedDiscounts.push($(this).val());
         });
         var student_fees_discount_id = $('#discount_group').val();
+        var use_advance = $('input[name="use_advance"]:checked').val();
 
         $.ajax({
             url: '<?php echo site_url("studentfee/addstudentfee") ?>',
             type: 'post',
-            data: {action: action, student_session_id: student_session_id, date: date, type: feetype, amount: amount, amount_discount: amount_discount, amount_fine: amount_fine, description: description, student_fees_master_id: student_fees_master_id, fee_groups_feetype_id: fee_groups_feetype_id,fee_category:fee_category, transport_fees_id:transport_fees_id, payment_mode: payment_mode, guardian_phone: guardian_phone, guardian_email: guardian_email, student_fees_discount_id: student_fees_discount_id, parent_app_key: parent_app_key,discounts: selectedDiscounts},
+            data: {action: action, student_session_id: student_session_id, date: date, type: feetype, amount: amount, amount_discount: amount_discount, amount_fine: amount_fine, description: description, student_fees_master_id: student_fees_master_id, fee_groups_feetype_id: fee_groups_feetype_id,fee_category:fee_category, transport_fees_id:transport_fees_id, payment_mode: payment_mode, guardian_phone: guardian_phone, guardian_email: guardian_email, student_fees_discount_id: student_fees_discount_id, parent_app_key: parent_app_key,discounts: selectedDiscounts, use_advance: use_advance},
             dataType: 'json',
             success: function (response) {
+                console.log('AJAX success callback executed');
+                console.log(response);
                 $this.button('reset');
                 if (response.status === "success") {
                     if (action === "collect") {

@@ -576,6 +576,7 @@ class Studentfeemaster_model extends MY_Model
         } else {
 
             $this->db->trans_start(); // Query will be rolled back
+            log_message('error', 'fee_deposit - Inserting new record with data: ' . print_r($data, true));
             $data['amount_detail']['inv_no'] = 1;
             $desc                            = $data['amount_detail']['description'];
             $data['amount_detail']           = json_encode(array('1' => $data['amount_detail']));
@@ -1550,6 +1551,88 @@ class Studentfeemaster_model extends MY_Model
         $this->db->where('fgf.feetype_id', $feetype_id);
         $query = $this->db->get();
         return $query->row();
+    }
+
+    public function get_or_create_advance_fee_ids($student_session_id)
+    {
+        $this->load->model('feegroup_model');
+        $this->load->model('feetype_model');
+        $this->load->model('feesessiongroup_model');
+
+        $fee_group_name = "Advance Payments";
+        $fee_type_name = "Advance Payments";
+
+        // 1. Get or create Fee Group
+        $fee_group = $this->feegroup_model->checkGroupExistsByName($fee_group_name);
+        if (!$fee_group) {
+            $this->db->insert('fee_groups', ['name' => $fee_group_name, 'description' => 'Advance Payments']);
+            $fee_group_id = $this->db->insert_id();
+        } else {
+            $fee_group_id = $fee_group->id;
+        }
+
+        // 2. Get or create Fee Type
+        $fee_type = $this->feetype_model->checkFeetypeByName($fee_type_name);
+        if (!$fee_type) {
+            $this->db->insert('feetype', ['type' => $fee_type_name, 'code' => 'ADV']);
+            $fee_type_id = $this->db->insert_id();
+        } else {
+            $fee_type_id = $fee_type->id;
+        }
+
+        // 3. Get or create Fee Session Group
+        $fee_session_group_id = $this->feesessiongroup_model->group_exists($fee_group_id);
+
+        // 4. Get or create Student Fee Master
+        $student_fees_master = $this->db->where(['student_session_id' => $student_session_id, 'fee_session_group_id' => $fee_session_group_id])->get('student_fees_master')->row();
+        if (!$student_fees_master) {
+            $this->db->insert('student_fees_master', ['student_session_id' => $student_session_id, 'fee_session_group_id' => $fee_session_group_id]);
+            $student_fees_master_id = $this->db->insert_id();
+        } else {
+            $student_fees_master_id = $student_fees_master->id;
+        }
+
+        // 5. Get or create Fee Groups Feetype
+        $fee_groups_feetype = $this->db->where(['fee_session_group_id' => $fee_session_group_id, 'feetype_id' => $fee_type_id])->get('fee_groups_feetype')->row();
+        if (!$fee_groups_feetype) {
+            $this->db->insert('fee_groups_feetype', ['fee_session_group_id' => $fee_session_group_id, 'feetype_id' => $fee_type_id, 'fee_groups_id' => $fee_group_id, 'amount' => 0, 'due_date' => null]);
+            $fee_groups_feetype_id = $this->db->insert_id();
+        } else {
+            $fee_groups_feetype_id = $fee_groups_feetype->id;
+        }
+
+        return (object)['student_fees_master_id' => $student_fees_master_id, 'fee_groups_feetype_id' => $fee_groups_feetype_id];
+    }
+
+    public function get_advance_balance($student_session_id)
+    {
+        $this->load->model('feetype_model');
+        $fee_type = $this->feetype_model->checkFeetypeByName("Advance Payments");
+        if (!$fee_type) {
+            return 0;
+        }
+        $feetype_id = $fee_type->id;
+
+        $this->db->select('student_fees_deposite.amount_detail');
+        $this->db->from('student_fees_deposite');
+        $this->db->join('student_fees_master', 'student_fees_master.id = student_fees_deposite.student_fees_master_id');
+        $this->db->join('fee_groups_feetype', 'fee_groups_feetype.id = student_fees_deposite.fee_groups_feetype_id');
+        $this->db->where('student_fees_master.student_session_id', $student_session_id);
+        $this->db->where('fee_groups_feetype.feetype_id', $feetype_id);
+        $query = $this->db->get();
+        $result = $query->result();
+
+        $total_advance = 0;
+        if (!empty($result)) {
+            foreach ($result as $row) {
+                $amount_detail = json_decode($row->amount_detail);
+                foreach ($amount_detail as $amount) {
+                    $total_advance += $amount->amount;
+                }
+            }
+        }
+
+        return $total_advance;
     }
 
 }
