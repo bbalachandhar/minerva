@@ -1540,4 +1540,16 @@ class Studentfeemaster_model extends MY_Model
         return ($query->num_rows() > 0);
     }
 
+    public function getFeeByFeeType($student_session_id, $feetype_id)
+    {
+        $this->db->select('sfm.id, fgf.id as fee_groups_feetype_id');
+        $this->db->from('student_fees_master as sfm');
+        $this->db->join('fee_session_groups as fsg', 'fsg.id = sfm.fee_session_group_id');
+        $this->db->join('fee_groups_feetype as fgf', 'fgf.fee_session_group_id = fsg.id');
+        $this->db->where('sfm.student_session_id', $student_session_id);
+        $this->db->where('fgf.feetype_id', $feetype_id);
+        $query = $this->db->get();
+        return $query->row();
+    }
+
 }

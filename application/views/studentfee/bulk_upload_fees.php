@@ -14,6 +14,19 @@
                         </div>
                     </div>
                     <div class="box-body">
+                        <?php if (isset($error_message)): ?>
+                            <div class="alert alert-danger">
+                                <?php echo $error_message; ?>
+                            </div>
+                        <?php endif; ?>
+                        <?php if (isset($summary)): ?>
+                            <div class="alert alert-info">
+                                <h4>Upload Summary</h4>
+                                <p>Total Records: <?php echo $summary['total_records']; ?></p>
+                                <p>Successful Records: <?php echo $summary['successful_records']; ?></p>
+                                <p>Failed Records: <?php echo $summary['failed_records']; ?></p>
+                            </div>
+                        <?php endif; ?>
                         <?php if ($this->session->flashdata('msg')) { ?>
                             <?php echo $this->session->flashdata('msg'); $this->session->unset_userdata('msg'); ?>
                         <?php } ?>
@@ -32,14 +45,27 @@
                             <p><?php echo $this->lang->line('bulk_upload_instructions_1'); ?></p>
                             <p><?php echo $this->lang->line('bulk_upload_instructions_2'); ?></p>
                             <p><b><?php echo $this->lang->line('required_columns'); ?>:</b> admission_no, total_amount_paid, old_bill_number, old_bill_date, payment_mode, description</p>
+                            <p><b><?php echo $this->lang->line('note'); ?>:</b> <?php echo $this->lang->line('fee_will_be_uploaded_against_selected_fee_type'); ?></p>
                             <p><b><?php echo $this->lang->line('example'); ?>:</b></p>
                             <pre>
 admission_no,total_amount_paid,old_bill_number,old_bill_date,payment_mode,description
 12345,1000,BILL123,2023-10-27,Cash,Monthly Fee Payment
                             </pre>
                         </div>
-                        <?php echo form_open_multipart('studentfee/bulk_upload_fees', array('id' => 'bulk_upload_form')); ?>
+                        <?php echo form_open_multipart('studentfee/do_bulk_upload_by_feetype', array('id' => 'bulk_upload_form')); ?>
                         <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="fee_type_id"><?php echo $this->lang->line('fee_type'); ?></label><small class="req"> *</small>
+                                    <select autofocus="" id="fee_type_id" name="fee_type_id" class="form-control" >
+                                        <option value=""><?php echo $this->lang->line('select'); ?></option>
+                                        <?php foreach ($feetype_list as $feetype) { ?>
+                                            <option value="<?php echo $feetype['id'] ?>" <?php echo set_select('fee_type_id', $feetype['id']); ?>><?php echo $feetype['type'] . " (" . $feetype['code'] . ")"; ?></option>
+                                        <?php } ?>
+                                    </select>
+                                    <span class="text-danger"><?php echo form_error('fee_type_id'); ?></span>
+                                </div>
+                            </div>
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label for="file"><?php echo $this->lang->line('select_csv_file'); ?></label>
@@ -69,13 +95,22 @@ admission_no,total_amount_paid,old_bill_number,old_bill_date,payment_mode,descri
                                         if (input.length) {
                                             input.val(log);
                                         } else {
-                                            if (log) alert(log);
-                                        }
-                                    });
-                                </script>                            </div>
-                        </div>
+                                                                                    if (log) alert(log);
+                                                                                }
+                                                                            });
+                                                                        </script>
+                                                                        <script type="text/javascript">
+                                                                            $(document).ready(function () {
+                                                                                $('#fee_type_id').on('change', function() {
+                                                                                    var fee_type_id = $(this).val();
+                                                                                    var fee_type_text = $(this).find("option:selected").text();
+                                                                                    alert("Selected Fee Type: " + fee_type_text + "\nID: " + fee_type_id);
+                                                                                });
+                                                                            });
+                                                                        </script>
+                                                                    </div>                        </div>
                         <div class="box-footer">
-                            <button type="submit" class="btn btn-primary pull-right"><?php echo $this->lang->line('upload'); ?></button>
+                            <button type="submit" class="btn btn-primary pull-right" id="upload_btn"><?php echo $this->lang->line('upload'); ?></button>
                         </div>
                         <?php echo form_close(); ?>
                     </div>
@@ -84,3 +119,60 @@ admission_no,total_amount_paid,old_bill_number,old_bill_date,payment_mode,descri
         </div>
     </section>
 </div>
+
+<script type="text/javascript">
+    $(document).ready(function (e) {
+        $("#bulk_upload_form").on('submit', (function (e) {
+            e.preventDefault();
+            var $this = $(this);
+            var $btn = $this.find("#upload_btn");
+            $btn.button('loading');
+
+            var formData = new FormData();
+            formData.append('feetype_id', $('#fee_type_id').val());
+            formData.append('file', $('#file')[0].files[0]);
+
+            for (var pair of formData.entries()) {
+                console.log(pair[0]+ ', ' + pair[1]); 
+            }
+
+            $.ajax({
+                url: "<?php echo site_url('studentfee/do_bulk_upload_by_feetype') ?>",
+                type: "POST",
+                data: formData,
+                dataType: 'json',
+                contentType: false,
+                cache: false,
+                processData: false,
+                success: function (data) {
+                    if (data.status == "fail") {
+                        var message = "";
+                        $.each(data.error, function (index, value) {
+                            message += value;
+                        });
+                        errorMsg(message);
+                    } else {
+                        successMsg(data.message);
+                        if (data.summary) {
+                            var summary_html = '<div class="alert alert-info"><h4>Upload Summary</h4><p>Total Records: ' + data.summary.total_records + '</p><p>Successful Records: ' + data.summary.successful_records + '</p><p>Failed Records: ' + data.summary.failed_records + '</p></div>';
+                            $('.box-body').prepend(summary_html);
+                        }
+                        if (data.error_messages) {
+                            var error_html = '<div class="alert alert-danger"><h4><i class="icon fa fa-ban"></i> Errors Found In CSV</h4><ul>';
+                            $.each(data.error_messages, function (index, value) {
+                                error_html += '<li>' + value + '</li>';
+                            });
+                            error_html += '</ul></div>';
+                            $('.box-body').prepend(error_html);
+                        }
+                    }
+                    $btn.button('reset');
+                },
+                error: function (xhr) { // if error occured
+                    alert("Error occured.please try again");
+                    $btn.button('reset');
+                }
+            });
+        }));
+    });
+</script>

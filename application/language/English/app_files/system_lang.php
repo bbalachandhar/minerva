@@ -1998,6 +1998,7 @@ $lang['sample_csv_file'] = "Sample CSV File";
 $lang['download_sample_file'] = "Download Sample File";
 $lang['upload'] = "Upload";
 $lang['fees_uploaded_successfully'] = "Fees Uploaded Successfully";
+$lang['fee_will_be_uploaded_against_selected_fee_type'] = 'Fee will be uploaded against selected fee type.';
 $lang['total_records'] = "Total Records";
 $lang['successful_records'] = "Successful Records";
 $lang['failed_records'] = "Failed Records";

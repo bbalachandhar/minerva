@@ -200,7 +200,7 @@ $(document).on('submit','.class_search_form',function(e){
     e.preventDefault(); // avoid to execute the actual submit of the form.
         var $this = $("button[type=submit][clicked=true]");
     var form = $(this);
-    var url = form.attr('action');
+    var url = '<?php echo site_url('studentfee/ajaxSearch') ?>';
     var form_data = form.serializeArray();
     form_data.push({name: 'search_type', value: $this.attr('value')});
     $.ajax({

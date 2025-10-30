@@ -551,10 +551,13 @@ class Student_model extends MY_Model
             ->join('sections', 'sections.id = student_session.section_id')
             ->join('categories', 'students.category_id = categories.id', 'left')
             ->where('student_session.session_id', $this->current_session)
-            ->where('students.is_active', "yes")
-            ->sort('students.admission_no', 'asc');
+            ->where('students.is_active', "yes");
         if ($class_id != null) {
-            $this->datatables->where('student_session.class_id', $class_id);
+            if (is_array($class_id)) {
+                $this->datatables->where_in('student_session.class_id', $class_id);
+            } else {
+                $this->datatables->where('student_session.class_id', $class_id);
+            }
         }
         if ($section_id != null) {
             $this->datatables->where('student_session.section_id', $section_id);
@@ -2499,5 +2502,12 @@ class Student_model extends MY_Model
         ";
         $query = $this->db->query($sql);
         return $query->row();
+    }
+
+    public function add_advance_payment($student_id, $advance_amount)
+    {
+        $this->db->set('advance_balance', 'advance_balance + ' . $advance_amount, FALSE);
+        $this->db->where('id', $student_id);
+        $this->db->update('students');
     }
 }
