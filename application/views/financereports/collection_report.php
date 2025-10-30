@@ -37,20 +37,23 @@ if ((isset($search_type)) && ($search_type == $key)) {
                             <div class="col-sm-2 col-lg-2 col-md-2">
                                 <div class="form-group">
                                     <label for="exampleInputEmail1"><?php echo $this->lang->line('class'); ?></label>
-                                    <select autofocus="" id="class_id" name="class_id" class="form-control" >
+                                    <select autofocus="" id="class_id" name="class_id[]" class="form-control select2" multiple="multiple">
                                         <option value=""><?php echo $this->lang->line('select'); ?></option>
                                         <?php
+$count = 0;
 foreach ($classlist as $class) {
     ?>
-                                            <option value="<?php echo $class['id'] ?>" <?php if (set_value('class_id') == $class['id']) {
-        echo "selected=selected";
-    }
-    ?>><?php echo $class['class'] ?></option>
+                                                                                        <option value="<?php echo $class['id'] ?>" <?php echo set_select('class_id[]', $class['id']); ?>><?php echo $class['class'] ?></option>
                                             <?php
 $count++;
 }
 ?>
                                     </select>
+                                    <script>
+                                        $(document).ready(function() {
+                                            $('#class_id').select2();
+                                        });
+                                    </script>
                                     <span class="text-danger"><?php echo form_error('class_id'); ?></span>
                                 </div>
                             </div>
@@ -400,3 +403,10 @@ function printDiv() {
 }
  
 </script>
+
+<style>
+.select2-container--default .select2-selection--multiple {
+    max-height: 100px; /* Adjust as needed */
+    overflow-y: auto;
+}
+</style>

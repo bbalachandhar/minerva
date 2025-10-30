@@ -64,6 +64,7 @@ class Customfinancereports extends Admin_Controller
                     $obj->class         = $eachstudent['class'];
                     $obj->section       = $eachstudent['section'];
                     $obj->admission_no  = $eachstudent['admission_no'];
+                    $obj->advance_balance = $eachstudent['advance_balance'] ?? 0;
                     $student_session_id = $eachstudent['student_session_id'];
 
                     // Get all fees and discounts for the student
@@ -155,6 +156,7 @@ class Customfinancereports extends Admin_Controller
                 $obj->class         = $eachstudent['class'];
                 $obj->section       = $eachstudent['section'];
                 $obj->admission_no  = $eachstudent['admission_no'];
+                $obj->advance_balance = $eachstudent['advance_balance'] ?? 0;
                 $student_session_id = $eachstudent['student_session_id'];
 
                 // Get all fees and discounts for the student

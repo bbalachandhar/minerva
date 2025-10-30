@@ -74,6 +74,10 @@ class Sections extends Admin_Controller
     public function getByClass()
     {
         $class_id = $this->input->get('class_id');
+        // Ensure class_id is always an array
+        if (!is_array($class_id)) {
+            $class_id = [$class_id];
+        }
         $data     = $this->section_model->getClassBySection($class_id);
         echo json_encode($data);
     }

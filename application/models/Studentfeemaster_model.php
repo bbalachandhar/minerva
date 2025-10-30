@@ -222,7 +222,11 @@ class Studentfeemaster_model extends MY_Model
     {
         $where_condition = array();
         if ($class_id != NULL) {
-            $where_condition[] = " and student_session.class_id=" . $class_id;
+            if (is_array($class_id)) {
+                $where_condition[] = " and student_session.class_id IN (" . implode(',', array_map(array($this->db, 'escape'), $class_id)) . ")";
+            } else {
+                $where_condition[] = " and student_session.class_id=" . $this->db->escape($class_id);
+            }
         }
         if ($section_id != NULL) {
             $where_condition[] = " and student_session.section_id=" . $section_id;
@@ -643,10 +647,12 @@ class Studentfeemaster_model extends MY_Model
             $this->db->where('fee_groups_feetype.feetype_id', $feetype_id);
         }
         $this->db->where('fee_groups_feetype.session_id', $this->current_session);
-        $this->db->where('student_session.session_id', $this->current_session);       
-
         if ($class_id != null) {
-            $this->db->where('student_session.class_id', $class_id);
+            if (is_array($class_id)) {
+                $this->db->where_in('student_session.class_id', $class_id);
+            } else {
+                $this->db->where('student_session.class_id', $class_id);
+            }
         }
 
         if ($section_id != null) {
@@ -665,10 +671,12 @@ class Studentfeemaster_model extends MY_Model
             $this->db->join('classes', 'classes.id= student_session.class_id');
             $this->db->join('sections', 'sections.id= student_session.section_id');
             $this->db->join('students', 'students.id=student_session.student_id');
-            $this->db->where('student_session.session_id', $this->current_session);
-         
             if ($class_id != null) {
-                $this->db->where('student_session.class_id', $class_id);
+                if (is_array($class_id)) {
+                    $this->db->where_in('student_session.class_id', $class_id);
+                } else {
+                    $this->db->where('student_session.class_id', $class_id);
+                }
             }
 
             if ($section_id != null) {

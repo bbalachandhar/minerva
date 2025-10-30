@@ -329,10 +329,12 @@ class Customstudentfeemaster_model extends MY_Model
             $this->db->join('students', 'students.id=student_session.student_id');
             $this->db->where('student_session.session_id', $this->current_session);
             $this->db->where('student_session.id', $student_session_id);
-            $this->db->order_by('student_fees_deposite.id', 'desc');
-
             if ($class_id != null) {
-                $this->db->where('student_session.class_id', $class_id);
+                if (is_array($class_id)) {
+                    $this->db->where_in('student_session.class_id', $class_id);
+                } else {
+                    $this->db->where('student_session.class_id', $class_id);
+                }
             }
 
             if ($section_id != null) {

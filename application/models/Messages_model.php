@@ -89,8 +89,16 @@ class Messages_model extends MY_Model
 
     public function get_classname($id)
     {
-        $filter_class = $this->db->select('class')->from('classes')->where('id', $id)->get()->row_array();
-        return $this->lang->line('class') . " " . $this->lang->line('name') . " : " . $filter_class['class'];
+        if (is_array($id)) {
+            $this->db->select('class')->from('classes')->where_in('id', $id);
+            $query = $this->db->get();
+            $result = $query->result_array();
+            $class_names = array_column($result, 'class');
+            return $this->lang->line('class') . " " . $this->lang->line('name') . " : " . implode(', ', $class_names);
+        } else {
+            $filter_class = $this->db->select('class')->from('classes')->where('id', $id)->get()->row_array();
+            return $this->lang->line('class') . " " . $this->lang->line('name') . " : " . $filter_class['class'];
+        }
     }
 
     public function get_sectionname($id)

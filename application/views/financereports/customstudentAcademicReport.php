@@ -23,15 +23,26 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                 <div class="col-md-4">
                                     <div class="form-group">
                                         <label><?php echo $this->lang->line('class'); ?></label>
-                                        <select autofocus="" id="class_id" name="class_id" class="form-control" >
+                                        <select autofocus="" id="class_id" name="class_id[]" class="form-control select2" multiple="multiple">
                                             <option value=""><?php echo $this->lang->line('select'); ?></option>
                                             <?php foreach ($classlist as $class) { ?>
-                                                <option value="<?php echo $class['id'] ?>" <?php if (set_value('class_id') == $class['id']) echo "selected=selected" ?>><?php echo $class['class'] ?></option>
+                                                <option value="<?php echo $class['id'] ?>" <?php echo set_select('class_id[]', $class['id']); ?>><?php echo $class['class'] ?></option>
                                             <?php } ?>
                                         </select>
                                         <span class="text-danger"><?php echo form_error('class_id'); ?></span>
                                     </div>
                                 </div>
+                                <script>
+                                    $(document).ready(function() {
+                                        $('#class_id').select2();
+                                    });
+                                </script>
+                                <style>
+                                .select2-container--default .select2-selection--multiple {
+                                    max-height: 100px; /* Adjust as needed */
+                                    overflow-y: auto;
+                                }
+                                </style>
                                 <div class="col-md-4">
                                     <div class="form-group">
                                         <label><?php echo $this->lang->line('section'); ?></label>
@@ -72,6 +83,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                     <th><?php echo $this->lang->line('class'); ?></th>
                                     <th><?php echo $this->lang->line('admission_no'); ?></th>
                                     <th class="text-right">Last Yr(CF)</th>
+                                    <th class="text-right">Advance Balance</th>
                                     <?php foreach ($discount_list as $discount) { ?>
                                         <th class="text-right"><?php echo $discount['name']; ?></th>
                                     <?php } ?>
@@ -84,7 +96,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                             </thead>
                             <tbody>
                                 <?php
-                                $total_fees = 0; $total_paid = 0; $total_fine = 0; $total_balance = 0; $total_discount = 0;
+                                $total_fees = 0; $total_paid = 0; $total_fine = 0; $total_balance = 0; $total_discount = 0; $total_advance_balance = 0;
                                 $total_last_yr_cf = 0;
                                 $discount_totals = array_fill_keys(array_column($discount_list, 'id'), 0);
 
@@ -95,6 +107,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                         $total_fine += $student->fine;
                                         $total_balance += $student->balance;
                                         $total_last_yr_cf += $student->last_yr_cf;
+                                        $total_advance_balance += $student->advance_balance;
                                         $total_discount += $student->discount;
                                         ?>
                                         <tr>
@@ -102,6 +115,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                             <td><?php echo $student->class . " (" . $student->section . ")"; ?></td>
                                             <td><?php echo $student->admission_no; ?></td>
                                             <td class="text-right"><?php echo amountFormat($student->last_yr_cf); ?></td>
+                                            <td class="text-right"><?php echo amountFormat($student->advance_balance); ?></td>
                                             <?php 
                                             foreach ($discount_list as $discount) {
                                                 $discount_amount = 0;
@@ -127,7 +141,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                     }
                                 } else {
                                     ?>
-                                    <tr><td colspan="<?php echo 8 + count($discount_list); ?>" class="text-center">No Record Found</td></tr>
+                                    <tr><td colspan="<?php echo 9 + count($discount_list); ?>" class="text-center">No Record Found</td></tr>
                                     <?php
                                 }
                                 ?>
@@ -138,6 +152,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                     <td></td>
                                     <td class="text-right"><?php echo $this->lang->line('grand_total'); ?></td>
                                     <td class="text-right"><?php echo $currency_symbol . amountFormat($total_last_yr_cf); ?></td>
+                                    <td class="text-right"><?php echo $currency_symbol . amountFormat($total_advance_balance); ?></td>
                                     <?php foreach ($discount_totals as $total) { ?>
                                         <td class="text-right"><?php echo $currency_symbol . amountFormat($total); ?></td>
                                     <?php } ?>

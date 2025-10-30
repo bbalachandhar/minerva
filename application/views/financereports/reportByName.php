@@ -23,15 +23,13 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                 <div class="col-md-4">
                                     <div class="form-group">
                                         <label for="exampleInputEmail1"><?php echo $this->lang->line('class'); ?></label>
-                                        <select autofocus="" id="class_id" name="class_id" class="form-control" >
+                                        <select autofocus="" id="class_id" name="class_id[]" class="form-control select2" multiple="multiple">
                                             <option value=""><?php echo $this->lang->line('select'); ?></option>
                                             <?php
+$count = 0;
 foreach ($classlist as $class) {
     ?>
-                                                <option value="<?php echo $class['id'] ?>" <?php if (set_value('class_id') == $class['id']) {
-        echo "selected=selected";
-    }
-    ?>><?php echo $class['class'] ?></option>
+                                                                                                <option value="<?php echo $class['id'] ?>" <?php echo set_select('class_id[]', $class['id']); ?>><?php echo $class['class'] ?></option>
                                                 <?php
 $count++;
 }
@@ -40,6 +38,17 @@ $count++;
                                         <span class="text-danger"><?php echo form_error('class_id'); ?></span>
                                     </div>
                                 </div>
+                                <script>
+                                    $(document).ready(function() {
+                                        $('#class_id').select2();
+                                    });
+                                </script>
+                                <style>
+                                .select2-container--default .select2-selection--multiple {
+                                    max-height: 100px; /* Adjust as needed */
+                                    overflow-y: auto;
+                                }
+                                </style>
                                 <div class="col-md-4">
                                     <div class="form-group">
                                         <label for="exampleInputEmail1"><?php echo $this->lang->line('section'); ?></label>
@@ -188,8 +197,8 @@ echo $this->lang->line('fees_statement') . " ";
 
                         foreach ($fee_deposits as $fee_deposits_key => $fee_deposits_value) {
                             $fee_paid     = $fee_paid + $fee_deposits_value->amount;
-                            $fee_discount = $fee_discount + $fee_deposits_value->amount_discount;
-                            $fee_fine     = $fee_fine + $fee_deposits_value->amount_fine;
+                            $fee_discount = $fee_discount + (isset($fee_deposits_value->amount_discount) ? $fee_deposits_value->amount_discount : 0);
+                            $fee_fine     = $fee_fine + (isset($fee_deposits_value->amount_fine) ? $fee_deposits_value->amount_fine : 0);
                         }
                     }
                     $total_amount          = $total_amount + $fee_value->amount;
@@ -348,8 +357,8 @@ if ($fee_deposits_value->description == "") {
                                                                 <td class="text text-left">
                                                                     <?php if($fee_deposits_value->date != '0000-00-00'){  echo date($this->customlib->getSchoolDateFormat(), $this->customlib->dateyyyymmddTodateformat($fee_deposits_value->date)); } ?>
                                                                 </td>
-                                                                <td class="text text-right"><?php echo amountFormat($fee_deposits_value->amount_discount); ?></td>
-                                                                <td class="text text-right"><?php echo amountFormat($fee_deposits_value->amount_fine); ?></td>
+                                                                <td class="text text-right"><?php echo amountFormat(isset($fee_deposits_value->amount_discount) ? $fee_deposits_value->amount_discount : 0); ?></td>
+                                                                <td class="text text-right"><?php echo amountFormat(isset($fee_deposits_value->amount_fine) ? $fee_deposits_value->amount_fine : 0); ?></td>
                                                                 <td class="text text-right"><?php echo amountFormat($fee_deposits_value->amount); ?></td>
                                                                 <td></td>
                                                             </tr>
