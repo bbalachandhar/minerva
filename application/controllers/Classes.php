@@ -320,5 +320,5 @@ class Classes extends Admin_Controller
         $name     = 'import_class_sample_file.csv';
         force_download($name, $data);
     }
-}
 
+}

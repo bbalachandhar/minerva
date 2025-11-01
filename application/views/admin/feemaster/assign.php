@@ -54,6 +54,22 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                     <span class="text-danger"><?php echo form_error('section_id'); ?></span>
                                 </div>   
                             </div>
+                            <div class="col-sm-3">
+                                <div class="form-group">
+                                    <label>Hostel</label>
+                                    <select id="hostel_id" name="hostel_id" class="form-control select2">
+                                        <option value=""><?php echo $this->lang->line('select'); ?></option>
+                                        <?php
+                                        foreach ($hostel_list as $hostel) {
+                                            ?>
+                                            <option value="<?php echo $hostel['id'] ?>" <?php if (set_value('hostel_id') == $hostel['id']) echo "selected=selected" ?>><?php echo $hostel['hostel_name'] ?></option>
+                                            <?php
+                                        }
+                                        ?>
+                                    </select>
+                                    <span class="text-danger"><?php echo form_error('hostel_id'); ?></span>
+                                </div>
+                            </div>
                             <?php if ($sch_setting->category) { ?>
                                 <div class="col-sm-2">
                                     <div class="form-group">   

@@ -510,6 +510,8 @@ class Feemaster extends Admin_Controller
         $data['title']           = $this->lang->line('student_fees');
         $class                   = $this->class_model->get();
         $data['classlist']       = $class;
+        $hostel_list = $this->hostel_model->listhostel();
+        $data['hostel_list'] = $hostel_list;
         
         $data['adm_auto_insert'] = $this->sch_setting_detail->adm_auto_insert;
         $data['sch_setting']     = $this->sch_setting_detail;
@@ -529,6 +531,7 @@ class Feemaster extends Admin_Controller
             $data['rte_status']  = $this->input->post('rte');
             $data['class_id']    = $this->input->post('class_id');
             $data['section_id']  = $this->input->post('section_id');
+            $data['hostel_id']  = $this->input->post('hostel_id');
 
             if($feegroup_id){
                 $feegroup_details = $this->feegroup_model->get($feegroup_id);
@@ -536,7 +539,7 @@ class Feemaster extends Admin_Controller
                 $data['selected_feegroup_details'] = $this->feesessiongroup_model->getFeesByGroup($feegroup_id);
             }
 
-            $resultlist         = $this->studentfeemaster_model->searchAssignFeeByClassSection($data['class_id'], $data['section_id'], $feegroup_id, $data['category_id'], $data['gender'], $data['rte_status']);
+            $resultlist         = $this->studentfeemaster_model->searchAssignFeeByClassSection($data['class_id'], $data['section_id'], $feegroup_id, $data['category_id'], $data['gender'], $data['rte_status'], $data['hostel_id']);
             $data['resultlist'] = $resultlist;
         }
 

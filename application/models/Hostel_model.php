@@ -115,9 +115,12 @@ class Hostel_model extends MY_Model
         }
     }
 
-    public function listhostel()
+    public function listhostel($search = null)
     {
         $this->db->select()->from('hostel');
+        if ($search != null) {
+            $this->db->like('hostel_name', $search);
+        }
         $listhostel = $this->db->get();
         return $listhostel->result_array();
     }

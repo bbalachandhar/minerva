@@ -97,6 +97,16 @@ if ($this->rbac->hasPrivilege('hostel', 'can_add')) {
                 <div class="box box-primary" id="holist">
                     <div class="box-header ptbnull">
                         <h3 class="box-title titlefix"><?php echo $this->lang->line('hostel_list'); ?></h3>
+                        <div class="box-tools pull-right">
+                            <form action="<?php echo site_url('admin/hostel/index') ?>" method="post">
+                                <div class="input-group">
+                                    <input type="text" name="search" class="form-control input-sm pull-right" style="width: 150px;" placeholder="<?php echo $this->lang->line('search'); ?>" value="<?php echo $this->input->post('search'); ?>">
+                                    <div class="input-group-btn">
+                                        <button class="btn btn-sm btn-primary"><i class="fa fa-search"></i></button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
                     </div><!-- /.box-header -->
                     <div class="box-body">
                         <div class="mailbox-controls">

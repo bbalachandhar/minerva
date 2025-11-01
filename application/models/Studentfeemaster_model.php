@@ -19,7 +19,7 @@ class Studentfeemaster_model extends MY_Model
         $this->current_session = $this->setting_model->getCurrentSession();
     }
 
-    public function searchAssignFeeByClassSection($class_id = null, $section_id = null, $fee_session_group_id = null, $category = null, $gender = null, $rte = null)
+    public function searchAssignFeeByClassSection($class_id = null, $section_id = null, $fee_session_group_id = null, $category = null, $gender = null, $rte = null, $hostel_id = null)
     {
         $sql = "SELECT IFNULL(`student_fees_master`.`id`, '0') as `student_fees_master_id`,`classes`.`id` AS `class_id`,"
             . " `student_session`.`id` as `student_session_id`, `students`.`id`, "
@@ -42,8 +42,13 @@ class Studentfeemaster_model extends MY_Model
             . "ON `sections`.`id` = `student_session`.`section_id` LEFT JOIN `categories` "
             . "ON `students`.`category_id` = `categories`.`id` LEFT JOIN student_fees_master on"
             . " student_fees_master.student_session_id=student_session.id"
-            . "  AND student_fees_master.fee_session_group_id=" . $this->db->escape($fee_session_group_id)
-            . "WHERE `student_session`.`session_id` =  " . $this->current_session
+            . "  AND student_fees_master.fee_session_group_id=" . $this->db->escape($fee_session_group_id);
+
+        if ($hostel_id != null) {
+            $sql .= " JOIN `hostel_rooms` ON `hostel_rooms`.`id` = `students`.`hostel_room_id`";
+        }
+
+        $sql .= " WHERE `student_session`.`session_id` =  " . $this->current_session
             . " and `students`.`is_active` =  'yes'";
 
         if ($class_id != null) {
@@ -60,6 +65,9 @@ class Studentfeemaster_model extends MY_Model
         }
         if ($rte != null) {
             $sql .= " AND `students`.`rte` =" . $this->db->escape($rte);
+        }
+        if ($hostel_id != null) {
+            $sql .= " AND `hostel_rooms`.`hostel_id` =" . $this->db->escape($hostel_id);
         }
         $sql .= " ORDER BY `students`.`id`";
 
