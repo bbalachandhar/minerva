@@ -71,44 +71,74 @@ class Studentfee_model extends MY_Model {
         return $query->result_array();
     }
 
-    public function remove($id, $sub_invoice) {
-		$this->db->trans_start(); # Starting Transaction
-        $this->db->trans_strict(false); # See Note 01. If you wish can remove as well
-        //=======================Code Start===========================
+    public function remove($id, $sub_invoice, $reason = null) {
+        $this->db->trans_start();
+        $this->db->trans_strict(false);
+
         $this->db->where('id', $id);
         $q = $this->db->get('student_fees_deposite');
+
         if ($q->num_rows() > 0) {
             $result = $q->row();
             $a = json_decode($result->amount_detail, true);
+
+            if (isset($a[$sub_invoice])) {
+                $deleted_payment_data = $a[$sub_invoice];
+                $student_session_id = null;
+
+                if ($result->student_fees_master_id) {
+                    $master_record = $this->db->select('student_session_id')->where('id', $result->student_fees_master_id)->get('student_fees_master')->row();
+                    if ($master_record) {
+                        $student_session_id = $master_record->student_session_id;
+                    }
+                } elseif ($result->student_transport_fee_id) {
+                    $transport_record = $this->db->select('student_session_id')->where('id', $result->student_transport_fee_id)->get('student_transport_fees')->row();
+                    if ($transport_record) {
+                        $student_session_id = $transport_record->student_session_id;
+                    }
+                }
+
+                $log_data = array(
+                    'student_fees_deposite_id' => $id,
+                    'student_session_id'       => $student_session_id,
+                    'fee_groups_feetype_id'  => $result->fee_groups_feetype_id,
+                    'amount_detail'          => json_encode($deleted_payment_data),
+                    'deleted_at'             => date('Y-m-d H:i:s'),
+                    'deleted_by'             => $this->customlib->getStaffID(),
+                    'deletion_reason'        => $reason,
+                );
+                $this->db->insert('student_fees_deposite_deleted', $log_data);
+            }
+
             unset($a[$sub_invoice]);
+
             if (!empty($a)) {
                 $data['amount_detail'] = json_encode($a);
                 $this->db->where('id', $id);
-                $this->db->update('student_fees_deposite', $data);				
-				$message = UPDATE_RECORD_CONSTANT . " On student fees deposite id " . $id;
-				$action = "Update";
-				$record_id = $id;
-				$this->log($message, $record_id, $action);
+                $this->db->update('student_fees_deposite', $data);
+                $message = UPDATE_RECORD_CONSTANT . " On student fees deposite id " . $id;
+                $action = "Update";
+                $record_id = $id;
+                $this->log($message, $record_id, $action);
             } else {
                 $this->db->where('id', $id);
                 $this->db->delete('student_fees_deposite');
-				$message = DELETE_RECORD_CONSTANT . " On student fees deposite id " . $id;
-				$action = "Delete";
-				$record_id = $id;
-				$this->log($message, $record_id, $action);
+                $message = DELETE_RECORD_CONSTANT . " On student fees deposite id " . $id;
+                $action = "Delete";
+                $record_id = $id;
+                $this->log($message, $record_id, $action);
             }
 
             $this->studentAppliedDiscount_model->remove($id, $sub_invoice);
         }
-		//======================Code End==============================
-        $this->db->trans_complete(); # Completing transaction
-        /* Optional */
+
+        $this->db->trans_complete();
+
         if ($this->db->trans_status() === false) {
-            # Something went wrong.
             $this->db->trans_rollback();
             return false;
         } else {
-            //return $return_value;
+            return true;
         }
     }
 
@@ -306,6 +336,27 @@ class Studentfee_model extends MY_Model {
         $query = "SELECT feemasters.id as feemastersid, feemasters.amount as amount,IFNULL(student_fees.id, 'xxx') as invoiceno,IFNULL(student_fees.amount_discount, 'xxx') as discount,IFNULL(student_fees.amount_fine, 'xxx') as fine, IFNULL(student_fees.date, 'xxx') as date,feetype.type ,feecategory.category FROM feemasters LEFT JOIN (select student_fees.id,student_fees.feemaster_id,student_fees.amount_fine,student_fees.amount_discount,student_fees.date,student_fees.student_session_id from student_fees , student_session where student_fees.student_session_id=student_session.id and student_session.id=" . $this->db->escape($student_session_id) . " ) as student_fees ON student_fees.feemaster_id=feemasters.id LEFT JOIN feetype ON feemasters.feetype_id = feetype.id LEFT JOIN feecategory ON feetype.feecategory_id = feecategory.id  where  feemasters.class_id=" . $this->db->escape($class_id) . " and feemasters.session_id=" . $this->db->escape($this->current_session);
         $query = $this->db->query($query);
         return $query->result_array();
+    }
+
+    public function getDeletedPaymentsReport($start_date, $end_date)
+    {
+        $this->db->select('sdd.*, s.firstname, s.lastname, s.admission_no, c.class, sec.section, st.name as deleted_by_name, st.employee_id, ft.type as fee_type_name, fg.name as fee_group_name')
+            ->from('student_fees_deposite_deleted AS sdd')
+            ->join('student_session AS ss', 'ss.id = sdd.student_session_id', 'left')
+            ->join('students AS s', 's.id = ss.student_id', 'left')
+            ->join('classes AS c', 'c.id = ss.class_id', 'left')
+            ->join('sections AS sec', 'sec.id = ss.section_id', 'left')
+            ->join('staff AS st', 'st.id = sdd.deleted_by', 'left')
+            ->join('fee_groups_feetype AS fgf', 'fgf.id = sdd.fee_groups_feetype_id', 'left')
+            ->join('feetype AS ft', 'ft.id = fgf.feetype_id', 'left')
+            ->join('fee_session_groups AS fsg', 'fsg.id = fgf.fee_session_group_id', 'left')
+            ->join('fee_groups AS fg', 'fg.id = fsg.fee_groups_id', 'left');
+
+        $this->db->where('sdd.deleted_at >=', $start_date);
+        $this->db->where('sdd.deleted_at <=', $end_date);
+        $this->db->order_by('sdd.deleted_at', 'desc');
+        $query = $this->db->get();
+        return $query->result();
     }
 
     public function getFeesByClass($class_id = null, $section_id = null, $student_id = null) {

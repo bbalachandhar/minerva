@@ -443,12 +443,24 @@ class Studentfee extends Admin_Controller
         if (!$this->rbac->hasPrivilege('collect_fees', 'can_delete')) {
             access_denied();
         }
-        $invoice_id  = $this->input->post('main_invoice');
-        $sub_invoice = $this->input->post('sub_invoice');
-        if (!empty($invoice_id)) {
-            $this->studentfee_model->remove($invoice_id, $sub_invoice);
+
+        $this->form_validation->set_rules('deletion_reason', 'Deletion Reason', 'trim|required|min_length[80]');
+
+        if ($this->form_validation->run() == FALSE) {
+            $msg = array(
+                'deletion_reason' => form_error('deletion_reason'),
+            );
+            $array = array('status' => 'fail', 'error' => $msg, 'message' => '');
+        } else {
+            $invoice_id  = $this->input->post('main_invoice');
+            $sub_invoice = $this->input->post('sub_invoice');
+            $reason      = $this->input->post('deletion_reason');
+
+            if (!empty($invoice_id)) {
+                $this->studentfee_model->remove($invoice_id, $sub_invoice, $reason);
+            }
+            $array = array('status' => 'success', 'result' => 'success');
         }
-        $array = array('status' => 'success', 'result' => 'success');
         echo json_encode($array);
     }
 

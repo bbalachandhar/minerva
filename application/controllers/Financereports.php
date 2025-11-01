@@ -1281,38 +1281,61 @@ class Financereports extends Admin_Controller
         $this->load->view('layout/footer', $data);
     }
 	
-	public function incomeexpensebalancereport()
-    {	
-		$this->session->set_userdata('top_menu', 'Reports');
-        $this->session->set_userdata('sub_menu', 'Reports/finance');
-        $this->session->set_userdata('subsub_menu', 'Reports/finance/incomeexpensebalancereport');
-		$data['searchlist']  = $this->customlib->get_searchtype();
-		
-		if (isset($_POST['search_type']) && $_POST['search_type'] != '') {
-
-            $dates               = $this->customlib->get_betweendate($_POST['search_type']);
-            $data['search_type'] = $_POST['search_type'];
-        } else {
-
-            $dates               = $this->customlib->get_betweendate('this_year');
-            $data['search_type'] = '';
-        }
-
-        $collection = array();
-        $start_date = date('Y-m-d', strtotime($dates['from_date']));
-        $end_date   = date('Y-m-d', strtotime($dates['to_date']));
-        $this->form_validation->set_rules('search_type', $this->lang->line('search_type'), 'trim|required|xss_clean');
-
-        if ($this->form_validation->run() == false) {
-            $data['incomeexpensebalancereport'] = '';
-        } else {
-            $data['incomeexpensebalancereport'] = $this->income_model->incomeexpensebalancereport($start_date, $end_date);
-        }	
-		
-        $this->load->view('layout/header', $data);
-        $this->load->view('financereports/incomeexpensebalancereport', $data);
-        $this->load->view('layout/footer', $data);
-    } 
-
-    
+	    public function incomeexpensebalancereport()
+	    {	
+			$this->session->set_userdata('top_menu', 'Reports');
+	        $this->session->set_userdata('sub_menu', 'Reports/finance');
+	        $this->session->set_userdata('subsub_menu', 'Reports/finance/incomeexpensebalancereport');
+			$data['searchlist']  = $this->customlib->get_searchtype();
+			
+			if (isset($_POST['search_type']) && $_POST['search_type'] != '') {
+	
+	            $dates               = $this->customlib->get_betweendate($_POST['search_type']);
+	            $data['search_type'] = $_POST['search_type'];
+	        } else {
+	
+	            $dates               = $this->customlib->get_betweendate('this_year');
+	            $data['search_type'] = '';
+	        }
+	
+	        $collection = array();
+	        $start_date = date('Y-m-d', strtotime($dates['from_date']));
+	        $end_date   = date('Y-m-d', strtotime($dates['to_date']));
+	        $this->form_validation->set_rules('search_type', $this->lang->line('search_type'), 'trim|required|xss_clean');
+	
+	        if ($this->form_validation->run() == false) {
+	            $data['incomeexpensebalancereport'] = '';
+	        } else {
+	            $data['incomeexpensebalancereport'] = $this->income_model->incomeexpensebalancereport($start_date, $end_date);
+	        }	
+			
+	        $this->load->view('layout/header', $data);
+	        $this->load->view('financereports/incomeexpensebalancereport', $data);
+	        $this->load->view('layout/footer', $data);
+	    } 
+	
+	        public function deleted_payments_report()
+	        {
+	            $this->session->set_userdata('top_menu', 'Reports');
+	            $this->session->set_userdata('sub_menu', 'Reports/finance');
+	            $this->session->set_userdata('subsub_menu', 'Reports/finance/deleted_payments_report');
+	            $data['searchlist'] = $this->customlib->get_searchtype();
+	    
+	            if (isset($_POST['search_type']) && $_POST['search_type'] != '') {
+	                $dates = $this->customlib->get_betweendate($_POST['search_type']);
+	                $data['search_type'] = $_POST['search_type'];
+	            } else {
+	                $dates = $this->customlib->get_betweendate('this_month');
+	                $data['search_type'] = '';
+	            }
+	    
+	            $start_date = date('Y-m-d 00:00:00', strtotime($dates['from_date']));
+	                    $end_date   = date('Y-m-d 23:59:59', strtotime($dates['to_date']));
+	            
+	                    $data['report_data'] = $this->studentfee_model->getDeletedPaymentsReport($start_date, $end_date);
+	                    $data['sch_setting'] = $this->sch_setting_detail;
+	            
+	                    $this->load->view('layout/header', $data);
+	                    $this->load->view('financereports/deleted_payments_report', $data);
+	                    $this->load->view('layout/footer', $data);	        }    
 }

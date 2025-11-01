@@ -696,18 +696,21 @@ echo $currency_symbol . amountFormat(($total_balance_amount - $alot_fee_discount
                 <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
                 <h4 class="modal-title" id="myModalLabel"><?php echo $this->lang->line('confirmation'); ?></h4>
             </div>
-            <div class="modal-body">
-                <p><?php echo $this->lang->line('are_you_sure_want_to_delete'); ?> <b class="invoice_no"></b> <?php echo $this->lang->line('invoice_this_action_is_irreversible') ?></p>
-                 <p><?php echo $this->lang->line('do_you_want_to_proceed') ?></p>
-                <p class="debug-url"></p>
-                <input type="hidden" name="main_invoice"  id="main_invoice" value="">
-                <input type="hidden" name="sub_invoice" id="sub_invoice"  value="">
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-default" data-dismiss="modal"><?php echo $this->lang->line('cancel'); ?></button>
-                <a class="btn btn-danger btn-ok"><?php echo $this->lang->line('revert'); ?></a>
-            </div>
-        </div>
+                    <div class="modal-body">
+                        <p><?php echo $this->lang->line('are_you_sure_want_to_delete'); ?> <b class="invoice_no"></b> <?php echo $this->lang->line('invoice_this_action_is_irreversible') ?></p>
+                        <div class="form-group">
+                            <label for="deletion_reason"><?php echo $this->lang->line('reason_for_revert'); ?> (<?php echo $this->lang->line('minimum_80_characters'); ?>)</label>
+                            <textarea name="deletion_reason" id="deletion_reason" class="form-control" rows="3"></textarea>
+                            <span id="reason_error" class="text-danger"></span>
+                        </div>
+                        <p class="debug-url"></p>
+                        <input type="hidden" name="main_invoice"  id="main_invoice" value="">
+                        <input type="hidden" name="sub_invoice" id="sub_invoice"  value="">
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-default" data-dismiss="modal"><?php echo $this->lang->line('cancel'); ?></button>
+                        <a class="btn btn-danger btn-ok" disabled><?php echo $this->lang->line('revert'); ?></a>
+                    </div>        </div>
     </div>
 </div>
 
@@ -952,12 +955,24 @@ echo $currency_symbol . amountFormat(($total_balance_amount - $alot_fee_discount
         });
 
         $('#confirm-delete').on('show.bs.modal', function (e) {
-            $('.invoice_no', this).text("");
-            $('#main_invoice', this).val("");
-            $('#sub_invoice', this).val("");
+            // Reset the modal state
+            $('#deletion_reason', this).val('');
+            $('#reason_error', this).text('');
+            $('.btn-ok', this).attr('disabled', 'disabled');
+            
             $('.invoice_no', this).text($(e.relatedTarget).data('invoiceno'));
             $('#main_invoice', this).val($(e.relatedTarget).data('main_invoice'));
             $('#sub_invoice', this).val($(e.relatedTarget).data('sub_invoice'));
+        });
+
+        $('#confirm-delete').on('keyup', '#deletion_reason', function() {
+            var reason = $(this).val().trim();
+            if (reason.length >= 80) {
+                $('#confirm-delete .btn-ok').removeAttr('disabled');
+                $('#reason_error').text('');
+            } else {
+                $('#confirm-delete .btn-ok').attr('disabled', 'disabled');
+            }
         });
 
         $('#confirm-discountdelete').on('show.bs.modal', function (e) {
@@ -971,16 +986,30 @@ echo $currency_symbol . amountFormat(($total_balance_amount - $alot_fee_discount
             var $modalDiv = $(e.delegateTarget);
             var main_invoice = $('#main_invoice').val();
             var sub_invoice = $('#sub_invoice').val();
+            var deletion_reason = $('#deletion_reason').val();
+
+            if (deletion_reason.trim().length < 80) {
+                $('#reason_error').text('The reason must be at least 80 characters long.');
+                return;
+            }
 
             $modalDiv.addClass('modalloading');
             $.ajax({
                 type: "post",
                 url: '<?php echo site_url("studentfee/deleteFee") ?>',
                 dataType: 'JSON',
-                data: {'main_invoice': main_invoice, 'sub_invoice': sub_invoice},
+                data: {
+                    'main_invoice': main_invoice, 
+                    'sub_invoice': sub_invoice,
+                    'deletion_reason': deletion_reason
+                },
                 success: function (data) {
                     $modalDiv.modal('hide').removeClass('modalloading');
                     location.reload(true);
+                },
+                error: function() {
+                    $modalDiv.modal('hide').removeClass('modalloading');
+                    alert("An error occurred, please try again.");
                 }
             });
         });

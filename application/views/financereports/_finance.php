@@ -8,8 +8,8 @@
                 <ul class="reportlists">
                     <?php if ($this->rbac->hasPrivilege('balance_fees_statement', 'can_view')) {  ?>
                     
-						<li class="col-lg-4 col-md-4 col-sm-6 <?php echo set_SubSubmenu('Reports/finance/reportduefees'); ?>"><a href="<?php echo site_url('financereports/reportduefees'); ?>"><i class="fa fa-file-text-o"></i> <?php echo $this->lang->line('balance_fees_statement'); ?></a></li>						
-                    
+						                        <li class="col-lg-4 col-md-4 col-sm-6 <?php echo set_SubSubmenu('Reports/finance/reportduefees'); ?>"><a href="<?php echo site_url('financereports/reportduefees'); ?>"><i class="fa fa-file-text-o"></i> <?php echo $this->lang->line('balance_fees_statement'); ?></a></li>
+						                        <li class="col-lg-4 col-md-4 col-sm-6 <?php echo set_SubSubmenu('Reports/finance/deleted_payments_report'); ?>"><a href="<?php echo site_url('financereports/deleted_payments_report'); ?>"><i class="fa fa-file-text-o"></i> <?php echo $this->lang->line('deleted_payments_report'); ?></a></li>                    
                     <?php }  if ($this->rbac->hasPrivilege('daily_collection_report', 'can_view')) {  ?>
                     
 						<li class="col-lg-4 col-md-4 col-sm-6 <?php echo set_SubSubmenu('Reports/finance/reportdailycollection'); ?>"><a href="<?php echo site_url('financereports/reportdailycollection'); ?>"><i class="fa fa-file-text-o"></i><?php echo $this->lang->line('daily_collection_report'); ?> </a></li>                        
