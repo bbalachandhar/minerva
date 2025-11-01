@@ -978,6 +978,12 @@ class Studentfee extends Admin_Controller
             $student_ids            = $this->input->post('student_ids');
             $delete_student         = array_diff($student_ids, $student_sesssion_array);
 
+            if (!empty($delete_student)) {
+                foreach ($delete_student as $student_to_delete_session_id) {
+                    $this->studentfeemaster_model->reallocate_payments($student_to_delete_session_id, $fee_session_groups, null);
+                }
+            }
+
             $preserve_record = array();
             if (!empty($student_sesssion_array)) {
                 foreach ($student_sesssion_array as $key => $value) {
@@ -994,7 +1000,7 @@ class Studentfee extends Admin_Controller
                 $this->studentfeemaster_model->delete($fee_session_groups, $delete_student);
             }
 
-            $array = array('status' => 1, 'error' => '');
+            $array = array('status' => 'success', 'message' => $this->lang->line('fees_group_assign_successfully'));
             echo json_encode($array);
         }
     }

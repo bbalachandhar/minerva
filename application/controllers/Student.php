@@ -1925,10 +1925,32 @@ class Student extends Admin_Controller
 
             $delete_fee_session_group = array_diff($prev_fees_group, $fee_session_group);
             $add_fee_session_group    = array_diff($fee_session_group, $prev_fees_group);
-
             $student_session_id     = $this->input->post('student_session_id');
+
+            // 1. Add the new fee groups first to ensure the student_fees_master record exists.
+            if (!empty($add_fee_session_group)) {
+                $this->studentfeemaster_model->assign_bulk_fees($add_fee_session_group, $student_session_id, array());
+            }
+
+            // 2. Now, perform the reallocation.
+            if (!empty($delete_fee_session_group)) {
+                if (count($delete_fee_session_group) == 1 && count($add_fee_session_group) == 1) {
+                    $old_group_id = reset($delete_fee_session_group);
+                    $new_group_id = reset($add_fee_session_group);
+                    $this->studentfeemaster_model->reallocate_payments($student_session_id, $old_group_id, $new_group_id);
+                } else {
+                    foreach ($delete_fee_session_group as $deleted_group_id) {
+                        $this->studentfeemaster_model->reallocate_payments($student_session_id, $deleted_group_id, null);
+                    }
+                }
+            }
+
+            // 3. Finally, delete the old fee group assignments.
+            if (!empty($delete_fee_session_group)) {
+                $this->studentfeemaster_model->assign_bulk_fees(array(), $student_session_id, $delete_fee_session_group);
+            }
+
             $transport_feemaster_id = $this->input->post('transport_feemaster_id');
-            $this->studentfeemaster_model->assign_bulk_fees($add_fee_session_group, $student_session_id, $delete_fee_session_group);
 
             if (!empty($transport_feemaster_id)) {
                 $trns_data_insert = array();

@@ -1643,4 +1643,115 @@ class Studentfeemaster_model extends MY_Model
         return $total_advance;
     }
 
+    public function reallocate_payments($student_session_id, $old_fee_session_group_id, $new_fee_session_group_id = null)
+    {
+        $this->db->trans_start();
+
+        $old_deposits_query = $this->db->select('sfd.id, sfd.amount_detail, fgf.feetype_id')
+            ->from('student_fees_deposite sfd')
+            ->join('student_fees_master sfm', 'sfm.id = sfd.student_fees_master_id')
+            ->join('fee_groups_feetype fgf', 'fgf.id = sfd.fee_groups_feetype_id')
+            ->where('sfm.student_session_id', $student_session_id)
+            ->where('sfm.fee_session_group_id', $old_fee_session_group_id)
+            ->get();
+        $old_deposits = $old_deposits_query->result();
+
+        if (empty($old_deposits)) {
+            $this->db->trans_complete();
+            return true; 
+        }
+
+        $paid_per_feetype = [];
+        foreach ($old_deposits as $deposit) {
+            if (!isset($paid_per_feetype[$deposit->feetype_id])) {
+                $paid_per_feetype[$deposit->feetype_id] = 0;
+            }
+            $amount_details = json_decode($deposit->amount_detail, true);
+            if (is_array($amount_details)) {
+                foreach ($amount_details as $payment) {
+                    $paid_per_feetype[$deposit->feetype_id] += $payment['amount'];
+                }
+            }
+        }
+
+        $new_fee_structure_map = [];
+        $new_student_fees_master_id = null;
+        if ($new_fee_session_group_id) {
+            $new_sfm_q = $this->db->select('id')->from('student_fees_master')
+                ->where('student_session_id', $student_session_id)
+                ->where('fee_session_group_id', $new_fee_session_group_id)
+                ->get();
+            if ($new_sfm_q->num_rows() > 0) {
+                $new_student_fees_master_id = $new_sfm_q->row()->id;
+                $new_fee_structure_q = $this->db->select('id, feetype_id, amount')->from('fee_groups_feetype')
+                    ->where('fee_session_group_id', $new_fee_session_group_id)
+                    ->get();
+                foreach ($new_fee_structure_q->result() as $item) {
+                    $new_fee_structure_map[$item->feetype_id] = ['fgf_id' => $item->id, 'amount' => $item->amount];
+                }
+            }
+        }
+
+        $advance_fee_ids = $this->get_or_create_advance_fee_ids($student_session_id);
+
+        foreach ($paid_per_feetype as $feetype_id => $total_paid) {
+            if ($total_paid <= 0) continue;
+
+            $match_found = $new_student_fees_master_id && isset($new_fee_structure_map[$feetype_id]);
+
+            if ($match_found) {
+                $new_fee_info = $new_fee_structure_map[$feetype_id];
+                $amount_due_in_new = $new_fee_info['amount'];
+                $amount_to_reallocate = min($total_paid, $amount_due_in_new);
+                $excess_amount = $total_paid - $amount_to_reallocate;
+
+                if ($amount_to_reallocate > 0) {
+                    $deposit_data = [
+                        'fee_category' => 'fees',
+                        'student_fees_master_id' => $new_student_fees_master_id,
+                        'fee_groups_feetype_id' => $new_fee_info['fgf_id'],
+                        'amount_detail' => ['amount' => $amount_to_reallocate, 'amount_discount' => 0, 'amount_fine' => 0, 'date' => date('Y-m-d'), 'description' => 'Reallocated from previous fee group', 'collected_by' => 'System', 'payment_mode' => 'Transferred']
+                    ];
+                    if (!$this->fee_deposit($deposit_data, null, [], date('Y-m-d'))) {
+                         $this->db->trans_rollback(); return false;
+                    }
+                }
+
+                if ($excess_amount > 0) {
+                    $deposit_data_adv = [
+                        'fee_category' => 'fees',
+                        'student_fees_master_id' => $advance_fee_ids->student_fees_master_id,
+                        'fee_groups_feetype_id' => $advance_fee_ids->fee_groups_feetype_id,
+                        'amount_detail' => ['amount' => $excess_amount, 'amount_discount' => 0, 'amount_fine' => 0, 'date' => date('Y-m-d'), 'description' => 'Excess amount from fee group change', 'collected_by' => 'System', 'payment_mode' => 'Transferred']
+                    ];
+                    if (!$this->fee_deposit($deposit_data_adv, null, [], date('Y-m-d'))) {
+                        $this->db->trans_rollback(); return false;
+                    }
+                }
+            } else {
+                $deposit_data_adv = [
+                    'fee_category' => 'fees',
+                    'student_fees_master_id' => $advance_fee_ids->student_fees_master_id,
+                    'fee_groups_feetype_id' => $advance_fee_ids->fee_groups_feetype_id,
+                    'amount_detail' => ['amount' => $total_paid, 'amount_discount' => 0, 'amount_fine' => 0, 'date' => date('Y-m-d'), 'description' => 'Reallocated from previous fee group (fee type not found in new group)', 'collected_by' => 'System', 'payment_mode' => 'Transferred']
+                ];
+                if (!$this->fee_deposit($deposit_data_adv, null, [], date('Y-m-d'))) {
+                    $this->db->trans_rollback(); return false;
+                }
+            }
+        }
+
+        foreach ($old_deposits as $deposit) {
+            $this->db->where('id', $deposit->id)->delete('student_fees_deposite');
+        }
+
+        $this->db->trans_complete();
+
+        if ($this->db->trans_status() === FALSE) {
+            return false;
+        } else {
+            return true;
+        }
+    }
+
 }
