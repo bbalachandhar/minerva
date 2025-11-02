@@ -413,7 +413,7 @@ class Pickuppoint extends Admin_Controller
         echo json_encode($array);
     }
 
-    public function student_transport_year()
+    public function student_transport_months()
     {
         $data                          = array();
         $data['sch_setting']           = $this->sch_setting_detail;

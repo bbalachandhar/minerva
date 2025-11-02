@@ -21,7 +21,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                     'due_date'=>'',
                                     'fine_percentage'=>'',
                                     'fine_amount'=>'',
-                                    'month'=>'yearly',
+                                    'month'=>'monthly',
                             );
                             if(!empty($transportfees)){
                                 $inserted_array = (array)$transportfees[0];
@@ -31,7 +31,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                             <div class="row block_row">       
                                 <hr class="hrexam">
                                 <div class="col-sm-2 col-lg-2 col-md-2">         
-                                    <h4 class="transport_fee_line">Yearly Fee</h4>
+                                    <h4 class="transport_fee_line">Monthly Fee</h4>
                                 </div>
                                 <div class="col-sm-10 col-lg-10 col-md-10">
                                     <div class="form-group row">               
