@@ -413,7 +413,7 @@ class Pickuppoint extends Admin_Controller
         echo json_encode($array);
     }
 
-    public function student_transport_months()
+    public function student_transport_year()
     {
         $data                          = array();
         $data['sch_setting']           = $this->sch_setting_detail;
@@ -432,7 +432,7 @@ class Pickuppoint extends Admin_Controller
 			$data['fees'][] = $this->studenttransportfee_model->getTransportFeeByMonthStudentSession($student_session_id, $route_pickup_point_id,$key);   
         }        
 
-        $page  = $this->load->view('admin/pickuppoint/student_transport_months', $data, true);
+        $page  = $this->load->view('admin/pickuppoint/student_transport_year', $data, true);
         $array = array('status' => '1', 'error' => '', 'page' => $page);
         echo json_encode($array);
     }

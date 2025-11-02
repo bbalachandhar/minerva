@@ -254,7 +254,7 @@ $('#feeMonthModal').modal({
           $('#feeMonthModal .modal-body').html("");
         $.ajax({
             type: 'POST',
-            url: baseurl + "admin/pickuppoint/student_transport_months",
+            url: baseurl + "admin/pickuppoint/student_transport_year",
             data: {'student_session_id': recordid,'route_pickup_point_id':route_pickup_point_id},
             dataType: 'JSON',
             beforeSend: function () {
