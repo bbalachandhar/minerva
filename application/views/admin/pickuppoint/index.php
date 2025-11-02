@@ -29,6 +29,9 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                             <?php if ($this->rbac->hasPrivilege('pickup_point', 'can_add')) {?>
                             <button type="button" onclick="add()" class="btn btn-primary btn-sm checkbox-toggle"><i class="fa fa-plus"></i> <?php echo $this->lang->line('add') ?></button>
                             <?php }?>
+                            <?php if ($this->rbac->hasPrivilege('pickup_point_bulk_upload', 'can_view')) {?>
+                            <a href="<?php echo site_url('admin/pickuppoint/bulk_upload') ?>" class="btn btn-primary btn-sm checkbox-toggle"><i class="fa fa-upload"></i> <?php echo $this->lang->line('bulk_upload') ?></a>
+                            <?php }?>
                         </div>
                     </div>
                     <div class="box-body">

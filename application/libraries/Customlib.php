@@ -345,8 +345,8 @@ class Customlib
     public function getHostaltype()
     {
         $status            = array();
-        $status['Girls']   = $this->CI->lang->line('girls');
-        $status['Boys']    = $this->CI->lang->line('boys');
+        $status['Male']   = $this->CI->lang->line('male');
+        $status['Female'] = $this->CI->lang->line('female');
         $status['Combine'] = $this->CI->lang->line('combine');
         return $status;
     }
@@ -835,23 +835,7 @@ class Customlib
         return $array;
     }
 
-    public function getMonthDropdown($start_month = null)
-    {
 
-        $array       = array();
-        $start_month = (is_null($start_month)) ? 01 : $start_month;
-        $year        = date('Y');
-
-        $start_date = "01-" . $start_month . "-" . $year;
-        $start_time = strtotime($start_date); 
-
-        for ($i = $start_month; $i < $start_month + 12; $i++) {
-            $month = date('F', mktime(0, 0, 0, $i, 1));
-            $array[$month] = $this->CI->lang->line(strtolower($month));
-        }
-
-        return $array;
-    }
 
     public function getDigits()
     {

@@ -1,3 +1,4 @@
+</div>
 <footer class="main-footer">
     &copy;  <?php echo date('Y'); ?>
     <?php 

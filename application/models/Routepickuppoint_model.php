@@ -28,6 +28,9 @@ class Routepickuppoint_model extends MY_Model
         } else {
             return $query->result();
         }
+    }    public function getByRouteAndPickupPoint($route_id, $pickup_point_id)
+    {
+        return $this->db->where(['transport_route_id' => $route_id, 'pickup_point_id' => $pickup_point_id, 'session_id' => $this->current_session])->get('route_pickup_point')->row();
     }
 
 }

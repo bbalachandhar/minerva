@@ -12,6 +12,7 @@ class Pickuppoint extends Admin_Controller
         $this->load->model(array("pickuppoint_model", "routepickuppoint_model"));
         $this->sch_setting_detail = $this->setting_model->getSetting();
         $this->load->library("datatables");
+        $this->load->helper('custom_message');
     }
 
     public function index()
@@ -75,8 +76,8 @@ class Pickuppoint extends Admin_Controller
         $id = $this->input->post('id');
 
         $this->form_validation->set_rules('name', $this->lang->line('pickup_point'), 'trim|required|xss_clean');
-        $this->form_validation->set_rules('latitude', $this->lang->line('latitude'), 'trim|required|xss_clean');
-        $this->form_validation->set_rules('longitude', $this->lang->line('longitude'), 'trim|required|xss_clean');
+        $this->form_validation->set_rules('latitude', $this->lang->line('latitude'), 'trim|xss_clean');
+        $this->form_validation->set_rules('longitude', $this->lang->line('longitude'), 'trim|xss_clean');
 
         if ($this->form_validation->run() == false) {
             $msg['name']      = form_error('name');
@@ -129,6 +130,87 @@ class Pickuppoint extends Admin_Controller
         $this->studenttransportfee_model->add($data_insert, $student_session_id, $remove_ids, $route_pickup_point_id);
         $array = array('status' => 1, 'error' => '', 'message' => $this->lang->line('success_message'));
         echo json_encode($array);
+    }
+
+    public function bulk_upload()
+    {
+        if (!$this->rbac->hasPrivilege('pickup_point_bulk_upload', 'can_view')) {
+            access_denied();
+        }
+
+        $this->session->set_userdata('top_menu', 'Transport');
+        $this->session->set_userdata('sub_menu', 'pickuppoint/bulk_upload');
+
+        $data['title'] = 'Bulk Upload Pickup Points';
+        $data['error_message'] = '';
+        $data['success_message'] = '';
+
+        if (isset($_FILES['file']) && $_FILES['file']['name'] != '') {
+            $file_mimes = array(
+                'text/x-comma-separated-values',
+                'text/comma-separated-values',
+                'application/octet-stream',
+                'application/vnd.ms-excel',
+                'application/x-csv',
+                'text/x-csv',
+                'text/csv',
+                'application/csv',
+                'application/excel',
+                'application/vnd.msexcel',
+                'text/plain'
+            );
+
+            if (in_array($_FILES['file']['type'], $file_mimes)) {
+                $arr_file = explode('.', $_FILES['file']['name']);
+                $extension = end($arr_file);
+
+                if ('csv' == $extension) {
+                    $reader = new \PhpOffice\PhpSpreadsheet\Reader\Csv();
+                } else {
+                    // Assuming .xlsx for other cases, but ideally more specific checks would be here
+                    $reader = new \PhpOffice\PhpSpreadsheet\Reader\Xlsx();
+                }
+
+                $spreadsheet = $reader->load($_FILES['file']['tmp_name']);
+                $sheetData = $spreadsheet->getActiveSheet()->toArray();
+
+                if (!empty($sheetData)) {
+                    $insert_data = array();
+                    // Assuming the first row is the header
+                    for ($i = 1; $i < count($sheetData); $i++) {
+                        $name = $sheetData[$i][0]; // Assuming name is in the first column
+                        $latitude = $sheetData[$i][1]; // Assuming latitude is in the second column
+                        $longitude = $sheetData[$i][2]; // Assuming longitude is in the third column
+
+                        // Basic validation
+                        if (!empty($name)) {
+                            $insert_data[] = array(
+                                'name' => $name,
+                                'latitude' => $latitude,
+                                'longitude' => $longitude
+                            );
+                        } else {
+                            $data['error_message'] .= "Row " . ($i + 1) . ": Missing required fields. Skipping.<br>";
+                        }
+                    }
+
+                    if (!empty($insert_data)) {
+                        $this->pickuppoint_model->add_bulk_pickup_points($insert_data);
+                        $data['success_message'] = $this->lang->line('record_added_successfully');
+                    } else {
+                        $data['error_message'] .= $this->lang->line('no_valid_data_found_in_csv');
+                    }
+                } else {
+                    $data['error_message'] = $this->lang->line('file_contains_no_data');
+                }
+            } else {
+                $data['error_message'] = $this->lang->line('please_select_csv_file');
+            }
+        }
+
+        $this->load->view('layout/header', $data);
+        $this->load->view('admin/pickuppoint/bulk_upload', $data);
+        $this->load->view('layout/footer', $data);
     }
 
     public function student_fees()
@@ -209,18 +291,18 @@ class Pickuppoint extends Admin_Controller
             $msg['pickup_point'] = "<p>" . $this->lang->line('the_pickup_point_field_is_required') . "</p>";
         }
 
-        if (!empty($_POST['monthly_fees'])) {
-            foreach ($_POST['monthly_fees'] as $monthly_feeskey => $monthly_feesvalue) {
-                if ($monthly_feesvalue == '') {
+        if (!empty($_POST['yearly_fees'])) {
+            foreach ($_POST['yearly_fees'] as $yearly_feeskey => $yearly_feesvalue) {
+                if ($yearly_feesvalue == '') {
                     $validate            = 0;
-                    $msg['monthly_fees'] = "<p>" . $this->lang->line('the_monthly_fees_field_is_required') . "</p>";
+                    $msg['yearly_fees'] = "<p>" . $this->lang->line('the_yearly_fees_field_is_required') . "</p>";
                     break;
                 }else{
                    
                   $expr = '/^[0-9]*(\.[0-9]{0,2})?$/';
-                if (!preg_match($expr, $monthly_feesvalue)) {
+                if (!preg_match($expr, $yearly_feesvalue)) {
                    $validate            = 0;
-                   $msg['monthly_fees'] = "<p>" . $this->lang->line('invalid_amount') . "</p>";
+                   $msg['yearly_fees'] = "<p>" . $this->lang->line('invalid_amount') . "</p>";
                    break;
                 }
 
@@ -229,7 +311,7 @@ class Pickuppoint extends Admin_Controller
             }
         } else {
             $validate            = 0;
-            $msg['monthly_fees'] = "<p>" . $this->lang->line('the_monthly_fees_field_is_required') . "</p>";
+            $msg['yearly_fees'] = "<p>" . $this->lang->line('the_yearly_fees_field_is_required') . "</p>";
         }
 
         if (!empty($_POST['time'])) {
@@ -274,7 +356,7 @@ class Pickuppoint extends Admin_Controller
                         'transport_route_id'   => $this->input->post('route_id'),
                         'pickup_point_id'      => $this->input->post('pickup_point')[$pickup_pointkey],
                         'destination_distance' => $this->input->post('destination_distance')[$pickup_pointkey],
-                        'fees'                 => convertCurrencyFormatToBaseAmount($this->input->post('monthly_fees')[$pickup_pointkey]),
+                        'fees'                 => convertCurrencyFormatToBaseAmount($this->input->post('yearly_fees')[$pickup_pointkey]),
                         'pickup_time'          => $this->customlib->timeFormat($time, true),
                     );
                     if (empty($data['id'])) {
@@ -413,5 +495,86 @@ class Pickuppoint extends Admin_Controller
     {
         $result = $this->pickuppoint_model->getpickup_pointbyid($id);
         echo json_encode($result);
+    }
+
+    public function bulk_upload_route_pickup_points()
+    {
+        if (!$this->rbac->hasPrivilege('route_pickup_point_bulk_upload', 'can_view')) {
+            access_denied();
+        }
+
+        $this->session->set_userdata('top_menu', 'Transport');
+        $this->session->set_userdata('sub_menu', 'pickuppoint/bulk_upload_route_pickup_points');
+
+        $data['title'] = 'Bulk Upload Route Pickup Points';
+        $data['error_message'] = '';
+        $data['success_message'] = '';
+
+        if (isset($_FILES['file']) && $_FILES['file']['name'] != '') {
+            $file_mimes = array(
+                'text/x-comma-separated-values',
+                'text/comma-separated-values',
+                'application/octet-stream',
+                'application/vnd.ms-excel',
+                'application/x-csv',
+                'text/x-csv',
+                'text/csv',
+                'application/csv',
+                'application/excel',
+                'application/vnd.msexcel',
+                'text/plain'
+            );
+
+            if (in_array($_FILES['file']['type'], $file_mimes)) {
+                $arr_file = explode('.', $_FILES['file']['name']);
+                $extension = end($arr_file);
+
+                if ('csv' == $extension) {
+                    $reader = new \PhpOffice\PhpSpreadsheet\Reader\Csv();
+                } else {
+                    $reader = new \PhpOffice\PhpSpreadsheet\Reader\Xlsx();
+                }
+
+                $spreadsheet = $reader->load($_FILES['file']['tmp_name']);
+                $sheetData = $spreadsheet->getActiveSheet()->toArray();
+
+                if (!empty($sheetData)) {
+                    $insert_data = array();
+                    // Assuming the first row is the header: Route Title, Pickup Point Name, Distance, Pickup Time, Fees
+                    for ($i = 1; $i < count($sheetData); $i++) {
+                        $row_data = [
+                            'route_title' => $sheetData[$i][0] ?? '',
+                            'pickup_point_name' => $sheetData[$i][1] ?? '',
+                            'distance' => $sheetData[$i][2] ?? '',
+                            'pickup_time' => $sheetData[$i][3] ?? '',
+                            'fees' => $sheetData[$i][4] ?? '',
+                        ];
+                        $insert_data[] = $row_data;
+                    }
+
+                    if (!empty($insert_data)) {
+                        $result = $this->pickuppoint_model->add_bulk_route_pickup_points($insert_data);
+                        if ($result['status']) {
+                            $data['success_message'] = $this->lang->line('record_added_successfully');
+                            if (!empty($result['errors'])) {
+                                $data['error_message'] .= "Some rows were skipped due to errors:<br>" . implode("<br>", $result['errors']);
+                            }
+                        } else {
+                            $data['error_message'] .= $this->lang->line('error_inserting_data') . ":<br>" . implode("<br>", $result['errors']);
+                        }
+                    } else {
+                        $data['error_message'] .= $this->lang->line('no_valid_data_found_in_csv');
+                    }
+                } else {
+                    $data['error_message'] = $this->lang->line('file_contains_no_data');
+                }
+            } else {
+                $data['error_message'] = $this->lang->line('please_select_csv_file');
+            }
+        }
+
+        $this->load->view('layout/header', $data);
+        $this->load->view('admin/pickuppoint/bulk_upload_route_pickup_points', $data);
+        $this->load->view('layout/footer', $data);
     }
 }

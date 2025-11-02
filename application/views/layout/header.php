@@ -370,6 +370,7 @@ if (!empty($image)) {
             </header>
 
             <?php $this->load->view('layout/sidebar');?>
+            <div class="content-wrapper">
 <script>
     function set_languages(lang_id){
         $.ajax({

@@ -13,9 +13,15 @@ class Transportfee_model extends MY_Model
         $this->db->trans_strict(false); # See Note 01. If you wish can remove as well
         //=======================Code Start===========================
         if (!empty($insert_data)) {
+            foreach ($insert_data as $key => $value) {
+                $insert_data[$key]['month'] = 'yearly';
+            }
             $this->db->insert_batch('transport_feemaster', $insert_data);
         }
         if (!empty($update_data)) {
+            foreach ($update_data as $key => $value) {
+                $update_data[$key]['month'] = 'yearly';
+            }
             $this->db->update_batch('transport_feemaster', $update_data, 'id');
         }
 
@@ -36,14 +42,16 @@ class Transportfee_model extends MY_Model
 
     public function getSessionFees($session_id)
     {
-        $data = $this->db->select('*')->from('transport_feemaster')->where('session_id', $session_id)->get()->result_array();
+        $data = $this->db->select('*')->from('transport_feemaster')->where('session_id', $session_id)->where('month', 'yearly')->get()->result_array();
         return $data;
     }
 
-    public function transportfesstype($session_id,$month)
+    public function transportfesstype($session_id)
     {
-        $data = $this->db->select('transport_feemaster.*,transport_feemaster.month as type,"transport_fees" as code')->from('transport_feemaster')->where('month', $month)->where('session_id', $session_id)->get()->row();      
+        $data = $this->db->select('transport_feemaster.*,transport_feemaster.month as type,"transport_fees" as code')->from('transport_feemaster')->where('month', 'yearly')->where('session_id', $session_id)->get()->row();      
         return $data;
     }
 
 }
+
+

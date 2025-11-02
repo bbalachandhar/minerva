@@ -38,7 +38,7 @@ class Hostel extends Admin_Controller
         }
         $data['title'] = 'Add Library';
         $this->form_validation->set_rules('hostel_name', $this->lang->line('hostel_name'), 'trim|required|xss_clean');
-        $this->form_validation->set_rules('type', $this->lang->line('type'), 'trim|required|xss_clean');
+        $this->form_validation->set_rules('type', $this->lang->line('type'), 'trim|required|xss_clean|callback__check_hostel_type');
         if ($this->form_validation->run() == false) {
             $listhostel         = $this->hostel_model->listhostel();
             $data['listhostel'] = $listhostel;
@@ -73,7 +73,7 @@ class Hostel extends Admin_Controller
         $ght                = $this->customlib->getHostaltype();
         $data['ght']        = $ght;
         $this->form_validation->set_rules('hostel_name', $this->lang->line('hostel_name'), 'trim|required|xss_clean');
-        $this->form_validation->set_rules('type', $this->lang->line('type'), 'trim|required|xss_clean');
+        $this->form_validation->set_rules('type', $this->lang->line('type'), 'trim|required|xss_clean|callback__check_hostel_type');
         if ($this->form_validation->run() == false) {
             $listhostel         = $this->hostel_model->listhostel();
             $data['listhostel'] = $listhostel;
@@ -103,6 +103,17 @@ class Hostel extends Admin_Controller
         $data['title'] = 'Fees Master List';
         $this->hostel_model->remove($id);
         redirect('admin/hostel/index');
+    }
+
+    public function _check_hostel_type($str)
+    {
+        $hostel_types = $this->customlib->getHostaltype();
+        if (!array_key_exists($str, $hostel_types)) {
+            $this->form_validation->set_message('_check_hostel_type', 'The {field} field must be one of: ' . implode(', ', array_keys($hostel_types)));
+            return false;
+        } else {
+            return true;
+        }
     }
 
 }

@@ -330,11 +330,7 @@ class Studentfee extends Admin_Controller
         if (!empty($currentsessiontransportfee)) {
             $transportfesstype = [];
             if ($module['is_active']) {
-                $month_list = $this->customlib->getMonthDropdown($this->sch_setting_detail->start_month);
-                foreach ($month_list as $key => $value) {
-
-                    $transportfesstype[] = $this->transportfee_model->transportfesstype($this->current_session, $key);
-                }
+                $transportfesstype[] = $this->transportfee_model->transportfesstype($this->current_session);
 
                 if (!empty($transportfesstype)) {
 
@@ -588,7 +584,7 @@ class Studentfee extends Admin_Controller
 
         $module = $this->module_model->getPermissionByModulename('transport');
         if ($module['is_active']) {
-            $transport_fees        = $this->studentfeemaster_model->getStudentTransportFeesByStudentSessionId($student_session_id, $route_pickup_point_id);
+            $transport_fees        = $this->studentfeemaster_model->getStudentTransportFeesByStudentSessionId($student_session_id);
         }
        
         $data['student']       = $student;

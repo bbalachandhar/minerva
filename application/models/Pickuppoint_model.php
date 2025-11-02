@@ -244,6 +244,30 @@ class Pickuppoint_model extends MY_Model
         }
     }
 
+    public function add_bulk_pickup_points($data)
+    {
+        $this->db->trans_start();
+        $this->db->trans_strict(false);
+
+        if (!empty($data)) {
+            $this->db->insert_batch('pickup_point', $data);
+            $message = INSERT_RECORD_CONSTANT . " On pickup points (bulk upload)";
+            $action = "Insert (Bulk)";
+            $record_id = $this->db->insert_id(); // This will return the ID of the first inserted row
+            $this->log($message, $record_id, $action);
+        }
+
+        $this->db->trans_complete();
+
+        if ($this->db->trans_status() === false) {
+            $this->db->trans_rollback();
+            return false;
+        } else {
+            $this->db->trans_commit();
+            return true;
+        }
+    }
+
     public function reorder($id)
     {
         $sn = 1;
@@ -269,6 +293,102 @@ class Pickuppoint_model extends MY_Model
         $sql= "select route_pickup_point.*,pickup_point.name as pickup_point_name from route_pickup_point join pickup_point on pickup_point.id=route_pickup_point.pickup_point_id where transport_route_id=" . $this->db->escape($route_id) ." ORDER by route_pickup_point.order_number asc";
         $query = $this->db->query($sql);
         return $query->result();
+    }
+
+    public function getPickupPointByName($name)
+    {
+        return $this->db->where('name', $name)->get('pickup_point')->row();
+    }
+
+    public function getRouteByTitle($title)
+    {
+        return $this->db->where('route_title', $title)->get('transport_route')->row();
+    }
+
+    public function truncate_pickup_points()
+    {
+        $this->db->trans_start(); # Starting Transaction
+        $this->db->trans_strict(false); # See Note 01. If you wish can remove as well
+        //=======================Code Start===========================
+        $this->db->empty_table('pickup_point');
+        $this->db->empty_table('route_pickup_point'); // Also clear associated route connections
+
+        $message = "Deleted all records from pickup_point and route_pickup_point tables.";
+        $action = "Truncate All Pickup Points";
+        $record_id = null; // No specific record ID for a truncate operation
+        $this->log($message, $record_id, $action);
+        //======================Code End==============================
+        $this->db->trans_complete(); # Completing transaction
+        /* Optional */
+        if ($this->db->trans_status() === false) {
+            # Something went wrong.
+            $this->db->trans_rollback();
+            return false;
+        } else {
+            return true;
+        }
+    }
+
+    public function add_bulk_route_pickup_points($data)
+    {
+        $this->db->trans_start();
+        $this->db->trans_strict(false);
+
+        $insert_batch = [];
+        $error_messages = [];
+
+        foreach ($data as $row_num => $row) {
+            $route_title = trim($row['route_title']);
+            $pickup_point_name = trim($row['pickup_point_name']);
+            $distance = trim($row['distance']);
+            $pickup_time = trim($row['pickup_time']);
+            $fees = trim($row['fees']);
+
+            $route = $this->getRouteByTitle($route_title);
+            $pickup_point = $this->getPickupPointByName($pickup_point_name);
+
+            if (!$route) {
+                $error_messages[] = "Row " . ($row_num + 1) . ": Route '" . $route_title . "' not found.";
+                continue;
+            }
+
+            if (!$pickup_point) {
+                $error_messages[] = "Row " . ($row_num + 1) . ": Pickup Point '" . $pickup_point_name . "' not found.";
+                continue;
+            }
+
+            // Basic validation for required fields for route_pickup_point
+            if (empty($pickup_time) || empty($fees)) {
+                $error_messages[] = "Row " . ($row_num + 1) . ": Pickup Time and Fees are required.";
+                continue;
+            }
+
+            $insert_batch[] = [
+                'transport_route_id' => $route->id,
+                'pickup_point_id' => $pickup_point->id,
+                'destination_distance' => $distance,
+                'pickup_time' => $this->customlib->timeFormat($pickup_time, true), // Assuming customlib is loaded and timeFormat exists
+                'fees' => convertCurrencyFormatToBaseAmount($fees), // Assuming this helper exists
+                'session_id' => $this->current_session,
+            ];
+        }
+
+        if (!empty($insert_batch)) {
+            $this->db->insert_batch('route_pickup_point', $insert_batch);
+            $message = INSERT_RECORD_CONSTANT . " On route_pickup_point (bulk upload)";
+            $action = "Insert (Bulk)";
+            $record_id = $this->db->insert_id();
+            $this->log($message, $record_id, $action);
+        }
+
+        $this->db->trans_complete();
+
+        if ($this->db->trans_status() === false) {
+            $this->db->trans_rollback();
+            return ['status' => false, 'errors' => $error_messages];
+        } else {
+            return ['status' => true, 'errors' => $error_messages];
+        }
     }
 
 }

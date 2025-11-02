@@ -197,4 +197,95 @@ class Route_model extends MY_Model
         return $query->row_array();
     }
 
+    public function bulk_import_transport($data)
+    {
+        $this->load->model('pickuppoint_model');
+        $this->load->model('routepickuppoint_model');
+
+        $imported_count = 0;
+        $failed_records = [];
+
+        foreach ($data as $row_num => $row) {
+            $route_title        = trim($row['route_title'] ?? '');
+            $pickup_point_name  = trim($row['pickup_point_name'] ?? '');
+            $destination_distance = trim($row['destination_distance'] ?? '');
+            $pickup_time        = trim($row['pickup_time'] ?? '');
+            $yearly_fees        = trim($row['yearly_fees'] ?? '');
+
+            // Basic Validation
+            if (empty($route_title)) {
+                $row['reason'] = 'Route Title is required.';
+                $failed_records[] = $row;
+                continue;
+            }
+            if (empty($pickup_point_name)) {
+                $row['reason'] = 'Pickup Point Name is required.';
+                $failed_records[] = $row;
+                continue;
+            }
+            if (empty($pickup_time)) {
+                $row['reason'] = 'Pickup Time is required.';
+                $failed_records[] = $row;
+                continue;
+            }
+            if (empty($yearly_fees) || !is_numeric($yearly_fees)) {
+                $row['reason'] = 'Yearly Fees is required and must be numeric.';
+                $failed_records[] = $row;
+                continue;
+            }
+
+            $this->db->trans_start();
+            try {
+                // 1. Get or Create Route
+                $route = $this->getRouteByTitle($route_title);
+                if (!$route) {
+                    $this->db->insert('transport_route', ['route_title' => $route_title]);
+                    $route_id = $this->db->insert_id();
+                } else {
+                    $route_id = $route->id;
+                }
+
+                // 2. Get or Create Pickup Point
+                $pickup_point = $this->pickuppoint_model->getPickupPointByName($pickup_point_name);
+                if (!$pickup_point) {
+                    $this->db->insert('pickup_point', ['name' => $pickup_point_name]);
+                    $pickup_point_id = $this->db->insert_id();
+                } else {
+                    $pickup_point_id = $pickup_point->id;
+                }
+
+                // 3. Create or Update Route Pickup Point
+                $route_pickup_point = $this->routepickuppoint_model->getByRouteAndPickupPoint($route_id, $pickup_point_id);
+                $route_pickup_point_data = [
+                    'transport_route_id'   => $route_id,
+                    'pickup_point_id'      => $pickup_point_id,
+                    'destination_distance' => $destination_distance,
+                    'pickup_time'          => $pickup_time,
+                    'fees'                 => $yearly_fees,
+                    'session_id'           => $this->current_session,
+                ];
+
+                if ($route_pickup_point) {
+                    $this->db->where('id', $route_pickup_point->id)->update('route_pickup_point', $route_pickup_point_data);
+                } else {
+                    $this->db->insert('route_pickup_point', $route_pickup_point_data);
+                }
+
+                $this->db->trans_commit();
+                $imported_count++;
+            } catch (Exception $e) {
+                $this->db->trans_rollback();
+                $row['reason'] = $e->getMessage();
+                $failed_records[] = $row;
+            }
+        }
+
+        return ['imported_count' => $imported_count, 'failed_records' => $failed_records];
+    }
+
+    public function getRouteByTitle($route_title)
+    {
+        return $this->db->where('route_title', $route_title)->get('transport_route')->row();
+    }
+
 }

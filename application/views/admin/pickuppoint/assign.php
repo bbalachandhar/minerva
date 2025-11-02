@@ -46,7 +46,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                         <tr>
                                             <th><?php echo $this->lang->line('route'); ?></th>
                                             <th><?php echo $this->lang->line('pickup_point'); ?></th>
-                                            <th class="text-right"><?php echo $this->lang->line('monthly_fees'); ?> <span><?php echo "(" . $currency_symbol . ")"; ?> </span></th>
+                                            <th class="text-right"><?php echo $this->lang->line('yearly_fees'); ?> <span><?php echo "(" . $currency_symbol . ")"; ?> </span></th>
                                             <th><?php echo $this->lang->line('distance_km'); ?></th>
                                             <th><?php echo $this->lang->line('pickup_time'); ?></th>
                                             <th class="noExport"><?php echo $this->lang->line('action'); ?></th>

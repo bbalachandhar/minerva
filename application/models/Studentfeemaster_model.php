@@ -446,10 +446,10 @@ class Studentfeemaster_model extends MY_Model
         return $query->result();
     }
 
-    public function getProcessingTransportFees($student_session_id, $route_pickup_point_id)
+    public function getProcessingTransportFees($student_session_id)
     {
-        $sql = "SELECT student_transport_fees.*,transport_feemaster.month,transport_feemaster.due_date ,route_pickup_point.fees,transport_feemaster.fine_amount, transport_feemaster.fine_type,transport_feemaster.fine_percentage,IFNULL(student_fees_processing.id,0) as `student_fees_processing_id`, IFNULL(student_fees_processing.amount_detail,0) as `amount_detail`,gateway_ins.unique_id
-        FROM `student_transport_fees` INNER JOIN transport_feemaster on transport_feemaster.id =student_transport_fees.transport_feemaster_id INNER JOIN student_fees_processing on student_fees_processing.student_transport_fee_id=student_transport_fees.id INNER JOIN route_pickup_point on route_pickup_point.id = student_transport_fees.route_pickup_point_id inner join gateway_ins on gateway_ins.id=student_fees_processing.gateway_ins_id where student_transport_fees.student_session_id=" . $student_session_id . " and student_transport_fees.route_pickup_point_id=" . $route_pickup_point_id . " ORDER BY student_transport_fees.id asc";
+        $sql = "SELECT student_transport_fees.*,transport_feemaster.due_date ,route_pickup_point.fees,transport_feemaster.fine_amount, transport_feemaster.fine_type,transport_feemaster.fine_percentage,IFNULL(student_fees_processing.id,0) as `student_fees_processing_id`, IFNULL(student_fees_processing.amount_detail,0) as `amount_detail`,gateway_ins.unique_id
+        FROM `student_transport_fees` INNER JOIN transport_feemaster on transport_feemaster.id =student_transport_fees.transport_feemaster_id INNER JOIN student_fees_processing on student_fees_processing.student_transport_fee_id=student_transport_fees.id INNER JOIN route_pickup_point on route_pickup_point.id = student_transport_fees.route_pickup_point_id inner join gateway_ins on gateway_ins.id=student_fees_processing.gateway_ins_id where student_transport_fees.student_session_id=" . $student_session_id . " and transport_feemaster.month = 'yearly' ORDER BY student_transport_fees.id asc";
         $query = $this->db->query($sql);
         return $query->result();
     }
@@ -461,11 +461,11 @@ class Studentfeemaster_model extends MY_Model
         return $query->result();
     }
 
-    public function getDueTransportFeeByStudent($student_session_id, $route_pickup_point_id, $date)
+    public function getDueTransportFeeByStudent($student_session_id, $date)
     {
-        if ($student_session_id != NULL && $route_pickup_point_id != NULL) {
+        if ($student_session_id != NULL) {
 
-            $sql = "SELECT student_transport_fees.*,transport_feemaster.month,transport_feemaster.due_date ,transport_feemaster.fine_amount, transport_feemaster.fine_type,transport_feemaster.fine_percentage,IFNULL(student_fees_deposite.id,0) as `student_fees_deposite_id`, IFNULL(student_fees_deposite.amount_detail,0) as `amount_detail` ,route_pickup_point.fees FROM `student_transport_fees` INNER JOIN transport_feemaster on transport_feemaster.id =student_transport_fees.transport_feemaster_id LEFT JOIN student_fees_deposite on student_fees_deposite.student_transport_fee_id=student_transport_fees.id  INNER JOIN route_pickup_point on route_pickup_point.id = student_transport_fees.route_pickup_point_id where student_transport_fees.student_session_id=" . $student_session_id . " and student_transport_fees.route_pickup_point_id=" . $route_pickup_point_id . " and transport_feemaster.due_date < '" . $date . "' ORDER BY student_transport_fees.id asc";
+            $sql = "SELECT student_transport_fees.*,transport_feemaster.due_date ,transport_feemaster.fine_amount, transport_feemaster.fine_type,transport_feemaster.fine_percentage,IFNULL(student_fees_deposite.id,0) as `student_fees_deposite_id`, IFNULL(student_fees_deposite.amount_detail,0) as `amount_detail` ,route_pickup_point.fees FROM `student_transport_fees` INNER JOIN transport_feemaster on transport_feemaster.id =student_transport_fees.transport_feemaster_id LEFT JOIN student_fees_deposite on student_fees_deposite.student_transport_fee_id=student_transport_fees.id  INNER JOIN route_pickup_point on route_pickup_point.id = student_transport_fees.route_pickup_point_id where student_transport_fees.student_session_id=" . $student_session_id . " and transport_feemaster.month = 'yearly' and transport_feemaster.due_date < '" . $date . "' ORDER BY student_transport_fees.id asc";
 
             $query = $this->db->query($sql);
 
@@ -476,7 +476,7 @@ class Studentfeemaster_model extends MY_Model
 
     public function getTransportFeesByDueDate($start_date, $end_date)
     {
-        $sql    = "SELECT student_transport_fees.*,route_pickup_point.fees,transport_feemaster.month,transport_feemaster.due_date ,transport_feemaster.fine_amount, transport_feemaster.fine_type,transport_feemaster.fine_percentage,student_session.class_id,classes.class,sections.section,student_session.section_id,student_session.student_id, IFNULL(student_fees_deposite.id,0) as `student_fees_deposite_id`, IFNULL(student_fees_deposite.amount_detail,0) as `amount_detail`,students.id as `student_id`, students.roll_no,students.admission_date,students.firstname,students.middlename,  students.lastname,students.image,    students.mobileno, students.email ,students.state ,   students.city , students.pincode ,     students.religion,students.dob ,students.current_address,    students.permanent_address,students.category_id, IFNULL(categories.category, '') as `category`,   students.adhar_no,students.samagra_id,students.bank_account_no,students.bank_name, students.ifsc_code , students.guardian_name, students.guardian_relation,students.guardian_phone,students.guardian_email,`classes`.`class`,students.guardian_address,students.is_active,`students`.`father_name`,`students`.`app_key`,`students`.`parent_app_key`,`students`.`gender`  FROM `student_transport_fees` INNER JOIN transport_feemaster on transport_feemaster.id =student_transport_fees.transport_feemaster_id   LEFT JOIN student_fees_deposite on student_fees_deposite.student_transport_fee_id=student_transport_fees.id INNER JOIN student_session on student_session.id= student_transport_fees.student_session_id INNER JOIN classes on classes.id= student_session.class_id INNER JOIN sections on sections.id= student_session.section_id INNER JOIN students on students.id=student_session.student_id INNER JOIN route_pickup_point on route_pickup_point.id = student_transport_fees.route_pickup_point_id LEFT JOIN `categories` ON `students`.`category_id` = `categories`.`id` WHERE transport_feemaster.due_date BETWEEN " . $this->db->escape($start_date) . " and " . $this->db->escape($end_date);
+        $sql    = "SELECT student_transport_fees.*,route_pickup_point.fees,transport_feemaster.due_date ,transport_feemaster.fine_amount, transport_feemaster.fine_type,transport_feemaster.fine_percentage,student_session.class_id,classes.class,sections.section,student_session.section_id,student_session.student_id, IFNULL(student_fees_deposite.id,0) as `student_fees_deposite_id`, IFNULL(student_fees_deposite.amount_detail,0) as `amount_detail`,students.id as `student_id`, students.roll_no,students.admission_date,students.firstname,students.middlename,  students.lastname,students.image,    students.mobileno, students.email ,students.state ,   students.city , students.pincode ,     students.religion,students.dob ,students.current_address,    students.permanent_address,students.category_id, IFNULL(categories.category, '') as `category`,   students.adhar_no,students.samagra_id,students.bank_account_no,students.bank_name, students.ifsc_code , students.guardian_name, students.guardian_relation,students.guardian_phone,students.guardian_email,`classes`.`class`,students.guardian_address,students.is_active,`students`.`father_name`,`students`.`app_key`,`students`.`parent_app_key`,`students`.`gender`  FROM `student_transport_fees` INNER JOIN transport_feemaster on transport_feemaster.id =student_transport_fees.transport_feemaster_id   LEFT JOIN student_fees_deposite on student_fees_deposite.student_transport_fee_id=student_transport_fees.id INNER JOIN student_session on student_session.id= student_transport_fees.student_session_id INNER JOIN classes on classes.id= student_session.class_id INNER JOIN sections on sections.id= student_session.section_id INNER JOIN students on students.id=student_session.student_id INNER JOIN route_pickup_point on route_pickup_point.id = student_transport_fees.route_pickup_point_id LEFT JOIN `categories` ON `students`.`category_id` = `categories`.`id` WHERE transport_feemaster.month = 'yearly' AND transport_feemaster.due_date BETWEEN " . $this->db->escape($start_date) . " and " . $this->db->escape($end_date);
         $query  = $this->db->query($sql);
         $result = $query->result();
 
@@ -497,148 +497,6 @@ class Studentfeemaster_model extends MY_Model
 
         $query = $this->db->query($sql);
         return $query->row();
-    }
-
-<<<<<<< Updated upstream
-    public function fee_deposit_bulk($bulk_data, $fee_discounts = null)
-    {
-        $this->db->trans_start();
-        $fees_return = array();
-        $date=date("Y-m-d");
-        foreach ($bulk_data as $fee_key => $fee_data) {
-
-            if ($fee_data['fee_category'] == "fees") {
-
-                $fee_data['student_transport_fee_id'] = NULL;
-                $this->db->where('student_fees_master_id', $fee_data['student_fees_master_id']);
-                $this->db->where('fee_groups_feetype_id', $fee_data['fee_groups_feetype_id']);
-            } elseif ($fee_data['student_transport_fee_id'] > 0 && $fee_data['fee_category'] == "transport") {
-
-                $fee_data['student_fees_master_id'] = NULL;
-                $fee_data['fee_groups_feetype_id'] = NULL;
-                $this->db->where('student_transport_fee_id', $fee_data['student_transport_fee_id']);
-            }
-
-            $fee_category = $fee_data['fee_category'];
-            unset($fee_data['fee_category']);
-
-            $q = $this->db->get('student_fees_deposite');
-
-            if ($q->num_rows() > 0) {
-                $desc = $fee_data['amount_detail']['description'];
-                $row  = $q->row();
-                $this->db->where('id', $row->id);
-                $a                                   = json_decode($row->amount_detail, true);
-                $inv_no                              = max(array_keys($a)) + 1;
-                $fee_data['amount_detail']['inv_no'] = $inv_no;
-                $a[$inv_no]                          = $fee_data['amount_detail'];
-                $fee_data['amount_detail']           = json_encode($a);
-                $this->db->update('student_fees_deposite', $fee_data);               
-
-                if(!empty($fee_discounts)){
-                    $discount_array_bulk=[];
-                    foreach ($fee_discounts as $fee_discount_key => $fee_discount_value) {
-                        $discount_array_bulk[]=array('student_fees_deposite_id'=>$row->id,'student_fees_discount_id'=>$fee_discount_value,'date'=>$date,'invoice_id' => $row->id, 'sub_invoice_id' => $inv_no);
-                    }
-                    $this->db->insert_batch('student_applied_discounts', $discount_array_bulk);
-=======
-            public function get_student_fees_master_id($student_session_id, $fee_session_group_id)
-    {
-        $this->db->select('id');
-        $this->db->from('student_fees_master');
-        $this->db->where('student_session_id', $student_session_id);
-        $this->db->where('fee_session_group_id', $fee_session_group_id);
-        $query = $this->db->get();
-        if ($query->num_rows() > 0) {
-            return $query->row()->id;
-        }
-        return null;
-    }
-
-    public function get_fee_group_feetype_and_session_id($student_session_id, $feetype_id)
-    {
-        $this->db->select('fee_groups_feetype.id as fee_groups_feetype_id, student_fees_master.fee_session_group_id');
-        $this->db->from('student_fees_master');
-        $this->db->join('fee_groups_feetype', 'fee_groups_feetype.fee_session_group_id = student_fees_master.fee_session_group_id');
-        $this->db->where('student_fees_master.student_session_id', $student_session_id);
-        $this->db->where('fee_groups_feetype.feetype_id', $feetype_id);
-        $query = $this->db->get();
-        if ($query->num_rows() > 0) {
-            return $query->row();
-        }
-        return null;
-    }
-
-    public function get_expected_amount_by_fee_groups_feetype_id($fee_groups_feetype_id)
-    {
-        log_message('debug', 'get_expected_amount_by_fee_groups_feetype_id called with fee_groups_feetype_id: ' . $fee_groups_feetype_id);
-        $this->db->select('amount');
-        $this->db->from('fee_groups_feetype');
-        $this->db->where('id', $fee_groups_feetype_id);
-        $query = $this->db->get();
-        if ($query->num_rows() > 0) {
-            $amount = $query->row()->amount;
-            log_message('debug', 'Retrieved amount for fee_groups_feetype_id ' . $fee_groups_feetype_id . ': ' . $amount);
-            return $amount;
-        }
-        log_message('debug', 'No amount found for fee_groups_feetype_id: ' . $fee_groups_feetype_id);
-        return null;
-    }
-
-    public function fee_deposit_bulk($bulk_data)
-            {
-                $this->db->trans_start();
-                $this->db->trans_strict(FALSE);
-        
-                foreach ($bulk_data as $fee_data) {
-                    $this->db->insert('student_fees_deposite', $fee_data);
->>>>>>> Stashed changes
-                }
-
-                $fees_return[] = array(
-                    'invoice_id' => $row->id,
-                    'sub_invoice_id' => $inv_no,
-                    'fee_groups_feetype_id' => $fee_data['fee_groups_feetype_id'],
-                    'student_transport_fee_id' => $fee_data['student_transport_fee_id'],
-                    'fee_category' => $fee_category
-                );
-            } else {
-                $fee_data['amount_detail']['inv_no'] = 1;
-                $desc                                = $fee_data['amount_detail']['description'];
-                $fee_data['amount_detail']           = json_encode(array('1' => $fee_data['amount_detail']));
-                $this->db->insert('student_fees_deposite', $fee_data);
-                $inserted_id = $this->db->insert_id();
-                $message = INSERT_RECORD_CONSTANT . " On student fees deposite id " . $inserted_id;
-                $action = "Insert";
-                $record_id = $inserted_id;                
-
-                $inserted_id = $this->db->insert_id();
-                if (!empty($fee_discounts)) {
-                    $discount_array_bulk=[];
-                    foreach ($fee_discounts as $fee_discount_key => $fee_discount_value) {
-                        $discount_array_bulk[]=array('student_fees_deposite_id'=>$inserted_id,'student_fees_discount_id'=>$fee_discount_value,'date'=>$date,'invoice_id' => $inserted_id, 'sub_invoice_id' => 1);
-                    }
-                    $this->db->insert_batch('student_applied_discounts', $discount_array_bulk);
-                }
-
-                $fees_return[] = array(
-                    'invoice_id' => $inserted_id,
-                    'sub_invoice_id' => 1,
-                    'fee_groups_feetype_id' => $fee_data['fee_groups_feetype_id'],
-                    'student_transport_fee_id' => $fee_data['student_transport_fee_id'],
-                    'fee_category' => $fee_category
-                );
-            }
-        }
-
-        $this->db->trans_complete();
-        if ($this->db->trans_status() === false) {
-            $this->db->trans_rollback();
-            return false;
-        } else {
-            $this->db->trans_commit();
-            return $fees_return;
-        }
     }
 
     public function fee_deposit($data, $send_to, $fee_discounts,$date)
@@ -936,8 +794,8 @@ class Studentfeemaster_model extends MY_Model
                         $a                    = array();
                         $a['amount']          = $r_value->amount;
                         $a['date']            = $r_value->date;
-                        $a['amount_discount'] = $r_value->amount_discount;
-                        $a['amount_fine']     = $r_value->amount_fine;
+                        $a['amount_discount'] = isset($r_value->amount_discount) ? $r_value->amount_discount : 0;
+                        $a['amount_fine']     = isset($r_value->amount_fine) ? $r_value->amount_fine : 0;
                         $a['description']     = $r_value->description;
                         $a['payment_mode']    = $r_value->payment_mode;
                         $a['inv_no']          = $r_value->inv_no;
@@ -1410,16 +1268,15 @@ class Studentfeemaster_model extends MY_Model
         return false;
     }
 	
-	public function getStudentTransportFeesByStudentSessionId($student_session_id, $route_pickup_point_id)
-    {		 
-        if ($student_session_id != NULL && $route_pickup_point_id != NULL) {
-            $sql = "SELECT student_transport_fees.*,transport_feemaster.month,transport_feemaster.due_date ,route_pickup_point.fees,transport_feemaster.fine_amount, transport_feemaster.fine_type,transport_feemaster.fine_percentage,IFNULL(student_fees_deposite.id,0) as `student_fees_deposite_id`, IFNULL(student_fees_deposite.amount_detail,0) as `amount_detail` FROM `student_transport_fees` INNER JOIN transport_feemaster on transport_feemaster.id =student_transport_fees.transport_feemaster_id LEFT JOIN student_fees_deposite on student_fees_deposite.student_transport_fee_id=student_transport_fees.id INNER JOIN route_pickup_point on route_pickup_point.id = student_transport_fees.route_pickup_point_id  where student_transport_fees.student_session_id=" . $student_session_id . " and student_transport_fees.route_pickup_point_id=" . $route_pickup_point_id . " ORDER BY student_transport_fees.id asc";
-            $query = $this->db->query($sql);
-            return $query->result();
-        }
-        return false;
-    }
-
+	    public function getStudentTransportFeesByStudentSessionId($student_session_id)
+	    {		 
+	        if ($student_session_id != NULL) {
+	            $sql = "SELECT student_transport_fees.*,transport_feemaster.due_date ,route_pickup_point.fees,transport_feemaster.fine_amount, transport_feemaster.fine_type,transport_feemaster.fine_percentage,IFNULL(student_fees_deposite.id,0) as `student_fees_deposite_id`, IFNULL(student_fees_deposite.amount_detail,0) as `amount_detail` FROM `student_transport_fees` INNER JOIN transport_feemaster on transport_feemaster.id =student_transport_fees.transport_feemaster_id LEFT JOIN student_fees_deposite on student_fees_deposite.student_transport_fee_id=student_transport_fees.id INNER JOIN route_pickup_point on route_pickup_point.id = student_transport_fees.route_pickup_point_id  where student_transport_fees.student_session_id=" . $student_session_id . " and transport_feemaster.month = 'yearly' ORDER BY student_transport_fees.id asc";
+	            $query = $this->db->query($sql);
+	            return $query->result();
+	        }
+	        return false;
+	    }
     public function studentDepositByFeeGroupFeeTypeArray($student_session_id, $fee_type_array)
     {
         $fee_groups_feetype_ids = implode(', ', $fee_type_array);
