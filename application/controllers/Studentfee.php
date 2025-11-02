@@ -262,9 +262,8 @@ class Studentfee extends Admin_Controller
             $this->form_validation->set_rules('class_id', $this->lang->line('class'), 'required|trim|xss_clean');
         } elseif ($search_type == "keyword_search") {
             $this->form_validation->set_rules('search_text', $this->lang->line('keyword'), 'required|trim|xss_clean');
-            $data = array('search_text' => 'dummy');
-            $this->form_validation->set_data($data);
         }
+
         if ($this->form_validation->run() == false) {
             $error = array();
             if ($search_type == "class_search") {
@@ -274,6 +273,14 @@ class Studentfee extends Admin_Controller
             }
 
             $array = array('status' => 0, 'error' => $error);
+            echo json_encode($array);
+        } else {
+            $array = array('status' => 1, 'error' => '', 'params' => array(
+                'class_id'    => $this->input->post('class_id'),
+                'section_id'  => $this->input->post('section_id'),
+                'search_text' => $this->input->post('search_text'),
+                'search_type'   => $this->input->post('search_type'),
+            ));
             echo json_encode($array);
         }
     }

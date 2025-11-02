@@ -200,7 +200,7 @@ $(document).on('submit','.class_search_form',function(e){
     e.preventDefault(); // avoid to execute the actual submit of the form.
         var $this = $("button[type=submit][clicked=true]");
     var form = $(this);
-    var url = '<?php echo site_url('studentfee/ajaxSearch') ?>';
+    var url = '<?php echo site_url('studentfee/search') ?>';
     var form_data = form.serializeArray();
     form_data.push({name: 'search_type', value: $this.attr('value')});
     $.ajax({
@@ -213,13 +213,106 @@ $(document).on('submit','.class_search_form',function(e){
                 $this.button('loading');
                 resetFields($this.attr('name'));
                },
-              success: function(response) { // your success handler
+ success: function(response) { // your success handler
+
                 if(!response.status){
                     $.each(response.error, function(key, value) {
                     $('#error_' + key).html(value);
-                });
-                }else{
-                    initDatatable('student-list','studentfee/ajaxSearch',response.params,[],100);
+                    });
+                }else{        
+
+        if ($.fn.DataTable.isDataTable('.student-list')) { // if exist datatable it will destrory first
+         $('.student-list').DataTable().destroy();
+       }
+        table= $('.student-list').DataTable({
+        
+       dom: 'Bfrtip',
+          buttons: [
+            {
+                extend:    'copy',
+                text:      '<i class="fa fa-files-o"></i>',
+                titleAttr: 'Copy',
+                 className: "btn-copy",
+                title: $('.student-list').data("exportTitle"),
+                  exportOptions: {
+                    columns: ["thead th:not(.noExport)"]
+                  }
+            },
+            {
+                extend:    'excel',
+                text:      '<i class="fa fa-file-excel-o"></i>',
+                titleAttr: 'Excel',
+                     className: "btn-excel",
+                title: $('.student-list').data("exportTitle"),
+                  exportOptions: {
+                    columns: ["thead th:not(.noExport)"]
+                  }
+            },
+            {
+                extend:    'csv',
+                text:      '<i class="fa fa-file-text-o"></i>',
+                titleAttr: 'CSV',
+                className: "btn-csv",
+                title: $('.student-list').data("exportTitle"),
+                  exportOptions: {
+                    columns: ["thead th:not(.noExport)"]
+                  }
+            },
+            {
+                extend:    'pdf',
+                text:      '<i class="fa fa-file-pdf-o"></i>',
+                titleAttr: 'PDF',
+                className: "btn-pdf",
+                title: $('.student-list').data("exportTitle"),
+                  exportOptions: {
+                    columns: ["thead th:not(.noExport)"]
+                  },
+
+            },
+            {
+                extend:    'print',
+                text:      '<i class="fa fa-print"></i>',
+                titleAttr: 'Print',
+                className: "btn-print",
+                title: $('.student-list').data("exportTitle"),
+                customize: function ( win ) {
+
+                    $(win.document.body).find('th').addClass('display').css('text-align', 'center');
+                    $(win.document.body).find('table').addClass('display').css('font-size', '14px');     
+                    $(win.document.body).find('h1').css('text-align', 'center');
+                },
+                exportOptions: {
+                    columns: ["thead th:not(.noExport)"]
+
+                  }
+
+            }
+        ],
+      
+        "columnDefs": [ {
+        "targets": -1,
+        "orderable": false
+        } ],
+
+
+           "language": {
+            processing: '<i class="fa fa-spinner fa-spin fa-1x fa-fw"></i><span class="sr-only">Loading...</span> '},
+        "pageLength": 100,
+        "processing": true,
+        "serverSide": true,
+        "ajax":{
+        "url": "<?php echo site_url('studentfee/ajaxSearch') ?>",
+        "dataSrc": 'data',
+        "type": "POST",
+        'data': response.params,
+
+     },"drawCallback": function(settings) {
+
+    $('.detail_view_tab').html("").html(settings.json.student_detail_view);
+}
+
+    });
+            //=======================
                 }
               },
              error: function() { // your error handler
