@@ -265,7 +265,7 @@ class Student extends Admin_Controller
         $data['yearlist'] = $this->stuattendence_model->attendanceYearCount();
 
         $startmonth        = $this->setting_model->getStartMonth();
-        $monthlist         = $this->customlib->getMonthDropdown($startmonth);
+        $monthlist         = $this->customlib->getMonthNoDropdown($startmonth);
         $data["monthlist"] = $monthlist;
 
         $data['attendencetypeslist'] = $this->attendencetype_model->get();
@@ -440,7 +440,6 @@ class Student extends Admin_Controller
         $data['houses']          = $houses;
         $data["bloodgroup"]      = $this->blood_group;
         $hostelList              = $this->hostel_model->get();
-        $data['hostelList']      = $hostelList;
         $vehroute_result         = $this->vehroute_model->getRouteVehiclesList();
         $data['vehroutelist']    = $vehroute_result;
 
@@ -1563,7 +1562,7 @@ class Student extends Admin_Controller
         $student                       = $this->student_model->get($id);
         $genderList                    = $this->customlib->getGender();
         $data['student']               = $student;
-        $data["month"]                 = $this->customlib->getMonthDropdown();
+        $data["month"]                 = $this->customlib->getMonthNoDropdown();
         $data['feesessiongroup_model'] = $this->feesessiongroup_model->getFeesByGroupByStudent($student['student_session_id']);
 
         $data['adm_auto_insert'] = $this->sch_setting_detail->adm_auto_insert;
