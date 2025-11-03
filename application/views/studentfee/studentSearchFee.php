@@ -25,8 +25,9 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                         <label for="exampleInputEmail1"><?php echo $this->lang->line('fees_group'); ?></label><small class="req"> *</small>
                                             <div id="checkbox-dropdown-container">
             <div class="">
+               <div class="custom-select" id="custom-select"><?php echo $this->lang->line('select'); ?></div>
                
-                <div id="custom-select-option-box" style="border: 1px solid #ccc; max-height: 150px; overflow-y: auto; padding: 10px;">
+                <div id="custom-select-option-box">
                     <div class="custom-select-option checkbox">
                         <label class="vertical-middle line-h-18">
                             <input  class="custom-select-option-checkbox" type="checkbox" <?php if(isset($select_all) && $select_all == 'on'){echo "checked"; }  ?> name="select_all" id="select_all"> <?php echo $this->lang->line('select_all'); ?> 
@@ -364,8 +365,30 @@ if (set_value('class_id') == $class['id']) {
 </script>
 
 <script>
-    $(document).on('change','#select_all',function(){
-   
-        $('input:checkbox.custom-select-option-checkbox').not(this).prop('checked', this.checked);
+    $("#custom-select").on("click",function(){
+        $("#custom-select-option-box").toggle();
     });
+
+    $(".custom-select-option").on("click", function(e) {
+        var checkboxObj = $(this).children("input");
+        if($(e.target).attr("class") != "custom-select-option-checkbox") {
+                if($(checkboxObj).prop('checked') == true) {
+                    $(checkboxObj).prop('checked',false)
+                } else {
+                    $(checkboxObj).prop("checked",true);
+                }
+        }
+    });
+
+
+$(document).on('click', function(event) {
+  if (event.target.id != "custom-select" && !$(event.target).closest('div').hasClass("custom-select-option")  ) {
+          $("#custom-select-option-box").hide();
+     }
+});
+
+$(document).on('change','#select_all',function(){
+   
+        $('input:checkbox').not(this).prop('checked', this.checked);
+});
 </script>
