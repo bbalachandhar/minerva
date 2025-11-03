@@ -157,10 +157,11 @@ if (!function_exists('main_menu_array')) {
                 'feesforward'    => array('index'),                               
                 'feereminder'    => array('setting'), 
                 'offlinepayment' => array('index'), 
-				'customfeesmaster'  => array('index'),  
+				'customfeesmaster'  => array('index'),
                 'incidental_fee_type' => array('index', 'edit'),
                 'assign_incidental_fee' => array('index'),
-                'collect_incidental_fee' => array('index', 'searchStudent', 'receipt'),
+                'collect_incidental_fee' => array('index', 'searchStudent', 'receipt', 'revert'),
+                'financereports' => array('incidental_fee_report'),
             ), 
             
             'income' => array(                                 
@@ -419,7 +420,7 @@ if (!function_exists('main_menu_array')) {
 
 if (!function_exists('activate_main_menu')) {
 
-    function activate_main_menu($menu, $class_active = "active")
+    function activate_main_menu($menu, $class_active = "active menu-open")
     {
         $CI     = get_instance();
         $class  = $CI->router->fetch_class();
