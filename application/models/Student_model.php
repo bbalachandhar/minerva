@@ -2085,6 +2085,7 @@ class Student_model extends MY_Model
             }
             $this->db->group_end();
         }
+        $this->db->group_by('students.id');
         $this->db->order_by('students.admission_no', 'asc');
 
         $query = $this->db->get();

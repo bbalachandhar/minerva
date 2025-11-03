@@ -111,7 +111,7 @@
                             <h3 class="box-title"><i class="fa fa-list"></i> <?php echo $this->lang->line('incidental_fee_collections'); ?></h3>
                         </div>
                         <div class="box-body table-responsive">
-                            <table class="table table-striped table-bordered table-hover gemini-datatable">
+                            <table class="table table-striped table-bordered table-hover incidental-report-table">
                                 <thead>
                                     <tr>
                                         <th><?php echo $this->lang->line('receipt_no'); ?></th>
@@ -130,13 +130,14 @@
                                         <?php foreach ($collections as $collection) { ?>
                                             <tr>
                                                 <td><?php echo $collection['receipt_no']; ?></td>
-                                                <td><?php echo $collection['student_name']; ?></td>
+                                                <td><?php echo date($this->customlib->getSchoolDateFormat(), strtotime($collection['date_collected'])); ?></td>
+                                                <td><?php echo $collection['session_name']; ?></td>
+                                                <td><?php echo $this->customlib->getFullName($collection['firstname'],'',$collection['lastname'], $sch_setting->middlename, $sch_setting->lastname); ?></td>
                                                 <td><?php echo $collection['admission_no']; ?></td>
-                                                <td><?php echo $collection['class'] . ' (' . $collection['section'] . ')'; ?></td>
+                                                <td><?php echo $collection['class_name'] . ' (' . $collection['section'] . ')'; ?></td>
                                                 <td><?php echo $collection['fee_type_title']; ?></td>
-                                                <td><?php echo date($this->customlib->getSchoolDateFormat(), strtotime($collection['collection_date'])); ?></td>
                                                 <td><?php echo $collection['amount_collected']; ?></td>
-                                                <td><?php echo $collection['staff_name']; ?></td>
+                                                <td><?php echo $collection['collected_by_name']; ?></td>
                                                 <td class="text-right">
                                                     <a href="<?php echo site_url('admin/collect_incidental_fee/revert/' . $collection['id']); ?>" class="btn btn-danger btn-xs" onclick="return confirm('Are you sure you want to revert this fee collection? This action cannot be undone.');" data-toggle="tooltip" title="<?php echo $this->lang->line('revert'); ?>">
                                                         <i class="fa fa-undo"></i> <?php echo $this->lang->line('revert'); ?>
@@ -212,3 +213,10 @@
 </script>
 
 <?php $this->load->view('layout/footer'); ?>
+<script>
+$(document).ready(function() {
+    $('.incidental-report-table').DataTable({
+        "destroy": true // Add this to allow re-initialization
+    });
+});
+</script>

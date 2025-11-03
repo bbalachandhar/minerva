@@ -51,6 +51,7 @@ class Financereports extends Admin_Controller
         $data['sessions'] = $this->session_model->get();
         $data['classes'] = $this->class_model->get();
         $data['searchlist'] = $this->customlib->get_searchtype(); // For date range search
+        $data['sch_setting'] = $this->sch_setting_detail;
 
         $this->form_validation->set_rules('search_type', $this->lang->line('search_duration'), 'trim|required|xss_clean');
 
@@ -78,6 +79,14 @@ class Financereports extends Admin_Controller
             );
 
             $data['collections'] = $this->incidental_fee_collection_model->get_collections_report($filters);
+
+            $total_amount_collected = 0;
+            if (!empty($data['collections'])) {
+                foreach ($data['collections'] as $collection) {
+                    $total_amount_collected += $collection['amount_collected'];
+                }
+            }
+            $data['total_amount_collected'] = $total_amount_collected;
             // For assignments report, we might need a separate method in the model
             // For now, let's focus on collections report first.
             // $data['assignments'] = $this->incidental_fee_assignment_model->get_assignments_report($filters);

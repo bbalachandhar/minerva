@@ -43,12 +43,13 @@ class Incidental_fee_collection_model extends CI_Model {
 
     // Method to get collections for reporting
     public function get_collections_report($filters = array()) {
-        $this->db->select('incidental_fee_collections.*, incidental_fee_types.title as fee_type_title, students.firstname, students.lastname, students.admission_no, classes.class as class_name, sessions.session as session_name, staff.name as collected_by_name');
+        $this->db->select('incidental_fee_collections.*, incidental_fee_types.title as fee_type_title, students.firstname, students.lastname, students.admission_no, classes.class as class_name, sections.section, sessions.session as session_name, staff.name as collected_by_name');
         $this->db->from('incidental_fee_collections');
         $this->db->join('incidental_fee_types', 'incidental_fee_types.id = incidental_fee_collections.incidental_fee_type_id', 'left');
         $this->db->join('students', 'students.id = incidental_fee_collections.student_id', 'left');
-        $this->db->join('incidental_fee_assignments', 'incidental_fee_assignments.id = incidental_fee_collections.incidental_fee_assignment_id', 'left');
-        $this->db->join('classes', 'classes.id = incidental_fee_assignments.class_id', 'left');
+        $this->db->join('student_session', 'student_session.student_id = students.id', 'left');
+        $this->db->join('classes', 'classes.id = student_session.class_id', 'left');
+        $this->db->join('sections', 'sections.id = student_session.section_id', 'left');
         $this->db->join('sessions', 'sessions.id = incidental_fee_collections.session_id', 'left');
         $this->db->join('staff', 'staff.id = incidental_fee_collections.collected_by', 'left'); // Join with staff table
 
