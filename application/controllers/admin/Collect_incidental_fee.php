@@ -13,6 +13,7 @@ class Collect_incidental_fee extends Admin_Controller {
         $this->load->model('student_model');
         $this->load->model('setting_model');
         $this->load->library('form_validation');
+        $this->load->library('media_storage');
         $this->lang->load('message', 'english');
     }
 
@@ -135,10 +136,11 @@ class Collect_incidental_fee extends Admin_Controller {
         if (!$this->rbac->hasPrivilege('collect_incidental_fee', 'can_view')) {
             access_denied();
         }
-        $data['collection'] = $this->incidental_fee_collection_model->get($collection_id);
-        $this->load->view('layout/header');
-        $this->load->view('admin/incidental_fee_collection/incidental_fee_receipt', $data);
-        $this->load->view('layout/footer');
+        $data['collection'] = $this->incidental_fee_collection_model->get_collection_by_id($collection_id);
+        $data['sch_setting'] = $this->setting_model->getSetting();
+        $data['receipt_header'] = $this->setting_model->get_receiptheader();
+
+        $this->load->view('financereports/incidental_fee_print', $data);
     }
 
     public function getSectionsByClass() {

@@ -47,7 +47,7 @@
         }
     </style>
 </head>
-<body>
+<body onafterprint="window.location.href = '<?php echo site_url('admin/collect_incidental_fee'); ?>'">
 <div class="container">
     <div class="row">
         <div class="col-md-10 col-md-offset-1">
