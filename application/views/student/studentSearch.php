@@ -458,11 +458,90 @@ $(document).on('submit','.class_search_form',function(e){
 
 
 <script type="text/javascript">
-    $(document).ready(function() {
-        $('#class_id').select2({
-            placeholder: "Select",
-        });
+$(document).ready(function () {
+    var class_id_select = $('#class_id').select2({
+        placeholder: "<?php echo $this->lang->line('select'); ?>",
+        allowClear: true,
+        templateResult: function (data, container) {
+            if (data.element) {
+                var $state = $(
+                    '<span><input type="checkbox" class="select2-checkbox" /> ' + data.text + '</span>'
+                );
+                var $originalOption = $(data.element);
+                if ($originalOption.is(':selected')) {
+                    $state.find('input').prop('checked', true);
+                }
+                return $state;
+            } else {
+                return data.text;
+            }
+        },
+        templateSelection: function (data, container) {
+            var selected_count = $('#class_id :selected').length;
+            if (selected_count > 0) {
+                return selected_count + ' class(es) selected';
+            }
+            return "<?php echo $this->lang->line('select'); ?>";
+        },
+        closeOnSelect: false
     });
+
+    class_id_select.on('select2:open', function () {
+        if ($('.select2-results__options .select2-select-all').length === 0) {
+            var $selectAll = $('<button class="btn btn-default btn-xs btn-block select2-select-all" style="margin: 5px;">Select All</button>');
+            $('.select2-results__options').prepend($selectAll);
+
+            $selectAll.on('click', function () {
+                var $options = $('#class_id option');
+                var all_selected = $options.length === $('#class_id :selected').length;
+
+                if (all_selected) {
+                    $options.prop('selected', false);
+                } else {
+                    $options.prop('selected', true);
+                }
+                $('#class_id').trigger('change.select2');
+                $('.select2-results__option input.select2-checkbox').prop('checked', !all_selected);
+                class_id_select.select2('close');
+            });
+        }
+    });
+
+    class_id_select.on('select2:select', function (e) {
+        var data = e.params.data;
+        var $checkbox = $(this).data('select2').$results.find('li[id$="' + data.id + '"] input');
+        if ($checkbox.length) {
+            $checkbox.prop('checked', true);
+        }
+    });
+
+    class_id_select.on('select2:unselect', function (e) {
+        var data = e.params.data;
+        var $checkbox = $(this).data('select2').$results.find('li[id$="' + data.id + '"] input');
+        if ($checkbox.length) {
+            $checkbox.prop('checked', false);
+        }
+    });
+
+    $(document).on('click', '.select2-results__option .select2-checkbox', function(e) {
+        var $option = $(this).closest('.select2-results__option');
+        var optionId = $option.attr('id').split('-').pop();
+        var isChecked = $(this).is(':checked');
+        
+        var $select = $('#class_id');
+        var $selectOption = $select.find('option[value="' + optionId + '"]');
+
+        if (isChecked) {
+            $selectOption.prop('selected', true);
+        } else {
+            $selectOption.prop('selected', false);
+        }
+        $select.trigger('change.select2');
+        
+        e.stopPropagation();
+    });
+});
+</script>
     $(document).on('click', '.print_student_details', function() {
     let $button_ = $(this);
     var student_id = $(this).attr('data-student_id');
