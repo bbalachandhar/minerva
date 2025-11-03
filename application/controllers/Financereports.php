@@ -29,6 +29,65 @@ class Financereports extends Admin_Controller
         $this->load->view('layout/footer');
     }
 
+    public function incidental_fee_report()
+    {
+        if (!$this->rbac->hasPrivilege('incidental_fee_report', 'can_view')) {
+            access_denied();
+        }
+
+        $this->session->set_userdata('top_menu', 'Reports');
+        $this->session->set_userdata('sub_menu', 'Reports/finance');
+        $this->session->set_userdata('subsub_menu', 'Reports/finance/incidental_fee_report');
+
+        $this->load->model('incidental_fee_type_model');
+        $this->load->model('incidental_fee_assignment_model');
+        $this->load->model('incidental_fee_collection_model');
+        $this->load->model('session_model');
+        $this->load->model('class_model');
+        $this->load->model('student_model');
+
+        $data['title'] = 'Incidental Fee Report';
+        $data['fee_types'] = $this->incidental_fee_type_model->get();
+        $data['sessions'] = $this->session_model->get();
+        $data['classes'] = $this->class_model->get();
+        $data['searchlist'] = $this->customlib->get_searchtype(); // For date range search
+
+        $this->form_validation->set_rules('search_type', $this->lang->line('search_duration'), 'trim|required|xss_clean');
+
+        if ($this->form_validation->run() == FALSE) {
+            $data['collections'] = array();
+            $data['assignments'] = array();
+        } else {
+            $search_type = $this->input->post('search_type');
+            $session_id = $this->input->post('session_id');
+            $fee_type_id = $this->input->post('fee_type_id');
+            $class_id = $this->input->post('class_id');
+            $student_id = $this->input->post('student_id');
+
+            $dates = $this->customlib->get_betweendate($search_type);
+            $start_date = date('Y-m-d', strtotime($dates['from_date']));
+            $end_date = date('Y-m-d', strtotime($dates['to_date']));
+
+            $filters = array(
+                'session_id' => $session_id,
+                'fee_type_id' => $fee_type_id,
+                'class_id' => $class_id,
+                'student_id' => $student_id,
+                'start_date' => $start_date,
+                'end_date' => $end_date
+            );
+
+            $data['collections'] = $this->incidental_fee_collection_model->get_collections_report($filters);
+            // For assignments report, we might need a separate method in the model
+            // For now, let's focus on collections report first.
+            // $data['assignments'] = $this->incidental_fee_assignment_model->get_assignments_report($filters);
+        }
+
+        $this->load->view('layout/header', $data);
+        $this->load->view('financereports/incidental_fee_report', $data); // New view for incidental reports
+        $this->load->view('layout/footer', $data);
+    }
+
     public function reportduefees()
     {
         if (!$this->rbac->hasPrivilege('balance_fees_statement', 'can_view')) {

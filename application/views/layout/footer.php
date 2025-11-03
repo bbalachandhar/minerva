@@ -11,9 +11,7 @@
 </footer>
 <div class="control-sidebar-bg"></div>
 </div>
-<script>
-    $.widget.bridge('uibutton', $.ui.button);
-</script>
+
 <?php
 $language      = $this->customlib->getLanguage();
 $language_name = $language["short_code"];
@@ -103,6 +101,8 @@ if ($language_name != 'en') {
 <script type="text/javascript" src="<?php echo base_url(); ?>backend/dist/datatables/js/buttons.colVis.min.js" ></script>
 <script type="text/javascript" src="<?php echo base_url(); ?>backend/dist/datatables/js/dataTables.responsive.min.js" ></script>
 <script type="text/javascript" src="<?php echo base_url(); ?>backend/dist/datatables/js/ss.custom.js" ></script>
+<script src="<?php echo base_url() ?>backend/fullcalendar/dist/fullcalendar.min.js"></script>
+<script src="<?php echo base_url() ?>backend/fullcalendar/dist/locale-all.js"></script>
 
 
 <script type="text/javascript">
@@ -158,10 +158,6 @@ $(document).ready(function () {
         $('.dropify').dropify();
     });
 </script>
-</html>
-<!-- jQuery 3 -->
-<script src="<?php echo base_url() ?>backend/fullcalendar/dist/fullcalendar.min.js"></script>
-<script src="<?php echo base_url() ?>backend/fullcalendar/dist/locale-all.js"></script>
 <script type="text/javascript">
 
     $(document).ready(function () {
@@ -712,3 +708,8 @@ if (isset($_POST['date_from']) && $_POST['date_from'] != '' && isset($_POST['dat
 
     });
 </script>
+<script src="<?php echo base_url(); ?>backend/multiselect/js/jquery.multiselect.js"></script>
+<script>
+    $.widget.bridge('uibutton', $.ui.button);
+</script>
+</html>

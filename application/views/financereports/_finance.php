@@ -35,11 +35,19 @@
                     
                         <li class="col-lg-4 col-md-4 col-sm-6 <?php echo set_SubSubmenu('Reports/finance/duefeesremark'); ?>"><a href="<?php echo base_url('financereports/duefeesremark'); ?>"><i class="fa fa-file-text-o"></i> <?php echo $this->lang->line('balance_fees_report_with_remark'); ?></a></li>
                         
-                    <?php  } if ($this->rbac->hasPrivilege('income_report', 'can_view')) { ?>
-                    
-                        <li class="col-lg-4 col-md-4 col-sm-6 <?php echo set_SubSubmenu('Reports/finance/income'); ?>"><a href="<?php echo base_url(); ?>financereports/income"><i class="fa fa-file-text-o"></i> <?php echo $this->lang->line('income_report'); ?></a></li>
+                                        <?php  }  if ($this->rbac->hasPrivilege('incidental_fee_report', 'can_view')) {  ?>
                         
-                    <?php   }  if ($this->rbac->hasPrivilege('expense_report', 'can_view')) {  ?>
+                                            <li class="col-lg-4 col-md-4 col-sm-6 <?php echo set_SubSubmenu('Reports/finance/incidental_fee_report'); ?>"><a href="<?php echo site_url('financereports/incidental_fee_report'); ?>"><i class="fa fa-file-text-o"></i> <?php echo $this->lang->line('incidental_fee_report'); ?></a></li>
+                        
+                                        <?php  }  if ($this->rbac->hasPrivilege('income_report', 'can_view')) {  ?>
+                        
+                                        
+                        
+                                            <li class="col-lg-4 col-md-4 col-sm-6 <?php echo set_SubSubmenu('Reports/finance/income'); ?>"><a href="<?php echo base_url(); ?>financereports/income"><i class="fa fa-file-text-o"></i> <?php echo $this->lang->line('income_report'); ?></a></li>
+                        
+                                            
+                        
+                                        <?php   }  if ($this->rbac->hasPrivilege('expense_report', 'can_view')) {  ?>
                     
                         <li class="col-lg-4 col-md-4 col-sm-6 <?php echo set_SubSubmenu('Reports/finance/expense'); ?>"><a href="<?php echo base_url(); ?>financereports/expense"><i class="fa fa-file-text-o"></i> <?php echo $this->lang->line('expense_report'); ?></a></li>
                         

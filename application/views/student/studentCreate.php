@@ -2,8 +2,7 @@
 $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
 ?>
 <link href="<?php echo base_url(); ?>backend/multiselect/css/jquery.multiselect.css" rel="stylesheet">
-<script src="<?php echo base_url(); ?>backend/multiselect/js/jquery.min.js"></script>
-<script src="<?php echo base_url(); ?>backend/multiselect/js/jquery.multiselect.js"></script>
+
 <div class="content-wrapper" style="min-height: 946px;">
     <!-- Main content -->
     <section class="content">
@@ -1537,7 +1536,7 @@ if (($userdata["role_id"] == 2)) {
         }
     });
 
-<!-- Commented out JavaScript blocks for debugging -->
+
 <script>
     $(document).ready(function () {
         var institution_type = '<?php echo $sch_setting->institution_type; ?>';
@@ -1604,7 +1603,6 @@ if (($userdata["role_id"] == 2)) {
         });
     });
 </script>
-<?php /*
 <script type="text/javascript" src="<?php echo base_url(); ?>backend/dist/js/savemode.js"></script>
 
 <script>
@@ -1677,4 +1675,4 @@ $('#fee_session_group_id').multiselect({
     });
     
 //fee discount  
-*/ ?>
+</script>

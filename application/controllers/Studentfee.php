@@ -347,6 +347,7 @@ class Studentfee extends Admin_Controller
         $data['sch_setting'] = $this->sch_setting_detail;
         $feesessiongroup     = $this->feesessiongroup_model->getFeesByGroup();
         $module = $this->module_model->getPermissionByModulename('transport');
+        $transportfessthe_array = [];
 
         $currentsessiontransportfee = $this->transportfee_model->getSessionFees($this->current_session);
         if (!empty($currentsessiontransportfee)) {
@@ -361,6 +362,7 @@ class Studentfee extends Admin_Controller
                 if (!empty($transportfesstype)) {
 
                     foreach ($transportfesstype as $trs_key => $trs_value) {
+                        $transportfessthe_array[] = $trs_value->id;
                         $transportfesstype[$trs_key]->type = $this->lang->line(strtolower($trs_value->type));
                         $transportfesstype[$trs_key]->code = $this->lang->line(strtolower($trs_value->code));
                     }

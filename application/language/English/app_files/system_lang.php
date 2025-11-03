@@ -2710,3 +2710,10 @@ $lang['morning_session_end_time'] = "Morning Session End Time";
 $lang['evening_session_end_time'] = "Evening Session End Time";
 $lang['max_late_allowed'] = "Max Late Allowed (Monthly)";
 $lang['max_permission_allowed'] = "Max Permission Allowed (Monthly)";
+$lang['incidental_fee_type'] = "Incidental Fee Types";
+$lang['assign_incidental_fee'] = "Assign Incidental Fees";
+$lang['collect_incidental_fee'] = "Collect Incidental Fees";
+
+
+
+

@@ -277,11 +277,15 @@ $(document).ready(function () {
 });
 </script>
 
- <script>
+<?php if (empty($resultlist)) { ?>
+<script>
 $(document).ready(function() {
      emptyDatatable('student-list','data');
 });
 </script>
+<?php } ?>
+
+ 
 
 <script type="text/javascript">
 $(document).ready(function(){

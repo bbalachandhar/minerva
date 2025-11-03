@@ -1,79 +1,69 @@
+
+
+
 $(document).ready(function () {
+    if (!$.fn.DataTable.isDataTable('.example')) {
         var table = $('.example').DataTable({
-            "aaSorting": [],           
+            "aaSorting": [],
             rowReorder: {
-            selector: 'td:nth-child(2)'
+                selector: 'td:nth-child(2)'
             },
             //responsive: 'false',
             dom: "Bfrtip",
             buttons: [
-
                 {
                     extend: 'copyHtml5',
                     text: '<i class="fa fa-files-o"></i>',
                     titleAttr: 'Copy',
                     title: $('.download_label').html(),
-                     exportOptions: {
-                    columns: ["thead th:not(.noExport)"]
-                  }
+                    exportOptions: {
+                        columns: ["thead th:not(.noExport)"]
+                    }
                 },
-
                 {
                     extend: 'excelHtml5',
                     text: '<i class="fa fa-file-excel-o"></i>',
                     titleAttr: 'Excel',
-                   
                     title: $('.download_label').html(),
-                     exportOptions: {
-                    columns: ["thead th:not(.noExport)"]
-                  }
+                    exportOptions: {
+                        columns: ["thead th:not(.noExport)"]
+                    }
                 },
-
                 {
                     extend: 'csvHtml5',
                     text: '<i class="fa fa-file-text-o"></i>',
                     titleAttr: 'CSV',
                     title: $('.download_label').html(),
-                     exportOptions: {
-                    columns: ["thead th:not(.noExport)"]
-                  }
-                },
-
-         
-
-                {
-                  extend:    'pdf',
-                  text:      '<i class="fa fa-file-pdf-o"></i>',
-                  titleAttr: 'PDF',
-                  className: "btn-pdf",
-                  title: $('.download_label').html(),
                     exportOptions: {
-                      
-                      columns: ["thead th:not(.noExport)"]
+                        columns: ["thead th:not(.noExport)"]
+                    }
+                },
+                {
+                    extend: 'pdf',
+                    text: '<i class="fa fa-file-pdf-o"></i>',
+                    titleAttr: 'PDF',
+                    className: "btn-pdf",
+                    title: $('.download_label').html(),
+                    exportOptions: {
+                        columns: ["thead th:not(.noExport)"]
                     },
-  
-              },
-
-
+                },
                 {
                     extend: 'print',
                     text: '<i class="fa fa-print"></i>',
                     titleAttr: 'Print',
                     title: $('.download_label').html(),
-                 customize: function ( win ) {
-
-                    $(win.document.body).find('th').addClass('display').css('text-align', 'center');
-                    $(win.document.body).find('td').addClass('display').css('text-align', 'left');
-                    $(win.document.body).find('table').addClass('display').css('font-size', '14px');
-                    // $(win.document.body).find('table').addClass('display').css('text-align', 'center');
-                    $(win.document.body).find('h1').css('text-align', 'center');
+                    customize: function (win) {
+                        $(win.document.body).find('th').addClass('display').css('text-align', 'center');
+                        $(win.document.body).find('td').addClass('display').css('text-align', 'left');
+                        $(win.document.body).find('table').addClass('display').css('font-size', '14px');
+                        $(win.document.body).find('h1').css('text-align', 'center');
+                    },
+                    exportOptions: {
+                        stripHtml: false,
+                        columns: ["thead th:not(.noExport)"]
+                    }
                 },
-                     exportOptions: {
-                      stripHtml:false,
-                    columns: ["thead th:not(.noExport)"]
-                  }
-                },
-
                 {
                     extend: 'colvis',
                     text: '<i class="fa fa-columns"></i>',
@@ -83,8 +73,80 @@ $(document).ready(function () {
                 },
             ]
         });
-    });
+    }
+});
 
+$(document).ready(function () {
+    $('.gemini-datatable').DataTable({
+        "aaSorting": [],
+        rowReorder: {
+            selector: 'td:nth-child(2)'
+        },
+        dom: "Bfrtip",
+        buttons: [
+            {
+                extend: 'copyHtml5',
+                text: '<i class="fa fa-files-o"></i>',
+                titleAttr: 'Copy',
+                title: $('.download_label').html(),
+                exportOptions: {
+                    columns: ["thead th:not(.noExport)"]
+                }
+            },
+            {
+                extend: 'excelHtml5',
+                text: '<i class="fa fa-file-excel-o"></i>',
+                titleAttr: 'Excel',
+                title: $('.download_label').html(),
+                exportOptions: {
+                    columns: ["thead th:not(.noExport)"]
+                }
+            },
+            {
+                extend: 'csvHtml5',
+                text: '<i class="fa fa-file-text-o"></i>',
+                titleAttr: 'CSV',
+                title: $('.download_label').html(),
+                exportOptions: {
+                    columns: ["thead th:not(.noExport)"]
+                }
+            },
+            {
+                extend: 'pdf',
+                text: '<i class="fa fa-file-pdf-o"></i>',
+                titleAttr: 'PDF',
+                className: "btn-pdf",
+                title: $('.download_label').html(),
+                exportOptions: {
+                    columns: ["thead th:not(.noExport)"]
+                },
+            },
+            {
+                extend: 'print',
+                text: '<i class="fa fa-print"></i>',
+                titleAttr: 'Print',
+                title: $('.download_label').html(),
+                customize: function (win) {
+                    $(win.document.body).find('th').addClass('display').css('text-align', 'center');
+                    $(win.document.body).find('td').addClass('display').css('text-align', 'left');
+                    $(win.document.body).find('table').addClass('display').css('font-size', '14px');
+                    $(win.document.body).find('h1').css('text-align', 'center');
+                },
+                exportOptions: {
+                    stripHtml: false,
+                    columns: ["thead th:not(.noExport)"]
+                }
+            },
+            {
+                extend: 'colvis',
+                text: '<i class="fa fa-columns"></i>',
+                titleAttr: 'Columns',
+                title: $('.download_label').html(),
+                postfixButtons: ['colvisRestore']
+            },
+        ]
+    });
+});
 
 /*--dropify--*/
 $(document).ready(function(){

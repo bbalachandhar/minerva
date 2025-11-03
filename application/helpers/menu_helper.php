@@ -158,6 +158,9 @@ if (!function_exists('main_menu_array')) {
                 'feereminder'    => array('setting'), 
                 'offlinepayment' => array('index'), 
 				'customfeesmaster'  => array('index'),  
+                'incidental_fee_type' => array('index', 'edit'),
+                'assign_incidental_fee' => array('index'),
+                'collect_incidental_fee' => array('index', 'searchStudent', 'receipt'),
             ), 
             
             'income' => array(                                 
