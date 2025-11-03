@@ -114,14 +114,14 @@
                             <table class="table table-striped table-bordered table-hover incidental-report-table">
                                 <thead>
                                     <tr>
-                                        <th><?php echo $this->lang->line('receipt_no'); ?></th>
+                                        <th><?php echo $this->lang->line('incidental_report_receipt_no'); ?></th>
                                         <th><?php echo $this->lang->line('date'); ?></th>
                                         <th><?php echo $this->lang->line('session'); ?></th>
                                         <th><?php echo $this->lang->line('student_name'); ?></th>
                                         <th><?php echo $this->lang->line('admission_no'); ?></th>
                                         <th><?php echo $this->lang->line('class'); ?></th>
                                         <th><?php echo $this->lang->line('fee_type'); ?></th>
-                                        <th><?php echo $this->lang->line('amount_collected'); ?></th>
+                                        <th><?php echo $this->lang->line('incidental_report_amount_collected'); ?></th>
                                             <th><?php echo $this->lang->line('collected_by'); ?></th>
                                             <th class="text-right"><?php echo $this->lang->line('action'); ?></th>
                                         </tr>
@@ -212,7 +212,7 @@
     });
 </script>
 
-<?php $this->load->view('layout/footer'); ?>
+
 <script>
 $(document).ready(function() {
     $('.incidental-report-table').DataTable({

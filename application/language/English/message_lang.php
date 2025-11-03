@@ -39,7 +39,7 @@ $lang['no_student_or_class_selected'] = 'No student or class selected.';
 $lang['fee_assigned_successfully'] = 'Fee Assigned Successfully';
 $lang['no_fee_assigned'] = 'No Fee Assigned';
 $lang['error_collecting_fee'] = 'Error collecting fee.';
-$lang['incidental_fee_report'] = 'Incidental Fee Report';
+$lang['incidental_fee_report'] = 'Incidental Fee Collection Report';
 $lang['add_incidental_fee_type'] = 'Add Incidental Fee Type';
 $lang['edit_incidental_fee_type'] = 'Edit Incidental Fee Type';
 $lang['incidental_fee_type_list'] = 'Incidental Fee Type List';
@@ -60,4 +60,6 @@ $lang['title'] = 'Title';
 $lang['description'] = 'Description';
 $lang['default_amount'] = 'Default Amount';
 $lang['revert'] = 'Revert';
+$lang['incidental_report_receipt_no'] = 'Receipt No.';
+$lang['incidental_report_amount_collected'] = 'Amount Collected';
 ?>
