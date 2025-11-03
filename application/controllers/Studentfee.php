@@ -395,6 +395,16 @@ class Studentfee extends Admin_Controller
             $this->load->view('layout/header', $data);
             $this->load->view('studentfee/studentSearchFee', $data);
             $this->load->view('layout/footer', $data);
+        } else {
+            $data['student_remain_fees'] = array();
+            $feegroup                    = $this->input->post('feegroup');
+            $class_id                    = $this->input->post('class_id');
+            $section_id                  = $this->input->post('section_id');
+            $student_remain_fees         = $this->studentfeemaster_model->searchStudentsByFeeGroups($feegroup, $class_id, $section_id);
+            $data['student_remain_fees'] = $student_remain_fees;
+            $this->load->view('layout/header', $data);
+            $this->load->view('studentfee/studentSearchFee', $data);
+            $this->load->view('layout/footer', $data);
         }
     }
 

@@ -3200,7 +3200,7 @@ class Student extends Admin_Controller
         $sch_setting = $this->sch_setting_detail;
 
         $headings = array(
-            'Admission No', 'Roll No', 'First Name', 'Middle Name', 'Last Name', 'Gender', 'Date of Birth', 'Category', 'Religion', 'Caste', 'Mobile No', 'Email', 'Admission Date', 'Blood Group', 'School House', 'Height', 'Weight', 'Measurement Date', 'Father Name', 'Father Phone', 'Father Occupation', 'Mother Name', 'Mother Phone', 'Mother Occupation', 'Guardian Name', 'Guardian Relation', 'Guardian Email', 'Guardian Phone', 'Guardian Occupation', 'Guardian Address', 'Current Address', 'Permanent Address', 'Bank Account No', 'Bank Name', 'IFSC Code', 'Aadhar No', 'Samagra ID', 'RTE', 'Previous School', 'Note', 'Image', 'Father Pic', 'Mother Pic', 'Guardian Pic', 'Is Active', 'Created At', 'Updated At', 'Parent ID', 'Guardian Is', 'State', 'City', 'Pincode', 'Register No', 'Regulation ID', 'EMIS Num', 'HSC Reg No', 'UG Reg No', 'ABC ID', 'Father Adhar No', 'Mother Adhar No', 'Migration Cert Num', 'Medium'
+            'Admission No', 'Roll No', 'Class', 'First Name', 'Middle Name', 'Last Name', 'Gender', 'Date of Birth', 'Category', 'Religion', 'Caste', 'Mobile No', 'Email', 'Admission Date', 'Blood Group', 'School House', 'Height', 'Weight', 'Measurement Date', 'Father Name', 'Father Phone', 'Father Occupation', 'Mother Name', 'Mother Phone', 'Mother Occupation', 'Guardian Name', 'Guardian Relation', 'Guardian Email', 'Guardian Phone', 'Guardian Occupation', 'Guardian Address', 'Current Address', 'Permanent Address', 'Bank Account No', 'Bank Name', 'IFSC Code', 'Aadhar No', 'Samagra ID', 'RTE', 'Previous School', 'Note', 'Image', 'Father Pic', 'Mother Pic', 'Guardian Pic', 'Is Active', 'Created At', 'Updated At', 'Parent ID', 'Guardian Is', 'State', 'City', 'Pincode', 'Register No', 'Regulation ID', 'EMIS Num', 'HSC Reg No', 'UG Reg No', 'ABC ID', 'Father Adhar No', 'Mother Adhar No', 'Migration Cert Num', 'Medium'
         );
 
         $data = array();
@@ -3209,6 +3209,7 @@ class Student extends Admin_Controller
                 $row = array();
                 $row[] = $student['admission_no'] ?? '';
                 $row[] = $student['roll_no'] ?? '';
+                $row[] = $student['class'] ?? '';
                 $row[] = $student['firstname'] ?? '';
                 $row[] = $student['middlename'] ?? '';
                 $row[] = $student['lastname'] ?? '';
