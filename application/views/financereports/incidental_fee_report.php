@@ -139,8 +139,11 @@
                                                 <td><?php echo $collection['amount_collected']; ?></td>
                                                 <td><?php echo $collection['collected_by_name']; ?></td>
                                                 <td class="text-right">
+                                                    <a href="<?php echo site_url('financereports/print_incidental_receipt/' . $collection['id']); ?>" class="btn btn-default btn-xs" data-toggle="tooltip" title="<?php echo $this->lang->line('print'); ?>" target="_blank">
+                                                        <i class="fa fa-print"></i>
+                                                    </a>
                                                     <a href="<?php echo site_url('admin/collect_incidental_fee/revert/' . $collection['id']); ?>" class="btn btn-danger btn-xs" onclick="return confirm('Are you sure you want to revert this fee collection? This action cannot be undone.');" data-toggle="tooltip" title="<?php echo $this->lang->line('revert'); ?>">
-                                                        <i class="fa fa-undo"></i> <?php echo $this->lang->line('revert'); ?>
+                                                        <i class="fa fa-undo"></i>
                                                     </a>
                                                 </td>
                                             </tr>

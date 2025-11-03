@@ -1407,4 +1407,18 @@ class Financereports extends Admin_Controller
 	                    $this->load->view('layout/header', $data);
 	                    $this->load->view('financereports/deleted_payments_report', $data);
 	                    $this->load->view('layout/footer', $data);	        }    
+
+    public function print_incidental_receipt($id)
+    {
+        if (!$this->rbac->hasPrivilege('incidental_fee_report', 'can_view')) {
+            access_denied();
+        }
+
+        $this->load->model('incidental_fee_collection_model');
+        $data['collection'] = $this->incidental_fee_collection_model->get_collection_by_id($id);
+        $data['sch_setting'] = $this->sch_setting_detail;
+        $data['receipt_header'] = $this->setting_model->get_receiptheader();
+
+        $this->load->view('financereports/incidental_fee_print', $data);
+    }
 }

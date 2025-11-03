@@ -78,6 +78,7 @@ $(document).ready(function () {
 
 $(document).ready(function () {
     $('.gemini-datatable').DataTable({
+        "destroy": true,
         "aaSorting": [],
         rowReorder: {
             selector: 'td:nth-child(2)'

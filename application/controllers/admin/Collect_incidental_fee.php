@@ -91,6 +91,9 @@ class Collect_incidental_fee extends Admin_Controller {
             redirect('admin/collect_incidental_fee');
         }
         else {
+            $this->session->set_userdata('top_menu', 'Fees Collection');
+            $this->session->set_userdata('sub_menu', 'admin/collect_incidental_fee');
+
             $class_id = $this->input->post('class_id');
             $section_id = $this->input->post('section_id');
             $search_text = $this->input->post('search_text');

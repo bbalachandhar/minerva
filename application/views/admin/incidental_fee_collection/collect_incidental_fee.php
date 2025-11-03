@@ -71,7 +71,7 @@
                             <div class="row">
                                 <div class="col-md-12">
                                     <div class="table-responsive">
-                                        <table class="table table-striped table-bordered table-hover gemini-datatable">
+                                        <table id="incidental_fee_table" class="table table-striped table-bordered table-hover">
                                             <thead>
                                                 <tr>
                                                     <th><?php echo $this->lang->line('admission_no'); ?></th>
@@ -243,6 +243,14 @@
             $('#amount_collected').val(amount_due); // Pre-fill with amount due
         });
     });
+</script>
+
+<script>
+$(document).ready(function() {
+    $('#incidental_fee_table').DataTable({
+        "destroy": true,
+    });
+});
 </script>
 
 <?php $this->load->view('layout/footer'); ?>
