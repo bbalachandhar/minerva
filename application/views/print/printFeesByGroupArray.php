@@ -229,40 +229,40 @@ if(in_array('0', $print_copy)){
                         
                             <div class="row">
                                 <div class="col-md-12 text text-center">
-                                    <?php echo $this->lang->line('office_copy'); ?>
-                                </div>
-                            </div>
-                        
-                        <div class="row">                           
-                            <div class="col-xs-6 text-left">
-                                <br/>
-                                   <address>
-                                        <strong>
-                                            <?php  echo $this->customlib->getFullName($feearray[0]->firstname, $feearray[0]->middlename,$feearray[0]->lastname,$sch_setting->middlename,$sch_setting->lastname);  ?></strong><?php echo " (".$feearray[0]->admission_no.")"; ?> <br>
-
-                                        <?php echo $this->lang->line('father_name'); ?>: <?php echo $feearray[0]->father_name; ?><br>
-                                        <?php echo $this->lang->line('class'); ?>: <?php echo $feearray[0]->class . " (" . $feearray[0]->section . ")"; ?>
-                                    </address>
-                            </div>
-                            <div class="col-xs-6 text-right">
-                                <br/>
-                                <address>
-                                    <strong>Date :<?php
-                                        $date = date('d-m-Y');
-
-                                        echo date($this->customlib->getSchoolDateFormat(), $this->customlib->dateyyyymmddTodateformat($date));
-                                        ?></strong><br/>
-
-                                </address>                               
-                            </div>
-                        </div>
-                        <hr style="margin-top: 0px;margin-bottom: 0px;" />
-                        <div class="row">
-                         <?php
-                                if (!empty($feearray)) {
-                                    ?>
-
-                                    <table class="table table-striped table-responsive" style="font-size: 8pt;">
+                                                                        <?php echo $this->lang->line('office_copy'); ?>
+                                                                    </div>
+                                                                </div>
+                                                            
+                                                            <div class="row">                           
+                                                                <div class="col-xs-6 text-left">
+                                                                    <br/>
+                                                                       <address>
+                                                                            <strong>
+                                                                                <?php  echo $this->customlib->getFullName($feearray[0]->firstname, $feearray[0]->middlename,$feearray[0]->lastname,$sch_setting->middlename,$sch_setting->lastname);  ?></strong><?php echo " (" . $feearray[0]->admission_no . ")"; ?> <br>
+                                    
+                                                                            <?php echo $this->lang->line('father_name'); ?>: <?php echo $feearray[0]->father_name; ?><br>
+                                                                            <?php echo $this->lang->line('class'); ?>: <?php echo $feearray[0]->class . " (" . $feearray[0]->section . ")"; ?>
+                                                                        </address>
+                                                                </div>
+                                                                <div class="col-xs-6 text-right">
+                                                                    <br/>
+                                                                    <address>
+                                                                        <strong>Date :<?php
+                                                                            $date = date('d-m-Y');
+                                    
+                                                                            echo date($this->customlib->getSchoolDateFormat(), $this->customlib->dateyyyymmddTodateformat($date));
+                                                                            ?></strong><br/>
+                                    
+                                                                    </address>                               
+                                                                </div>
+                                                            </div>
+                                                            <hr style="margin-top: 0px;margin-bottom: 0px;" />
+                                                            <div class="row">
+                                                             <?php
+                                                                    if (!empty($feearray)) {
+                                                                        ?>
+                                    
+                                                                        <table class="table table-striped table-responsive" style="font-size: 12pt;">
                                         <thead>
                                         <th><?php echo $this->lang->line('fees'); ?></th>
                                         <!-- <th><?php echo $this->lang->line('fees_group'); ?></th> -->
@@ -639,42 +639,41 @@ if(in_array('0', $print_copy)){
                                     ?>
                                 </div>
                             </div>                            
-                                <div class="row">
-                                    <div class="col-md-12 text text-center">
-                                        <?php echo $this->lang->line('student_copy'); ?>
-                                    </div>
-                                </div>                            
-                            <div class="row">                           
-                                <div class="col-xs-6">
-                                    <br/>
-                                       <address>
-                                            <strong>                                            
-                                            <?php  echo $this->customlib->getFullName($feearray[0]->firstname, $feearray[0]->middlename,$feearray[0]->lastname,$sch_setting->middlename,$sch_setting->lastname);  ?></strong><?php echo " (".$feearray[0]->admission_no.")"; ?>
-                                            </strong><br>
-                                            <?php echo $this->lang->line('father_name'); ?>: <?php echo $feearray[0]->father_name; ?><br>
-                                            <?php echo $this->lang->line('class'); ?>: <?php echo $feearray[0]->class . " (" . $feearray[0]->section . ")"; ?>
-                                        </address>
-                                </div>
-                                <div class="col-xs-6 text-right">
-                                    <br/>
-                                       <address>
-                                            <strong>Date: <?php
-                                                $date = date('d-m-Y');
-
-                                                echo date($this->customlib->getSchoolDateFormat(), $this->customlib->dateyyyymmddTodateformat($date));
-                                                ?></strong><br/>
-
-                                        </address>                              
-                                </div>
-                            </div>
-                            <hr style="margin-top: 0px;margin-bottom: 0px;" />
-                            <div class="row">
-                                     <?php
-                                    if (!empty($feearray)) {
-                                        ?>
-
-                                        <table class="table table-striped table-responsive" style="font-size: 8pt;">
-                                            <thead>
+                                                            <div class="row">
+                                                                <div class="col-md-12 text text-center">
+                                                                    <?php echo $this->lang->line('student_copy'); ?>
+                                                                </div>
+                                                            </div>                            
+                                                            <div class="row">                           
+                                                                <div class="col-xs-6">
+                                                                    <br/>
+                                                                       <address>
+                                                                            <strong>                                            
+                                                                            <?php  echo $this->customlib->getFullName($feearray[0]->firstname, $feearray[0]->middlename,$feearray[0]->lastname,$sch_setting->middlename,$sch_setting->lastname);  ?></strong><?php echo " (".$feearray[0]->admission_no.")"; ?>
+                                                                            </strong><br>
+                                                                            <?php echo $this->lang->line('father_name'); ?>: <?php echo $feearray[0]->father_name; ?><br>
+                                                                            <?php echo $this->lang->line('class'); ?>: <?php echo $feearray[0]->class . " (" . $feearray[0]->section . ")"; ?>
+                                                                        </address>
+                                                                </div>
+                                                                <div class="col-xs-6 text-right">
+                                                                    <br/>
+                                                                       <address>
+                                                                            <strong>Date: <?php
+                                                                                $date = date('d-m-Y');
+                                
+                                                                                echo date($this->customlib->getSchoolDateFormat(), $this->customlib->dateyyyymmddTodateformat($date));
+                                                                                ?></strong><br/>
+                                
+                                                                        </address>                              
+                                                                </div>
+                                                            </div>
+                                                            <hr style="margin-top: 0px;margin-bottom: 0px;" />
+                                                                                                                    <div class="row">
+                                                                                                                             <?php
+                                                                                                                            if (!empty($feearray)) {
+                                                                                                                                ?>
+                                                                                        
+                                                                                                                                <table class="table table-striped table-responsive" style="font-size: 12pt;">                                            <thead>
                                             <th><?php echo $this->lang->line('fees'); ?></th>
                                             <!-- <th><?php echo $this->lang->line('fees_group'); ?></th> -->
                                             <!-- <th><?php echo $this->lang->line('fees_code'); ?></th> -->
@@ -1072,7 +1071,7 @@ if ($feeList->fine_amount != "") {
                                     if (!empty($feearray)) {
                                         ?>
 
-                                        <table class="table table-striped table-responsive" style="font-size: 8pt;">
+                                        <table class="table table-striped table-responsive" style="font-size: 12pt;">
                                             <thead>
                                             <th><?php echo $this->lang->line('fees'); ?></th>
                                             <!-- <th><?php echo $this->lang->line('fees_group'); ?></th> -->
