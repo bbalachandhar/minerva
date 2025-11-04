@@ -101,8 +101,8 @@ class Studentfee extends Admin_Controller
                                 continue;
                             }
 
-                            $valid_payment_modes = ['Cash', 'Cheque', 'DD', 'bank_transfer', 'upi', 'card', 'govt_7_5_payment', 'govt_fg_payment'];
-                            if (!in_array($payment_mode, $valid_payment_modes)) {
+                            $valid_payment_modes = ['cash', 'cheque', 'dd', 'bank_transfer', 'upi', 'card', 'govt_7_5_payment', 'govt_fg_payment'];
+                            if (!in_array(strtolower($payment_mode), $valid_payment_modes)) {
                                 $error_messages[] = "Row " . ($row_num + 2) . ": Invalid payment mode. Please use one of the following: " . implode(', ', $valid_payment_modes);
                                 $failed_records++;
                                 continue;

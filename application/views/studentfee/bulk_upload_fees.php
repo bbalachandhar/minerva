@@ -99,16 +99,7 @@ admission_no,total_amount_paid,old_bill_number,old_bill_date,payment_mode,descri
                                                                                 }
                                                                             });
                                                                         </script>
-                                                                        <script type="text/javascript">
-                                                                            $(document).ready(function () {
-                                                                                $('#fee_type_id').on('change', function() {
-                                                                                    var fee_type_id = $(this).val();
-                                                                                    var fee_type_text = $(this).find("option:selected").text();
-                                                                                    alert("Selected Fee Type: " + fee_type_text + "\nID: " + fee_type_id);
-                                                                                });
-                                                                            });
-                                                                        </script>
-                                                                    </div>                        </div>
+                                                                                                                                            </div>                        </div>
                         <div class="box-footer">
                             <button type="submit" class="btn btn-primary pull-right" id="upload_btn"><?php echo $this->lang->line('upload'); ?></button>
                         </div>
