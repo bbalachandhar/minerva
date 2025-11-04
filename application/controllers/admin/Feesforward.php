@@ -248,9 +248,32 @@ class Feesforward extends Admin_Controller
                         // Handle negative amount as advance payment
                         if ((float) $amount < 0) {
                             $advance_amount = abs((float) $amount);
-                            $this->db->set('advance_balance', 'advance_balance + ' . $advance_amount, FALSE);
-                            $this->db->where('id', $student->id);
-                            $this->db->update('students');
+                            
+                            // Use the existing logic to get or create advance fee IDs
+                            $advance_fee_ids = $this->studentfeemaster_model->get_or_create_advance_fee_ids($student->student_session_id);
+
+                            // Prepare the deposit data
+                            $json_array_advance = [
+                                'amount'          => $advance_amount,
+                                'amount_discount' => 0,
+                                'amount_fine'     => 0,
+                                'date'            => date('Y-m-d'), // Use current date for the deposit
+                                'description'     => "From carry forward fee", // User-specified description
+                                'collected_by'    => $this->customlib->getAdminSessionUserName(),
+                                'payment_mode'    => 'Carry Forward', // A descriptive payment mode
+                                'received_by'     => $this->customlib->getStaffID(),
+                            ];
+
+                            $data_to_insert_advance = [
+                                'fee_category'           => 'fees',
+                                'student_fees_master_id' => $advance_fee_ids->student_fees_master_id,
+                                'fee_groups_feetype_id'  => $advance_fee_ids->fee_groups_feetype_id,
+                                'amount_detail'          => $json_array_advance,
+                            ];
+
+                            // Deposit the advance fee
+                            $this->studentfeemaster_model->fee_deposit($data_to_insert_advance, null, [], date('Y-m-d'));
+
                             $error_messages[] = "Row " . ($row_num + 2) . ": Advance payment of " . $advance_amount . " recorded for student " . $admission_no . ".";
                             continue; // Skip adding to student_data for addPreviousBal
                         }

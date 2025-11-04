@@ -1,3 +1,4 @@
+<link rel="stylesheet" href="<?php echo base_url(); ?>backend/plugins/dropify/dist/css/dropify.min.css">
 <div class="content-wrapper">
     <section class="content-header">
         <h1>
@@ -32,7 +33,7 @@
                                 <div class="col-md-12">
                                     <div class="form-group">
                                         <label for="file"><?php echo $this->lang->line('select_csv_file'); ?></label>
-                                        <input type="file" name="file" id="file" class="form-control" autocomplete="off">
+                                        <input type="file" name="file" id="file" class="dropify" autocomplete="off">
                                         <span class="text-danger"><?php echo form_error('file'); ?></span>
                                     </div>
                                     <div class="box-footer">
@@ -60,3 +61,9 @@
         </div>
     </section>
 </div>
+<script src="<?php echo base_url(); ?>backend/plugins/dropify/dist/js/dropify.min.js"></script>
+<script type="text/javascript">
+    $(document).ready(function () {
+        $('.dropify').dropify();
+    });
+</script>
