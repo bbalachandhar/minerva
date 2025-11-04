@@ -17,7 +17,7 @@ class Financereports extends Admin_Controller
         $this->sch_setting_detail = $this->setting_model->getSetting();
         $this->load->library('media_storage');
         $this->load->model("module_model");
-        $this->lang->load('message', 'english');
+
     }
 
     public function finance()
