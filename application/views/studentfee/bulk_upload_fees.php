@@ -148,8 +148,8 @@ admission_no,total_amount_paid,old_bill_number,old_bill_date,payment_mode,descri
                             var summary_html = '<div class="alert alert-info"><h4>Upload Summary</h4><p>Total Records: ' + data.summary.total_records + '</p><p>Successful Records: ' + data.summary.successful_records + '</p><p>Failed Records: ' + data.summary.failed_records + '</p></div>';
                             $('.box-body').prepend(summary_html);
                         }
-                        if (data.error_messages) {
-                            var error_html = '<div class="alert alert-danger"><h4><i class="icon fa fa-ban"></i> Errors Found In CSV</h4><ul>';
+                        if (data.error_messages && data.error_messages.length > 0) {
+                            var error_html = '<div class="alert alert-danger"><h4><i class="icon fa fa-ban"></i> ' + data.summary.failed_records + ' Errors Found In CSV</h4><ul>';
                             $.each(data.error_messages, function (index, value) {
                                 error_html += '<li>' + value + '</li>';
                             });
