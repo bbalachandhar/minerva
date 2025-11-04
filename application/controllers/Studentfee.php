@@ -95,6 +95,25 @@ class Studentfee extends Admin_Controller
                                 continue;
                             }
 
+                            if (!is_numeric($total_amount_paid)) {
+                                $error_messages[] = "Row " . ($row_num + 2) . ": Invalid total amount paid. Please provide a numeric value.";
+                                $failed_records++;
+                                continue;
+                            }
+
+                            $valid_payment_modes = ['Cash', 'Cheque', 'DD', 'bank_transfer', 'upi', 'card', 'govt_7_5_payment', 'govt_fg_payment'];
+                            if (!in_array($payment_mode, $valid_payment_modes)) {
+                                $error_messages[] = "Row " . ($row_num + 2) . ": Invalid payment mode. Please use one of the following: " . implode(', ', $valid_payment_modes);
+                                $failed_records++;
+                                continue;
+                            }
+
+                            if (DateTime::createFromFormat('Y-m-d', $old_bill_date) === false) {
+                                $error_messages[] = "Row " . ($row_num + 2) . ": Invalid date format for old_bill_date. Please use YYYY-MM-DD format.";
+                                $failed_records++;
+                                continue;
+                            }
+
                             $student = $this->student_model->findByAdmission($admission_no);
                             if (!$student) {
                                 $error_messages[] = "Row " . ($row_num + 2) . ": Student not found.";

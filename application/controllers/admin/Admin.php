@@ -811,7 +811,9 @@ class Admin extends Admin_Controller
 
                     if ($value['date'] == $date) {
 
+                        if (is_numeric($value['amount']) && is_numeric($value['amount_fine'])) {
                         $return_amount = $return_amount + $value['amount'] + $value['amount_fine'];
+                    }
                     }
                 }
                 $st_date = $st_date + 86400;
