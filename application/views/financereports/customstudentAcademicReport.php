@@ -82,7 +82,9 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                     <th><?php echo $this->lang->line('student_name'); ?></th>
                                     <th><?php echo $this->lang->line('class'); ?></th>
                                     <th><?php echo $this->lang->line('admission_no'); ?></th>
-                                    <th class="text-right">Last Yr(CF)</th>
+                                    <th class="text-right">CF-Demand</th>
+                                    <th class="text-right">CF-Paid</th>
+                                    <th class="text-right">CF-Balance</th>
                                     <?php foreach ($discount_list as $discount) { ?>
                                         <th class="text-right"><?php echo $discount['name']; ?></th>
                                     <?php } ?>
@@ -105,7 +107,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                             <tbody>
                                 <?php
                                 $total_fees = 0; $total_paid = 0; $total_fine = 0; $total_balance = 0; $total_discount = 0; $total_advance_paid = 0;
-                                $total_last_yr_cf = 0;
+                                $total_last_yr_cf = 0; $total_cf_paid = 0; $total_cf_balance = 0;
                                 $total_tuition_demand = 0; $total_tuition_paid = 0;
                                 $total_other_demand = 0; $total_other_paid = 0;
                                 $total_hostel_demand = 0; $total_hostel_paid = 0;
@@ -119,6 +121,8 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                         $total_fine += $student->fine;
                                         $total_balance += $student->balance;
                                         $total_last_yr_cf += $student->last_yr_cf;
+                                        $total_cf_paid += $student->cf_paid; // Accumulate CF-Paid
+                                        $total_cf_balance += $student->cf_balance; // Accumulate CF-Balance
                                         $total_advance_paid += $student->advance_paid; /* Accumulate advance paid */
                                         $total_tuition_demand += $student->tuition_demand;
                                         $total_tuition_paid += $student->tuition_paid;
@@ -135,6 +139,8 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                             <td><?php echo $student->class . " (" . $student->section . ")"; ?></td>
                                             <td><?php echo $student->admission_no; ?></td>
                                             <td class="text-right"><?php echo amountFormat($student->last_yr_cf); ?></td>
+                                            <td class="text-right"><?php echo amountFormat($student->cf_paid); ?></td>
+                                            <td class="text-right"><?php echo amountFormat($student->cf_balance); ?></td>
                                             <?php 
                                             foreach ($discount_list as $discount) {
                                                 $discount_amount = 0;
@@ -178,6 +184,8 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                 <tr class="box box-solid total-bg">
                                     <td colspan="3" class="text-right"><?php echo $this->lang->line('grand_total'); ?></td>
                                     <td class="text-right"><?php echo $currency_symbol . amountFormat($total_last_yr_cf); ?></td>
+                                    <td class="text-right"><?php echo $currency_symbol . amountFormat($total_cf_paid); ?></td>
+                                    <td class="text-right"><?php echo $currency_symbol . amountFormat($total_cf_balance); ?></td>
                                     <?php foreach ($discount_totals as $total) { ?>
                                         <td class="text-right"><?php echo $currency_symbol . amountFormat($total); ?></td>
                                     <?php } ?>

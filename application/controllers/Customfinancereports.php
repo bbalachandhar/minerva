@@ -81,9 +81,15 @@ class Customfinancereports extends Admin_Controller
                     $student_total_fees = $fees_data->fees;
                     $obj->applied_discounts = $this->feediscount_model->getStudentFeesDiscount($student_session_id);
 
-                    // Get the previous session balance
-                    $balance_record = $this->customstudentfeemaster_model->getBalanceMasterRecord($this->balance_group, '(' . $student_session_id . ')');
-                    $obj->last_yr_cf = !empty($balance_record) ? $balance_record[0]->amount : 0;
+                    // Get the previous session balance (CF-Demand)
+                    $previous_session_balance_data = $this->customstudentfeemaster_model->getPreviousSessionBalance($student_session_id);
+                    $obj->last_yr_cf = !empty($previous_session_balance_data) ? $previous_session_balance_data->amount : 0;
+
+                    // Get the amount paid against the previous session balance (CF-Paid)
+                    $obj->cf_paid = $this->customstudentfeemaster_model->getPreviousSessionPaid($student_session_id);
+
+                    // Calculate CF-Balance
+                    $obj->cf_balance = $obj->last_yr_cf - $obj->cf_paid;
 
                     // Calculate base fee totals
                     $totalfee = 0;

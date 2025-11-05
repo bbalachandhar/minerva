@@ -471,14 +471,38 @@ class Customstudentfeemaster_model extends MY_Model
 
     public function getPreviousSessionBalance($student_session_id)
     {
-        $this->db->select('student_fees_master.amount')->from('student_fees_master');
+        $this->db->select('student_fees_master.amount, student_fees_master.id as student_fees_master_id')->from('student_fees_master');
         $this->db->join('fee_session_groups', 'student_fees_master.fee_session_group_id = fee_session_groups.id');
         $this->db->join('fee_groups', 'fee_session_groups.fee_groups_id = fee_groups.id');
         $this->db->where('student_fees_master.student_session_id', $student_session_id);
         $this->db->where('fee_groups.name', 'Balance Previous Session');
         $query = $this->db->get();
         $result = $query->row();
-        return ($result) ? $result->amount : 0;
+        return ($result) ? $result : null;
+    }
+
+    public function getPreviousSessionPaid($student_session_id)
+    {
+        $previous_session_balance_data = $this->getPreviousSessionBalance($student_session_id);
+
+        if ($previous_session_balance_data) {
+            $fee_group_id = $this->feegroup_model->checkGroupExistsByName('Balance Previous Session')->id;
+            $feetype_id = $this->feetype_model->checkFeetypeByName('Balance Previous Session')->id;
+
+            $this->db->select('id');
+            $this->db->from('fee_groups_feetype');
+            $this->db->where('fee_groups_id', $fee_group_id);
+            $this->db->where('feetype_id', $feetype_id);
+            $this->db->where('session_id', $this->current_session);
+            $query = $this->db->get();
+            $fee_groups_feetype = $query->row();
+
+            if ($fee_groups_feetype) {
+                $deposit_data = $this->_getTotalFeeDeposit($previous_session_balance_data->student_fees_master_id, $fee_groups_feetype->id);
+                return $deposit_data->amount_paid;
+            }
+        }
+        return 0;
     }
 
     public function getStudentProcessingFees($student_session_id)
