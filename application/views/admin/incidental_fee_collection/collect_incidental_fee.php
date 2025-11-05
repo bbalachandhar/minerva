@@ -1,4 +1,4 @@
-<?php $this->load->view('layout/header'); ?>
+
 <div class="content-wrapper">
     <section class="content-header">
         <h1>
@@ -272,4 +272,4 @@
     });
 </script>
 
-<?php $this->load->view('layout/footer'); ?>
+
