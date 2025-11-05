@@ -227,7 +227,7 @@
                             assignments_html += '<tr>';
                             assignments_html += '<td>' + assignment.fee_type_title + '</td>';
                             assignments_html += '<td>' + assignment.amount_due + '</td>\r\n                            <td>' + (assignment.due_date ? assignment.due_date : 'N/A') + '</td>';
-                            assignments_html += '<td><input type="checkbox" name="selected_assignments[]" class="select_assignment_checkbox" data-assignment_id="' + assignment.id + '" data-fee_type_id="' + assignment.incidental_fee_type_id + '" data-amount_due="' + assignment.amount_due + ''></td>';
+                            assignments_html += '<td><input type="checkbox" name="selected_assignments[]" class="select_assignment_checkbox" data-assignment_id="' + assignment.id + '" data-fee_type_id="' + assignment.incidental_fee_type_id + '" data-amount_due="' + assignment.amount_due + '"></td>';
                             assignments_html += '</tr>';
                         });
                         assignments_html += '</tbody></table>';
