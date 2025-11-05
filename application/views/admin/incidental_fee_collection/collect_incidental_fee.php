@@ -221,13 +221,13 @@
                     var assignments_html = '';
                     if (outstanding_assignments.length > 0) {
                         assignments_html += '<table class="table table-bordered table-striped">';
-                        assignments_html += '<thead><tr><th><?php echo $this->lang->line('fee_type'); ?></th><th><?php echo $this->lang->line('amount_due'); ?></th><th><?php echo $this->lang->line('due_date'); ?></th><th><?php echo $this->lang->line('action'); ?></th></tr></thead>';
+                        assignments_html += '<thead><tr><th><?php echo $this->lang->line('fee_type'); ?></th><th><?php echo $this->lang->line('amount_due'); ?></th><th><?php echo $this->lang->line('due_date'); ?></th><th><?php echo $this->lang->line('select'); ?></th></tr></thead>';
                         assignments_html += '<tbody>';
                         $.each(outstanding_assignments, function (key, assignment) {
                             assignments_html += '<tr>';
                             assignments_html += '<td>' + assignment.fee_type_title + '</td>';
                             assignments_html += '<td>' + assignment.amount_due + '</td>\r\n                            <td>' + (assignment.due_date ? assignment.due_date : 'N/A') + '</td>';
-                            assignments_html += '<td><button type="button" class="btn btn-info btn-xs select_assignment_btn" data-assignment_id="' + assignment.id + '" data-fee_type_id="' + assignment.incidental_fee_type_id + '" data-amount_due="' + assignment.amount_due + '"><?php echo $this->lang->line('select'); ?></button></td>';
+                            assignments_html += '<td><input type="checkbox" name="selected_assignments[]" class="select_assignment_checkbox" data-assignment_id="' + assignment.id + '" data-fee_type_id="' + assignment.incidental_fee_type_id + '" data-amount_due="' + assignment.amount_due + ''></td>';
                             assignments_html += '</tr>';
                         });
                         assignments_html += '</tbody></table>';
@@ -241,16 +241,7 @@
             });
         });
 
-        // Select assignment button click
-        $(document).on('click', '.select_assignment_btn', function () {
-            var assignment_id = $(this).data('assignment_id');
-            var fee_type_id = $(this).data('fee_type_id');
-            var amount_due = $(this).data('amount_due');
 
-            $('#modal_incidental_fee_assignment_id').val(assignment_id);
-            $('#fee_type_id_modal').val(fee_type_id);
-            $('#amount_collected').val(amount_due); // Pre-fill with amount due
-        });
 
         // Handle form submission
         $('#form_add_incidental_fee').on('submit', function (e) {
