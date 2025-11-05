@@ -120,7 +120,7 @@
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
                 <h4 class="modal-title" id="feeCollectionModalLabel"><?php echo $this->lang->line('collect_incidental_fee'); ?></h4>
             </div>
-            <form action="<?php echo site_url('admin/collect_incidental_fee/index') ?>" method="post" accept-charset="utf-8" target="_blank">
+            <form action="<?php echo site_url('admin/collect_incidental_fee/index') ?>" method="post" accept-charset="utf-8" id="form_add_incidental_fee">
                 <div class="modal-body">
                     <div id="student_details_modal"></div>
                     <hr/>
@@ -128,6 +128,9 @@
                     <div id="outstanding_assignments_list"></div>
 
                     <hr/>
+                    <input type="hidden" name="student_id" id="modal_student_id">
+                    <input type="hidden" name="session_id" id="modal_session_id">
+                    <input type="hidden" name="incidental_fee_assignment_id" id="modal_incidental_fee_assignment_id">
                     <div class="form-group">
                         <label for="fee_type_id_modal"><?php echo $this->lang->line('fee_type'); ?></label>
                         <select id="fee_type_id_modal" name="fee_type_id" class="form-control" >
@@ -143,3 +146,139 @@
                         <input id="amount_collected" name="amount_collected" type="number" class="form-control" />
                         <span class="text-danger"><?php echo form_error('amount_collected'); ?></span>
                     </div>
+
+                    <div class="form-group">
+                        <label for="notes"><?php echo $this->lang->line('notes'); ?></label>
+                        <textarea id="notes" name="notes" class="form-control"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal"><?php echo $this->lang->line('close'); ?></button>
+                    <button type="submit" class="btn btn-primary"><?php echo $this->lang->line('collect_fee'); ?></button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    $(document).ready(function () {
+        // Initialize DataTable
+        $('#incidental_fee_table').DataTable({
+            "destroy": true,
+        });
+
+
+
+        // Class change event
+        $('#class_id').on('change', function () {
+            var class_id = $(this).val();
+            $('#section_id').html('');
+            if (class_id) {
+                $.ajax({
+                    url: baseurl + 'admin/collect_incidental_fee/getSectionsByClass',
+                    type: "POST",
+                    data: {class_id: class_id, '<?php echo $this->security->get_csrf_token_name(); ?>': '<?php echo $this->security->get_csrf_hash(); ?>'},
+                    dataType: "json",
+                    success: function (data) {
+                        $.each(data, function (key, value) {
+                            $('#section_id').append('<option value="' + value.id + '">' + value.section + '</option>');
+                        });
+                    }
+                });
+            }
+        });
+
+        // Collect fee button click
+        $(document).on('click', '.collect_fee_btn', function () {
+            var student_id = $(this).data('student_id');
+            var session_id = $(this).data('session_id');
+
+            $('#modal_student_id').val(student_id);
+            $('#modal_session_id').val(session_id);
+            $('#modal_incidental_fee_assignment_id').val(''); // Clear for new collection
+            $('#amount_collected').val('');
+            $('#notes').val('');
+            $('#fee_type_id_modal').val('');
+
+
+            // Fetch student details and outstanding assignments
+            $.ajax({
+                url: baseurl + 'admin/collect_incidental_fee/getStudentDetails',
+                type: "POST",
+                data: {student_id: student_id, session_id: session_id, '<?php echo $this->security->get_csrf_token_name(); ?>': '<?php echo $this->security->get_csrf_hash(); ?>'},
+                dataType: 'json',
+                success: function (response) {
+                    var student_detail = response.student_detail;
+                    var outstanding_assignments = response.outstanding_assignments;
+
+                    // Populate student details
+                    var student_html = '<p><strong><?php echo $this->lang->line('student_name'); ?>:</strong> ' + student_detail.firstname + ' ' + student_detail.lastname + '</p>';
+                    student_html += '<p><strong><?php echo $this->lang->line('admission_no'); ?>:</strong> ' + student_detail.admission_no + '</p>';
+                    $('#student_details_modal').html(student_html);
+
+                    // Populate outstanding assignments
+                    var assignments_html = '';
+                    if (outstanding_assignments.length > 0) {
+                        assignments_html += '<table class="table table-bordered table-striped">';
+                        assignments_html += '<thead><tr><th><?php echo $this->lang->line('fee_type'); ?></th><th><?php echo $this->lang->line('amount_due'); ?></th><th><?php echo $this->lang->line('due_date'); ?></th><th><?php echo $this->lang->line('action'); ?></th></tr></thead>';
+                        assignments_html += '<tbody>';
+                        $.each(outstanding_assignments, function (key, assignment) {
+                            assignments_html += '<tr>';
+                            assignments_html += '<td>' + assignment.fee_type_title + '</td>';
+                            assignments_html += '<td>' + assignment.amount_due + '</td>\r\n                            <td>' + (assignment.due_date ? assignment.due_date : 'N/A') + '</td>';
+                            assignments_html += '<td><button type="button" class="btn btn-info btn-xs select_assignment_btn" data-assignment_id="' + assignment.id + '" data-fee_type_id="' + assignment.incidental_fee_type_id + '" data-amount_due="' + assignment.amount_due + '"><?php echo $this->lang->line('select'); ?></button></td>';
+                            assignments_html += '</tr>';
+                        });
+                        assignments_html += '</tbody></table>';
+                    } else {
+                        assignments_html += '<p><?php echo $this->lang->line('no_outstanding_assignments'); ?></p>';
+                    }
+                    $('#outstanding_assignments_list').html(assignments_html);
+
+                    $('#feeCollectionModal').modal('show');
+                }
+            });
+        });
+
+        // Select assignment button click
+        $(document).on('click', '.select_assignment_btn', function () {
+            var assignment_id = $(this).data('assignment_id');
+            var fee_type_id = $(this).data('fee_type_id');
+            var amount_due = $(this).data('amount_due');
+
+            $('#modal_incidental_fee_assignment_id').val(assignment_id);
+            $('#fee_type_id_modal').val(fee_type_id);
+            $('#amount_collected').val(amount_due); // Pre-fill with amount due
+        });
+
+        // Handle form submission
+        $('#form_add_incidental_fee').on('submit', function (e) {
+            e.preventDefault();
+            var form = $(this);
+            var url = form.attr('action');
+            var data = form.serialize();
+
+            $.ajax({
+                url: url,
+                type: "POST",
+                data: data,
+                dataType: 'json',
+                success: function (response) {
+                    if (response.status === 'success') {
+                        successMsg(response.message);
+                        $('#feeCollectionModal').modal('hide');
+                        window.open(baseurl + 'admin/collect_incidental_fee/receipt/' + response.collection_id, '_blank');
+                    } else {
+                        errorMsg(response.message);
+                    }
+                },
+                error: function (xhr, status, error) {
+                    errorMsg("An error occurred: " + error);
+                }
+            });
+        });
+    });
+</script>
+
+<?php $this->load->view('layout/footer'); ?>

@@ -74,11 +74,9 @@ class Collect_incidental_fee extends Admin_Controller {
                         }
                     }
                 }
-                $this->session->set_flashdata('msg', '<div class="alert alert-success text-left">' . $this->lang->line('fee_collected_successfully') . '</div>');
-                redirect('admin/collect_incidental_fee/receipt/' . $collection_id);
+                echo json_encode(array('status' => 'success', 'message' => $this->lang->line('fee_collected_successfully'), 'collection_id' => $collection_id));
             } else {
-                $this->session->set_flashdata('msg', '<div class="alert alert-danger text-left">' . $this->lang->line('error_collecting_fee') . '</div>');
-                redirect('admin/collect_incidental_fee');
+                echo json_encode(array('status' => 'error', 'message' => $this->lang->line('error_collecting_fee')));
             }
         }
     }
