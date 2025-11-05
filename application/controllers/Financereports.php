@@ -43,16 +43,17 @@ class Financereports extends Admin_Controller
         $this->load->model('incidental_fee_type_model');
         $this->load->model('incidental_fee_assignment_model');
         $this->load->model('incidental_fee_collection_model');
-        $this->load->model('session_model');
         $this->load->model('class_model');
         $this->load->model('student_model');
 
         $data['title'] = 'Incidental Fee Report';
         $data['fee_types'] = $this->incidental_fee_type_model->get();
-        $data['sessions'] = $this->session_model->get();
         $data['classes'] = $this->class_model->get();
-        $data['searchlist'] = $this->customlib->get_searchtype(); // For date range search
+        $data['searchlist'] = $this->customlib->get_searchtype();
         $data['sch_setting'] = $this->sch_setting_detail;
+
+        $current_session_id = $this->setting_model->getCurrentSession();
+        $data['current_session_id'] = $current_session_id;
 
         $this->form_validation->set_rules('search_type', $this->lang->line('search_duration'), 'trim|required|xss_clean');
 
@@ -61,7 +62,7 @@ class Financereports extends Admin_Controller
             $data['assignments'] = array();
         } else {
             $search_type = $this->input->post('search_type');
-            $session_id = $this->input->post('session_id');
+            $session_id = $current_session_id;
             $fee_type_id = $this->input->post('fee_type_id');
             $class_id = $this->input->post('class_id');
             $student_id = $this->input->post('student_id');

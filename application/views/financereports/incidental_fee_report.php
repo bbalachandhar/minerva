@@ -31,18 +31,7 @@
                                         <span class="text-danger"><?php echo form_error('search_type'); ?></span>
                                     </div>
                                 </div>
-                                <div class="col-md-3">
-                                    <div class="form-group">
-                                        <label for="session_id"><?php echo $this->lang->line('session'); ?></label>
-                                        <select id="session_id" name="session_id" class="form-control" >
-                                            <option value=""><?php echo $this->lang->line('select'); ?></option>
-                                            <?php foreach ($sessions as $session) { ?>
-                                                <option value="<?php echo $session['id'] ?>" <?php echo set_select('session_id', $session['id']); ?>><?php echo $session['session'] ?></option>
-                                            <?php } ?>
-                                        </select>
-                                        <span class="text-danger"><?php echo form_error('session_id'); ?></span>
-                                    </div>
-                                </div>
+
                                 <div class="col-md-3">
                                     <div class="form-group">
                                         <label for="fee_type_id"><?php echo $this->lang->line('fee_type'); ?></label>
@@ -191,12 +180,12 @@
         showdate($('select[name="search_type"]').val());
 
         // AJAX to load students based on selected class and session
-        $('#class_id, #session_id').on('change', function () {
+        $('#class_id').on('change', function () {
             var class_id = $('#class_id').val();
-            var session_id = $('#session_id').val();
+            var session_id = <?php echo $current_session_id; ?>;
             $('#student_id').html(''); // Clear previous students
 
-            if (class_id && session_id) {
+            if (class_id) {
                 $.ajax({
                     type: "POST",
                     url: baseurl + "admin/assign_incidental_fee/getStudentsByClass", // Reusing this AJAX endpoint

@@ -28,11 +28,10 @@ class Collect_incidental_fee extends Admin_Controller {
         $data['title'] = 'Collect Incidental Fee';
         $data['fee_types'] = $this->incidental_fee_type_model->get();
         $data['sessions'] = $this->session_model->get();
-        $data['classes'] = $this->class_model->get();
-        $data['student_detail'] = array();
-        $data['outstanding_assignments'] = array();
-
-        $this->form_validation->set_rules('student_id', $this->lang->line('student'), 'required|trim|xss_clean');
+                        $data['classes'] = $this->class_model->get();
+                        $data['student_detail'] = array();
+                        $data['outstanding_assignments'] = array();
+                        $data['sections'] = array();        $this->form_validation->set_rules('student_id', $this->lang->line('student'), 'required|trim|xss_clean');
         $this->form_validation->set_rules('session_id', $this->lang->line('session'), 'required|trim|xss_clean');
         $this->form_validation->set_rules('fee_type_id', $this->lang->line('fee_type'), 'required|trim|xss_clean');
         $this->form_validation->set_rules('amount_collected', $this->lang->line('amount_collected'), 'required|numeric|trim|xss_clean');
@@ -143,7 +142,9 @@ class Collect_incidental_fee extends Admin_Controller {
 
     public function getSectionsByClass() {
         $class_id = $this->input->post('class_id');
+        log_message('error', 'getSectionsByClass: Received class_id = ' . $class_id);
         $sections = $this->class_model->get_section($class_id);
+        log_message('error', 'getSectionsByClass: Sections returned = ' . json_encode($sections));
         echo json_encode($sections);
     }
 
