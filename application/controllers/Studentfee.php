@@ -51,6 +51,148 @@ class Studentfee extends Admin_Controller
                 $this->load->view('studentfee/bulk_upload_fees', $data);
                 $this->load->view('layout/footer', $data);
             }
+
+            public function bulk_adjustment_upload()
+            {
+                if (!$this->rbac->hasPrivilege('collect_fees', 'can_add')) {
+                    access_denied();
+                }
+
+                $this->form_validation->set_rules('adjustment_file', 'CSV file', 'callback_handle_adjustment_csv_upload');
+
+                if ($this->form_validation->run() == FALSE) {
+                    $this->session->set_flashdata('error_msg', validation_errors());
+                    redirect('studentfee/bulk_upload_fees');
+                } else {
+                    $file_path = $_FILES['adjustment_file']['tmp_name'];
+                    $this->load->library('csvreader');
+                    $result = $this->csvreader->parse_file($file_path);
+
+                    if (!empty($result)) {
+                        $success_count = 0;
+                        $error_messages = [];
+
+                        foreach ($result as $row) {
+                            $admission_no = $row['admission_no'];
+                            $amount = $row['amount'];
+                            $date = $row['date'];
+                            $payment_mode = $row['payment_mode'];
+                            $description = $row['description'];
+
+                            if (empty($admission_no) || !is_numeric($amount) || empty($date) || empty($payment_mode)) {
+                                $error_messages[] = "Invalid data for admission number: {$admission_no}";
+                                continue;
+                            }
+
+                            $student = $this->student_model->findByAdmission($admission_no);
+
+                            if ($student) {
+                                $student_session_id = $student->student_session_id;
+
+                                // Find the feetype_id for 'Previous Session Balance'
+                                $fee_type = $this->feetype_model->checkFeetypeByName('Previous Session Balance');
+
+                                if ($fee_type) {
+                                    $fee_master_details = $this->studentfeemaster_model->getFeeByFeeType($student_session_id, $fee_type->id);
+
+                                    if ($fee_master_details) {
+                                        $fee_balance_obj = json_decode($this->getStuFeetypeBalance($fee_master_details->fee_groups_feetype_id, $fee_master_details->id));
+                                        $fee_balance = $fee_balance_obj->balance;
+
+                                        $amount_to_pay = $amount;
+                                        $advance_amount = 0;
+
+                                        if ($amount > $fee_balance) {
+                                            $amount_to_pay = $fee_balance;
+                                            $advance_amount = $amount - $fee_balance;
+                                        }
+
+                                        if ($amount_to_pay > 0) {
+                                            $json_array = [
+                                                'amount'          => $amount_to_pay,
+                                                'amount_discount' => 0,
+                                                'amount_fine'     => 0,
+                                                'date'            => date('Y-m-d', strtotime($date)),
+                                                'description'     => $description,
+                                                'collected_by'    => $this->customlib->getAdminSessionUserName(),
+                                                'payment_mode'    => $payment_mode,
+                                                'received_by'     => $this->customlib->getStaffID(),
+                                            ];
+
+                                            $data_to_insert = [
+                                                'fee_category'           => 'fees',
+                                                'student_fees_master_id' => $fee_master_details->id,
+                                                'fee_groups_feetype_id'  => $fee_master_details->fee_groups_feetype_id,
+                                                'amount_detail'          => $json_array,
+                                            ];
+
+                                            $this->studentfeemaster_model->fee_deposit($data_to_insert, null, [], date('Y-m-d', strtotime($date)));
+                                        }
+
+                                        if ($advance_amount > 0) {
+                                            $advance_fee_ids = $this->studentfeemaster_model->get_or_create_advance_fee_ids($student_session_id);
+                                            $json_array_advance = [
+                                                'amount'          => $advance_amount,
+                                                'amount_discount' => 0,
+                                                'amount_fine'     => 0,
+                                                'date'            => date('Y-m-d', strtotime($date)),
+                                                'description'     => 'Advance from bulk adjustment',
+                                                'collected_by'    => $this->customlib->getAdminSessionUserName(),
+                                                'payment_mode'    => $payment_mode,
+                                                'received_by'     => $this->customlib->getStaffID(),
+                                            ];
+
+                                            $data_to_insert_advance = [
+                                                'fee_category'           => 'fees',
+                                                'student_fees_master_id' => $advance_fee_ids->student_fees_master_id,
+                                                'fee_groups_feetype_id'  => $advance_fee_ids->fee_groups_feetype_id,
+                                                'amount_detail'          => $json_array_advance,
+                                            ];
+
+                                            $this->studentfeemaster_model->fee_deposit($data_to_insert_advance, null, [], date('Y-m-d', strtotime($date)));
+                                        }
+
+                                        $success_count++;
+                                    } else {
+                                        $error_messages[] = "Balance Master fee not found for admission number: {$admission_no}";
+                                    }
+                                } else {
+                                    $error_messages[] = "'Previous Session Balance' fee type not found.";
+                                }
+                            } else {
+                                $error_messages[] = "Student not found for admission number: {$admission_no}";
+                            }
+                        }
+
+                        $this->session->set_flashdata('msg', "<div class='alert alert-success'>Successfully added {$success_count} adjustment records.</div>");
+                        if (!empty($error_messages)) {
+                            $this->session->set_flashdata('error_msg', "<div class='alert alert-danger'>" . implode('<br>', $error_messages) . "</div>");
+                        }
+                    } else {
+                        $this->session->set_flashdata('error_msg', "<div class='alert alert-danger'>Error reading CSV file.</div>");
+                    }
+
+                    redirect('studentfee/bulk_upload_fees');
+                }
+            }
+
+            public function handle_adjustment_csv_upload()
+            {
+                if (isset($_FILES["adjustment_file"]) && !empty($_FILES['adjustment_file']['name'])) {
+                    $allowed_mime_type_arr = array('text/x-comma-separated-values', 'text/comma-separated-values', 'application/octet-stream', 'application/vnd.ms-excel', 'application/x-csv', 'text/x-csv', 'text/csv', 'application/csv', 'application/excel', 'application/vnd.msexcel', 'text/plain');
+                    $mime = get_mime_by_extension($_FILES['adjustment_file']['name']);
+                    if (in_array($mime, $allowed_mime_type_arr)) {
+                        return true;
+                    } else {
+                        $this->form_validation->set_message('handle_adjustment_csv_upload', 'Please select only CSV file.');
+                        return false;
+                    }
+                } else {
+                    $this->form_validation->set_message('handle_adjustment_csv_upload', 'Please select a CSV file.');
+                    return false;
+                }
+            }
+
         
             public function do_bulk_upload_by_feetype()
             {
@@ -216,6 +358,16 @@ class Studentfee extends Admin_Controller
                 $filepath = "./backend/import/sample_fees_bulk_upload.csv";
                 $data     = file_get_contents($filepath);
                 $name     = 'sample_fees_bulk_upload.csv';
+
+                force_download($name, $data);
+            }
+
+            public function exportadjustmentformat()
+            {
+                $this->load->helper('download');
+                $filepath = "./backend/import/sample_carry_forward_adjustment.csv";
+                $data     = file_get_contents($filepath);
+                $name     = 'sample_carry_forward_adjustment.csv';
 
                 force_download($name, $data);
             }

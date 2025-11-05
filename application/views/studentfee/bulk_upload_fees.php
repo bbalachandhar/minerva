@@ -108,6 +108,53 @@ admission_no,total_amount_paid,old_bill_number,old_bill_date,payment_mode,descri
                 </div>
             </div>
         </div>
+
+        <div class="row">
+            <div class="col-md-12">
+                <div class="box box-primary">
+                    <div class="box-header with-border">
+                        <h3 class="box-title"><i class="fa fa-upload"></i> Bulk Carry forwarded Fee Adjustment</h3>
+                        <div class="box-tools pull-right">
+                            <a href="<?php echo site_url('studentfee/exportadjustmentformat'); ?>" class="btn btn-primary btn-sm"><i class="fa fa-download"></i> Download Sample File</a>
+                        </div>
+                    </div>
+                    <div class="box-body">
+                        <div class="well">
+                            <h4>Instructions</h4>
+                            <p>Please follow the instructions for uploading the fee adjustments file.</p>
+                            <p><b>Required Columns:</b> admission_no, amount, date, payment_mode, description</p>
+                            <p><b>Note:</b> The amount will be added as a payment against the student's carry forwarded fees.</p>
+                            <p><b>Example:</b></p>
+                            <pre>
+admission_no,amount,date,payment_mode,description
+12345,500,2025-11-06,Cash,Adjustment for carry forward
+                            </pre>
+                        </div>
+                        <?php echo form_open_multipart('studentfee/bulk_adjustment_upload', array('id' => 'bulk_adjustment_form')); ?>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="adjustment_file">Select CSV File</label>
+                                    <div class="input-group">
+                                        <label class="input-group-btn">
+                                            <span class="btn btn-primary">
+                                                Browse <input type="file" name="adjustment_file" id="adjustment_file" style="display: none;">
+                                            </span>
+                                        </label>
+                                        <input type="text" class="form-control" readonly>
+                                    </div>
+                                    <span class="text-danger"><?php echo form_error('adjustment_file'); ?></span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="box-footer">
+                            <button type="submit" class="btn btn-primary pull-right" id="adjustment_upload_btn">Upload</button>
+                        </div>
+                        <?php echo form_close(); ?>
+                    </div>
+                </div>
+            </div>
+        </div>
     </section>
 </div>
 
