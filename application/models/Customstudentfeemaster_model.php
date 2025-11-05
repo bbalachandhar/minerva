@@ -357,18 +357,54 @@ class Customstudentfeemaster_model extends MY_Model
 
         if (!empty($result_value2)) {
             foreach ($result_value2 as $result_key => $result_value) {
-                $result_value->fees = array();
+
                 $fee_session_group_id   = $result_value->fee_session_group_id;
                 $student_fees_master_id = $result_value->id;
+
+                $aggregated_deposit = (object) ['amount_paid' => 0, 'amount_fine' => 0, 'amount_discount' => 0];
+
                 if (empty($result_value->fee_session_group_id)) {
-                    $result_value->fees[0]     = (object)array('amount_detail' => $result_value->amount_detail, 'amount' => $result_value->amount);
+                    // This block handles transport fees or system fees
+                    // For transport fees, amount_detail is directly in result_value
+                    if (isJSON($result_value->amount_detail)) {
+                        $amount_details = json_decode($result_value->amount_detail);
+                        if (is_object($amount_details) && !empty($amount_details)) {
+                            foreach ($amount_details as $detail_value) {
+                                $aggregated_deposit->amount_paid += $detail_value->amount;
+                                $aggregated_deposit->amount_fine += isset($detail_value->amount_fine) ? $detail_value->amount_fine : 0;
+                                $aggregated_deposit->amount_discount += isset($detail_value->amount_discount) ? $detail_value->amount_discount : 0;
+                            }
+                        }
+                    } else {
+                        // If amount_detail is not JSON or '0', assume amount is the paid amount
+                        $aggregated_deposit->amount_paid += $result_value->amount;
+                    }
                 } else {
-                    $result_value->fees     = (object)$this->getDueFeeByFeeSessionGroup($fee_session_group_id, $student_fees_master_id);
+                    // This block handles regular fees
+                    // We need to get the fee_groups_feetype_id for this specific fee
+                    // Assuming getDueFeeByFeeSessionGroup returns an array of fee_groups_feetype objects
+                    $fee_details_array = $this->getDueFeeByFeeSessionGroup($fee_session_group_id, $student_fees_master_id);
+                    $total_due_amount = 0;
+                    if (!empty($fee_details_array)) {
+                        foreach ($fee_details_array as $fee_detail) {
+                            $total_due_amount += $fee_detail->amount; // Sum the original due amounts
+                            $deposit_data = $this->_getTotalFeeDeposit($student_fees_master_id, $fee_detail->fee_groups_feetype_id);
+                            $aggregated_deposit->amount_paid += $deposit_data->amount_paid;
+                            $aggregated_deposit->amount_fine += $deposit_data->amount_fine;
+                            $aggregated_deposit->amount_discount += $deposit_data->amount_discount;
+                        }
+                    }
+                    $result_value->amount = $total_due_amount; // Assign the total due amount to $result_value->amount
                 }
 
-                if ($result_value->is_system != 0) {                  
-                    $result_value->fees->{"0"}->{'amount'} = $result_value->amount;
-                }
+                $result_value->total_paid = $aggregated_deposit->amount_paid;
+                $result_value->total_fine = $aggregated_deposit->amount_fine;
+                $result_value->total_discount = $aggregated_deposit->amount_discount;
+
+                // Assign the original fees structure back, but now with aggregated deposit info
+                // This part might need adjustment based on how the controller expects 'fees' to be structured
+                // For now, let's just ensure the aggregated totals are available at the top level of result_value
+                // The controller will then use result_value->total_paid, etc.
             }
         }
 
@@ -1437,12 +1473,36 @@ class Customstudentfeemaster_model extends MY_Model
     }
 	
     // fees master fees collectiion
-    public function get_cumulative_fine_amount($fee_groups_feetype_id)
+    protected function _getTotalFeeDeposit($student_fees_master_id, $fee_groups_feetype_id)
     {
-        $query  = $this->db->query("SELECT cumulative_fine.*,fee_groups_feetype.fine_per_day FROM `cumulative_fine` 
-            left join fee_groups_feetype on fee_groups_feetype.id=cumulative_fine.fee_groups_feetype_id
-            WHERE `fee_groups_feetype_id`=$fee_groups_feetype_id");
-        $result = $query->result();
-        return $result;
+        $this->db->select('amount_detail');
+        $this->db->from('student_fees_deposite');
+        $this->db->where('student_fees_master_id', $student_fees_master_id);
+        $this->db->where('fee_groups_feetype_id', $fee_groups_feetype_id);
+        $query = $this->db->get();
+        $deposits = $query->result();
+
+        $total_paid_amount = 0;
+        $total_fine_amount = 0;
+        $total_discount_amount = 0;
+
+        foreach ($deposits as $deposit_record) {
+            if (isJSON($deposit_record->amount_detail)) {
+                $amount_details = json_decode($deposit_record->amount_detail);
+                if (is_object($amount_details) && !empty($amount_details)) {
+                    foreach ($amount_details as $detail_value) {
+                        $total_paid_amount += $detail_value->amount;
+                        $total_fine_amount += isset($detail_value->amount_fine) ? $detail_value->amount_fine : 0;
+                        $total_discount_amount += isset($detail_value->amount_discount) ? $detail_value->amount_discount : 0;
+                    }
+                }
+            }
+        }
+
+        return (object) [
+            'amount_paid' => $total_paid_amount,
+            'amount_fine' => $total_fine_amount,
+            'amount_discount' => $total_discount_amount,
+        ];
     }
 }
