@@ -56,8 +56,6 @@
                                         <span class="text-danger"><?php echo form_error('class_id'); ?></span>
                                     </div>
                                 </div>
-                            </div>
-                            <div class="row">
                                 <div class="col-md-3">
                                     <div class="form-group">
                                         <label for="student_id"><?php echo $this->lang->line('student'); ?></label>
@@ -68,6 +66,9 @@
                                         <span class="text-danger"><?php echo form_error('student_id'); ?></span>
                                     </div>
                                 </div>
+                            </div>
+                            <div class="row">
+
                                 <div class="col-md-3">
                                     <div class="form-group">
                                         <label for="date_from"><?php echo $this->lang->line('date_from'); ?></label>
