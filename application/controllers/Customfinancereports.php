@@ -71,12 +71,16 @@ class Customfinancereports extends Admin_Controller
                     $fees_data = $this->customstudentfeemaster_model->getTransStudentFees($student_session_id);
                     $obj->tuition_demand = $fees_data->tuition_demand;
                     $obj->tuition_paid = $fees_data->tuition_paid;
+                    $obj->tuition_balance = $fees_data->tuition_demand - $fees_data->tuition_paid;
                     $obj->other_demand = $fees_data->other_demand;
                     $obj->other_paid = $fees_data->other_paid;
+                    $obj->other_balance = $fees_data->other_demand - $fees_data->other_paid;
                     $obj->hostel_demand = $fees_data->hostel_demand;
                     $obj->hostel_paid = $fees_data->hostel_paid;
+                    $obj->hostel_balance = $fees_data->hostel_demand - $fees_data->hostel_paid;
                     $obj->transport_demand = $fees_data->transport_demand;
                     $obj->transport_paid = $fees_data->transport_paid;
+                    $obj->transport_balance = $fees_data->transport_demand - $fees_data->transport_paid;
                     $obj->advance_paid = $fees_data->advance_paid;
                     $student_total_fees = $fees_data->fees;
                     $obj->applied_discounts = $this->feediscount_model->getStudentFeesDiscount($student_session_id);
@@ -172,12 +176,16 @@ class Customfinancereports extends Admin_Controller
                 $fees_data = $this->customstudentfeemaster_model->getTransStudentFees($student_session_id);
                 $obj->tuition_demand = $fees_data->tuition_demand;
                 $obj->tuition_paid = $fees_data->tuition_paid;
+                $obj->tuition_balance = $fees_data->tuition_demand - $fees_data->tuition_paid;
                 $obj->other_demand = $fees_data->other_demand;
                 $obj->other_paid = $fees_data->other_paid;
+                $obj->other_balance = $fees_data->other_demand - $fees_data->other_paid;
                 $obj->hostel_demand = $fees_data->hostel_demand;
                 $obj->hostel_paid = $fees_data->hostel_paid;
+                $obj->hostel_balance = $fees_data->hostel_demand - $fees_data->hostel_paid;
                 $obj->transport_demand = $fees_data->transport_demand;
                 $obj->transport_paid = $fees_data->transport_paid;
+                $obj->transport_balance = $fees_data->transport_demand - $fees_data->transport_paid;
                 $student_total_fees = $fees_data->fees;
                 $obj->applied_discounts = $this->feediscount_model->getStudentFeesDiscount($student_session_id);
 
