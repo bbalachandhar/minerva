@@ -282,7 +282,7 @@ echo date($this->customlib->getSchoolDateFormat(), $this->customlib->dateyyyymmd
 if (!empty($feeList)) {
     ?>
 
-                                <table class="table table-striped table-responsive" style="font-size: 8pt;">
+                                <table class="table table-striped table-responsive" style="font-size: 12pt;">
                                     <thead>
                                         <tr>
                                             <th><?php echo $this->lang->line('date'); ?></th>
@@ -464,7 +464,7 @@ $date = date('d-m-Y');
 if (!empty($feeList)) {
         ?>
 
-                                    <table class="table table-striped table-responsive" style="font-size: 8pt;">
+                                    <table class="table table-striped table-responsive" style="font-size: 12pt;">
                                         <thead>
                                             <tr>
                                                 <th><?php echo $this->lang->line('date'); ?></th>
@@ -644,7 +644,7 @@ $date = date('d-m-Y');
 if (!empty($feeList)) {
         ?>
 
-                                    <table class="table table-striped table-responsive" style="font-size: 8pt;">
+                                    <table class="table table-striped table-responsive" style="font-size: 12pt;">
                                         <thead>
                                             <tr>
                                                 <th><?php echo $this->lang->line('date'); ?></th>

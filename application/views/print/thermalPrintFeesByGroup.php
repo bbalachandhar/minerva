@@ -28,7 +28,7 @@
             border-collapse: collapse;
         }
  
-        table th, table td{padding-top: 5px; padding-bottom: 5px;font-size: 9pt;vertical-align: top;}
+        table th, table td{padding-top: 5px; padding-bottom: 5px;font-size: 12pt;vertical-align: top;}
         p{margin-bottom: 5px;}
         h1 {
             margin: 0;

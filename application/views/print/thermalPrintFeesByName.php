@@ -28,7 +28,7 @@
             border-collapse: collapse;
         }
  
-        table th, table td{padding-top: 5px; padding-bottom: 5px;font-size: 9pt;vertical-align: top;}
+        table th, table td{padding-top: 5px; padding-bottom: 5px;font-size: 10pt;vertical-align: top;}
         p{margin-bottom: 5px;}
         h1 {
             margin: 0;
@@ -103,7 +103,8 @@ for($i=0;$i<count($print_copy);$i++){   ?>
         }
         ?></h2>
 		
-        <table width="100%" cellpadding="0" cellspacing="0">
+                                <table class="table table-striped table-responsive" style="font-size: 12pt;">
+                                    <thead>
             <tbody>
                 <tr>
                     <td align="left" colspan="2" style="padding-top:0px; padding-bottom:0; font-weight: bold"><?php echo $this->lang->line('name'); ?>: <?php echo $this->customlib->getFullName($feeList->firstname, $feeList->middlename, $feeList->lastname, $sch_setting->middlename, $sch_setting->lastname); ?><?php echo " (" . $feeList->admission_no . ")"; ?></td>
