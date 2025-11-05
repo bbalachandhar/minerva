@@ -307,6 +307,8 @@ class Customstudentfeemaster_model extends MY_Model
         $query  = $this->db->query($sql);
         $result_value = $query->result();
 
+
+
         $class_id = "";
         if (isset($_POST['class_id']) && !empty($_POST['class_id'])) {
             $class_id = $_POST['class_id'];
@@ -350,10 +352,20 @@ class Customstudentfeemaster_model extends MY_Model
             $result_value2 = $result_value1;
         } elseif (empty($result_value1)) {
             $result_value2 = $result_value;
-        }
-        else {
+        } else {
             $result_value2 = array_merge($result_value, $result_value1);
         }
+
+        $return_object = new stdClass();
+        $return_object->tuition_demand = 0;
+        $return_object->tuition_paid = 0;
+        $return_object->other_demand = 0;
+        $return_object->other_paid = 0;
+        $return_object->hostel_demand = 0;
+        $return_object->hostel_paid = 0;
+        $return_object->transport_demand = 0;
+        $return_object->transport_paid = 0;
+        $return_object->advance_paid = 0; /* Only paid for advance payments as there is no demand */
 
         if (!empty($result_value2)) {
             foreach ($result_value2 as $result_key => $result_value) {
@@ -379,6 +391,10 @@ class Customstudentfeemaster_model extends MY_Model
                         // If amount_detail is not JSON or '0', assume amount is the paid amount
                         $aggregated_deposit->amount_paid += $result_value->amount;
                     }
+                    // Assign transport fees
+                    $return_object->transport_demand += $result_value->amount;
+                    $return_object->transport_paid += $aggregated_deposit->amount_paid;
+
                 } else {
                     // This block handles regular fees
                     // We need to get the fee_groups_feetype_id for this specific fee
@@ -392,6 +408,30 @@ class Customstudentfeemaster_model extends MY_Model
                             $aggregated_deposit->amount_paid += $deposit_data->amount_paid;
                             $aggregated_deposit->amount_fine += $deposit_data->amount_fine;
                             $aggregated_deposit->amount_discount += $deposit_data->amount_discount;
+
+                            // Assign regular fees based on type
+                            switch (strtolower($fee_detail->type)) {
+                                case 'tuition fee':
+                                    $return_object->tuition_demand += $fee_detail->amount;
+                                    $return_object->tuition_paid += $deposit_data->amount_paid;
+                                    break;
+                                case 'other fee':
+                                    $return_object->other_demand += $fee_detail->amount;
+                                    $return_object->other_paid += $deposit_data->amount_paid;
+                                    break;
+                                case 'hostel fees': /* Using the exact string from the feetype table */
+                                    $return_object->hostel_demand += $fee_detail->amount;
+                                    $return_object->hostel_paid += $deposit_data->amount_paid;
+                                    break;
+                                case 'transport fee': /* Using the exact string from the feetype table for regular transport fees */
+                                    $return_object->transport_demand += $fee_detail->amount;
+                                    $return_object->transport_paid += $deposit_data->amount_paid;
+                                    break;
+                                case 'advance payments': /* Only paid amount for advance payments */
+                                    $return_object->advance_paid += $deposit_data->amount_paid;
+                                    break;
+                                // Add more cases for other fee types if needed
+                            }
                         }
                     }
                     $result_value->amount = $total_due_amount; // Assign the total due amount to $result_value->amount
@@ -408,7 +448,6 @@ class Customstudentfeemaster_model extends MY_Model
             }
         }
 
-        $return_object = new stdClass();
         $return_object->fees = $result_value2;
         $return_object->govt_7_5 = $this->getFeeAmountByCode($student_session_id, 'GOVT_7_5');
         $return_object->govt_fg = $this->getFeeAmountByCode($student_session_id, 'GOVT_F_G');
@@ -1505,4 +1544,6 @@ class Customstudentfeemaster_model extends MY_Model
             'amount_discount' => $total_discount_amount,
         ];
     }
+
+
 }

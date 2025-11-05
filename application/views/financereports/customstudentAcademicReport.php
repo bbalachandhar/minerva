@@ -83,12 +83,20 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                     <th><?php echo $this->lang->line('class'); ?></th>
                                     <th><?php echo $this->lang->line('admission_no'); ?></th>
                                     <th class="text-right">Last Yr(CF)</th>
-                                    <th class="text-right">Advance Balance</th>
                                     <?php foreach ($discount_list as $discount) { ?>
                                         <th class="text-right"><?php echo $discount['name']; ?></th>
                                     <?php } ?>
+                                    <th class="text-right">Tuition Fee (Demand)</th>
+                                    <th class="text-right">Tuition Fee (Paid)</th>
+                                    <th class="text-right">Other Fees (Demand)</th>
+                                    <th class="text-right">Other Fees (Paid)</th>
+                                    <th class="text-right">Hostel Fees (Demand)</th>
+                                    <th class="text-right">Hostel Fees (Paid)</th>
+                                    <th class="text-right">Transport Fees (Demand)</th>
+                                    <th class="text-right">Transport Fees (Paid)</th>
                                     <th class="text-right"><?php echo $this->lang->line('total_fees'); ?></th>
                                     <th class="text-right"><?php echo $this->lang->line('paid_fees'); ?></th>
+                                    <th class="text-right">Advance Payments</th>
                                     <th class="text-right"><?php echo $this->lang->line('total') . " " . $this->lang->line('discount'); ?></th>
                                     <th class="text-right"><?php echo $this->lang->line('fine'); ?></th>
                                     <th class="text-right"><?php echo $this->lang->line('balance'); ?></th>
@@ -96,8 +104,12 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                             </thead>
                             <tbody>
                                 <?php
-                                $total_fees = 0; $total_paid = 0; $total_fine = 0; $total_balance = 0; $total_discount = 0; $total_advance_balance = 0;
+                                $total_fees = 0; $total_paid = 0; $total_fine = 0; $total_balance = 0; $total_discount = 0; $total_advance_paid = 0;
                                 $total_last_yr_cf = 0;
+                                $total_tuition_demand = 0; $total_tuition_paid = 0;
+                                $total_other_demand = 0; $total_other_paid = 0;
+                                $total_hostel_demand = 0; $total_hostel_paid = 0;
+                                $total_transport_demand = 0; $total_transport_paid = 0;
                                 $discount_totals = array_fill_keys(array_column($discount_list, 'id'), 0);
 
                                 if (!empty($student_due_fee)) {
@@ -107,7 +119,15 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                         $total_fine += $student->fine;
                                         $total_balance += $student->balance;
                                         $total_last_yr_cf += $student->last_yr_cf;
-                                        $total_advance_balance += $student->advance_balance;
+                                        $total_advance_paid += $student->advance_paid; /* Accumulate advance paid */
+                                        $total_tuition_demand += $student->tuition_demand;
+                                        $total_tuition_paid += $student->tuition_paid;
+                                        $total_other_demand += $student->other_demand;
+                                        $total_other_paid += $student->other_paid;
+                                        $total_hostel_demand += $student->hostel_demand;
+                                        $total_hostel_paid += $student->hostel_paid;
+                                        $total_transport_demand += $student->transport_demand;
+                                        $total_transport_paid += $student->transport_paid;
                                         $total_discount += $student->discount;
                                         ?>
                                         <tr>
@@ -115,7 +135,6 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                             <td><?php echo $student->class . " (" . $student->section . ")"; ?></td>
                                             <td><?php echo $student->admission_no; ?></td>
                                             <td class="text-right"><?php echo amountFormat($student->last_yr_cf); ?></td>
-                                            <td class="text-right"><?php echo amountFormat($student->advance_balance); ?></td>
                                             <?php 
                                             foreach ($discount_list as $discount) {
                                                 $discount_amount = 0;
@@ -131,8 +150,17 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                                 echo "<td class='text-right'>" . amountFormat($discount_amount) . "</td>";
                                             }
                                             ?>
+                                            <td class="text-right"><?php echo amountFormat($student->tuition_demand); ?></td>
+                                            <td class="text-right"><?php echo amountFormat($student->tuition_paid); ?></td>
+                                            <td class="text-right"><?php echo amountFormat($student->other_demand); ?></td>
+                                            <td class="text-right"><?php echo amountFormat($student->other_paid); ?></td>
+                                            <td class="text-right"><?php echo amountFormat($student->hostel_demand); ?></td>
+                                            <td class="text-right"><?php echo amountFormat($student->hostel_paid); ?></td>
+                                            <td class="text-right"><?php echo amountFormat($student->transport_demand); ?></td>
+                                            <td class="text-right"><?php echo amountFormat($student->transport_paid); ?></td>
                                             <td class="text-right"><?php echo amountFormat($student->totalfee); ?></td>
                                             <td class="text-right"><?php echo amountFormat($student->deposit); ?></td>
+                                            <td class="text-right"><?php echo amountFormat($student->advance_paid); ?></td>
                                             <td class="text-right"><?php echo amountFormat($student->discount); ?></td>
                                             <td class="text-right"><?php echo amountFormat($student->fine); ?></td>
                                             <td class="text-right"><?php echo amountFormat($student->balance); ?></td>
@@ -148,16 +176,22 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                             </tbody>
                              <tfoot>
                                 <tr class="box box-solid total-bg">
-                                    <td></td>
-                                    <td></td>
-                                    <td class="text-right"><?php echo $this->lang->line('grand_total'); ?></td>
+                                    <td colspan="3" class="text-right"><?php echo $this->lang->line('grand_total'); ?></td>
                                     <td class="text-right"><?php echo $currency_symbol . amountFormat($total_last_yr_cf); ?></td>
-                                    <td class="text-right"><?php echo $currency_symbol . amountFormat($total_advance_balance); ?></td>
                                     <?php foreach ($discount_totals as $total) { ?>
                                         <td class="text-right"><?php echo $currency_symbol . amountFormat($total); ?></td>
                                     <?php } ?>
+                                    <td class="text-right"><?php echo $currency_symbol . amountFormat($total_tuition_demand); ?></td>
+                                    <td class="text-right"><?php echo $currency_symbol . amountFormat($total_tuition_paid); ?></td>
+                                    <td class="text-right"><?php echo $currency_symbol . amountFormat($total_other_demand); ?></td>
+                                    <td class="text-right"><?php echo $currency_symbol . amountFormat($total_other_paid); ?></td>
+                                    <td class="text-right"><?php echo $currency_symbol . amountFormat($total_hostel_demand); ?></td>
+                                    <td class="text-right"><?php echo $currency_symbol . amountFormat($total_hostel_paid); ?></td>
+                                    <td class="text-right"><?php echo $currency_symbol . amountFormat($total_transport_demand); ?></td>
+                                    <td class="text-right"><?php echo $currency_symbol . amountFormat($total_transport_paid); ?></td>
                                     <td class="text-right"><?php echo $currency_symbol . amountFormat($total_fees); ?></td>
                                     <td class="text-right"><?php echo $currency_symbol . amountFormat($total_paid); ?></td>
+                                    <td class="text-right"><?php echo $currency_symbol . amountFormat($total_advance_paid); ?></td>
                                     <td class="text-right"><?php echo $currency_symbol . amountFormat($total_discount); ?></td>
                                     <td class="text-right"><?php echo $currency_symbol . amountFormat($total_fine); ?></td>
                                     <td class="text-right"><?php echo $currency_symbol . amountFormat($total_balance); ?></td>
