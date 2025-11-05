@@ -33,18 +33,7 @@
                                         <span class="text-danger"><?php echo form_error('fee_type_id'); ?></span>
                                     </div>
                                 </div>
-                                <div class="col-md-4">
-                                    <div class="form-group">
-                                        <label for="session_id"><?php echo $this->lang->line('session'); ?></label>
-                                        <select id="session_id" name="session_id" class="form-control" >
-                                            <option value=""><?php echo $this->lang->line('select'); ?></option>
-                                            <?php foreach ($sessions as $session) { ?>
-                                                <option value="<?php echo $session['id'] ?>" <?php echo set_select('session_id', $session['id']); ?>><?php echo $session['session'] ?></option>
-                                            <?php } ?>
-                                        </select>
-                                        <span class="text-danger"><?php echo form_error('session_id'); ?></span>
-                                    </div>
-                                </div>
+                                <input type="hidden" id="session_id" name="session_id" value="<?php echo $current_session_id; ?>">
                                 <div class="col-md-4">
                                     <div class="form-group">
                                         <label for="amount_due"><?php echo $this->lang->line('amount_due'); ?></label>
@@ -106,10 +95,10 @@
             todayHighlight: true
         });
 
-        // AJAX to load students based on selected class(es) and session
-        $('#class_id, #session_id').on('change', function () {
+        // AJAX to load students based on selected class(es)
+        $('#class_id').on('change', function () {
             var class_ids = $('#class_id').val();
-            var session_id = $('#session_id').val();
+            var session_id = $('#session_id').val(); // Get session_id from hidden input
             $('#student_id').html(''); // Clear previous students
 
             if (class_ids && session_id) {
@@ -125,6 +114,29 @@
                         $('#student_id').select2(); // Re-initialize Select2 after adding options
                     }
                 });
+            }
+        });
+
+        // AJAX to get fee type details when fee type is selected
+        $('#fee_type_id').on('change', function () {
+            var fee_type_id = $(this).val();
+            if (fee_type_id) {
+                $.ajax({
+                    type: "POST",
+                    url: baseurl + "admin/assign_incidental_fee/getFeeTypeDetails",
+                    data: {fee_type_id: fee_type_id, '<?php echo $this->security->get_csrf_token_name(); ?>': '<?php echo $this->security->get_csrf_hash(); ?>'},
+                    dataType: "json",
+                    success: function (response) {
+                        console.log("AJAX Response for Fee Type Details:", response); // Log the response
+                        if (response && response.default_amount) {
+                            $('#amount_due').val(response.default_amount);
+                        } else {
+                            $('#amount_due').val('');
+                        }
+                    }
+                });
+            } else {
+                $('#amount_due').val('');
             }
         });
     });

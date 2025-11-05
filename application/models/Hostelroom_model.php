@@ -181,4 +181,24 @@ class Hostelroom_model extends MY_Model
         return $this->datatables->generate('json');
     }
 
+    public function get_free_room($hostel_id)
+    {
+        $this->db->select('hostel_rooms.*, COUNT(students.id) as `students_count`');
+        $this->db->from('hostel_rooms');
+        $this->db->join('students', 'students.hostel_room_id = hostel_rooms.id', 'left');
+        $this->db->where('hostel_rooms.hostel_id', $hostel_id);
+        $this->db->group_by('hostel_rooms.id');
+        $query = $this->db->get();
+
+        if ($query->num_rows() > 0) {
+            $rooms = $query->result_array();
+            foreach ($rooms as $room) {
+                if ($room['students_count'] < $room['no_of_bed']) {
+                    return $room;
+                }
+            }
+        }
+        return false;
+    }
+
 }

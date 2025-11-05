@@ -22,13 +22,17 @@ class Assign_incidental_fee extends Admin_Controller {
         $this->session->set_userdata('top_menu', 'Fees Collection');
         $this->session->set_userdata('sub_menu', 'admin/assign_incidental_fee');
 
+        $this->load->model('setting_model'); // Load setting_model
+        $current_session_id = $this->setting_model->getCurrentSession(); // Get current session ID
+
         $data['title'] = 'Assign Incidental Fee';
         $data['fee_types'] = $this->incidental_fee_type_model->get();
-        $data['sessions'] = $this->session_model->get(); // Assuming get() method
-        $data['classes'] = $this->class_model->get();   // Assuming get() method
+        // $data['sessions'] = $this->session_model->get(); // Removed
+        $data['classes'] = $this->class_model->get();
+        $data['current_session_id'] = $current_session_id; // Pass current session ID to view
 
         $this->form_validation->set_rules('fee_type_id', $this->lang->line('fee_type'), 'required|trim|xss_clean');
-        $this->form_validation->set_rules('session_id', $this->lang->line('session'), 'required|trim|xss_clean');
+        // $this->form_validation->set_rules('session_id', $this->lang->line('session'), 'required|trim|xss_clean'); // Removed
         $this->form_validation->set_rules('amount_due', $this->lang->line('amount_due'), 'required|numeric|trim|xss_clean');
         // Validation for student_id[] or class_id[] will be conditional in the view/JS
 
@@ -38,7 +42,7 @@ class Assign_incidental_fee extends Admin_Controller {
             $this->load->view('layout/footer');
         } else {
             $fee_type_id = $this->input->post('fee_type_id');
-            $session_id = $this->input->post('session_id');
+            $session_id = $this->input->post('session_id'); // This will now come from the hidden input
             $amount_due = $this->input->post('amount_due');
             $due_date = $this->input->post('due_date');
             $assigned_by = $this->customlib->getStaffID();
@@ -102,4 +106,17 @@ class Assign_incidental_fee extends Admin_Controller {
         $students = $this->student_model->getStudentsByClassAndSession($class_id, $session_id); // Assuming this method exists
         echo json_encode($students);
     }
+
+    public function getFeeTypeDetails() {
+        $fee_type_id = $this->input->post('fee_type_id');
+        $fee_type = $this->incidental_fee_type_model->get($fee_type_id); // Assuming get() method can fetch by ID
+
+        // Add logging to see what is returned
+        $log_file = FCPATH . 'assign_incidental_fee_log.txt';
+        file_put_contents($log_file, "Fee Type Details for ID " . $fee_type_id . ": " . print_r($fee_type, true) . "\n", FILE_APPEND);
+
+        echo json_encode($fee_type);
+    }
 }
+
+?>
