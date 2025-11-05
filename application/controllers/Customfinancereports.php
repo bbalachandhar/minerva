@@ -77,31 +77,25 @@ class Customfinancereports extends Admin_Controller
                     $obj->last_yr_cf = !empty($balance_record) ? $balance_record[0]->amount : 0;
 
                     // Calculate base fee totals
-                    $totalfee = 0; $deposit = 0; $discount = 0; $balance = 0; $fine = 0;
-                    if (!empty($student_total_fees)) {
-                        foreach ($student_total_fees as $student_total_fees_value) {
-                            if (!empty($student_total_fees_value->fees)) {
-                                foreach ($student_total_fees_value->fees as $each_fee_value) {
-                                    $totalfee += $each_fee_value->amount;
-                                    if (isJSON($each_fee_value->amount_detail)) {
-                                        $amount_detail = json_decode($each_fee_value->amount_detail);
-                                        if (is_object($amount_detail) && !empty($amount_detail)) {
-                                            foreach ($amount_detail as $amount_detail_value) {
-                                                                                            $deposit += $amount_detail_value->amount;
-                                                                                            $fine += isset($amount_detail_value->amount_fine) ? $amount_detail_value->amount_fine : 0;
-                                                                                            $discount += isset($amount_detail_value->amount_discount) ? $amount_detail_value->amount_discount : 0;                                            }
-                                        }
-                                    }
-                                }
-                            }
+                    $totalfee = 0;
+                    $total_paid_sum = 0;
+                    $total_fine_sum = 0;
+                    $total_discount_sum = 0;
+
+                    if (!empty($fees_data->fees)) {
+                        foreach ($fees_data->fees as $fee_item) {
+                            $totalfee += $fee_item->amount;
+                            $total_paid_sum += $fee_item->total_paid;
+                            $total_fine_sum += $fee_item->total_fine;
+                            $total_discount_sum += $fee_item->total_discount;
                         }
                     }
 
                     $obj->totalfee = $totalfee;
-                    $obj->deposit  = $deposit;
-                    $obj->fine     = $fine;
-                    $obj->discount = $discount;
-                    $obj->balance  = $totalfee - ($deposit + $discount);
+                    $obj->deposit  = $total_paid_sum;
+                    $obj->fine     = $total_fine_sum;
+                    $obj->discount = $total_discount_sum;
+                    $obj->balance  = $totalfee - ($total_paid_sum + $total_discount_sum);
 
                     // Filter based on search type
                     $include_student = false;
@@ -169,32 +163,25 @@ class Customfinancereports extends Admin_Controller
                 $obj->last_yr_cf = !empty($balance_record) ? $balance_record[0]->amount : 0;
 
                 // Calculate base fee totals
-                $totalfee = 0; $deposit = 0; $discount = 0; $balance = 0; $fine = 0;
-                if (!empty($student_total_fees)) {
-                    foreach ($student_total_fees as $student_total_fees_value) {
-                        if (!empty($student_total_fees_value->fees)) {
-                            foreach ($student_total_fees_value->fees as $each_fee_value) {
-                                $totalfee += $each_fee_value->amount;
-                                if (isJSON($each_fee_value->amount_detail)) {
-                                    $amount_detail = json_decode($each_fee_value->amount_detail);
-                                    if (is_object($amount_detail) && !empty($amount_detail)) {
-                                        foreach ($amount_detail as $amount_detail_value) {
-                                            $deposit += $amount_detail_value->amount;
-                                            $fine += isset($amount_detail_value->amount_fine) ? $amount_detail_value->amount_fine : 0;
-                                            $discount += isset($amount_detail_value->amount_discount) ? $amount_detail_value->amount_discount : 0;
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                $totalfee = 0;
+                $total_paid_sum = 0;
+                $total_fine_sum = 0;
+                $total_discount_sum = 0;
+
+                if (!empty($fees_data->fees)) {
+                    foreach ($fees_data->fees as $fee_item) {
+                        $totalfee += $fee_item->amount;
+                        $total_paid_sum += $fee_item->total_paid;
+                        $total_fine_sum += $fee_item->total_fine;
+                        $total_discount_sum += $fee_item->total_discount;
                     }
                 }
 
                 $obj->totalfee = $totalfee;
-                $obj->deposit  = $deposit;
-                $obj->fine     = $fine;
-                $obj->discount = $discount;
-                $obj->balance  = $totalfee - ($deposit + $discount);
+                $obj->deposit  = $total_paid_sum;
+                $obj->fine     = $total_fine_sum;
+                $obj->discount = $total_discount_sum;
+                $obj->balance  = $totalfee - ($total_paid_sum + $total_discount_sum);
 
                 // Filter based on search type
                 $include_student = false;
