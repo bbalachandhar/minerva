@@ -475,7 +475,7 @@ class Customstudentfeemaster_model extends MY_Model
         $this->db->join('fee_session_groups', 'student_fees_master.fee_session_group_id = fee_session_groups.id');
         $this->db->join('fee_groups', 'fee_session_groups.fee_groups_id = fee_groups.id');
         $this->db->where('student_fees_master.student_session_id', $student_session_id);
-        $this->db->where('fee_groups.name', 'Balance Previous Session');
+        $this->db->where('fee_groups.name', 'Balance Master');
         $query = $this->db->get();
         $result = $query->row();
         return ($result) ? $result : null;
@@ -486,8 +486,13 @@ class Customstudentfeemaster_model extends MY_Model
         $previous_session_balance_data = $this->getPreviousSessionBalance($student_session_id);
 
         if ($previous_session_balance_data) {
-            $fee_group_id = $this->feegroup_model->checkGroupExistsByName('Balance Previous Session')->id;
-            $feetype_id = $this->feetype_model->checkFeetypeByName('Balance Previous Session')->id;
+            $fee_group_id_obj = $this->feegroup_model->checkGroupExistsByName('Balance Master');
+            if(!$fee_group_id_obj) return 0;
+            $fee_group_id = $fee_group_id_obj->id;
+
+            $feetype_id_obj = $this->feetype_model->checkFeetypeByName('Previous Session Balance');
+            if(!$feetype_id_obj) return 0;
+            $feetype_id = $feetype_id_obj->id;
 
             $this->db->select('id');
             $this->db->from('fee_groups_feetype');
