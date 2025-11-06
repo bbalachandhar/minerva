@@ -97,14 +97,13 @@ class Customfinancereports extends Admin_Controller
 
                     // Calculate base fee totals
                     $totalfee = 0;
-                    $total_paid_sum = 0;
+                    $total_paid_sum = $obj->tuition_paid + $obj->other_paid + $obj->hostel_paid + $obj->transport_paid;
                     $total_fine_sum = 0;
                     $total_discount_sum = 0;
 
                     if (!empty($fees_data->fees)) {
                         foreach ($fees_data->fees as $fee_item) {
                             $totalfee += $fee_item->amount;
-                            $total_paid_sum += $fee_item->total_paid;
                             $total_fine_sum += $fee_item->total_fine;
                             $total_discount_sum += $fee_item->total_discount;
                         }
@@ -193,16 +192,14 @@ class Customfinancereports extends Admin_Controller
                 $balance_record = $this->customstudentfeemaster_model->getBalanceMasterRecord($this->balance_group, '(' . $student_session_id . ')');
                 $obj->last_yr_cf = !empty($balance_record) ? $balance_record[0]->amount : 0;
 
-                // Calculate base fee totals
                 $totalfee = 0;
-                $total_paid_sum = 0;
+                $total_paid_sum = $obj->tuition_paid + $obj->other_paid + $obj->hostel_paid + $obj->transport_paid;
                 $total_fine_sum = 0;
                 $total_discount_sum = 0;
 
                 if (!empty($fees_data->fees)) {
                     foreach ($fees_data->fees as $fee_item) {
                         $totalfee += $fee_item->amount;
-                        $total_paid_sum += $fee_item->total_paid;
                         $total_fine_sum += $fee_item->total_fine;
                         $total_discount_sum += $fee_item->total_discount;
                     }

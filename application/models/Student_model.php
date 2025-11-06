@@ -2556,4 +2556,30 @@ class Student_model extends MY_Model
         return $query->result_array();
     }
 
+    public function getStudentCategoryReport()
+    {
+        $this->db->select('classes.id AS class_id, classes.class AS class_name, categories.id AS category_id, categories.category AS category_name, COUNT(students.id) AS student_count');
+        $this->db->from('classes');
+        $this->db->join('student_session', 'classes.id = student_session.class_id AND student_session.session_id = ' . $this->current_session, 'left');
+        $this->db->join('students', 'student_session.student_id = students.id AND students.is_active = \'yes\'', 'left');
+        $this->db->join('categories', 'students.category_id = categories.id', 'left');
+        $this->db->group_by('classes.id, categories.id');
+        $this->db->order_by('classes.class, categories.category');
+        $query = $this->db->get();
+        $class_category_counts = $query->result_array();
+
+        $this->db->select('categories.id AS category_id, categories.category AS category_name, COUNT(students.id) AS total_student_count');
+        $this->db->from('categories');
+        $this->db->join('students', 'categories.id = students.category_id AND students.is_active = \'yes\'', 'left');
+        $this->db->join('student_session', 'students.id = student_session.student_id AND student_session.session_id = ' . $this->current_session, 'left');
+        $this->db->group_by('categories.id');
+        $this->db->order_by('categories.category');
+        $query = $this->db->get();
+        $overall_category_counts = $query->result_array();
+
+        return array(
+            'class_category_counts' => $class_category_counts,
+            'overall_category_counts' => $overall_category_counts
+        );
+    }
 }

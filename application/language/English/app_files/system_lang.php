@@ -2777,5 +2777,9 @@ $lang['revert'] = 'Revert';
 $lang['incidental_report_receipt_no'] = 'Receipt No.';
 $lang['incidental_report_amount_collected'] = 'Amount Collected';
 
+$lang['category_report'] = "Category Report";
+$lang['overall_total'] = "Overall Total";
+
+#version 7.1.0
 
 

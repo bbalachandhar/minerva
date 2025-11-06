@@ -2058,7 +2058,27 @@ class Report extends Admin_Controller
         $data['categorylist']    = $category;
         $data['communitylist']   = $this->student_model->getCommunityList();
         $this->load->view('layout/header', $data);
-        $this->load->view('reports/communitybasedreport', $data);
+        $this->load->view('layout/footer', $data);
+    }
+
+    public function category_report()
+    {
+        if (!$this->rbac->hasPrivilege('category_report', 'can_view')) {
+            access_denied();
+        }
+
+        $this->session->set_userdata('top_menu', 'Reports');
+        $this->session->set_userdata('sub_menu', 'Reports/student_information');
+        $this->session->set_userdata('subsub_menu', 'Reports/student_information/category_report');
+        $data['title'] = 'Category Report';
+
+        $report_data = $this->student_model->getStudentCategoryReport();
+
+        $data['class_category_counts'] = $report_data['class_category_counts'];
+        $data['overall_category_counts'] = $report_data['overall_category_counts'];
+
+        $this->load->view('layout/header', $data);
+        $this->load->view('reports/category_report', $data);
         $this->load->view('layout/footer', $data);
     }
 
@@ -2475,5 +2495,76 @@ class Report extends Admin_Controller
             "data"            => $dt_data,
         );
         echo json_encode($json_data);
+    }
+
+    public function category_report_export($export_type)
+    {
+        if (!$this->rbac->hasPrivilege('category_report', 'can_view')) {
+            access_denied();
+        }
+
+        $report_data = $this->student_model->getStudentCategoryReport();
+        $class_category_counts = $report_data['class_category_counts'];
+        $overall_category_counts = $report_data['overall_category_counts'];
+
+        if ($export_type == 'pdf') {
+            $this->load->library('m_pdf');
+            $data['class_category_counts'] = $class_category_counts;
+            $data['overall_category_counts'] = $overall_category_counts;
+            $data['title'] = 'Category Report';
+            $html = $this->load->view('reports/category_report_pdf', $data, true); // Create a separate PDF view if needed
+            $pdfFilePath = "Category_Report_" . date('Y-m-d_H-i-s') . ".pdf";
+            $this->m_pdf->pdf->WriteHTML($html);
+            $this->m_pdf->pdf->Output($pdfFilePath, "D");
+        } elseif ($export_type == 'excel' || $export_type == 'csv') {
+            $filename = "Category_Report_" . date('Y-m-d_H-i-s') . "." . ($export_type == 'excel' ? 'xls' : 'csv');
+            header('Content-Type: text/csv');
+            header('Content-Disposition: attachment;filename="' . $filename . '"');
+            header('Cache-Control: max-age=0');
+
+            $output = fopen('php://output', 'w');
+
+            // Header for class names and categories
+            $header = [$this->lang->line('class')];
+            foreach ($overall_category_counts as $category) {
+                $header[] = $category['category_name'];
+            }
+            $header[] = $this->lang->line('total');
+            fputcsv($output, $header);
+
+            // Data rows
+            $class_wise_data = [];
+            foreach ($class_category_counts as $item) {
+                $class_wise_data[$item['class_name']][$item['category_name']] = $item['student_count'];
+            }
+
+            foreach ($class_wise_data as $class_name => $categories) {
+                $row = [$class_name];
+                $class_total = 0;
+                foreach ($overall_category_counts as $overall_category) {
+                    $category_name = $overall_category['category_name'];
+                    $count = isset($categories[$category_name]) ? $categories[$category_name] : 0;
+                    $row[] = $count;
+                    $class_total += $count;
+                }
+                $row[] = $class_total;
+                fputcsv($output, $row);
+            }
+
+            // Footer (Overall Total)
+            $footer = [$this->lang->line('overall_total')];
+            $overall_grand_total = 0;
+            foreach ($overall_category_counts as $category) {
+                $footer[] = $category['total_student_count'];
+                $overall_grand_total += $category['total_student_count'];
+            }
+            $footer[] = $overall_grand_total;
+            fputcsv($output, $footer);
+
+            fclose($output);
+        } else {
+            // Handle invalid export type or redirect back
+            redirect('report/category_report');
+        }
     }
 }
