@@ -14,7 +14,7 @@ class Collect_incidental_fee extends Admin_Controller {
         $this->load->model('setting_model');
         $this->load->library('form_validation');
         $this->load->library('media_storage');
-        $this->lang->load('message', 'english');
+
     }
 
     public function index() {

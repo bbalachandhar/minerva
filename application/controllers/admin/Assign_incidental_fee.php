@@ -11,7 +11,7 @@ class Assign_incidental_fee extends Admin_Controller {
         $this->load->model('class_model');   // Assuming a class model exists
         $this->load->model('student_model'); // Assuming a student model exists
         $this->load->library('form_validation');
-        $this->lang->load('message', 'english');
+
     }
 
     public function index() {

@@ -8,7 +8,7 @@ class Incidental_fee_type extends Admin_Controller { // Assuming Admin_Controlle
         $this->load->model('incidental_fee_type_model');
         $this->load->library('form_validation');
         // Assuming you have a language file for incidental fees, or using a generic one
-        $this->lang->load('message', 'english');
+
     }
 
     public function index() {
