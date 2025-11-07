@@ -74,8 +74,6 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                     <th class="text-right">Hostel Fees (Balance)</th>
                                     <th class="text-right">Transport Fees (Demand)</th>
                                     <th class="text-right">Transport Fees (Balance)</th>
-                                    <th class="text-right">Govt 7.5 Subsidy</th>
-                                    <th class="text-right">Govt FG Subsidy</th>
 
                                     <th class="text-right"><?php echo $this->lang->line('total_fees'); ?></th>
                                     <th class="text-right"><?php echo $this->lang->line('paid_fees'); ?></th>
@@ -131,11 +129,17 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                             <td class="text-right"><?php echo amountFormat($student->cf_balance); ?></td>
                                             <?php 
                                             foreach ($discount_list as $discount) {
-                                                $discount_amount = 0;
-                                                // Since discounts are now aggregated in the controller, we need to adjust how they are displayed here.
-                                                // For now, we'll just show 0 as we don't have per-class discount aggregation in the controller yet.
-                                                // This will need further refinement if per-class discount totals are required.
-                                                echo "<td class='text-right'>" . amountFormat($discount_amount) . "</td>";
+                                                $discount_amount_student = 0;
+                                                if ($discount['name'] == 'Govt 7.5 Subsidy') {
+                                                    $discount_amount_student = $student->govt_7_5_subsidy;
+                                                } elseif ($discount['name'] == 'Govt FG Subsidy') {
+                                                    $discount_amount_student = $student->govt_fg_subsidy;
+                                                } else {
+                                                    // For other dynamic discounts, we need to get their individual amounts if available.
+                                                    // For now, we'll display 0.
+                                                    $discount_amount_student = 0; // Placeholder
+                                                }
+                                                echo "<td class='text-right'>" . amountFormat($discount_amount_student) . "</td>";
                                             }
                                             ?>
                                             <td class="text-right"><?php echo amountFormat($student->tuition_demand); ?></td>
@@ -146,8 +150,6 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                             <td class="text-right"><?php echo amountFormat($student->hostel_balance); ?></td>
                                             <td class="text-right"><?php echo amountFormat($student->transport_demand); ?></td>
                                             <td class="text-right"><?php echo amountFormat($student->transport_balance); ?></td>
-                                            <td class="text-right"><?php echo amountFormat($student->govt_7_5_subsidy); ?></td>
-                                            <td class="text-right"><?php echo amountFormat($student->govt_fg_subsidy); ?></td>
 
                                             <td class="text-right"><?php echo amountFormat($student->totalfee); ?></td>
                                             <td class="text-right"><?php echo amountFormat($student->deposit); ?></td>
@@ -172,8 +174,21 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                     <td class="text-right"><?php echo $currency_symbol . amountFormat($total_last_yr_cf); ?></td>
                                     <td class="text-right"><?php echo $currency_symbol . amountFormat($total_cf_paid); ?></td>
                                     <td class="text-right"><?php echo $currency_symbol . amountFormat($total_cf_balance); ?></td>
-                                    <?php foreach ($discount_totals as $total) { ?>
-                                        <td class="text-right"><?php echo $currency_symbol . amountFormat($total); ?></td>
+                                    <?php foreach ($discount_list as $discount) { // Loop through discount_list to get correct order and count
+                                        $total_for_discount = 0;
+                                        if ($discount['name'] == 'Govt 7.5 Subsidy') {
+                                            $total_for_discount = $total_govt_7_5_subsidy;
+                                        } elseif ($discount['name'] == 'Govt FG Subsidy') {
+                                            $total_for_discount = $total_govt_fg_subsidy;
+                                        } else {
+                                            // For other discounts, we need to get their accumulated totals.
+                                            // Currently, $discount_totals is an array_fill_keys with 0s.
+                                            // This needs to be properly populated in the controller.
+                                            // For now, we'll display 0 for other dynamic discounts.
+                                            $total_for_discount = 0; // Placeholder
+                                        }
+                                        ?>
+                                        <td class="text-right"><?php echo $currency_symbol . amountFormat($total_for_discount); ?></td>
                                     <?php } ?>
                                     <td class="text-right"><?php echo $currency_symbol . amountFormat($total_tuition_demand); ?></td>
                                     <td class="text-right"><?php echo $currency_symbol . amountFormat($total_tuition_balance); ?></td>
@@ -183,8 +198,6 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                     <td class="text-right"><?php echo $currency_symbol . amountFormat($total_hostel_balance); ?></td>
                                     <td class="text-right"><?php echo $currency_symbol . amountFormat($total_transport_demand); ?></td>
                                     <td class="text-right"><?php echo $currency_symbol . amountFormat($total_transport_balance); ?></td>
-                                    <td class="text-right"><?php echo $currency_symbol . amountFormat($total_govt_7_5_subsidy); ?></td>
-                                    <td class="text-right"><?php echo $currency_symbol . amountFormat($total_govt_fg_subsidy); ?></td>
                                     <td class="text-right"><?php echo $currency_symbol . amountFormat($total_fees); ?></td>
                                     <td class="text-right"><?php echo $currency_symbol . amountFormat($total_paid); ?></td>
                                     <td class="text-right"><?php echo $currency_symbol . amountFormat($total_advance_paid); ?></td>
