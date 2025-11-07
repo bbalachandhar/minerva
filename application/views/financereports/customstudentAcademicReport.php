@@ -81,6 +81,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                 <tr>
                                     <th><?php echo $this->lang->line('student_name'); ?></th>
                                     <th><?php echo $this->lang->line('class'); ?></th>
+                                    <th><?php echo $this->lang->line('category'); ?></th>
                                     <th><?php echo $this->lang->line('admission_no'); ?></th>
                                     <th class="text-right">CF-Demand</th>
                                     <th class="text-right">CF-Paid</th>
@@ -145,6 +146,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                         <tr>
                                             <td><?php echo $student->name; ?></td>
                                             <td><?php echo $student->class . " (" . $student->section . ")"; ?></td>
+                                            <td><?php echo $student->category; ?></td>
                                             <td><?php echo $student->admission_no; ?></td>
                                             <td class="text-right"><?php echo amountFormat($student->last_yr_cf); ?></td>
                                             <td class="text-right"><?php echo amountFormat($student->cf_paid); ?></td>
@@ -187,7 +189,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                     }
                                 } else {
                                     ?>
-                                    <tr><td colspan="<?php echo 9 + count($discount_list); ?>" class="text-center">No Record Found</td></tr>
+                                    <tr><td colspan="<?php echo 10 + count($discount_list); ?>" class="text-center">No Record Found</td></tr>
                                     <?php
                                 }
                                 ?>

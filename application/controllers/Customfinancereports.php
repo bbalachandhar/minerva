@@ -63,6 +63,7 @@ class Customfinancereports extends Admin_Controller
                     $obj->name          = $this->customlib->getFullName($eachstudent['firstname'], $eachstudent['middlename'], $eachstudent['lastname'], $this->sch_setting_detail->middlename, $this->sch_setting_detail->lastname);
                     $obj->class         = $eachstudent['class'];
                     $obj->section       = $eachstudent['section'];
+                    $obj->category      = $eachstudent['category'];
                     $obj->admission_no  = $eachstudent['admission_no'];
                     $obj->advance_balance = $eachstudent['advance_balance'] ?? 0;
                     $student_session_id = $eachstudent['student_session_id'];
@@ -167,6 +168,7 @@ class Customfinancereports extends Admin_Controller
                 $obj->name          = $this->customlib->getFullName($eachstudent['firstname'], $eachstudent['middlename'], $eachstudent['lastname'], $this->sch_setting_detail->middlename, $this->sch_setting_detail->lastname);
                 $obj->class         = $eachstudent['class'];
                 $obj->section       = $eachstudent['section'];
+                $obj->category      = $eachstudent['category'];
                 $obj->admission_no  = $eachstudent['admission_no'];
                 $obj->advance_balance = $eachstudent['advance_balance'] ?? 0;
                 $student_session_id = $eachstudent['student_session_id'];
