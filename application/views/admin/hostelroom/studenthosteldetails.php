@@ -89,7 +89,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                             <?php echo $this->customlib->getCSRF(); ?>
                             <div class="col-sm-4 col-md-4">
                                 <div class="form-group">
-                                    <label><?php echo $this->lang->line('class'); ?></label>
+                                    <label><?php echo $this->lang->line('class'); ?></label><small class="req"> *</small>
                                     <select autofocus="" id="class_id" name="class_id" class="form-control" >
                                         <option value=""><?php echo $this->lang->line('select'); ?></option>
                                         <?php
@@ -109,7 +109,7 @@ $count++;
                             </div>
                             <div class="col-sm-4 col-md-4">
                                 <div class="form-group">
-                                    <label><?php echo $this->lang->line('section'); ?></label>
+                                    <label><?php echo $this->lang->line('section'); ?></label><small class="req"> *</small>
                                     <select  id="section_id" name="section_id" class="form-control" >
                                         <option value=""><?php echo $this->lang->line('select'); ?></option>
                                     </select>
@@ -118,7 +118,7 @@ $count++;
                             </div>
                             <div class="col-sm-4 col-md-4">
                                 <div class="form-group">
-                                    <label><?php echo $this->lang->line('hostel_name'); ?></label><small class="req"> *</small>
+                                    <label><?php echo $this->lang->line('hostel_name'); ?></label>
 
                                     <select class="form-control" name="hostel_name">
                                         <option value=""><?php echo $this->lang->line("select") ?></option>

@@ -153,7 +153,8 @@ class Hostelroom extends Admin_Controller
         $section_id  = $this->input->post('section_id');
         $hostel_name = $this->input->post('hostel_name');
 
-        $this->form_validation->set_rules('hostel_name', $this->lang->line('hostel_name'), 'trim|required|xss_clean');
+        $this->form_validation->set_rules('class_id', $this->lang->line('class'), 'trim|xss_clean');
+        $this->form_validation->set_rules('section_id', $this->lang->line('section'), 'trim|xss_clean');
 
         if ($this->form_validation->run() == true) {
 
@@ -164,7 +165,8 @@ class Hostelroom extends Admin_Controller
         } else {
 
             $error               = array();
-            $error['hostel_name']   = form_error('hostel_name');
+            $error['class_id']   = form_error('class_id');
+            $error['section_id'] = form_error('section_id');
             $array               = array('status' => 0, 'error' => $error);
             echo json_encode($array);
             
@@ -200,7 +202,7 @@ class Hostelroom extends Admin_Controller
             foreach ($resultlist->data as $resultlist_key => $student) {               
 
                 $row       = array();
-                $row[]     = ($student->class) ? $student->class . " - " . $student->section : '';
+                $row[]     = $student->class . " - " . $student->section;
                 $row[]     = $student->admission_no;
                 $row[]     = $this->customlib->getFullName($student->firstname, $student->middlename, $student->lastname, $sch_setting->middlename, $sch_setting->lastname);
                 $row[]     = $student->mobileno;
