@@ -41,6 +41,7 @@
                                             <select autofocus="" id="fee_groups_id" name="fee_groups_id" class="form-control" >
                                                 <option value=""><?php echo $this->lang->line('select'); ?></option>
                                                 <?php
+                                                $count = 0; // Initialize count
                                                 foreach ($feegroupList as $feegroup) {
                                                     ?>
                                                     <option value="<?php echo $feegroup['id'] ?>"<?php
@@ -61,6 +62,7 @@
                                             <select  id="feetype_id" name="feetype_id" class="form-control" >
                                                 <option value=""><?php echo $this->lang->line('select'); ?></option>
                                                 <?php
+                                                $count = 0; // Initialize count
                                                 foreach ($feetypeList as $feetype) {
                                                     ?>
                                                     <option value="<?php echo $feetype['id'] ?>"<?php
@@ -190,119 +192,118 @@
                         <div class="mailbox-messages">
                             <div class="table-responsive">  
                                 <table class="table table-striped table-bordered table-hover example1">
-                                    <thead>
-                                        <tr>
-                                            <th width="15%"><?php echo $this->lang->line('fees_group'); ?></th>
-                                            <th width="85%">
-                                                <div class="row">
-                                                    <div class="col-md-2 col-lg-2 col-sm-2 col-xs-3">
-                                                        <?php echo $this->lang->line('fees_code'); ?>
-                                                    </div>
-                                                    <div class="col-md-1 col-lg-1 col-sm-1 col-xs-2">
-                                                         <?php echo $this->lang->line('amount'); ?> 
-                                                    </div>
-                                                    <div class="col-md-3 col-lg-3 col-sm-3 col-xs-2">
-                                                         <div class="px-md-2-5 px-lg-2-5"><?php echo $this->lang->line('fine_type'); ?></div>
-                                                    </div>
-                                                    <div class="col-md-2 col-lg-2 col-sm-2 col-xs-1">
-                                                        <?php echo $this->lang->line('due_date'); ?> 
-                                                    </div> 
-                                                    <div class="col-md-1 col-lg-1 col-sm-1 col-xs-1">
-														<?php echo $this->lang->line('per_day'); ?>
-                                                    </div>
-                                                    <div class="col-md-2 col-lg-2 col-sm-2 col-xs-2">
-                                                         <?php echo $this->lang->line('days')."-".$this->lang->line('fine_amount'); ?>
-                                                    </div>
-                                                    <div class="col-md-1 col-lg-1 col-sm-1 col-xs-1 white-space-nowrap">&nbsp;</div>
-
-                                                </div>
-                                                  </th>                                            
-                                            <th class=""><?php echo $this->lang->line('action'); ?></th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <?php
-                                        foreach ($feemasterList as $feegroup) {
-                                            ?>
-                                            <tr>
-                                                <td class="mailbox-name">
-                                                    <a href="#" data-toggle="popover" class="detail_popover"><?php echo $feegroup->group_name; ?></a>
-                                                </td>
-                                                <td class="mailbox-name">
-                                                    <ul class="liststyle1 min-w-sm-1000">
-                                                        <?php
-                                                        foreach ($feegroup->feetypes as $feetype_key => $feetype_value) {
-                                                            ?>
-                                                            <li> 
-                                                                <div class="row">                                                                    
-                                                                    <div class="col-md-2 col-lg-2 col-sm-2 col-xs-3"> 
-                                                                        <i class="fa fa-money"></i>
-                                                                        <?php echo $feetype_value->type."(".$feetype_value->code.")"; ?>
-                                                                    </div>                                                                   
-                                                                    <div class="col-md-1 col-lg-1 col-sm-1 col-xs-2"> 
-																		<?php echo $currency_symbol.amountFormat($feetype_value->amount); ?>
-                                                                    </div>
-                                                                    <div class="col-md-3 col-lg-3 col-sm-3 col-xs-2">
-                                                                        <div class="px-md-2-5 px-lg-2-5"><?php echo $this->lang->line($feetype_value->fine_type);?></div>
-                                                                    </div>
-                                                                    <div class="col-md-2 col-lg-2 col-sm-2 col-xs-1">
-                                                                        <?php  echo $this->customlib->dateformat($feetype_value->due_date); ?>
-                                                                    </div>
-                                                                    <div class="col-md-1 col-lg-1 col-sm-1 col-xs-1">
-                                                                        <?php if($feetype_value->fine_per_day==1){ echo $this->lang->line('yes'); }else{ echo $this->lang->line('no');} ?>
-                                                                    </div>
-                                                                    <!-- show data on table new code section -->
-                                                                    <div class="col-md-2 col-lg-2 col-sm-2 col-xs-2">
-                                                                    <?php 
-                                                                    if($feetype_value->fine_type=='cumulative'){  																	
-                                                                        foreach ($feetype_value->cumulative_fine_data as $fine_key=>$fine_value) {
-																			echo "Days: ".$fine_value->overdue_day." - Fine: ".$currency_symbol.''.$fine_value->fine_amount; echo "<br>"; 
-																		}  
-																	}else {  
-																		echo "Fine: ".$feetype_value->fine_amount ; 
-																	}  
-																	?>
-																	</div>
-
-																	<!-- show data on table new code section -->
-                                                               
-																	<div class="col-md-1 col-lg-1 col-sm-1 col-xs-1 white-space-nowrap">
-
-                                                                    <?php if ($this->rbac->hasPrivilege('fees_master', 'can_edit')) {   ?>
-																		<a href="<?php echo base_url(); ?>admin/feemaster/edit/<?php echo $feetype_value->id ?>"   data-toggle="tooltip" title="<?php echo $this->lang->line('edit'); ?>"><i class="fa fa-pencil"></i></a>&nbsp;
-                                                                    <?php }	if ($this->rbac->hasPrivilege('fees_master', 'can_delete')) {  ?>
-																		<a href="<?php echo base_url(); ?>admin/feemaster/delete/<?php echo $feetype_value->id ?>" data-toggle="tooltip" title="<?php echo $this->lang->line('delete'); ?>" onclick="return confirm('<?php echo $this->lang->line('delete_confirm') ?>');"><i class="fa fa-remove"></i></a>
-																	<?php } ?>
-
-																</div>                                                           
+                                                                                                    <thead>
+                                                                                                        <tr>
+                                                                                                            <th width="15%"><?php echo $this->lang->line('fees_group'); ?></th>
+                                                                                                            <th width="85%">
+                                                                                                                <div class="row">
+                                                                                                                    <div class="col-md-2 col-lg-2 col-sm-2 col-xs-3">
+                                                                                                                        <?php echo $this->lang->line('fees_code'); ?>
+                                                                                                                    </div>
+                                                                                                                    <div class="col-md-1 col-lg-1 col-sm-1 col-xs-2">
+                                                                                                                         <?php echo $this->lang->line('amount'); ?> 
+                                                                                                                    </div>
+                                                                                                                    <div class="col-md-3 col-lg-3 col-sm-3 col-xs-2">
+                                                                                                                         <div class="px-md-2-5 px-lg-2-5"><?php echo $this->lang->line('fine_type'); ?></div>
+                                                                                                                    </div>
+                                                                                                                    <div class="col-md-2 col-lg-2 col-sm-2 col-xs-1">
+                                                                                                                        <?php echo $this->lang->line('due_date'); ?> 
+                                                                                                                    </div> 
+                                                                                                                    <div class="col-md-1 col-lg-1 col-sm-1 col-xs-1">
+                                                                    													<?php echo $this->lang->line('per_day'); ?>
+                                                                                                                    </div>
+                                                                                                                    <div class="col-md-2 col-lg-2 col-sm-2 col-xs-2">
+                                                                                                                         <?php echo $this->lang->line('days')."-".$this->lang->line('fine_amount'); ?>
+                                                                                                                    </div>
+                                                                                                                    <div class="col-md-1 col-lg-1 col-sm-1 col-xs-1 white-space-nowrap">&nbsp;</div>
                                                                     
-                                                                </div>
-                                                             
-                                                            </li>
-                                                            <?php
-                                                        }
-                                                        ?>
-                                                    </ul>
-                                                </td>
-                                                <td class="mailbox-date pull-right">
-                                                    <?php if ($this->rbac->hasPrivilege('fees_group_assign', 'can_view')) { ?>
-                                                        <a data-placement="top" href="<?php echo base_url(); ?>admin/feemaster/assign/<?php echo $feegroup->id ?>"
-                                                           class="btn btn-default btn-xs" data-toggle="tooltip" title="<?php echo $this->lang->line('assign_view_student'); ?>">
-                                                            <i class="fa fa-tag"></i>
-                                                        </a>
-                                                    <?php } ?>
-                                                    <?php if ($this->rbac->hasPrivilege('fees_master', 'can_delete')) { ?>
-                                                        <a data-placement="top" href="<?php echo base_url(); ?>admin/feemaster/deletegrp/<?php echo $feegroup->id ?>" class="btn btn-default btn-xs"  data-toggle="tooltip" title="<?php echo $this->lang->line('delete'); ?>" onclick="return confirm('<?php echo $this->lang->line('delete_confirm') ?>');">
-                                                            <i class="fa fa-remove"></i>
-                                                        </a>
-                                                    <?php } ?>
-                                                </td>
-                                            </tr>
-                                            <?php
-                                        }
-                                        ?>
-                                    </tbody>
-                                </table><!-- /.table -->
+                                                                                                                </div>
+                                                                                                                  </th>                                            
+                                                                                                            <th class=""><?php echo $this->lang->line('action'); ?></th>
+                                                                                                        </tr>
+                                                                                                    </thead>
+                                                                                                    <tbody>
+                                                                                                        <?php
+                                                                                                        foreach ($feemasterList as $feegroup) {
+                                                                                                            ?>
+                                                                                                            <tr>
+                                                                                                                <td class="mailbox-name">
+                                                                                                                    <a href="#" data-toggle="popover" class="detail_popover"><?php echo $feegroup->group_name; ?></a>
+                                                                                                                </td>
+                                                                                                                <td class="mailbox-name">
+                                                                                                                    <ul class="liststyle1 min-w-sm-1000">
+                                                                                                                            <?php
+                                                                                                                            foreach ($feegroup->feetypes as $feetype_key => $feetype_value) {
+                                                                                                                                ?>
+                                                                                                                                <li> 
+                                                                                                                                    <div class="row">                                                                    
+                                                                                                                                        <div class="col-md-2 col-lg-2 col-sm-2 col-xs-3"> 
+                                                                                                                                            <i class="fa fa-money"></i>
+                                                                                                                                            <?php echo $feetype_value->type."(".$feetype_value->code.")"; ?>
+                                                                                                                                        </div>                                                                   
+                                                                                                                                        <div class="col-md-1 col-lg-1 col-sm-1 col-xs-2"> 
+                                                                    																		<?php echo $currency_symbol.amountFormat($feetype_value->amount); ?>
+                                                                                                                                        </div>
+                                                                                                                                        <div class="col-md-3 col-lg-3 col-sm-3 col-xs-2">
+                                                                                                                                            <div class="px-md-2-5 px-lg-2-5"><?php echo $this->lang->line($feetype_value->fine_type);?></div>
+                                                                                                                                        </div>
+                                                                                                                                        <div class="col-md-2 col-lg-2 col-sm-2 col-xs-1">
+                                                                                                                                            <?php  echo $this->customlib->dateformat($feetype_value->due_date); ?>
+                                                                                                                                        </div>
+                                                                                                                                        <div class="col-md-1 col-lg-1 col-sm-1 col-xs-1">
+                                                                                                                                            <?php if($feetype_value->fine_per_day==1){ echo $this->lang->line('yes'); }else{ echo $this->lang->line('no');} ?>
+                                                                                                                                        </div>
+                                                                                                                                        <!-- show data on table new code section -->
+                                                                                                                                        <div class="col-md-2 col-lg-2 col-sm-2 col-xs-2">
+                                                                                                                                        <?php 
+                                                                                                                                        if($feetype_value->fine_type=='cumulative'){  																	
+                                                                                                                                            foreach ($feetype_value->cumulative_fine_data as $fine_key=>$fine_value) {
+                                                                    																			echo "Days: ".$fine_value->overdue_day." - Fine: ".$currency_symbol.''.$fine_value->fine_amount; echo "<br>"; 
+                                                                    																		}  
+                                                                    																	}else {  
+                                                                    																		echo "Fine: ".$feetype_value->fine_amount ; 
+                                                                    																	}  
+                                                                    																	?>
+                                                                    																	</div>
+                                                                    
+                                                                    																	<!-- show data on table new code section -->
+                                                                                                                                   
+                                                                    																	<div class="col-md-1 col-lg-1 col-sm-1 col-xs-1 white-space-nowrap">
+                                                                    
+                                                                                                                                        <?php if ($this->rbac->hasPrivilege('fees_master', 'can_edit')) {   ?>
+                                                                    																		<a href="<?php echo base_url(); ?>admin/feemaster/edit/<?php echo $feetype_value->id ?>"   data-toggle="tooltip" title="<?php echo $this->lang->line('edit'); ?>"><i class="fa fa-pencil"></i></a>&nbsp;
+                                                                                                                                        <?php }	if ($this->rbac->hasPrivilege('fees_master', 'can_delete')) {  ?>
+                                                                    																		<a href="<?php echo base_url(); ?>admin/feemaster/delete/<?php echo $feetype_value->id ?>" data-toggle="tooltip" title="<?php echo $this->lang->line('delete'); ?>" onclick="return confirm('<?php echo $this->lang->line('delete_confirm') ?>');"><i class="fa fa-remove"></i></a>
+                                                                    																	<?php } ?>
+                                                                    
+                                                                    																</div>                                                           
+                                                                                                                                        
+                                                                                                                                    </div>
+                                                                                                                                 
+                                                                                                                                </li>
+                                                                                                                                <?php
+                                                                                                                            }
+                                                                                                                            ?>
+                                                                                                                        </ul>
+                                                                                                                    </td>
+                                                                                                                    <td class="mailbox-date pull-right">
+                                                                                                                        <?php if ($this->rbac->hasPrivilege('fees_group_assign', 'can_view')) { ?>
+                                                                                                                            <a data-placement="top" href="<?php echo base_url(); ?>admin/feemaster/assign/<?php echo $feegroup->id ?>"
+                                                                                                                               class="btn btn-default btn-xs" data-toggle="tooltip" title="<?php echo $this->lang->line('assign_view_student'); ?>">
+                                                                                                                                <i class="fa fa-tag"></i>
+                                                                                                                            </a>
+                                                                                                                        <?php } ?>
+                                                                                                                        <?php if ($this->rbac->hasPrivilege('fees_master', 'can_delete')) { ?>
+                                                                                                                            <a data-placement="top" href="<?php echo base_url(); ?>admin/feemaster/deletegrp/<?php echo $feegroup->id ?>" class="btn btn-default btn-xs"  data-toggle="tooltip" title="<?php echo $this->lang->line('delete'); ?>" onclick="return confirm('<?php echo $this->lang->line('delete_confirm') ?>');">
+                                                                                                                                <i class="fa fa-remove"></i>
+                                                                                                                            </a>
+                                                                                                                        <?php } ?>
+                                                                                                                    </td>
+                                                                                                                </tr>
+                                                                                                                <?php
+                                                                                                            }
+                                                                                                            ?>
+                                                                                                    </tbody>                                </table><!-- /.table -->
                             </div>  
                         </div><!-- /.mail-box-messages -->
                     </div><!-- /.box-body -->
@@ -504,11 +505,29 @@
                     extend: 'excelHtml5',
                     text: '<i class="fa fa-file-excel-o"></i>',
                     titleAttr: 'Excel',
-                   
                     title: $('.download_label').html(),
-                     exportOptions: {
-                    columns: ["thead th:not(.noExport)"]
-                  }
+                    action: function ( e, dt, button, config ) {
+                        var exportData = getExportData(dt);
+                        config.customizeData = function ( data ) {
+                            data.header = exportData.headers;
+                            data.body = exportData.body;
+                        };
+                        $.fn.dataTable.ext.buttons.excelHtml5.action.call( this, e, dt, button, config );
+                    },
+                    exportOptions: {
+                        // This will be overridden by customizeData
+                        columns: [], 
+                        format: {
+                            header: function ( data, columnIdx ) {
+                                // This will be overridden by customizeData
+                                return data;
+                            },
+                            body: function ( data, rowIdx, colIdx, node ) {
+                                // This will be overridden by customizeData
+                                return data;
+                            }
+                        }
+                    }
                 },
 
                 {
@@ -566,4 +585,63 @@
             ]
         });
     });
+</script>
+
+<script>
+    var feemasterData = <?php echo json_encode($feemasterList); ?>;
+    // console.log(feemasterData); // For debugging
+
+    function getExportData(dt) {
+        var allFeeTypes = {};
+        feemasterData.forEach(function(feegroup) {
+            feegroup.feetypes.forEach(function(feetype) {
+                allFeeTypes[feetype.type] = true; // Collect unique fee type names
+            });
+        });
+
+        var dynamicHeaders = ['Fee Group'];
+        var uniqueFeeTypeNames = Object.keys(allFeeTypes).sort();
+
+        uniqueFeeTypeNames.forEach(function(feeTypeName) {
+            dynamicHeaders.push(feeTypeName + ' Type');
+            dynamicHeaders.push(feeTypeName + ' Amount');
+        });
+
+        var exportBody = [];
+        feemasterData.forEach(function(feegroup) {
+            var rowData = {};
+            rowData['Fee Group'] = feegroup.group_name;
+
+            feegroup.feetypes.forEach(function(feetype) {
+                var prefix = feetype.type; // Use fee type name as prefix
+                rowData[prefix + ' Type'] = feetype.type + '(' + feetype.code + ')';
+                rowData[prefix + ' Amount'] = '₹' + amountFormat(feetype.amount);
+            });
+
+            // Ensure all dynamic headers are present in rowData, fill with empty string if not
+            var finalRow = [];
+            dynamicHeaders.forEach(function(header) {
+                finalRow.push(rowData[header] || '');
+            });
+            exportBody.push(finalRow);
+        });
+
+        return {
+            headers: dynamicHeaders,
+            body: exportBody
+        };
+    }
+
+    // Helper functions (assuming they exist in customlib or globally)
+    function amountFormat(amount) {
+        // Implement your amount formatting logic here, e.g., add commas
+        return parseFloat(amount).toFixed(2);
+    }
+
+    function dateFormat(dateString) {
+        // Implement your date formatting logic here
+        if (!dateString || dateString === '0000-00-00') return '';
+        var date = new Date(dateString);
+        return date.toLocaleDateString(); // Adjust format as needed
+    }
 </script>
