@@ -56,7 +56,18 @@ class Admin_Controller extends MY_Controller
     public function __construct()
     {
         parent::__construct();
-        $this->auth->is_logged_in();
+
+        if ($this->input->is_ajax_request()) {
+            if (!$this->auth->logged_in()) {
+                $this->output
+                    ->set_content_type('application/json')
+                    ->set_status_header(401)
+                    ->set_output(json_encode(array('status' => 'error', 'message' => 'Unauthorized access')));
+                exit;
+            }
+        } else {
+            $this->auth->is_logged_in();
+        }
         $this->sch_setting_detail = $this->setting_model->getSchoolDetail();
         // $this->check_license();
         $this->load->library('rbac');

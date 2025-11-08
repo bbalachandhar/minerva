@@ -84,7 +84,15 @@ foreach ($side_list_value->submenus as $submenu_key => $submenu_value) {
 
                             ?>
 
-                        <li class="<?php echo activate_submenu($submenu_value->activate_controller, explode(',', $submenu_value->activate_methods)); ?>"><a href="<?php echo site_url($submenu_value->url); ?>"><i class="fa fa-angle-double-right"></i><?php echo $this->lang->line($submenu_value->lang_key); ?></a></li>
+                        <li class="<?php echo activate_submenu($submenu_value->activate_controller, explode(',', $submenu_value->activate_methods)); ?>">
+                            <?php
+                            $menu_url = site_url($submenu_value->url);
+                            if ($submenu_value->lang_key == 'setting' && $submenu_value->url == 'admin/multibranch/branch') {
+                                $menu_url = site_url('admin/multibranch/branch/setting');
+                            }
+                            ?>
+                            <a href="<?php echo $menu_url; ?>"><i class="fa fa-angle-double-right"></i><?php echo $this->lang->line($submenu_value->lang_key); ?></a>
+                        </li>
 
                           <?php
 }
