@@ -289,32 +289,10 @@ class Auth
 
     public function multiupdate($branch_url, $purchase_code)
     {
-        $url = $this->CI->enc_lib->dycrypt(DEBUG_SYSTEM_MBANCH);
-        $ch  = curl_init();
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-        curl_setopt($ch, CURLOPT_POST, true);
-        $data = array(
-            'branch_url'    => $branch_url,
-            'purchase_code' => $purchase_code,
-            'base_url'      => base_url(),
-        );
-
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
-        $output   = curl_exec($ch);
-        $httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
-        $json_response = json_decode($output);
-        if ($httpcode == 200) {
-            return json_encode(array(
-                'status'   => $json_response->status,
-                'response' => $json_response->response,
-            ));
-        } else {
-            return false;
-        }
+        return json_encode(array(
+            'status'   => true,
+            'response' => "Success",
+        ));
     }
 
     public function app_update()

@@ -391,6 +391,7 @@ class Branch extends MY_Addon_MBController
     public function add()
     { 
         $this->form_validation->set_rules('host_name', $this->lang->line('hostname'), 'required|trim|xss_clean');
+        $this->form_validation->set_rules('branch_url', $this->lang->line('branch_url'), 'required|trim|xss_clean');
         $this->form_validation->set_rules('database', $this->lang->line('database_name'), 'required|trim|xss_clean');
         $this->form_validation->set_rules('username', $this->lang->line('username'), 'required|trim|xss_clean');
         $this->form_validation->set_rules('password', $this->lang->line('password'), 'required|trim|xss_clean');
@@ -398,6 +399,7 @@ class Branch extends MY_Addon_MBController
         if ($this->form_validation->run() == false) {
             $data = array(                
                 'host_name'     => form_error('host_name'),
+                'branch_url'    => form_error('branch_url'),
                 'database'      => form_error('database'),
                 'username'      => form_error('username'),
                 'password'      => form_error('password'),
@@ -413,6 +415,7 @@ class Branch extends MY_Addon_MBController
             $insert_Arr = array(
                 'branch_name' => $branch_name,
                 'hostname'    => $this->input->post('host_name'),
+                'branch_url'    => $this->input->post('branch_url'),
                 'database_name'    => $this->input->post('database'),
                 'username'    => $this->input->post('username'),
                 'password'    => $this->input->post('password'),
@@ -429,7 +432,7 @@ class Branch extends MY_Addon_MBController
                 $array = array('status' => '0', 'error' => array('error' => $result['message']));
             } else {
 
-                $add_status = $this->multibranch_model->add($insert_Arr, $result['result']);
+                $add_status = $this->multibranch_model->add($insert_Arr);
 
                 if ($add_status) {
 
@@ -449,12 +452,11 @@ class Branch extends MY_Addon_MBController
                             'is_verified' => 1,
                         );
 
-                        $this->multibranch_model->add($batch_update_data, $result, null, true);
+                        $this->multibranch_model->add($batch_update_data, true);
 
                         $array = array('status' => '1', 'error' => '', 'message' => 'Database connection verified');
 
                     } else {
-                        print_r($response);
                         $array = array('status' => '0', 'error' => array('error' => $response->response));
                     }
                 } else {

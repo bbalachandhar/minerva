@@ -55,7 +55,11 @@
                         <div class="col-md-6 form-group">               
                             <label><?php echo $this->lang->line('hostname'); ?></label><small class="req"> *</small>
                             <input type="text" class="form-control host_name" name="host_name">
-                        </div>                 
+                        </div>      
+                        <div class="col-md-6 form-group">               
+                            <label><?php echo $this->lang->line('branch_url'); ?></label><small class="req"> *</small>
+                            <input type="text" class="form-control branch_url" name="branch_url" autocomplete="off" placeholder="e.g. http://yourdomain.com/branchname">
+                        </div>           
                         <div class="col-md-6 form-group">                     
                             <label><?php echo $this->lang->line('database_name'); ?></label><small class="req"> *</small>
                             <input type="text" class="form-control database" name="database">
@@ -162,6 +166,7 @@ $(document).on("click", ".delete_branch", function(e) {
                 $('.id').val(data.result.id);
                 $('.branch_name').val(data.result.branch_name);
                 $('.host_name').val(data.result.hostname);
+                $('.branch_url').val(data.result.branch_url);
                 $('.database').val(data.result.database_name);
                 $('.username').val(data.result.username);
                 $('.password').val(data.result.password);
@@ -188,7 +193,7 @@ $(document).on("click", ".delete_branch", function(e) {
 
     var form = $(this);
     var url = form.attr('action');
-       var smt_btn = $(this).find("button[type=submit]:focus" );
+       var smt_btn = $(this).find("button[type=submit]" );
     $.ajax({
            type: "POST",
            url: url,
