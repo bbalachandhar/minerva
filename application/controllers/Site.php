@@ -420,6 +420,12 @@ class Site extends Public_Controller
     
         $school = $this->setting_model->get();
 
+        if (empty($school)) {
+            $data['error_message'] = 'School settings not found. Please configure the application.';
+            $this->load->view('userlogin', $data);
+            return;
+        }
+
         if($school[0]['student_panel_login']==0) {
             $student_login_status=0;
         }else{

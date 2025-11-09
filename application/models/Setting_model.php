@@ -41,6 +41,10 @@ class Setting_model extends MY_Model {
             $session_array = $this->session->has_userdata('session_array');
             $result = $query->result_array();
 
+            if (empty($result)) {
+                return array();
+            }
+
             $result[0]['current_session'] = array(
                 'session_id' => $result[0]['session_id'],
                 'session' => $result[0]['session']
