@@ -192,6 +192,42 @@ class Branch extends MY_Addon_MBController
         $data['alumni_student_list']    = $alumni_student_list;
         $data['user_log_list']          = $user_log_list;
 
+        $fees_chart_data = [
+            'labels' => [],
+            'datasets' => [
+                [
+                    'label' => 'Total Fees',
+                    'data' => [],
+                    'backgroundColor' => 'rgba(255, 99, 132, 0.2)',
+                    'borderColor' => 'rgba(255, 99, 132, 1)',
+                    'borderWidth' => 1
+                ],
+                [
+                    'label' => 'Paid Fees',
+                    'data' => [],
+                    'backgroundColor' => 'rgba(54, 162, 235, 0.2)',
+                    'borderColor' => 'rgba(54, 162, 235, 1)',
+                    'borderWidth' => 1
+                ],
+                [
+                    'label' => 'Balance Fees',
+                    'data' => [],
+                    'backgroundColor' => 'rgba(255, 206, 86, 0.2)',
+                    'borderColor' => 'rgba(255, 206, 86, 1)',
+                    'borderWidth' => 1
+                ]
+            ]
+        ];
+
+        foreach ($school_students as $school_key => $school_value) {
+            $fees_chart_data['labels'][] = $school_value['name'];
+            $fees_chart_data['datasets'][0]['data'][] = $school_value['total_fees'];
+            $fees_chart_data['datasets'][1]['data'][] = $school_value['total_paid'];
+            $fees_chart_data['datasets'][2]['data'][] = $school_value['total_balance'];
+        }
+
+        $data['fees_chart_data'] = json_encode($fees_chart_data);
+
         $this->load->view('layout/header', $data);
         $this->load->view('admin/multibranch/overview', $data);
         $this->load->view('layout/footer', $data);

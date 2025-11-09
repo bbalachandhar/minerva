@@ -29,6 +29,8 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                     <div id="print_div">
                     <div class="box-body">
                         <h3 class="displaynone"><?php echo $this->lang->line('overview'); ?> </h3>
+                        <div class="row">
+                        <div class="col-md-8">
                         <div class="box-table-card mb25">
                         <h4 class="pagetitleh-box"><?php echo $this->lang->line('fees_details'); ?></h4>
                         <div class="table-responsive mt5">
@@ -348,6 +350,16 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                         </table>
                     </div>
                 </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="box-table-card mb25">
+                        <h4 class="pagetitleh-box"><?php echo $this->lang->line('fees_details'); ?></h4>
+                        <div class="table-responsive mt5">
+                            <canvas id="fees_chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                </div>
                     </div><!-- /.box-body -->
                     </div><!-- /.box-body -->
                 </div>
@@ -401,4 +413,22 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
         return true;
     }    
      
+</script>
+<script src="<?php echo base_url(); ?>backend/js/Chart.min.js"></script>
+<script>
+    var fees_chart_data = <?php echo $fees_chart_data; ?>;
+    var ctx = document.getElementById('fees_chart').getContext('2d');
+    var feesChart = new Chart(ctx, {
+        type: 'bar',
+        data: fees_chart_data,
+        options: {
+            scales: {
+                yAxes: [{
+                    ticks: {
+                        beginAtZero: true
+                    }
+                }]
+            }
+        }
+    });
 </script>

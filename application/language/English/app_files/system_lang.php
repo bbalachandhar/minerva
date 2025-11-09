@@ -1029,7 +1029,14 @@ $lang['hostel_name'] = "Hostel Name";
 $lang['hostel_room_added_successfully'] = "Hostel Room Added Successfully";	
 $lang['hostel_room_list'] = "Hostel Room List";	
 $lang['hostel_room_updated_successfully'] = "Hostel Room Updated Successfully";	
-$lang['hostel_rooms'] = "Hostel Rooms";	
+$lang['hostel_rooms'] = "Hostel Rooms";
+$lang['bulk_assign_students'] = "Bulk Assign Students";
+$lang['student_csv_file'] = "Student CSV File";
+$lang['upload_and_assign'] = "Upload and Assign";
+$lang['students_assigned_successfully'] = "Students Assigned Successfully";
+$lang['download_template'] = "Download Template";
+
+	
 $lang['house'] = "House";	
 $lang['house_id'] = "House ID";	
 $lang['how_to_find_it'] = "How To Find It?";	

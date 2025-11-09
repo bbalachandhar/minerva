@@ -81,11 +81,47 @@ $count++;
                             <div class="box-footer">
                                 <button type="submit" class="btn btn-info pull-right"><?php echo $this->lang->line('save'); ?></button>
                             </div>
-                        </form>
-                    </div>
-                </div><!--/.col (right) -->
-                <!-- left column -->
-            <?php }?>
+                                            </form>
+                                        </div>
+                        
+                                        <div class="box box-primary">
+                                                                                    <div class="box-header with-border">
+                                                                                        <h3 class="box-title titlefix"><?php echo $this->lang->line('bulk_assign_students'); ?></h3>
+                                                                                                                                        <div class="box-tools pull-right">
+                                                                                                                                            <a href="<?php echo site_url('admin/hostel/download_template') ?>" class="btn btn-primary btn-xs"><i class="fa fa-download"></i> Template</a>
+                                                                                                                                        </div>                                                                                    </div><!-- /.box-header -->                                            <!-- form start -->
+                                            <form action="<?php echo site_url('admin/hostel/bulk_assign_students') ?>"  id="bulk_assign_form" name="bulk_assign_form" method="post" accept-charset="utf-8" enctype="multipart/form-data">
+                                                <div class="box-body">
+                                                    <?php echo $this->customlib->getCSRF(); ?>
+                                                    <div class="form-group">
+                                                        <label for="exampleInputEmail1"><?php echo $this->lang->line('hostel'); ?></label><small class="req"> *</small>
+                                                        <select  id="hostel_id" name="hostel_id" class="form-control" >
+                                                            <option value=""><?php echo $this->lang->line('select'); ?></option>
+                                                            <?php
+                        foreach ($listhostel as $hostel) {
+                            ?>
+                                                                <option value="<?php echo $hostel['id'] ?>"><?php echo $hostel['hostel_name'] ?></option>
+                                                                        <?php
+                        $count++;
+                        }
+                        ?>
+                                                        </select>
+                                                        <span class="text-danger"><?php echo form_error('hostel_id'); ?></span>
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label for="exampleInputEmail1"><?php echo $this->lang->line('student_csv_file'); ?></label><small class="req"> *</small>
+                                                        <input autofocus="" id="student_csv" name="student_csv" placeholder="" type="file" class="form-control dropify" />
+                                                        <span class="text-danger"><?php echo form_error('student_csv'); ?></span>
+                                                    </div>
+                                                </div><!-- /.box-body -->
+                                                <div class="box-footer">
+                                                    <button type="submit" class="btn btn-info pull-right"><?php echo $this->lang->line('upload_and_assign'); ?></button>
+                                                </div>
+                                            </form>
+                                        </div>
+                        
+                                    </div><!--/.col (right) -->
+                                    <!-- left column -->            <?php }?>
             <div class="col-md-<?php
 if ($this->rbac->hasPrivilege('hostel', 'can_add')) {
     echo "8";
