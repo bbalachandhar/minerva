@@ -633,7 +633,13 @@ foreach ($feesessiongroup_model as $feesessiongroup_key => $feesessiongroup_valu
     <div class="panel panel-default1">
       <div class="panel-heading pt5 pb5">
          <h6 class="panel-title panel-title1 overflow-hidden">
-            <input class="fee_group_chk vertical-middle" type="checkbox" name="fee_session_group_id[]" value="<?php echo $feesessiongroup_value->id; ?>" <?php echo set_checkbox('fee_session_group_id[]', $feesessiongroup_value->id, ($feesessiongroup_value->student_fees_master_id > 0) ? true : false); ?> class="fee_group_chk vertical-middle">
+            <?php
+$is_readonly = false;
+if ($feesessiongroup_value->group_name == 'Advance Payments') {
+    $is_readonly = true;
+}
+?>
+<input class="fee_group_chk vertical-middle" type="checkbox" name="fee_session_group_id[]" value="<?php echo $feesessiongroup_value->id; ?>" <?php echo set_checkbox('fee_session_group_id[]', $feesessiongroup_value->id, ($feesessiongroup_value->student_fees_master_id > 0) ? true : false); ?> <?php if ($is_readonly) { echo 'disabled="disabled"'; } ?>>
           <a class="display-inline collapsed box-plus-panel" data-toggle="collapse" href="#collapse_fees_<?php echo $feesessiongroup_value->id ?>">
               <span class="font14"><?php echo $feesessiongroup_value->group_name; ?></span>
           </a>

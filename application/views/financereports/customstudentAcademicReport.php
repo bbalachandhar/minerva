@@ -196,7 +196,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                             </tbody>
                              <tfoot>
                                 <tr class="box box-solid total-bg">
-                                    <td colspan="3" class="text-right"><?php echo $this->lang->line('grand_total'); ?></td>
+                                    <td colspan="4" class="text-right"><?php echo $this->lang->line('grand_total'); ?></td>
                                     <td class="text-right"><?php echo $currency_symbol . amountFormat($total_last_yr_cf); ?></td>
                                     <td class="text-right"><?php echo $currency_symbol . amountFormat($total_cf_paid); ?></td>
                                     <td class="text-right"><?php echo $currency_symbol . amountFormat($total_cf_balance); ?></td>
