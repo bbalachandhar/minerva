@@ -729,7 +729,7 @@ echo $currency_symbol . amountFormat(($total_balance_amount - $alot_fee_discount
 
 <div id="listCollectionModal" class="modal fade">
     <div class="modal-dialog">
-        <form action="<?php echo site_url('studentfee/addfeegrp'); ?>" method="POST" id="collect_fee_group">
+        <form action="<?php echo site_url('studentfee/addfeegroupbulk'); ?>" method="POST" id="collect_fee_group">
             <div class="modal-content">
 <!-- //================ -->
  <input  type="hidden" class="form-control" id="group_std_id" name="student_session_id" value="<?php echo $student["student_session_id"]; ?>" readonly="readonly"/>

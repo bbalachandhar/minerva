@@ -15,10 +15,11 @@ class Studentfee extends Admin_Controller
         $this->load->library('customlib');
         $this->load->library('media_storage');
         $this->load->model("module_model");
-                $this->load->model("studentAppliedDiscount_model");
-                $this->load->model("transportfee_model");
-                $this->load->model("feetype_model");
-
+                        $this->load->model("studentAppliedDiscount_model");
+                        $this->load->model("transportfee_model");
+                        $this->load->model("feetype_model");
+                        $this->load->model("feegrouptype_model");
+                        $this->load->model("studenttransportfee_model");
                 $this->search_type        = $this->config->item('search_type');
                 $this->sch_setting_detail = $this->setting_model->getSetting();
                 $this->current_session = $this->setting_model->getCurrentSession();
@@ -777,7 +778,8 @@ class Studentfee extends Admin_Controller
         $this->studenttransportfee_model->remove($id);
         $array = array('status' => 'success', 'result' => 'success');
         echo json_encode($array);
-    }
+    }
+
     public function delete($id)
     {
         $data['title'] = 'studentfee List';
@@ -1399,8 +1401,9 @@ class Studentfee extends Admin_Controller
         return $discounts_array;
     }
 
-    public function addfeegrp()
+    public function addfeegroupbulk()
     {
+        $this->load->helper('custom');
         $staff_record = $this->staff_model->get($this->customlib->getStaffID());
         $this->form_validation->set_error_delimiters('', '');
         $this->form_validation->set_rules('row_counter[]', $this->lang->line('fees_list'), 'required|trim|xss_clean');
@@ -1413,6 +1416,72 @@ class Studentfee extends Admin_Controller
             );
             $array = array('status' => 0, 'error' => $data);
             echo json_encode($array);
+        } else {
+            $row_counters = $this->input->post('row_counter');
+            $bulk_data = array();
+            $collected_by = $this->customlib->getAdminSessionUserName() . "(" . $staff_record['employee_id'] . ")";
+            $payment_mode = $this->input->post('payment_mode_fee');
+            $description = $this->input->post('fee_gupcollected_note');
+            $collected_date = date('Y-m-d', $this->customlib->datetostrtotime($this->input->post('collected_date')));
+
+            foreach ($row_counters as $row_count) {
+                $json_array = array(
+                    'amount'          => convertCurrencyFormatToBaseAmount($this->input->post('fee_amount_' . $row_count)),
+                    'amount_discount' => 0, // Assuming no discount in this form
+                    'amount_fine'     => 0, // Assuming no fine in this form
+                    'date'            => $collected_date,
+                    'description'     => $description,
+                    'collected_by'    => $collected_by,
+                    'payment_mode'    => $payment_mode,
+                    'received_by'     => $staff_record['id'],
+                );
+
+                $data = array(
+                    'fee_category'           => $this->input->post('fee_category_' . $row_count),
+                    'student_fees_master_id' => $this->input->post('student_fees_master_id_' . $row_count),
+                    'fee_groups_feetype_id'  => $this->input->post('fee_groups_feetype_id_' . $row_count),
+                    'amount_detail'          => $json_array,
+                    'student_transport_fee_id' => $this->input->post('trans_fee_id_' . $row_count),
+                    'collected_by' => $collected_by,
+                    'collection_date' => $collected_date,
+                );
+                $bulk_data[] = $data;
+            }
+
+            $inserted_ids = $this->studentfeemaster_model->add_bulk_fee_deposit($bulk_data);
+
+            if ($inserted_ids) {
+                // send mail
+                $student_session_id = $this->input->post('student_session_id');
+                $send_to            = $this->input->post('guardian_phone');
+                $email              = $this->input->post('guardian_email');
+                $parent_app_key     = $this->input->post('parent_app_key');
+
+                foreach($inserted_ids as $invoice_detail){
+                    if($invoice_detail['fee_category'] == 'transport'){
+                         $mailsms_array                 = $this->studenttransportfee_model->getTransportFeeMasterByStudentTransportID($invoice_detail['student_transport_fee_id']);
+                        $mailsms_array->fee_group_name = $this->lang->line("transport_fees");
+                        $mailsms_array->type           = $mailsms_array->month;
+                        $mailsms_array->code           = "";
+                    }else{
+                        $mailsms_array = $this->feegrouptype_model->getFeeGroupByIDAndStudentSessionID($invoice_detail['fee_groups_feetype_id'], $student_session_id);
+                    }
+
+                    $mailsms_array->invoice            = json_encode($invoice_detail);
+                    $mailsms_array->student_session_id = $student_session_id;
+                    $mailsms_array->contact_no         = $send_to;
+                    $mailsms_array->email              = $email;
+                    $mailsms_array->parent_app_key     = $parent_app_key;
+                    $mailsms_array->fee_category       = $invoice_detail['fee_category'];
+                    $this->mailsmsconf->mailsms('fee_submission', $mailsms_array);
+                }
+
+                $array = array('status' => 1, 'error' => '', 'message' => $this->lang->line('success_message'));
+                echo json_encode($array);
+            } else {
+                $array = array('status' => 0, 'error' => array('message' => $this->lang->line('error_processing_request')));
+                echo json_encode($array);
+            }
         }
     }
 
