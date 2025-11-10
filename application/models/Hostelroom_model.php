@@ -172,11 +172,11 @@ class Hostelroom_model extends MY_Model
             $condition .= " and hostel.hostel_name ='" . $hostel_name . "'";
         }
 
-        $sql = "select students.firstname,students.middlename,students.id as sid, students.admission_no,students.guardian_phone,classes.class,sections.section,students.lastname,students.mobileno,hostel_rooms.*,hostel.hostel_name,room_types.room_type from students join student_session on students.id = student_session.student_id join sections on sections.id = student_session.section_id join classes on classes.id = student_session.class_id join  hostel_rooms on hostel_rooms.id = students.hostel_room_id join  hostel on hostel.id = hostel_rooms.hostel_id join room_types on room_types.id = hostel_rooms.room_type_id where " . $condition;
+        $sql = "select students.firstname,students.middlename,students.id as sid, students.admission_no,students.guardian_phone,classes.class,sections.section,students.lastname,students.mobileno,hostel_rooms.*,hostel.hostel_name,room_types.room_type,categories.category from students join student_session on students.id = student_session.student_id join sections on sections.id = student_session.section_id join classes on classes.id = student_session.class_id join  hostel_rooms on hostel_rooms.id = students.hostel_room_id join  hostel on hostel.id = hostel_rooms.hostel_id join room_types on room_types.id = hostel_rooms.room_type_id left join categories on categories.id = students.category_id where " . $condition;
         $this->datatables->query($sql)
             ->query_where_enable(true)
-            ->orderable('class,admission_no,students.firstname,mobileno,guardian_phone,hostel_name,room_no,room_type,cost_per_bed')
-            ->searchable('class,admission_no,students.firstname,mobileno,guardian_phone,hostel_name,room_no,room_type,cost_per_bed')
+            ->orderable('class,admission_no,students.firstname,mobileno,guardian_phone,hostel_name,room_no,room_type,cost_per_bed,category')
+            ->searchable('class,admission_no,students.firstname,mobileno,guardian_phone,hostel_name,room_no,room_type,cost_per_bed,category')
             ->sort("students.firstname", "asc");
         return $this->datatables->generate('json');
     }

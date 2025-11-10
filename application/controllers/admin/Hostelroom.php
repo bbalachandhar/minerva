@@ -208,7 +208,7 @@ class Hostelroom extends Admin_Controller
                 $row[]     = $student->hostel_name;
                 $row[]     = $student->room_no;
                 $row[]     = $student->room_type;
-                $row[]     = amountFormat($student->cost_per_bed);
+                $row[]     = $student->category;
                 $dt_data[] = $row;
             }
 

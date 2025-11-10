@@ -159,7 +159,7 @@ $this->customlib->get_postmessage();
                                             <th><?php echo $this->lang->line('hostel_name'); ?></th>
                                             <th><?php echo $this->lang->line('room_number_name'); ?></th>
                                             <th><?php echo $this->lang->line('room_type'); ?></th>
-                                            <th class="text-right"><?php echo $this->lang->line('cost_per_bed') . " (" . $currency_symbol . ")"; ?></th>
+                                            <th><?php echo $this->lang->line('category'); ?></th>
                                         </tr>
                                 </thead>
                                 <tbody>
