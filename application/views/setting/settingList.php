@@ -134,6 +134,20 @@
                                     </div>
                                 </div><!--./row-->
                                 <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group row">
+                                            <label class="col-sm-4">Transport Fee Type<small class="req"> *</small></label>
+                                            <div class="col-sm-8">
+                                                <select id="transport_fee_type" name="transport_fee_type" class="form-control">
+                                                    <option value="monthly" <?php if ($result->transport_fee_type == 'monthly') echo 'selected'; ?>>Monthly</option>
+                                                    <option value="yearly" <?php if ($result->transport_fee_type == 'yearly') echo 'selected'; ?>>Yearly</option>
+                                                </select>
+                                                <span class="text-danger"><?php echo form_error('transport_fee_type'); ?></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div><!--./row-->
+                                <div class="row">
                                     <div class="col-md-12">
                                         <div class="settinghr"></div>
                                         <h4 class="session-head"><?php echo $this->lang->line('date_time'); ?></h4>

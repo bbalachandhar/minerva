@@ -497,19 +497,26 @@ $vehicles = $vehroute['vehicles'];
                                                 </div>
                                                 <div class="col-md-4">
                                                             <div class="form-group">
-                                                                <label for="exampleInputEmail1"><?php echo $this->lang->line('month'); ?></label>
-                                                                <?php 
-// print_r($transport_fees);
-                                                                 ?>
-                                                              <select id="specialistOpt" class="form-control" id="transport_feemaster_id" name="transport_feemaster_id[]" multiple="multiple" >
-                                                     <?php
-foreach ($transport_fees as $key => $value) {
-            ?>
-                    <option <?php echo set_select('transport_feemaster_id[]', $value['id'], (set_value($value['id'], $value['student_transport_fee_id']) > 0) ? true : false); ?> value="<?php echo $value['id']; ?>"> <?php echo $this->lang->line(strtolower($value['month'])); ?></option>
+                                                                <label for="exampleInputEmail1"><?php echo ($sch_setting->transport_fee_type == 'yearly') ? $this->lang->line('fee_period') : $this->lang->line('month'); ?></label>
+                                                                <?php if ($sch_setting->transport_fee_type == 'yearly') { ?>
+                                                                    <?php if (!empty($transport_fees)) {
+                                                                        $value = $transport_fees[0]; ?>
+                                                                        <p class="form-control-static"><?php echo $this->lang->line('yearly_fee'); ?></p>
+                                                                        <input type="hidden" name="transport_feemaster_id[]" value="<?php echo $value['id']; ?>" <?php echo set_select('transport_feemaster_id[]', $value['id'], (set_value($value['id'], $value['student_transport_fee_id']) > 0) ? true : false); ?>>
+                                                                    <?php } else { ?>
+                                                                        <p class="form-control-static"><?php echo $this->lang->line('no_yearly_fee_configured'); ?></p>
+                                                                    <?php } ?>
+                                                                <?php } else { ?>
+                                                                    <select id="specialistOpt" class="form-control" id="transport_feemaster_id" name="transport_feemaster_id[]" multiple="multiple" >
                                                                         <?php
-}
-        ?>
-                                                                </select>
+                                                                        foreach ($transport_fees as $key => $value) {
+                                                                            ?>
+                                                                            <option <?php echo set_select('transport_feemaster_id[]', $value['id'], (set_value($value['id'], $value['student_transport_fee_id']) > 0) ? true : false); ?> value="<?php echo $value['id']; ?>"> <?php echo $this->lang->line(strtolower($value['month'])); ?></option>
+                                                                            <?php
+                                                                        }
+                                                                        ?>
+                                                                    </select>
+                                                                <?php } ?>
                                                               <span class="text-danger"><?php echo form_error('transport_feemaster_id[]'); ?></span>
                                                             </div>
                                                         </div>

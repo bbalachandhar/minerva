@@ -39,7 +39,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
         </div>
         <div class="col-md-2">
             <div class="form-group">
-                <label for="exampleInputEmail1"><?php echo $this->lang->line('monthly_fees'); ?> <?php echo "(" . $currency_symbol . ")"; ?> </label> <small class="req"> *</small>
+                <label for="exampleInputEmail1"><?php echo $this->lang->line('fees'); ?> <?php echo "(" . $currency_symbol . ")"; ?> </label> <small class="req"> *</small>
                 <input value="<?php echo convertBaseAmountCurrencyFormat($result['fees']) ?>" class="form-control full-width" name="monthly_fees[]" />
             </div>
         </div>

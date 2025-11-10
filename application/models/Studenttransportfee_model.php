@@ -90,13 +90,23 @@ class Studenttransportfee_model extends MY_Model
 
     public function getTransportFeeByStudentSession($student_session_id, $route_pickup_point_id)
     {
+        $sch_setting = $this->setting_model->getSetting();
 
         if ($student_session_id != null && $route_pickup_point_id != null) {
+            $sql = "SELECT transport_feemaster.*,student_transport_fees.id as student_transport_fee_id FROM `transport_feemaster` LEFT JOIN student_transport_fees on transport_feemaster.id = student_transport_fees.transport_feemaster_id and student_transport_fees.route_pickup_point_id=" . $route_pickup_point_id . " and student_transport_fees.student_session_id=" . $student_session_id . " WHERE transport_feemaster.session_id=" . $this->current_session;
 
-            $sql = "SELECT transport_feemaster.*,student_transport_fees.id as student_transport_fee_id FROM `transport_feemaster` LEFT JOIN student_transport_fees on transport_feemaster.id = student_transport_fees.transport_feemaster_id and student_transport_fees.route_pickup_point_id=" . $route_pickup_point_id . " and student_transport_fees.student_session_id=" . $student_session_id . " WHERE transport_feemaster.session_id=" . $this->current_session . " ORDER by transport_feemaster.id";
+            if ($sch_setting->transport_fee_type == 'yearly') {
+                $sql .= " and transport_feemaster.month='yearly'";
+            }
+            $sql .= " ORDER by transport_feemaster.id";
 
         } elseif ($student_session_id != null && $route_pickup_point_id == null) {
-            $sql = "SELECT transport_feemaster.*,IFNULL(student_transport_fees.id,0) as student_transport_fee_id FROM `transport_feemaster` LEFT JOIN student_transport_fees on transport_feemaster.id = student_transport_fees.transport_feemaster_id and student_transport_fees.student_session_id=" . $student_session_id . " WHERE transport_feemaster.session_id=" . $this->current_session . " ORDER by transport_feemaster.id";
+            $sql = "SELECT transport_feemaster.*,IFNULL(student_transport_fees.id,0) as student_transport_fee_id FROM `transport_feemaster` LEFT JOIN student_transport_fees on transport_feemaster.id = student_transport_fees.transport_feemaster_id and student_transport_fees.student_session_id=" . $student_session_id . " WHERE transport_feemaster.session_id=" . $this->current_session;
+
+            if ($sch_setting->transport_fee_type == 'yearly') {
+                $sql .= " and transport_feemaster.month='yearly'";
+            }
+            $sql .= " ORDER by transport_feemaster.id";
         }
 
         $query = $this->db->query($sql);
@@ -106,13 +116,25 @@ class Studenttransportfee_model extends MY_Model
 
      public function getTransportFeeByMonthStudentSession($student_session_id, $route_pickup_point_id,$month)
     {
+        $sch_setting = $this->setting_model->getSetting();
 
         if ($student_session_id != null && $route_pickup_point_id != null) {
+            $sql = "SELECT transport_feemaster.*,student_transport_fees.id as student_transport_fee_id FROM `transport_feemaster` LEFT JOIN student_transport_fees on transport_feemaster.id = student_transport_fees.transport_feemaster_id and student_transport_fees.route_pickup_point_id=" . $route_pickup_point_id . " and student_transport_fees.student_session_id=" . $student_session_id;
 
-            $sql = "SELECT transport_feemaster.*,student_transport_fees.id as student_transport_fee_id FROM `transport_feemaster` LEFT JOIN student_transport_fees on transport_feemaster.id = student_transport_fees.transport_feemaster_id and student_transport_fees.route_pickup_point_id=" . $route_pickup_point_id . " and student_transport_fees.student_session_id=" . $student_session_id . " WHERE transport_feemaster.session_id=" . $this->current_session . " and transport_feemaster.month='" . $month . "' ORDER by transport_feemaster.id";
+            if ($sch_setting->transport_fee_type == 'yearly') {
+                $sql .= " WHERE transport_feemaster.session_id=" . $this->current_session . " and transport_feemaster.month='yearly' ORDER by transport_feemaster.id";
+            } else {
+                $sql .= " WHERE transport_feemaster.session_id=" . $this->current_session . " and transport_feemaster.month='" . $month . "' ORDER by transport_feemaster.id";
+            }
 
         } elseif ($student_session_id != null && $route_pickup_point_id == null) {
-            $sql = "SELECT transport_feemaster.*,IFNULL(student_transport_fees.id,0) as student_transport_fee_id FROM `transport_feemaster` LEFT JOIN student_transport_fees on transport_feemaster.id = student_transport_fees.transport_feemaster_id and student_transport_fees.student_session_id=" . $student_session_id . " WHERE transport_feemaster.session_id=" . $this->current_session . " and transport_feemaster.month='". $month . "' ORDER by transport_feemaster.id";
+            $sql = "SELECT transport_feemaster.*,IFNULL(student_transport_fees.id,0) as student_transport_fee_id FROM `transport_feemaster` LEFT JOIN student_transport_fees on transport_feemaster.id = student_transport_fees.transport_feemaster_id and student_transport_fees.student_session_id=" . $student_session_id;
+
+            if ($sch_setting->transport_fee_type == 'yearly') {
+                $sql .= " WHERE transport_feemaster.session_id=" . $this->current_session . " and transport_feemaster.month='yearly' ORDER by transport_feemaster.id";
+            } else {
+                $sql .= " WHERE transport_feemaster.session_id=" . $this->current_session . " and transport_feemaster.month='". $month . "' ORDER by transport_feemaster.id";
+            }
         }
 
         $query = $this->db->query($sql);

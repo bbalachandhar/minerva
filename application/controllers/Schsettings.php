@@ -263,6 +263,7 @@ class Schsettings extends Admin_Controller
         $this->form_validation->set_rules('sch_date_format', $this->lang->line('date_format'), 'trim|required|xss_clean');
         $this->form_validation->set_rules('sch_start_week', $this->lang->line('start_day_of_week'), 'trim|required|xss_clean');
         $this->form_validation->set_rules('institution_type', 'Institution Type', 'trim|required|xss_clean');
+        $this->form_validation->set_rules('transport_fee_type', 'Transport Fee Type', 'trim|required|xss_clean');
 
 
         if ($this->form_validation->run() == false) {
@@ -287,6 +288,7 @@ class Schsettings extends Admin_Controller
             $data = array(
                 'id'              => $this->input->post('sch_id'),
                 'institution_type' => $this->input->post('institution_type'),
+                'transport_fee_type' => $this->input->post('transport_fee_type'),
                 'session_id'      => $this->input->post('sch_session_id'),
                 'name'            => $this->input->post('sch_name'),
                 'phone'           => $this->input->post('sch_phone'),

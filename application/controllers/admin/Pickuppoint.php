@@ -213,7 +213,7 @@ class Pickuppoint extends Admin_Controller
             foreach ($_POST['monthly_fees'] as $monthly_feeskey => $monthly_feesvalue) {
                 if ($monthly_feesvalue == '') {
                     $validate            = 0;
-                    $msg['monthly_fees'] = "<p>" . $this->lang->line('the_monthly_fees_field_is_required') . "</p>";
+                    $msg['monthly_fees'] = "<p>" . $this->lang->line('the_fees_field_is_required') . "</p>";
                     break;
                 }else{
                    
@@ -229,7 +229,7 @@ class Pickuppoint extends Admin_Controller
             }
         } else {
             $validate            = 0;
-            $msg['monthly_fees'] = "<p>" . $this->lang->line('the_monthly_fees_field_is_required') . "</p>";
+            $msg['monthly_fees'] = "<p>" . $this->lang->line('the_fees_field_is_required') . "</p>";
         }
 
         if (!empty($_POST['time'])) {
@@ -347,8 +347,16 @@ class Pickuppoint extends Admin_Controller
         $route_pickup_point            = $this->routepickuppoint_model->get($route_pickup_point_id);
         $data['route_pickup_point']    = $route_pickup_point;
         foreach($month_list as $key=>$value){
-			$data['fees'][] = $this->studenttransportfee_model->getTransportFeeByMonthStudentSession($student_session_id, $route_pickup_point_id,$key);   
-        }        
+            if ($data['sch_setting']->transport_fee_type == 'yearly') {
+                $yearly_fee = $this->studenttransportfee_model->getTransportFeeByMonthStudentSession($student_session_id, $route_pickup_point_id, 'yearly');
+                if (!empty($yearly_fee)) {
+                    $data['fees'][] = $yearly_fee;
+                }
+                break; // Exit loop after processing yearly fee
+            } else {
+                $data['fees'][] = $this->studenttransportfee_model->getTransportFeeByMonthStudentSession($student_session_id, $route_pickup_point_id, $key);
+            }
+        }
 
         $page  = $this->load->view('admin/pickuppoint/student_transport_months', $data, true);
         $array = array('status' => '1', 'error' => '', 'page' => $page);

@@ -14,132 +14,205 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                     </div>
                     <form action="" id="fee_form" method="POST" class="px-5">
                         <div class="box-body feemaster">
-                            <?php 
-                            if(!empty($month_list)){
-                                $count =1; 
-                            ?>
-
-                            <?php if($this->session->flashdata('msg') !=''){ ?>
-                            <div class="alert alert-success"><?php echo $this->session->flashdata('msg'); $this->session->unset_userdata('msg'); ?></div>
-                            <?php } ?>
-  
-                            <div class="row">
-                                <div class="col-md-12">
-                                    <div class="checkbox mb0 mt0">
-                                    <label for="copy_other">
-                                        <input class="copy_other" id="copy_other" value="1" type="checkbox" > <?php echo $this->lang->line('copy_first_fees_detail_for_all_months'); ?>
-                                    </label></div>
-                                </div>
-                            </div>
-                            <?php
-                            foreach ($month_list as $month_key => $month_value) {
-
-                                $chk=false;
-                                $inserted_array=array(
-                                        'id'=>'0',
-                                        'month'=>'',
-                                        'fine_type'=>'',
-                                        'due_date'=>'',
-                                        'fine_percentage'=>'',
-                                        'monthly_fees'=>0,
-                                        'fine_amount'=>'',
-                                );
-                                $record=multiKeyExists($transportfees, 'month' ,$month_key);
-
-
-                                if($record > -1){
-                                $chk=true;
-                                $inserted_array=$transportfees[$record];
-                              
-                                  if(isset($_POST['fine_type_'.$count])){ 
-                                        $inserted_array['fine_type'] =$_POST['fine_type_'.$count];
-                                    } 
-                               
-                                ?>
-                                <input type="hidden" name="old_ids[]" value="<?php echo $inserted_array['id']; ?>">
-                                <?php
-                                }
-                            ?>
-
-                            <div class="row block_row">       
-                                <hr class="hrexam">
-                                <div class="col-sm-2 col-lg-2 col-md-2">         
-                                    <h4 class="transport_fee_line"><?php echo $month_value; ?></h4>
-                                </div>
-                                <div class="col-sm-10 col-lg-10 col-md-10">
-                                    <input type="hidden" name="rows[]" value="<?php echo $count; ?>">
-                    
-                                    <input type="hidden" name="prev_id_<?php echo $count; ?>" value="<?php echo $inserted_array['id']; ?>">
-                                    <input type="hidden" name="month_<?php echo $count;?>" value="<?php echo $month_key; ?>">
-                                    <div class="form-group row">               
-
-                                        <div class="col-sm-12 col-lg-2 col-md-2">
-                                            <div class="form-group">
-                                            <label for="inputFirstname"><?php echo $this->lang->line('due_date'); ?></label>
-                                            <input type="text" name="due_date_<?php echo $count;?>" class="form-control date_to" id="due_date_<?php echo $count;?>" autocomplete="off" value="<?php echo set_value('due_date_'.$count,$this->customlib->dateformat($inserted_array['due_date'])) ?>">
-                                            <span class="text text-danger"><?php echo form_error('due_date_'.$count); ?></span>
-                                        </div>
-                                        </div>
-                   
- 
-                                        <div class="col-sm-12 col-lg-9 col-md-10 col-lg-offset-1">
-                                            <div class="row">
-                                                <div class="col-sm-12 col-lg-12 col-md-12">
-                                                    <label for="input-type"><?php echo $this->lang->line('fine_type'); ?></label>
-                                                </div>    
-                                                <div id="input-type">
-                                                    <div class="col-sm-2 col-lg-2 col-md-2">
+                            <?php if ($this->sch_setting_detail->transport_fee_type == 'yearly') { ?>
+                                <div class="row">
+                                    <div class="col-md-12">
+                                        <div class="row block_row">       
+                                            <hr class="hrexam">
+                                            <div class="col-sm-2 col-lg-2 col-md-2">         
+                                                <h4 class="transport_fee_line">Yearly</h4>
+                                            </div>
+                                            <div class="col-sm-10 col-lg-10 col-md-10">
+                                                <input type="hidden" name="rows[]" value="1">
+                                                <input type="hidden" name="prev_id_1" value="<?php echo isset($transportfees[0][0]) ? $transportfees[0][0]->id : 0; ?>">
+                                                <input type="hidden" name="month_1" value="yearly">
+                                                <div class="form-group row">               
+                                                    <div class="col-sm-12 col-lg-2 col-md-2">
                                                         <div class="form-group">
-                                                        <label class="radio-inline">
-                                                        <input name="fine_type_<?php echo $count;?>" class="finetype" id="input-type-tutor" value="" type="radio" <?php echo ($inserted_array['fine_type']== "") ? "checked": "" ?>><?php echo $this->lang->line('none'); ?> </label></div>
+                                                            <label for="inputFirstname"><?php echo $this->lang->line('due_date'); ?></label>
+                                                            <input type="text" name="due_date_1" class="form-control date_to" id="due_date_1" autocomplete="off" value="<?php echo isset($transportfees[0][0]) ? set_value('due_date_1',$this->customlib->dateformat($transportfees[0][0]->due_date)) : '' ?>">
+                                                            <span class="text text-danger"><?php echo form_error('due_date_1'); ?></span>
+                                                        </div>
                                                     </div>
-                                                    <div class="col-sm-12 col-lg-5 col-md-5">
+                                                    <div class="col-sm-12 col-lg-9 col-md-10 col-lg-offset-1">
                                                         <div class="row">
-                                                            <div class="col-sm-4 col-lg-6 col-md-6 col-xs-5 text-end">
-                                                                <div class="form-group">
-                                                                <label class="radio-inline pt4">
-                                                                <input name="fine_type_<?php echo $count;?>" class="finetype" id="input-type-student" value="percentage" type="radio" <?php echo ($inserted_array['fine_type']== "percentage") ? "checked": "" ?>><?php echo $this->lang->line('percentage'); ?> (%)</label>
+                                                            <div class="col-sm-12 col-lg-12 col-md-12">
+                                                                <label for="input-type"><?php echo $this->lang->line('fine_type'); ?></label>
+                                                            </div>    
+                                                            <div id="input-type">
+                                                                <div class="col-sm-2 col-lg-2 col-md-2">
+                                                                    <div class="form-group">
+                                                                        <label class="radio-inline">
+                                                                            <input name="fine_type_1" class="finetype" id="input-type-tutor" value="" type="radio" <?php echo (isset($transportfees[0][0]) && $transportfees[0][0]->fine_type == "") ? "checked": "" ?>><?php echo $this->lang->line('none'); ?>
+                                                                        </label>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="col-sm-12 col-lg-5 col-md-5">
+                                                                    <div class="row">
+                                                                        <div class="col-sm-4 col-lg-6 col-md-6 col-xs-5 text-end">
+                                                                            <div class="form-group">
+                                                                                <label class="radio-inline pt4">
+                                                                                    <input name="fine_type_1" class="finetype" id="input-type-student" value="percentage" type="radio" <?php echo (isset($transportfees[0][0]) && $transportfees[0][0]->fine_type == "percentage") ? "checked": "" ?>><?php echo $this->lang->line('percentage'); ?> (%)
+                                                                                </label>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div class="col-sm-8 col-lg-6 col-md-6 col-xs-7"> 
+                                                                            <input id="percentage" name="percentage_1" type="text" class="form-control percentage" value="<?php echo isset($transportfees[0][0]) ? set_value("percentage_1",$transportfees[0][0]->fine_percentage) : '' ?>" <?php echo (isset($transportfees[0][0]) && $transportfees[0][0]->fine_type == "percentage") ? "" : "readonly" ?> autocomplete="off"> 
+                                                                            <span class="text text-danger"><?php echo form_error('percentage_1'); ?></span>
+                                                                        </div> 
+                                                                    </div>    
+                                                                </div>
+                                                                <div class="col-sm-12 col-lg-5 col-md-5">
+                                                                    <div class="row">
+                                                                        <div class="col-sm-4 col-lg-6 col-md-6 col-xs-5 text-end">
+                                                                            <div class="form-group">
+                                                                                <label class="radio-inline pt4">
+                                                                                    <input name="fine_type_1" class="finetype" id="input-type-tutor" value="fix" type="radio"  <?php echo (isset($transportfees[0][0]) && $transportfees[0][0]->fine_type == "fix") ? "checked": "" ?>>
+                                                                                    <?php echo $this->lang->line('fix_amount'); ?> (<?php echo $currency_symbol; ?> )
+                                                                                </label>
+                                                                            </div>    
+                                                                        </div>
+                                                                        <div class="col-sm-8 col-lg-6 col-md-6 col-xs-7">
+                                                                            <input type="text" class="form-control fine_amount" name="fine_amount_1" id="inputLastname" autocomplete="off" <?php echo (isset($transportfees[0][0]) && $transportfees[0][0]->fine_type == "fix") ? "" : "readonly" ?> value="<?php if(isset($transportfees[0][0]) && $transportfees[0][0]->fine_amount){ echo set_value("fine_amount_1", convertBaseAmountCurrencyFormat($transportfees[0][0]->fine_amount)); } ?>">
+                                                                            <span class="text text-danger"><?php echo form_error('fine_amount_1'); ?></span>
+                                                                        </div>
+                                                                    </div> 
+                                                                </div>
                                                             </div>
-                                                           </div>
-                                                        <div class="col-sm-8 col-lg-6 col-md-6 col-xs-7"> 
-                                                           
-                                                         <input id="percentage" name="percentage_<?php echo $count;?>" name="percentage_<?php echo $count;?>" type="text" class="form-control percentage" value="<?php echo set_value("percentage_".$count,$inserted_array['fine_percentage']) ?>" <?php echo ($inserted_array['fine_type'] == "percentage") ? "" : "readonly" ?> autocomplete="off"> 
-                                                         
-                                                         <span class="text text-danger"><?php echo form_error('percentage_'.$count); ?></span>
-                                                         
                                                         </div> 
-                                                     </div>    
-                                                    </div>
-                                                    <div class="col-sm-12 col-lg-5 col-md-5">
-                                                        <div class="row">
-                                                            <div class="col-sm-4 col-lg-6 col-md-6 col-xs-5 text-end">
-                                                                <div class="form-group">
-                                                                    <label class="radio-inline pt4">
-                                                                    <input name="fine_type_<?php echo $count;?>" class="finetype" id="input-type-tutor" value="fix" type="radio"  <?php echo ($inserted_array['fine_type']== "fix") ? "checked": "" ?>>
-                                                                    <?php echo $this->lang->line('fix_amount'); ?> (<?php echo $currency_symbol; ?> )</label>
-                                                                </div>    
-                                                            </div>
-                                                       <div class="col-sm-8 col-lg-6 col-md-6 col-xs-7">
-                                                          <input type="text" class="form-control fine_amount" name="fine_amount_<?php echo $count;?>" id="inputLastname" autocomplete="off" <?php echo ($inserted_array['fine_type']== "fix") ? "" : "readonly" ?> value="<?php if($inserted_array['fine_amount']){ echo set_value("fine_amount_".$count, convertBaseAmountCurrencyFormat($inserted_array['fine_amount'])); } ?>">
-                                                          
-                                                          <span class="text text-danger"><?php echo form_error('fine_amount_'.$count); ?></span>
-                                                          
-                                                      </div>
-                                                     </div> 
-                                                    </div>
+                                                    </div><!--  -->                 
                                                 </div>
-                                    
-                                        </div> 
-                                        </div><!--  -->                 
+                                            </div>         
+                                        </div>
                                     </div>
-                                              
-                                </div>         
-                            </div>
-                            <?php 
-                            $count+=1;
-                            }
-                            }
+                                </div>
+                            <?php } else { ?>
+                                <?php 
+                                if(!empty($month_list)){
+                                    $count =1; 
+                                ?>
 
+                                <?php if($this->session->flashdata('msg') !=''){ ?>
+                                <div class="alert alert-success"><?php echo $this->session->flashdata('msg'); $this->session->unset_userdata('msg'); ?></div>
+                                <?php } ?>
+      
+                                <div class="row">
+                                    <div class="col-md-12">
+                                        <div class="checkbox mb0 mt0">
+                                        <label for="copy_other">
+                                            <input class="copy_other" id="copy_other" value="1" type="checkbox" > <?php echo $this->lang->line('copy_first_fees_detail_for_all_months'); ?>
+                                        </label></div>
+                                    </div>
+                                </div>
+                                <?php
+                                foreach ($month_list as $month_key => $month_value) {
+
+                                    $chk=false;
+                                    $inserted_array=array(
+                                            'id'=>'0',
+                                            'month'=>'',
+                                            'fine_type'=>'',
+                                            'due_date'=>'',
+                                            'fine_percentage'=>'',
+                                            'monthly_fees'=>0,
+                                            'fine_amount'=>'',
+                                    );
+                                    $record=multiKeyExists($transportfees, 'month' ,$month_key);
+
+
+                                    if($record > -1){
+                                    $chk=true;
+                                    $inserted_array=$transportfees[$record];
+                                  
+                                      if(isset($_POST['fine_type_'.$count])){ 
+                                            $inserted_array['fine_type'] =$_POST['fine_type_'.$count];
+                                        } 
+                                   
+                                    ?>
+                                    <input type="hidden" name="old_ids[]" value="<?php echo $inserted_array['id']; ?>">
+                                    <?php
+                                    }
+                                ?>
+
+                                <div class="row block_row">       
+                                    <hr class="hrexam">
+                                    <div class="col-sm-2 col-lg-2 col-md-2">         
+                                        <h4 class="transport_fee_line"><?php echo $month_value; ?></h4>
+                                    </div>
+                                    <div class="col-sm-10 col-lg-10 col-md-10">
+                                        <input type="hidden" name="rows[]" value="<?php echo $count; ?>">
+                        
+                                        <input type="hidden" name="prev_id_<?php echo $count; ?>" value="<?php echo $inserted_array['id']; ?>">
+                                        <input type="hidden" name="month_<?php echo $count;?>" value="<?php echo $month_key; ?>">
+                                        <div class="form-group row">               
+
+                                            <div class="col-sm-12 col-lg-2 col-md-2">
+                                                <div class="form-group">
+                                                <label for="inputFirstname"><?php echo $this->lang->line('due_date'); ?></label>
+                                                <input type="text" name="due_date_<?php echo $count;?>" class="form-control date_to" id="due_date_<?php echo $count;?>" autocomplete="off" value="<?php echo set_value('due_date_'.$count,$this->customlib->dateformat($inserted_array['due_date'])) ?>">
+                                                <span class="text text-danger"><?php echo form_error('due_date_'.$count); ?></span>
+                                            </div>
+                                            </div>
+                       
+     
+                                            <div class="col-sm-12 col-lg-9 col-md-10 col-lg-offset-1">
+                                                <div class="row">
+                                                    <div class="col-sm-12 col-lg-12 col-md-12">
+                                                        <label for="input-type"><?php echo $this->lang->line('fine_type'); ?></label>
+                                                    </div>    
+                                                    <div id="input-type">
+                                                        <div class="col-sm-2 col-lg-2 col-md-2">
+                                                            <div class="form-group">
+                                                            <label class="radio-inline">
+                                                            <input name="fine_type_<?php echo $count;?>" class="finetype" id="input-type-tutor" value="" type="radio" <?php echo ($inserted_array['fine_type']== "") ? "checked": "" ?>><?php echo $this->lang->line('none'); ?> </label></div>
+                                                        </div>
+                                                        <div class="col-sm-12 col-lg-5 col-md-5">
+                                                            <div class="row">
+                                                                <div class="col-sm-4 col-lg-6 col-md-6 col-xs-5 text-end">
+                                                                    <div class="form-group">
+                                                                    <label class="radio-inline pt4">
+                                                                    <input name="fine_type_<?php echo $count;?>" class="finetype" id="input-type-student" value="percentage" type="radio" <?php echo ($inserted_array['fine_type']== "percentage") ? "checked": "" ?>><?php echo $this->lang->line('percentage'); ?> (%)</label>
+                                                                </div>
+                                                               </div>
+                                                            <div class="col-sm-8 col-lg-6 col-md-6 col-xs-7"> 
+                                                               
+                                                             <input id="percentage" name="percentage_<?php echo $count;?>" name="percentage_<?php echo $count;?>" type="text" class="form-control percentage" value="<?php echo set_value("percentage_".$count,$inserted_array['fine_percentage']) ?>" <?php echo ($inserted_array['fine_type'] == "percentage") ? "" : "readonly" ?> autocomplete="off"> 
+                                                             
+                                                             <span class="text text-danger"><?php echo form_error('percentage_'.$count); ?></span>
+                                                             
+                                                            </div> 
+                                                         </div>    
+                                                        </div>
+                                                        <div class="col-sm-12 col-lg-5 col-md-5">
+                                                            <div class="row">
+                                                                <div class="col-sm-4 col-lg-6 col-md-6 col-xs-5 text-end">
+                                                                    <div class="form-group">
+                                                                        <label class="radio-inline pt4">
+                                                                        <input name="fine_type_<?php echo $count;?>" class="finetype" id="input-type-tutor" value="fix" type="radio"  <?php echo ($inserted_array['fine_type']== "fix") ? "checked": "" ?>>
+                                                                        <?php echo $this->lang->line('fix_amount'); ?> (<?php echo $currency_symbol; ?> )</label>
+                                                                    </div>    
+                                                                </div>
+                                                           <div class="col-sm-8 col-lg-6 col-md-6 col-xs-7">
+                                                              <input type="text" class="form-control fine_amount" name="fine_amount_<?php echo $count;?>" id="inputLastname" autocomplete="off" <?php echo ($inserted_array['fine_type']== "fix") ? "" : "readonly" ?> value="<?php if($inserted_array['fine_amount']){ echo set_value("fine_amount_".$count, convertBaseAmountCurrencyFormat($inserted_array['fine_amount'])); } ?>">
+                                                              
+                                                              <span class="text text-danger"><?php echo form_error('fine_amount_'.$count); ?></span>
+                                                              
+                                                          </div>
+                                                         </div> 
+                                                        </div>
+                                                    </div>
+                                        
+                                            </div> 
+                                            </div><!--  -->                 
+                                        </div>
+                                                  
+                                    </div>         
+                                </div>
+                                <?php 
+                                $count+=1;
+                                }
+                                }
+                            }
                             ?>
                         </div>
                         <div class="box-footer">

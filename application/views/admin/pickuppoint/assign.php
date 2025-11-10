@@ -46,7 +46,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                         <tr>
                                             <th><?php echo $this->lang->line('route'); ?></th>
                                             <th><?php echo $this->lang->line('pickup_point'); ?></th>
-                                            <th class="text-right"><?php echo $this->lang->line('monthly_fees'); ?> <span><?php echo "(" . $currency_symbol . ")"; ?> </span></th>
+                                            <th class="text-right"><?php echo $this->lang->line('fees'); ?> <span><?php echo "(" . $currency_symbol . ")"; ?> </span></th>
                                             <th><?php echo $this->lang->line('distance_km'); ?></th>
                                             <th><?php echo $this->lang->line('pickup_time'); ?></th>
                                             <th class="noExport"><?php echo $this->lang->line('action'); ?></th>
@@ -143,7 +143,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                         <th><?php echo $this->lang->line("pickup_point"); ?></th>
                                         <th><?php echo $this->lang->line('distance_km'); ?></th>
                                         <th><?php echo $this->lang->line('pickup_time'); ?></th>
-                                        <th class="text-right"><?php echo $this->lang->line('monthly_fees'); ?> <?php echo "(" . $currency_symbol . ")"; ?></th>
+                                        <th class="text-right"><?php echo $this->lang->line('fees'); ?> <?php echo "(" . $currency_symbol . ")"; ?></th>
                                     </tr>
                                 </thead>
                                 <tbody class="row_position" id="reorder_result">

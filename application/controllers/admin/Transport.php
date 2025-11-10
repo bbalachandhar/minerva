@@ -25,15 +25,15 @@ class Transport extends Admin_Controller
         $this->session->set_userdata('sub_menu', 'transport/feemaster');
         $current_session               = $this->setting_model->getCurrentSession();
         $data                          = array();
-        $month_list                    = $this->customlib->getMonthDropdown($this->sch_setting_detail->start_month);
-
-        $data['title']                 = 'student fees';
-        $data['month_list']            = $month_list;
         
-         $month_list= $this->customlib->getMonthDropdown($this->sch_setting_detail->start_month);
-       
-        foreach($month_list as $key => $value){
-            $data['transportfees'][]=(array)$this->transportfee_model->transportfesstype($current_session,$key);
+        if ($this->sch_setting_detail->transport_fee_type == 'yearly') {
+            $data['transportfees'][]=(array)$this->transportfee_model->transportfesstype($current_session, 'yearly');
+        } else {
+            $month_list                    = $this->customlib->getMonthDropdown($this->sch_setting_detail->start_month);
+            $data['month_list']            = $month_list;
+            foreach($month_list as $key => $value){
+                $data['transportfees'][]=(array)$this->transportfee_model->transportfesstype($current_session,$key);
+            }
         }
         
         $route_pickup_point_id         = $this->input->post('route_pickup_point_id');
@@ -41,10 +41,15 @@ class Transport extends Admin_Controller
         $route_pickup_point            = $this->routepickuppoint_model->get($route_pickup_point_id);
         $data['route_pickup_point']    = $route_pickup_point;
 
-        $month_row = 1;
-        foreach ($month_list as $month_key => $month_value) {
-            $this->form_validation->set_rules('due_date_' . $month_row, $this->lang->line('due_date'), 'trim|xss_clean');
-            $month_row += 1;
+        if ($this->sch_setting_detail->transport_fee_type == 'yearly') {
+            $this->form_validation->set_rules('due_date_1', $this->lang->line('due_date'), 'trim|xss_clean');
+        } else {
+            $month_list = $this->customlib->getMonthDropdown($this->sch_setting_detail->start_month);
+            $month_row = 1;
+            foreach ($month_list as $month_key => $month_value) {
+                $this->form_validation->set_rules('due_date_' . $month_row, $this->lang->line('due_date'), 'trim|xss_clean');
+                $month_row += 1;
+            }
         }
         
         $rows        = $this->input->post('rows');
