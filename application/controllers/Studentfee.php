@@ -66,7 +66,7 @@ class Studentfee extends Admin_Controller
                     redirect('studentfee/bulk_upload_fees');
                 } else {
                     $file_path = $_FILES['adjustment_file']['tmp_name'];
-                    $this->load->library('csvreader');
+                    $this->load->library('CSVReader');
                     $result = $this->csvreader->parse_file($file_path);
 
                     if (!empty($result)) {
@@ -214,7 +214,7 @@ class Studentfee extends Admin_Controller
                 } else {
                     $feetype_id = $this->input->post('feetype_id');
                     $file_path = $_FILES['file']['tmp_name'];
-                    $this->load->library('csvreader');
+                    $this->load->library('CSVReader');
                     $result = $this->csvreader->parse_file($file_path);
         
                     if (!empty($result)) {
