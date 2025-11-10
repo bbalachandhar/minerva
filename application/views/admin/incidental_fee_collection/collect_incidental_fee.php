@@ -269,6 +269,53 @@
                 }
             });
         });
+
+        $(document).on('change', '.select_assignment_checkbox', function () {
+            if ($(this).is(':checked')) {
+                // Uncheck all other checkboxes
+                $('.select_assignment_checkbox').not(this).prop('checked', false);
+
+                var assignment_id = $(this).data('assignment_id');
+                var fee_type_id = $(this).data('fee_type_id');
+                var amount_due = $(this).data('amount_due');
+
+                $('#modal_incidental_fee_assignment_id').val(assignment_id);
+                $('#fee_type_id_modal').val(fee_type_id);
+
+                if (amount_due > 0) {
+                    $('#amount_collected').val(amount_due);
+                } else {
+                    $('#amount_collected').val('');
+                    $('#amount_collected').attr('placeholder', 'Enter Amount');
+                }
+            } else {
+                // If unchecked, clear the fields
+                $('#modal_incidental_fee_assignment_id').val('');
+                $('#fee_type_id_modal').val('');
+                $('#amount_collected').val('');
+                $('#amount_collected').attr('placeholder', '');
+            }
+        });
+
+        $('#fee_type_id_modal').on('change', function() {
+            var selected_fee_type_id = $(this).val();
+
+            // Uncheck all assignment checkboxes first
+            $('.select_assignment_checkbox').prop('checked', false);
+            $('#modal_incidental_fee_assignment_id').val('');
+            $('#amount_collected').val('');
+            $('#amount_collected').attr('placeholder', '');
+
+            if (selected_fee_type_id) {
+                // Find the checkbox that corresponds to the selected fee type
+                var matching_checkbox = $('.select_assignment_checkbox[data-fee_type_id="' + selected_fee_type_id + '"]');
+
+                if (matching_checkbox.length > 0) {
+                    // If a matching checkbox is found, check it and trigger its change event
+                    matching_checkbox.prop('checked', true).trigger('change');
+                }
+            }
+        });
     });
 </script>
 

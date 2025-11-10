@@ -37,7 +37,7 @@
                                 <div class="col-md-4">
                                     <div class="form-group">
                                         <label for="amount_due"><?php echo $this->lang->line('amount_due'); ?></label>
-                                        <input id="amount_due" name="amount_due" type="text" class="form-control" value="<?php echo set_value('amount_due'); ?>" />
+                                        <input id="amount_due" name="amount_due" type="text" class="form-control" value="<?php echo set_value('amount_due', '0.00'); ?>" />
                                         <span class="text-danger"><?php echo form_error('amount_due'); ?></span>
                                     </div>
                                 </div>
@@ -55,7 +55,7 @@
                                     <div class="form-group">
                                         <label for="class_id"><?php echo $this->lang->line('class'); ?></label>
                                         <select id="class_id" name="class_id[]" class="form-control select2" multiple="multiple" >
-                                            <option value=""><?php echo $this->lang->line('select'); ?></option>
+                                            <option value="all"><?php echo $this->lang->line('all_classes'); ?></option>
                                             <?php foreach ($classes as $class) { ?>
                                                 <option value="<?php echo $class['id'] ?>" <?php echo set_select('class_id[]', $class['id']); ?>><?php echo $class['class'] ?></option>
                                             <?php } ?>
@@ -131,12 +131,12 @@
                         if (response && response.default_amount) {
                             $('#amount_due').val(response.default_amount);
                         } else {
-                            $('#amount_due').val('');
+                            $('#amount_due').val('0.00');
                         }
                     }
                 });
             } else {
-                $('#amount_due').val('');
+                $('#amount_due').val('0.00');
             }
         });
     });

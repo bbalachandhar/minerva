@@ -1998,6 +1998,7 @@ $lang['stripe_publishable_key'] = "Stripe Publishable Key";
 $lang['stripe_settings_not_available'] = "Stripe Settings Not Available";	
 $lang['student'] = "Student";	
 $lang['student_address'] = "Student Address";	
+$lang['all_classes'] = "All Classes";
 $lang['student_address_details'] = "Student Address Details";	
 $lang['student_admission'] = "Student Admission";	
 $lang['student_admission_no_auto_generation'] = "Student Admission No. Auto Generation";	
