@@ -72,7 +72,7 @@
                                 </div>
                                 <div class="col-md-12">
                                     <div class="form-group">
-                                        <label for="search_text"><?php echo $this->lang->line('search_by_name'); ?></label>
+                                        <label for="search_text"><?php echo $this->lang->line('search_by_keywords'); ?></label>
                                         <input type="text" name="search_text" class="form-control" value="<?php echo set_value('search_text', isset($search_text) ? $search_text : ''); ?>">
                                     </div>
                                 </div>
