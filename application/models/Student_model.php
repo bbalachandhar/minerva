@@ -610,6 +610,88 @@ class Student_model extends MY_Model
         }
     }
 
+    public function searchByClassSectionAndText($class_id = null, $section_id = null, $search_text = null, $route_filter_id = null, $pickup_point_filter_id = null)
+    {
+        $userdata            = $this->customlib->getUserData();
+        $i                   = 1;
+        $class_section_array = $this->customlib->get_myClassSection();
+        $custom_fields       = $this->customfield_model->get_custom_fields('students', 1);
+        $field_var_array     = array();
+        if (!empty($custom_fields)) {
+            foreach ($custom_fields as $custom_fields_key => $custom_fields_value) {
+                $tb_counter = "table_custom_" . $i;
+                array_push($field_var_array, '`table_custom_' . $i . '`.`field_value` as `' . $custom_fields_value->name.'`');
+                $this->db->join('custom_field_values as ' . $tb_counter, 'students.id = ' . $tb_counter . '.belong_table_id AND ' . $tb_counter . '.custom_field_id = ' . $custom_fields_value->id, 'left');
+                $i++;
+            }
+        }
+
+        $field_variable = implode(',', $field_var_array);
+
+        $this->db->select('classes.id AS `class_id`,student_session.id as student_session_id,students.id,classes.class,sections.id AS `section_id`,sections.section,students.id,students.admission_no , students.roll_no,students.admission_date,students.firstname,students.middlename,students.lastname,students.image,  students.mobileno,students.email,students.state,students.city,students.pincode,students.religion,students.dob ,students.current_address,students.permanent_address,IFNULL(students.category_id, 0) as `category_id`,IFNULL(categories.category, "") as `category`,students.adhar_no,students.samagra_id,students.bank_account_no,students.bank_name, students.ifsc_code, students.guardian_name, students.guardian_relation,students.guardian_phone,students.guardian_email,students.guardian_address,students.is_active ,students.created_at ,students.updated_at,students.father_name,students.app_key,students.parent_app_key,students.rte,students.gender,vehicles.vehicle_no,transport_route.route_title,route_pickup_point.id as `route_pickup_point_id`,pickup_point.name as `pickup_point_name`, transport_route.id as `route_id`')->from('students');
+        $this->db->join('student_session', 'student_session.student_id = students.id');
+        $this->db->join('classes', 'student_session.class_id = classes.id');
+        $this->db->join('sections', 'sections.id = student_session.section_id');
+        $this->db->join('categories', 'students.category_id = categories.id', 'left');
+        $this->db->join('route_pickup_point', 'student_session.route_pickup_point_id = route_pickup_point.id', 'left');
+        $this->db->join('pickup_point', 'pickup_point.id = route_pickup_point.pickup_point_id', 'left');
+        $this->db->join('vehicle_routes', 'student_session.vehroute_id = vehicle_routes.id', 'left');
+        $this->db->join('transport_route', 'vehicle_routes.route_id = transport_route.id', 'left');
+        $this->db->join('vehicles', 'vehicle_routes.vehicle_id = vehicles.id', 'left');
+        $this->db->where('student_session.session_id', $this->current_session);
+        $this->db->where('students.is_active', "yes");
+        if ($class_id != null) {
+            $this->db->where('student_session.class_id', $class_id);
+        }
+        if ($section_id != null) {
+            $this->db->where('student_session.section_id', $section_id);
+        }
+        if ($route_filter_id != null) {
+            $this->db->where('transport_route.id', $route_filter_id);
+        }
+        if ($pickup_point_filter_id != null) {
+            $this->db->where('route_pickup_point.id', $pickup_point_filter_id);
+        }
+        if (!empty($search_text)) {
+            $this->db->group_start();
+            $this->db->like('students.firstname', $search_text);
+            $this->db->or_like('students.lastname', $search_text);
+            $this->db->or_like('students.admission_no', $search_text);
+            $this->db->group_end();
+        }
+        if (!empty($class_section_array)) {
+            $this->db->group_start();
+            foreach ($class_section_array as $class_sectionkey => $class_sectionvalue) {
+                $query_string = "";
+                foreach ($class_sectionvalue as $class_sectionvaluekey => $class_sectionvaluevalue) {
+                    $query_string = "( student_session.class_id=" . $class_sectionkey . " and student_session.section_id=" . $class_sectionvaluevalue . " )";
+                    $this->db->or_where($query_string);
+                }
+            }
+            $this->db->group_end();
+        }
+        $this->db->order_by('students.admission_no', 'asc');
+
+        $query = $this->db->get();
+
+        $result = $query->result_array();
+        if (($userdata["role_id"] == 2) && ($userdata["class_teacher"] == "yes") && (empty($class_section_array))) {
+            $result = array();
+        }
+
+        return $result;
+    }
+
+    public function updateStudentSessionTransport($student_session_id, $vehroute_id, $route_pickup_point_id)
+    {
+        $data = array(
+            'vehroute_id' => $vehroute_id,
+            'route_pickup_point_id' => $route_pickup_point_id
+        );
+        $this->db->where('id', $student_session_id);
+        $this->db->update('student_session', $data);
+    }
+
     public function searchByClassSection($class_id = null, $section_id = null)
     {
         $userdata            = $this->customlib->getUserData();

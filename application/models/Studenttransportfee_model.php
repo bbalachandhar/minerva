@@ -13,6 +13,33 @@ class Studenttransportfee_model extends MY_Model
         $this->current_session = $this->setting_model->getCurrentSession();
     }
 
+    public function addStudentTransportFee($student_session_id, $route_id, $pickup_point_id, $transport_feemaster_id)
+    {
+        $data = array(
+            'student_session_id' => $student_session_id,
+            'route_pickup_point_id' => $pickup_point_id, // This should be the ID from route_pickup_point table
+            'transport_feemaster_id' => $transport_feemaster_id,
+        );
+
+        $this->db->where('student_session_id', $student_session_id);
+        $query = $this->db->get('student_transport_fees');
+
+        if ($query->num_rows() > 0) {
+            // Update existing record
+            $this->db->where('student_session_id', $student_session_id);
+            $this->db->update('student_transport_fees', $data);
+        } else {
+            // Insert new record
+            $this->db->insert('student_transport_fees', $data);
+        }
+    }
+
+    public function removeStudentTransportFee($student_session_id)
+    {
+        $this->db->where('student_session_id', $student_session_id);
+        $this->db->delete('student_transport_fees');
+    }
+
     public function add($data_insert, $student_session_id, $remove_ids, $route_pickup_point_id)
     {
 
@@ -32,6 +59,7 @@ class Studenttransportfee_model extends MY_Model
 
         if (!empty($data_insert)) {
             foreach ($data_insert as $insert_key => $insert_value) {
+                # code...
                 $this->db->insert('student_transport_fees', $insert_value);
 
             }

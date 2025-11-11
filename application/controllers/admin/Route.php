@@ -14,6 +14,13 @@ class Route extends Admin_Controller
         $this->sch_setting_detail = $this->setting_model->getSetting();
     }
 
+    public function getPickupPointsByRoute()
+    {
+        $route_id = $this->input->post('route_id');
+        $pickup_points = $this->route_model->getPickupPointsByRoute($route_id);
+        echo json_encode($pickup_points);
+    }
+
     public function index()
     {
         if (!$this->rbac->hasPrivilege('routes', 'can_view')) {

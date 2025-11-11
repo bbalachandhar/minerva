@@ -39,7 +39,7 @@ class Media_storage
         }
 
         $name        = $_FILES[$media_name]['name'];
-        $file_name   = time() . "-" . uniqid(rand()) . "!" . $name;
+        $file_name   = time() . "-" . uniqid(rand()) . "-" . $name;
         $destination = $this->_CI->customlib->getFolderPath() . $upload_path . $file_name;
 
         // Check if destination directory is writable

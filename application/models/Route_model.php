@@ -13,6 +13,16 @@ class Route_model extends MY_Model
         $this->current_session = $this->setting_model->getCurrentSession();
     }
 
+    public function getPickupPointsByRoute($route_id)
+    {
+        $this->db->select('route_pickup_point.*, pickup_point.name');
+        $this->db->from('route_pickup_point');
+        $this->db->join('pickup_point', 'pickup_point.id = route_pickup_point.pickup_point_id');
+        $this->db->where('route_pickup_point.transport_route_id', $route_id);
+        $query = $this->db->get();
+        return $query->result_array();
+    }
+
     public function get($id = null)
     {
         $this->db->select()->from('transport_route');

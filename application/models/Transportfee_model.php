@@ -7,6 +7,8 @@ if (!defined('BASEPATH')) {
 class Transportfee_model extends MY_Model
 {
 
+
+
     public function add($insert_data, $update_data)
     {
         $this->db->trans_start(); # Starting Transaction

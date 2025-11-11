@@ -13,6 +13,17 @@ class Vehroute_model extends MY_Model
         $this->current_session = $this->setting_model->getCurrentSession();
     }
 
+    public function getVehrouteByRouteAndPickupPoint($route_id, $pickup_point_id)
+    {
+        $this->db->select('vehicle_routes.*');
+        $this->db->from('vehicle_routes');
+        $this->db->join('route_pickup_point', 'route_pickup_point.transport_route_id = vehicle_routes.route_id');
+        $this->db->where('vehicle_routes.route_id', $route_id);
+        $this->db->where('route_pickup_point.id', $pickup_point_id);
+        $query = $this->db->get();
+        return $query->row_array();
+    }
+
     public function get($id = null)
     {
         $this->db->select('vehicle_routes.*,route_pickup_point.fees,transport_route.id as transport_id,transport_route.route_title')->from('vehicle_routes');
