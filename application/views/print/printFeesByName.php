@@ -368,9 +368,6 @@ $amount_fine = $record->amount_fine;
     ?>
                                     </tbody>
                                 </table>
-                                <?php
-}
-?>
 
                         </div>
                         <div class="row header">

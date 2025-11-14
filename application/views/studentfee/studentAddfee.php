@@ -377,7 +377,7 @@ if ($fee_deposits_value->description == "") {
                                                                         <i class="fa fa-undo"> </i>
                                                                     </button>
                                                                 <?php }?>
-                                                                <button  class="btn btn-xs btn-default printDoc" data-main_invoice="<?php echo $fee_value->student_fees_deposite_id ?>" data-sub_invoice="<?php echo $fee_deposits_value->inv_no ?>"  title="<?php echo $this->lang->line('print'); ?>"><i class="fa fa-print"></i></button>
+                                                                <button  class="btn btn-xs btn-default printDoc" data-fee-category="fees" data-main_invoice="<?php echo $fee_value->student_fees_deposite_id ?>" data-sub_invoice="<?php echo $fee_deposits_value->inv_no ?>"  title="<?php echo $this->lang->line('print'); ?>"><i class="fa fa-print"></i></button>
                                                             </div>
                                                           </div>
                                                         </td>
@@ -776,7 +776,7 @@ echo $currency_symbol . amountFormat(($total_balance_amount - $alot_fee_discount
             $(document).on('click', '.printDoc', function () {
             var main_invoice = $(this).data('main_invoice');
             var sub_invoice = $(this).data('sub_invoice');
-            var fee_category = $(this).data('fee-category');
+            var fee_category = $(this).data('feeCategory');
             var student_session_id = '<?php echo $student['student_session_id'] ?>';
             $.ajax({
                 url: '<?php echo site_url("studentfee/printFeesByName") ?>',

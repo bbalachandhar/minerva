@@ -221,7 +221,7 @@ if(in_array('0', $print_copy)){
                                 <?php
                                 ?>
 
-                                <img  src="<?php echo $this->media_storage->getImageURL('/uploads/print_headerfooter/student_receipt/'.$this->setting_model->get_receiptheader()); ?>" style="height: 100px;width: 100%;">
+                                <img  src="<?php echo $this->media_storage->getImageURL('/uploads/print_headerfooter/student_receipt/'.$this->setting_model->get_receiptheader());?>" style="height: 100px;width: 100%;">
                                 <?php
                                 ?>
                             </div>
@@ -260,6 +260,9 @@ if(in_array('0', $print_copy)){
                         </div>
                         <hr style="margin-top: 0px;margin-bottom: 0px;" />
                         <div class="row">
+                            <?php
+                            if (!empty($feeList)) {
+                            ?>
                                 <table class="table table-striped table-responsive" style="font-size: 12pt;">
                                     <thead>
                                     <th><?php echo $this->lang->line('fees'); ?></th>
@@ -406,37 +409,35 @@ if(in_array('0', $print_copy)){
                                                         <td class="text text-right"><?php echo ($currency_symbol . amountFormat($fee_deposits_value->amount_fine, 2, '.', '')); ?></td>
                                                         <td class="text text-right"><?php echo ($currency_symbol . amountFormat($fee_deposits_value->amount_discount, 2, '.', '')); ?></td>
 
-                                                    </tr>
-                                                    <?php
+                                                        </tr>
+                                                        <?php
+                                                    }
                                                 }
                                             }
-                                        }
-                                        ?>
-                                    </tbody>
-                                </table>
-                                <?php
-                            }
-                            ?>
-
+                                            ?>
+                                        </tbody>
+                                    </table>
+                                <?php } ?>
                         </div>
+                        <div class="row header ">
+                            <div class="col-sm-12">
+                                <?php
+                                ?>
+
+                                <?php echo $this->setting_model->get_receiptfooter(); ?>
+                                <?php
+                                ?>
+                            </div>
+
+                        </div>  
                     </div>
                 </div>
-                <div class="row header ">
-                    <div class="col-sm-12">
-                        <?php
-                        ?>
+                <?php
+            }
 
-                        <?php echo $this->setting_model->get_receiptfooter(); ?>
-                        <?php
-                        ?>
-                    </div>
-
-                </div>  
-            </div>
-    <?php
-}
+           
 ?>
-
+            
 
 <?php
             if(in_array('1', $print_copy)){ 
@@ -651,10 +652,7 @@ if(in_array('0', $print_copy)){
                                             ?>
                                         </tbody>
                                     </table>
-                                    <?php
-                                }
-                                ?>
-
+                                    <?php } ?>
                             </div>
                         </div>
                     </div>
@@ -726,7 +724,7 @@ if(in_array('0', $print_copy)){
                                 </div>
                             </div>
                             <hr style="margin-top: 0px;margin-bottom: 0px;" />
-                            <div class="row">
+                            <div class.row">
                                 <?php
                                 if (!empty($feeList)) {
                                     ?>
@@ -888,10 +886,7 @@ if(in_array('0', $print_copy)){
                                             ?>
                                         </tbody>
                                     </table>
-                                    <?php
-                                }
-                                ?>
-
+                                    <?php } ?>
                             </div>
                         </div>
                     </div>

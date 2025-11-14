@@ -1251,35 +1251,52 @@ class Studentfee extends Admin_Controller
 
     public function printFeesByGroup()
     {
+        log_message('error', '--- printFeesByGroup method started ---');
         $fee_category           = $this->input->post('fee_category');
         $trans_fee_id           = $this->input->post('trans_fee_id');
+        log_message('error', 'fee_category: ' . $fee_category);
+        log_message('error', 'trans_fee_id: ' . $trans_fee_id);
+
         $setting_result         = $this->setting_model->get();
         $data['settinglist']    = $setting_result;
         $data['sch_setting']    = $this->sch_setting_detail;        
 
         if ($fee_category == "transport") {
             $data['feeList'] = $this->studentfeemaster_model->getTransportFeeByID($trans_fee_id);
+            log_message('error', 'Transport feeList: ' . print_r($data['feeList'], true));
 
             if($this->thermal_print_module == 1 && $this->thermal_print_enable == 1){			
 				$data['thermal_print'] = $this->thermal_print_result;				
-				$page = $this->load->view('print/thermalPrintTransportFeesByGroup', $data, true); 				
+				$page = $this->load->view('print/thermalPrintTransportFeesByGroup', $data, true); 	
+                log_message('error', 'Loading view: print/thermalPrintTransportFeesByGroup');
             }else{
                 $page = $this->load->view('print/printTransportFeesByGroup', $data, true); 
+                log_message('error', 'Loading view: print/printTransportFeesByGroup');
             }
 
         } else {
             $fee_groups_feetype_id = $this->input->post('fee_groups_feetype_id');
             $fee_master_id         = $this->input->post('fee_master_id');
             $fee_session_group_id  = $this->input->post('fee_session_group_id');
+            log_message('error', 'fee_groups_feetype_id: ' . $fee_groups_feetype_id);
+            log_message('error', 'fee_master_id: ' . $fee_master_id);
+            log_message('error', 'fee_session_group_id: ' . $fee_session_group_id);
+
             $data['feeList']       = $this->studentfeemaster_model->getDueFeeByFeeSessionGroupFeetype($fee_session_group_id, $fee_master_id, $fee_groups_feetype_id);
+            log_message('error', 'Regular feeList: ' . print_r($data['feeList'], true));
+
             if($this->thermal_print_module == 1 && $this->thermal_print_enable == 1){				
 				$data['thermal_print'] = $this->thermal_print_result;
 				$page  = $this->load->view('print/thermalPrintFeesByGroup', $data, true);
+                log_message('error', 'Loading view: print/thermalPrintFeesByGroup');
             }else{
                $page  = $this->load->view('print/printFeesByGroup', $data, true);
+               log_message('error', 'Loading view: print/printFeesByGroup');
             }
         }
+        log_message('error', 'Page content generated. Status: 1');
         echo json_encode(array('status' => 1, 'page' => $page));
+        log_message('error', '--- printFeesByGroup method finished ---');
     }
 
     public function printFeesByGroupArray()
