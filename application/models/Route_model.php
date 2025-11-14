@@ -175,10 +175,11 @@ class Route_model extends MY_Model
         }
 
         $this->db->where('students.is_active', 'yes');
-        $query = $this->db->select('students.firstname,students.middlename,students.id,students.admission_no,students.father_name,students.mother_name, students.father_phone,students.mother_phone,classes.class,sections.section,students.lastname,students.mobileno,student_session.route_pickup_point_id,pickup_point.name as `pickup_name`,transport_route.route_title,route_pickup_point.fees,route_pickup_point.destination_distance,route_pickup_point.pickup_time,vehicles.vehicle_no,vehicles.vehicle_model,vehicles.driver_name,vehicles.driver_contact')
+        $query = $this->db->select('students.firstname,students.middlename,students.id,students.admission_no,students.father_name,students.mother_name, students.father_phone,students.mother_phone,classes.class,sections.section,students.lastname,students.mobileno,student_session.route_pickup_point_id,pickup_point.name as `pickup_name`,transport_route.route_title,route_pickup_point.fees,route_pickup_point.destination_distance,route_pickup_point.pickup_time,vehicles.vehicle_no,vehicles.vehicle_model,vehicles.driver_name,vehicles.driver_contact,categories.category')
             ->join('student_session', 'students.id = student_session.student_id')
             ->join('sections', 'sections.id = student_session.section_id')
             ->join('classes', 'classes.id = student_session.class_id')
+            ->join('categories', 'categories.id = students.category_id', 'left')
             ->join('route_pickup_point', 'student_session.route_pickup_point_id= route_pickup_point.id')
             ->join('transport_route', 'transport_route.id= route_pickup_point.transport_route_id')
             ->join('pickup_point', 'pickup_point.id=route_pickup_point.pickup_point_id')

@@ -102,6 +102,7 @@ $this->customlib->get_postmessage();
                                         <th><?php echo $this->lang->line('class'); ?></th>
                                         <th><?php echo $this->lang->line('admission_no'); ?></th>
                                         <th><?php echo $this->lang->line('student_name'); ?></th>
+                                        <th><?php echo $this->lang->line('category'); ?></th>
                                         <th><?php echo $this->lang->line('mobile_number'); ?></th>
                                         <th><?php echo $this->lang->line('father_name'); ?></th>
                                         <th><?php echo $this->lang->line('route_title'); ?></th>
@@ -129,6 +130,7 @@ if (empty($resultlist)) {
                                                     <a href="<?php echo base_url(); ?>student/view/<?php echo $student['id']; ?>"><?php echo $this->customlib->getFullName($student['firstname'], $student['middlename'], $student['lastname'], $sch_setting->middlename, $sch_setting->lastname); ?>
                                                     </a>
                                                 </td>
+                                                <td><?php echo $student['category']; ?></td>
                                                 <td><?php echo $student['mobileno']; ?></td>
                                                 <td><?php echo $student['father_name']; ?></td>
                                                 <td><?php echo $student['route_title']; ?></td>
