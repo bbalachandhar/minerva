@@ -910,7 +910,7 @@ echo $currency_symbol . amountFormat(($total_balance_amount - $alot_fee_discount
 
     function Popup(data, winload = false)
     {
-        var frameDoc=window.open('', 'Print-Window');
+        var frameDoc=window.open('', '_blank');
         frameDoc.document.open();
         //Create a new HTML document.
         frameDoc.document.write('<html>');

@@ -724,7 +724,7 @@ if(in_array('0', $print_copy)){
                                 </div>
                             </div>
                             <hr style="margin-top: 0px;margin-bottom: 0px;" />
-                            <div class.row">
+                            <div class="row">
                                 <?php
                                 if (!empty($feeList)) {
                                     ?>
