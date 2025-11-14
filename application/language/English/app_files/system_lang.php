@@ -2799,3 +2799,9 @@ $lang['amount_will_be_applied_to_student_transport_fees'] = "The amount will be 
 #version 7.1.0
 
 
+
+$lang['yearly'] = "Yearly";
+$lang['monthly'] = "Monthly";
+$lang['quarterly'] = "Quarterly";
+$lang['half_yearly'] = "Half Yearly";
+
