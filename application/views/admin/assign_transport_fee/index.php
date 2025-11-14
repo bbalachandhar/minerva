@@ -19,6 +19,9 @@
                 <div class="box box-primary">
                     <div class="box-header with-border">
                         <h3 class="box-title"><i class="fa fa-search"></i> <?php echo $this->lang->line('select_criteria'); ?></h3>
+                        <div class="box-tools pull-right">
+                            <button type="button" class="btn btn-sm btn-primary" id="assign_button">Assign Pickup Point</button>
+                        </div>
                     </div>
                     <form action="<?php echo site_url('admin/assign_transport_fee/search'); ?>" method="post" accept-charset="utf-8">
                         <div class="box-body">
@@ -90,7 +93,6 @@
                         <div class="box-header with-border">
                             <h3 class="box-title"><i class="fa fa-users"></i> <?php echo $this->lang->line('student_list'); ?></h3>
                             <div class="box-tools pull-right">
-                                <button type="button" class="btn btn-sm btn-primary" id="assign_button"><i class="fa fa-plus"></i> <?php echo $this->lang->line('assign_transport'); ?></button>
                                 <button type="button" class="btn btn-sm btn-primary" id="save_assignments_button"><i class="fa fa-save"></i> <?php echo $this->lang->line('save'); ?></button>
                             </div>
                         </div>
