@@ -170,7 +170,7 @@ class Feediscount extends Admin_Controller
             $data['rte_status']  = $this->input->post('rte');
             $data['class_id']    = $this->input->post('class_id');
             $data['section_id']  = $this->input->post('section_id');
-            $resultlist          = $this->feediscount_model->searchAssignFeeByClassSection($data['class_id'], $data['section_id'], $id, $data['category_id'], $data['gender'], $data['rte_status']);
+            $resultlist          = $this->feediscount_model->searchAssignFeeByClassSection($data['class_id'], $data['section_id'], $id, $data['category_id'], $data['gender'], $data['rte_status'], true);
             $data['resultlist']  = $resultlist;
         }
         $data['sch_setting'] = $this->sch_setting_detail;
@@ -199,16 +199,20 @@ class Feediscount extends Admin_Controller
             $student_list           = $this->input->post('student_list');
             $feediscount_id         = $this->input->post('feediscount_id');
             $student_sesssion_array = $this->input->post('student_session_id');
+            $custom_amounts         = $this->input->post('custom_amounts'); // Get custom amounts
+
             if (!isset($student_sesssion_array)) {
                 $student_sesssion_array = array();
             }
             $diff_aray       = array_diff($student_list, $student_sesssion_array);
             $preserve_record = array();
             foreach ($student_sesssion_array as $key => $value) {
+                $current_custom_amount = isset($custom_amounts[$value]) ? $custom_amounts[$value] : null;
 
                 $insert_array = array(
                     'student_session_id' => $value,
                     'fees_discount_id'   => $feediscount_id,
+                    'custom_amount'      => $current_custom_amount, // Pass custom amount
                 );
                 $inserted_id = $this->feediscount_model->allotdiscount($insert_array);
                 $preserve_record[] = $inserted_id;

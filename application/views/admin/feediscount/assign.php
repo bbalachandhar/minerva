@@ -173,13 +173,16 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                                                 <th><?php echo $this->lang->line('class'); ?></th>
                                                                 <th><?php echo $this->lang->line('father_name'); ?></th>
                                                                 <th><?php echo $this->lang->line('category'); ?></th>
-                                                                <th><?php echo $this->lang->line('gender'); ?></th>
+                                                                  <th><?php echo $this->lang->line('gender'); ?></th>
+                                                                <?php if ($feediscountList['amount'] == '0.00') { ?>
+                                                                <th><?php echo $this->lang->line('custom_amount'); ?></th>
+                                                                <?php } ?>
                                                             </tr>
                                                             <?php
                                                             if (empty($resultlist)) {
                                                                 ?>
                                                                 <tr>
-                                                                    <td colspan="6" class="text-danger text-center"><?php echo $this->lang->line('no_record_found'); ?></td>
+                                                                    <td colspan="8" class="text-danger text-center"><?php echo $this->lang->line('no_record_found'); ?></td>
                                                                 </tr>
                                                                 <?php
                                                             } else {
@@ -188,12 +191,13 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                                                     ?>
                                                                 <input type="hidden" name="student_list[]" value="<?php echo $student['student_session_id'] ?>">
                                                                 <tr>
-                                                                    <td> 
+                                                                    <td>
                                                                         <?php
+                                                                        $sel = "";
+                                                                        $custom_amount_value = "";
                                                                         if ($student['student_fees_discount_id'] != 0) {
                                                                             $sel = "checked='checked'";
-                                                                        } else {
-                                                                            $sel = "";
+                                                                            $custom_amount_value = $student['custom_amount'];
                                                                         }
                                                                         ?>
                                                                         <input class="checkbox" type="checkbox" name="student_session_id[]"  value="<?php echo $student['student_session_id']; ?>" <?php echo $sel; ?>/>
@@ -204,6 +208,11 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                                                     <td><?php echo $student['father_name']; ?></td>
                                                                     <td><?php echo $student['category']; ?></td>
                                                                     <td><?php echo $this->lang->line(strtolower($student['gender'])); ?></td>
+                                                                    <?php if ($feediscountList['amount'] == '0.00') { ?>
+                                                                    <td>
+                                                                        <input type="number" step="0.01" class="form-control custom_amount_input" name="custom_amounts[<?php echo $student['student_session_id']; ?>]" id="custom_amount_<?php echo $student['student_session_id']; ?>" value="<?php echo set_value('custom_amounts[' . $student['student_session_id'] . ']', $custom_amount_value); ?>" <?php echo ($sel == "") ? 'disabled' : ''; ?>>
+                                                                    </td>
+                                                                    <?php } ?>
                                                                 </tr>
                                                                 <?php
                                                             }
@@ -243,10 +252,15 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
 //select all checkboxes
     $("#select_all").change(function () {  //"select all" change 
         $(".checkbox").prop('checked', $(this).prop("checked")); //change all ".checkbox" checked status
+        $('.custom_amount_input').prop('disabled', !$(this).prop("checked"));
     });
 
 //".checkbox" change 
     $('.checkbox').change(function () {
+        var student_session_id = $(this).val();
+        var custom_amount_input = $('#custom_amount_' + student_session_id);
+        custom_amount_input.prop('disabled', !$(this).prop("checked"));
+
         //uncheck "select all", if one of the listed checkbox item is unchecked
         if (false == $(this).prop("checked")) { //if this item is unchecked
             $("#select_all").prop('checked', false); //change "select all" checked status to false

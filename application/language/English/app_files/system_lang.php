@@ -2790,6 +2790,8 @@ $lang['category_report'] = "Category Report";
 $lang['overall_total'] = "Overall Total";
 $lang['branch_url'] = "Branch Url";
 $lang['assign_transport_fee'] = "Assign Transport Fee";
+$lang['custom_amount'] = "Custom Discount";
+
 
 
 #version 7.1.0

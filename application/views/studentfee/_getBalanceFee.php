@@ -75,11 +75,33 @@ if(!empty($discount_not_applied)){
             <div class="row">
 <div class="col-md-7 col-sm-7 col-xs-7">   
     <label class="checkbox-inline pt0">
-                        <input type="checkbox" name="fee_discount_group[]" class="grp_discount" value="<?php echo $discount_value->id;?>" data-disamount="<?php echo ($discount_value->type == "fix") ? ($discount_value->amount) : "0"?>" data-type="<?php echo $discount_value->type ; ?>" data-percentage="<?php echo ($discount_value->type == "percentage") ?  ($discount_value->percentage): "0";?>"><?php echo $discount_value->name ; ?><?php if($discount_value->code){ echo " (".$discount_value->code.")"; } ?>
+                        <input type="checkbox" name="fee_discount_group[]" class="grp_discount" value="<?php echo $discount_value->id;?>" data-disamount="<?php 
+                            $data_disamount_value = "0";
+                            if ($discount_value->type == "fix") {
+                                if (isset($discount_value->custom_amount) && $discount_value->custom_amount > 0) {
+                                    $data_disamount_value = $discount_value->custom_amount;
+                                } else {
+                                    $data_disamount_value = $discount_value->amount;
+                                }
+                            }
+                            echo $data_disamount_value;
+                        ?>" data-type="<?php echo $discount_value->type ; ?>" data-percentage="<?php echo ($discount_value->type == "percentage") ?  ($discount_value->percentage): "0";?>"><?php echo $discount_value->name ; ?><?php if($discount_value->code){ echo " (".$discount_value->code.")"; } ?><?php if($discount_value->type == "fix" && isset($discount_value->custom_amount) && $discount_value->custom_amount > 0){ echo " - ".$currency_symbol.$discount_value->custom_amount; } ?>
                  
                     </label></div>
 <div class="col-md-3 col-sm-3 col-xs-3 text text-center"><?php echo $discount_value->remaining_discount_limit; ?></div>
-<div class="col-md-2 col-sm-2 col-xs-2 text text-right"><?php echo ($discount_value->type == "fix") ? $currency_symbol.(($discount_value->amount)) : ($discount_value->percentage)."%";?></div>
+<div class="col-md-2 col-sm-2 col-xs-2 text text-right"><?php 
+                            $displayed_value = "";
+                            if ($discount_value->type == "fix") {
+                                if (isset($discount_value->custom_amount) && $discount_value->custom_amount > 0) {
+                                    $displayed_value = $currency_symbol . $discount_value->custom_amount;
+                                } else {
+                                    $displayed_value = $currency_symbol . $discount_value->amount;
+                                }
+                            } else {
+                                $displayed_value = $discount_value->percentage . "%";
+                            }
+                            echo $displayed_value;
+                        ?></div>
             </div>
          
         </div>

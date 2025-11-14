@@ -146,14 +146,17 @@ class Feediscount_model extends MY_Model
         $this->db->where('fees_discount_id', $data['fees_discount_id']);
         $q = $this->db->get('student_fees_discounts');
         if ($q->num_rows() > 0) {
-            return $q->row()->id;
+            $existing_id = $q->row()->id;
+            $this->db->where('id', $existing_id);
+            $this->db->update('student_fees_discounts', $data); // Update with new custom_amount
+            return $existing_id;
         } else {
             $this->db->insert('student_fees_discounts', $data);
             return $this->db->insert_id();
         }
     }
 
-    public function searchAssignFeeByClassSection($class_id = null, $section_id = null, $fees_discount_id = null, $category = null, $gender = null, $rte = null)
+    public function searchAssignFeeByClassSection($class_id = null, $section_id = null, $fees_discount_id = null, $category = null, $gender = null, $rte = null, $get_custom_amount = false)
     {
         $sql = "SELECT IFNULL(`student_fees_discounts`.`id`, '0') as `student_fees_discount_id`,"
         . "`classes`.`id` AS `class_id`, `student_session`.`id` as `student_session_id`,"
@@ -169,7 +172,13 @@ class Feediscount_model extends MY_Model
         . " `students`.`ifsc_code`, `students`.`guardian_name`, `students`.`guardian_relation`,"
         . " `students`.`guardian_phone`, `students`.`guardian_address`, `students`.`is_active`,"
         . " `students`.`created_at`, `students`.`updated_at`, `students`.`father_name`,"
-        . " `students`.`rte`, `students`.`gender` FROM `students` JOIN `student_session` ON"
+        . " `students`.`rte`, `students`.`gender`";
+        
+        if ($get_custom_amount) {
+            $sql .= ", student_fees_discounts.custom_amount";
+        }
+
+        $sql .= " FROM `students` JOIN `student_session` ON"
         . " `student_session`.`student_id` = `students`.`id` JOIN `classes` ON"
         . " `student_session`.`class_id` = `classes`.`id` JOIN `sections` ON"
         . " `sections`.`id` = `student_session`.`section_id` LEFT JOIN `categories` ON"
@@ -228,10 +237,11 @@ class Feediscount_model extends MY_Model
 
     public function getDiscountNotApplied($student_session_id = null)
     {
-        $query = "SELECT * FROM (SELECT student_fees_discounts.*, fees_discounts.name, fees_discounts.code, fees_discounts.type, fees_discounts.percentage, fees_discounts.amount, fees_discounts.discount_limit, IFNULL(applied_fees.total_assigned, 0) AS total_assigned, fees_discounts.discount_limit - IFNULL(applied_fees.total_assigned, 0) AS remaining_discount_limit, fees_discounts.expire_date FROM `student_fees_discounts` INNER JOIN fees_discounts ON fees_discounts.id = student_fees_discounts.fees_discount_id LEFT JOIN (SELECT COUNT(*) AS total_assigned, student_fees_discount_id FROM `student_applied_discounts` GROUP BY student_fees_discount_id) AS applied_fees ON applied_fees.student_fees_discount_id = student_fees_discounts.id WHERE student_fees_discounts.student_session_id = $student_session_id and (fees_discounts.expire_date >=CURDATE() or fees_discounts.expire_date is NULL) ) AS subquery WHERE remaining_discount_limit > 0;";
+        $query = "SELECT * FROM (SELECT student_fees_discounts.*, fees_discounts.name, fees_discounts.code, fees_discounts.type, fees_discounts.percentage, fees_discounts.amount, fees_discounts.discount_limit, IFNULL(applied_fees.total_assigned, 0) AS total_assigned, fees_discounts.discount_limit - IFNULL(applied_fees.total_assigned, 0) AS remaining_discount_limit, fees_discounts.expire_date FROM `student_fees_discounts` INNER JOIN fees_discounts ON fees_discounts.id = student_fees_discounts.fees_discount_id LEFT JOIN (SELECT COUNT(*) AS total_assigned, student_fees_discount_id FROM `student_applied_discounts` GROUP BY student_fees_discount_id) AS applied_fees ON applied_fees.student_fees_discount_id = student_fees_discounts.id WHERE student_fees_discounts.student_session_id = " . $this->db->escape($student_session_id) . " and (fees_discounts.expire_date >=CURDATE() or fees_discounts.expire_date is NULL) ) AS subquery WHERE remaining_discount_limit > 0;";
        
-        $query = $this->db->query($query);
-        return $query->result();
+        $query_result = $this->db->query($query);
+        $result = $query_result->result();
+        return $result;
     }
 
 }
