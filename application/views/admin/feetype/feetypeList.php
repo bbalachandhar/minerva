@@ -74,6 +74,7 @@
                                         <th><?php echo $this->lang->line('name'); ?>
                                         </th>
                                         <th><?php echo $this->lang->line('fees_code'); ?></th>
+                                        <th><?php echo $this->lang->line('is_system'); ?></th>
                                         <th class="text-right noExport"><?php echo $this->lang->line('action'); ?></th>
                                     </tr>
                                 </thead>
@@ -101,6 +102,7 @@
                                             <td class="mailbox-name">
                                                 <?php echo $feetype['code']; ?>
                                             </td>
+                                            <td><?php echo ($feetype['is_system'] == 1) ? $this->lang->line('yes') : $this->lang->line('no'); ?></td>
                                             <td class="mailbox-date pull-right">
                                                 <?php
                                                 if ($this->rbac->hasPrivilege('fees_type', 'can_edit')) {

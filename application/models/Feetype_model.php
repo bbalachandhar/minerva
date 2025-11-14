@@ -15,8 +15,6 @@ class Feetype_model extends MY_Model
     public function get($id = null)
     {
         $this->db->select()->from('feetype');
-        $this->db->where('is_system', 0);
-        $this->db->where('nature !='  , 'custom');
         
         if ($id != null) {
             $this->db->where('id', $id);

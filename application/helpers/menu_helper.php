@@ -268,6 +268,7 @@ if (!function_exists('main_menu_array')) {
                 'route'    => array('index','edit'),      
                 'vehicle'    => array('index'),      
                 'vehroute'    => array('index','edit'),        
+                'assign_transport_fee' => array('index', 'search', 'assign', 'unassign', 'save_assignments'),
             ), 
             
             'hostel' => array(               
