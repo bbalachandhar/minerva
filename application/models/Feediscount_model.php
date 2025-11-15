@@ -227,7 +227,7 @@ class Feediscount_model extends MY_Model
 
     public function getStudentFeesDiscount($student_session_id = null)
     {
-        $this->db->select('student_fees_discounts.id ,student_fees_discounts.student_session_id,student_fees_discounts.status,student_fees_discounts.payment_id,student_fees_discounts.description as `student_fees_discount_description`, student_fees_discounts.fees_discount_id, fees_discounts.name,fees_discounts.code,fees_discounts.amount,fees_discounts.description,fees_discounts.session_id,fees_discounts.type,fees_discounts.percentage')->from('student_fees_discounts');
+        $this->db->select('student_fees_discounts.id ,student_fees_discounts.student_session_id,student_fees_discounts.status,student_fees_discounts.payment_id,student_fees_discounts.description as `student_fees_discount_description`, student_fees_discounts.fees_discount_id, student_fees_discounts.custom_amount, fees_discounts.name,fees_discounts.code,fees_discounts.amount,fees_discounts.description,fees_discounts.session_id,fees_discounts.type,fees_discounts.percentage')->from('student_fees_discounts');
         $this->db->join('fees_discounts', 'fees_discounts.id = student_fees_discounts.fees_discount_id');
         $this->db->where('student_fees_discounts.student_session_id', $student_session_id);
         $this->db->order_by('student_fees_discounts.id');

@@ -157,7 +157,11 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                                 if (!empty($student->applied_discounts)) {
                                                     foreach ($student->applied_discounts as $student_discount) {
                                                         if ($student_discount['fees_discount_id'] == $discount['id']) {
-                                                            $discount_amount = $student_discount['amount'];
+                                                            if (isset($student_discount['custom_amount']) && $student_discount['custom_amount'] != null) {
+                                                                $discount_amount = $student_discount['custom_amount'];
+                                                            } else {
+                                                                $discount_amount = $student_discount['amount'];
+                                                            }
                                                             $discount_totals[$discount['id']] += $discount_amount;
                                                             break;
                                                         }

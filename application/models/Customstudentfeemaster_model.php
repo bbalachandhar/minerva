@@ -449,8 +449,6 @@ class Customstudentfeemaster_model extends MY_Model
         }
 
         $return_object->fees = $result_value2;
-        $return_object->govt_7_5 = $this->getFeeAmountByCode($student_session_id, 'GOVT_7_5');
-        $return_object->govt_fg = $this->getFeeAmountByCode($student_session_id, 'GOVT_F_G');
         $return_object->last_yr_cf = $this->getPreviousSessionBalance($student_session_id);
 
         return $return_object;
