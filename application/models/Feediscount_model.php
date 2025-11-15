@@ -156,7 +156,7 @@ class Feediscount_model extends MY_Model
         }
     }
 
-    public function searchAssignFeeByClassSection($class_id = null, $section_id = null, $fees_discount_id = null, $category = null, $gender = null, $rte = null, $get_custom_amount = false)
+    public function searchAssignFeeByClassSection($class_id = null, $section_id = null, $fees_discount_id = null, $category = null, $gender = null, $rte = null, $get_custom_amount = false, $hostel_id = null)
     {
         $sql = "SELECT IFNULL(`student_fees_discounts`.`id`, '0') as `student_fees_discount_id`,"
         . "`classes`.`id` AS `class_id`, `student_session`.`id` as `student_session_id`,"
@@ -184,8 +184,13 @@ class Feediscount_model extends MY_Model
         . " `sections`.`id` = `student_session`.`section_id` LEFT JOIN `categories` ON"
         . " `students`.`category_id` = `categories`.`id` LEFT JOIN"
         . " student_fees_discounts on student_fees_discounts.student_session_id=student_session.id"
-        . " AND student_fees_discounts.fees_discount_id=" . $this->db->escape($fees_discount_id) .
-        " WHERE `student_session`.`session_id` = " . $this->current_session;
+        . " AND student_fees_discounts.fees_discount_id=" . $this->db->escape($fees_discount_id);
+
+        if ($hostel_id != null) {
+            $sql .= " JOIN `hostel_rooms` ON `hostel_rooms`.`id` = `students`.`hostel_room_id`";
+        }
+        
+        $sql .= " WHERE `student_session`.`session_id` = " . $this->current_session;
 
         if ($class_id != null) {
             if (is_array($class_id)) {
@@ -205,6 +210,9 @@ class Feediscount_model extends MY_Model
         }
         if ($rte != null) {
             $sql .= " AND `students`.`rte` =" . $this->db->escape($rte);
+        }
+        if ($hostel_id != null) {
+            $sql .= " AND `hostel_rooms`.`hostel_id` =" . $this->db->escape($hostel_id);
         }
         $sql .= " AND students.is_active='yes'";
         $sql .= " ORDER BY `students`.`id`";

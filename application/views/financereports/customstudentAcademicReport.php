@@ -200,7 +200,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                             </tbody>
                              <tfoot>
                                 <tr class="box box-solid total-bg">
-                                    <td colspan="4" class="text-right"><?php echo $this->lang->line('grand_total'); ?></td>
+                                    <th colspan="4" class="text-right"><?php echo $this->lang->line('grand_total'); ?></th>
                                     <td class="text-right"><?php echo $currency_symbol . amountFormat($total_last_yr_cf); ?></td>
                                     <td class="text-right"><?php echo $currency_symbol . amountFormat($total_cf_paid); ?></td>
                                     <td class="text-right"><?php echo $currency_symbol . amountFormat($total_cf_balance); ?></td>
@@ -303,7 +303,24 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
         $('#headerTable').DataTable({
             dom: 'Bfrtip',
             buttons: [
-                'copy', 'csv', 'excel', 'pdf', 'print'
+                'copy', 'csv',
+                {
+                    extend: 'excelHtml5',
+                    footer: true,
+                    exportOptions: {
+                        format: {
+                            body: function ( data, row, column, node ) {
+                                // Strip HTML tags from data for excel
+                                return data.replace( /(<([^>]+)>)/ig, '' );
+                            },
+                            footer: function ( data, row, column, node ) {
+                                // Strip HTML tags from data for excel
+                                return data.replace( /(<([^>]+)>)/ig, '' );
+                            }
+                        }
+                    }
+                },
+                'pdf', 'print'
             ]
         });
     });

@@ -25,7 +25,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                         <?php
                                         foreach ($allFeediscountList as $feediscount) {
                                             ?>
-                                            <option value="<?php echo $feediscount['id'] ?>" <?php if (set_value('feediscount_id') == $feediscount['id']) echo "selected=selected" ?>><?php echo $feediscount['name'] ?> (<?php echo $feediscount['code'] ?>)</option>
+                                            <option value="<?php echo $feediscount['id'] ?>" <?php if (set_value('feediscount_id', $id) == $feediscount['id']) echo "selected=selected" ?>><?php echo $feediscount['name'] ?> (<?php echo $feediscount['code'] ?>)</option>
                                             <?php
                                         }
                                         ?>
@@ -39,12 +39,10 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                     <select autofocus="" id="class_id" name="class_id[]" class="form-control" multiple="multiple" >
                                         <option value=""><?php echo $this->lang->line('select'); ?></option>
                                         <?php
-                                        $count = 0;
                                         foreach ($classlist as $class) {
                                             ?>
                                             <option value="<?php echo $class['id'] ?>" <?php echo in_array($class['id'], set_value('class_id', array())) ? "selected=selected" : "" ?>><?php echo $class['class'] ?></option>
                                             <?php
-                                            $count++;
                                         }
                                         ?>
                                     </select>
@@ -60,7 +58,18 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                     <span class="text-danger"><?php echo form_error('section_id'); ?></span>
                                 </div>  
                             </div>
-                            <div class="col-sm-2">
+                            <div class="col-sm-3">
+                                <div class="form-group">
+                                    <label><?php echo $this->lang->line('hostel'); ?></label>
+                                    <select id="hostel_id" name="hostel_id" class="form-control">
+                                        <option value=""><?php echo $this->lang->line('select'); ?></option>
+                                        <?php foreach ($hostel_list as $hostel) { ?>
+                                            <option value="<?php echo $hostel['id'] ?>" <?php echo set_select('hostel_id', $hostel['id']); ?>><?php echo $hostel['hostel_name'] ?></option>
+                                        <?php } ?>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-sm-3">
                                 <div class="form-group">  
                                     <label><?php echo $this->lang->line('category'); ?></label>
                                     <select  id="category_id" name="category_id" class="form-control" >
@@ -70,13 +79,12 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                             ?>
                                             <option value="<?php echo $category['id'] ?>" <?php if (set_value('category_id') == $category['id']) echo "selected=selected"; ?>><?php echo $category['category'] ?></option>
                                             <?php
-                                            $count++;
                                         }
                                         ?>
                                     </select>
                                 </div>  
                             </div>
-                            <div class="col-sm-2">
+                            <div class="col-sm-3">
                                 <div class="form-group">  
                                     <label><?php echo $this->lang->line('gender'); ?></label>
                                     <select class="form-control" name="gender">
@@ -91,7 +99,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                     </select>
                                 </div>  
                             </div>
-                            <div class="col-sm-2">
+                            <div class="col-sm-3">
                                 <div class="form-group">  
                                     <label><?php echo $this->lang->line('rte'); ?></label>
                                     <select  id="rte" name="rte" class="form-control" >
@@ -100,17 +108,16 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                         foreach ($RTEstatusList as $k => $rte) {
                                             ?>
                                             <option value="<?php echo $k; ?>" <?php if (set_value('rte') == $k) echo "selected"; ?>><?php echo $rte; ?></option>
-
                                             <?php
-                                            $count++;
                                         }
                                         ?>
                                     </select>
                                 </div>  
                             </div>
-                            <div class="col-sm-12">
+                            <div class="col-sm-3">
                                 <div class="form-group">
-                                    <button type="submit" name="search" value="search_filter" class="btn btn-primary pull-right btn-sm checkbox-toggle"><i class="fa fa-search"></i> <?php echo $this->lang->line('search'); ?></button>
+                                     <label class="hidden-xs">&nbsp;</label>
+                                    <button type="submit" name="search" value="search_filter" class="btn btn-primary btn-block"><i class="fa fa-search"></i> <?php echo $this->lang->line('search'); ?></button>
                                 </div>
                             </div>
                         </form>

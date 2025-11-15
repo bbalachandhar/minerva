@@ -150,8 +150,10 @@ class Feediscount extends Admin_Controller
 
         $data['id'] = $selected_feediscount_id;
 
+        $this->load->model('hostel_model');
         $class                   = $this->class_model->get();
         $data['classlist']       = $class;
+        $data['hostel_list']     = $this->hostel_model->listhostel();
         $feediscount_result      = $this->feediscount_model->get($selected_feediscount_id);
         $data['feediscountList'] = $feediscount_result;
         $all_feediscount_result = $this->feediscount_model->get();
@@ -170,7 +172,8 @@ class Feediscount extends Admin_Controller
             $data['rte_status']  = $this->input->post('rte');
             $data['class_id']    = $this->input->post('class_id');
             $data['section_id']  = $this->input->post('section_id');
-            $resultlist          = $this->feediscount_model->searchAssignFeeByClassSection($data['class_id'], $data['section_id'], $id, $data['category_id'], $data['gender'], $data['rte_status'], true);
+            $data['hostel_id']   = $this->input->post('hostel_id');
+            $resultlist          = $this->feediscount_model->searchAssignFeeByClassSection($data['class_id'], $data['section_id'], $id, $data['category_id'], $data['gender'], $data['rte_status'], true, $data['hostel_id']);
             $data['resultlist']  = $resultlist;
         }
         $data['sch_setting'] = $this->sch_setting_detail;
