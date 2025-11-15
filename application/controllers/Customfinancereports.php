@@ -116,6 +116,22 @@ class Customfinancereports extends Admin_Controller
                     $obj->discount = $total_discount_sum;
                     $obj->balance  = $totalfee - ($total_paid_sum + $total_discount_sum);
 
+                    // NEW LOGIC TO CALCULATE TOTAL DISCOUNT
+                    $total_student_discount_dynamic = 0;
+                    if (!empty($obj->applied_discounts)) {
+                        foreach ($obj->applied_discounts as $student_discount) {
+                            $discount_amount = 0;
+                            if (isset($student_discount['custom_amount']) && $student_discount['custom_amount'] != null) {
+                                $discount_amount = $student_discount['custom_amount'];
+                            } else {
+                                $discount_amount = $student_discount['amount'];
+                            }
+                            $total_student_discount_dynamic += $discount_amount;
+                        }
+                    }
+                    // Overwrite the old discount total with the new dynamic one
+                    $obj->discount = $total_student_discount_dynamic;
+
                     // Filter based on search type
                     $include_student = false;
                     if ($search_type == 'all') {
