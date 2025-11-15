@@ -1394,9 +1394,7 @@ class Studentfeemaster_model extends MY_Model
                 'amount_detail' => $fee_data['amount_detail'],
                 'student_fees_master_id' => $student_fees_master_id,
                 'fee_groups_feetype_id' => $fee_groups_feetype_id,
-                'student_transport_fee_id' => $student_transport_fee_id,
-                'old_bill_number' => $fee_data['old_bill_number'] ?? null, // New field
-                'old_bill_date' => $fee_data['old_bill_date'] ?? null, // New field
+                'student_transport_fee_id' => $student_transport_fee_id
             );
 
             if ($q->num_rows() > 0) {

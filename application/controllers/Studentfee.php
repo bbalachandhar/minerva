@@ -855,6 +855,7 @@ class Studentfee extends Admin_Controller
         $data['settinglist'] = $setting_result;
         $record              = $this->input->post('data');
         $record_array        = json_decode($record);
+        $student_session_id  = 0; 
 
         $fees_array = array();
         foreach ($record_array as $key => $value) {
@@ -867,15 +868,24 @@ class Studentfee extends Admin_Controller
             if ($fee_category == "transport") {
                 $feeList               = $this->studentfeemaster_model->getTransportFeeByID($trans_fee_id);
                 $feeList->fee_category = $fee_category;
+                 if($student_session_id == 0){
+                    $student_session_id = $feeList->student_session_id;
+                }
             } else {
                 $feeList               = $this->studentfeemaster_model->getDueFeeByFeeSessionGroupFeetype($fee_session_group_id, $fee_master_id, $fee_groups_feetype_id);
                 $feeList->fee_category = $fee_category;
+                 if($student_session_id == 0){
+                    $student_session_id = $feeList->student_session_id;
+                }
             }
 
             $fees_array[] = $feeList;
         }
 
         $data['feearray'] = $fees_array;
+        $data['discount_not_applied'] = $this->getNotAppliedDiscount($student_session_id);
+        $data['advance_balance'] = $this->studentfeemaster_model->get_advance_balance($student_session_id);
+
         $result           = array(
             'view' => $this->load->view('studentfee/getcollectfee', $data, true),
         );
@@ -1620,15 +1630,41 @@ class Studentfee extends Admin_Controller
             $row_counters = $this->input->post('row_counter');
             $bulk_data = array();
             $collected_by = $this->customlib->getAdminSessionUserName() . "(" . $staff_record['employee_id'] . ")";
-            $payment_mode = $this->input->post('payment_mode_fee');
+            
+            $use_advance = $this->input->post('use_advance');
+            if ($use_advance == 'yes') {
+                $payment_mode = 'Advance';
+            } else {
+                $payment_mode = $this->input->post('payment_mode_fee');
+            }
+
             $description = $this->input->post('fee_gupcollected_note');
             $collected_date = date('Y-m-d', $this->customlib->datetostrtotime($this->input->post('collected_date')));
+            $amount_discount = $this->input->post('amount_discount') ? convertCurrencyFormatToBaseAmount($this->input->post('amount_discount')) : 0;
+            $amount_fine = $this->input->post('amount_fine') ? convertCurrencyFormatToBaseAmount($this->input->post('amount_fine')) : 0;
+            $discounts = $this->input->post('fee_discount_group');
+            if(!isset($discounts)){
+                $discounts=[];
+            }
+
+            $total_fee_amount = 0;
+            foreach ($row_counters as $row_count) {
+                $total_fee_amount += convertCurrencyFormatToBaseAmount($this->input->post('fee_amount_' . $row_count));
+            }
+
+            $total_paid = $total_fee_amount - $amount_discount;
 
             foreach ($row_counters as $row_count) {
+                $fee_amount = convertCurrencyFormatToBaseAmount($this->input->post('fee_amount_' . $row_count));
+                $distributed_discount = 0;
+                if($total_fee_amount > 0){
+                    $distributed_discount = ($fee_amount / $total_fee_amount) * $amount_discount;
+                }
+                
                 $json_array = array(
-                    'amount'          => convertCurrencyFormatToBaseAmount($this->input->post('fee_amount_' . $row_count)),
-                    'amount_discount' => 0, // Assuming no discount in this form
-                    'amount_fine'     => 0, // Assuming no fine in this form
+                    'amount'          => $fee_amount - $distributed_discount,
+                    'amount_discount' => $distributed_discount,
+                    'amount_fine'     => 0, // Fine distribution logic can be added here if needed
                     'date'            => $collected_date,
                     'description'     => $description,
                     'collected_by'    => $collected_by,
@@ -1641,18 +1677,38 @@ class Studentfee extends Admin_Controller
                     'student_fees_master_id' => $this->input->post('student_fees_master_id_' . $row_count),
                     'fee_groups_feetype_id'  => $this->input->post('fee_groups_feetype_id_' . $row_count),
                     'amount_detail'          => $json_array,
-                    'student_transport_fee_id' => $this->input->post('trans_fee_id_' . $row_count),
-                    'collected_by' => $collected_by,
-                    'collection_date' => $collected_date,
+                    'student_transport_fee_id' => $this->input->post('trans_fee_id_' . $row_count)
                 );
                 $bulk_data[] = $data;
             }
 
-            $inserted_ids = $this->studentfeemaster_model->add_bulk_fee_deposit($bulk_data);
+            $inserted_ids = $this->studentfeemaster_model->add_bulk_fee_deposit($bulk_data, $discounts);
 
             if ($inserted_ids) {
-                // send mail
                 $student_session_id = $this->input->post('student_session_id');
+                if ($use_advance == 'yes') {
+                    $advance_fee_ids = $this->studentfeemaster_model->get_or_create_advance_fee_ids($student_session_id);
+                    $json_array_advance = [
+                        'amount'          => -$total_paid,
+                        'amount_discount' => 0,
+                        'amount_fine'     => 0,
+                        'date'            => $collected_date,
+                        'description'     => 'Advance amount used for bulk fee payment',
+                        'collected_by'    => $collected_by,
+                        'payment_mode'    => 'Advance Adjustment',
+                        'received_by'     => $staff_record['id'],
+                    ];
+
+                    $data_to_insert_advance = [
+                        'fee_category'           => 'fees',
+                        'student_fees_master_id' => $advance_fee_ids->student_fees_master_id,
+                        'fee_groups_feetype_id'  => $advance_fee_ids->fee_groups_feetype_id,
+                        'amount_detail'          => $json_array_advance,
+                    ];
+                    $this->studentfeemaster_model->fee_deposit($data_to_insert_advance, null, [], $collected_date);
+                }
+
+                // send mail
                 $send_to            = $this->input->post('guardian_phone');
                 $email              = $this->input->post('guardian_email');
                 $parent_app_key     = $this->input->post('parent_app_key');
