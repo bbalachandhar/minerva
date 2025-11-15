@@ -92,7 +92,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                 $total_other_demand = 0; $total_other_paid = 0; $total_other_balance = 0;
                                 $total_hostel_demand = 0; $total_hostel_paid = 0; $total_hostel_balance = 0;
                                 $total_transport_demand = 0; $total_transport_paid = 0; $total_transport_balance = 0;
-                                $total_govt_7_5_subsidy = 0; $total_govt_fg_subsidy = 0; $total_actual_balance = 0; // Added
+                                $total_actual_balance = 0; // Added
                                 $discount_totals = array_fill_keys(array_column($discount_list, 'id'), 0);
 
                                 if (!empty($student_due_fee)) {
@@ -117,8 +117,6 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                         $total_transport_demand += $student->transport_demand;
                                         $total_transport_paid += $student->transport_paid;
                                         $total_transport_balance += $student->transport_balance;
-                                        $total_govt_7_5_subsidy += $student->govt_7_5_subsidy; // Added
-                                        $total_govt_fg_subsidy += $student->govt_fg_subsidy;   // Added
                                         $total_actual_balance += $student->actual_balance;     // Added
                                         $total_discount += $student->discount;
                                         ?>
@@ -129,16 +127,8 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                             <td class="text-right"><?php echo amountFormat($student->cf_balance); ?></td>
                                             <?php 
                                             foreach ($discount_list as $discount) {
-                                                $discount_amount_student = 0;
-                                                if ($discount['name'] == 'Govt 7.5 Subsidy') {
-                                                    $discount_amount_student = $student->govt_7_5_subsidy;
-                                                } elseif ($discount['name'] == 'Govt FG Subsidy') {
-                                                    $discount_amount_student = $student->govt_fg_subsidy;
-                                                } else {
-                                                    // For other dynamic discounts, we need to get their individual amounts if available.
-                                                    // For now, we'll display 0.
-                                                    $discount_amount_student = 0; // Placeholder
-                                                }
+                                                $prop_name = 'discount_' . $discount['id'];
+                                                $discount_amount_student = $student->$prop_name;
                                                 echo "<td class='text-right'>" . amountFormat($discount_amount_student) . "</td>";
                                             }
                                             ?>
@@ -170,23 +160,12 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                             </tbody>
                              <tfoot>
                                 <tr class="box box-solid total-bg">
-                                    <td><?php echo $this->lang->line('grand_total'); ?></td>
+                                    <th><?php echo $this->lang->line('grand_total'); ?></th>
                                     <td class="text-right"><?php echo $currency_symbol . amountFormat($total_last_yr_cf); ?></td>
                                     <td class="text-right"><?php echo $currency_symbol . amountFormat($total_cf_paid); ?></td>
                                     <td class="text-right"><?php echo $currency_symbol . amountFormat($total_cf_balance); ?></td>
-                                    <?php foreach ($discount_list as $discount) { // Loop through discount_list to get correct order and count
-                                        $total_for_discount = 0;
-                                        if ($discount['name'] == 'Govt 7.5 Subsidy') {
-                                            $total_for_discount = $total_govt_7_5_subsidy;
-                                        } elseif ($discount['name'] == 'Govt FG Subsidy') {
-                                            $total_for_discount = $total_govt_fg_subsidy;
-                                        } else {
-                                            // For other discounts, we need to get their accumulated totals.
-                                            // Currently, $discount_totals is an array_fill_keys with 0s.
-                                            // This needs to be properly populated in the controller.
-                                            // For now, we'll display 0 for other dynamic discounts.
-                                            $total_for_discount = 0; // Placeholder
-                                        }
+                                    <?php foreach ($discount_list as $discount) {
+                                        $total_for_discount = $discount_totals_footer[$discount['id']];
                                         ?>
                                         <td class="text-right"><?php echo $currency_symbol . amountFormat($total_for_discount); ?></td>
                                     <?php } ?>

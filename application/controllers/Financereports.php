@@ -461,7 +461,6 @@ class Financereports extends Admin_Controller
                                             foreach ($amount_detail as $amount_detail_key => $amount_detail_value) {
                                                 $deposit  = $deposit + $amount_detail_value->amount;
                                                 $fine     = $fine + $amount_detail_value->amount_fine;
-                                                $discount = $discount + $amount_detail_value->amount_discount;
                                             }
                                         }
                                     }
@@ -469,12 +468,28 @@ class Financereports extends Admin_Controller
                             }
                         }
 
+                        // New dynamic discount calculation
+                        $this->load->model("feediscount_model");
+                        $applied_discounts = $this->feediscount_model->getStudentFeesDiscount($student_session_id);
+                        $total_student_discount = 0;
+                        if (!empty($applied_discounts)) {
+                            foreach ($applied_discounts as $student_discount) {
+                                $discount_amount = 0;
+                                if (isset($student_discount['custom_amount']) && $student_discount['custom_amount'] != null) {
+                                    $discount_amount = $student_discount['custom_amount'];
+                                } else {
+                                    $discount_amount = $student_discount['amount'];
+                                }
+                                $total_student_discount += $discount_amount;
+                            }
+                        }
+
                         $obj->totalfee     = $totalfee;
                         $obj->payment_mode = "N/A";
                         $obj->deposit      = $deposit;
                         $obj->fine         = $fine;
-                        $obj->discount     = $discount;
-                        $obj->balance      = $totalfee - ($deposit + $discount);
+                        $obj->discount     = $total_student_discount;
+                        $obj->balance      = $totalfee - ($deposit + $total_student_discount);
                     } else {
 
                         $obj->totalfee     = 0;
@@ -1466,6 +1481,7 @@ class Financereports extends Admin_Controller
             if ($this->form_validation->run() == FALSE) {
                 $data['student_due_fee'] = array();
                 $data['resultarray']     = array();
+                $data['discount_totals_footer'] = array_fill_keys(array_column($data['discount_list'], 'id'), 0);
             } else {
                 $student_Array = array();
                 $search_type   = $this->input->post('search_type');
@@ -1516,10 +1532,13 @@ class Financereports extends Admin_Controller
                                 'transport_paid' => 0,
                                 'transport_balance' => 0, // Added
                                 'advance_paid' => 0,
-                                'govt_7_5_subsidy' => 0, // Added
-                                'govt_fg_subsidy' => 0,  // Added
                                 'actual_balance' => 0,   // Added
                             ];
+                            // Initialize dynamic discount properties
+                            foreach ($data['discount_list'] as $discount) {
+                                $prop_name = 'discount_' . $discount['id'];
+                                $class_summary[$class_name]->$prop_name = 0;
+                            }
                         }
     
                         // Get all fees and discounts for the student
@@ -1574,23 +1593,22 @@ class Financereports extends Admin_Controller
 
                         // Get student's applied discounts to find subsidies and accumulate
                         $applied_discounts = $this->feediscount_model->getStudentFeesDiscount($student_session_id);
-                        log_message('debug', 'Applied discounts for student ' . $student_session_id . ': ' . json_encode($applied_discounts)); // NEW LOG
-                        $govt_7_5_subsidy_student = 0;
-                        $govt_fg_subsidy_student = 0;
-
-                        foreach ($applied_discounts as $ad) {
-                            log_message('debug', 'Discount name: ' . (isset($ad['name']) ? $ad['name'] : 'N/A') . ', Amount: ' . (isset($ad['amount']) ? $ad['amount'] : 'N/A')); // NEW LOG
-                            if (isset($ad['name']) && $ad['name'] == 'Govt 7.5 Subsidy') {
-                                $govt_7_5_subsidy_student += $ad['amount'];
+                        
+                        $total_student_discount = 0;
+                        foreach ($applied_discounts as $student_discount) {
+                            $prop_name = 'discount_' . $student_discount['fees_discount_id'];
+                            $discount_amount = 0;
+                            if (isset($student_discount['custom_amount']) && $student_discount['custom_amount'] != null) {
+                                $discount_amount = $student_discount['custom_amount'];
+                            } else {
+                                $discount_amount = $student_discount['amount'];
                             }
-                            if (isset($ad['name']) && $ad['name'] == 'Govt FG Subsidy') {
-                                $govt_fg_subsidy_student += $ad['amount'];
+                            
+                            if (property_exists($class_summary[$class_name], $prop_name)) {
+                                $class_summary[$class_name]->$prop_name += $discount_amount;
                             }
+                            $total_student_discount += $discount_amount;
                         }
-                        log_message('debug', 'Student ' . $student_session_id . ' Govt 7.5 Subsidy: ' . $govt_7_5_subsidy_student . ', Govt FG Subsidy: ' . $govt_fg_subsidy_student);
-                        $class_summary[$class_name]->govt_7_5_subsidy += $govt_7_5_subsidy_student;
-                        $class_summary[$class_name]->govt_fg_subsidy += $govt_fg_subsidy_student;
-                        log_message('debug', 'Class ' . $class_name . ' accumulated Govt 7.5 Subsidy: ' . $class_summary[$class_name]->govt_7_5_subsidy . ', Govt FG Subsidy: ' . $class_summary[$class_name]->govt_fg_subsidy);
                     }
                 }
                 
@@ -1604,21 +1622,31 @@ class Financereports extends Admin_Controller
                     // CF-Paid for the class is $summary_obj->cf_paid
 
                     $total_balance_class = $summary_obj->balance;
-                    $subsidies_total_class = $summary_obj->govt_7_5_subsidy + $summary_obj->govt_fg_subsidy;
+                    
+                    $total_dynamic_discounts = 0;
+                    foreach ($data['discount_list'] as $discount) {
+                        $prop_name = 'discount_' . $discount['id'];
+                        if (property_exists($summary_obj, $prop_name)) {
+                            $total_dynamic_discounts += $summary_obj->$prop_name;
+                        }
+                    }
+
                     $advance_minus_cf_paid_class = $summary_obj->advance_paid - $summary_obj->cf_paid;
 
-                    $class_summary[$class_name]->actual_balance = $total_balance_class - ($subsidies_total_class + $advance_minus_cf_paid_class);
+                    $class_summary[$class_name]->actual_balance = $total_balance_class - ($total_dynamic_discounts + $advance_minus_cf_paid_class);
                 }
 
                 // Sum up the total subsidies from all classes for the footer
-                $total_govt_7_5_subsidy = 0;
-                $total_govt_fg_subsidy = 0;
+                $discount_totals_footer = array_fill_keys(array_column($data['discount_list'], 'id'), 0);
                 foreach ($class_summary as $summary_obj) {
-                    $total_govt_7_5_subsidy += $summary_obj->govt_7_5_subsidy;
-                    $total_govt_fg_subsidy += $summary_obj->govt_fg_subsidy;
+                    foreach ($data['discount_list'] as $discount) {
+                        $prop_name = 'discount_' . $discount['id'];
+                        if (property_exists($summary_obj, $prop_name)) {
+                            $discount_totals_footer[$discount['id']] += $summary_obj->$prop_name;
+                        }
+                    }
                 }
-                $data['total_govt_7_5_subsidy'] = $total_govt_7_5_subsidy;
-                $data['total_govt_fg_subsidy'] = $total_govt_fg_subsidy;
+                $data['discount_totals_footer'] = $discount_totals_footer;
                                                         // Convert class_summary associative array to indexed array for the view
                                                 $student_Array = array_values($class_summary);    
                 log_message('debug', 'Final student_Array passed to view: ' . json_encode($student_Array));
