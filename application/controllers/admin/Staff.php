@@ -1043,7 +1043,7 @@ class Staff extends Admin_Controller
                 $data_update['image'] = $img_name;
             }
 
-            $this->staff_model->add($data_update, $role_array, $leave_array);
+            $this->staff_model->batchInsert($data_update, $role_array, $leave_array);
             if (!empty($custom_value_array)) {
                 $this->customfield_model->updateRecord($custom_value_array, $id);
             }
