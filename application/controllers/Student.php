@@ -1652,9 +1652,9 @@ class Student extends Admin_Controller
         $this->form_validation->set_rules('mother_pic', $this->lang->line('image'), 'callback_handle_mother_upload[mother_pic]');
         $this->form_validation->set_rules('guardian_pic', $this->lang->line('image'), 'callback_handle_guardian_upload[guardian_pic]');
 
-        $transport_feemaster_id = $this->input->post('transport_feemaster_id');
+        $vehroute_id = $this->input->post('vehroute_id');
 
-        if (!empty($transport_feemaster_id)) {
+        if (!empty($vehroute_id)) {
             $this->form_validation->set_rules('vehroute_id', $this->lang->line('route_list'), 'trim|required|xss_clean');
             $this->form_validation->set_rules('route_pickup_point_id', $this->lang->line('pickup_point'), 'trim|required|xss_clean');
             $this->form_validation->set_rules('transport_feemaster_id[]', $this->lang->line('fees_month'), 'trim|required|xss_clean');
@@ -1953,7 +1953,7 @@ class Student extends Admin_Controller
 
             $transport_feemaster_id = $this->input->post('transport_feemaster_id');
 
-            if (!empty($transport_feemaster_id)) {
+            if (!empty($vehroute_id) && !empty($transport_feemaster_id)) {
                 $trns_data_insert = array();
                 foreach ($transport_feemaster_id as $transport_feemaster_key => $transport_feemaster_value) {
                     $trns_data_insert[] = array(

@@ -584,7 +584,6 @@ class Studentfeemaster_model extends MY_Model
         } else {
 
             $this->db->trans_start(); // Query will be rolled back
-            log_message('error', 'fee_deposit - Inserting new record with data: ' . print_r($data, true));
             $data['amount_detail']['inv_no'] = 1;
             $desc                            = $data['amount_detail']['description'];
             $data['amount_detail']           = json_encode(array('1' => $data['amount_detail']));

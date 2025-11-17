@@ -252,4 +252,13 @@ class Feediscount_model extends MY_Model
         return $result;
     }
 
+    public function getStudentsByDiscountId($fees_discount_id)
+    {
+        $this->db->select('student_session_id');
+        $this->db->from('student_fees_discounts');
+        $this->db->where('fees_discount_id', $fees_discount_id);
+        $query = $this->db->get();
+        return $query->result_array();
+    }
+
 }

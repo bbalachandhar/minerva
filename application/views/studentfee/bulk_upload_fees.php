@@ -240,6 +240,49 @@ admission_no,amount,date,payment_mode,description
                 </div>
             </div>
         </div>
+
+        <div class="row">
+            <div class="col-md-12">
+                <div class="box box-primary">
+                    <div class="box-header with-border">
+                        <h3 class="box-title"><i class="fa fa-percent"></i> <?php echo $this->lang->line('apply_discounts'); ?></h3>
+                    </div>
+                    <div class="box-body">
+                        <?php echo form_open('', array('id' => 'apply_discount_form')); ?>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="discount_type_id"><?php echo $this->lang->line('discount_type'); ?></label><small class="req"> *</small>
+                                    <select autofocus="" id="discount_type_id" name="discount_type_id" class="form-control" >
+                                        <option value=""><?php echo $this->lang->line('select'); ?></option>
+                                        <?php foreach ($discount_list as $discount) { ?>
+                                            <option value="<?php echo $discount['id'] ?>"><?php echo $discount['name'] . " (" . $discount['code'] . ")"; ?></option>
+                                        <?php } ?>
+                                    </select>
+                                    <span class="text-danger"><?php echo form_error('discount_type_id'); ?></span>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="fee_type_to_adjust_id"><?php echo $this->lang->line('fee_type_to_adjust'); ?></label><small class="req"> *</small>
+                                    <select autofocus="" id="fee_type_to_adjust_id" name="fee_type_to_adjust_id" class="form-control" >
+                                        <option value=""><?php echo $this->lang->line('select'); ?></option>
+                                        <?php foreach ($feetype_list as $feetype) { ?>
+                                            <option value="<?php echo $feetype['id'] ?>"><?php echo $feetype['type'] . " (" . $feetype['code'] . ")"; ?></option>
+                                        <?php } ?>
+                                    </select>
+                                    <span class="text-danger"><?php echo form_error('fee_type_to_adjust_id'); ?></span>
+                                </div>
+                            </div>
+                            <div class="col-md-4" style="margin-top: 25px;">
+                                <button type="submit" class="btn btn-primary" id="apply_discount_btn"><?php echo $this->lang->line('apply_discount'); ?></button>
+                            </div>
+                        </div>
+                        <?php echo form_close(); ?>
+                    </div>
+                </div>
+            </div>
+        </div>
     </section>
 </div>
 
@@ -341,6 +384,39 @@ admission_no,amount,date,payment_mode,description
                 },
                 error: function (xhr) { // if error occured
                     alert("Error occured.please try again");
+                    $btn.button('reset');
+                }
+            });
+        }));
+
+        // New script for applying discount
+        $("#apply_discount_form").on('submit', (function (e) {
+            e.preventDefault();
+            var $this = $(this);
+            var $btn = $this.find("#apply_discount_btn");
+            $btn.button('loading');
+
+            var discount_id = $('#discount_type_id').val();
+            var fee_type_to_adjust_id = $('#fee_type_to_adjust_id').val();
+
+            $.ajax({
+                url: "<?php echo site_url('studentfee/apply_discount') ?>",
+                type: "POST",
+                data: {
+                    discount_id: discount_id,
+                    fee_type_to_adjust_id: fee_type_to_adjust_id
+                },
+                dataType: 'json',
+                success: function (data) {
+                    if (data.status == "fail") {
+                        errorMsg(data.message);
+                    } else {
+                        successMsg(data.message);
+                    }
+                    $btn.button('reset');
+                },
+                error: function (xhr) {
+                    alert("Error occurred. Please try again.");
                     $btn.button('reset');
                 }
             });
