@@ -559,9 +559,6 @@ class Studentfee extends Admin_Controller
 
             public function handle_csv_upload()
             {
-                log_message('error', 'handle_csv_upload called.');
-                log_message('error', 'FILES array: ' . print_r($_FILES, true));
-
                 if (isset($_FILES["file"]) && !empty($_FILES['file']['name'])) {
                     $allowedMimeTypes = array(
                         'text/csv',
@@ -574,17 +571,14 @@ class Studentfee extends Admin_Controller
                         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' // For .xlsx
                     );
                     $mime = get_mime_by_extension($_FILES['file']['name']);
-                    log_message('error', 'Detected MIME type: ' . $mime);
 
                     if (!in_array($mime, $allowedMimeTypes)) {
                         $this->form_validation->set_message('handle_csv_upload', $this->lang->line('file_type_not_allowed'));
-                        log_message('error', 'File type not allowed.');
                         return false;
                     }
                     return true;
                 } else {
                     $this->form_validation->set_message('handle_csv_upload', $this->lang->line('the_file_field_is_required'));
-                    log_message('error', 'File field is required.');
                     return false;
                 }
             }
@@ -1262,11 +1256,8 @@ class Studentfee extends Admin_Controller
 
     public function printFeesByGroup()
     {
-        log_message('error', '--- printFeesByGroup method started ---');
         $fee_category           = $this->input->post('fee_category');
         $trans_fee_id           = $this->input->post('trans_fee_id');
-        log_message('error', 'fee_category: ' . $fee_category);
-        log_message('error', 'trans_fee_id: ' . $trans_fee_id);
 
         $setting_result         = $this->setting_model->get();
         $data['settinglist']    = $setting_result;
@@ -1274,40 +1265,29 @@ class Studentfee extends Admin_Controller
 
         if ($fee_category == "transport") {
             $data['feeList'] = $this->studentfeemaster_model->getTransportFeeByID($trans_fee_id);
-            log_message('error', 'Transport feeList: ' . print_r($data['feeList'], true));
-
+            
             if($this->thermal_print_module == 1 && $this->thermal_print_enable == 1){			
 				$data['thermal_print'] = $this->thermal_print_result;				
 				$page = $this->load->view('print/thermalPrintTransportFeesByGroup', $data, true); 	
-                log_message('error', 'Loading view: print/thermalPrintTransportFeesByGroup');
             }else{
                 $page = $this->load->view('print/printTransportFeesByGroup', $data, true); 
-                log_message('error', 'Loading view: print/printTransportFeesByGroup');
             }
 
         } else {
             $fee_groups_feetype_id = $this->input->post('fee_groups_feetype_id');
             $fee_master_id         = $this->input->post('fee_master_id');
             $fee_session_group_id  = $this->input->post('fee_session_group_id');
-            log_message('error', 'fee_groups_feetype_id: ' . $fee_groups_feetype_id);
-            log_message('error', 'fee_master_id: ' . $fee_master_id);
-            log_message('error', 'fee_session_group_id: ' . $fee_session_group_id);
 
             $data['feeList']       = $this->studentfeemaster_model->getDueFeeByFeeSessionGroupFeetype($fee_session_group_id, $fee_master_id, $fee_groups_feetype_id);
-            log_message('error', 'Regular feeList: ' . print_r($data['feeList'], true));
 
             if($this->thermal_print_module == 1 && $this->thermal_print_enable == 1){				
 				$data['thermal_print'] = $this->thermal_print_result;
 				$page  = $this->load->view('print/thermalPrintFeesByGroup', $data, true);
-                log_message('error', 'Loading view: print/thermalPrintFeesByGroup');
             }else{
                $page  = $this->load->view('print/printFeesByGroup', $data, true);
-               log_message('error', 'Loading view: print/printFeesByGroup');
             }
         }
-        log_message('error', 'Page content generated. Status: 1');
         echo json_encode(array('status' => 1, 'page' => $page));
-        log_message('error', '--- printFeesByGroup method finished ---');
     }
 
     public function printFeesByGroupArray()
@@ -1742,146 +1722,182 @@ class Studentfee extends Admin_Controller
         }
     }
 
-    public function apply_discount()
-    {
-        $this->output->set_content_type('application/json');
-        if (!$this->rbac->hasPrivilege('collect_fees', 'can_add')) {
-            echo json_encode(['status' => 'fail', 'message' => $this->lang->line('access_denied')]);
-            return;
-        }
-
-        $this->form_validation->set_rules('discount_id', $this->lang->line('discount_type'), 'required|trim|xss_clean');
-        $this->form_validation->set_rules('fee_type_to_adjust_id', $this->lang->line('fee_type'), 'required|trim|xss_clean');
-
-        if ($this->form_validation->run() == false) {
-            $errors = $this->form_validation->error_array();
-            echo json_encode(['status' => 'fail', 'message' => implode(', ', $errors)]);
-            return;
-        } else {
-            $discount_id = $this->input->post('discount_id');
-            $fee_type_to_adjust_id = $this->input->post('fee_type_to_adjust_id');
-
-            $discount = $this->feediscount_model->get($discount_id);
-            if (!$discount) {
-                echo json_encode(['status' => 'fail', 'message' => $this->lang->line('invalid_discount_type')]);
+        public function apply_discount()
+        {
+            $this->output->set_content_type('application/json');
+            if (!$this->rbac->hasPrivilege('collect_fees', 'can_add')) {
+                echo json_encode(['status' => 'fail', 'message' => $this->lang->line('access_denied')]);
                 return;
             }
-
-            $students_with_discount = $this->feediscount_model->getStudentsByDiscountId($discount_id);
-
-            $students_affected_count = 0;
-            $total_discount_applied = 0;
-
-            foreach ($students_with_discount as $student_data) {
-                $student_session_id = $student_data['student_session_id'];
-
-                $available_discounts = $this->feediscount_model->getDiscountNotApplied($student_session_id);
     
-                $can_apply = false;
-                $student_fees_discount_id = null;
-                $custom_amount = null;
-                foreach($available_discounts as $ad) {
-                    if ($ad->fees_discount_id == $discount_id) {
-                        $can_apply = true;
-                        $student_fees_discount_id = $ad->id;
-                        $custom_amount = $ad->custom_amount;
-                        break;
-                    }
+            $this->form_validation->set_rules('discount_id', $this->lang->line('discount_type'), 'required|trim|xss_clean');
+            $this->form_validation->set_rules('fee_type_to_adjust_id', $this->lang->line('fee_type'), 'required|trim|xss_clean');
+    
+            if ($this->form_validation->run() == false) {
+                $errors = $this->form_validation->error_array();
+                echo json_encode(['status' => 'fail', 'message' => implode(', ', $errors)]);
+                return;
+            } else {
+                $discount_id = $this->input->post('discount_id');
+                $fee_type_to_adjust_id = $this->input->post('fee_type_to_adjust_id');
+    
+                $discount = $this->feediscount_model->get($discount_id);
+                if (!$discount) {
+                    echo json_encode(['status' => 'fail', 'message' => $this->lang->line('invalid_discount_type')]);
+                    return;
                 }
-
-                if (!$can_apply) {
-                    continue;
-                }
-
-                $student_fees = $this->studentfeemaster_model->getStudentFees($student_session_id);
                 
-                $total_discount_amount = ($discount['amount'] == '0.00' && $custom_amount != null) ? $custom_amount : $discount['amount'];
-
-                $remaining_discount = $total_discount_amount;
-                $fees_to_update = [];
-                $fee_found_and_adjusted = false;
-
-                foreach ($student_fees as $fee_group) {
-                    foreach ($fee_group->fees as $fee) {
-                        if ($fee->feetype_id == $fee_type_to_adjust_id) {
-                            $fee_balance_obj = json_decode($this->getStuFeetypeBalance($fee->fee_groups_feetype_id, $fee->id));
+                $fee_type_to_adjust = $this->feetype_model->get($fee_type_to_adjust_id);
+                if (!$fee_type_to_adjust) {
+                    echo json_encode(['status' => 'fail', 'message' => 'Invalid Fee Type to Adjust selected.']);
+                    return;
+                }
+    
+                $students_with_discount = $this->feediscount_model->getStudentsByDiscountId($discount_id);
+    
+                $students_affected_count = 0;
+                $total_discount_applied = 0;
+    
+                foreach ($students_with_discount as $student_data) {
+                    $student_session_id = $student_data['student_session_id'];
+    
+                    $available_discounts = $this->feediscount_model->getDiscountNotApplied($student_session_id);
+        
+                    $can_apply = false;
+                    $student_fees_discount_id = null;
+                    $custom_amount = null;
+                    foreach($available_discounts as $ad) {
+                        if ($ad->fees_discount_id == $discount_id) {
+                            $can_apply = true;
+                            $student_fees_discount_id = $ad->id;
+                            $custom_amount = $ad->custom_amount;
+                            break;
+                        }
+                    }
+    
+                    if (!$can_apply) {
+                        continue;
+                    }
+    
+                    $total_discount_amount = ($discount['amount'] == '0.00' && $custom_amount != null) ? $custom_amount : $discount['amount'];
+                    $remaining_discount = $total_discount_amount;
+                    $fee_found_and_adjusted = false;
+    
+                    if (stripos($fee_type_to_adjust['type'], 'transport') !== false) {
+                        $student = $this->student_model->getByStudentSession($student_session_id);
+                        $transport_fees = $this->studentfeemaster_model->getStudentTransportFeesByStudentSessionId($student_session_id, $student['route_pickup_point_id']);
+                        
+                        foreach ($transport_fees as $tr_fee) {
+                            $fee_balance_obj = json_decode($this->getStudentTransportFeetypeBalance($tr_fee->id));
                             $fee_balance = (float) $fee_balance_obj->balance;
-
+    
                             if ($fee_balance > 0 && $remaining_discount > 0) {
                                 $amount_to_discount = min($fee_balance, $remaining_discount);
-
+    
                                 $json_array = [
-                                    'amount'          => 0, 
+                                    'amount'          => 0,
                                     'amount_discount' => $amount_to_discount,
                                     'amount_fine'     => 0,
                                     'date'            => date('Y-m-d'),
-                                    'description'     => $discount['name'] . ' Discount Applied to ' . $fee->type,
+                                    'description'     => $discount['name'] . ' Discount Applied to Transport Fee',
                                     'collected_by'    => $this->customlib->getAdminSessionUserName(),
                                     'payment_mode'    => 'Discount',
                                     'received_by'     => $this->customlib->getStaffID(),
                                 ];
-
-                                $fees_to_update[] = [
-                                    'fee_category'           => 'fees',
-                                    'student_fees_master_id' => $fee->id,
-                                    'fee_groups_feetype_id'  => $fee->fee_groups_feetype_id,
+    
+                                $fee_data = [
+                                    'fee_category'           => 'transport',
+                                    'student_transport_fee_id' => $tr_fee->id,
                                     'amount_detail'          => $json_array,
                                 ];
+                                
+                                $this->studentfeemaster_model->fee_deposit($fee_data, null, [$student_fees_discount_id], date('Y-m-d'));
                                 $remaining_discount -= $amount_to_discount;
                                 $fee_found_and_adjusted = true;
                             }
-                            break; 
+                            if ($remaining_discount <= 0) break;
+                        }
+    
+                    } else {
+                        $student_fees = $this->studentfeemaster_model->getStudentFees($student_session_id);
+                        foreach ($student_fees as $fee_group) {
+                            foreach ($fee_group->fees as $fee) {
+                                if ($fee->feetype_id == $fee_type_to_adjust_id) {
+                                    $fee_balance_obj = json_decode($this->getStuFeetypeBalance($fee->fee_groups_feetype_id, $fee->id));
+                                    $fee_balance = (float) $fee_balance_obj->balance;
+    
+                                    if ($fee_balance > 0 && $remaining_discount > 0) {
+                                        $amount_to_discount = min($fee_balance, $remaining_discount);
+    
+                                        $json_array = [
+                                            'amount'          => 0, 
+                                            'amount_discount' => $amount_to_discount,
+                                            'amount_fine'     => 0,
+                                            'date'            => date('Y-m-d'),
+                                            'description'     => $discount['name'] . ' Discount Applied to ' . $fee->type,
+                                            'collected_by'    => $this->customlib->getAdminSessionUserName(),
+                                            'payment_mode'    => 'Discount',
+                                        'received_by'     => $this->customlib->getStaffID(),
+                                        ];
+    
+                                        $fee_data = [
+                                            'fee_category'           => 'fees',
+                                            'student_fees_master_id' => $fee->id,
+                                            'fee_groups_feetype_id'  => $fee->fee_groups_feetype_id,
+                                            'amount_detail'          => $json_array,
+                                        ];
+                                        $this->studentfeemaster_model->fee_deposit($fee_data, null, [$student_fees_discount_id], date('Y-m-d'));
+                                        $remaining_discount -= $amount_to_discount;
+                                        $fee_found_and_adjusted = true;
+                                    }
+                                    break; 
+                                }
+                            }
+                            if ($fee_found_and_adjusted) {
+                                break;
+                            }
                         }
                     }
+    
                     if ($fee_found_and_adjusted) {
-                        break;
+                        $students_affected_count++;
+                        $total_discount_applied += ($total_discount_amount - $remaining_discount);
+                    }
+    
+                    if ($remaining_discount > 0) {
+                        $advance_fee_ids = $this->studentfeemaster_model->get_or_create_advance_fee_ids($student_session_id);
+                        $json_array_advance = [
+                            'amount'          => $remaining_discount,
+                            'amount_discount' => 0,
+                            'amount_fine'     => 0,
+                            'date'            => date('Y-m-d'),
+                            'description'     => 'Advance from ' . $discount['name'] . ' Discount',
+                            'collected_by'    => $this->customlib->getAdminSessionUserName(),
+                            'payment_mode'    => 'Advance',
+                            'received_by'     => $this->customlib->getStaffID(),
+                        ];
+    
+                        $data_to_insert_advance = [
+                            'fee_category'           => 'fees',
+                            'student_fees_master_id' => $advance_fee_ids->student_fees_master_id,
+                            'fee_groups_feetype_id'  => $advance_fee_ids->fee_groups_feetype_id,
+                            'amount_detail'          => $json_array_advance,
+                        ];
+                        $this->studentfeemaster_model->fee_deposit($data_to_insert_advance, null, [$student_fees_discount_id], date('Y-m-d'));
+    
+                        if (!$fee_found_and_adjusted) { 
+                            $students_affected_count++; 
+                        }
+                        $total_discount_applied += $remaining_discount;
                     }
                 }
-
-                if (!empty($fees_to_update)) {
-                    $discounts_to_apply = [$student_fees_discount_id];
-                    foreach ($fees_to_update as $fee_data) {
-                        $this->studentfeemaster_model->fee_deposit($fee_data, null, $discounts_to_apply, date('Y-m-d'));
-                    }
-                    $students_affected_count++;
-                    $total_discount_applied += ($total_discount_amount - $remaining_discount);
-                }
-
-                if ($remaining_discount > 0) {
-                    $advance_fee_ids = $this->studentfeemaster_model->get_or_create_advance_fee_ids($student_session_id);
-                    $json_array_advance = [
-                        'amount'          => $remaining_discount,
-                        'amount_discount' => 0,
-                        'amount_fine'     => 0,
-                        'date'            => date('Y-m-d'),
-                        'description'     => 'Advance from ' . $discount['name'] . ' Discount',
-                        'collected_by'    => $this->customlib->getAdminSessionUserName(),
-                        'payment_mode'    => 'Advance',
-                        'received_by'     => $this->customlib->getStaffID(),
-                    ];
-
-                    $data_to_insert_advance = [
-                        'fee_category'           => 'fees',
-                        'student_fees_master_id' => $advance_fee_ids->student_fees_master_id,
-                        'fee_groups_feetype_id'  => $advance_fee_ids->fee_groups_feetype_id,
-                        'amount_detail'          => $json_array_advance,
-                    ];
-                    $this->studentfeemaster_model->fee_deposit($data_to_insert_advance, null, [$student_fees_discount_id], date('Y-m-d'));
-
-                    if (!$fee_found_and_adjusted) { 
-                        $students_affected_count++; 
-                    }
-                    $total_discount_applied += $remaining_discount;
-                }
+    
+                echo json_encode([
+                    'status' => 'success',
+                    'message' => $this->lang->line('discount_applied_successfully') . ". " . $students_affected_count . " students affected. Total discount applied: " . number_format($total_discount_applied, 2),
+                ]);
             }
-
-            echo json_encode([
-                'status' => 'success',
-                'message' => $this->lang->line('discount_applied_successfully') . ". " . $students_affected_count . " students affected. Total discount applied: " . $total_discount_applied,
-            ]);
         }
-    }
-
     public function add_new_student($student)
     {
         $new_student = array(

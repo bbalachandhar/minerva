@@ -116,8 +116,18 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                             </div>
                             <div class="col-sm-3">
                                 <div class="form-group">
+                                    <label>Transport Student</label>
+                                    <select class="form-control" name="transport_student">
+                                        <option value=""><?php echo $this->lang->line('all'); ?></option>
+                                        <option value="yes" <?php if (isset($transport_student) && $transport_student == 'yes') echo "selected"; ?>>Yes</option>
+                                        <option value="no" <?php if (isset($transport_student) && $transport_student == 'no') echo "selected"; ?>>No</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-sm-12">
+                                <div class="form-group">
                                      <label class="hidden-xs">&nbsp;</label>
-                                    <button type="submit" name="search" value="search_filter" class="btn btn-primary btn-block"><i class="fa fa-search"></i> <?php echo $this->lang->line('search'); ?></button>
+                                    <button type="submit" name="search" value="search_filter" class="btn btn-primary btn-sm pull-right"><i class="fa fa-search"></i> <?php echo $this->lang->line('search'); ?></button>
                                 </div>
                             </div>
                         </form>

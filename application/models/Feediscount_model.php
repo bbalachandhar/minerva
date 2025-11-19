@@ -156,7 +156,7 @@ class Feediscount_model extends MY_Model
         }
     }
 
-    public function searchAssignFeeByClassSection($class_id = null, $section_id = null, $fees_discount_id = null, $category = null, $gender = null, $rte = null, $get_custom_amount = false, $hostel_id = null)
+    public function searchAssignFeeByClassSection($class_id = null, $section_id = null, $fees_discount_id = null, $category = null, $gender = null, $rte = null, $get_custom_amount = false, $hostel_id = null, $transport_student = null)
     {
         $sql = "SELECT IFNULL(`student_fees_discounts`.`id`, '0') as `student_fees_discount_id`,"
         . "`classes`.`id` AS `class_id`, `student_session`.`id` as `student_session_id`,"
@@ -214,6 +214,13 @@ class Feediscount_model extends MY_Model
         if ($hostel_id != null) {
             $sql .= " AND `hostel_rooms`.`hostel_id` =" . $this->db->escape($hostel_id);
         }
+        
+        if ($transport_student == 'yes') {
+            $sql .= " AND student_session.vehroute_id IS NOT NULL AND student_session.vehroute_id != 0";
+        } elseif ($transport_student == 'no') {
+            $sql .= " AND (student_session.vehroute_id IS NULL OR student_session.vehroute_id = 0)";
+        }
+
         $sql .= " AND students.is_active='yes'";
         $sql .= " ORDER BY `students`.`id`";
 
