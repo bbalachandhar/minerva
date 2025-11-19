@@ -1753,33 +1753,42 @@ class Studentfeemaster_model extends MY_Model
 
     public function searchStudentsByFeeGroups($feegroup_ids, $class_id, $section_id)
     {
-        $this->db->select('student_fees_master.*, student_session.id as student_session_id, students.firstname, students.middlename, students.lastname, student_session.class_id, classes.class, sections.section, students.category_id, students.image, students.id as student_id, students.father_name, students.admission_no, students.mobileno, students.roll_no, students.rte, IFNULL(categories.category, \'\') as category');
-        $this->db->from('student_fees_master');
-        $this->db->join('student_session', 'student_session.id = student_fees_master.student_session_id');
-        $this->db->join('students', 'students.id = student_session.student_id');
-        $this->db->join('classes', 'classes.id = student_session.class_id');
-        $this->db->join('sections', 'sections.id = student_session.section_id');
-        $this->db->join('categories', 'students.category_id = categories.id', 'left');
-        $this->db->where('student_session.session_id', $this->current_session);
-        $this->db->where('students.is_active', 'yes');
-        if ($class_id != null) {
-            $this->db->where('student_session.class_id', $class_id);
-        }
-        if ($section_id != null) {
-            $this->db->where('student_session.section_id', $section_id);
-        }
-        
+        $this->db->select("students.id as student_id, students.firstname, students.middlename, students.lastname, students.admission_no, students.roll_no, students.father_name, students.mobileno, students.rte, students.image, students.category_id, student_session.id as student_session_id, student_session.class_id, classes.class, sections.section, categories.category, sfm.id as student_fees_master_id, sfm.fee_session_group_id");
+        $this->db->from("students");
+        $this->db->join("student_session", "students.id = student_session.student_id");
+        $this->db->join("classes", "student_session.class_id = classes.id");
+        $this->db->join("sections", "student_session.section_id = sections.id");
+        $this->db->join("categories", "students.category_id = categories.id", "left");
+
         $fee_session_group_ids = array();
         if(!empty($feegroup_ids)){
             foreach($feegroup_ids as $group_feetype){
-                $parts = explode('-', $group_feetype);
+                $parts = explode("-", $group_feetype);
                 $fee_session_group_ids[] = $parts[0];
             }
         }
+        $unique_fee_session_group_ids = array_unique($fee_session_group_ids);
 
-        if (!empty($fee_session_group_ids)) {
-            $this->db->where_in('student_fees_master.fee_session_group_id', array_unique($fee_session_group_ids));
+        $join_condition = "sfm.student_session_id = student_session.id";
+        if (!empty($unique_fee_session_group_ids)) {
+            $in_clause = implode(",", array_map("intval", $unique_fee_session_group_ids));
+            $join_condition .= " AND sfm.fee_session_group_id IN (" . $in_clause . ")";
         }
+
+        $this->db->join("student_fees_master as sfm", $join_condition, "left");
+
+        $this->db->where("student_session.session_id", $this->current_session);
+        $this->db->where("students.is_active", "yes");
+
+        if ($class_id != null) {
+            $this->db->where("student_session.class_id", $class_id);
+        }
+        if ($section_id != null) {
+            $this->db->where("student_session.section_id", $section_id);
+        }
+
+        $this->db->group_by("students.id");
+        $this->db->order_by("students.id");
 
         $query = $this->db->get();
         $result = $query->result_array();
@@ -1787,9 +1796,12 @@ class Studentfeemaster_model extends MY_Model
         $student_fees = array();
         if (!empty($result)) {
             foreach ($result as $result_key => $result_value) {
-                $fee_session_group_id = $result_value['fee_session_group_id'];
-                $student_fees_master_id = $result_value['id'];
-                $raw_fees = $this->getDueFeeByFeeSessionGroup($fee_session_group_id, $student_fees_master_id);
+                $fee_session_group_id = $result_value["fee_session_group_id"];
+                $student_fees_master_id = $result_value["student_fees_master_id"];
+                $raw_fees = array();
+                if ($fee_session_group_id != null) {
+                    $raw_fees = $this->getDueFeeByFeeSessionGroup($fee_session_group_id, $student_fees_master_id);
+                }
 
                 $processed_fees = [];
                 foreach($raw_fees as $fee_value){
@@ -1809,41 +1821,41 @@ class Studentfeemaster_model extends MY_Model
                     }
                     
                     $processed_fee = array(
-                        'amount' => $fee_value->amount,
-                        'amount_deposite' => $amount_deposite,
-                        'amount_discount' => $amount_discount,
-                        'amount_fine' => $amount_fine,
-                        'fee_group' => $fee_value->name,
-                        'fee_type' => $fee_value->type,
-                        'fee_code' => $fee_value->code,
-                        'is_system' => $fee_value->is_system,
+                        "amount" => $fee_value->amount,
+                        "amount_deposite" => $amount_deposite,
+                        "amount_discount" => $amount_discount,
+                        "amount_fine" => $amount_fine,
+                        "fee_group" => $fee_value->name,
+                        "fee_type" => $fee_value->type,
+                        "fee_code" => $fee_value->code,
+                        "is_system" => $fee_value->is_system,
                     );
                     $processed_fees[] = $processed_fee;
                 }
 
-                if (!array_key_exists($result_value['student_session_id'], $student_fees)) {
-                    $student_fees[$result_value['student_session_id']] = array(
-                        'student_session_id' => $result_value['student_session_id'],
-                        'firstname' => $result_value['firstname'],
-                        'student_id' => $result_value['student_id'],
-                        'middlename' => $result_value['middlename'],
-                        'lastname' => $result_value['lastname'],
-                        'class_id' => $result_value['class_id'],
-                        'class' => $result_value['class'],
-                        'section' => $result_value['section'],
-                        'father_name' => $result_value['father_name'],
-                        'admission_no' => $result_value['admission_no'],
-                        'mobileno' => $result_value['mobileno'],
-                        'roll_no' => $result_value['roll_no'],
-                        'category_id' => $result_value['category_id'],
-                        'category' => $result_value['category'],
-                        'rte' => $result_value['rte'],
-                        'image' => $result_value['image'],
-                        'student_discount_fee' => $this->feediscount_model->getStudentFeesDiscount($result_value['student_session_id']),
-                        'fees' => []
+                if (!array_key_exists($result_value["student_session_id"], $student_fees)) {
+                    $student_fees[$result_value["student_session_id"]] = array(
+                        "student_session_id" => $result_value["student_session_id"],
+                        "firstname" => $result_value["firstname"],
+                        "student_id" => $result_value["student_id"],
+                        "middlename" => $result_value["middlename"],
+                        "lastname" => $result_value["lastname"],
+                        "class_id" => $result_value["class_id"],
+                        "class" => $result_value["class"],
+                        "section" => $result_value["section"],
+                        "father_name" => $result_value["father_name"],
+                        "admission_no" => $result_value["admission_no"],
+                        "mobileno" => $result_value["mobileno"],
+                        "roll_no" => $result_value["roll_no"],
+                        "category_id" => $result_value["category_id"],
+                        "category" => $result_value["category"],
+                        "rte" => $result_value["rte"],
+                        "image" => $result_value["image"],
+                        "student_discount_fee" => $this->feediscount_model->getStudentFeesDiscount($result_value["student_session_id"]),
+                        "fees" => []
                     );
                 }
-                $student_fees[$result_value['student_session_id']]['fees'] = array_merge($student_fees[$result_value['student_session_id']]['fees'], $processed_fees);
+                $student_fees[$result_value["student_session_id"]]["fees"] = array_merge($student_fees[$result_value["student_session_id"]]["fees"], $processed_fees);
             }
         }
         return $student_fees;

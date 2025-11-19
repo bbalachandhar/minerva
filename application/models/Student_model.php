@@ -1582,6 +1582,22 @@ class Student_model extends MY_Model
         return $query->result_array();
     }
 
+    public function getStudentsWithTransport()
+    {
+        $this->db->select('students.*,student_session.id as student_session_id,student_session.class_id,student_session.section_id,classes.class,sections.section,student_session.vehroute_id,student_session.route_pickup_point_id')->from('students');
+        $this->db->join('student_session', 'student_session.student_id = students.id');
+        $this->db->join('classes', 'student_session.class_id = classes.id');
+        $this->db->join('sections', 'student_session.section_id = sections.id');
+        $this->db->where('student_session.session_id', $this->current_session);
+        $this->db->where('students.is_active', 'yes');
+        $this->db->where('student_session.vehroute_id IS NOT NULL');
+        $this->db->where('student_session.vehroute_id !=', 0);
+        $this->db->where('student_session.route_pickup_point_id IS NOT NULL');
+        $this->db->where('student_session.route_pickup_point_id !=', 0);
+        $query = $this->db->get();
+        return $query->result_array();
+    }
+
     public function disableStudent($id, $data)
     {
         $this->db->where("id", $id)->update("students", $data);

@@ -389,7 +389,7 @@ class Customstudentfeemaster_model extends MY_Model
                         }
                     } else {
                         // If amount_detail is not JSON or '0', assume amount is the paid amount
-                        $aggregated_deposit->amount_paid += $result_value->amount;
+                        
                     }
                     // Assign transport fees
                     $return_object->transport_demand += $result_value->amount;

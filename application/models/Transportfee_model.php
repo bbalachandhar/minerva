@@ -42,6 +42,11 @@ class Transportfee_model extends MY_Model
         return $data;
     }
 
+    public function getYearlyFee($session_id)
+    {
+        return $this->db->select('*')->from('transport_feemaster')->where('session_id', $session_id)->order_by('id', 'DESC')->limit(1)->get()->result_array();
+    }
+
     public function transportfesstype($session_id,$month)
     {
         $data = $this->db->select('transport_feemaster.*,transport_feemaster.month as type,"transport_fees" as code')->from('transport_feemaster')->where('month', $month)->where('session_id', $session_id)->get()->row();      

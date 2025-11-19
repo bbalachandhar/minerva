@@ -168,6 +168,7 @@ if (set_value('class_id') == $class['id']) {
                                                 <th><?php echo $this->lang->line('class'); ?></th>
                                                 <th><?php echo $this->lang->line('admission_no'); ?></th>
                                                 <th><?php echo $this->lang->line('student_name'); ?></th>
+                                                <th><?php echo $this->lang->line('category'); ?></th>
                                                 <th width="30%"><?php echo $this->lang->line('fees_group'); ?></th>
                                                 <th class="text text-right"><?php echo $this->lang->line('amount'); ?> <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
                                                 <th class="text text-right"><?php echo $this->lang->line('paid'); ?> <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
@@ -201,12 +202,13 @@ if (set_value('class_id') == $class['id']) {
                                 }
                                 
                                 $balance = ($amount - ($amount_deposite + $amount_discount));
-                                if($balance > 0){
+                                
                                 ?>
                                                                     <tr>
                                                                         <td><?php echo $student['class'] . "-" . $student['section']; ?></td>
                                                                         <td><?php echo $student['admission_no']; ?></td>
                                                                         <td><?php echo $this->customlib->getFullName($student['firstname'], $student['middlename'], $student['lastname'], $sch_setting->middlename, $sch_setting->lastname); ?></td>
+                                                                        <td><?php echo $student['category']; ?></td>
                                                                         <td>
                                                                             <?php
                     if (!empty($student['fees'])) {
@@ -235,7 +237,7 @@ if (set_value('class_id') == $class['id']) {
                                                                     <?php }?>
                                                                         </td>
                                                                     </tr>
-                            <?php }
+                            <?php 
                     }
                             $count++;
                         }
