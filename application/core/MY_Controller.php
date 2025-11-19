@@ -14,7 +14,6 @@ class MY_Controller extends CI_Controller
         parent::__construct();
 
         $this->load->library('Db_manager');
-        $this->config->load('license');
         $this->load->helper(array('language', 'directory', 'customfield', 'custom', 'mime'));
         $this->load->model(array('session_model', 'staff_model', 'section_model', 'setting_model', 'class_model', 'classsection_model', 'category_model', 'student_model', 'feemaster_model', 'feecategory_model', 'feetype_model', 'studentfee_model', 'stuattendence_model', 'attendencetype_model', 'studentsession_model', 'language_model', 'admin_model', 'smsconfig_model', 'langpharses_model', 'subject_model', 'teacher_model', 'teachersubject_model', 'exam_model', 'mark_model', 'examschedule_model', 'examresult_model', 'expense_model', 'expensehead_model', 'studenttransportfee_model', 'book_model', 'grade_model', 'timetable_model', 'hostel_model', 'route_model', 'content_model', 'user_model', 'notification_model', 'paymentsetting_model', 'payroll_model', 'roomtype_model', 'department_model', 'designation_model', 'hostelroom_model', 'vehicle_model', 'vehroute_model', 'librarian_model', 'accountant_model', 'homework_model', 'librarymanagement_model', 'librarymember_model', 'bookissue_model', 'feegroup_model', 'feegrouptype_model', 'feesessiongroup_model', 'studentfeemaster_model', 'feediscount_model', 'emailconfig_model', 'income_model', 'incomehead_model', 'itemcategory_model', 'schoolhouse_model', 'item_model', 'messages_model', 'itemstore_model', 'itemsupplier_model', 'notificationsetting_model', 'itemstock_model', 'itemissue_model', 'userlog_model', 'cms_program_model', 'cms_menu_model', 'cms_media_model', 'cms_page_model', 'cms_menuitems_model', 'cms_page_content_model', 'role_model', 'calendar_model', 'userpermission_model', 'staffroles_model', 'staffattendancemodel', 'rolepermission_model', 'Certificate_model', 'classteacher_model', 'Generatecertificate_model', 'Student_id_card_model', 'timeline_model', 'Generateidcard_model', 'Module_model', 'subjectgroup_model', 'studentsubjectgroup_model', 'subjecttimetable_model', 'studentsubjectattendence_model', 'audit_model', 'Chat_model', 'apply_leave_model', 'disable_reason_model', 'question_model', 'leavetypes_model', 'alumni_model', 'lessonplan_model', 'syllabus_model', 'Staffidcard_model', 'Generatestaffidcard_model', 'visitors_model', 'video_tutorial_model'));
         $this->load->model(array('customfield_model', 'onlinestudent_model', 'houselist_model', 'onlineexam_model', 'onlineexamquestion_model', 'onlineexamresult_model', 'examstudent_model', 'admitcard_model', 'marksheet_model', 'chatuser_model', 'examgroupstudent_model', 'examgroup_model', 'batchsubject_model', 'filetype_model', 'currency_model', 'examsubject_model', 'feereminder_model'));
@@ -68,7 +67,6 @@ class Admin_Controller extends MY_Controller
             $this->auth->is_logged_in();
         }
         $this->sch_setting_detail = $this->setting_model->getSchoolDetail();
-        // $this->check_license();
         $this->load->library('rbac');
         $this->config->load('app-config');
         $this->config->load('ci-blog');
@@ -78,48 +76,6 @@ class Admin_Controller extends MY_Controller
         $this->load->helper('menu');
         $side_list = side_menu_list(1);
         log_message('debug', 'Admin_Controller __construct - $side_list: ' . print_r($side_list, true));
-    }
-
-    public function check_license()
-    {
-
-        $license = $this->config->item('SSLK');
-
-        if (!empty($license)) {
-
-            $regex = "/^[A-Z0-9]{6}-[A-Z0-9]{6}-[A-Z0-9]{6}-/";
-
-            if (preg_match($regex, $license)) {
-                $valid_string = $this->aes->validchk('encrypt', base_url());
-
-                if (strpos($license, $valid_string) !== false) {
-
-                    true; //valid
-                } else {
-                    $this->update_ss_routine();
-                }
-            } else {
-
-                $this->update_ss_routine();
-            }
-        }
-    }
-
-    public function update_ss_routine()
-    {
-
-        $license       = $this->config->item('SSLK');
-        $fname         = APPPATH . 'config/license.php';
-        $update_handle = fopen($fname, "r");
-        $content       = fread($update_handle, filesize($fname));
-        $file_contents = str_replace('$config[\'SSLK\'] = \'' . $license . '\'', '$config[\'SSLK\'] = \'\'', $content);
-        $update_handle = fopen($fname, 'w') or die("can't open file");
-        if (fwrite($update_handle, $file_contents)) {
-
-        }
-        fclose($update_handle);
-
-        $this->config->set_item('SSLK', '');
     }
 
 }
