@@ -326,9 +326,26 @@ class Studentfee extends Admin_Controller
 
                             if ($inserted_id) {
                                 if ($advance_amount > 0) {
-                                    // Handle advance amount for transport fees if necessary, similar to other advance logic
-                                    // This part might need further clarification on how advance payments are handled for transport fees
-                                    // For now, let's just log it as a success.
+                                    $advance_fee_ids = $this->studentfeemaster_model->get_or_create_advance_fee_ids($student_session_id);
+                                    $json_array_advance = [
+                                        'amount'          => $advance_amount,
+                                        'amount_discount' => 0,
+                                        'amount_fine'     => 0,
+                                        'date'            => date('Y-m-d', strtotime($date)),
+                                        'description'     => 'Advance from Bulk Transport Fee Upload',
+                                        'collected_by'    => $this->customlib->getAdminSessionUserName(),
+                                        'payment_mode'    => $payment_mode,
+                                        'received_by'     => $this->customlib->getStaffID(),
+                                    ];
+
+                                    $data_to_insert_advance = [
+                                        'fee_category'           => 'fees',
+                                        'student_fees_master_id' => $advance_fee_ids->student_fees_master_id,
+                                        'fee_groups_feetype_id'  => $advance_fee_ids->fee_groups_feetype_id,
+                                        'amount_detail'          => $json_array_advance,
+                                    ];
+
+                                    $this->studentfeemaster_model->fee_deposit($data_to_insert_advance, null, [], date('Y-m-d', strtotime($date)));
                                 }
                                 $successful_records++;
                             } else {

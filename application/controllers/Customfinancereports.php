@@ -15,6 +15,7 @@ class Customfinancereports extends Admin_Controller
         $this->sch_setting_detail = $this->setting_model->getSetting();
         $this->load->model("module_model");
         $this->load->model("customstudentfeemaster_model");
+        $this->load->model("studentfeemaster_model");
         $this->load->model("student_model");
         $this->load->model("class_model");
         $this->load->model("feediscount_model"); // Load the discount model
@@ -82,7 +83,7 @@ class Customfinancereports extends Admin_Controller
                     $obj->transport_demand = $fees_data->transport_demand;
                     $obj->transport_paid = $fees_data->transport_paid;
                     $obj->transport_balance = $fees_data->transport_demand - $fees_data->transport_paid;
-                    $obj->advance_paid = $fees_data->advance_paid;
+                    $obj->advance_paid = $this->studentfeemaster_model->get_advance_balance($student_session_id);
                     $student_total_fees = $fees_data->fees;
                     $obj->applied_discounts = $this->feediscount_model->getStudentFeesDiscount($student_session_id);
 
@@ -115,6 +116,8 @@ class Customfinancereports extends Admin_Controller
                     $obj->fine     = $total_fine_sum;
                     $obj->discount = $total_discount_sum;
                     $obj->balance  = $totalfee - ($total_paid_sum + $total_discount_sum);
+
+                    $obj->net_balance = $obj->balance - $obj->advance_paid;
 
                     // NEW LOGIC TO CALCULATE TOTAL DISCOUNT
                     $total_student_discount_dynamic = 0;
