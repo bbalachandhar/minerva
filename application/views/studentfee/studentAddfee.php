@@ -245,6 +245,17 @@ foreach ($student_due_fee as $key => $fee) {
         $total_fine_amount += $fee_fine;
         $feetype_balance = $fee_value->amount - ($fee_paid + $fee_discount);
         $total_balance_amount += $feetype_balance;
+
+        if ($fee_value->amount == 0) {
+            // Correct the grand totals for credit-based fees like Advance Payments
+            $total_deposite_amount -= $fee_paid; // Remove the credit amount from total paid
+            $total_balance_amount -= $feetype_balance; // Remove the incorrect negative balance
+            $total_balance_amount += $fee_paid; // Add the credit amount to the total balance
+
+            // Set the values for rendering this specific row
+            $feetype_balance = $fee_paid;
+            $fee_paid = 0;
+        }
         ?>
         <?php
         if (!empty($fee_value->due_date) && $feetype_balance > 0 && strtotime($fee_value->due_date) < strtotime(date('Y-m-d'))) { ?>
