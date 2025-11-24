@@ -247,14 +247,13 @@ foreach ($student_due_fee as $key => $fee) {
         $total_balance_amount += $feetype_balance;
 
         if ($fee_value->amount == 0) {
-            // Correct the grand totals for credit-based fees like Advance Payments
-            $total_deposite_amount -= $fee_paid; // Remove the credit amount from total paid
-            $total_balance_amount -= $feetype_balance; // Remove the incorrect negative balance
-            $total_balance_amount += $fee_paid; // Add the credit amount to the total balance
+            // This is a credit-based fee like Advance Payments.
+            // 1. Adjust the Grand Total for the 'Paid' column.
+            $total_deposite_amount -= $fee_paid;
 
-            // Set the values for rendering this specific row
-            $feetype_balance = $fee_paid;
-            $fee_paid = 0;
+            // 2. Set the variables for display in this row.
+            $feetype_balance = $fee_paid; // The balance is the credit amount.
+            $fee_paid = 0; // The 'paid' amount for a credit fee is conceptually zero.
         }
         ?>
         <?php

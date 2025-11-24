@@ -1127,6 +1127,16 @@ $currency_symbol = $admin_session['currency_symbol'];
                                                     $feetype_balance        = $fee_value->amount - ($fee_paid + $fee_discount);
                                                     $total_balance_amount   = $total_balance_amount + $feetype_balance;
 													
+													if ($fee_value->amount == 0) {
+														// This is a credit-based fee like Advance Payments.
+														// 1. Adjust the Grand Total for the 'Paid' column.
+														$total_deposite_amount -= $fee_paid;
+
+														// 2. Set the variables for display in this row.
+														$feetype_balance = $fee_paid; // The balance is the credit amount.
+														$fee_paid = 0; // The 'paid' amount for a credit fee is conceptually zero.
+													}
+													
 													if (($fee_value->due_date != "0000-00-00" && $fee_value->due_date != null) && (strtotime($fee_value->due_date) < strtotime(date('Y-m-d')))) {
             
                                                         //$total_fees_fine_amount = $total_fees_fine_amount + $fee_value->fine_amount;
