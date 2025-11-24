@@ -47,6 +47,7 @@ class Studentfee extends Admin_Controller
                 $data['title'] = $this->lang->line('bulk_upload_fees');
                 $data['feetype_list'] = $this->feetype_model->get();
                 $data['discount_list'] = $this->feediscount_model->get(); // Fetch discount types
+                $data['classlist'] = $this->class_model->get(); // Fetch class list
         
                 // Simply load the view, POST handling is moved to another method
                 $this->load->view('layout/header', $data);
@@ -1960,6 +1961,167 @@ class Studentfee extends Admin_Controller
                 ]);
             }
         }
+
+    public function search_students_for_advance()
+    {
+        $this->output->set_content_type('application/json');
+
+        if (!$this->rbac->hasPrivilege('collect_fees', 'can_view')) {
+            echo json_encode(['status' => 'fail', 'message' => $this->lang->line('access_denied')]);
+            return;
+        }
+
+        $class_id = $this->input->post('class_id');
+        $section_id = $this->input->post('section_id');
+        $search_text = $this->input->post('search_text');
+
+        $students = $this->student_model->get_students_for_advance_apply($class_id, $section_id, $search_text);
+
+        $eligible_students = [];
+        foreach ($students as $student) {
+            $advance_balance = $this->studentfeemaster_model->get_advance_balance($student->student_session_id);
+            if ($advance_balance > 0) {
+                $student_details = $this->student_model->getByStudentSession($student->student_session_id);
+                $student_details['advance'] = $advance_balance;
+                $eligible_students[] = $student_details;
+            }
+        }
+
+        if (empty($eligible_students)) {
+            echo json_encode(['status' => 'fail', 'message' => 'No students found with an advance balance matching the criteria.']);
+            return;
+        }
+
+        $data['students'] = $eligible_students;
+        $data['sch_setting'] = $this->sch_setting_detail;
+        $html = $this->load->view('studentfee/_advance_student_list', $data, true);
+
+        echo json_encode(['status' => 'success', 'html' => $html]);
+    }
+
+    public function apply_bulk_advance()
+    {
+        $this->output->set_content_type('application/json');
+
+        if (!$this->rbac->hasPrivilege('collect_fees', 'can_add')) {
+            echo json_encode(['status' => 'fail', 'message' => $this->lang->line('access_denied')]);
+            return;
+        }
+
+        $student_session_ids = $this->input->post('student_session_ids');
+
+        if (empty($student_session_ids) || !is_array($student_session_ids)) {
+            echo json_encode(['status' => 'fail', 'message' => 'No students selected.']);
+            return;
+        }
+
+        $students_processed = 0;
+        $total_applied = 0;
+        $staff_record = $this->staff_model->get($this->customlib->getStaffID());
+        $collected_by = $this->customlib->getAdminSessionUserName() . "(" . $staff_record['employee_id'] . ")";
+        $today = date('Y-m-d');
+
+        foreach ($student_session_ids as $student_session_id) {
+            $advance_balance = $this->studentfeemaster_model->get_advance_balance($student_session_id);
+
+            if ($advance_balance <= 0) {
+                continue;
+            }
+
+            $student_was_processed = false;
+            $outstanding_fees_groups = $this->studentfeemaster_model->getStudentFees($student_session_id);
+
+            // Prioritize fees
+            $tution_fees = [];
+            $other_fees = [];
+            $remaining_fees = [];
+
+            foreach ($outstanding_fees_groups as $fee_group) {
+                if (!isset($fee_group->fees)) continue;
+                foreach ($fee_group->fees as $fee) {
+                    // Calculate balance for each fee
+                    $balance_obj = json_decode($this->getStuFeetypeBalance($fee->fee_groups_feetype_id, $fee->id));
+                    $fee->balance = $balance_obj->balance;
+
+                    if ($fee->balance > 0) {
+                        if (stripos($fee->type, 'Tution') !== false || stripos($fee->name, 'Tution') !== false) {
+                            $tution_fees[] = $fee;
+                        } elseif (stripos($fee->type, 'Other') !== false || stripos($fee->name, 'Other') !== false) {
+                            $other_fees[] = $fee;
+                        } else {
+                            $remaining_fees[] = $fee;
+                        }
+                    }
+                }
+            }
+            
+            $fees_to_pay = array_merge($tution_fees, $other_fees, $remaining_fees);
+
+            foreach ($fees_to_pay as $fee) {
+                if ($advance_balance <= 0) {
+                    break; // Stop if advance is depleted
+                }
+
+                $amount_to_pay = min($fee->balance, $advance_balance);
+
+                // 1. Credit the target fee (positive deposit)
+                $json_array_credit = [
+                    'amount'          => $amount_to_pay,
+                    'amount_discount' => 0,
+                    'amount_fine'     => 0,
+                    'date'            => $today,
+                    'description'     => 'Advance amount adjusted',
+                    'collected_by'    => $collected_by,
+                    'payment_mode'    => 'Advance',
+                    'received_by'     => $staff_record['id'],
+                ];
+
+                $credit_data = [
+                    'fee_category'           => 'fees',
+                    'student_fees_master_id' => $fee->id,
+                    'fee_groups_feetype_id'  => $fee->fee_groups_feetype_id,
+                    'amount_detail'          => $json_array_credit,
+                ];
+
+                $this->studentfeemaster_model->fee_deposit($credit_data, null, [], $today);
+
+                // 2. Debit the advance fee (negative deposit)
+                $advance_fee_ids = $this->studentfeemaster_model->get_or_create_advance_fee_ids($student_session_id);
+                $json_array_debit = [
+                    'amount'          => -$amount_to_pay,
+                    'amount_discount' => 0,
+                    'amount_fine'     => 0,
+                    'date'            => $today,
+                    'description'     => 'Used for fee: ' . $fee->type,
+                    'collected_by'    => $collected_by,
+                    'payment_mode'    => 'Advance Adjustment',
+                    'received_by'     => $staff_record['id'],
+                ];
+
+                $debit_data = [
+                    'fee_category'           => 'fees',
+                    'student_fees_master_id' => $advance_fee_ids->student_fees_master_id,
+                    'fee_groups_feetype_id'  => $advance_fee_ids->fee_groups_feetype_id,
+                    'amount_detail'          => $json_array_debit,
+                ];
+
+                $this->studentfeemaster_model->fee_deposit($debit_data, null, [], $today);
+
+                // 3. Update balances
+                $advance_balance -= $amount_to_pay;
+                $total_applied += $amount_to_pay;
+                $student_was_processed = true;
+            }
+
+            if ($student_was_processed) {
+                $students_processed++;
+            }
+        }
+
+        $message = "Process complete. " . $students_processed . " student(s) processed. A total of " . amountFormat($total_applied) . " was applied from advance payments.";
+        echo json_encode(['status' => 'success', 'message' => $message]);
+    }
+
     public function add_new_student($student)
     {
         $new_student = array(

@@ -248,6 +248,15 @@ admission_no,amount,date,payment_mode,description
                         <h3 class="box-title"><i class="fa fa-percent"></i> <?php echo $this->lang->line('apply_discounts'); ?></h3>
                     </div>
                     <div class="box-body">
+                        <div class="well">
+                            <h4>Instruction</h4>
+                            <p>This section allows you to apply a selected discount type to a specific fee type for eligible students.</p>
+                            <ul>
+                                <li>Select the <b>Discount Type</b> you wish to apply.</li>
+                                <li>Select the <b>Fee Type to Adjust</b> to which the discount should be applied.</li>
+                                <li>Click 'Apply Discount' to process. The system will apply the discount to all students who are eligible for the selected discount and have an outstanding balance for the chosen fee type.</li>
+                            </ul>
+                        </div>
                         <?php echo form_open('', array('id' => 'apply_discount_form')); ?>
                         <div class="row">
                             <div class="col-md-4">
@@ -283,29 +292,99 @@ admission_no,amount,date,payment_mode,description
                 </div>
             </div>
         </div>
+
+        <div class="row">
+            <div class="col-md-12">
+                <div class="box box-primary">
+                    <div class="box-header with-border">
+                        <h3 class="box-title"><i class="fa fa-calculator"></i> Apply/Adjust Advance Amount</h3>
+                    </div>
+                    <div class="box-body">
+                        <div class="well">
+                            <h4>Instruction</h4>
+                            <p>This tool allows you to apply a student's available advance/credit amount to their outstanding fees.</p>
+                            <p>You can filter students by class, section, or name/admission number. If no filters are selected, the system will attempt to apply advances for ALL students with an available credit.</p>
+                            <p>The credit will be applied to outstanding fees in a prioritized order: first Tution Fees, then Other Fees, and finally any other due fees.</p>
+                        </div>
+                        <?php echo form_open('studentfee/apply_bulk_advance', array('id' => 'apply_advance_form')); ?>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="class_id"><?php echo $this->lang->line('class'); ?></label>
+                                    <select id="class_id" name="class_id" class="form-control">
+                                        <option value=""><?php echo $this->lang->line('select'); ?></option>
+                                        <?php
+                                        if(isset($classlist)){
+                                            foreach ($classlist as $class) {
+                                                ?>
+                                                <option value="<?php echo $class['id'] ?>"><?php echo $class['class'] ?></option>
+                                                <?php
+                                            }
+                                        }
+                                        ?>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="section_id"><?php echo $this->lang->line('section'); ?></label>
+                                    <select id="section_id" name="section_id" class="form-control">
+                                        <option value=""><?php echo $this->lang->line('select'); ?></option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="search_text">Search by Keyword</label>
+                                    <input type="text" name="search_text" class="form-control" placeholder="Name, Admission No...">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="box-footer">
+                            <button type="button" class="btn btn-primary pull-right" id="search_advance_btn">Search</button>
+                        </div>
+                        <?php echo form_close(); ?>
+                        <div id="advance_results_container" class="p-4"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </section>
 </div>
 
 <script type="text/javascript">
-    $(document).ready(function (e) {
-        $("#bulk_upload_form").on('submit', (function (e) {
-            e.preventDefault();
-            var $this = $(this);
-            var $btn = $this.find("#upload_btn");
-            $btn.button('loading');
+    $(document).ready(function () {
 
-            var formData = new FormData();
-            formData.append('feetype_id', $('#fee_type_id').val());
-            formData.append('file', $('#file')[0].files[0]);
+        // --- Original File Picker and Form Submission Logic ---
+        
+        // Consolidate file picker logic
+        $(document).on('change', '#file, #adjustment_file, #transport_file', function() {
+            var input = $(this),
+                numFiles = input.get(0).files ? input.get(0).files.length : 1,
+                label = input.val().replace(/\\/g, '/').replace(/.*\//, '');
+            input.trigger('fileselect', [numFiles, label]);
+        });
 
-            for (var pair of formData.entries()) {
-                console.log(pair[0]+ ', ' + pair[1]); 
+        $(document).on('fileselect', '#file, #adjustment_file, #transport_file', function(event, numFiles, label) {
+            var input = $(this).parents('.input-group').find(':text'),
+                log = numFiles > 1 ? numFiles + ' files selected' : label;
+            if (input.length) {
+                input.val(log);
             }
+        });
+
+        // Consolidate form submission logic
+        $("#bulk_upload_form, #bulk_adjustment_form, #bulk_transport_upload_form, #apply_discount_form").on('submit', (function (e) {
+            e.preventDefault();
+            var $this = $(this);
+            var $btn = $this.find("button[type=submit]");
+            $btn.button('loading');
+            var url = $this.attr('action');
 
             $.ajax({
-                url: "<?php echo site_url('studentfee/do_bulk_upload_by_feetype') ?>",
+                url: url,
                 type: "POST",
-                data: formData,
+                data: new FormData(this),
                 dataType: 'json',
                 contentType: false,
                 cache: false,
@@ -313,15 +392,19 @@ admission_no,amount,date,payment_mode,description
                 success: function (data) {
                     if (data.status == "fail") {
                         var message = "";
-                        $.each(data.error, function (index, value) {
-                            message += value;
-                        });
+                        if(typeof data.error === 'object') {
+                            $.each(data.error, function (index, value) {
+                                message += value;
+                            });
+                        } else {
+                            message = data.message;
+                        }
                         errorMsg(message);
                     } else {
                         successMsg(data.message);
                         if (data.summary) {
                             var summary_html = '<div class="alert alert-info"><h4>Upload Summary</h4><p>Total Records: ' + data.summary.total_records + '</p><p>Successful Records: ' + data.summary.successful_records + '</p><p>Failed Records: ' + data.summary.failed_records + '</p></div>';
-                            $('.box-body').prepend(summary_html);
+                            $this.closest('.box-body').prepend(summary_html);
                         }
                         if (data.error_messages && data.error_messages.length > 0) {
                             var error_html = '<div class="alert alert-danger"><h4><i class="icon fa fa-ban"></i> ' + data.summary.failed_records + ' Errors Found In CSV</h4><ul>';
@@ -329,89 +412,8 @@ admission_no,amount,date,payment_mode,description
                                 error_html += '<li>' + value + '</li>';
                             });
                             error_html += '</ul></div>';
-                            $('.box-body').prepend(error_html);
+                            $this.closest('.box-body').prepend(error_html);
                         }
-                    }
-                    $btn.button('reset');
-                },
-                error: function (xhr) { // if error occured
-                    alert("Error occured.please try again");
-                    $btn.button('reset');
-                }
-            });
-        }));
-
-        $("#bulk_transport_upload_form").on('submit', (function (e) {
-            e.preventDefault();
-            var $this = $(this);
-            var $btn = $this.find("#transport_upload_btn");
-            $btn.button('loading');
-
-            var formData = new FormData();
-            formData.append('transport_file', $('#transport_file')[0].files[0]);
-
-            $.ajax({
-                url: "<?php echo site_url('studentfee/do_bulk_upload_transport_fees') ?>",
-                type: "POST",
-                data: formData,
-                dataType: 'json',
-                contentType: false,
-                cache: false,
-                processData: false,
-                success: function (data) {
-                    if (data.status == "fail") {
-                        var message = "";
-                        $.each(data.error, function (index, value) {
-                            message += value;
-                        });
-                        errorMsg(message);
-                    } else {
-                        successMsg(data.message);
-                        if (data.summary) {
-                            var summary_html = '<div class="alert alert-info"><h4>Upload Summary</h4><p>Total Records: ' + data.summary.total_records + '</p><p>Successful Records: ' + data.summary.successful_records + '</p><p>Failed Records: ' + data.summary.failed_records + '</p></div>';
-                            $('.box-body').prepend(summary_html);
-                        }
-                        if (data.error_messages && data.error_messages.length > 0) {
-                            var error_html = '<div class="alert alert-danger"><h4><i class="icon fa fa-ban"></i> ' + data.summary.failed_records + ' Errors Found In CSV</h4><ul>';
-                            $.each(data.error_messages, function (index, value) {
-                                error_html += '<li>' + value + '</li>';
-                            });
-                            error_html += '</ul></div>';
-                            $('.box-body').prepend(error_html);
-                        }
-                    }
-                    $btn.button('reset');
-                },
-                error: function (xhr) { // if error occured
-                    alert("Error occured.please try again");
-                    $btn.button('reset');
-                }
-            });
-        }));
-
-        // New script for applying discount
-        $("#apply_discount_form").on('submit', (function (e) {
-            e.preventDefault();
-            var $this = $(this);
-            var $btn = $this.find("#apply_discount_btn");
-            $btn.button('loading');
-
-            var discount_id = $('#discount_type_id').val();
-            var fee_type_to_adjust_id = $('#fee_type_to_adjust_id').val();
-
-            $.ajax({
-                url: "<?php echo site_url('studentfee/apply_discount') ?>",
-                type: "POST",
-                data: {
-                    discount_id: discount_id,
-                    fee_type_to_adjust_id: fee_type_to_adjust_id
-                },
-                dataType: 'json',
-                success: function (data) {
-                    if (data.status == "fail") {
-                        errorMsg(data.message);
-                    } else {
-                        successMsg(data.message);
                     }
                     $btn.button('reset');
                 },
@@ -421,5 +423,97 @@ admission_no,amount,date,payment_mode,description
                 }
             });
         }));
+
+        // --- New Advance Payment Feature Logic ---
+
+        // Populate sections dropdown
+        $(document).on('change', '#class_id', function (e) {
+            $('#section_id').html("");
+            var class_id = $(this).val();
+            var base_url = '<?php echo base_url() ?>';
+            var div_data = '<option value=""><?php echo $this->lang->line('select'); ?></option>';
+            $.ajax({
+                type: "GET",
+                url: base_url + "sections/getByClass",
+                data: {'class_id': class_id},
+                dataType: "json",
+                success: function (data) {
+                    $.each(data, function (i, obj) {
+                        div_data += "<option value=" + obj.section_id + ">" + obj.section + "</option>";
+                    });
+                    $('#section_id').append(div_data);
+                }
+            });
+        });
+
+        // Search button handler
+        $(document).on('click', '#search_advance_btn', function(e) {
+            var $this = $(this);
+            var $form = $('#apply_advance_form');
+            $this.button('loading');
+            $('#advance_results_container').html('');
+
+            $.ajax({
+                url: "<?php echo site_url('studentfee/search_students_for_advance') ?>",
+                type: "POST",
+                data: $form.serialize(),
+                dataType: 'json',
+                success: function (data) {
+                    if (data.status == "fail") {
+                        errorMsg(data.message);
+                    } else {
+                        $('#advance_results_container').html(data.html);
+                    }
+                    $this.button('reset');
+                },
+                error: function (xhr) {
+                    alert("An error occurred during search. Please try again.");
+                    $this.button('reset');
+                }
+            });
+        });
+
+        // Select All checkbox handler
+        $(document).on('click', '#select_all_students', function() {
+            $(this).closest('table').find('tbody .student_checkbox').prop('checked', this.checked);
+        });
+
+        // Apply button handler
+        $(document).on('click', '#apply_advance_btn', function(e) {
+            var $this = $(this);
+            var student_ids = [];
+            $('#advance_results_container .student_checkbox:checked').each(function() {
+                student_ids.push($(this).val());
+            });
+
+            if (student_ids.length === 0) {
+                errorMsg('Please select at least one student to apply advance.');
+                return;
+            }
+            
+            if (confirm('Are you sure you want to apply advance payments for the ' + student_ids.length + ' selected student(s)? This action cannot be undone.')) {
+                $this.button('loading');
+                $.ajax({
+                    url: "<?php echo site_url('studentfee/apply_bulk_advance') ?>",
+                    type: "POST",
+                    data: { 'student_session_ids': student_ids },
+                    dataType: 'json',
+                    success: function (data) {
+                        if (data.status == "fail") {
+                            errorMsg(data.message);
+                        } else {
+                            successMsg(data.message);
+                            setTimeout(function(){ location.reload(); }, 2000);
+                        }
+                        $this.button('reset');
+                    },
+                    error: function (xhr) {
+                        alert("An error occurred during the apply process. Please try again.");
+                        $this.button('reset');
+                    }
+                });
+            }
+        });
     });
 </script>
+

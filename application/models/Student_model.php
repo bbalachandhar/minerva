@@ -1934,6 +1934,34 @@ class Student_model extends MY_Model
         return true;
     }
 
+    public function get_students_for_advance_apply($class_id, $section_id, $search_text)
+    {
+        $this->db->select('students.id, student_session.id as student_session_id');
+        $this->db->from('students');
+        $this->db->join('student_session', 'student_session.student_id = students.id');
+        $this->db->where('student_session.session_id', $this->current_session);
+        $this->db->where('students.is_active', 'yes');
+
+        if (!empty($class_id)) {
+            $this->db->where('student_session.class_id', $class_id);
+        }
+
+        if (!empty($section_id)) {
+            $this->db->where('student_session.section_id', $section_id);
+        }
+
+        if (!empty($search_text)) {
+            $this->db->group_start();
+            $this->db->like('students.firstname', $search_text);
+            $this->db->or_like('students.lastname', $search_text);
+            $this->db->or_like('students.admission_no', $search_text);
+            $this->db->group_end();
+        }
+
+        $query = $this->db->get();
+        return $query->result();
+    }
+
     public function check_admission_no_exists($admission_no, $student_id)
     {
         if ($student_id != 0) {
