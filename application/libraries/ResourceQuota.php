@@ -122,12 +122,15 @@ class ResourceQuota
         $details = $this->updateApplicationDetails($resource_array['resource_id'], $resource_usage, $action);
 
         $return_array = [];
-        if ($details['status_code'] == 200) {
+        if (isset($details['error'])) {
+            $return_array['status'] = false;
+            $return_array['message'] = $details['error'];
+        } elseif (isset($details['status_code']) && $details['status_code'] == 200) {
             $return_array['status'] = true;
-            $return_array['message'] = $details['message'];
+            $return_array['message'] = isset($details['message']) ? $details['message'] : 'Success';
         } else {
             $return_array['status'] = false;
-            $return_array['message'] = $details['message'];
+            $return_array['message'] = isset($details['message']) ? $details['message'] : 'An unknown API error occurred.';
         }
         return json_encode($return_array);        
     }

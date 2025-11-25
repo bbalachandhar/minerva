@@ -176,21 +176,20 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                         <div class="col-md-3">
                                             <div class="form-group">
                                                 <label for="exampleInputEmail1"><?php echo $this->lang->line('class'); ?></label><small class="req"> *</small>
-                                                <select  id="class_id" name="class_id" class="form-control"  >
-                                                     <option value=""><?php echo $this->lang->line('select'); ?></option>
-                                                    <?php if($sch_setting->institution_type == 'school') { // This block is conditional
-                                                        foreach ($classlist as $class) {
-                                                            ?>
-                                                            <option value="<?php echo $class['id'] ?>"<?php
-                                                            if (set_value('class_id') == $class['id']) {
-                                                                echo "selected=selected";
-                                                            }
-                                                            ?>><?php echo $class['class'] ?></option>
-                                                            <?php
-                                                        }
-                                                    } ?>
-                                                </select>
-                                                <span class="text-danger"><?php echo form_error('class_id'); ?></span>
+                                                                                                 <select  id="class_id" name="class_id" class="form-control"  >
+                                                                                                     <option value=""><?php echo $this->lang->line('select'); ?></option>
+                                                                                                    <?php
+                                                                                                        foreach ($classlist as $class) {
+                                                                                                            ?>
+                                                                                                            <option value="<?php echo $class['id'] ?>"<?php
+                                                                                                            if (set_value('class_id') == $class['id']) {
+                                                                                                                echo "selected=selected";
+                                                                                                            }
+                                                                                                            ?>><?php echo $class['class'] ?></option>
+                                                                                                            <?php
+                                                                                                        }
+                                                                                                     ?>
+                                                                                                </select>                                                <span class="text-danger"><?php echo form_error('class_id'); ?></span>
                                             </div>
                                         </div>
                                         <div class="col-md-3">

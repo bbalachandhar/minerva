@@ -97,6 +97,10 @@ class Classes extends Admin_Controller
         $vehroute           = $this->classsection_model->getByID($id);
         $data['vehroute']   = $vehroute;
         $data['title_list'] = 'Fees Master List';
+        $data['class_data'] = $this->class_model->get($id);
+
+        $data['sch_setting'] = $this->sch_setting_detail;
+        $data['department_list'] = $this->Department_model->getDepartmentType();
 
         $this->form_validation->set_rules(
             'class', $this->lang->line('class'), array(
@@ -131,6 +135,7 @@ class Classes extends Admin_Controller
                 $class_array         = array(
                     'id'    => $class_id,
                     'class' => $this->input->post('class'),
+                    'department_id' => $this->input->post('department_id'),
                 );
                 foreach ($add_result as $vec_add_key => $vec_add_value) {
                     $vehicle_batch_array[] = $vec_add_value;
@@ -140,6 +145,7 @@ class Classes extends Admin_Controller
                 $class_array = array(
                     'id'    => $class_id,
                     'class' => $this->input->post('class'),
+                    'department_id' => $this->input->post('department_id'),
                 );
                 $this->classsection_model->update($class_array);
             }

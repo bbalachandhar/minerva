@@ -48,9 +48,31 @@
 
                                 <div class="form-group">
                                     <label for="exampleInputEmail1"><?php echo $this->lang->line('class'); ?></label><small class="req"> *</small>
-                                    <input autofocus="" id="class" name="class" placeholder="" type="text" class="form-control"  value="<?php echo set_value('class', $vehroute[0]->route_id); ?>" />
+                                    <input autofocus="" id="class" name="class" placeholder="" type="text" class="form-control"  value="<?php echo set_value('class', $class_data['class']); ?>" />
                                     <span class="text-danger"><?php echo form_error('class'); ?></span>
                                 </div>
+                                <?php if ($sch_setting->institution_type == 'college') { ?>
+                                <div class="form-group">
+                                    <label for="exampleInputEmail1">Department</label><small class="req"> *</small>
+                                    <select id="department_id" name="department_id" class="form-control">
+                                        <option value=""><?php echo $this->lang->line('select'); ?></option>
+                                        <?php
+                                        foreach ($department_list as $department) {
+                                            ?>
+                                            <option value="<?php echo $department['id'] ?>"<?php
+                                            if (isset($class_data) && $class_data['department_id'] == $department['id']) {
+                                                echo "selected=selected";
+                                            } else if (set_value('department_id') == $department['id']) {
+                                                echo "selected=selected";
+                                            }
+                                            ?>><?php echo $department['department_name'] ?></option>
+                                            <?php
+                                        }
+                                        ?>
+                                    </select>
+                                    <span class="text-danger"><?php echo form_error('department_id'); ?></span>
+                                </div>
+                                <?php } ?>
                                 <div class="form-group">
                                     <label for="exampleInputEmail1"><?php echo $this->lang->line('sections'); ?></label><small class="req"> *</small>
 

@@ -543,10 +543,10 @@ class Student extends Admin_Controller
             $this->load->view('layout/footer', $data);
         } else {
 			
-			// try {
+			 try {
 				
-                // $saas_response=$this->saasvalidation->updateResouceQuota('no_of_student', 1);
-				// if($saas_response){			
+                $saas_response=$this->saasvalidation->updateResouceQuota('no_of_student', 1);
+				if($saas_response){			
 		
 					$custom_field_post  = $this->input->post("custom_fields[students]");
 					$custom_value_array = array();
@@ -833,14 +833,18 @@ class Student extends Admin_Controller
 						}
 
 												$data_new = array(
-													'student_id'            => $insert_id,
-						                            'department_id'         => $this->input->post('department_id'),
+							'student_id'            => $insert_id,
+							'class_id'              => $class_id,
 							'section_id'            => $section_id,
 							'session_id'            => $session,
 							'fees_discount'         => $fees_discount,
 							'route_pickup_point_id' => $route_pickup_point_id,
 							'vehroute_id'           => $vehroute_id,
 						);
+
+                                                if($this->input->post('department_id')){
+                                                    $data_new['department_id'] = $this->input->post('department_id');
+                                                }
 						$student_session_id     = $this->student_model->add_student_session($data_new);
 						$transport_feemaster_id = $this->input->post('transport_feemaster_id');
 		
@@ -967,13 +971,13 @@ class Student extends Admin_Controller
 		
 						$this->mailsmsconf->mailsms('student_admission', $sender_details);
 		
-						$student_login_detail = array('id' => $insert_id, 'credential_for' => 'student', 'first_name' => $this->input->post('firstname'), 'last_name' => $this->input->post('lastname'), 'username' => $this->student_login_prefix . $insert_id, 'password' => $user_password, 'contact_no' => $this->input->post('mobileno'), 'email' => $this->input->post('email'), 'admission_no' => $data_insert['admission_no'], 'student_session_id' => $student_session_id);
+						$student_login_detail = array('id' => $insert_id, 'credential_for' => 'student', 'firstname' => $this->input->post('firstname'), 'lastname' => $this->input->post('lastname'), 'username' => $this->student_login_prefix . $insert_id, 'password' => $user_password, 'contact_no' => $this->input->post('mobileno'), 'email' => $this->input->post('email'), 'admission_no' => $data_insert['admission_no'], 'student_session_id' => $student_session_id);
 		
 						$this->mailsmsconf->mailsms('student_login_credential', $student_login_detail);
 
 						if ($sibling_id > 0) {
 						} else {
-							$parent_login_detail = array('id' => $insert_id, 'credential_for' => 'parent', 'username' => $this->parent_login_prefix . $insert_id, 'password' => $parent_password, 'contact_no' => $this->input->post('guardian_phone'), 'email' => $this->input->post('guardian_email'), 'admission_no' => $data_insert['admission_no'], 'student_session_id' => $student_session_id);
+							$parent_login_detail = array('id' => $insert_id, 'credential_for' => 'parent', 'username' => $this->parent_login_prefix . $insert_id, 'password' => $parent_password, 'contact_no' => $this->input->post('guardian_phone'), 'email' => $this->input->post('guardian_email'), 'admission_no' => $data_insert['admission_no'], 'student_session_id' => $student_session_id, 'guardian_name' => $this->input->post('guardian_name'), 'firstname' => $this->input->post('firstname'), 'lastname' => $this->input->post('lastname'));
 							$this->mailsmsconf->mailsms('student_login_credential', $parent_login_detail);
 						}
 		
@@ -992,13 +996,14 @@ class Student extends Admin_Controller
 						$this->load->view('student/studentCreate', $data);
 						$this->load->view('layout/footer', $data);
 					}
-				// }
+				 }
 				 
-			// } catch (Exception $e) {
+			 } catch (Exception $e) {
 					  // Print the exception message for debugging or logging purposes
 						// echo 'Error: ' . $e->getMessage();
+						// die;
 			  
-			// }
+			 }
         }
     }
 
