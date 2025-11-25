@@ -21,24 +21,24 @@ class Setting_model extends MY_Model {
     }
  
     public function get($id = null) {
-
-        $this->db->select('sch_settings.lastname,sch_settings.middlename,sch_settings.id,sch_settings.institution_type,sch_settings.lang_id,sch_settings.languages,sch_settings.class_teacher,sch_settings.cron_secret_key, sch_settings.timezone,sch_settings.superadmin_restriction,sch_settings.student_timeline,sch_settings.name,sch_settings.email,sch_settings.student_biometric,sch_settings.staff_biometric,sch_settings.biometric_device,sch_settings.time_format,sch_settings.phone,languages.language,sch_settings.attendence_type,sch_settings.address,sch_settings.dise_code,sch_settings.date_format,sch_settings.currency,sch_settings.currency_place,sch_settings.start_month,sch_settings.start_week,sch_settings.session_id,sch_settings.fee_due_days,sch_settings.image,sch_settings.theme,sessions.session,sch_settings.online_admission,sch_settings.is_duplicate_fees_invoice,sch_settings.is_student_house,sch_settings.is_blood_group,sch_settings.admin_logo,sch_settings.admin_small_logo,sch_settings.mobile_api_url,sch_settings.app_primary_color_code,sch_settings.app_secondary_color_code,sch_settings.app_logo,sch_settings.student_profile_edit,sch_settings.staff_barcode,sch_settings.student_barcode,languages.is_rtl,sch_settings.student_panel_login,sch_settings.parent_panel_login,sch_settings.currency_format,sch_settings.exam_result,sch_settings.base_url,sch_settings.folder_path,currencies.symbol as currency_symbol,currencies.base_price,currencies.short_name as currency,sch_settings.online_admission_application_form,currencies.id as currency_id,sch_settings.admin_login_page_background,sch_settings.user_login_page_background,sch_settings.low_attendance_limit,sch_settings.saas_key,sch_settings.front_side_whatsapp,sch_settings.front_side_whatsapp_mobile,sch_settings.front_side_whatsapp_from,sch_settings.front_side_whatsapp_to,sch_settings.admin_panel_whatsapp ,sch_settings.admin_panel_whatsapp_mobile,sch_settings.admin_panel_whatsapp_from,sch_settings.admin_panel_whatsapp_to,sch_settings.student_panel_whatsapp,sch_settings.student_panel_whatsapp_mobile,sch_settings.student_panel_whatsapp_from,sch_settings.student_panel_whatsapp_to,sch_settings.office_end_time,sch_settings.morning_session_end_time,sch_settings.evening_session_end_time,sch_settings.max_late_allowed,sch_settings.max_permission_allowed');
+        $CI =& get_instance();
+        $CI->db->select('sch_settings.lastname,sch_settings.middlename,sch_settings.id,sch_settings.institution_type,sch_settings.lang_id,sch_settings.languages,sch_settings.class_teacher,sch_settings.cron_secret_key, sch_settings.timezone,sch_settings.superadmin_restriction,sch_settings.student_timeline,sch_settings.name,sch_settings.email,sch_settings.student_biometric,sch_settings.staff_biometric,sch_settings.biometric_device,sch_settings.time_format,sch_settings.phone,languages.language,sch_settings.attendence_type,sch_settings.address,sch_settings.dise_code,sch_settings.date_format,sch_settings.currency,sch_settings.currency_place,sch_settings.start_month,sch_settings.start_week,sch_settings.session_id,sch_settings.fee_due_days,sch_settings.image,sch_settings.theme,sessions.session,sch_settings.online_admission,sch_settings.is_duplicate_fees_invoice,sch_settings.is_student_house,sch_settings.is_blood_group,sch_settings.admin_logo,sch_settings.admin_small_logo,sch_settings.mobile_api_url,sch_settings.app_primary_color_code,sch_settings.app_secondary_color_code,sch_settings.app_logo,sch_settings.student_profile_edit,sch_settings.staff_barcode,sch_settings.student_barcode,languages.is_rtl,sch_settings.student_panel_login,sch_settings.parent_panel_login,sch_settings.currency_format,sch_settings.exam_result,sch_settings.base_url,sch_settings.folder_path,currencies.symbol as currency_symbol,currencies.base_price,currencies.short_name as currency,sch_settings.online_admission_application_form,currencies.id as currency_id,sch_settings.admin_login_page_background,sch_settings.user_login_page_background,sch_settings.low_attendance_limit,sch_settings.saas_key,sch_settings.front_side_whatsapp,sch_settings.front_side_whatsapp_mobile,sch_settings.front_side_whatsapp_from,sch_settings.front_side_whatsapp_to,sch_settings.admin_panel_whatsapp ,sch_settings.admin_panel_whatsapp_mobile,sch_settings.admin_panel_whatsapp_from,sch_settings.admin_panel_whatsapp_to,sch_settings.student_panel_whatsapp,sch_settings.student_panel_whatsapp_mobile,sch_settings.student_panel_whatsapp_from,sch_settings.student_panel_whatsapp_to,sch_settings.my_question,sch_settings.exam_result,sch_settings.single_page_print,sch_settings.lock_grace_period,sch_settings.collect_back_date_fees,sch_settings.is_student_feature_lock,sch_settings.is_offline_fee_payment,sch_settings.offline_bank_payment_instruction,sch_settings.fees_discount,sch_settings.transport_fee_type,sch_settings.scan_code_type,sch_settings.download_admit_card,sch_settings.calendar_event_reminder,sch_settings.event_reminder');
      
-        $this->db->from('sch_settings');
-        $this->db->join('sessions', 'sessions.id = sch_settings.session_id');
-        $this->db->join('languages', 'languages.id = sch_settings.lang_id');
-        $this->db->join('currencies', 'currencies.id = sch_settings.currency');
+        $CI->db->from('sch_settings');
+        $CI->db->join('sessions', 'sessions.id = sch_settings.session_id');
+        $CI->db->join('languages', 'languages.id = sch_settings.lang_id');
+        $CI->db->join('currencies', 'currencies.id = sch_settings.currency');
         if ($id != null) {
-            $this->db->where('sch_settings.id', $id);
+            $CI->db->where('sch_settings.id', $id);
         } else {
-            $this->db->order_by('sch_settings.id');
+            $CI->db->order_by('sch_settings.id');
         }
-        $query = $this->db->get();
+        $query = $CI->db->get();
 
         if ($id != null) {
             return $query->row_array();
         } else {
-            $session_array = $this->session->has_userdata('session_array');
+            $session_array = $CI->session->has_userdata('session_array');
             $result = $query->result_array();
 
             if (empty($result)) {
@@ -51,7 +51,7 @@ class Setting_model extends MY_Model {
             );
 
             if ($session_array) {
-                $session_array = $this->session->userdata('session_array');
+                $session_array = $CI->session->userdata('session_array');
                 $result[0]['session_id'] = $session_array['session_id'];
                 $result[0]['session'] = $session_array['session'];
             }
@@ -301,7 +301,8 @@ class Setting_model extends MY_Model {
     }
 
     public function get_printheader() {
-        return $this->db->select('*')->from('print_headerfooter')->get()->result_array();
+      
+        return $this->db->select('*')->from('print_headerfooter')->get()->result();
     }
 
     public function get_receiptheader() {

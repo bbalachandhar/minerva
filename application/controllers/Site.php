@@ -486,6 +486,7 @@ class Site extends Public_Controller
                 $user = $login_details[0];
 
                 if ($user->is_active == "yes") {
+                    $result = false;
                     if ($user->role == "student" && $student_login_status==1) {
                         $result = $this->user_model->read_user_information($user->id);
 
@@ -500,7 +501,7 @@ class Site extends Public_Controller
                          $result = false;
                     } 
 
-                    if ($result != false) {
+                    if (is_array($result) && !empty($result)) {
                         $setting_result = $this->setting_model->get();
                         if ($result[0]->lang_id == 0) {
                             $language = array('lang_id' => $setting_result[0]['lang_id'], 'language' => $setting_result[0]['language']);

@@ -10,7 +10,6 @@ class Class_model extends MY_Model
     public function __construct()
     {
         parent::__construct();
-        $this->current_session = $this->setting_model->getCurrentSession();
     }
 
     /**
@@ -144,7 +143,9 @@ class Class_model extends MY_Model
 
     public function check_classteacher_exists($class, $section, $teacher)
     {
-        $this->db->where(array('class_id' => $class, 'section_id' => $section, 'session_id' => $this->current_session));
+        $this->load->model('setting_model');
+        $current_session = $this->setting_model->getCurrentSession();
+        $this->db->where(array('class_id' => $class, 'section_id' => $section, 'session_id' => $current_session));
 
         $query = $this->db->get('class_teacher');
         if ($query->num_rows() > 0) {
@@ -179,7 +180,9 @@ class Class_model extends MY_Model
 
     public function getClassTeacher()
     {
-        $query = $this->db->query('SELECT class_teacher.*,classes.class,sections.section FROM `class_teacher` INNER JOIN classes on classes.id=class_teacher.class_id INNER JOIN sections on sections.id=class_teacher.section_id where class_teacher.session_id="' . $this->current_session . '" GROUP BY class_teacher.class_id , class_teacher.section_id ORDER by length(classes.class), classes.class');
+        $this->load->model('setting_model');
+        $current_session = $this->setting_model->getCurrentSession();
+        $query = $this->db->query('SELECT class_teacher.*,classes.class,sections.section FROM `class_teacher` INNER JOIN classes on classes.id=class_teacher.class_id INNER JOIN sections on sections.id=class_teacher.section_id where class_teacher.session_id="' . $current_session . '" GROUP BY class_teacher.class_id , class_teacher.section_id ORDER by length(classes.class), classes.class');
         $result = $query->result_array();
         return $result;
     }

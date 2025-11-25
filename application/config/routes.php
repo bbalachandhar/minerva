@@ -96,3 +96,5 @@ $route['admin/staff/edit_biometric_device/(:num)'] = 'admin/staff/edit_biometric
 $route['admin/staff/delete_biometric_device/(:num)'] = 'admin/staff/delete_biometric_device/$1';
 $route['studentfee/do_bulk_upload_by_feetype'] = 'studentfee/do_bulk_upload_by_feetype';
 $route['admin/staff/activate_biometric_device/(:num)'] = 'admin/staff/activate_biometric_device/$1';
+$route['enquiry'] = 'enquiry';
+$route['enquiry/(:any)'] = 'enquiry/$1';

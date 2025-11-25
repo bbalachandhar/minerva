@@ -37,6 +37,9 @@
             <li class="<?php echo set_SubSubmenu('schsettings/miscellaneous'); ?>">
                 <a class="<?php echo set_SubSubmenu('schsettings/miscellaneous'); ?>" href="<?php echo site_url('schsettings/miscellaneous') ?>"><?php echo $this->lang->line('miscellaneous'); ?></a>
             </li>
+            <li class="<?php echo set_SubSubmenu('schsettings/hiddenforms'); ?>">
+                <a class="<?php echo set_SubSubmenu('schsettings/hiddenforms'); ?>" href="<?php echo site_url('schsettings/hiddenforms') ?>">Hidden Form URLs</a>
+            </li>
             
         </ul>
     </div>
