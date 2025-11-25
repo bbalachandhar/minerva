@@ -1684,56 +1684,101 @@ class Studentfee extends Admin_Controller
 
             $description = $this->input->post('fee_gupcollected_note');
             $collected_date = date('Y-m-d', $this->customlib->datetostrtotime($this->input->post('collected_date')));
-            $amount_discount = $this->input->post('amount_discount') ? convertCurrencyFormatToBaseAmount($this->input->post('amount_discount')) : 0;
-            $amount_fine = $this->input->post('amount_fine') ? convertCurrencyFormatToBaseAmount($this->input->post('amount_fine')) : 0;
+            
+            // Get the total amounts paid by the user
+            $total_amount_paid = $this->input->post('amount') ? convertCurrencyFormatToBaseAmount($this->input->post('amount')) : 0;
+            $total_discount_paid = $this->input->post('amount_discount') ? convertCurrencyFormatToBaseAmount($this->input->post('amount_discount')) : 0;
+            $total_fine_paid = $this->input->post('amount_fine') ? convertCurrencyFormatToBaseAmount($this->input->post('amount_fine')) : 0;
+
             $discounts = $this->input->post('fee_discount_group');
             if(!isset($discounts)){
                 $discounts=[];
             }
 
-            $total_fee_amount = 0;
-            foreach ($row_counters as $row_count) {
-                $total_fee_amount += convertCurrencyFormatToBaseAmount($this->input->post('fee_amount_' . $row_count));
-            }
-
-            $total_paid = $total_fee_amount - $amount_discount;
+            // Initialize distributable amounts
+            $distributable_payment = $total_amount_paid;
+            $distributable_discount = $total_discount_paid;
+            $distributable_fine = $total_fine_paid;
 
             foreach ($row_counters as $row_count) {
-                $fee_amount = convertCurrencyFormatToBaseAmount($this->input->post('fee_amount_' . $row_count));
-                $distributed_discount = 0;
-                if($total_fee_amount > 0){
-                    $distributed_discount = ($fee_amount / $total_fee_amount) * $amount_discount;
-                }
+                // Get the balance and fine due for this specific fee item
+                $balance_due = convertCurrencyFormatToBaseAmount($this->input->post('fee_amount_' . $row_count));
+                $fine_due = convertCurrencyFormatToBaseAmount($this->input->post('fee_groups_feetype_fine_amount_' . $row_count));
+
+                // Allocate fine first
+                $fine_to_pay_for_this_item = min($fine_due, $distributable_fine);
+                $distributable_fine -= $fine_to_pay_for_this_item;
+
+                // Allocate discount
+                $discount_to_apply_to_this_item = min($balance_due, $distributable_discount);
+                $distributable_discount -= $discount_to_apply_to_this_item;
                 
-                $json_array = array(
-                    'amount'          => $fee_amount - $distributed_discount,
-                    'amount_discount' => $distributed_discount,
-                    'amount_fine'     => 0, // Fine distribution logic can be added here if needed
-                    'date'            => $collected_date,
-                    'description'     => $description,
-                    'collected_by'    => $collected_by,
-                    'payment_mode'    => $payment_mode,
-                    'received_by'     => $staff_record['id'],
-                );
+                // Calculate remaining balance for this fee after discount
+                $balance_after_discount = $balance_due - $discount_to_apply_to_this_item;
 
-                $data = array(
-                    'fee_category'           => $this->input->post('fee_category_' . $row_count),
-                    'student_fees_master_id' => $this->input->post('student_fees_master_id_' . $row_count),
-                    'fee_groups_feetype_id'  => $this->input->post('fee_groups_feetype_id_' . $row_count),
-                    'amount_detail'          => $json_array,
-                    'student_transport_fee_id' => $this->input->post('trans_fee_id_' . $row_count)
-                );
-                $bulk_data[] = $data;
+                // Allocate payment
+                $payment_to_apply_to_this_item = 0;
+                if ($distributable_payment > 0) {
+                    $payment_to_apply_to_this_item = min($balance_after_discount, $distributable_payment);
+                    $distributable_payment -= $payment_to_apply_to_this_item;
+                }
+
+                // Only create a record if some payment, discount, or fine was applied
+                if ($payment_to_apply_to_this_item > 0 || $discount_to_apply_to_this_item > 0 || $fine_to_pay_for_this_item > 0) {
+                    $json_array = array(
+                        'amount'          => $payment_to_apply_to_this_item,
+                        'amount_discount' => $discount_to_apply_to_this_item,
+                        'amount_fine'     => $fine_to_pay_for_this_item,
+                        'date'            => $collected_date,
+                        'description'     => $description,
+                        'collected_by'    => $collected_by,
+                        'payment_mode'    => $payment_mode,
+                        'received_by'     => $staff_record['id'],
+                    );
+
+                    $data = array(
+                        'fee_category'           => $this->input->post('fee_category_' . $row_count),
+                        'student_fees_master_id' => $this->input->post('student_fees_master_id_' . $row_count),
+                        'fee_groups_feetype_id'  => $this->input->post('fee_groups_feetype_id_' . $row_count),
+                        'amount_detail'          => $json_array,
+                        'student_transport_fee_id' => $this->input->post('trans_fee_id_' . $row_count)
+                    );
+                    $bulk_data[] = $data;
+                }
             }
 
             $inserted_ids = $this->studentfeemaster_model->add_bulk_fee_deposit($bulk_data, $discounts);
+            $student_session_id = $this->input->post('student_session_id');
+
+            // Handle overpayment by adding to advance
+            if ($distributable_payment > 0) {
+                $advance_fee_ids = $this->studentfeemaster_model->get_or_create_advance_fee_ids($student_session_id);
+                $json_array_advance = [
+                    'amount'          => $distributable_payment,
+                    'amount_discount' => 0,
+                    'amount_fine'     => 0,
+                    'date'            => $collected_date,
+                    'description'     => 'Overpayment from bulk fee collection',
+                    'collected_by'    => $collected_by,
+                    'payment_mode'    => $payment_mode,
+                    'received_by'     => $staff_record['id'],
+                ];
+
+                $data_to_insert_advance = [
+                    'fee_category'           => 'fees',
+                    'student_fees_master_id' => $advance_fee_ids->student_fees_master_id,
+                    'fee_groups_feetype_id'  => $advance_fee_ids->fee_groups_feetype_id,
+                    'amount_detail'          => $json_array_advance,
+                ];
+                $this->studentfeemaster_model->fee_deposit($data_to_insert_advance, null, [], $collected_date);
+            }
 
             if ($inserted_ids) {
-                $student_session_id = $this->input->post('student_session_id');
                 if ($use_advance == 'yes') {
+                    $total_paid_from_advance = $total_amount_paid + $total_discount_paid; // In advance case, discount is also part of what's "paid"
                     $advance_fee_ids = $this->studentfeemaster_model->get_or_create_advance_fee_ids($student_session_id);
                     $json_array_advance = [
-                        'amount'          => -$total_paid,
+                        'amount'          => -$total_paid_from_advance,
                         'amount_discount' => 0,
                         'amount_fine'     => 0,
                         'date'            => $collected_date,
