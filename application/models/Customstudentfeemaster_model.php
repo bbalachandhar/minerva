@@ -393,7 +393,7 @@ class Customstudentfeemaster_model extends MY_Model
                     }
                     // Assign transport fees
                     $return_object->transport_demand += $result_value->amount;
-                    $return_object->transport_paid += $aggregated_deposit->amount_paid;
+                    $return_object->transport_paid += ($aggregated_deposit->amount_paid - $aggregated_deposit->amount_discount);
 
                 } else {
                     // This block handles regular fees
@@ -417,15 +417,15 @@ class Customstudentfeemaster_model extends MY_Model
                                     break;
                                 case 'other fee':
                                     $return_object->other_demand += $fee_detail->amount;
-                                    $return_object->other_paid += $deposit_data->amount_paid;
+                                    $return_object->other_paid += ($deposit_data->amount_paid - $deposit_data->amount_discount);
                                     break;
                                 case 'hostel fees': /* Using the exact string from the feetype table */
                                     $return_object->hostel_demand += $fee_detail->amount;
-                                    $return_object->hostel_paid += $deposit_data->amount_paid;
+                                    $return_object->hostel_paid += ($deposit_data->amount_paid - $deposit_data->amount_discount);
                                     break;
                                 case 'transport fee': /* Using the exact string from the feetype table for regular transport fees */
                                     $return_object->transport_demand += $fee_detail->amount;
-                                    $return_object->transport_paid += $deposit_data->amount_paid;
+                                    $return_object->transport_paid += ($deposit_data->amount_paid - $deposit_data->amount_discount);
                                     break;
                                 case 'advance payments': /* Only paid amount for advance payments */
                                     $return_object->advance_paid += $deposit_data->amount_paid;

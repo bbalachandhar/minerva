@@ -116,6 +116,7 @@ class Customfinancereports extends Admin_Controller
                     $obj->fine     = $total_fine_sum;
                     $obj->discount = $total_discount_sum;
                     $obj->balance  = $totalfee - ($total_paid_sum + $total_discount_sum);
+                    $obj->balance += $obj->cf_balance; // Add CF-Balance to the Balance column
 
                     $obj->net_balance = $obj->balance - $obj->advance_paid;
 
