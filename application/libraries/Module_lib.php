@@ -10,6 +10,7 @@ class Module_lib {
 
     function __construct() {
         $this->CI = & get_instance();
+        $this->CI->load->model('Module_model');
         $this->modules = array();
         self::loadModule(); //Initiate the userroles
     }

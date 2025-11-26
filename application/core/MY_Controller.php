@@ -232,6 +232,17 @@ class Front_Controller extends CI_Controller
         } else {
             $front_cms_class  = $this->router->fetch_class();
             $front_cms_method = $this->router->fetch_method();
+
+            log_message('debug', 'Front_Controller: front_setting is null? ' . (is_null($this->front_setting) ? 'true' : 'false'));
+            if (is_object($this->front_setting)) {
+                log_message('debug', 'Front_Controller: is_active_front_cms: ' . $this->front_setting->is_active_front_cms);
+            }
+            if (is_object($this->school_details)) {
+                log_message('debug', 'Front_Controller: school_details->online_admission: ' . $this->school_details->online_admission);
+            }
+            log_message('debug', 'Front_Controller: front_cms_class: ' . $front_cms_class);
+            log_message('debug', 'Front_Controller: front_cms_method: ' . $front_cms_method);
+
             if ($this->front_setting->is_active_front_cms) {
                 $this->config->set_item('front_layout', true);
             }
@@ -243,21 +254,24 @@ class Front_Controller extends CI_Controller
                 redirect('site/userlogin');
             }
 
-            if ($this->school_details->online_admission) {
-                if (!$this->front_setting->is_active_front_cms &&
-                    !($front_cms_class == "welcome" && $front_cms_method == "admission") &&
-                    !($front_cms_class == "welcome" && $front_cms_method == "editonlineadmission") &&
-                    !($front_cms_class == "welcome" && $front_cms_method == "online_admission_review") &&
-                    !($front_cms_class == "welcome" && $front_cms_method == "getSections") &&
-                    !($front_cms_class == "welcome" && $front_cms_method == "submitadmission") &&
-                    !($front_cms_class == "checkout" && $front_cms_method == "index") &&
-                    !($front_cms_class == "checkout" && $front_cms_method == "successinvoice") &&
-                    !($front_cms_class == "checkout" && $front_cms_method == "paymentfailed") &&
-                    !($front_cms_class == "welcome" && $front_cms_method == "checkadmissionstatus")
-                ) {
-                    redirect('site/userlogin');
-                }
-            }
+            // if ($this->school_details->online_admission) {
+            //     if (!$this->front_setting->is_active_front_cms &&
+            //         !($front_cms_class == "welcome" && $front_cms_method == "admission") &&
+            //         !($front_cms_class == "welcome" && $front_cms_method == "editonlineadmission") &&
+            //         !($front_cms_class == "welcome" && $front_cms_method == "online_admission_review") &&
+            //         !($front_cms_class == "welcome" && $front_cms_method == "getSections") &&
+            //         !($front_cms_class == "welcome" && $front_cms_method == "submitadmission") &&
+            //         !($front_cms_class == "checkout" && $front_cms_method == "index") &&
+            //         !($front_cms_class == "checkout" && $front_cms_method == "successinvoice") &&
+            //         !($front_cms_class == "checkout" && $front_cms_method == "paymentfailed") &&
+            //         !($front_cms_class == "welcome" && $front_cms_method == "checkadmissionstatus") &&
+            //         !($front_cms_class == "public_admission" && $front_cms_method == "index") &&
+            //         !($front_cms_class == "public_admission" && $front_cms_method == "online_admission_review") &&
+            //         !($front_cms_class == "public_admission" && $front_cms_method == "getSections")
+            //     ) {
+            //         redirect('site/userlogin');
+            //     }
+            // }
 
         }
 

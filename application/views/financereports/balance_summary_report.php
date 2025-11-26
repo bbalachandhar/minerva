@@ -81,7 +81,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                     <th class="text-right"><?php echo $this->lang->line('total') . " " . $this->lang->line('discount'); ?></th>
                                     <th class="text-right"><?php echo $this->lang->line('fine'); ?></th>
                                     <th class="text-right"><?php echo $this->lang->line('balance'); ?></th>
-                                    <th class="text-right">Actual Balance</th>
+
                                 </tr>
                             </thead>
                             <tbody>
@@ -92,7 +92,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                 $total_other_demand = 0; $total_other_paid = 0; $total_other_balance = 0;
                                 $total_hostel_demand = 0; $total_hostel_paid = 0; $total_hostel_balance = 0;
                                 $total_transport_demand = 0; $total_transport_paid = 0; $total_transport_balance = 0;
-                                $total_actual_balance = 0; // Added
+                                $total_actual_balance = 0; // Added // Commented out by Gemini
                                 $discount_totals = array_fill_keys(array_column($discount_list, 'id'), 0);
 
                                 if (!empty($student_due_fee)) {
@@ -117,7 +117,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                         $total_transport_demand += $student->transport_demand;
                                         $total_transport_paid += $student->transport_paid;
                                         $total_transport_balance += $student->transport_balance;
-                                        $total_actual_balance += $student->actual_balance;     // Added
+                                        // $total_actual_balance += $student->actual_balance;     // Added
                                         $total_discount += $student->discount;
                                         ?>
                                         <tr>
@@ -147,7 +147,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                             <td class="text-right"><?php echo amountFormat($student->discount); ?></td>
                                             <td class="text-right"><?php echo amountFormat($student->fine); ?></td>
                                             <td class="text-right"><?php echo amountFormat($student->balance); ?></td>
-                                            <td class="text-right"><?php echo amountFormat($student->actual_balance); ?></td>
+
                                         </tr>
                                         <?php
                                     }
@@ -183,7 +183,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                     <td class="text-right"><?php echo $currency_symbol . amountFormat($total_discount); ?></td>
                                     <td class="text-right"><?php echo $currency_symbol . amountFormat($total_fine); ?></td>
                                     <td class="text-right"><?php echo $currency_symbol . amountFormat($total_balance); ?></td>
-                                    <td class="text-right"><?php echo $currency_symbol . amountFormat($total_actual_balance); ?></td>
+
                                 </tr>
                             </tfoot>
                         </table>

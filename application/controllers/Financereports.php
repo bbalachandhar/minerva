@@ -1612,7 +1612,7 @@ class Financereports extends Admin_Controller
                     }
                 }
                 
-                // After aggregating all students for a class, calculate the actual_balance for each class
+                // After aggregating all students for a class
                 foreach ($class_summary as $class_name => $summary_obj) {
                     // Formula: TotalBalance - (Govt 7.5 Subsidy + Govt FG Subsidy + (Advance Payments - CF-Paid))
                     // TotalBalance for the class is $summary_obj->balance
@@ -1633,7 +1633,10 @@ class Financereports extends Admin_Controller
 
                     $advance_minus_cf_paid_class = $summary_obj->advance_paid - $summary_obj->cf_paid;
 
-                    $class_summary[$class_name]->actual_balance = $total_balance_class - ($total_dynamic_discounts + $advance_minus_cf_paid_class);
+                    // $class_summary[$class_name]->actual_balance = $total_balance_class - ($total_dynamic_discounts + $advance_minus_cf_paid_class);
+
+                    // Add CF-Balance to the balance for each class
+                    $class_summary[$class_name]->balance += $class_summary[$class_name]->cf_balance;
                 }
 
                 // Sum up the total subsidies from all classes for the footer

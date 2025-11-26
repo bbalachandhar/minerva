@@ -49,68 +49,12 @@
         <?php } ?>
         
         <?php echo $front_setting->google_analytics; ?>
-    </head>
+    	<link href="<?php echo base_url(); ?>backend/toast-alert/toastr.css" rel="stylesheet"/>
+    <script src="<?php echo base_url(); ?>backend/toast-alert/toastr.js"></script>
+</head>
     <body>
-    <div id="alert" class="">  
-      <div class="topsection">  
-        <section class="newsarea">
-            <div class="container">
-                <div class="row">
-                    <div class="col-md-12 col-sm-12">
-                        <div class="newscontent">
-                            <?php
-                            if (in_array('news', json_decode($front_setting->sidebar_options))) {
-                                ?>
-                                <div class="newstab"><?php echo $this->lang->line('latest_news'); ?></div>
-                                <div class="newscontent">
-                                    <marquee class="" behavior="scroll" direction="left" onmouseover="this.stop();" onmouseout="this.start();">
-                                        <ul id="" class="" >
-                                            <?php
-                                            if (!empty($banner_notices)) {
-                                                foreach ($banner_notices as $banner_notice_key => $banner_notice_value) {
-                                                    ?>
-                                                    <li><a href="<?php echo site_url('read/' . $banner_notice_value['slug']) ?>">
-                                                            <div class="datenews">
-                                                                <?php
-                                                                echo date('d', strtotime($banner_notice_value['date'])) . " " . $this->lang->line(strtolower(date('F', strtotime($banner_notice_value['date'])))) . " " . date('Y', strtotime($banner_notice_value['date']));
-                                                                ?>
-                                                                <span>
-                                                                </span>
-                                                            </div><?php echo $banner_notice_value['title']; ?>
-                                                        </a></li>
-                                                    <?php
-                                                }
-                                            }
-                                            ?>
-                                        </ul>
-                                    </marquee>
-                                </div><!--./newscontent-->
-                                <?php
-                            }
-                            ?>
-                        </div><!--./sidebar-->
-                    </div><!--./col-md-12-->
-                </div>
-            </div>
-        </section>
-        <div class="toparea">
-            <div class="container">
-                <div class="row">
-                    <div class="col-lg-6 col-md-6 col-sm-6">
-                        <ul class="toplist">
-                            <li><a href="mailto:<?php echo $school_setting->email; ?>"><i class="fa fa-envelope-o"></i><?php echo $school_setting->email; ?></a>
-                        </ul>                        
-                    </div><!--./col-md-5-->
-                    <div class="col-lg-6 col-md-6 col-sm-6">
-                        <ul class="topicon">
-                            <li><?php echo $this->lang->line('follow_us'); ?></li>
-                            <?php $this->view('/themes/darkgray/social_media'); ?>
-                        </ul>
-                    </div><!--./col-md-6-->
-                </div>
-            </div>
-        </div><!--./toparea-->
-     </div><!--./topsection-->   
+  
+  
 
         <?php echo $header; ?>
         <?php echo $slider; ?>
