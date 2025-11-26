@@ -83,13 +83,9 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                     <th><?php echo $this->lang->line('class'); ?></th>
                                     <th><?php echo $this->lang->line('category'); ?></th>
                                     <th><?php echo $this->lang->line('admission_no'); ?></th>
-                                    <th class="text-right">CF-Demand</th>
-                                    <th class="text-right">CF-Paid</th>
-                                    <th class="text-right">CF-Balance</th>
-                                    <?php foreach ($discount_list as $discount) { ?>
-                                        <th class="text-right"><?php echo $discount['name']; ?></th>
-                                    <?php } ?>
-                                    <th class="text-right">Tuition Fee (Demand)</th>
+                                                                         <?php foreach ($discount_list as $discount) { ?>
+                                                                            <th class="text-right"><?php echo $discount['name']; ?></th>
+                                                                        <?php } ?>                                    <th class="text-right">Tuition Fee (Demand)</th>
                                     <th class="text-right">Tuition Fee (Paid)</th>
                                     <th class="text-right">Tuition Fee (Balance)</th>
                                     <th class="text-right">Other Fees (Demand)</th>
@@ -151,29 +147,25 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                             <td><?php echo $student->class . " (" . $student->section . ")"; ?></td>
                                             <td><?php echo $student->category; ?></td>
                                             <td><?php echo $student->admission_no; ?></td>
-                                            <td class="text-right"><?php echo amountFormat($student->last_yr_cf); ?></td>
-                                            <td class="text-right"><?php echo amountFormat($student->cf_paid); ?></td>
-                                            <td class="text-right"><?php echo amountFormat($student->cf_balance); ?></td>
-                                            <?php 
-                                            foreach ($discount_list as $discount) {
-                                                $discount_amount = 0;
-                                                if (!empty($student->applied_discounts)) {
-                                                    foreach ($student->applied_discounts as $student_discount) {
-                                                        if ($student_discount['fees_discount_id'] == $discount['id']) {
-                                                            if (isset($student_discount['custom_amount']) && $student_discount['custom_amount'] != null) {
-                                                                $discount_amount = $student_discount['custom_amount'];
-                                                            } else {
-                                                                $discount_amount = $student_discount['amount'];
-                                                            }
-                                                            $discount_totals[$discount['id']] += $discount_amount;
-                                                            break;
-                                                        }
-                                                    }
-                                                }
-                                                echo "<td class='text-right'>" . amountFormat($discount_amount) . "</td>";
-                                            }
-                                            ?>
-                                            <td class="text-right"><?php echo amountFormat($student->tuition_demand); ?></td>
+                                                                                         <?php 
+                                                                                        foreach ($discount_list as $discount) {
+                                                                                            $discount_amount = 0;
+                                                                                            if (!empty($student->applied_discounts)) {
+                                                                                                foreach ($student->applied_discounts as $student_discount) {
+                                                                                                    if ($student_discount['fees_discount_id'] == $discount['id']) {
+                                                                                                        if (isset($student_discount['custom_amount']) && $student_discount['custom_amount'] != null) {
+                                                                                                            $discount_amount = $student_discount['custom_amount'];
+                                                                                                        } else {
+                                                                                                            $discount_amount = $student_discount['amount'];
+                                                                                                        }
+                                                                                                        $discount_totals[$discount['id']] += $discount_amount;
+                                                                                                        break;
+                                                                                                    }
+                                                                                                }
+                                                                                            }
+                                                                                            echo "<td class='text-right'>" . amountFormat($discount_amount) . "</td>";
+                                                                                        }
+                                                                                        ?>                                            <td class="text-right"><?php echo amountFormat($student->tuition_demand); ?></td>
                                             <td class="text-right"><?php echo amountFormat($student->tuition_paid); ?></td>
                                             <td class="text-right"><?php echo amountFormat($student->tuition_balance); ?></td>
                                             <td class="text-right"><?php echo amountFormat($student->other_demand); ?></td>
@@ -205,9 +197,6 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                              <tfoot>
                                 <tr class="box box-solid total-bg">
                                     <th colspan="4" class="text-right"><?php echo $this->lang->line('grand_total'); ?></th>
-                                    <td class="text-right"><?php echo $currency_symbol . amountFormat($total_last_yr_cf); ?></td>
-                                    <td class="text-right"><?php echo $currency_symbol . amountFormat($total_cf_paid); ?></td>
-                                    <td class="text-right"><?php echo $currency_symbol . amountFormat($total_cf_balance); ?></td>
                                     <?php foreach ($discount_totals as $total) { ?>
                                         <td class="text-right"><?php echo $currency_symbol . amountFormat($total); ?></td>
                                     <?php } ?>

@@ -344,7 +344,11 @@ class Studentfeemaster_model extends MY_Model
             $this->db->order_by('student_fees_deposite.id', 'desc');
 
             if ($class_id != null) {
-                $this->db->where('student_session.class_id', $class_id);
+                if (is_array($class_id)) {
+                    $this->db->where_in('student_session.class_id', $class_id);
+                } else {
+                    $this->db->where('student_session.class_id', $class_id);
+                }
             }
 
             if ($section_id != null) {
@@ -429,10 +433,13 @@ class Studentfeemaster_model extends MY_Model
         $this->db->where('student_session.session_id', $this->current_session);
         $this->db->order_by('student_fees_deposite.id', 'desc');
 
-        if ($class_id != null) {
-            $this->db->where('student_session.class_id', $class_id);
-        }
-
+                    if ($class_id != null) {
+                        if (is_array($class_id)) {
+                            $this->db->where_in('student_session.class_id', $class_id);
+                        } else {
+                            $this->db->where('student_session.class_id', $class_id);
+                        }
+                    }
         if ($section_id != null) {
             $this->db->where('student_session.section_id', $section_id);
         }

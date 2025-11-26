@@ -393,136 +393,235 @@ class Financereports extends Admin_Controller
         }
     }
 
-    public function studentacademicreport()
-    {
-        if (!$this->rbac->hasPrivilege('balance_fees_report', 'can_view')) {
-            access_denied();
-        }
+        public function studentacademicreport()
 
-        $this->session->set_userdata('top_menu', 'Reports');
-        $this->session->set_userdata('sub_menu', 'Reports/finance');
-        $this->session->set_userdata('subsub_menu', 'Reports/finance/studentacademicreport');
-        $data['title']           = 'student fee';
-        $data['payment_type']    = $this->customlib->getPaymenttype();
-        $class                   = $this->class_model->get();
-        $data['classlist']       = $class;
-        $data['sch_setting']     = $this->sch_setting_detail;
-        $data['adm_auto_insert'] = $this->sch_setting_detail->adm_auto_insert;
-        $this->form_validation->set_rules('search_type', $this->lang->line('search_type'), 'trim|required|xss_clean');
+        {
 
-        if ($this->form_validation->run() == false) {
-            $data['student_due_fee'] = array();
-            $data['resultarray']     = array();
-            $data['feetype']     = "";
-            $data['feetype_arr'] = array();
-        } else {
-            $student_Array = array();
-            $search_type   = $this->input->post('search_type');
-            $class_id   = $this->input->post('class_id');
-            $section_id = $this->input->post('section_id');
+            if (!$this->rbac->hasPrivilege('balance_fees_report', 'can_view')) {
 
-            if (isset($class_id)) {
-                $studentlist = $this->student_model->searchByClassSectionWithSession($class_id, $section_id);
-            } else {
-                $studentlist = $this->student_model->getStudents();
+                access_denied();
+
             }
 
-            $student_Array = array();
-            if (!empty($studentlist)) {
-                foreach ($studentlist as $key => $eachstudent) {
-                    $obj                = new stdClass();
-                    $obj->name          = $this->customlib->getFullName($eachstudent['firstname'], $eachstudent['middlename'], $eachstudent['lastname'], $this->sch_setting_detail->middlename, $this->sch_setting_detail->lastname);
-                    $obj->class         = $eachstudent['class'];
-                    $obj->section       = $eachstudent['section'];
-                    $obj->admission_no  = $eachstudent['admission_no'];
-                    $obj->roll_no       = $eachstudent['roll_no'];
-                    $obj->father_name   = $eachstudent['father_name'];
-					$obj->mobileno   	= $eachstudent['mobileno'];
-                    $student_session_id = $eachstudent['student_session_id'];
-                    $student_total_fees = $this->studentfeemaster_model->getTransStudentFees($student_session_id);
-
-                    if (!empty($student_total_fees)) {
-                        $totalfee = 0;
-                        $deposit  = 0;
-                        $discount = 0;
-                        $balance  = 0;
-                        $fine     = 0;
-                        
-                        foreach ($student_total_fees as $student_total_fees_key => $student_total_fees_value) {
-
-                            if (!empty($student_total_fees_value->fees)) {
-                                foreach ($student_total_fees_value->fees as $each_fee_key => $each_fee_value) {
-                                    $totalfee = $totalfee + $each_fee_value->amount;
-                                    
-                                    if(isJSON($each_fee_value->amount_detail)){                                        
-                                        $amount_detail = json_decode($each_fee_value->amount_detail);
     
-                                        if (is_object($amount_detail) && !empty($amount_detail)) {
-                                            foreach ($amount_detail as $amount_detail_key => $amount_detail_value) {
-                                                $deposit  = $deposit + $amount_detail_value->amount;
-                                                $fine     = $fine + $amount_detail_value->amount_fine;
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
 
-                        // New dynamic discount calculation
-                        $this->load->model("feediscount_model");
-                        $applied_discounts = $this->feediscount_model->getStudentFeesDiscount($student_session_id);
-                        $total_student_discount = 0;
-                        if (!empty($applied_discounts)) {
-                            foreach ($applied_discounts as $student_discount) {
-                                $discount_amount = 0;
-                                if (isset($student_discount['custom_amount']) && $student_discount['custom_amount'] != null) {
-                                    $discount_amount = $student_discount['custom_amount'];
-                                } else {
-                                    $discount_amount = $student_discount['amount'];
-                                }
-                                $total_student_discount += $discount_amount;
-                            }
-                        }
+            $this->session->set_userdata('top_menu', 'Reports');
 
-                        $obj->totalfee     = $totalfee;
-                        $obj->payment_mode = "N/A";
-                        $obj->deposit      = $deposit;
-                        $obj->fine         = $fine;
-                        $obj->discount     = $total_student_discount;
-                        $obj->balance      = $totalfee - ($deposit + $total_student_discount);
-                    } else {
+            $this->session->set_userdata('sub_menu', 'Reports/finance');
 
-                        $obj->totalfee     = 0;
-                        $obj->payment_mode = 0;
-                        $obj->deposit      = 0;
-                        $obj->fine         = 0;
-                        $obj->balance      = 0;
-                        $obj->discount     = 0;
-                    }
+            $this->session->set_userdata('subsub_menu', 'Reports/finance/studentacademicreport');
 
-                    if ($search_type == 'all') {
-                        $student_Array[] = $obj;
-                    } elseif ($search_type == 'balance') {
-                        if ($obj->balance > 0) {
-                            $student_Array[] = $obj;
-                        }
-                    } elseif ($search_type == 'paid') {
-                        if ($obj->balance <= 0) {
-                            $student_Array[] = $obj;
-                        }
-                    }
+            $data['title']           = 'student fee';
+
+            $data['payment_type']    = $this->customlib->getPaymenttype();
+
+            $class                   = $this->class_model->get();
+
+            $data['classlist']       = $class;
+
+            $data['sch_setting']     = $this->sch_setting_detail;
+
+            $data['adm_auto_insert'] = $this->sch_setting_detail->adm_auto_insert;
+
+            $this->form_validation->set_rules('search_type', $this->lang->line('search_type'), 'trim|required|xss_clean');
+
+    
+
+            if ($this->form_validation->run() == false) {
+
+                $data['student_due_fee'] = array();
+
+                $data['resultarray']     = array();
+
+                $data['feetype']     = "";
+
+                $data['feetype_arr'] = array();
+
+            } else {
+
+                $student_Array = array();
+
+                $search_type   = $this->input->post('search_type');
+
+                $class_id   = $this->input->post('class_id');
+
+                $section_id = $this->input->post('section_id');
+
+    
+
+                if (isset($class_id)) {
+
+                    $studentlist = $this->student_model->searchByClassSectionWithSession($class_id, $section_id);
+
+                } else {
+
+                    $studentlist = $this->student_model->getStudents();
+
                 }
+
+    
+
+                $student_Array = array();
+
+                if (!empty($studentlist)) {
+
+                    foreach ($studentlist as $key => $eachstudent) {
+
+                        $obj                = new stdClass();
+
+                        $obj->name          = $this->customlib->getFullName($eachstudent['firstname'], $eachstudent['middlename'], $eachstudent['lastname'], $this->sch_setting_detail->middlename, $this->sch_setting_detail->lastname);
+
+                        $obj->class         = $eachstudent['class'];
+
+                        $obj->section       = $eachstudent['section'];
+
+                        $obj->admission_no  = $eachstudent['admission_no'];
+
+                        $obj->roll_no       = $eachstudent['roll_no'];
+
+                        $obj->father_name   = $eachstudent['father_name'];
+
+    					$obj->mobileno   	= $eachstudent['mobileno'];
+
+                        $student_session_id = $eachstudent['student_session_id'];
+
+                        $student_total_fees = $this->customstudentfeemaster_model->getTransStudentFees($student_session_id);
+
+    
+
+                        if (!empty($student_total_fees)) {
+
+                            $totalfee = 0;
+
+                            $deposit  = 0;
+
+                            $discount = 0;
+
+                            $balance  = 0;
+
+                            $fine     = 0;
+
+                            
+
+                            foreach ($student_total_fees as $student_total_fees_key => $student_total_fees_value) {
+
+    
+
+                                if (!empty($student_total_fees_value->fees)) {
+
+                                    foreach ($student_total_fees_value->fees as $each_fee_key => $each_fee_value) {
+
+                                        $totalfee = $totalfee + $each_fee_value->amount;
+
+                                        
+
+                                        if(isJSON($each_fee_value->amount_detail)){                                        
+
+                                            $amount_detail = json_decode($each_fee_value->amount_detail);
+
+        
+
+                                            if (is_object($amount_detail) && !empty($amount_detail)) {
+
+                                                foreach ($amount_detail as $amount_detail_key => $amount_detail_value) {
+
+                                                    $deposit  = $deposit + $amount_detail_value->amount;
+
+                                                    $discount = $discount + (isset($amount_detail_value->amount_discount) ? $amount_detail_value->amount_discount : 0);
+
+                                                    $fine     = $fine + $amount_detail_value->amount_fine;
+
+                                                }
+
+                                            }
+
+                                        }
+
+                                    }
+
+                                }
+
+                            }
+
+    
+
+                            $obj->totalfee     = $totalfee;
+
+                            $obj->payment_mode = "N/A";
+
+                            $obj->deposit      = $deposit;
+
+                            $obj->fine         = $fine;
+
+                            $obj->discount     = $discount;
+
+                            $obj->balance      = $totalfee - $deposit;
+
+                        } else {
+
+    
+
+                            $obj->totalfee     = 0;
+
+                            $obj->payment_mode = 0;
+
+                            $obj->deposit      = 0;
+
+                            $obj->fine         = 0;
+
+                            $obj->balance      = 0;
+
+                            $obj->discount     = 0;
+
+                        }
+
+    
+
+                        if ($search_type == 'all') {
+
+                            $student_Array[] = $obj;
+
+                        } elseif ($search_type == 'balance') {
+
+                            if ($obj->balance > 0) {
+
+                                $student_Array[] = $obj;
+
+                            }
+
+                        } elseif ($search_type == 'paid') {
+
+                            if ($obj->balance <= 0) {
+
+                                $student_Array[] = $obj;
+
+                            }
+
+                        }
+
+                    }
+
+                }
+
+    
+
+                $classlistdata[]         = array('result' => $student_Array);
+
+                $data['student_due_fee'] = $student_Array;
+
+                $data['resultarray']     = $classlistdata;
+
             }
 
-            $classlistdata[]         = array('result' => $student_Array);
-            $data['student_due_fee'] = $student_Array;
-            $data['resultarray']     = $classlistdata;
-        }
+    
 
-        $this->load->view('layout/header', $data);
-        $this->load->view('financereports/studentAcademicReport', $data);
-        $this->load->view('layout/footer', $data);
-    }
+            $this->load->view('layout/header', $data);
+
+            $this->load->view('financereports/studentAcademicReport', $data);
+
+            $this->load->view('layout/footer', $data);
+
+        }
 
     public function collection_report()
     {

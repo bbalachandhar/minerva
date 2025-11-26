@@ -115,7 +115,7 @@ class Customfinancereports extends Admin_Controller
                     $obj->deposit  = $total_paid_sum;
                     $obj->fine     = $total_fine_sum;
                     $obj->discount = $total_discount_sum;
-                    $obj->balance  = $totalfee - ($total_paid_sum + $total_discount_sum);
+                    $obj->balance  = $totalfee - $total_paid_sum;
                     $obj->balance += $obj->cf_balance; // Add CF-Balance to the Balance column
 
                     $obj->net_balance = $obj->balance - $obj->advance_paid;
@@ -130,6 +130,7 @@ class Customfinancereports extends Admin_Controller
                             } else {
                                 $discount_amount = $student_discount['amount'];
                             }
+                            $obj->{"discount_" . $student_discount['fees_discount_id']} = $discount_amount;
                             $total_student_discount_dynamic += $discount_amount;
                         }
                     }
@@ -231,8 +232,7 @@ class Customfinancereports extends Admin_Controller
                 $obj->deposit  = $total_paid_sum;
                 $obj->fine     = $total_fine_sum;
                 $obj->discount = $total_discount_sum;
-                $obj->balance  = $totalfee - ($total_paid_sum + $total_discount_sum);
-
+                                            $obj->balance  = $totalfee - $total_paid_sum;
                 // Filter based on search type
                 $include_student = false;
                 if ($search_type == 'all') {
