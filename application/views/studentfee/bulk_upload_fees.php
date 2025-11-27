@@ -268,7 +268,7 @@ admission_no,amount,date,payment_mode,description
                                             <option value="<?php echo $discount['id'] ?>"><?php echo $discount['name'] . " (" . $discount['code'] . ")"; ?></option>
                                         <?php } ?>
                                     </select>
-                                    <span class="text-danger"><?php echo form_error('discount_type_id'); ?></span>
+                                    <span class="text-danger"><?php echo form_error('discount_id'); ?></span>
                                 </div>
                             </div>
                             <div class="col-md-4">
