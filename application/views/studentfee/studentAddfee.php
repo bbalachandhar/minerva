@@ -1041,24 +1041,7 @@ echo $currency_symbol . amountFormat(($total_balance_amount - $alot_fee_discount
             });
         });
 
-        $(document).on('click', '.btn-ok', function (e) {
-            var $modalDiv = $(e.delegateTarget);
-            var main_invoice = $('#main_invoice').val();
-            var sub_invoice = $('#sub_invoice').val();
 
-            $modalDiv.addClass('modalloading');
-            $.ajax({
-                type: "post",
-                url: '<?php echo site_url("studentfee/deleteFee") ?>',
-                dataType: 'JSON',
-                data: {'main_invoice': main_invoice, 'sub_invoice': sub_invoice},
-                success: function (data) {
-                    $modalDiv.modal('hide').removeClass('modalloading');
-                    location.reload(true);
-                }
-            });
-
-        });
         $('.detail_popover').popover({
             placement: 'right',
             title: '',
