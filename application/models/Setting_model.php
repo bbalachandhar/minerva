@@ -302,7 +302,7 @@ class Setting_model extends MY_Model {
 
     public function get_printheader() {
       
-        return $this->db->select('*')->from('print_headerfooter')->get()->result();
+        return $this->db->select('*')->from('print_headerfooter')->get()->result_array();
     }
 
     public function get_receiptheader() {
