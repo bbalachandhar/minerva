@@ -257,12 +257,12 @@ admission_no,amount,date,payment_mode,description
                                 <li>Click 'Apply Discount' to process. The system will apply the discount to all students who are eligible for the selected discount and have an outstanding balance for the chosen fee type.</li>
                             </ul>
                         </div>
-                        <?php echo form_open('', array('id' => 'apply_discount_form')); ?>
+                        <?php echo form_open('studentfee/apply_discount', array('id' => 'apply_discount_form')); ?>
                         <div class="row">
                             <div class="col-md-4">
                                 <div class="form-group">
                                     <label for="discount_type_id"><?php echo $this->lang->line('discount_type'); ?></label><small class="req"> *</small>
-                                    <select autofocus="" id="discount_type_id" name="discount_type_id" class="form-control" >
+                                    <select autofocus="" id="discount_type_id" name="discount_id" class="form-control" >
                                         <option value=""><?php echo $this->lang->line('select'); ?></option>
                                         <?php foreach ($discount_list as $discount) { ?>
                                             <option value="<?php echo $discount['id'] ?>"><?php echo $discount['name'] . " (" . $discount['code'] . ")"; ?></option>
