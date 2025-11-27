@@ -1676,7 +1676,7 @@ class Financereports extends Admin_Controller
                         $class_summary[$class_name]->deposit += $total_paid_sum_student;
                         $class_summary[$class_name]->fine += $total_fine_sum_student;
                         $class_summary[$class_name]->discount += $total_discount_sum_student;
-                        $class_summary[$class_name]->balance += $totalfee_student - ($total_paid_sum_student + $total_discount_sum_student);
+                        $class_summary[$class_name]->balance += $totalfee_student - $total_paid_sum_student;
     
                         // Get and aggregate previous session balance (CF-Demand)
                         $previous_session_balance_data = $this->customstudentfeemaster_model->getPreviousSessionBalance($student_session_id);
