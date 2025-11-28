@@ -1113,11 +1113,34 @@ class Studentfee extends Admin_Controller
 
             $overpayment_amount = 0;
             $amount_to_apply = $paying_amount;
+            $discount_to_record_for_current_fee = $amount_discount; // Initialize with full input discount
+
+            $cash_part_of_overpayment = 0;
+            $discount_part_of_overpayment = 0;
 
             if ($net_payment > $fee_balance) {
                 $overpayment_amount = $net_payment - $fee_balance;
                 // Adjust amount to apply, ensuring it doesn't go negative
                 $amount_to_apply = max(0, $paying_amount - $overpayment_amount);
+
+                // Calculate how much of the discount contributes to the overpayment
+                $cash_paid_for_fee = $paying_amount;
+                $discount_applied_for_fee = $amount_discount;
+                $actual_fee_balance = $fee_balance;
+
+                if ($cash_paid_for_fee >= $actual_fee_balance) {
+                    $cash_part_of_overpayment = $cash_paid_for_fee - $actual_fee_balance;
+                    $discount_part_of_overpayment = $discount_applied_for_fee;
+                } else {
+                    $remaining_fee_to_cover = $actual_fee_balance - $cash_paid_for_fee;
+                    if ($discount_applied_for_fee > $remaining_fee_to_cover) {
+                        $discount_part_of_overpayment = $discount_applied_for_fee - $remaining_fee_to_cover;
+                    }
+                    $cash_part_of_overpayment = 0;
+                }
+                
+                // Adjust the discount to record for the current fee
+                $discount_to_record_for_current_fee = $amount_discount - $discount_part_of_overpayment;
             }
 
             $staff_record = $this->staff_model->get($this->customlib->getStaffID());
@@ -1129,20 +1152,23 @@ class Studentfee extends Admin_Controller
                 $discounts=[];
             }
 
+            $selected_payment_mode = $this->input->post('payment_mode');
+            $final_payment_mode_for_main_fee = $selected_payment_mode;
+
             if ($use_advance == 'yes') {
-                $payment_mode = 'Advance';
-            } else {
-                $payment_mode = $this->input->post('payment_mode');
+                $final_payment_mode_for_main_fee = 'Advance';
+            } elseif (convertCurrencyFormatToBaseAmount($amount_to_apply) == 0 && convertCurrencyFormatToBaseAmount($discount_to_record_for_current_fee) > 0) {
+                $final_payment_mode_for_main_fee = 'Discount';
             }
 
             $json_array = array(
                 'amount'          => convertCurrencyFormatToBaseAmount($amount_to_apply),
-                'amount_discount' => convertCurrencyFormatToBaseAmount($this->input->post('amount_discount')),
+                'amount_discount' => convertCurrencyFormatToBaseAmount($discount_to_record_for_current_fee),
                 'amount_fine'     => convertCurrencyFormatToBaseAmount($this->input->post('amount_fine')),
                 'date'            => date('Y-m-d', $this->customlib->datetostrtotime($this->input->post('date'))),
                 'description'     => $this->input->post('description'),
                 'collected_by'    => $collected_by,
-                'payment_mode'    => $payment_mode,
+                'payment_mode'    => $final_payment_mode_for_main_fee,
                 'received_by'     => $staff_record['id'],
             );
 
@@ -1216,7 +1242,7 @@ class Studentfee extends Admin_Controller
                     'date'            => date('Y-m-d', $this->customlib->datetostrtotime($this->input->post('date'))),
                     'description'     => 'Overpayment from single fee collection',
                     'collected_by'    => $collected_by,
-                    'payment_mode'    => $payment_mode,
+                    'payment_mode'    => 'Advance', // Hardcoded to Advance
                     'received_by'     => $staff_record['id'],
                 ];
 
