@@ -1150,6 +1150,14 @@ $("#myFeesModal").on('shown.bs.modal', function (e) {
                     fee_type_amount=response.balance;
                     $('#myFeesModal .modal-body .modal-body-inner').html(response.page); 
                     $('#myFeesModal .modal-body .modal_loader_div').fadeOut(400);
+
+                    // NEW: Set initial amount in the input field based on fee_type_amount
+                    $('#amount').val(fee_type_amount); // Set amount to the fee balance
+                    originalAmountStored = parseFloat(fee_type_amount) || 0; // Update originalAmountStored with the fee balance
+                    $('#amount_discount').val('0.00'); // Ensure discount is 0 on modal load
+                    $('#amount_fine').val('0.00'); // Ensure fine is 0 on modal load
+                    $('input[name="use_advance"]').prop('checked', false); // Ensure use_advance is unchecked on modal load
+                    $('input[name="payment_mode_fee"][value="Cash"]').prop('checked', true); // Default to Cash payment mode on modal load
                 }
 
             },
@@ -1494,19 +1502,28 @@ $(document).ready(function() {
     // Event delegation for use_advance and amount_fine
     // These should only affect the amount if no discounts are checked.
     $(document).on('change', '#myFeesModal input[name="use_advance"]', function() {
-        var hasDiscountChecked = $('#myFeesModal .grp_discount:checked').length > 0;
-        if (!hasDiscountChecked) {
-            // If no discount is checked, recalculate amount based on original and fine.
-            var currentFine = parseFloat($('#myFeesModal #amount_fine').val()) || 0;
-            var useAdvanceChecked = $(this).val() === 'yes';
+        var useAdvanceChecked = $(this).val() === 'yes';
 
-            var amountToSet = originalAmountStored + currentFine;
-            // The advance balance logic is complex and usually handled by backend or other script.
-            // For now, if no discount is applied, it will just show original + fine.
-            // The user's request was primarily about discount checkbox -> 0.00.
-            $('#amount').val(amountToSet.toFixed(2));
+        if (useAdvanceChecked) {
+            // If use_advance is checked, set amount to the full balance due
+            $('#amount').val(fee_type_amount); 
+            $('#amount_discount').val('0.00'); // No discount when using advance
+            $('#amount_fine').val('0.00'); // Clear fine if not applicable with advance
+
+            // Uncheck all discount checkboxes, as advance payment handles the adjustment
+            $('#myFeesModal .grp_discount').prop('checked', false);
+            // Also, disable other payment modes when advance is used
+            $('input[name="payment_mode_fee"]').prop('checked', false);
+            $('input[name="payment_mode_fee"][value="Advance"]').prop('checked', true); // Set payment mode to Advance
+        } else {
+            // If use_advance is unchecked, revert to default behavior based on original amount and potential fine
+            // Ensure originalAmountStored is the initial fee balance without advance
+            $('#amount').val(originalAmountStored);
+            $('#amount_discount').val('0.00'); // Reset discount
+            $('#amount_fine').val('0.00'); // Reset fine
+            // Default payment mode back to Cash or whatever is appropriate
+            $('input[name="payment_mode_fee"][value="Cash"]').prop('checked', true);
         }
-        // If hasDiscountChecked is true, #amount should remain 0.00, so no action here.
     });
 
     $(document).on('keyup change', '#myFeesModal #amount_fine', function() {
