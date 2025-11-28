@@ -1448,3 +1448,76 @@ $(document).on('change','#select_all',function(){
     $('input:checkbox').not(this).prop('checked', this.checked);
 });
 </script>
+
+<script>
+$(document).ready(function() {
+    var originalAmountStored = 0; // To store the original amount when modal opens
+
+    // Event listener for when the #myFeesModal is fully shown
+    $("#myFeesModal").on('shown.bs.modal', function (e) {
+        // Store the initial value of the amount field when the modal is shown
+        // This value includes fees + fine as calculated by getcollectfee.php
+        originalAmountStored = parseFloat($('#amount').val()) || 0;
+        // Also ensure amount_discount is 0.00 initially when modal loads
+        $('#amount_discount').val('0.00');
+    });
+
+    // Event delegation for discount checkboxes (grp_discount)
+    // Listens for changes on discount checkboxes within #myFeesModal
+    $(document).on('change', '#myFeesModal .grp_discount', function() {
+        var hasDiscountChecked = $('#myFeesModal .grp_discount:checked').length > 0;
+        
+        var calculated_discount_amount = 0;
+        $('#myFeesModal .grp_discount:checked').each(function() {
+            var type = $(this).data('type');
+            var disamount = parseFloat($(this).data('disamount'));
+            var percentage = parseFloat($(this).data('percentage'));
+            if(type === 'fix'){
+                calculated_discount_amount += disamount;
+            } else { // percentage
+                calculated_discount_amount += (originalAmountStored * percentage) / 100;
+            }
+        });
+        $('#amount_discount').val(calculated_discount_amount.toFixed(2));
+
+        if (hasDiscountChecked) {
+            $('#amount').val('0.00');
+        } else {
+            // If no discounts are checked, revert to the stored original amount
+            // plus any fine that might be currently entered.
+            var currentFine = parseFloat($('#myFeesModal #amount_fine').val()) || 0;
+            $('#amount').val((originalAmountStored + currentFine).toFixed(2));
+            $('#amount_discount').val('0.00'); // No discount, so discount amount is 0
+        }
+    });
+
+    // Event delegation for use_advance and amount_fine
+    // These should only affect the amount if no discounts are checked.
+    $(document).on('change', '#myFeesModal input[name="use_advance"]', function() {
+        var hasDiscountChecked = $('#myFeesModal .grp_discount:checked').length > 0;
+        if (!hasDiscountChecked) {
+            // If no discount is checked, recalculate amount based on original and fine.
+            var currentFine = parseFloat($('#myFeesModal #amount_fine').val()) || 0;
+            var useAdvanceChecked = $(this).val() === 'yes';
+
+            var amountToSet = originalAmountStored + currentFine;
+            // The advance balance logic is complex and usually handled by backend or other script.
+            // For now, if no discount is applied, it will just show original + fine.
+            // The user's request was primarily about discount checkbox -> 0.00.
+            $('#amount').val(amountToSet.toFixed(2));
+        }
+        // If hasDiscountChecked is true, #amount should remain 0.00, so no action here.
+    });
+
+    $(document).on('keyup change', '#myFeesModal #amount_fine', function() {
+        var hasDiscountChecked = $('#myFeesModal .grp_discount:checked').length > 0;
+        if (!hasDiscountChecked) {
+            // If no discount is checked, recalculate amount based on original and current fine.
+            var currentFine = parseFloat($(this).val()) || 0;
+            $('#amount').val((originalAmountStored + currentFine).toFixed(2));
+        }
+        // If hasDiscountChecked is true, #amount should remain 0.00, so no action here.
+    });
+
+});
+</script>
