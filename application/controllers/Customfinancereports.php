@@ -83,7 +83,9 @@ class Customfinancereports extends Admin_Controller
                     $obj->transport_demand = $fees_data->transport_demand;
                     $obj->transport_paid = $fees_data->transport_paid;
                     $obj->transport_balance = $fees_data->transport_demand - $fees_data->transport_paid;
-                    $obj->advance_paid = $this->studentfeemaster_model->get_advance_balance($student_session_id);
+                    $advance_balances = $this->studentfeemaster_model->get_advance_balance($student_session_id);
+                    $obj->advance_paid = $advance_balances['paid_advance_balance'];
+                    $obj->advance_discount = $advance_balances['discount_advance_balance'];
                     $student_total_fees = $fees_data->fees;
                     $obj->applied_discounts = $this->feediscount_model->getStudentFeesDiscount($student_session_id);
 
@@ -118,7 +120,7 @@ class Customfinancereports extends Admin_Controller
                     $obj->balance  = $totalfee - $total_paid_sum;
                     $obj->balance += $obj->cf_balance; // Add CF-Balance to the Balance column
 
-                    $obj->net_balance = $obj->balance - $obj->advance_paid;
+                    $obj->net_balance = $obj->balance - ($obj->advance_paid + $obj->advance_discount);
 
                     // NEW LOGIC TO CALCULATE TOTAL DISCOUNT
                     $total_student_discount_dynamic = 0;

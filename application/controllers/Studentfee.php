@@ -897,7 +897,9 @@ class Studentfee extends Admin_Controller
 
         $data['feearray'] = $fees_array;
         $data['discount_not_applied'] = $this->getNotAppliedDiscount($student_session_id);
-        $data['advance_balance'] = $this->studentfeemaster_model->get_advance_balance($student_session_id);
+        $advance_balances = $this->studentfeemaster_model->get_advance_balance($student_session_id);
+        $data['paid_advance_balance'] = $advance_balances['paid_advance_balance'];
+        $data['discount_advance_balance'] = $advance_balances['discount_advance_balance'];
 
         $result           = array(
             'view' => $this->load->view('studentfee/getcollectfee', $data, true),
@@ -1182,10 +1184,34 @@ class Studentfee extends Admin_Controller
             log_message('error', 'fee_deposit returned: ' . $inserted_id);
 
             if ($overpayment_amount > 0) {
+                // Calculate how much of the discount contributes to the overpayment
+                $cash_paid_for_fee = $paying_amount;
+                $discount_applied_for_fee = $amount_discount;
+                $actual_fee_balance = $fee_balance;
+
+                $cash_part_of_overpayment = 0;
+                $discount_part_of_overpayment = 0;
+
+                if ($cash_paid_for_fee >= $actual_fee_balance) {
+                    // All fee balance is covered by cash, so all discount (if any) is overpaid discount
+                    // And remaining cash is cash overpayment
+                    $cash_part_of_overpayment = $cash_paid_for_fee - $actual_fee_balance;
+                    $discount_part_of_overpayment = $discount_applied_for_fee;
+                } else {
+                    // Cash partially covers the fee
+                    $remaining_fee_to_cover = $actual_fee_balance - $cash_paid_for_fee;
+                    // Any discount beyond the remaining fee becomes discount overpayment
+                    if ($discount_applied_for_fee > $remaining_fee_to_cover) {
+                        $discount_part_of_overpayment = $discount_applied_for_fee - $remaining_fee_to_cover;
+                    }
+                    // No cash overpayment in this scenario, as cash was less than fee
+                    $cash_part_of_overpayment = 0;
+                }
+
                 $advance_fee_ids = $this->studentfeemaster_model->get_or_create_advance_fee_ids($student_session_id);
                 $json_array_advance = [
-                    'amount'          => $overpayment_amount,
-                    'amount_discount' => 0,
+                    'amount'          => convertCurrencyFormatToBaseAmount($cash_part_of_overpayment),
+                    'amount_discount' => convertCurrencyFormatToBaseAmount($discount_part_of_overpayment),
                     'amount_fine'     => 0,
                     'date'            => date('Y-m-d', $this->customlib->datetostrtotime($this->input->post('date'))),
                     'description'     => 'Overpayment from single fee collection',
@@ -1483,7 +1509,9 @@ class Studentfee extends Admin_Controller
             $student_fees_master_id = $this->input->post('student_fees_master_id');
             $student_session_id   = $this->input->post('student_session_id');
             $student=$this->student_model->getByStudentSession($student_session_id);
-            $advance_balance = $this->studentfeemaster_model->get_advance_balance($student_session_id);
+            $advance_balances = $this->studentfeemaster_model->get_advance_balance($student_session_id);
+            $paid_advance_balance = $advance_balances['paid_advance_balance'];
+            $discount_advance_balance = $advance_balances['discount_advance_balance'];
             $discount_not_applied = $this->getNotAppliedDiscount($student_session_id);
             $fee_category = $this->input->post('fee_category');
             $trans_fee_id         = $this->input->post('trans_fee_id');
@@ -1502,7 +1530,8 @@ class Studentfee extends Admin_Controller
 
             $array = array(
                   'balance' => convertBaseAmountCurrencyFormat($remain_amount), 
-                  'advance_balance' => $advance_balance,
+                  'paid_advance_balance' => $paid_advance_balance, 
+                  'discount_advance_balance' => $discount_advance_balance,
                   'discount_not_applied' => $discount_not_applied,
                   'remain_amount_fine' => convertBaseAmountCurrencyFormat($remain_amount_fine),
                   'student_fees' => convertBaseAmountCurrencyFormat(json_decode($remain_amount_object)->student_fees),
@@ -1605,7 +1634,12 @@ class Studentfee extends Admin_Controller
             }
         }
 
-        $amount_balance = $due_amt - ($amount + $amount_discount);
+        if ($result->type === "Advance Payments") {
+            $advance_balances = $this->studentfeemaster_model->get_advance_balance($result->student_session_id);
+            $amount_balance = $advance_balances['paid_advance_balance'] + $advance_balances['discount_advance_balance'];
+        } else {
+            $amount_balance = $due_amt - ($amount + $amount_discount);
+        }
         $fine_amount    = ($fee_fine_amount > 0) ? ($fee_fine_amount - $amount_fine) : 0;
         $array          = array('status' => 'success', 'error' => '', 'student_fees' => $due_amt, 'balance' => $amount_balance, 'fine_amount' => $fine_amount);
         return json_encode($array);
@@ -1751,11 +1785,11 @@ class Studentfee extends Admin_Controller
             $student_session_id = $this->input->post('student_session_id');
 
             // Handle overpayment by adding to advance
-            if ($distributable_payment > 0) {
+            if ($distributable_payment > 0 || $distributable_discount > 0) { 
                 $advance_fee_ids = $this->studentfeemaster_model->get_or_create_advance_fee_ids($student_session_id);
                 $json_array_advance = [
                     'amount'          => $distributable_payment,
-                    'amount_discount' => 0,
+                    'amount_discount' => $distributable_discount,
                     'amount_fine'     => 0,
                     'date'            => $collected_date,
                     'description'     => 'Overpayment from bulk fee collection',
@@ -1775,11 +1809,10 @@ class Studentfee extends Admin_Controller
 
             if ($inserted_ids) {
                 if ($use_advance == 'yes') {
-                    $total_paid_from_advance = $total_amount_paid + $total_discount_paid; // In advance case, discount is also part of what's "paid"
                     $advance_fee_ids = $this->studentfeemaster_model->get_or_create_advance_fee_ids($student_session_id);
                     $json_array_advance = [
-                        'amount'          => -$total_paid_from_advance,
-                        'amount_discount' => 0,
+                        'amount'          => -$total_amount_paid,
+                        'amount_discount' => -$total_discount_paid,
                         'amount_fine'     => 0,
                         'date'            => $collected_date,
                         'description'     => 'Advance amount used for bulk fee payment',
@@ -1975,13 +2008,13 @@ class Studentfee extends Admin_Controller
                     if ($remaining_discount > 0) {
                         $advance_fee_ids = $this->studentfeemaster_model->get_or_create_advance_fee_ids($student_session_id);
                         $json_array_advance = [
-                            'amount'          => $remaining_discount,
-                            'amount_discount' => 0,
+                            'amount'          => 0,
+                            'amount_discount' => $remaining_discount,
                             'amount_fine'     => 0,
                             'date'            => date('Y-m-d'),
                             'description'     => 'Advance from ' . $discount['name'] . ' Discount',
                             'collected_by'    => $this->customlib->getAdminSessionUserName(),
-                            'payment_mode'    => 'Advance',
+                            'payment_mode'    => 'Discount',
                             'received_by'     => $this->customlib->getStaffID(),
                         ];
     
@@ -2024,7 +2057,8 @@ class Studentfee extends Admin_Controller
 
         $eligible_students = [];
         foreach ($students as $student) {
-            $advance_balance = $this->studentfeemaster_model->get_advance_balance($student->student_session_id);
+            $advance_balances = $this->studentfeemaster_model->get_advance_balance($student->student_session_id);
+            $advance_balance = $advance_balances['paid_advance_balance'] + $advance_balances['discount_advance_balance'];
             if ($advance_balance > 0) {
                 $student_details = $this->student_model->getByStudentSession($student->student_session_id);
                 $student_details['advance'] = $advance_balance;

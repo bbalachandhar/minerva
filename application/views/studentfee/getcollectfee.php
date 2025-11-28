@@ -224,19 +224,27 @@ foreach ($feearray as $fee_key => $fee_value) {
          </div>
         </div>
         <div class="col-lg-12">
-            <div class="form-group">
-                <label for="inputPassword3" class="col-sm-3 control-label">Available Advance Amount (<?php echo $currency_symbol; ?>)</label>
+            <div class="form-group row">
+                <label for="inputPassword3" class="col-sm-3 control-label">Available Paid Advance (<?php echo $currency_symbol; ?>)</label>
                 <div class="col-sm-9">
-                    <span id="advance_balance_text"><?php echo $advance_balance; ?></span>
+                    <span id="paid_advance_balance_text"><?php echo amountFormat($paid_advance_balance); ?></span>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-12">
+            <div class="form-group row">
+                <label for="inputPassword3" class="col-sm-3 control-label">Available Discount Advance (<?php echo $currency_symbol; ?>)</label>
+                <div class="col-sm-9">
+                    <span id="discount_advance_balance_text"><?php echo amountFormat($discount_advance_balance); ?></span>
                 </div>
             </div>
         </div>
         <div class="col-lg-12">
             <div class="form-group">
-                <label for="inputPassword3" class="col-sm-3 control-label">Use Advance</label>
+                <label for="inputPassword3" class="col-sm-3 control-label">Use Total Advance</label>
                 <div class="col-sm-9">
                     <label class="radio-inline">
-                        <input type="radio" name="use_advance" value="yes" <?php if($advance_balance <= 0) echo 'disabled'; ?>>Yes
+                        <input type="radio" name="use_advance" value="yes" <?php if(($paid_advance_balance + $discount_advance_balance) <= 0) echo 'disabled'; ?>>Yes
                     </label>
                     <label class="radio-inline">
                         <input type="radio" name="use_advance" value="no" checked="checked">No
@@ -497,7 +505,11 @@ if($fine_amount_status){
 <script>
 $(document).ready(function(){
     var total_fees_and_fine = <?php echo ($total_amount + $total_fine); ?>;
-    var advance_balance = <?php echo $advance_balance; ?>;
+
+
+    var paid_advance_balance = <?php echo $paid_advance_balance; ?>;
+    var discount_advance_balance = <?php echo $discount_advance_balance; ?>;
+    var total_advance_balance = paid_advance_balance + discount_advance_balance;
 
     function calculatePayingAmount() {
         var current_total = total_fees_and_fine;
@@ -522,7 +534,7 @@ $(document).ready(function(){
         var calculated_amount = amount_after_discount;
 
         if (use_advance === 'yes') {
-            calculated_amount = Math.min(advance_balance, amount_after_discount);
+            calculated_amount = Math.min(total_advance_balance, amount_after_discount);
         }
 
         $('#amount').val(calculated_amount.toFixed(2));

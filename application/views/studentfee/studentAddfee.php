@@ -252,7 +252,7 @@ foreach ($student_due_fee as $key => $fee) {
             $total_deposite_amount -= $fee_paid;
 
             // 2. Set the variables for display in this row.
-            $feetype_balance = $fee_paid; // The balance is the credit amount.
+            $feetype_balance = $fee_paid + $fee_discount; // The balance is the total credit amount.
             $fee_paid = 0; // The 'paid' amount for a credit fee is conceptually zero.
         }
         ?>

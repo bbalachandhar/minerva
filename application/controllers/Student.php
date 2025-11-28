@@ -1570,7 +1570,9 @@ class Student extends Admin_Controller
         $data['student']               = $student;
         $data["month"]                 = $this->customlib->getMonthDropdown();
         $data['feesessiongroup_model'] = $this->feesessiongroup_model->getFeesByGroupByStudent($student['student_session_id']);
-        $data['advance_balance'] = $this->studentfeemaster_model->get_advance_balance($student['student_session_id']);
+        $advance_balances = $this->studentfeemaster_model->get_advance_balance($student['student_session_id']);
+        $data['paid_advance_balance'] = $advance_balances['paid_advance_balance'];
+        $data['discount_advance_balance'] = $advance_balances['discount_advance_balance'];
 
         $data['adm_auto_insert'] = $this->sch_setting_detail->adm_auto_insert;
         $data['genderList']      = $genderList;

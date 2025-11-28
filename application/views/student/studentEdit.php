@@ -607,6 +607,12 @@ echo set_value('hostel_id', $student['hostel_id']) == $hostel_value['id'] ? "sel
 <input type="hidden" name="total_post_fees" value="<?php echo ($view_total_fees); ?>">
 
                                                       </span>
+                                                      <div class="clearfix"></div>
+                                                      <div style="font-size: 13px; margin-top: 10px;">
+                                                          <strong>Paid Advance Balance:</strong> <?php echo $currency_symbol . amountFormat($paid_advance_balance); ?>
+                                                          &nbsp;&nbsp;&nbsp;
+                                                          <strong>Discount Advance Balance:</strong> <?php echo $currency_symbol . amountFormat($discount_advance_balance); ?>
+                                                      </div>
                                                     </h4>
                                                     <div class="row around10">
                                                         <div class="col-md-12">

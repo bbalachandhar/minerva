@@ -136,16 +136,22 @@ if(!empty($discount_not_applied)){
             </div> 
          </div>
          <div class="form-group">
-            <label for="inputPassword3" class="col-sm-3 col-lg-3 col-md-3 control-label">Available Advance Amount (₹)</label>
+            <label for="inputPassword3" class="col-sm-3 col-lg-3 col-md-3 control-label">Available Paid Advance (<?php echo $currency_symbol; ?>)</label>
             <div class="col-sm-9 col-lg-9 col-md-9">
-                <span id="advance_balance_text"><?php echo $advance_balance; ?></span>
+                <span id="paid_advance_balance_text"><?php echo amountFormat($paid_advance_balance); ?></span>
             </div>
          </div>
          <div class="form-group">
-            <label for="inputPassword3" class="col-sm-3 col-lg-3 col-md-3 control-label">Use Advance</label>
+            <label for="inputPassword3" class="col-sm-3 col-lg-3 col-md-3 control-label">Available Discount Advance (<?php echo $currency_symbol; ?>)</label>
+            <div class="col-sm-9 col-lg-9 col-md-9">
+                <span id="discount_advance_balance_text"><?php echo amountFormat($discount_advance_balance); ?></span>
+            </div>
+         </div>
+         <div class="form-group">
+            <label for="inputPassword3" class="col-sm-3 col-lg-3 col-md-3 control-label">Use Total Advance</label>
             <div class="col-sm-9 col-lg-9 col-md-9">
                 <label class="radio-inline">
-                    <input type="radio" name="use_advance" value="yes">Yes
+                    <input type="radio" name="use_advance" value="yes" <?php if(($paid_advance_balance + $discount_advance_balance) <= 0) echo 'disabled'; ?>>Yes
                 </label>
                 <label class="radio-inline">
                     <input type="radio" name="use_advance" value="no" checked="checked">No
@@ -220,12 +226,14 @@ if(!empty($discount_not_applied)){
 
 <script>
 $(document).ready(function () {
-    var advance_balance = <?php echo $advance_balance; ?>;
+    var paid_advance_balance = <?php echo $paid_advance_balance; ?>;
+    var discount_advance_balance = <?php echo $discount_advance_balance; ?>;
+    var total_advance_balance = paid_advance_balance + discount_advance_balance;
     var fee_balance = <?php echo str_replace(',', '', $balance); ?>;
 
     $('input[name="use_advance"]').on('change', function() {
         if ($(this).val() == 'yes') {
-            var amount_to_pay = Math.min(advance_balance, fee_balance);
+            var amount_to_pay = Math.min(total_advance_balance, fee_balance);
             $('#amount').val(amount_to_pay);
         } else {
             $('#amount').val(fee_balance);

@@ -1621,7 +1621,7 @@ class Studentfeemaster_model extends MY_Model
         $this->load->model('feetype_model');
         $fee_type = $this->feetype_model->checkFeetypeByName("Advance Payments");
         if (!$fee_type) {
-            return 0;
+            return ['paid_advance_balance' => 0, 'discount_advance_balance' => 0];
         }
         $feetype_id = $fee_type->id;
 
@@ -1634,17 +1634,23 @@ class Studentfeemaster_model extends MY_Model
         $query = $this->db->get();
         $result = $query->result();
 
-        $total_advance = 0;
+        $paid_advance_balance = 0;
+        $discount_advance_balance = 0;
         if (!empty($result)) {
             foreach ($result as $row) {
                 $amount_detail = json_decode($row->amount_detail);
                 foreach ($amount_detail as $amount) {
-                    $total_advance += $amount->amount;
+                    $paid_advance_balance += $amount->amount;
+                    // Add amount_discount if it exists, otherwise 0
+                    $discount_advance_balance += isset($amount->amount_discount) ? $amount->amount_discount : 0;
                 }
             }
         }
 
-        return $total_advance;
+        return [
+            'paid_advance_balance' => $paid_advance_balance,
+            'discount_advance_balance' => $discount_advance_balance
+        ];
     }
 
     public function reallocate_payments($student_session_id, $old_fee_session_group_id, $new_fee_session_group_id = null)
