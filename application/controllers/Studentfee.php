@@ -1583,64 +1583,79 @@ class Studentfee extends Admin_Controller
         return json_encode($array);
     }
 	
-	public function getStuFeetypeBalance($fee_groups_feetype_id, $student_fees_master_id)
-    {
-        $data                           = array();
-        $data['fee_groups_feetype_id']  = $fee_groups_feetype_id;
-        $data['student_fees_master_id'] = $student_fees_master_id;
-        $result                         = $this->studentfeemaster_model->studentDeposit($data);
-
-        $amount_balance  = 0;
-        $amount          = 0;
-        $amount_fine     = 0;
-        $amount_discount = 0;
-        $fine_amount     = 0;
-        $fee_fine_amount = 0;
-        $due_fine_amount = 0;
-        $due_amt         = $result->amount;
-        if ((!empty($result->due_date)) && strtotime($result->due_date) < strtotime(date('Y-m-d'))) {
-
-        // get cumulative fine amount as delay days 
-            if($result->fine_type=='cumulative'){
-                $date1=date_create("$result->due_date");
-                $date2=date_create(date('Y-m-d'));
-                $diff=date_diff($date1,$date2);
-                $due_days= $diff->format("%a");;
-                
-                if($this->customlib->get_cumulative_fine_amount($fee_groups_feetype_id,$due_days)){
-                    $due_fine_amount=$this->customlib->get_cumulative_fine_amount($fee_groups_feetype_id,$due_days);
-                }else{
-                    $due_fine_amount=0;
-                }
-                $fee_fine_amount       = $due_fine_amount;
-
-            }else if($result->fine_type=='fix' || $result->fine_type=='percentage'){
-                $fee_fine_amount       = $result->fine_amount;
-            }
-        // get cumulative fine amount as delay days
-        }
-
-        if ($result->is_system) {
-            $due_amt = $result->student_fees_master_amount;
-        }
-
-        $amount_detail = json_decode($result->amount_detail);
-        if (is_object($amount_detail)) {
-
-            foreach ($amount_detail as $amount_detail_key => $amount_detail_value) {
-                $amount          = $amount + $amount_detail_value->amount;
-                $amount_discount = $amount_discount + $amount_detail_value->amount_discount;
-                $amount_fine     = $amount_fine + $amount_detail_value->amount_fine;
-            }
-        }
-
-        if ($result->type === "Advance Payments") {
-            $advance_balances = $this->studentfeemaster_model->get_advance_balance($result->student_session_id);
-            $amount_balance = $advance_balances['paid_advance_balance'] + $advance_balances['discount_advance_balance'];
-        } else {
-            $amount_balance = $due_amt - ($amount + $amount_discount);
-        }
-        $fine_amount    = ($fee_fine_amount > 0) ? ($fee_fine_amount - $amount_fine) : 0;
+	    public function getStuFeetypeBalance($fee_groups_feetype_id, $student_fees_master_id)
+	    {
+	        $data                           = array();
+	        $data['fee_groups_feetype_id']  = $fee_groups_feetype_id;
+	        $data['student_fees_master_id'] = $student_fees_master_id;
+	        log_message('debug', 'getStuFeetypeBalance: Calling studentDeposit with data: ' . json_encode($data));
+	        $result                         = $this->studentfeemaster_model->studentDeposit($data);
+	        log_message('debug', 'getStuFeetypeBalance: studentDeposit returned result: ' . json_encode($result));
+	
+	        if (empty($result)) {
+	            log_message('error', 'getStuFeetypeBalance: studentDeposit returned empty result for fee_groups_feetype_id ' . $fee_groups_feetype_id . ' and student_fees_master_id ' . $student_fees_master_id);
+	            return json_encode(array('status' => 'fail', 'error' => 'Fee details not found for provided IDs.'));
+	        }
+	        
+	        $amount_balance  = 0;
+	        $amount          = 0;
+	        $amount_fine     = 0;
+	        $amount_discount = 0;
+	        $fine_amount     = 0;
+	        $fee_fine_amount = 0;
+	        $due_fine_amount = 0;
+	        
+	        // Ensure properties exist before accessing them to prevent Undefined property errors
+	        $due_amt = isset($result->amount) ? $result->amount : 0;
+	
+	        if ((!empty($result->due_date)) && strtotime($result->due_date) < strtotime(date('Y-m-d'))) {
+			  // get cumulative fine amount as delay days 
+	            if(isset($result->fine_type) && $result->fine_type=='cumulative'){
+	                $date1=date_create(isset($result->due_date) ? "$result->due_date" : date('Y-m-d'));
+	                $date2=date_create(date('Y-m-d'));
+	                $diff=date_diff($date1,$date2);
+	                $due_days= $diff->format("%a");;
+	                
+	                if($this->customlib->get_cumulative_fine_amount($fee_groups_feetype_id,$due_days)){
+	                    $due_fine_amount=$this->customlib->get_cumulative_fine_amount($fee_groups_feetype_id,$due_days);
+	                }else{
+	                    $due_fine_amount=0;
+	                }
+	                $fee_fine_amount       = $due_fine_amount;
+	
+	            }else if(isset($result->fine_type) && ($result->fine_type=='fix' || $result->fine_type=='percentage')){
+	                $fee_fine_amount       = isset($result->fine_amount) ? $result->fine_amount : 0;
+	            }
+	        // get cumulative fine amount as delay days
+	        }
+	
+	        if (isset($result->is_system) && $result->is_system) {
+	            $due_amt = isset($result->student_fees_master_amount) ? $result->student_fees_master_amount : 0;
+	        }
+	
+	        $amount_detail = json_decode(isset($result->amount_detail) ? $result->amount_detail : '[]');
+	        if (is_object($amount_detail) || is_array($amount_detail)) {
+	
+	            foreach ($amount_detail as $amount_detail_key => $amount_detail_value) {
+	                $amount          = $amount + (isset($amount_detail_value->amount) ? $amount_detail_value->amount : 0);
+	                $amount_discount = $amount_discount + (isset($amount_detail_value->amount_discount) ? $amount_detail_value->amount_discount : 0);
+	                $amount_fine     = $amount_fine + (isset($amount_detail_value->amount_fine) ? $amount_detail_value->amount_fine : 0);
+	            }
+	        }
+	
+	        // Check for $result->type before using it
+	        if (isset($result->type) && $result->type === "Advance Payments") {
+	            if (!isset($result->student_session_id)) {
+	                log_message('error', 'getStuFeetypeBalance: student_session_id not found in result for Advance Payments type. Result: ' . json_encode($result));
+	                return json_encode(array('status' => 'fail', 'error' => 'Student session ID missing for Advance Payments.'));
+	            }
+	            log_message('debug', 'getStuFeetypeBalance: Calling get_advance_balance for student_session_id: ' . $result->student_session_id);
+	            $advance_balances = $this->studentfeemaster_model->get_advance_balance($result->student_session_id);
+	            log_message('debug', 'getStuFeetypeBalance: get_advance_balance returned: ' . json_encode($advance_balances));
+	            $amount_balance = $advance_balances['paid_advance_balance'] + $advance_balances['discount_advance_balance'];
+	        } else {
+	            $amount_balance = $due_amt - ($amount + $amount_discount);
+	        }        $fine_amount    = ($fee_fine_amount > 0) ? ($fee_fine_amount - $amount_fine) : 0;
         $array          = array('status' => 'success', 'error' => '', 'student_fees' => $due_amt, 'balance' => $amount_balance, 'fine_amount' => $fine_amount);
         return json_encode($array);
     }

@@ -233,10 +233,27 @@ $(document).ready(function () {
 
     $('input[name="use_advance"]').on('change', function() {
         if ($(this).val() == 'yes') {
-            var amount_to_pay = Math.min(total_advance_balance, fee_balance);
-            $('#amount').val(amount_to_pay);
+            // Determine how much of the paid and discount advance can be used
+            // This needs to be done carefully to not exceed the fee_balance
+            var remaining_fee_to_cover = fee_balance;
+            var applied_paid_advance = 0;
+            var applied_discount_advance = 0;
+
+            if (paid_advance_balance > 0) {
+                applied_paid_advance = Math.min(paid_advance_balance, remaining_fee_to_cover);
+                remaining_fee_to_cover -= applied_paid_advance;
+            }
+
+            if (discount_advance_balance > 0 && remaining_fee_to_cover > 0) {
+                applied_discount_advance = Math.min(discount_advance_balance, remaining_fee_to_cover);
+            }
+            
+            $('#amount').val(applied_paid_advance); // Set paying amount to paid advance used
+            $('#amount_discount').val(applied_discount_advance); // Set discount field to discount advance used
+
         } else {
             $('#amount').val(fee_balance);
+            $('#amount_discount').val(0); // Reset discount if not using advance or if switching back
         }
     });
 });
