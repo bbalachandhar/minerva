@@ -266,7 +266,6 @@ $(document).ready(function () {
 
     // Functions
     function getClassesByDepartment(department_id, class_id = null) {
-        console.log("getClassesByDepartment called with department_id: " + department_id);
         if (department_id != "") {
             $('#class_id').html("").select2({data: null});
             var div_data = '<option value=""><?php echo $this->lang->line('select'); ?></option>';
@@ -276,7 +275,6 @@ $(document).ready(function () {
                 data: {'department_id': department_id},
                 dataType: "json",
                 success: function (data) {
-                    console.log("AJAX success. Response data:", data);
                     $.each(data, function (i, obj) {
                         var sel = "";
                         if (class_id == obj.id) {
@@ -288,11 +286,10 @@ $(document).ready(function () {
                     $('#class_id').select2();
                 },
                 error: function (xhr, status, error) {
-                    console.log("AJAX error:", error);
+                    console.error("AJAX error:", error);
                 }
             });
         } else {
-            console.log("No department selected, populating with all classes.");
             $('#class_id').html("").select2({data: null});
             var div_data = '<option value=""><?php echo $this->lang->line('select'); ?></option>';
             <?php
