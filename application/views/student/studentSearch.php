@@ -235,331 +235,241 @@ if ($this->rbac->hasPrivilege('student', 'can_edit')) {
                                                         </div>
                                                         </section>
                                                         </div>
-
 <script type="text/javascript">
-    $(document).ready(function () {
-        // Function to get classes by department
-        function getClassesByDepartment(department_id) {
-            if (department_id != "") {
-                $('#class_id').html(""); // Clear existing options
-                 $('#class_id').select2('val', '');
-                var base_url = '<?php echo base_url() ?>';
-                var div_data = '<option value=""><?php echo $this->lang->line('select'); ?></option>';
-                $.ajax({
-                    type: "GET",
-                    url: "<?php echo site_url('classes/getClassesByDepartment'); ?>",
-                    data: {'department_id': department_id},
-                    dataType: "json",
-                    success: function (data) {
-                        $.each(data, function (i, obj) {
-                            div_data += "<option value=" + obj.id + ">" + obj.class + "</option>";
-                        });
-                        $('#class_id').append(div_data);
-                    }
-                });
-            } else {
-                $('#class_id').html(""); // Clear if no department is selected
-                 $('#class_id').select2('val', '');
-            }
-        }
-
-        // Trigger on change
-        $(document).on('change', '#department_id', function (e) {
-            getClassesByDepartment($(this).val());
-            $('#section_id').html("");
-             $('#section_id').append('<option value=""><?php echo $this->lang->line('select'); ?></option>');
-        });
-
-    function getSectionByClass(class_id, section_id) {
-    if (class_id != "") {
-        $('#section_id').html("");
-        var base_url = '<?php echo base_url() ?>';
-        var div_data = '<option value=""><?php echo $this->lang->line('select'); ?></option>';
-        if (!Array.isArray(class_id)) {
-            class_id = [class_id];
-        }
-        class_id.forEach(function(class_id) {
-            $.ajax({
-                type: "GET",
-                url: base_url + "sections/getByClass",
-                data: {'class_id': class_id},
-                dataType: "json",
-                success: function (data) {
-                    $.each(data, function (i, obj)
-                    {
-                        var sel = "";
-                        if (section_id == obj.section_id) {
-                            sel = "selected";
-                        }
-                        div_data += "<option value=" + obj.section_id + " " + sel + ">" + obj.section + "</option>";
-                    });
-                    $('#section_id').append(div_data);
-                }
-            });
-        });
-    }
-}
-
 $(document).ready(function () {
+    // Initialize select2
+    $('#class_id').select2({
+        placeholder: "Select",
+    });
+
     var class_id = $('#class_id').val();
     var section_id = '<?php echo set_value('section_id') ?>';
+    var department_id = '<?php echo set_value('department_id') ?>';
+
+    // Initial population
     getSectionByClass(class_id, section_id);
+    if(department_id){
+        getClassesByDepartment(department_id, class_id);
+    }
+
+    // Event Listeners
+    $(document).on('change', '#department_id', function (e) {
+        getClassesByDepartment($(this).val());
+        $('#section_id').html("").select2({data: null});
+        $('#section_id').append('<option value=""><?php echo $this->lang->line('select'); ?></option>');
+        $('#section_id').select2();
+    });
+
     $(document).on('change', '#class_id', function (e) {
-        $('#section_id').html("");
-        var class_id = $(this).val();
-        var base_url = '<?php echo base_url() ?>';
-        var div_data = '<option value=""><?php echo $this->lang->line('select'); ?></option>';
-        if (!Array.isArray(class_id)) {
-            class_id = [class_id];
-        }
-        class_id.forEach(function(class_id) {
+        getSectionByClass($(this).val(),'');
+    });
+
+    // Functions
+    function getClassesByDepartment(department_id, class_id = null) {
+        console.log("getClassesByDepartment called with department_id: " + department_id);
+        if (department_id != "") {
+            $('#class_id').html("").select2({data: null});
+            var div_data = '<option value=""><?php echo $this->lang->line('select'); ?></option>';
             $.ajax({
                 type: "GET",
-                url: base_url + "sections/getByClass",
-                data: {'class_id': class_id},
+                url: "<?php echo site_url('classes/getClassesByDepartment'); ?>",
+                data: {'department_id': department_id},
                 dataType: "json",
                 success: function (data) {
-                    $.each(data, function (i, obj)
-                    {
-                        div_data += "<option value=" + obj.section_id + ">" + obj.section + "</option>";
+                    console.log("AJAX success. Response data:", data);
+                    $.each(data, function (i, obj) {
+                        var sel = "";
+                        if (class_id == obj.id) {
+                            sel = "selected";
+                        }
+                        div_data += "<option value=" + obj.id + " " + sel + ">" + obj.class + "</option>";
                     });
-                    $('#section_id').append(div_data);
-                }
-            });
-        });
-    });
-});
-</script>
-
-<?php if (empty($resultlist)) { ?>
-<script>
-$(document).ready(function() {
-     emptyDatatable('student-list','data');
-});
-</script>
-<?php } ?>
-
- 
-
-<script type="text/javascript">
-$(document).ready(function(){
-
-$("form.class_search_form button[type=submit]").click(function() {
-    $("button[type=submit]", $(this).parents("form")).removeAttr("clicked");
-    $(this).attr("clicked", "true");
-});
-
-var last_search_type = '';
-
-$(document).on('submit','.class_search_form',function(e){
-   e.preventDefault(); // avoid to execute the actual submit of the form.
-    var $this = $("button[type=submit][clicked=true]");
-    last_search_type = $this.attr('value');
-    var form = $(this);
-    var url = form.attr('action');
-    var form_data = form.serializeArray();
-    form_data.push({name: 'srch_type', value: $this.attr('value')});
-    $.ajax({
-           url: url,
-           type: "POST",
-           dataType:'JSON',
-           data: form_data, // serializes the form's elements.
-              beforeSend: function () {
-                $('[id^=error]').html("");
-                $this.button('loading');
-                resetFields($this.attr('value'));
-               },
-              success: function(response) { // your success handler
-
-                if(!response.status){
-                    $.each(response.error, function(key, value) {
-                    $('#error_' + key).html(value);
-                    });
-                }else{        
-
-        if ($.fn.DataTable.isDataTable('.student-list')) { // if exist datatable it will destrory first
-         $('.student-list').DataTable().destroy();
-       }
-        table= $('.student-list').DataTable({
-        
-       dom: 'Bfrtip',
-          buttons: [
-            {
-                extend:    'copy',
-                text:      '<i class="fa fa-files-o"></i>',
-                titleAttr: 'Copy',
-                 className: "btn-copy",
-                title: $('.student-list').data("exportTitle"),
-                  exportOptions: {
-                    columns: ["thead th:not(.noExport)"]
-                  }
-            },
-            {
-                extend:    'excel',
-                text:      '<i class="fa fa-file-excel-o"></i>',
-                titleAttr: 'Excel',
-                     className: "btn-excel",
-                title: $('.student-list').data("exportTitle"),
-                  exportOptions: {
-                    columns: ["thead th:not(.noExport)"]
-                  }
-            },
-            {
-                extend:    'csv',
-                text:      '<i class="fa fa-file-text-o"></i>',
-                titleAttr: 'CSV',
-                className: "btn-csv",
-                title: $('.student-list').data("exportTitle"),
-                  exportOptions: {
-                    columns: ["thead th:not(.noExport)"]
-                  }
-            },
-            {
-                extend:    'pdf',
-                text:      '<i class="fa fa-file-pdf-o"></i>',
-                titleAttr: 'PDF',
-                className: "btn-pdf",
-                title: $('.student-list').data("exportTitle"),
-                  exportOptions: {
-                    columns: ["thead th:not(.noExport)"]
-                  },
-
-            },
-            {
-                extend:    'print',
-                text:      '<i class="fa fa-print"></i>',
-                titleAttr: 'Print',
-                className: "btn-print",
-                title: $('.student-list').data("exportTitle"),
-                customize: function ( win ) {
-
-                    $(win.document.body).find('th').addClass('display').css('text-align', 'center');
-                    $(win.document.body).find('table').addClass('display').css('font-size', '14px');     
-                    $(win.document.body).find('h1').css('text-align', 'center');
+                    $('#class_id').append(div_data);
+                    $('#class_id').select2();
                 },
-                exportOptions: {
-                    columns: ["thead th:not(.noExport)"]
-
-                  }
-
-            }
-        ],
-        'initComplete': function() {
-            var $button = $('<a class="btn btn-default dt-button buttons-csv buttons-html5 btn-csv" tabindex="0" aria-controls="DataTables_Table_0" href="#" title="CSV"><span><i class="fa fa-file-text-o"></i> Export All to CSV</span></a>');
-            $('.dt-buttons').append($button);
-
-            $button.on('click', function() {
-                var form = $('form.class_search_form');
-                var url = form.attr('action');
-                var form_data = form.serializeArray();
-                var class_id = $('#class_id').val();
-                var section_id = $('#section_id').val();
-                var search_text = $('#search_text').val();
-
-                var export_url = '<?php echo site_url("student/exportall") ?>' + '?search_type=' + last_search_type + '&class_id=' + class_id.join(',') + '&section_id=' + section_id + '&search_text=' + search_text;
-                window.open(export_url, '_blank');
-            });
-        },
-
-        "columnDefs": [ {
-        "targets": -1,
-        "orderable": false
-        } ],
-
-
-           "language": {
-            processing: '<i class="fa fa-spinner fa-spin fa-1x fa-fw"></i><span class="sr-only">Loading...</span> '},
-        "pageLength": 100,
-        "processing": true,
-        "serverSide": true,
-        "ajax":{
-        "url": baseurl+"student/dtstudentlist",
-        "dataSrc": 'data',
-        "type": "POST",
-        'data': response.params,
-
-     },"drawCallback": function(settings) {
-
-    $('.detail_view_tab').html("").html(settings.json.student_detail_view);
-}
-
-    });
-            //=======================
+                error: function (xhr, status, error) {
+                    console.log("AJAX error:", error);
                 }
-              },
-             error: function() { // your error handler
-                 $this.button('reset');
-             },
-             complete: function() {
-             $this.button('reset');
-             }
-         });
+            });
+        } else {
+            console.log("No department selected, populating with all classes.");
+            $('#class_id').html("").select2({data: null});
+            var div_data = '<option value=""><?php echo $this->lang->line('select'); ?></option>';
+            <?php
+            foreach ($classlist as $class) {
+                ?>
+                var sel = "";
+                if (class_id == '<?php echo $class['id'] ?>') {
+                    sel = "selected";
+                }
+                div_data += "<option value='<?php echo $class['id'] ?>' " + sel + "><?php echo addslashes($class['class']) ?></option>";
+                <?php
+            }
+            ?>
+            $('#class_id').append(div_data);
+            $('#class_id').select2();
+        }
+    }
 
-});
+    function getSectionByClass(class_id, section_id) {
+        if (class_id != "" && class_id != null) {
+            $('#section_id').html("");
+            var base_url = '<?php echo base_url() ?>';
+            var div_data = '<option value=""><?php echo $this->lang->line('select'); ?></option>';
+            if (!Array.isArray(class_id)) {
+                class_id = [class_id];
+            }
+            class_id.forEach(function(class_id) {
+                $.ajax({
+                    type: "GET",
+                    url: base_url + "sections/getByClass",
+                    data: {'class_id': class_id},
+                    dataType: "json",
+                    success: function (data) {
+                        $.each(data, function (i, obj)
+                        {
+                            var sel = "";
+                            if (section_id == obj.section_id) {
+                                sel = "selected";
+                            }
+                            div_data += "<option value=" + obj.section_id + " " + sel + ">" + obj.section + "</option>";
+                        });
+                        $('#section_id').append(div_data);
+                    }
+                });
+            });
+        }
+    }
 
+    // Form submission logic
+    $("form.class_search_form button[type=submit]").click(function() {
+        $("button[type=submit]", $(this).parents("form")).removeAttr("clicked");
+        $(this).attr("clicked", "true");
     });
-    function resetFields(search_type){
 
+    var last_search_type = '';
+
+    $(document).on('submit','.class_search_form',function(e){
+       e.preventDefault(); 
+        var $this = $("button[type=submit][clicked=true]");
+        last_search_type = $this.attr('value');
+        var form = $(this);
+        var url = form.attr('action');
+        var form_data = form.serializeArray();
+        form_data.push({name: 'srch_type', value: $this.attr('value')});
+        $.ajax({
+               url: url,
+               type: "POST",
+               dataType:'JSON',
+               data: form_data, 
+                  beforeSend: function () {
+                    $('[id^=error]').html("");
+                    $this.button('loading');
+                    resetFields($this.attr('value'));
+                   },
+                  success: function(response) { 
+                    if(!response.status){
+                        $.each(response.error, function(key, value) {
+                        $('#error_' + key).html(value);
+                        });
+                    }else{        
+                        if ($.fn.DataTable.isDataTable('.student-list')) {
+                             $('.student-list').DataTable().destroy();
+                        }
+                        var table = $('.student-list').DataTable({
+                           dom: 'Bfrtip',
+                              buttons: [
+                                { extend: 'copy', text: '<i class="fa fa-files-o"></i>', titleAttr: 'Copy', className: "btn-copy", title: $('.student-list').data("exportTitle"), exportOptions: { columns: ["thead th:not(.noExport)"] } },
+                                { extend: 'excel', text: '<i class="fa fa-file-excel-o"></i>', titleAttr: 'Excel', className: "btn-excel", title: $('.student-list').data("exportTitle"), exportOptions: { columns: ["thead th:not(.noExport)"] } },
+                                { extend: 'csv', text: '<i class="fa fa-file-text-o"></i>', titleAttr: 'CSV', className: "btn-csv", title: $('.student-list').data("exportTitle"), exportOptions: { columns: ["thead th:not(.noExport)"] } },
+                                { extend: 'pdf', text: '<i class="fa fa-file-pdf-o"></i>', titleAttr: 'PDF', className: "btn-pdf", title: $('.student-list').data("exportTitle"), exportOptions: { columns: ["thead th:not(.noExport)"] } },
+                                { extend: 'print', text: '<i class="fa fa-print"></i>', titleAttr: 'Print', className: "btn-print", title: $('.student-list').data("exportTitle"), customize: function ( win ) { $(win.document.body).find('th').addClass('display').css('text-align', 'center'); $(win.document.body).find('table').addClass('display').css('font-size', '14px'); $(win.document.body).find('h1').css('text-align', 'center'); }, exportOptions: { columns: ["thead th:not(.noExport)"] } }
+                            ],
+                            'initComplete': function() {
+                                var $button = $('<a class="btn btn-default dt-button buttons-csv buttons-html5 btn-csv" tabindex="0" aria-controls="DataTables_Table_0" href="#" title="CSV"><span><i class="fa fa-file-text-o"></i> Export All to CSV</span></a>');
+                                $('.dt-buttons').append($button);
+
+                                $button.on('click', function() {
+                                    var form = $('form.class_search_form');
+                                    var class_id = $('#class_id').val();
+                                    var section_id = $('#section_id').val();
+                                    var search_text = $('#search_text').val();
+                                    var export_url = '<?php echo site_url("student/exportall") ?>' + '?search_type=' + last_search_type + '&class_id=' + class_id.join(',') + '&section_id=' + section_id + '&search_text=' + search_text;
+                                    window.open(export_url, '_blank');
+                                });
+                            },
+                            "columnDefs": [ { "targets": -1, "orderable": false } ],
+                            "language": { processing: '<i class="fa fa-spinner fa-spin fa-1x fa-fw"></i><span class="sr-only">Loading...</span> '},
+                            "pageLength": 100,
+                            "processing": true,
+                            "serverSide": true,
+                            "ajax":{
+                                "url": "<?php echo site_url('student/dtstudentlist')?>",
+                                "dataSrc": 'data',
+                                "type": "POST",
+                                'data': response.params,
+                             },
+                             "drawCallback": function(settings) {
+                                $('.detail_view_tab').html("").html(settings.json.student_detail_view);
+                            }
+                        });
+                    }
+                  },
+                 error: function() {
+                     $this.button('reset');
+                 },
+                 complete: function() {
+                     $this.button('reset');
+                 }
+             });
+    });
+
+    function resetFields(search_type){
         if(search_type == "search_full"){
             $('#class_id').prop('selectedIndex',0);
             $('#section_id').find('option').not(':first').remove();
         }else if (search_type == "search_filter") {
-
              $('#search_text').val("");
         }
     }
-</script>
 
-
-<script type="text/javascript">
-    $(document).ready(function() {
-        $('#class_id').select2({
-            placeholder: "Select",
+    $(document).on('click', '.print_student_details', function() {
+        let $button_ = $(this);
+        var student_id = $(this).attr('data-student_id');
+        var admission_no = $(this).attr('data-admission_no');
+        var student_name = $(this).attr('data-student_name');
+        $.ajax({
+            type: 'POST',
+            url: "<?php echo site_url('student/printStudentDetails')?>",
+            data: {'student_id':student_id},
+            beforeSend: function() {
+                $button_.button('loading');
+            },
+            xhr: function() {
+                var xhr = new XMLHttpRequest();
+                xhr.responseType = 'blob';
+                return xhr;
+            },
+            success: function(data, jqXHR, response) {
+                var blob = new Blob([data], {type: 'application/pdf'});
+                var link = document.createElement('a');
+                link.href = window.URL.createObjectURL(blob);
+                link.download = student_name + '_' + admission_no + '.pdf';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                $button_.button('reset');
+            },
+            error: function(xhr, status, error) {
+                console.error("Error occurred:", status, error);
+                $button_.button('reset');
+            },
+            complete: function() {
+                $button_.button('reset');
+            }
         });
     });
-    $(document).on('click', '.print_student_details', function() {
-    let $button_ = $(this);
-    var student_id = $(this).attr('data-student_id');
-    var admission_no = $(this).attr('data-admission_no');
-    var student_name = $(this).attr('data-student_name');
-    $.ajax({
-        type: 'POST',
-        url: baseurl + 'student/printStudentDetails',  // Assuming baseurl is defined elsewhere
-        data: {'student_id':student_id},  // Add any data you need to send here
-         
-        beforeSend: function() {
-            $button_.button('loading');  // Change button state to loading
-        },
-        xhr: function() {
-            var xhr = new XMLHttpRequest();  // Fixed the typo here
-            xhr.responseType = 'blob';  // Set response type to blob
-            return xhr;
-        },
-        success: function(data, jqXHR, response) {
-            // Create a Blob with the response data (PDF)
-            var blob = new Blob([data], {type: 'application/pdf'});
 
-            // Create an anchor element to trigger the file download
-            var link = document.createElement('a');
-            link.href = window.URL.createObjectURL(blob);
-            link.download = student_name + '_' + admission_no + '.pdf';  // Assumes student_name and admission_no are defined
-            document.body.appendChild(link);  // Append to body to trigger download
-            link.click();
-            document.body.removeChild(link);  // Clean up by removing the link
-
-            $button_.button('reset');  // Reset the button to its original state
-        },
-        error: function(xhr, status, error) {
-            // If an error occurs, reset the button
-            console.error("Error occurred:", status, error);  // You can log errors for debugging
-            $button_.button('reset');
-        },
-        complete: function() {
-            // Reset the button regardless of success or failure
-            $button_.button('reset');
-        }
-    });
-
-    
+    emptyDatatable('student-list','data');
 });
 </script>
