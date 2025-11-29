@@ -29,6 +29,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                             <div class="col-md-6">
                                 <div class="row">
                                         <?php echo $this->customlib->getCSRF(); ?>
+                                        <?php if ($sch_setting->institution_type == 'college') { ?>
                                         <div class="col-sm-6">
                                             <div class="form-group">
                                                 <label for="department_id"><?php echo $this->lang->line('department'); ?></label>
@@ -51,6 +52,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                                 <span class="text-danger" id="error_department_id"></span>
                                             </div>
                                         </div>
+                                        <?php } ?>
                                         <div class="col-sm-6">
                                             <div class="form-group">
                                                 <label><?php echo $this->lang->line('class'); ?></label> <small class="req"> *</small>
@@ -248,17 +250,19 @@ $(document).ready(function () {
 
     // Initial population
     getSectionByClass(class_id, section_id);
-    if(department_id){
+    if('<?php echo $sch_setting->institution_type; ?>' == 'college' && department_id){
         getClassesByDepartment(department_id, class_id);
     }
 
     // Event Listeners
+    <?php if ($sch_setting->institution_type == 'college') { ?>
     $(document).on('change', '#department_id', function (e) {
         getClassesByDepartment($(this).val());
         $('#section_id').html("").select2({data: null});
         $('#section_id').append('<option value=""><?php echo $this->lang->line('select'); ?></option>');
         $('#section_id').select2();
     });
+    <?php } ?>
 
     $(document).on('change', '#class_id', function (e) {
         getSectionByClass($(this).val(),'');
