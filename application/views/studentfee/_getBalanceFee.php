@@ -148,13 +148,24 @@ if(!empty($discount_not_applied)){
             </div>
          </div>
          <div class="form-group">
-            <label for="inputPassword3" class="col-sm-3 col-lg-3 col-md-3 control-label">Use Total Advance</label>
+            <label for="inputPassword3" class="col-sm-3 col-lg-3 col-md-3 control-label">Use Paid Advance</label>
             <div class="col-sm-9 col-lg-9 col-md-9">
                 <label class="radio-inline">
-                    <input type="radio" name="use_advance" value="yes" <?php if(($paid_advance_balance + $discount_advance_balance) <= 0) echo 'disabled'; ?>>Yes
+                    <input type="radio" name="use_paid_advance" value="yes" <?php if($paid_advance_balance <= 0) echo 'disabled'; ?>>Yes
                 </label>
                 <label class="radio-inline">
-                    <input type="radio" name="use_advance" value="no" checked="checked">No
+                    <input type="radio" name="use_paid_advance" value="no" checked="checked">No
+                </label>
+            </div>
+         </div>
+         <div class="form-group">
+            <label for="inputPassword3" class="col-sm-3 col-lg-3 col-md-3 control-label">Use Discount Advance</label>
+            <div class="col-sm-9 col-lg-9 col-md-9">
+                <label class="radio-inline">
+                    <input type="radio" name="use_discount_advance" value="yes" <?php if($discount_advance_balance <= 0) echo 'disabled'; ?>>Yes
+            </label>
+                <label class="radio-inline">
+                    <input type="radio" name="use_discount_advance" value="no" checked="checked">No
                 </label>
             </div>
          </div>
@@ -226,35 +237,62 @@ if(!empty($discount_not_applied)){
 
 <script>
 $(document).ready(function () {
-    var paid_advance_balance = <?php echo $paid_advance_balance; ?>;
-    var discount_advance_balance = <?php echo $discount_advance_balance; ?>;
-    var total_advance_balance = paid_advance_balance + discount_advance_balance;
-    var fee_balance = <?php echo str_replace(',', '', $balance); ?>;
+    var paid_advance_balance_val = <?php echo $paid_advance_balance; ?>;
+    var discount_advance_balance_val = <?php echo $discount_advance_balance; ?>;
+    var fee_balance_val = <?php echo str_replace(',', '', $balance); ?>; // Current fee balance for this item
+    var original_amount_input_val = parseFloat($('#amount').val()); // Initial value of paying amount field
 
-    $('input[name="use_advance"]').on('change', function() {
-        if ($(this).val() == 'yes') {
-            // Determine how much of the paid and discount advance can be used
-            // This needs to be done carefully to not exceed the fee_balance
-            var remaining_fee_to_cover = fee_balance;
-            var applied_paid_advance = 0;
-            var applied_discount_advance = 0;
+    function applyAdvanceLogic() {
+        let amount_to_pay = 0;
+        let discount_to_apply = 0;
+        let current_balance_to_cover = fee_balance_val;
 
-            if (paid_advance_balance > 0) {
-                applied_paid_advance = Math.min(paid_advance_balance, remaining_fee_to_cover);
-                remaining_fee_to_cover -= applied_paid_advance;
-            }
+        let use_paid_advance_checked = $('input[name="use_paid_advance"]:checked').val() === 'yes';
+        let use_discount_advance_checked = $('input[name="use_discount_advance"]:checked').val() === 'yes';
 
-            if (discount_advance_balance > 0 && remaining_fee_to_cover > 0) {
-                applied_discount_advance = Math.min(discount_advance_balance, remaining_fee_to_cover);
-            }
-            
-            $('#amount').val(applied_paid_advance); // Set paying amount to paid advance used
-            $('#amount_discount').val(applied_discount_advance); // Set discount field to discount advance used
+        // Reset fields before applying logic
+        $('#amount').val('0.00');
+        $('#amount_discount').val('0.00');
+        $('input[name="payment_mode_fee"][value="Cash"]').prop('checked', true); // Default to Cash
 
-        } else {
-            $('#amount').val(fee_balance);
-            $('#amount_discount').val(0); // Reset discount if not using advance or if switching back
+        // If no advance is used, revert to original amount input value (full fee balance)
+        if (!use_paid_advance_checked && !use_discount_advance_checked) {
+            $('#amount').val(original_amount_input_val.toFixed(2));
+            return;
         }
-    });
+
+        // --- Apply Paid Advance ---
+        if (use_paid_advance_checked && paid_advance_balance_val > 0) {
+            let paid_advance_can_be_used = Math.min(paid_advance_balance_val, current_balance_to_cover);
+            amount_to_pay = paid_advance_can_be_used;
+            current_balance_to_cover -= paid_advance_can_be_used;
+        }
+
+        // --- Apply Discount Advance ---
+        if (use_discount_advance_checked && discount_advance_balance_val > 0 && current_balance_to_cover > 0) {
+            let discount_advance_can_be_used = Math.min(discount_advance_balance_val, current_balance_to_cover);
+            discount_to_apply = discount_advance_can_be_used;
+            current_balance_to_cover -= discount_advance_can_be_used;
+        }
+        
+        // Update the input fields
+        $('#amount').val(amount_to_pay.toFixed(2));
+        $('#amount_discount').val(discount_to_apply.toFixed(2));
+
+        // Ensure that if any advance is used, "Advance" payment mode is selected and others are deselected
+        if (use_paid_advance_checked || use_discount_advance_checked) {
+            $('input[name="payment_mode_fee"][value="Advance"]').prop('checked', true);
+            $('input[name="payment_mode_fee"]').not('[value="Advance"]').prop('checked', false);
+        } else {
+             $('input[name="payment_mode_fee"][value="Cash"]').prop('checked', true); // Default to Cash if no advance used
+        }
+    }
+
+    // Event listeners for the new radio buttons
+    $('input[name="use_paid_advance"]').on('change', applyAdvanceLogic);
+    $('input[name="use_discount_advance"]').on('change', applyAdvanceLogic);
+
+    // Initial call to set the state based on default selections
+    applyAdvanceLogic();
 });
 </script>

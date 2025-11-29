@@ -887,12 +887,13 @@ echo $currency_symbol . amountFormat(($total_balance_amount - $alot_fee_discount
             selectedDiscounts.push($(this).val());
         });
         var student_fees_discount_id = $('#discount_group').val();
-        var use_advance = $('input[name="use_advance"]:checked').val();
+        var use_paid_advance = $('input[name="use_paid_advance"]:checked').val();
+        var use_discount_advance = $('input[name="use_discount_advance"]:checked').val();
 
         $.ajax({
             url: '<?php echo site_url("studentfee/addstudentfee") ?>',
             type: 'post',
-            data: {action: action, student_session_id: student_session_id, date: date, type: feetype, amount: amount, amount_discount: amount_discount, amount_fine: amount_fine, description: description, student_fees_master_id: student_fees_master_id, fee_groups_feetype_id: fee_groups_feetype_id,fee_category:fee_category, transport_fees_id:transport_fees_id, payment_mode: payment_mode, guardian_phone: guardian_phone, guardian_email: guardian_email, student_fees_discount_id: student_fees_discount_id, parent_app_key: parent_app_key,discounts: selectedDiscounts, use_advance: use_advance},
+            data: {action: action, student_session_id: student_session_id, date: date, type: feetype, amount: amount, amount_discount: amount_discount, amount_fine: amount_fine, description: description, student_fees_master_id: student_fees_master_id, fee_groups_feetype_id: fee_groups_feetype_id,fee_category:fee_category, transport_fees_id:transport_fees_id, payment_mode: payment_mode, guardian_phone: guardian_phone, guardian_email: guardian_email, student_fees_discount_id: student_fees_discount_id, parent_app_key: parent_app_key,discounts: selectedDiscounts, use_paid_advance: use_paid_advance, use_discount_advance: use_discount_advance},
             dataType: 'json',
             success: function (response) {
                 console.log('AJAX success callback executed');

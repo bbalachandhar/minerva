@@ -2795,6 +2795,13 @@ $lang['custom_amount'] = "Custom Discount";
 $lang['bulk_transport_fee_upload'] = "Bulk Transport Fee Upload";
 $lang['bulk_transport_upload_instructions_1'] = "Please download the sample CSV file and fill it with your data. The first line of the CSV file must be the column headers as in the example table. Also make sure that your file is UTF-8 to avoid unnecessary encoding problems.";
 $lang['amount_will_be_applied_to_student_transport_fees'] = "The amount will be applied to the student's transport fees.";
+$lang['discount_applied_successfully'] = 'Discount applied successfully.';
+$lang['advance_balance'] = "Advance Amount";
+$lang['apply_discounts'] = "Apply/Adjust Discounts";
+$lang['class_field_is_required'] = "The Class field is required.";
+
+$lang['paid_advance'] = "Paid Advance";
+$lang['discount_advance'] = "Discount Advance";
 
 #version 7.1.0
 

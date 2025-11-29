@@ -441,6 +441,12 @@ function convertCurrencyFormatToBaseAmount($amount)
 
 function indian_money_format($num)
 {
+    $is_negative = false;
+    if ($num < 0) {
+        $is_negative = true;
+        $num = abs($num); // Work with absolute value
+    }
+
     $explrestunits = "";
     $num           = preg_replace('/,+/', '', $num);
     $words         = explode(".", $num);
@@ -473,8 +479,12 @@ function indian_money_format($num)
     } else {
         $thecash = $num;
     }
-    return "$thecash.$des"; // writes the final format where $currency is the currency symbol.
+    $final_formatted_amount = "$thecash.$des"; // writes the final format where $currency is the currency symbol.
 
+    if ($is_negative) {
+        return "-" . $final_formatted_amount;
+    }
+    return $final_formatted_amount;
 }
 
 function percentageAmount($amount, $percentage)

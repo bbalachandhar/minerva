@@ -35,7 +35,7 @@ class MY_Controller extends CI_Controller
             $language             = ($this->school_details->language);
         }
 
-        $lang_array = array('form_validation_lang', 'app_lang');
+        $lang_array = array('form_validation_lang');
         $map        = directory_map(APPPATH . "./language/" . $language . "/app_files");
         foreach ($map as $lang_key => $lang_value) {
             $lang_array[] = 'app_files/' . str_replace(".php", "", $lang_value);
