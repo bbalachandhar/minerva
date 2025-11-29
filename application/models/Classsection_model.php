@@ -178,6 +178,16 @@ class Classsection_model extends MY_Model
         return $vehicle_routes = $query->result();
     }
 
+    public function getSectionsByClass($class_id)
+    {
+        $this->db->select('class_sections.id as class_section_id,class_sections.class_id,class_sections.section_id,sections.*')->from('class_sections');
+        $this->db->join('sections', 'sections.id = class_sections.section_id');
+        $this->db->where('class_sections.class_id', $class_id);
+        $this->db->order_by('class_sections.id', 'asc');
+        $query                 = $this->db->get();
+        return $vehicle_routes = $query->result();
+    }
+
     public function remove($class_id, $array)
     {
         $this->db->where('class_id', $class_id);

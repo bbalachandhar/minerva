@@ -100,17 +100,44 @@
             ?>">
                 <!-- general form elements -->
                 <div class="box box-primary">
-                    <div class="box-header ptbnull">
-                        <h3 class="box-title titlefix"><?php echo $this->lang->line('class_list'); ?></h3>
-                        <div class="box-tools pull-right">
-                             <?php if ($this->rbac->hasPrivilege('import_class', 'can_view')) {?>
-                             <a href="<?php echo site_url('classes/import') ?>" class="btn btn-sm btn-primary"><i class="fa fa-plus"></i> <?php echo $this->lang->line('import_class'); ?></a>
-                             <?php }?>
-                        </div><!-- /.box-tools -->
-                    </div><!-- /.box-header -->
-                    <div class="box-body">
-                        <div class="table-responsive mailbox-messages overflow-visible">
-                            <div class="download_label"><?php echo $this->lang->line('class_list'); ?></div>
+                                            <div class="box-header ptbnull">
+                                                <h3 class="box-title titlefix"><?php echo $this->lang->line('class_list'); ?></h3>
+                                                <div class="box-tools pull-right">
+                                                     <?php if ($this->rbac->hasPrivilege('import_class', 'can_view')) {?>
+                                                     <a href="<?php echo site_url('classes/import') ?>" class="btn btn-sm btn-primary"><i class="fa fa-plus"></i> <?php echo $this->lang->line('import_class'); ?></a>
+                                                     <?php }?>
+                                                </div><!-- /.box-tools -->
+                                            </div><!-- /.box-header -->
+                                            <div class="box-body">
+                                                <?php if ($sch_setting->institution_type == 'college') { ?>
+                                                <form action="<?php echo site_url('classes/index') ?>" method="get" class="form-horizontal">
+                                                    <div class="form-group">
+                                                        <label for="department_id" class="col-sm-2 control-label"><?php echo $this->lang->line('department'); ?></label>
+                                                        <div class="col-sm-4">
+                                                            <select id="department_id" name="department_id" class="form-control">
+                                                                <option value=""><?php echo $this->lang->line('select'); ?></option>
+                                                                <?php
+                                                                foreach ($department_list as $department) {
+                                                                    ?>
+                                                                    <option value="<?php echo $department['id'] ?>"<?php
+                                                                    if (isset($_GET['department_id']) && $_GET['department_id'] == $department['id']) {
+                                                                        echo "selected=selected";
+                                                                    }
+                                                                    ?>><?php echo $department['department_name'] ?></option>
+                                                                    <?php
+                                                                }
+                                                                ?>
+                                                            </select>
+                                                        </div>
+                                                        <div class="col-sm-6">
+                                                            <button type="submit" class="btn btn-primary btn-sm"><i class="fa fa-search"></i> <?php echo $this->lang->line('search'); ?></button>
+                                                            <a href="<?php echo site_url('classes/index') ?>" class="btn btn-default btn-sm"><i class="fa fa-refresh"></i> <?php echo $this->lang->line('clear'); ?></a>
+                                                        </div>
+                                                    </div>
+                                                </form>
+                                                <div class="clearfix"></div>
+                                                <?php } ?>
+                                                <div class="table-responsive mailbox-messages overflow-visible">                            <div class="download_label"><?php echo $this->lang->line('class_list'); ?></div>
                             <table class="table table-striped table-bordered table-hover example">
                                 <thead>
                                     <tr>

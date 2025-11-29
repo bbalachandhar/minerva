@@ -2107,7 +2107,7 @@ class Student_model extends MY_Model
         }
     }
 
-    public function searchdtByClassSection($class_id = null, $section_id = null)
+    public function searchdtByClassSection($class_id = null, $section_id = null, $department_id = null)
     {
         $userdata = $this->customlib->getUserData();        
         
@@ -2151,6 +2151,9 @@ class Student_model extends MY_Model
         }
         if ($section_id != null) {
             $this->datatables->where('student_session.section_id', $section_id);
+        }
+        if ($department_id != null) {
+            $this->datatables->where('classes.department_id', $department_id);
         }
         $this->datatables->from('students');
         return $this->datatables->generate('json');

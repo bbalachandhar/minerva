@@ -2074,6 +2074,7 @@ class Student extends Admin_Controller
         $data['fields']          = $this->customfield_model->get_custom_fields('students', 1);
         $class                   = $this->class_model->get();
         $data['classlist']       = $class;
+        $data['department_list'] = $this->Department_model->getDepartmentType();
 
         $this->load->view('layout/header', $data);
         $this->load->view('student/studentSearch', $data);
@@ -2084,7 +2085,7 @@ class Student extends Admin_Controller
     {
         $search_type = $this->input->post('search_type');
         if ($search_type == "search_filter") {
-            $this->form_validation->set_rules('class_id', $this->lang->line('class'), 'trim|required|xss_clean');
+            $this->form_validation->set_rules('class_id', $this->lang->line('class'), 'trim|xss_clean');
         }
 
         if ($this->form_validation->run() == false && $search_type == "search_filter") {
@@ -2612,6 +2613,7 @@ class Student extends Admin_Controller
         $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
         $class           = $this->input->post('class_id');
         $section         = $this->input->post('section_id');
+        $department_id   = $this->input->post('department_id');
         $search_text     = $this->input->post('search_text');
         $search_type     = $this->input->post('srch_type');
         $classlist       = $this->class_model->get();
@@ -2627,7 +2629,7 @@ class Student extends Admin_Controller
 
         if ($search_type == "search_filter") {
 
-            $resultlist = $this->student_model->searchdtByClassSection($class, $section);
+            $resultlist = $this->student_model->searchdtByClassSection($class, $section, $department_id);
         } elseif ($search_type == "search_full") {
 
             $resultlist = $this->student_model->searchFullText($search_text, $carray);
@@ -2722,16 +2724,17 @@ class Student extends Admin_Controller
     {
         $class_id   = $this->input->post('class_id');
         $section_id = $this->input->post('section_id');
+        $department_id = $this->input->post('department_id');
 
         $srch_type   = $this->input->post('srch_type');
         $search_text = $this->input->post('search_text');
 
         if ($srch_type == 'search_filter') {
 
-            $this->form_validation->set_rules('class_id[]', $this->lang->line('class'), 'trim|required|xss_clean');
+            $this->form_validation->set_rules('class_id[]', $this->lang->line('class'), 'trim|xss_clean');
             if ($this->form_validation->run() == true) {
 
-                $params = array('srch_type' => $srch_type, 'class_id' => $class_id, 'section_id' => $section_id);
+                $params = array('srch_type' => $srch_type, 'class_id' => $class_id, 'section_id' => $section_id, 'department_id' => $department_id);
                 $array  = array('status' => 1, 'error' => '', 'params' => $params);
                 echo json_encode($array);
             } else {
@@ -2742,7 +2745,7 @@ class Student extends Admin_Controller
                 echo json_encode($array);
             }
         } else {
-            $params = array('srch_type' => 'search_full', 'class_id' => $class_id, 'section_id' => $section_id, 'search_text' => $search_text);
+            $params = array('srch_type' => 'search_full', 'class_id' => $class_id, 'section_id' => $section_id, 'search_text' => $search_text, 'department_id' => $department_id);
             $array  = array('status' => 1, 'error' => '', 'params' => $params);
             echo json_encode($array);
         }

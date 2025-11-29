@@ -31,6 +31,28 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                         <?php echo $this->customlib->getCSRF(); ?>
                                         <div class="col-sm-6">
                                             <div class="form-group">
+                                                <label for="department_id"><?php echo $this->lang->line('department'); ?></label>
+                                                <select id="department_id" name="department_id" class="form-control">
+                                                    <option value=""><?php echo $this->lang->line('select'); ?></option>
+                                                    <?php
+                                                    foreach ($department_list as $department) {
+                                                        ?>
+                                                        <option value="<?php echo $department['id'] ?>"<?php
+                                                        if (isset($_GET['department_id']) && $_GET['department_id'] == $department['id']) {
+                                                            echo "selected=selected";
+                                                        } else if (set_value('department_id') == $department['id']) {
+                                                            echo "selected=selected";
+                                                        }
+                                                        ?>><?php echo $department['department_name'] ?></option>
+                                                        <?php
+                                                    }
+                                                    ?>
+                                                </select>
+                                                <span class="text-danger" id="error_department_id"></span>
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-6">
+                                            <div class="form-group">
                                                 <label><?php echo $this->lang->line('class'); ?></label> <small class="req"> *</small>
                                                 <select autofocus="" id="class_id" name="class_id[]" class="form-control" multiple="multiple">
                                                     <option value=""><?php echo $this->lang->line('select'); ?></option>
@@ -215,8 +237,40 @@ if ($this->rbac->hasPrivilege('student', 'can_edit')) {
                                                         </div>
 
 <script type="text/javascript">
+    $(document).ready(function () {
+        // Function to get classes by department
+        function getClassesByDepartment(department_id) {
+            if (department_id != "") {
+                $('#class_id').html(""); // Clear existing options
+                 $('#class_id').select2('val', '');
+                var base_url = '<?php echo base_url() ?>';
+                var div_data = '<option value=""><?php echo $this->lang->line('select'); ?></option>';
+                $.ajax({
+                    type: "GET",
+                    url: "<?php echo site_url('classes/getClassesByDepartment'); ?>",
+                    data: {'department_id': department_id},
+                    dataType: "json",
+                    success: function (data) {
+                        $.each(data, function (i, obj) {
+                            div_data += "<option value=" + obj.id + ">" + obj.class + "</option>";
+                        });
+                        $('#class_id').append(div_data);
+                    }
+                });
+            } else {
+                $('#class_id').html(""); // Clear if no department is selected
+                 $('#class_id').select2('val', '');
+            }
+        }
 
-function getSectionByClass(class_id, section_id) {
+        // Trigger on change
+        $(document).on('change', '#department_id', function (e) {
+            getClassesByDepartment($(this).val());
+            $('#section_id').html("");
+             $('#section_id').append('<option value=""><?php echo $this->lang->line('select'); ?></option>');
+        });
+
+    function getSectionByClass(class_id, section_id) {
     if (class_id != "") {
         $('#section_id').html("");
         var base_url = '<?php echo base_url() ?>';
