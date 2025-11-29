@@ -187,18 +187,24 @@ foreach ($feearray as $fee_key => $fee_value) {
                 <div class="row">
                     <?php
                     foreach ($discount_not_applied as $discount_value) {
+
+    $dis_amount = $discount_value->amount;
+    if ($discount_value->type == "fix" && isset($discount_value->custom_amount) && $discount_value->custom_amount > 0) {
+        $dis_amount = $discount_value->custom_amount;
+    }
                         ?>
                         <div class="col-md-12">
                             <div class="row">
                 <div class="col-md-7">
                     <label class="checkbox-inline pt0">
-                                        <input type="checkbox" name="fee_discount_group[]" class="grp_discount" value="<?php echo $discount_value->id; ?>" data-disamount="<?php echo $discount_value->amount; ?>" data-type="<?php echo $discount_value->type; ?>" data-percentage="<?php echo $discount_value->percentage; ?>"><?php echo $discount_value->name; ?>
+                                        <input type="checkbox" name="fee_discount_group[]" class="grp_discount" value="<?php echo $discount_value->id; ?>" data-disamount="<?php echo $dis_amount; ?>" data-type="<?php echo $discount_value->type; ?>" data-percentage="<?php echo $discount_value->percentage; ?>"><?php echo $discount_value->name; ?><?php if($discount_value->code){ echo " (".$discount_value->code.")"; } ?><?php if($discount_value->type == "fix" && isset($discount_value->custom_amount) && $discount_value->custom_amount > 0){ echo " - ".$currency_symbol.$discount_value->custom_amount; } ?>
                                     </label></div>
                 <div class="col-md-5 text-right"><?php
                     if ($discount_value->type == "fix") {
-                        echo $currency_symbol . $discount_value->amount;
+                         echo $currency_symbol . amountFormat($dis_amount);
                     } else {
-                        echo $discount_value->percentage . "%";
+                        $discount_amount = (($total_amount + $total_fine) * $discount_value->percentage) / 100;
+                        echo $currency_symbol . amountFormat($discount_amount);
                     }
                     ?></div>
                             </div>
@@ -504,47 +510,49 @@ if($fine_amount_status){
  ?>
 <script>
 $(document).ready(function(){
-    var total_fees_and_fine = <?php echo ($total_amount + $total_fine); ?>;
-
-
-    var paid_advance_balance = <?php echo $paid_advance_balance; ?>;
-    var discount_advance_balance = <?php echo $discount_advance_balance; ?>;
-    var total_advance_balance = paid_advance_balance + discount_advance_balance;
+    var originalAmountStored = <?php echo ($total_amount + $total_fine); ?>;
+    var total_advance_balance = <?php echo $paid_advance_balance + $discount_advance_balance; ?>;
 
     function calculatePayingAmount() {
-        var current_total = total_fees_and_fine;
-        var current_discount = 0;
+        var hasDiscountChecked = $('.grp_discount:checked').length > 0;
         
+        var calculated_discount_amount = 0;
         $('.grp_discount:checked').each(function() {
             var type = $(this).data('type');
-            var amount = parseFloat($(this).data('disamount'));
+            var disamount = parseFloat($(this).data('disamount'));
             var percentage = parseFloat($(this).data('percentage'));
-            if(type == 'fix'){
-                current_discount += amount;
+            if(type === 'fix'){
+                calculated_discount_amount += disamount;
             } else { // percentage
-                current_discount += (total_fees_and_fine * percentage) / 100;
+                calculated_discount_amount += (originalAmountStored * percentage) / 100;
             }
         });
-        $('#amount_discount').val(current_discount.toFixed(2));
+        $('#amount_discount').val(calculated_discount_amount.toFixed(2));
 
-        var current_fine = parseFloat($('#amount_fine').val()) || 0;
-        var use_advance = $('input[name="use_advance"]:checked').val();
+        if (hasDiscountChecked) {
+            $('#amount').val('0.00');
+        } else {
+            var currentFine = parseFloat($('#amount_fine').val()) || 0;
+            var amount_to_pay = originalAmountStored + currentFine;
+            
+            if ($('input[name="use_advance"]:checked').val() === 'yes') {
+                 amount_to_pay = Math.min(total_advance_balance, amount_to_pay);
+            }
 
-        var amount_after_discount = current_total - current_discount + current_fine;
-        var calculated_amount = amount_after_discount;
-
-        if (use_advance === 'yes') {
-            calculated_amount = Math.min(total_advance_balance, amount_after_discount);
+            $('#amount').val(amount_to_pay.toFixed(2));
+            $('#amount_discount').val('0.00'); // No discount, so discount amount is 0
         }
-
-        $('#amount').val(calculated_amount.toFixed(2));
     }
 
     $('input[name="use_advance"]').change(function(){
+        if ($(this).is(':checked') && $(this).val() === 'yes') {
+            $('.grp_discount').prop('checked', false);
+        }
         calculatePayingAmount();
     });
 
     $('.grp_discount').change(function(){
+        $('input[name="use_advance"][value="no"]').prop('checked', true);
         calculatePayingAmount();
     });
 

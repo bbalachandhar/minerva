@@ -1434,7 +1434,11 @@ $("#myFeesModal").on('shown.bs.modal', function (e) {
             },
             success: function (response) {
                 if (response.status === 1) {
-                    location.reload(true);
+                    if (response.print !== undefined && response.print !== "") {
+                        Popup(response.print, true);
+                    } else {
+                        location.reload(true);
+                    }
                 } else if (response.status === 0) {
                     $.each(response.error, function (index, value) {
                         var errorDiv = '#form_collection_' + index + '_error';
