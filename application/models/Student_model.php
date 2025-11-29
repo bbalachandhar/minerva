@@ -57,7 +57,7 @@ class Student_model extends MY_Model
         return $result;
     }
 
-    public function getStudents() 
+    public function getStudents($department_id = null) 
     {
         $this->db->select('classes.id AS `class_id`,student_session.id as student_session_id,students.id,classes.class,sections.id AS `section_id`,sections.section,students.id,students.admission_no,students.roll_no,students.admission_date,students.firstname,students.middlename,  students.lastname,students.image,students.mobileno, students.email ,students.state,students.city,students.pincode,students.religion,students.dob ,students.current_address,    students.permanent_address,IFNULL(students.category_id, 0) as `category_id`,IFNULL(categories.category, "") as `category`,students.adhar_no,students.samagra_id,students.bank_account_no,students.bank_name,students.ifsc_code,students.guardian_name, students.guardian_relation,students.guardian_email,students.guardian_phone,students.guardian_address,students.is_active,students.created_at ,students.updated_at,students.father_name,students.rte,students.gender,users.id as `user_tbl_id`,users.username,users.password as `user_tbl_password`,users.is_active as `user_tbl_active`,students.app_key,students.parent_app_key,students.advance_balance')->from('students');
         $this->db->join('student_session', 'student_session.student_id = students.id');
@@ -68,6 +68,9 @@ class Student_model extends MY_Model
         $this->db->where('student_session.session_id', $this->current_session);
         $this->db->where('students.is_active', 'yes');
         $this->db->where('users.role', 'student');
+        if ($department_id != null) {
+            $this->db->where('classes.department_id', $department_id); // Add department filter
+        }
         $this->db->order_by('students.id');
         $query = $this->db->get();
         return $query->result_array();
@@ -704,7 +707,7 @@ class Student_model extends MY_Model
         $this->db->update('student_session', $data);
     }
 
-    public function searchByClassSection($class_id = null, $section_id = null)
+    public function searchByClassSection($class_id = null, $section_id = null, $department_id = null)
     {
         $userdata            = $this->customlib->getUserData();
         $i                   = 1;
@@ -739,6 +742,9 @@ class Student_model extends MY_Model
         }
         if ($section_id != null) {
             $this->db->where('student_session.section_id', $section_id);
+        }
+        if ($department_id != null) {
+            $this->db->where('classes.department_id', $department_id); // Add department filter
         }
         if (!empty($class_section_array)) {
             $this->db->group_start();
@@ -784,7 +790,7 @@ class Student_model extends MY_Model
         return $query->result_array();
     }
 
-    public function searchdatatableByClassSectionCategoryGenderRte($class_id = null, $section_id = null, $category = null, $gender = null, $rte = null, $community = null)
+    public function searchdatatableByClassSectionCategoryGenderRte($class_id = null, $section_id = null, $category = null, $gender = null, $rte = null, $community = null, $department_id = null)
     {
 
         if ($class_id != null) {
@@ -804,6 +810,9 @@ class Student_model extends MY_Model
         }
         if ($community != null) {
             $this->datatables->where('students.cast', $community);
+        }
+        if ($department_id != null) {
+            $this->datatables->where('classes.department_id', $department_id);
         }
 
         $this->datatables->select('classes.id AS `class_id`,student_session.id as student_session_id,students.id,classes.class,sections.id AS `section_id`,sections.section,students.id,students.admission_no , students.roll_no,students.admission_date,students.firstname,students.middlename,students.lastname,students.image,students.mobileno, students.email,students.state,students.city,students.pincode,students.religion,students.dob ,students.current_address,students.permanent_address,students.category_id, categories.category,students.adhar_no,students.samagra_id,students.bank_account_no,students.bank_name, students.ifsc_code,students.guardian_name , students.guardian_relation,students.guardian_phone,students.guardian_address,students.is_active ,students.created_at ,students.updated_at,students.father_name,students.rte,students.gender')
@@ -906,7 +915,7 @@ class Student_model extends MY_Model
         return $result;
     }
 
-    public function admission_report($searchterm, $carray = null, $condition = null)
+    public function admission_report($searchterm, $carray = null, $condition = null, $department_id = null)
     {
         $class_section_array = $this->customlib->get_myClassSection();
         $userdata            = $this->customlib->getUserData();
@@ -918,7 +927,7 @@ class Student_model extends MY_Model
             foreach ($custom_fields as $custom_fields_key => $custom_fields_value) {
                 $tb_counter = "table_custom_" . $i;
                 array_push($field_var_array, '`table_custom_' . $i . '`.`field_value` as `' . $custom_fields_value->name.'`');
-                $this->db->join('custom_field_values as ' . $tb_counter, 'students.id = ' . $tb_counter . '.belong_table_id AND ' . $tb_counter . '.custom_field_id = ' . $custom_fields_value->id, 'left');
+                $this->datatables->join('custom_field_values as ' . $tb_counter, 'students.id = ' . $tb_counter . '.belong_table_id AND ' . $tb_counter . '.custom_field_id = ' . $custom_fields_value->id, 'left');
                 $i++;
             }
         }
@@ -927,6 +936,10 @@ class Student_model extends MY_Model
 
         if ($condition != null) {
             $this->datatables->where($condition);
+        }
+
+        if ($department_id != null) {
+            $this->datatables->where('classes.department_id', $department_id); // Add department filter
         }
 
         /*----------------------------------------*/
@@ -958,7 +971,7 @@ class Student_model extends MY_Model
         return $this->datatables->generate('json');
     }
 
-    public function student_ratio()
+    public function student_ratio($department_id = null)
     {
         $i               = 1;
         $custom_fields   = $this->customfield_model->get_custom_fields('students', 1);
@@ -982,13 +995,16 @@ class Student_model extends MY_Model
         $this->db->join('class_sections', 'class_sections.class_id = classes.id and class_sections.section_id=sections.id', 'inner');
         $this->db->where('student_session.session_id', $this->current_session);
         $this->db->where('students.is_active', 'yes');
+        if ($department_id != null) {
+            $this->db->where('classes.department_id', $department_id);
+        }
         $this->db->group_by('class_sections.id');
         $this->db->order_by('students.id');
         $query = $this->db->get();
         return $query->result_array();
     }
 
-    public function sibling_report($searchterm, $carray = null, $condition = null)
+    public function sibling_report($searchterm, $carray = null, $condition = null, $department_id = null)
     {
         $userdata        = $this->customlib->getUserData();
         $i               = 1;
@@ -1022,13 +1038,16 @@ class Student_model extends MY_Model
         if ($condition != null) {
             $this->db->where($condition);
         }
+        if ($department_id != null) {
+            $this->db->where('classes.department_id', $department_id); // Add department filter
+        }
         $this->db->group_by('students.admission_no');
         $this->db->order_by('students.id');
         $query = $this->db->get();
         return $query->result_array();
     }
 
-    public function sibling_reportsearch($searchterm, $carray = null, $condition = null)
+    public function sibling_reportsearch($searchterm, $carray = null, $condition = null, $department_id = null)
     {
         $userdata        = $this->customlib->getUserData();
         $i               = 1;
@@ -1060,6 +1079,9 @@ class Student_model extends MY_Model
         $this->db->where('students.is_active', 'yes');
         if ($condition != null) {
             $this->db->where($condition);
+        }
+        if ($department_id != null) {
+            $this->db->where('classes.department_id', $department_id); // Add department filter
         }
         $this->db->group_by('students.parent_id');
         $this->db->group_by('students.admission_no');
@@ -1395,7 +1417,7 @@ class Student_model extends MY_Model
         return $query->result_array();
     }
 
-    public function searchByClassSectionWithSession($class_id = null, $section_id = null, $session_id = null)
+    public function searchByClassSectionWithSession($class_id = null, $section_id = null, $session_id = null, $department_id = null)
     {
         $this->db->select('classes.id AS `class_id`,student_session.id as student_session_id,students.id,classes.class,sections.id AS `section_id`,sections.section,students.id,students.admission_no , students.roll_no,students.admission_date,students.firstname,students.middlename,  students.lastname,students.image,students.mobileno,students.email,students.state,students.city , students.pincode,students.religion,students.dob ,students.current_address,students.permanent_address,IFNULL(students.category_id, 0) as `category_id`,IFNULL(categories.category, "") as `category`,students.adhar_no,students.samagra_id,students.bank_account_no,students.bank_name,students.ifsc_code,students.guardian_name, students.guardian_relation,students.guardian_phone,students.guardian_address,students.is_active ,students.created_at ,students.updated_at,students.father_name,students.rte,students.gender,students.advance_balance')->from('students');
         $this->db->join('student_session', 'student_session.student_id = students.id');
@@ -1413,6 +1435,9 @@ class Student_model extends MY_Model
         }
         if ($section_id != null) {
             $this->db->where('student_session.section_id', $section_id);
+        }
+        if ($department_id != null) {
+            $this->db->where('classes.department_id', $department_id); // Add department filter
         }
         $this->db->order_by('students.id');
         $query = $this->db->get();
@@ -1466,7 +1491,7 @@ class Student_model extends MY_Model
         return $query->result_array();
     }
 
-    public function searchGuardianDetails($class_id, $section_id)
+    public function searchGuardianDetails($class_id, $section_id, $department_id = null)
     {
         $this->db->SELECT("students.admission_no,students.firstname,students.middlename,students.lastname,students.mobileno,students.father_phone,students.mother_phone,students.father_name,students.mother_name,students.guardian_name,students.guardian_relation,students.guardian_phone,students.id,classes.class,sections.section");
         $this->db->join("student_session", "student_session.student_id = students.id");
@@ -1475,6 +1500,9 @@ class Student_model extends MY_Model
         $this->db->where("students.is_active", "yes");
         $this->db->where('student_session.session_id', $this->current_session);
         $this->db->where(array('student_session.class_id' => $class_id, 'student_session.section_id' => $section_id));
+        if ($department_id != null) {
+            $this->db->where('classes.department_id', $department_id);
+        }
         $query = $this->db->get("students");
         return $query->result_array();
     }

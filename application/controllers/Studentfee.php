@@ -610,11 +610,11 @@ class Studentfee extends Admin_Controller
                 $this->session->set_userdata('top_menu', $this->lang->line('fees_collection'));
                 $this->session->set_userdata('sub_menu', 'studentfee/index');
                 $data['sch_setting'] = $this->sch_setting_detail;
-                $data['title']       = 'student fees';
-                $class               = $this->class_model->get();
-                $data['classlist']   = $class;
-                $this->load->view('layout/header', $data);
-                $this->load->view('studentfee/studentfeeSearch', $data);
+                        $data['title']       = 'student fees';
+                        $class               = $this->class_model->get();
+                        $data['classlist']   = $class;
+                        $data['department_list'] = $this->department_model->getDepartmentType();
+                        $this->load->view('layout/header', $data);                $this->load->view('studentfee/studentfeeSearch', $data);
                 $this->load->view('layout/footer', $data);
             }
 
@@ -646,6 +646,7 @@ class Studentfee extends Admin_Controller
             $array = array('status' => 1, 'error' => '', 'params' => array(
                 'class_id'    => $this->input->post('class_id'),
                 'section_id'  => $this->input->post('section_id'),
+                'department_id' => $this->input->post('department_id'),
                 'search_text' => $this->input->post('search_text'),
                 'search_type'   => $this->input->post('search_type'),
             ));
@@ -658,12 +659,13 @@ class Studentfee extends Admin_Controller
         log_message('debug', 'ajaxSearch called.');
         $class       = $this->input->post('class_id');
         $section     = $this->input->post('section_id');
+        $department_id = $this->input->post('department_id');
         $search_text = $this->input->post('search_text');
         $search_type = $this->input->post('search_type');
         log_message('debug', 'ajaxSearch - class_id: ' . print_r($class, true) . ', section_id: ' . $section . ', search_type: ' . $search_type);
         if ($search_type == "class_search") {
             log_message('debug', 'ajaxSearch - Calling getDatatableByClassSection with class: ' . print_r($class, true) . ', section: ' . $section);
-            $students = $this->student_model->getDatatableByClassSection($class, $section);
+            $students = $this->student_model->getDatatableByClassSection($class, $section, $department_id);
             log_message('debug', 'ajaxSearch - getDatatableByClassSection returned: ' . print_r($students, true));
         } elseif ($search_type == "keyword_search") {
             log_message('debug', 'ajaxSearch - Calling getDatatableByFullTextSearch with search_text: ' . $search_text);
@@ -1724,6 +1726,9 @@ class Studentfee extends Admin_Controller
     public function getNotAppliedDiscount($student_session_id)
     {
         $discounts_array = $this->feediscount_model->getDiscountNotApplied($student_session_id);
+        foreach ($discounts_array as $discount_key => $discount_value) {
+            $discounts_array[$discount_key]->{"amount"} = convertBaseAmountCurrencyFormat($discount_value->amount);
+        }
         return $discounts_array;
     }
 
@@ -1866,7 +1871,6 @@ class Studentfee extends Admin_Controller
                         'amount_detail'          => $json_array_advance,
                     ];
                     $this->studentfeemaster_model->fee_deposit($data_to_insert_advance, null, [], $collected_date);
-                    log_message('error', 'Value of total_amount_paid being used for advance deduction: ' . $total_amount_paid);
                 }
 
                 // send mail
@@ -1893,49 +1897,7 @@ class Studentfee extends Admin_Controller
                     $this->mailsmsconf->mailsms('fee_submission', $mailsms_array);
                 }
 
-                $print_record = '';
-                if (!empty($inserted_ids)) {
-                    $data['sch_setting'] = $this->sch_setting_detail;
-                    $student_session_id = $this->input->post('student_session_id');
-                    $student = $this->studentsession_model->searchStudentsBySession($student_session_id);
-                    $data['student'] = $student;
-                    $setting_result = $this->setting_model->get();
-                    $data['settinglist'] = $setting_result;
-                    $data['superadmin_rest'] = $this->customlib->superadmin_visible();
-
-                    $feearray = [];
-                    foreach ($inserted_ids as $invoice_detail) {
-                        $fee_record = null;
-                        if ($invoice_detail['fee_category'] == 'transport') {
-                            $fee_record = $this->studentfeemaster_model->getTransportFeeByInvoice($invoice_detail['invoice_id'], $invoice_detail['sub_invoice_id']);
-                            if ($fee_record) {
-                                $fee_record->fee_category = 'transport';
-                            }
-                        } else {
-                            $fee_record = $this->studentfeemaster_model->getFeeByInvoice($invoice_detail['invoice_id'], $invoice_detail['sub_invoice_id']);
-                            if ($fee_record) {
-                                $fee_record->fee_category = 'fees';
-                            }
-                        }
-
-                        if ($fee_record) {
-                            $fee_record->firstname = $student->firstname;
-                            $fee_record->middlename = $student->middlename;
-                            $fee_record->lastname = $student->lastname;
-                            $fee_record->admission_no = $student->admission_no;
-                            $fee_record->father_name = $student->father_name;
-                            $fee_record->class = $student->class;
-                            $fee_record->section = $student->section;
-                            $feearray[] = $fee_record;
-                        }
-                    }
-                    $data['feearray'] = $feearray;
-                    if(!empty($feearray)){
-                        $print_record = $this->load->view('print/printFeesByGroupArray', $data, true);
-                    }
-                }
-
-                $array = array('status' => 1, 'error' => '', 'message' => $this->lang->line('success_message'), 'print' => $print_record);
+                $array = array('status' => 1, 'error' => '', 'message' => $this->lang->line('success_message'));
                 echo json_encode($array);
             } else {
                 $array = array('status' => 0, 'error' => array('message' => $this->lang->line('error_processing_request')));

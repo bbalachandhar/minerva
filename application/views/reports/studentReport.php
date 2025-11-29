@@ -17,10 +17,31 @@
                         <form role="form" action="<?php echo site_url('report/studentreportvalidation') ?>" method="post" class="" id="reportform">
                             <div class="row">
                                 <?php echo $this->customlib->getCSRF(); ?>
+                                <?php if ($sch_setting->institution_type == 'college') {?>
+                                <div class="col-sm-6 col-md-3">
+                                    <div class="form-group">
+                                        <label><?php echo $this->lang->line('department'); ?></label>
+                                        <select autofocus="" id="department_id" name="department_id" class="form-control" >
+                                            <option value=""><?php echo $this->lang->line('select'); ?></option>
+                                            <?php
+foreach ($department_list as $department) {
+    ?>
+                                                <option value="<?php echo $department['id'] ?>" <?php if (set_value('department_id') == $department['id']) {
+        echo "selected=selected";
+    }
+    ?>><?php echo $department['department_name'] ?></option>
+                                                <?php
+}
+?>
+                                        </select>
+                                        <span class="text-danger" id="error_department_id"></span>
+                                    </div>
+                                </div>
+                                <?php }?>
                                 <div class="col-sm-6 col-md-3">
                                     <div class="form-group">
                                         <label><?php echo $this->lang->line('class'); ?></label><small class="req"> *</small>
-                                        <select autofocus="" id="class_id" name="class_id" class="form-control" >
+                                        <select autofocus="" id="class_id" name="class_id" class="form-control" required >
                                             <option value=""><?php echo $this->lang->line('select'); ?></option>
                                             <?php
 foreach ($classlist as $class) {
@@ -166,14 +187,17 @@ if ($sch_setting->local_identification_no) {
 
 <script type="text/javascript">
     function getSectionByClass(class_id, section_id) {
-        if (class_id != "" && section_id != "") {
+        if (class_id != "") {
             $('#section_id').html("");
             var base_url = '<?php echo base_url() ?>';
             var div_data = '<option value=""><?php echo $this->lang->line('select'); ?></option>';
+            
+            var department_id = $('#department_id').val(); // Get selected department_id
+            
             $.ajax({
                 type: "GET",
                 url: base_url + "sections/getByClass",
-                data: {'class_id': class_id},
+                data: {'class_id': class_id, 'department_id': department_id}, // Pass department_id
                 dataType: "json",
                 success: function (data) {
                     $.each(data, function (i, obj)
@@ -194,15 +218,42 @@ if ($sch_setting->local_identification_no) {
         var class_id = $('#class_id').val();
         var section_id = '<?php echo set_value('section_id') ?>';
         getSectionByClass(class_id, section_id);
+
+        $(document).on('change', '#department_id', function (e) {
+            $('#class_id').html('<option value=""><?php echo $this->lang->line('select'); ?></option>');
+            $('#section_id').html('<option value=""><?php echo $this->lang->line('select'); ?></option>');
+            var department_id = $(this).val();
+            var base_url = '<?php echo base_url() ?>';
+            if (department_id != "") {
+                $.ajax({
+                    type: "POST",
+                    url: base_url + "report/getClassesByDepartment",
+                    data: {'department_id': department_id},
+                    dataType: "json",
+                    success: function (data) {
+                        $.each(data, function (i, obj)
+                        {
+                            var sel = "";
+                            // if (class_id == obj.id) {
+                            //     sel = "selected";
+                            // }
+                            $('#class_id').append("<option value=" + obj.id + " " + sel + ">" + obj.class + "</option>");
+                        });
+                    }
+                });
+            }
+        });
+
         $(document).on('change', '#class_id', function (e) {
             $('#section_id').html("");
             var class_id = $(this).val();
+            var department_id = $('#department_id').val(); // Get selected department_id
             var base_url = '<?php echo base_url() ?>';
             var div_data = '<option value=""><?php echo $this->lang->line('select'); ?></option>';
             $.ajax({
                 type: "GET",
                 url: base_url + "sections/getByClass",
-                data: {'class_id': class_id},
+                data: {'class_id': class_id, 'department_id': department_id}, // Pass department_id
                 dataType: "json",
                 success: function (data) {
                     $.each(data, function (i, obj)
@@ -231,6 +282,17 @@ $(document).on('submit','#reportform',function(e){
     var url = form.attr('action');
     var form_data = form.serializeArray();
     form_data.push({name: 'search_type', value: $this.attr('value')});
+
+    // Add department_id to form_data if it exists
+    var department_id = $('#department_id').val();
+    if (department_id) {
+        form_data.push({name: 'department_id', value: department_id});
+    }
+
+    if ($('#class_id').val() == '') {
+        $('#error_class_id').html('<?php echo $this->lang->line('class_field_is_required'); ?>');
+        return false;
+    }
 
     $.ajax({
            url: url,

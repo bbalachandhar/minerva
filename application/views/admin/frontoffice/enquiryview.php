@@ -22,6 +22,22 @@ $this->session->unset_userdata('msg'); ?>
                             <?php echo $this->customlib->getCSRF(); ?>
                             <div class="col-sm-6 col-md-2 col-lg-2">
                                 <div class="form-group">
+                                    <label><?php echo $this->lang->line('department'); ?></label>
+                                    <select  id="department" name="department_id" class="form-control" >
+                                        <option value=""><?php echo $this->lang->line('select') ?></option>
+                                        <?php foreach ($department_list as $key => $value) {
+    ?>
+                                            <option <?php
+if ($value["id"] == $selected_department) {
+        echo "selected";
+    }
+    ?> value="<?php echo $value["id"] ?>"><?php echo $value["department_name"] ?></option>
+                                            <?php }?>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-sm-6 col-md-2 col-lg-2">
+                                <div class="form-group">
                                     <label><?php echo $this->lang->line('class'); ?></label>
                                     <select  id="class" name="class" class="form-control" >
                                         <option value=""><?php echo $this->lang->line('select') ?></option>
@@ -596,4 +612,25 @@ foreach ($class_list as $key => $value) {
                 }
         })
     })
+
+    $(document).on('change', '#department', function (e) {
+        $('#class').html('<option value=""><?php echo $this->lang->line('select'); ?></option>');
+        var department_id = $(this).val();
+        var base_url = '<?php echo base_url() ?>';
+        if (department_id != "") {
+            $.ajax({
+                type: "POST",
+                url: base_url + "report/getClassesByDepartment",
+                data: {'department_id': department_id},
+                dataType: "json",
+                success: function (data) {
+                    $.each(data, function (i, obj)
+                    {
+                        var sel = "";
+                        $('#class').append("<option value=" + obj.id + " " + sel + ">" + obj.class + "</option>");
+                    });
+                }
+            });
+        }
+    });
 </script>

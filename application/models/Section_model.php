@@ -59,7 +59,7 @@ class Section_model extends MY_Model {
         return $section;
     }
  
-    public function getClassBySection($classid) {
+    public function getClassBySection($classid, $department_id = null) {
         $userdata = $this->customlib->getUserData();
         $role_id = $userdata["role_id"];
         $carray = array();
@@ -75,6 +75,10 @@ class Section_model extends MY_Model {
                 $this->db->where_in('class_sections.class_id', $classid);
             } else {
                 $this->db->where('class_sections.class_id', $classid);
+            }
+            if ($department_id != null) {
+                $this->db->join('classes', 'classes.id = class_sections.class_id');
+                $this->db->where('classes.department_id', $department_id);
             }
             $this->db->group_by('sections.section'); // Added this line
             $this->db->order_by('sections.section'); // Changed order by to section name for better grouping

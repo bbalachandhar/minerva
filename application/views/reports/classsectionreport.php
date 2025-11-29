@@ -5,11 +5,46 @@
         <div class="row">
             <div class="col-md-12">
                 <div class="box removeboxmius">
-                            <div class="box-header ptbnull">
-                                <h3 class="box-title titlefix"><i class="fa fa-users"></i> <?php echo $this->lang->line('class_section_report'); ?> </h3>
+                    <div class="box-header ptbnull"></div>
+                    <div class="box-header with-border">
+                        <h3 class="box-title"><i class="fa fa-search"></i> <?php echo $this->lang->line('select_criteria'); ?></h3>
+                    </div>
+                    <form action="<?php echo site_url('report/classsectionreport') ?>"  method="post" accept-charset="utf-8">
+                        <div class="box-body">
+                            <?php echo $this->customlib->getCSRF(); ?>
+                            <div class="row">
+                                <?php if ($sch_setting->institution_type == 'college') {?>
+                                <div class="col-md-12">
+                                    <div class="form-group">
+                                        <label><?php echo $this->lang->line('department'); ?></label>
+                                        <select autofocus="" id="department_id" name="department_id" class="form-control" >
+                                            <option value=""><?php echo $this->lang->line('select'); ?></option>
+                                            <?php
+foreach ($department_list as $department) {
+    ?>
+                                                <option value="<?php echo $department['id'] ?>" <?php if (set_value('department_id') == $department['id']) {
+        echo "selected=selected";
+    }
+    ?>><?php echo $department['department_name'] ?></option>
+                                                <?php
+}
+?>
+                                        </select>
+                                        <span class="text-danger" id="error_department_id"></span>
+                                    </div>
+                                </div>
+                                <?php }?>
                             </div>
-                            <div class="box-body table-responsive">
-                                <?php 
+                        </div>
+                        <div class="box-footer">
+                            <button type="submit" class="btn btn-primary btn-sm pull-right"><i class="fa fa-search"></i> <?php echo $this->lang->line('search'); ?></button>   </div>
+                    </form>
+                    <div class="">
+                        <div class="box-header ptbnull">
+                            <h3 class="box-title titlefix"><i class="fa fa-users"></i> <?php echo $this->lang->line('class_section_report'); ?> </h3>
+                        </div>
+                        <div class="box-body table-responsive">
+                            <?php 
 
 if(!empty($class_section_list)){
 ?>
@@ -52,12 +87,14 @@ if(!empty($class_section_list)){
                                         <?php
 }
                                  ?>
-                            </div>
                         </div>
-                    </div><!--./box box-primary -->
+                    </div>
+                </div><!--./box box-primary-->
             </div><!-- ./col-md-12 -->  
+        </div>
 </section>
-        </div>       
+</div>
+       
 
 <div id="studentModal" class="modal fade" role="dialog">
     <div class="modal-dialog modal-xl">

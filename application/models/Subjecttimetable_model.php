@@ -141,7 +141,7 @@ class Subjecttimetable_model extends MY_Model
         return $query->result();
     }
 
-    public function getSubjectByClassandSection($class_id, $section_id)
+    public function getSubjectByClassandSection($class_id, $section_id, $department_id = null)
     {
         $condition = '';
         if ($class_id != '') {
@@ -150,6 +150,9 @@ class Subjecttimetable_model extends MY_Model
 
         if ($section_id != '') {
             $condition .= " AND `subject_timetable`.`section_id` = " . $section_id . "";
+        }
+        if ($department_id != null) {
+            $condition .= " AND cl.department_id = " . $department_id; // Add department filter
         }
 
         $sql = "SELECT ct.staff_id as class_teacher,`subject_group_subjects`.`subject_id`,subjects.name as `subject_name`,subjects.code,subjects.type,staff.name,staff.surname,staff.employee_id,`subject_timetable`.*,sec.section as section_name,cl.class as class_name FROM `subject_timetable` JOIN `subject_group_subjects` ON `subject_timetable`.`subject_group_subject_id` = `subject_group_subjects`.`id`inner JOIN subjects on subject_group_subjects.subject_id = subjects.id INNER JOIN staff on staff.id=subject_timetable.staff_id LEFT JOIN classes cl on cl.id=subject_timetable.class_id LEFT JOIN sections as sec on sec.id=subject_timetable.section_id left join class_teacher ct on (ct.class_id=cl.id and ct.staff_id=staff.id and ct.section_id=sec.id) WHERE 1=1 " . $condition . " AND `subject_timetable`.`session_id` = " . $this->current_session . " AND `staff`.`is_active` =1 ";

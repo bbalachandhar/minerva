@@ -85,6 +85,7 @@ class Attendencereports extends Admin_Controller
         $data['attendencetypeslist'] = $attendencetypes;
         $class                   = $this->class_model->get();
         $data['classlist']       = $class;
+        $data['department_list'] = $this->Department_model->getDepartmentType();
         $data['class_id']       = "";
         $data['section_id']     = "";
         $data['date']           = "";
@@ -99,12 +100,13 @@ class Attendencereports extends Admin_Controller
             $section                = $this->input->post('section_id');
             $date                  = $this->input->post('date');
             $attendance_mode                  = $this->input->post('attendance_mode');
+            $department_id = $this->input->post('department_id');
             $data['class_id']       = $class;
             $data['section_id']     = $section;
             $data['date_selected'] = $date;
             $attendencetypes             = $this->attendencetype_model->get();
             $data['attendencetypeslist'] = $attendencetypes;
-            $resultlist                  = $this->stuattendence_model->searchAttendenceClassSectionWithMode($class, $section, date('Y-m-d', $this->customlib->datetostrtotime($date)),$attendance_mode);
+            $resultlist                  = $this->stuattendence_model->searchAttendenceClassSectionWithMode($class, $section, date('Y-m-d', $this->customlib->datetostrtotime($date)),$attendance_mode, $department_id);
             $data['resultlist']          = $resultlist;
         }
 
@@ -143,6 +145,7 @@ class Attendencereports extends Admin_Controller
             }
         }
         $data['classlist'] = $class;
+        $data['department_list'] = $this->Department_model->getDepartmentType(); // Load department list
         $userdata          = $this->customlib->getUserData();
 
         $data['monthlist']      = $this->customlib->getMonthDropdown();
@@ -165,10 +168,11 @@ class Attendencereports extends Admin_Controller
             $class                  = $this->input->post('class_id');
             $section                = $this->input->post('section_id');
             $month                  = $this->input->post('month');
+            $department_id = $this->input->post('department_id'); // Retrieve department_id
             $data['class_id']       = $class;
             $data['section_id']     = $section;
             $data['month_selected'] = $month;
-            $studentlist            = $this->student_model->searchByClassSection($class, $section);
+            $studentlist            = $this->student_model->searchByClassSection($class, $section, $department_id); // Pass department_id
             $session_current        = $this->setting_model->getCurrentSessionName();
             $startMonth             = $this->setting_model->getStartMonth();
             $centenary              = substr($session_current, 0, 2); //2017-18 to 2017
@@ -258,9 +262,11 @@ class Attendencereports extends Admin_Controller
         $data['section_id']      = $section;
         $class                   = $this->class_model->get();
         $data['classlist']       = $class;
+        $data['department_list'] = $this->Department_model->getDepartmentType(); // Load department list
         $searchterm              = '';
         $condition               = "";
         $date_condition          = "";
+        $department_id = $this->input->post('department_id'); // Retrieve department_id
 
         if (isset($_POST['search_type']) && $_POST['search_type'] != '') {
             $between_date        = $this->customlib->get_betweendate($_POST['search_type']);
@@ -315,8 +321,11 @@ class Attendencereports extends Admin_Controller
             if ($data['section_id'] != '') {
                 $condition .= ' and section_id=' . $data['section_id'];
             }
+            if ($department_id != null) {
+                $condition .= ' and classes.department_id=' . $department_id; // Add department filter
+            }
 
-            $data['student_attendences'] = $this->stuattendence_model->student_attendences($condition, $date_condition);
+            $data['student_attendences'] = $this->stuattendence_model->student_attendences($condition, $date_condition, $department_id); // Pass department_id
 
             $attd = array();
 
@@ -588,6 +597,7 @@ class Attendencereports extends Admin_Controller
         $sch_setting         = $this->setting_model->getSetting();
         $data['sch_setting'] = $sch_setting;
         $data['monthlist']   = $this->customlib->getMonthNoDropdown($sch_setting->start_month);
+        $data['department_list'] = $this->Department_model->getDepartmentType(); // Load department list
 
         $data['student_id'] = "";
         $this->form_validation->set_rules('class_id', $this->lang->line('class'), 'trim|required|xss_clean');
@@ -603,6 +613,7 @@ class Attendencereports extends Admin_Controller
             $section_id                  = $this->input->post('section_id');
             $month                       = $this->input->post('month');
             $subject_id                  = $this->input->post('subject_id');
+            $department_id = $this->input->post('department_id'); // Retrieve department_id
             $month_data                  = sessionMonthDetails($sch_setting->session, $sch_setting->start_month, $month);
 
             $attr_result        = array();
@@ -612,7 +623,7 @@ class Attendencereports extends Admin_Controller
             $date_result        = array();
             $from_date          = 1;
 
-            $resultlist = $this->studentsubjectattendence_model->getStudentMontlyAttendence($class_id, $section_id, $month_data['month_start'], $month_data['month_end'], $student_id, $subject_id);
+            $resultlist = $this->studentsubjectattendence_model->getStudentMontlyAttendence($class_id, $section_id, $month_data['month_start'], $month_data['month_end'], $student_id, $subject_id, $department_id); // Pass department_id
 
             $data['resultlist'] = $resultlist;
         }
@@ -633,6 +644,7 @@ class Attendencereports extends Admin_Controller
 
         $sch_setting         = $this->setting_model->getSetting();
         $data['sch_setting'] = $sch_setting;
+        $data['department_list'] = $this->Department_model->getDepartmentType(); // Load department list
 
         $data['monthlist'] = $this->customlib->getMonthNoDropdown($sch_setting->start_month);
 
@@ -648,6 +660,7 @@ class Attendencereports extends Admin_Controller
             $section_id                  = $this->input->post('section_id');
             $month                       = $this->input->post('month');
             $year                        = $this->input->post('year');
+            $department_id = $this->input->post('department_id'); // Retrieve department_id
             $month_data                  = sessionMonthDetails($sch_setting->session, $sch_setting->start_month, $month);
 
             $attr_result        = array();
@@ -656,7 +669,7 @@ class Attendencereports extends Admin_Controller
             $data['no_of_days'] = $month_data['total_days'];
             $date_result        = array();
 
-            $resultlist = $this->studentsubjectattendence_model->getStudentsMontlyAttendence($class_id, $section_id, $month_data['month_start'], $month_data['month_end'], $subject_id);
+            $resultlist = $this->studentsubjectattendence_model->getStudentsMontlyAttendence($class_id, $section_id, $month_data['month_start'], $month_data['month_end'], $subject_id, $department_id); // Pass department_id
 
             $data['resultlist'] = $resultlist;
         }

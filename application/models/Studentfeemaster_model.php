@@ -226,7 +226,7 @@ class Studentfeemaster_model extends MY_Model
         return $result;
     }
 
-    public function getStudentFeesByClassSectionStudent($class_id = NULL, $section_id = NULL, $student_id = NULL)
+    public function getStudentFeesByClassSectionStudent($class_id = NULL, $section_id = NULL, $student_id = NULL, $department_id = NULL)
     {
         $where_condition = array();
         if ($class_id != NULL) {
@@ -241,6 +241,9 @@ class Studentfeemaster_model extends MY_Model
         }
         if ($student_id != NULL) {
             $where_condition[] = " and student_session.student_id=" . $student_id;
+        }
+        if ($department_id != NULL) {
+            $where_condition[] = " and classes.department_id=" . $department_id; // Add department filter
         }
 
         $where_condition_string = implode(" ", $where_condition);
@@ -1293,7 +1296,7 @@ class Studentfeemaster_model extends MY_Model
         return $result_value2;
     }
 
-    public function getStudentDueFeeTypesByDate($date, $class_id = null, $section_id = null)
+    public function getStudentDueFeeTypesByDate($date, $class_id = null, $section_id = null, $department_id = null)
     {
         $where_condition = array();
         if ($class_id != null) {
@@ -1301,6 +1304,9 @@ class Studentfeemaster_model extends MY_Model
         }
         if ($section_id != null) {
             $where_condition[] = "student_session.section_id=" . $section_id;
+        }
+        if ($department_id != null) {
+            $where_condition[] = "classes.department_id=" . $department_id; // Add department filter
         }
         $where_condition_string = implode(" AND ", $where_condition);
 

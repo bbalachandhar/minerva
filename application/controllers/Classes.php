@@ -58,16 +58,20 @@ class Classes extends Admin_Controller
         $vehicle_result       = $this->section_model->get();
         $data['vehiclelist']  = $vehicle_result;
 
-        $department_id = $this->input->get('department_id');
-        if ($department_id != null && $department_id != '') {
-            $r           = $this->class_model->getClassesByDepartment($department_id);
-            $vehroute_result = array();
-            foreach ($r as $key => $value) {
-                $vehroute_result[] = (object) array(
-                    'id' => $value['id'],
-                    'class' => $value['class'],
-                    'vehicles' => $this->classsection_model->getSectionsByClass($value['id'])
-                );
+        if ($this->sch_setting_detail->institution_type == 'college') {
+            $department_id = $this->input->get('department_id');
+            if ($department_id != null && $department_id != '') {
+                $r           = $this->class_model->getClassesByDepartment($department_id);
+                $vehroute_result = array();
+                foreach ($r as $key => $value) {
+                    $vehroute_result[] = (object) array(
+                        'id' => $value['id'],
+                        'class' => $value['class'],
+                        'vehicles' => $this->classsection_model->getSectionsByClass($value['id'])
+                    );
+                }
+            } else {
+                $vehroute_result      = $this->classsection_model->getByID();
             }
         } else {
             $vehroute_result      = $this->classsection_model->getByID();

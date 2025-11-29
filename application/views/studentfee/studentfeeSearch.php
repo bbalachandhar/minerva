@@ -23,6 +23,28 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                         <div class="row">
                             <div class="col-md-6 col-sm-6">
                                 <div class="row">
+                                        <?php if ($sch_setting->institution_type == 'college') { ?>
+                                        <div class="col-sm-6">
+                                            <div class="form-group">
+                                                <label for="department_id"><?php echo $this->lang->line('department'); ?></label>
+                                                <select id="department_id" name="department_id" class="form-control">
+                                                    <option value=""><?php echo $this->lang->line('select'); ?></option>
+                                                    <?php
+                                                    foreach ($department_list as $department) {
+                                                        ?>
+                                                        <option value="<?php echo $department['id'] ?>"<?php
+                                                        if (set_value('department_id') == $department['id']) {
+                                                            echo "selected=selected";
+                                                        }
+                                                        ?>><?php echo $department['department_name'] ?></option>
+                                                        <?php
+                                                    }
+                                                    ?>
+                                                </select>
+                                                <span class="text-danger" id="error_department_id"></span>
+                                            </div>
+                                        </div>
+                                        <?php } ?>
                                         <div class="col-sm-6">
                                             <div class="form-group">
                                                 <label><?php echo $this->lang->line('class'); ?></label><small class="req">  *</small>
@@ -141,54 +163,102 @@ $(document).ready(function() {
 });
 </script>
 <script type="text/javascript">
-
-
     $(document).ready(function () {
-
         var class_id = $('#class_id').val();
         var section_id = '<?php echo set_value('section_id', 0) ?>';
+        var department_id = '<?php echo set_value('department_id', 0) ?>';
+
         getSectionByClass(class_id, section_id);
-    });
-
-    $(document).on('change', '#class_id', function (e) {
-        $('#section_id').html("");
-        var class_id = $(this).val();
-        getSectionByClass(class_id, 0);
-    });
-
-    function getSectionByClass(class_id, section_id) {
-
-        if (class_id != "") {
-            $('#section_id').html("");
-            var base_url = '<?php echo base_url() ?>';
-            var div_data = '<option value=""><?php echo $this->lang->line('select'); ?></option>';
-            $.ajax({
-                type: "GET",
-                url: base_url + "sections/getByClass",
-                data: {'class_id': class_id},
-                dataType: "json",
-                beforeSend: function () {
-                    $('#section_id').addClass('dropdownloading');
-                },
-                success: function (data) {
-                    $.each(data, function (i, obj)
-                    {
-                        var sel = "";
-                        if (section_id == obj.section_id) {
-                            sel = "selected";
-                        }
-                        div_data += "<option value=" + obj.section_id + " " + sel + ">" + obj.section + "</option>";
-                    });
-                    $('#section_id').append(div_data);
-                },
-                complete: function () {
-                    $('#section_id').removeClass('dropdownloading');
-                }
-            });
+        
+        if('<?php echo $sch_setting->institution_type; ?>' == 'college' && department_id){
+            getClassesByDepartment(department_id, class_id);
         }
-    }
-</script>
-<script type="text/javascript">
+
+        <?php if ($sch_setting->institution_type == 'college') { ?>
+        $(document).on('change', '#department_id', function (e) {
+            getClassesByDepartment($(this).val(),'');
+            $('#section_id').html("");
+            $('#section_id').append('<option value=""><?php echo $this->lang->line('select'); ?></option>');
+        });
+        <?php } ?>
+
+        $(document).on('change', '#class_id', function (e) {
+            $('#section_id').html("");
+            var class_id = $(this).val();
+            getSectionByClass(class_id, 0);
+        });
+
+        function getClassesByDepartment(department_id, class_id = null) {
+            if (department_id != "") {
+                $('#class_id').html("");
+                var div_data = '<option value=""><?php echo $this->lang->line('select'); ?></option>';
+                $.ajax({
+                    type: "GET",
+                    url: "<?php echo site_url('classes/getClassesByDepartment'); ?>",
+                    data: {'department_id': department_id},
+                    dataType: "json",
+                    success: function (data) {
+                        $.each(data, function (i, obj) {
+                            var sel = "";
+                            if (class_id == obj.id) {
+                                sel = "selected";
+                            }
+                            div_data += "<option value=" + obj.id + " " + sel + ">" + obj.class + "</option>";
+                        });
+                        $('#class_id').append(div_data);
+                    }
+                });
+            } else {
+                $('#class_id').html("");
+                 var div_data = '<option value=""><?php echo $this->lang->line('select'); ?></option>';
+                <?php
+                foreach ($classlist as $class) {
+                    ?>
+                    var sel = "";
+                    if (class_id == '<?php echo $class['id'] ?>') {
+                        sel = "selected";
+                    }
+                    div_data += "<option value='<?php echo $class['id'] ?>' " + sel + "><?php echo addslashes($class['class']) ?></option>";
+                    <?php
+                }
+                ?>
+                $('#class_id').append(div_data);
+            }
+        }
+
+        function getSectionByClass(class_id, section_id) {
+
+            if (class_id != "") {
+                $('#section_id').html("");
+                var base_url = '<?php echo base_url() ?>';
+                var div_data = '<option value=""><?php echo $this->lang->line('select'); ?></option>';
+                $.ajax({
+                    type: "GET",
+                    url: base_url + "sections/getByClass",
+                    data: {'class_id': class_id},
+                    dataType: "json",
+                    beforeSend: function () {
+                        $('#section_id').addClass('dropdownloading');
+                    },
+                    success: function (data) {
+                        $.each(data, function (i, obj)
+                        {
+                            var sel = "";
+                            if (section_id == obj.section_id) {
+                                sel = "selected";
+                            }
+                            div_data += "<option value=" + obj.section_id + " " + sel + ">" + obj.section + "</option>";
+                        });
+                        $('#section_id').append(div_data);
+                    },
+                    complete: function () {
+                        $('#section_id').removeClass('dropdownloading');
+                    }
+                });
+            }
+        }
+    });
+
     $(document).ready(function(){ 
       $("form.class_search_form button[type=submit]").click(function() {
         $("button[type=submit]", $(this).parents("form")).removeAttr("clicked");

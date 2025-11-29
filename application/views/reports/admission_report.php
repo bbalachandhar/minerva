@@ -88,7 +88,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                         <h3 class="box-title"><i class="fa fa-search"></i> <?php echo $this->lang->line('select_criteria'); ?></h3>
                     </div>
 
-                    <form  action="<?php echo site_url('report/searchreportvalidation') ?>" method="post" class="" id="reportform"  >
+                    <form  action="<?php echo site_url('report/admissionsearchvalidation') ?>" method="post" class="" id="reportform"  >
                         <div class="box-body row">                           
                             <div class="col-sm-6 col-md-3" >
                                 <div class="form-group">
@@ -105,6 +105,57 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                                 <?php } ?>
                                     </select>
                                     <span class="text-danger" id="error_search_type"></span>
+                                </div>
+                            </div>
+                            <?php if ($sch_setting->institution_type == 'college') {?>
+                            <div class="col-sm-6 col-md-3">
+                                <div class="form-group">
+                                    <label><?php echo $this->lang->line('department'); ?></label>
+                                    <select autofocus="" id="department_id" name="department_id" class="form-control" >
+                                        <option value=""><?php echo $this->lang->line('select'); ?></option>
+                                        <?php
+foreach ($department_list as $department) {
+    ?>
+                                            <option value="<?php echo $department['id'] ?>" <?php if (set_value('department_id') == $department['id']) {
+        echo "selected=selected";
+    }
+    ?>><?php echo $department['department_name'] ?></option>
+                                            <?php
+}
+?>
+                                    </select>
+                                    <span class="text-danger" id="error_department_id"></span>
+                                </div>
+                            </div>
+                            <?php }?>
+                            <div class="col-sm-6 col-md-3" >
+                                <div class="form-group">
+                                    <label><?php echo $this->lang->line('class'); ?></label><small class="req"> *</small>
+                                    <select autofocus="" id="class_id" name="class_id" class="form-control" >
+                                        <option value=""><?php echo $this->lang->line('select'); ?></option>
+                                        <?php
+                                        foreach ($classlist as $class) {
+                                            ?>
+                                            <option value="<?php echo $class['id'] ?>" <?php
+                                            if (set_value('class_id') == $class['id']) {
+                                                echo "selected =selected";
+                                            }
+                                            ?>><?php echo $class['class'] ?></option>
+                                                <?php
+                                                $count++;
+                                            }
+                                            ?>
+                                    </select>
+                                    <span class="text-danger" id="error_class_id"><?php echo form_error('class_id'); ?></span>
+                                </div>
+                            </div>
+                            <div class="col-sm-6 col-md-3" >
+                                <div class="form-group">
+                                    <label><?php echo $this->lang->line('section'); ?></label>
+                                    <select  id="section_id" name="section_id" class="form-control" >
+                                        <option value=""><?php echo $this->lang->line('select'); ?></option>
+                                    </select>
+                                    <span class="text-danger" id="error_section_id"><?php echo form_error('section_id'); ?></span>
                                 </div>
                             </div>
                             <div id='date_result'>
@@ -171,6 +222,33 @@ if ($search_type == 'period') {
 }
 ?>
 
+    $(document).ready(function() {
+        $(document).on('change', '#department_id', function(e) {
+            $('#class_id').val('');
+            $('#section_id').html('<option value=""><?php echo $this->lang->line('select'); ?></option>');
+        });
+
+        $(document).on('change', '#class_id', function (e) {
+            $('#section_id').html("");
+            var class_id = $(this).val();
+            var base_url = '<?php echo base_url() ?>';
+            var div_data = '<option value=""><?php echo $this->lang->line('select'); ?></option>';
+            var department_id = $('#department_id').val(); // Get selected department_id
+            $.ajax({
+                type: "GET",
+                url: base_url + "sections/getByClass",
+                data: {'class_id': class_id, 'department_id': department_id}, // Pass department_id
+                dataType: "json",
+                success: function (data) {
+                    $.each(data, function (i, obj)
+                    {
+                        div_data += "<option value=" + obj.section_id + ">" + obj.section + "</option>";
+                    });
+                    $('#section_id').append(div_data);
+                }
+            });
+        });
+    });
 </script>
  <script>
 $(document).ready(function() {
@@ -185,6 +263,14 @@ $(document).on('submit','#reportform',function(e){
     var form = $(this);
     var url = form.attr('action');
     var form_data = form.serializeArray();
+    form_data.push({name: 'search_type', value: $this.attr('value')});
+
+    // Add department_id to form_data if it exists
+    var department_id = $('#department_id').val();
+    if (department_id) {
+        form_data.push({name: 'department_id', value: department_id});
+    }
+
     $.ajax({
            url: url,
            type: "POST",

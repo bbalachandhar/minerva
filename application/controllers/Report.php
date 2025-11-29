@@ -16,6 +16,7 @@ class Report extends Admin_Controller
         $this->search_type        = $this->customlib->get_searchtype();
         $this->sch_setting_detail = $this->setting_model->getSetting();
         $this->load->library('media_storage');
+        $this->load->model('Department_model');
     }
 
     public function pdfStudentFeeRecord()
@@ -304,16 +305,18 @@ class Report extends Admin_Controller
         $data['searchlist']  = $this->search_type;
         $class               = $this->class_model->get('', $classteacher = 'yes');
         $data['classlist']   = $class;
+        $data['department_list'] = $this->Department_model->getDepartmentType(); // Load department list
         $data['search_type'] = '';
         $data['class_id']    = $class_id    = $this->input->post('class_id');
         $data['section_id']  = $section_id  = $this->input->post('section_id');
+        $department_id = $this->input->post('department_id'); // Retrieve department_id
         $this->form_validation->set_rules('class_id', $this->lang->line('class'), 'trim|required|xss_clean');
         $this->form_validation->set_rules('section_id', $this->lang->line('section'), 'trim|required|xss_clean');
         if ($this->form_validation->run() == false) {
             $data['subjects'] = array();
         } else {
-            $data['section_list'] = $this->section_model->getClassBySection($this->input->post('class_id'));
-            $data['resultlist'] = $this->subjecttimetable_model->getSubjectByClassandSection($class_id, $section_id);
+            $data['section_list'] = $this->section_model->getClassBySection($this->input->post('class_id'), $department_id); // Pass department_id
+            $data['resultlist'] = $this->subjecttimetable_model->getSubjectByClassandSection($class_id, $section_id, $department_id); // Pass department_id
             $subject = array();
             foreach ($data['resultlist'] as $value) {
                 $subject[$value->subject_id][] = $value;
@@ -339,6 +342,7 @@ class Report extends Admin_Controller
         $searchterm              = '';
         $class                   = $this->class_model->get();
         $data['classlist']       = $class;
+        $data['department_list'] = $this->Department_model->getDepartmentType(); // Load department list
         $this->load->view('layout/header', $data);
         $this->load->view('reports/admission_report', $data);
         $this->load->view('layout/footer', $data);
@@ -384,10 +388,12 @@ class Report extends Admin_Controller
         $condition               = array();
         $class                   = $this->class_model->get('', $classteacher = 'yes');
         $data['classlist']       = $class;
+        $data['department_list'] = $this->Department_model->getDepartmentType(); // Load department list
 
         $data['class_id']     = $class_id     = $this->input->post('class_id');
         $data['section_id']   = $section_id   = $this->input->post('section_id');
-        $data['section_list'] = $this->section_model->getClassBySection($this->input->post('class_id'));
+        $department_id = $this->input->post('department_id'); // Retrieve department_id
+        $data['section_list'] = $this->section_model->getClassBySection($this->input->post('class_id'), $department_id); // Pass department_id
 
         if (isset($_POST['class_id']) && $_POST['class_id'] != '') {
             $condition['classes.id'] = $_POST['class_id'];
@@ -396,6 +402,9 @@ class Report extends Admin_Controller
         if (isset($_POST['section_id']) && $_POST['section_id'] != '') {
             $condition['sections.id'] = $_POST['section_id'];
         }
+        if ($department_id != null) {
+            $condition['classes.department_id'] = $department_id; // Add department filter
+        }
 
         $this->form_validation->set_rules('class_id', $this->lang->line('class'), 'trim|required|xss_clean');
         $this->form_validation->set_rules('section_id', $this->lang->line('section'), 'trim|required|xss_clean');
@@ -403,7 +412,7 @@ class Report extends Admin_Controller
         if ($this->form_validation->run() == false) {
             $data['resultlist'] = array();
         } else {
-            $data['sibling_list'] = $this->student_model->sibling_reportsearch($searchterm, $carray = null, $condition);
+            $data['sibling_list'] = $this->student_model->sibling_reportsearch($searchterm, $carray = null, $condition); // Pass condition with department_id
 
             $sibling_parent = array();
 
@@ -412,7 +421,7 @@ class Report extends Admin_Controller
                 $sibling_parent[] = $value['parent_id'];
             }
 
-            $data['resultlist'] = $this->student_model->sibling_report($searchterm, $carray = null);
+            $data['resultlist'] = $this->student_model->sibling_report($searchterm, $carray = null, $condition); // Pass condition with department_id
             $sibling            = array();
 
             foreach ($data['resultlist'] as $value) {
@@ -428,6 +437,13 @@ class Report extends Admin_Controller
         $this->load->view('layout/header', $data);
         $this->load->view('reports/sibling_report', $data);
         $this->load->view('layout/footer', $data);
+    }
+
+    public function getClassesByDepartment()
+    {
+        $department_id = $this->input->post('department_id');
+        $data          = $this->class_model->getClassesByDepartment($department_id);
+        echo json_encode($data);
     }
 
     public function studentbookissuereport()
@@ -832,11 +848,13 @@ class Report extends Admin_Controller
         $searchterm              = '';
         $class                   = $this->class_model->get();
         $data['classlist']       = $class;
+        $data['department_list'] = $this->Department_model->getDepartmentType(); // Load department list
         $data['class_id']        = $class_id        = $this->input->post('class_id');
         $data['section_id']      = $section_id      = $this->input->post('section_id');
+        $department_id = $this->input->post('department_id'); // Retrieve department_id
         $condition1              = "";
         $condition2              = "";
-        $data['section_list'] = $this->section_model->getClassBySection($this->input->post('class_id'));//added
+        $data['section_list'] = $this->section_model->getClassBySection($this->input->post('class_id'), $department_id);//added
 
         $data['search_type']  = '';
         $data['filter_label'] = '';
@@ -860,6 +878,9 @@ class Report extends Admin_Controller
             $data['resultlist'] = array();
         } else {
             $condition1         = " classes.id='" . $this->input->post('class_id') . "' and sections.id='" . $this->input->post('section_id') . "'";
+            if ($department_id != null) {
+                $condition1 .= " and classes.department_id='" . $department_id . "'"; // Add department filter
+            }
             $data['resultlist'] = $this->student_model->student_profile($condition1, $condition2);
         }
         $this->load->view('layout/header', $data);
@@ -1219,11 +1240,14 @@ class Report extends Admin_Controller
         $searchterm              = '';
         $class                   = $this->class_model->get();
         $data['classlist']       = $class;
+        $data['department_list'] = $this->Department_model->getDepartmentType(); // Load department list
+        $department_id = $this->input->post('department_id'); // Retrieve department_id
+
         foreach ($data['classlist'] as $key => $value) {
             $carray[] = $value['id'];
         }
 
-        $data['resultlist'] = $this->student_model->student_ratio();
+        $data['resultlist'] = $this->student_model->student_ratio($department_id); // Pass department_id
         $total_boys         = $total_girls         = 0;
         foreach ($data['resultlist'] as $key => $value) {
 
@@ -1251,8 +1275,11 @@ class Report extends Admin_Controller
         $data['sch_setting']     = $this->sch_setting_detail;
         $data['adm_auto_insert'] = $this->sch_setting_detail->adm_auto_insert;
         $searchterm              = '';
-
-        $data['resultlist'] = $this->student_model->student_ratio();
+        $class                   = $this->class_model->get();
+        $data['classlist']       = $class;
+        $data['department_list'] = $this->Department_model->getDepartmentType(); // Load department list
+        $department_id = $this->input->post('department_id'); // Retrieve department_id
+        $data['resultlist'] = $this->student_model->student_ratio($department_id);
         $total_boys         = $total_girls         = $all_teacher         = $all_student         = 0;
         foreach ($data['resultlist'] as $key => $value) {
 
@@ -1354,6 +1381,7 @@ class Report extends Admin_Controller
         $class       = $this->class_model->get();
         $classlist   = $class;
         $count       = 0;
+        $department_id = $this->input->post('department_id');
 
         foreach ($classlist as $key => $value) {
             $carray[] = $value['id'];
@@ -1373,7 +1401,7 @@ class Report extends Admin_Controller
         $condition    = " date_format(admission_date,'%Y-%m-%d') between  '" . $from_date . "' and '" . $to_date . "'";
         $filter_label = date($this->customlib->getSchoolDateFormat(), strtotime($from_date)) . " To " . date($this->customlib->getSchoolDateFormat(), strtotime($to_date));
 
-        $result = $this->student_model->admission_report($searchterm, $carray, $condition);
+        $result = $this->student_model->admission_report($searchterm, $carray, $condition, $department_id);
 
         $resultlist = json_decode($result);
         $dt_data    = array();
@@ -2030,6 +2058,7 @@ class Report extends Admin_Controller
         $userdata                = $this->customlib->getUserData();
         $category                = $this->category_model->get();
         $data['categorylist']    = $category;
+        $data['department_list'] = $this->Department_model->getDepartmentType();
         $this->load->view('layout/header', $data);
         $this->load->view('reports/studentReport', $data);
         $this->load->view('layout/footer', $data);
@@ -2091,6 +2120,7 @@ class Report extends Admin_Controller
         $gender      = $this->input->post('gender');
         $rte         = $this->input->post('rte');
         $community   = $this->input->post('community');
+        $department_id = $this->input->post('department_id');
 
         $srch_type = $this->input->post('search_type');
 
@@ -2099,7 +2129,7 @@ class Report extends Admin_Controller
             $this->form_validation->set_rules('class_id', $this->lang->line('class'), 'trim|required|xss_clean');
             if ($this->form_validation->run() == true) {
 
-                $params = array('srch_type' => $srch_type, 'class_id' => $class_id, 'section_id' => $section_id, 'category_id' => $category_id, 'gender' => $gender, 'rte' => $rte, 'community' => $community);
+                $params = array('srch_type' => $srch_type, 'class_id' => $class_id, 'section_id' => $section_id, 'category_id' => $category_id, 'gender' => $gender, 'rte' => $rte, 'community' => $community, 'department_id' => $department_id);
                 $array  = array('status' => 1, 'error' => '', 'params' => $params);
                 echo json_encode($array);
             } else {
@@ -2125,10 +2155,11 @@ class Report extends Admin_Controller
         $gender          = $this->input->post('gender');
         $rte             = $this->input->post('rte');
         $community       = $this->input->post('community');
+        $department_id   = $this->input->post('department_id');
         $sch_setting     = $this->sch_setting_detail;
 
         $result     = $this->student_model->searchdatatableByClassSectionCategoryGenderRte(
-            $class, $section, $category_id, $gender, $rte, $community
+            $class, $section, $category_id, $gender, $rte, $community, $department_id
         );
         $resultlist = json_decode($result);
         $dt_data    = array();
@@ -2189,7 +2220,10 @@ class Report extends Admin_Controller
         $this->session->set_userdata('sub_menu', 'Reports/student_information');
         $this->session->set_userdata('subsub_menu', 'Reports/student_information/classsectionreport');
         $data['title']              = 'Class & Section Report';
-        $data['class_section_list'] = $this->classsection_model->getClassSectionStudentCount();
+        $data['sch_setting']     = $this->sch_setting_detail;
+        $data['department_list'] = $this->Department_model->getDepartmentType(); // Load department list
+        $department_id = $this->input->post('department_id'); // Retrieve department_id
+        $data['class_section_list'] = $this->classsection_model->getClassSectionStudentCount($department_id); // Pass department_id
         $this->load->view('layout/header', $data);
         $this->load->view('reports/classsectionreport', $data);
         $this->load->view('layout/footer', $data);
@@ -2207,6 +2241,7 @@ class Report extends Admin_Controller
         $data['title']           = 'Student Guardian Report';
         $class                   = $this->class_model->get();
         $data['classlist']       = $class;
+        $data['department_list'] = $this->Department_model->getDepartmentType(); // Load department list
         $data['sch_setting']     = $this->sch_setting_detail;
         $data['adm_auto_insert'] = $this->sch_setting_detail->adm_auto_insert;
         $userdata                = $this->customlib->getUserData();
@@ -2222,6 +2257,7 @@ class Report extends Admin_Controller
 
         $class_id   = $this->input->post("class_id");
         $section_id = $this->input->post("section_id");
+        $department_id = $this->input->post("department_id"); // Retrieve department_id
 
         $this->form_validation->set_rules('class_id', $this->lang->line('class'), 'trim|required|xss_clean');
         $this->form_validation->set_rules('section_id', $this->lang->line('section'), 'trim|required|xss_clean');
@@ -2232,7 +2268,7 @@ class Report extends Admin_Controller
             $data["resultlist"] = "";
         } else {
 
-            $resultlist         = $this->student_model->searchGuardianDetails($class_id, $section_id);
+            $resultlist         = $this->student_model->searchGuardianDetails($class_id, $section_id, $department_id); // Pass department_id
             $data["resultlist"] = $resultlist;
         }
 
@@ -2277,6 +2313,7 @@ class Report extends Admin_Controller
     {
         $class_id = $this->input->post('class_id');
         $year     = $this->input->post('year');
+        $department_id = $this->input->post('department_id');
 
         $this->form_validation->set_rules('class_id', $this->lang->line('class'), 'trim|required|xss_clean');
         if ($this->form_validation->run() == false) {
@@ -2287,7 +2324,7 @@ class Report extends Admin_Controller
             echo json_encode($array);
         } else {
 
-            $params = array('class_id' => $class_id, 'year' => $year);
+            $params = array('class_id' => $class_id, 'year' => $year, 'department_id' => $department_id);
             $array  = array('status' => 1, 'error' => '', 'params' => $params);
             echo json_encode($array);
         }

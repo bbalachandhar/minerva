@@ -229,7 +229,7 @@ class enquiry_model extends MY_Model
         $this->db->where("id", $data["id"])->update("enquiry", $data);
     }
 
-    public function searchEnquiry($class, $source, $date_from, $date_to, $status = 'active')
+    public function searchEnquiry($class, $source, $date_from, $date_to, $status = 'active', $department_id = null)
     {
         $condition = 0;
 
@@ -263,6 +263,9 @@ class enquiry_model extends MY_Model
 
         if ($condition == 0) {
             $this->db->where("enquiry.status", "active");
+        }
+        if ($department_id != null) {
+            $this->db->where("classes.department_id", $department_id);
         }
 
         $query = $this->db->select('enquiry.*,classes.class as classname')->join("classes", "classes.id = enquiry.class_id", "left")->get("enquiry");

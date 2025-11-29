@@ -17,7 +17,9 @@ class Financereports extends Admin_Controller
         $this->sch_setting_detail = $this->setting_model->getSetting();
         $this->load->library('media_storage');
         $this->load->model("module_model");
-
+        $this->load->model('Department_model');
+        $this->load->model('customstudentfeemaster_model');
+        $this->current_session = $this->setting_model->getCurrentSession();
     }
 
     public function finance()
@@ -111,14 +113,16 @@ class Financereports extends Admin_Controller
         $data['title']       = 'student fees';
         $class               = $this->class_model->get();
         $data['classlist']   = $class;
+        $data['department_list'] = $this->Department_model->getDepartmentType(); // Load department list
         $data['sch_setting'] = $this->sch_setting_detail;
         if ($this->input->server('REQUEST_METHOD') == "POST") {
             $date               = date('Y-m-d');
             $class_id           = $this->input->post('class_id');
             $section_id         = $this->input->post('section_id');
+            $department_id      = $this->input->post('department_id'); // Retrieve department_id
             $data['class_id']   = $class_id;
             $data['section_id'] = $section_id;
-            $fees_dues          = $this->studentfeemaster_model->getStudentDueFeeTypesByDate($date, $class_id, $section_id);
+            $fees_dues          = $this->studentfeemaster_model->getStudentDueFeeTypesByDate($date, $class_id, $section_id, $department_id); // Pass department_id
             $students_list      = array();
 
             if (!empty($fees_dues)) {
@@ -346,6 +350,7 @@ class Financereports extends Admin_Controller
         $data['title']       = 'student fees';
         $class               = $this->class_model->get();
         $data['classlist']   = $class;
+        $data['department_list'] = $this->Department_model->getDepartmentType(); // Load department list
         $data['sch_setting'] = $this->sch_setting_detail;
 
         if ($this->input->server('REQUEST_METHOD') == "GET") {
@@ -357,7 +362,8 @@ class Financereports extends Admin_Controller
                 $class_id                = $this->input->post('class_id');
                 $section_id              = $this->input->post('section_id');
                 $student_id              = $this->input->post('student_id');
-                $student_due_fee         = $this->studentfeemaster_model->getStudentFeesByClassSectionStudent($class_id, $section_id, $student_id);
+                $department_id           = $this->input->post('department_id'); // Retrieve department_id
+                $student_due_fee         = $this->studentfeemaster_model->getStudentFeesByClassSectionStudent($class_id, $section_id, $student_id, $department_id); // Pass department_id
                 foreach ($student_due_fee as $key => $value) {
                     $transport_fees = array();
                     $student               = $this->student_model->getByStudentSession($value['student_session_id']);
@@ -419,6 +425,8 @@ class Financereports extends Admin_Controller
 
             $data['classlist']       = $class;
 
+            $data['department_list'] = $this->Department_model->getDepartmentType(); // Load department list
+
             $data['sch_setting']     = $this->sch_setting_detail;
 
             $data['adm_auto_insert'] = $this->sch_setting_detail->adm_auto_insert;
@@ -447,15 +455,17 @@ class Financereports extends Admin_Controller
 
                 $section_id = $this->input->post('section_id');
 
+                $department_id = $this->input->post('department_id'); // Retrieve department_id
+
     
 
                 if (isset($class_id)) {
 
-                    $studentlist = $this->student_model->searchByClassSectionWithSession($class_id, $section_id);
+                    $studentlist = $this->student_model->searchByClassSectionWithSession($class_id, $section_id, $this->current_session, $department_id); // Pass department_id
 
                 } else {
 
-                    $studentlist = $this->student_model->getStudents();
+                    $studentlist = $this->student_model->getStudents($department_id); // Pass department_id
 
                 }
 
@@ -766,6 +776,7 @@ class Financereports extends Admin_Controller
         $data['title']       = 'student fees';
         $class               = $this->class_model->get();
         $data['classlist']   = $class;
+        $data['department_list'] = $this->Department_model->getDepartmentType(); // Load department list
         $data['sch_setting'] = $this->sch_setting_detail;
         $this->form_validation->set_rules('class_id', $this->lang->line('class'), 'trim|required|xss_clean');
         $this->form_validation->set_rules('section_id', $this->lang->line('section'), 'trim|required|xss_clean');
@@ -774,10 +785,11 @@ class Financereports extends Admin_Controller
             $date               = date('Y-m-d');
             $class_id           = $this->input->post('class_id');
             $section_id         = $this->input->post('section_id');
+            $department_id      = $this->input->post('department_id'); // Retrieve department_id
             $data['class_id']   = $class_id;
             $data['section_id'] = $section_id;
             $date               = date('Y-m-d');
-            $student_due_fee    = $this->studentfee_model->getDueStudentFeesByDateClassSection($class_id, $section_id, $date);
+            $student_due_fee    = $this->studentfee_model->getDueStudentFeesByDateClassSection($class_id, $section_id, $date, $department_id);
             $students = array();
             if (!empty($student_due_fee)) {
                 foreach ($student_due_fee as $student_due_fee_key => $student_due_fee_value) {
@@ -1565,6 +1577,7 @@ class Financereports extends Admin_Controller
             $data['payment_type']    = $this->customlib->getPaymenttype();
             $class                   = $this->class_model->get();
             $data['classlist']       = $class;
+            $data['department_list'] = $this->Department_model->getDepartmentType(); // Load department list
             $data['sch_setting']     = $this->sch_setting_detail;
             $data['adm_auto_insert'] = $this->sch_setting_detail->adm_auto_insert;
 
@@ -1586,6 +1599,7 @@ class Financereports extends Admin_Controller
                 $search_type   = $this->input->post('search_type');
                 $class_id   = $this->input->post('class_id');
                 $section_id = $this->input->post('section_id'); // Not used in this version according to requirement
+                $department_id = $this->input->post('department_id'); // Retrieve department_id
 
                 // Always use current session
                 $current_session_id = $this->setting_model->getCurrentSession();
@@ -1596,7 +1610,7 @@ class Financereports extends Admin_Controller
                     $studentlist = $this->student_model->getStudentsBySession($current_session_id);
                 } else {
                     // Assuming a method to get students by class_id and session
-                    $studentlist = $this->student_model->searchByClassSectionWithSession($class_id, null, $current_session_id); // Passing null for section_id
+                    $studentlist = $this->student_model->searchByClassSectionWithSession($class_id, null, $current_session_id, $department_id); // Passing null for section_id
                 }
 
                 $class_summary = array();

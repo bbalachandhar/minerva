@@ -20,7 +20,28 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                         <div class="box-body">
                             <?php echo $this->customlib->getCSRF(); ?>
                             <div class="row">
-                                <div class="col-md-6">
+                                <?php if ($sch_setting->institution_type == 'college') {?>
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label><?php echo $this->lang->line('department'); ?></label>
+                                        <select autofocus="" id="department_id" name="department_id" class="form-control" >
+                                            <option value=""><?php echo $this->lang->line('select'); ?></option>
+                                            <?php
+foreach ($department_list as $department) {
+    ?>
+                                                <option value="<?php echo $department['id'] ?>" <?php if (set_value('department_id') == $department['id']) {
+        echo "selected=selected";
+    }
+    ?>><?php echo $department['department_name'] ?></option>
+                                                <?php
+}
+?>
+                                        </select>
+                                        <span class="text-danger" id="error_department_id"></span>
+                                    </div>
+                                </div>
+                                <?php }?>
+                                <div class="col-md-4">
                                     <div class="form-group">
                                         <label><?php echo $this->lang->line('class'); ?></label>
                                         <select autofocus="" id="class_id" name="class_id" class="form-control" >
@@ -32,7 +53,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                         <span class="text-danger"><?php echo form_error('class_id'); ?></span>
                                     </div>
                                 </div>
-                                <div class="col-md-6">
+                                <div class="col-md-4">
                                     <div class="form-group">
                                         <label><?php echo $this->lang->line('search_type'); ?></label>
                                         <select  id="search_type" name="search_type" class="form-control" >
@@ -209,6 +230,28 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
         var class_id = $('#class_id').val();
         var section_id = '<?php echo set_value('section_id', 0) ?>';
         getSectionByClass(class_id, section_id);
+
+        $(document).on('change', '#department_id', function (e) {
+            $('#class_id').html('<option value="all"><?php echo $this->lang->line('all_classes'); ?></option>');
+            var department_id = $(this).val();
+            var base_url = '<?php echo base_url() ?>';
+            if (department_id != "") {
+                $.ajax({
+                    type: "POST",
+                    url: base_url + "report/getClassesByDepartment",
+                    data: {'department_id': department_id},
+                    dataType: "json",
+                    success: function (data) {
+                        $.each(data, function (i, obj)
+                        {
+                            var sel = "";
+                            $('#class_id').append("<option value=" + obj.id + " " + sel + ">" + obj.class + "</option>");
+                        });
+                    }
+                });
+            }
+        });
+
         $(document).on('change', '#class_id', function (e) {
             $('#section_id').html("");
             var class_id = $(this).val();
@@ -234,10 +277,11 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
             $('#section_id').html("");
             var base_url = '<?php echo base_url() ?>';
             var div_data = '<option value=""><?php echo $this->lang->line('select'); ?></option>';
+            var department_id = $('#department_id').val();
             $.ajax({
                 type: "GET",
                 url: base_url + "sections/getByClass",
-                data: {'class_id': class_id},
+                data: {'class_id': class_id, 'department_id': department_id},
                 dataType: "json",
                 success: function (data) {
                     $.each(data, function (i, obj)

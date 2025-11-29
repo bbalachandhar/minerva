@@ -82,7 +82,72 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
         <div class="row">
             <div class="col-md-12">
                 <div class="box removeboxmius">
-                    <div class="box-header ptbnull"></div>   
+                    <div class="box-header ptbnull"></div>
+                    <div class="box-header with-border">
+                        <h3 class="box-title"><i class="fa fa-search"></i> <?php echo $this->lang->line('select_criteria'); ?></h3>
+                    </div>
+                    <form role="form" action="<?php echo site_url('report/boys_girls_ratio') ?>" method="post" class="" id="class_search_form"  >
+                        <div class="box-body row">
+                            <?php echo $this->customlib->getCSRF(); ?>
+                            <?php if ($sch_setting->institution_type == 'college') {?>
+                            <div class="col-sm-6 col-md-3">
+                                <div class="form-group">
+                                    <label><?php echo $this->lang->line('department'); ?></label>
+                                    <select autofocus="" id="department_id" name="department_id" class="form-control" >
+                                        <option value=""><?php echo $this->lang->line('select'); ?></option>
+                                        <?php
+foreach ($department_list as $department) {
+    ?>
+                                            <option value="<?php echo $department['id'] ?>" <?php if (set_value('department_id') == $department['id']) {
+        echo "selected=selected";
+    }
+    ?>><?php echo $department['department_name'] ?></option>
+                                            <?php
+}
+?>
+                                    </select>
+                                    <span class="text-danger" id="error_department_id"></span>
+                                </div>
+                            </div>
+                            <?php }?>
+                            <div class="col-sm-6 col-md-3">
+                                <div class="form-group">
+                                    <label><?php echo $this->lang->line('class'); ?></label><small class="req"> *</small>
+                                    <select autofocus="" id="class_id" name="class_id" class="form-control" >
+                                        <option value=""><?php echo $this->lang->line('select'); ?></option>
+                                        <?php
+                                        foreach ($classlist as $class) {
+                                            ?>
+                                            <option value="<?php echo $class['id'] ?>" <?php
+                                            if (set_value('class_id') == $class['id']) {
+                                                echo "selected =selected";
+                                            }
+                                            ?>><?php echo $class['class'] ?></option>
+                                                    <?php
+                                                    $count++;
+                                                }
+                                                ?>
+                                    </select>
+                                    <span class="text-danger" id="error_class_id"><?php echo form_error('class_id'); ?></span>
+                                </div>
+                            </div>
+                            <div class="col-sm-6 col-md-3">
+                                <div class="form-group">
+                                    <label><?php echo $this->lang->line('section'); ?></label><small class="req"> *</small>
+                                    <select  id="section_id" name="section_id" class="form-control" >
+                                        <option value=""><?php echo $this->lang->line('select'); ?></option>
+                                    </select>
+                                    <span class="text-danger" id="error_section_id"><?php echo form_error('section_id'); ?></span>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <div class="col-sm-12">
+                                    <button type="submit" name="search" value="search_filter" class="btn btn-primary btn-sm checkbox-toggle pull-right"><i class="fa fa-search"></i> <?php echo $this->lang->line('search'); ?></button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                    <?php if (isset($result)) {?>
                     <div class="">
                         <div class="box-header ptbnull">
                             <h3 class="box-title titlefix"><i class="fa fa-money"></i> <?php echo $this->lang->line('student_gender_ratio_report'); ?></h3>
@@ -126,9 +191,53 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                             </table>
                         </div>
                     </div>
+                    <?php }?>
                 </div>
             </div>
         </div>   
-    </div>  
-</section>
+    </section>
 </div>
+<script>
+    $(document).on('change', '#department_id', function (e) {
+        $('#class_id').html('<option value=""><?php echo $this->lang->line('select'); ?></option>');
+        $('#section_id').html('<option value=""><?php echo $this->lang->line('select'); ?></option>');
+        var department_id = $(this).val();
+        var base_url = '<?php echo base_url() ?>';
+        if (department_id != "") {
+            $.ajax({
+                type: "POST",
+                url: base_url + "report/getClassesByDepartment",
+                data: {'department_id': department_id},
+                dataType: "json",
+                success: function (data) {
+                    $.each(data, function (i, obj)
+                    {
+                        var sel = "";
+                        $('#class_id').append("<option value=" + obj.id + " " + sel + ">" + obj.class + "</option>");
+                    });
+                }
+            });
+        }
+    });
+
+    $(document).on('change', '#class_id', function (e) {
+        $('#section_id').html("");
+        var class_id = $(this).val();
+        var div_data = '<option value=""><?php echo $this->lang->line('select'); ?></option>';
+        var url = "";
+        var department_id = $('#department_id').val(); // Get selected department_id
+        $.ajax({
+            type: "GET",
+            url: baseurl + "sections/getByClass",
+            data: {'class_id': class_id, 'department_id': department_id}, // Pass department_id
+            dataType: "json",
+            success: function (data) {
+                $.each(data, function (i, obj)
+                {
+                    div_data += "<option value=" + obj.section_id + ">" + obj.section + "</option>";
+                });
+                $('#section_id').append(div_data);
+            }
+        });
+    });
+</script>

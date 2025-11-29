@@ -21,6 +21,27 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                         <div class="box-body">
                             <?php echo $this->customlib->getCSRF(); ?>
                             <div class="row">
+                                <?php if ($sch_setting->institution_type == 'college') {?>
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label for="exampleInputEmail1"><?php echo $this->lang->line('department'); ?></label>
+                                        <select autofocus="" id="department_id" name="department_id" class="form-control" >
+                                            <option value=""><?php echo $this->lang->line('select'); ?></option>
+                                            <?php
+foreach ($department_list as $department) {
+    ?>
+                                                <option value="<?php echo $department['id'] ?>" <?php if (set_value('department_id') == $department['id']) {
+        echo "selected=selected";
+    }
+    ?>><?php echo $department['department_name'] ?></option>
+                                                <?php
+}
+?>
+                                        </select>
+                                        <span class="text-danger" id="error_department_id"></span>
+                                    </div>
+                                </div>
+                                <?php }?>
                                       <div class="col-md-4">
                                     <div class="form-group">
                                         <label for="exampleInputEmail1"><?php echo $this->lang->line('class'); ?></label>
@@ -212,14 +233,15 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
         document.getElementById("imgbox1").style.display = "block";
     }
     function getSectionByClass(class_id, section_id) {
-        if (class_id != "" && section_id != "") {
+        if (class_id != "") {
             $('#section_id').html("");
             var base_url = '<?php echo base_url() ?>';
             var div_data = '<option value=""><?php echo $this->lang->line('select'); ?></option>';
+            var department_id = $('#department_id').val(); // Get selected department_id
             $.ajax({
                 type: "GET",
                 url: base_url + "sections/getByClass",
-                data: {'class_id': class_id},
+                data: {'class_id': class_id, 'department_id': department_id}, // Pass department_id
                 dataType: "json",
                 success: function (data) {
                     $.each(data, function (i, obj)
@@ -236,15 +258,40 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
         }
     }
     $(document).ready(function () {
+
+        $(document).on('change', '#department_id', function (e) {
+            $('#class_id').html('<option value=""><?php echo $this->lang->line('select'); ?></option>');
+            $('#section_id').html('<option value=""><?php echo $this->lang->line('select'); ?></option>');
+            $('#student_id').html('<option value=""><?php echo $this->lang->line('select'); ?></option>');
+            var department_id = $(this).val();
+            var base_url = '<?php echo base_url() ?>';
+            if (department_id != "") {
+                $.ajax({
+                    type: "POST",
+                    url: base_url + "report/getClassesByDepartment",
+                    data: {'department_id': department_id},
+                    dataType: "json",
+                    success: function (data) {
+                        $.each(data, function (i, obj)
+                        {
+                            var sel = "";
+                            $('#class_id').append("<option value=" + obj.id + " " + sel + ">" + obj.class + "</option>");
+                        });
+                    }
+                });
+            }
+        });
+
         $(document).on('change', '#class_id', function (e) {
             $('#section_id').html("");
             var class_id = $(this).val();
             var base_url = '<?php echo base_url() ?>';
             var div_data = '<option value=""><?php echo $this->lang->line('select'); ?></option>';
+            var department_id = $('#department_id').val(); // Get selected department_id
             $.ajax({
                 type: "GET",
                 url: base_url + "sections/getByClass",
-                data: {'class_id': class_id},
+                data: {'class_id': class_id, 'department_id': department_id}, // Pass department_id
                 dataType: "json",
                 success: function (data) {
                     $.each(data, function (i, obj)
@@ -269,10 +316,11 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
         var section_id = $('#section_id').val();
         var base_url = '<?php echo base_url() ?>';
         var div_data = '<option value=""><?php echo $this->lang->line('select'); ?></option>';
+        var department_id = $('#department_id').val(); // Get selected department_id
         $.ajax({
             type: "GET",
             url: base_url + "student/getByClassAndSection",
-            data: {'class_id': class_id, 'section_id': section_id},
+            data: {'class_id': class_id, 'section_id': section_id, 'department_id': department_id}, // Pass department_id
             dataType: "json",
             success: function (data) {
                 $.each(data, function (i, obj)

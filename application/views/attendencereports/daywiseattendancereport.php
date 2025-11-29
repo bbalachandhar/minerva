@@ -29,6 +29,27 @@
                         <div class="box-body">
                             <?php echo $this->customlib->getCSRF(); ?>
                             <div class="row">
+                                <?php if ($sch_setting->institution_type == 'college') {?>
+                                <div class="col-md-3">
+                                    <div class="form-group">
+                                        <label><?php echo $this->lang->line('department'); ?></label>
+                                        <select autofocus="" id="department_id" name="department_id" class="form-control" >
+                                            <option value=""><?php echo $this->lang->line('select'); ?></option>
+                                            <?php
+foreach ($department_list as $department) {
+    ?>
+                                                <option value="<?php echo $department['id'] ?>" <?php if (set_value('department_id') == $department['id']) {
+        echo "selected=selected";
+    }
+    ?>><?php echo $department['department_name'] ?></option>
+                                                <?php
+}
+?>
+                                        </select>
+                                        <span class="text-danger" id="error_department_id"></span>
+                                    </div>
+                                </div>
+                                <?php }?>
                                 <div class="col-md-3">
                                     <div class="form-group">
                                         <label for="exampleInputEmail1"><?php echo $this->lang->line('class'); ?></label><small class="req"> *</small>
@@ -301,12 +322,14 @@ echo    "<a target='_blank' href='http://maps.google.com/?q=". $json_data->latit
             $('#section_id').html("");
             var base_url = '<?php echo base_url() ?>';
             var div_data = '<option value=""><?php echo $this->lang->line('select'); ?></option>';
+            var department_id = $('#department_id').val(); // Get selected department_id
             $.ajax({
                 type: "GET",
                 url: base_url + "sections/getByClass",
                 data: {
-                    'class_id': class_id_post
-                },
+                    'class_id': class_id_post,
+                    'department_id': department_id
+                }, // Pass department_id
                 dataType: "json",
                 success: function(data) {
                     $.each(data, function(i, obj) {
@@ -321,17 +344,24 @@ echo    "<a target='_blank' href='http://maps.google.com/?q=". $json_data->latit
             });
         }
 
+        $(document).on('change', '#department_id', function(e) {
+            $('#class_id').val('');
+            $('#section_id').html('<option value=""><?php echo $this->lang->line('select'); ?></option>');
+        });
+
         $(document).on('change', '#class_id', function(e) {
             $('#section_id').html("");
             var class_id = $(this).val();
             var base_url = '<?php echo base_url() ?>';
             var div_data = '<option value=""><?php echo $this->lang->line('select'); ?></option>';
+            var department_id = $('#department_id').val(); // Get selected department_id
             $.ajax({
                 type: "GET",
                 url: base_url + "sections/getByClass",
                 data: {
-                    'class_id': class_id
-                },
+                    'class_id': class_id,
+                    'department_id': department_id
+                }, // Pass department_id
                 dataType: "json",
                 success: function(data) {
                     $.each(data, function(i, obj) {

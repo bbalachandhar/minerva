@@ -25,7 +25,9 @@ class Enquiry extends Admin_Controller
         $this->session->set_userdata('top_menu', 'front_office');
         $this->session->set_userdata('sub_menu', 'admin/enquiry');
         $data['class_list']     = $this->class_model->get();
+        $data['department_list'] = $this->department_model->getDepartmentType();
         $data["selected_class"] = "";
+        $data["selected_department"] = "";
         $data["source_select"]  = "";
         $data["status"]         = "active";
         $data['stff_list']      = $this->staff_model->get();
@@ -34,6 +36,7 @@ class Enquiry extends Admin_Controller
 
         if ($this->form_validation->run() == true) {
             $class                  = $this->input->post("class");
+            $department_id          = $this->input->post("department_id");
             $source                 = $this->input->post("source");
             $status                 = $this->input->post("status");
             $date_from              = date("Y-m-d", $this->customlib->datetostrtotime($this->input->post("from_date")));
@@ -41,7 +44,8 @@ class Enquiry extends Admin_Controller
             $data["source_select"]  = $source;
             $data["status"]         = $status;
             $data["selected_class"] = $class;
-            $enquiry_list           = $this->enquiry_model->searchEnquiry($class, $source, $date_from, $date_to, $status);
+            $data["selected_department"] = $department_id;
+            $enquiry_list           = $this->enquiry_model->searchEnquiry($class, $source, $date_from, $date_to, $status, $department_id);
         } else {
             $enquiry_list = $this->enquiry_model->getenquiry_list();
         }

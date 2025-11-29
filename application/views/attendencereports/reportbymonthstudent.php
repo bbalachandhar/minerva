@@ -37,6 +37,27 @@ if ($this->session->flashdata('msg')) {
 ?>
                             <?php echo $this->customlib->getCSRF(); ?>
                             <div class="row">
+                                <?php if ($sch_setting->institution_type == 'college') {?>
+                                <div class="col-md-3">
+                                    <div class="form-group">
+                                        <label><?php echo $this->lang->line('department'); ?></label>
+                                        <select autofocus="" id="department_id" name="department_id" class="form-control" >
+                                            <option value=""><?php echo $this->lang->line('select'); ?></option>
+                                            <?php
+foreach ($department_list as $department) {
+    ?>
+                                                <option value="<?php echo $department['id'] ?>" <?php if (set_value('department_id') == $department['id']) {
+        echo "selected=selected";
+    }
+    ?>><?php echo $department['department_name'] ?></option>
+                                                <?php
+}
+?>
+                                        </select>
+                                        <span class="text-danger" id="error_department_id"></span>
+                                    </div>
+                                </div>
+                                <?php }?>
                                 <div class="col-md-3">
                                     <div class="form-group">
                                         <label for="exampleInputEmail1"><?php echo $this->lang->line('class'); ?></label><small class="req"> *</small>
@@ -256,21 +277,24 @@ function getattendencetype($attendencetype, $find)
                     var date_post = "<?php echo set_value('date', 0); ?>";
                     var subject_timetable_id = "<?php echo set_value('subject_timetable_id', 0); ?>";
                     var subject_id = "<?php echo set_value('subject_id', 0); ?>";
+                    var student_id_post = "<?php echo set_value('student_id', 0); ?>";
 
                     populateSection(section_id_post, class_id_post);
                     populateSubject(class_id_post,section_id_post,subject_id);
-                    getStudentsByClassAndSection(class_id_post,section_id_post);
+                    getStudentsByClassAndSection(class_id_post,section_id_post, student_id_post);
+
                     function populateSection(section_id_post, class_id_post) {
 
-                        if (section_id_post != 0 && class_id_post != 0) {
+                        if (class_id_post != 0) {
 
                             $('#section_id').html("");
 
                             var div_data = '<option value=""><?php echo $this->lang->line('select'); ?></option>';
+                            var department_id = $('#department_id').val(); // Get selected department_id
                             $.ajax({
                                 type: "GET",
                                 url: baseurl + "sections/getByClass",
-                                data: {'class_id': class_id_post},
+                                data: {'class_id': class_id_post, 'department_id': department_id}, // Pass department_id
                                 dataType: "json",
                                 success: function (data) {
                                     $.each(data, function (i, obj)
@@ -287,54 +311,50 @@ function getattendencetype($attendencetype, $find)
                         }
                     }
 
-            
-
-                    function getStudentsByClassAndSection(class_id,section_id) {
-     if (class_id != 0 && section_id != 0) {
-
-
-
-                        $('#student_id').html("");
-                      
-                        var div_data = '<option value=""><?php echo $this->lang->line('select'); ?></option>';
-                        
-                        $.ajax({
-                            type: "GET",
-                            url: baseurl + "student/getByClassAndSection",
-                            data: {'class_id': class_id, 'section_id': section_id},
-                            dataType: "json",
-                            success: function (data) {
-                                $.each(data, function (i, obj)
-                                {
-                                    var sel = "";
-                                    if (section_id == obj.section_id) {
-                                        sel = "selected=selected";
-                                    }
-                                    div_data += "<option value=" + obj.id + ">" + obj.full_name  + ' ('+obj.admission_no+')' +"</option>";
-                                });
-                                $('#student_id').append(div_data);
-<?php
-if ($student_id != '') {
-    ?>
-                                    $('#student_id').val('<?php echo $student_id; ?>');
-    <?php
-}
-?>
-                            }
-                        });
+                    function getStudentsByClassAndSection(class_id,section_id, student_id_post) {
+                        if (class_id != 0 && section_id != 0) {
+                            $('#student_id').html("");
+                            var div_data = '<option value=""><?php echo $this->lang->line('select'); ?></option>';
+                            var department_id = $('#department_id').val(); // Get selected department_id
+                            
+                            $.ajax({
+                                type: "GET",
+                                url: baseurl + "student/getByClassAndSection",
+                                data: {'class_id': class_id, 'section_id': section_id, 'department_id': department_id}, // Pass department_id
+                                dataType: "json",
+                                success: function (data) {
+                                    $.each(data, function (i, obj)
+                                    {
+                                        var sel = "";
+                                        if (student_id_post == obj.id) {
+                                            sel = "selected=selected";
+                                        }
+                                        div_data += "<option value=" + obj.id + " " + sel + ">" + obj.full_name  + ' ('+obj.admission_no+')' +"</option>";
+                                    });
+                                    $('#student_id').append(div_data);
+                                }
+                            });
                         }
                     }
 
+                    $(document).on('change', '#department_id', function(e) {
+                        $('#class_id').val('');
+                        $('#section_id').html('<option value=""><?php echo $this->lang->line('select'); ?></option>');
+                        $('#student_id').html('<option value=""><?php echo $this->lang->line('select'); ?></option>');
+                    });
+
                     $(document).on('change', '#class_id', function (e) {
                         $('#section_id').html("");
+                        $('#student_id').html("");
                         var class_id = $(this).val();
+                        var department_id = $('#department_id').val(); // Get selected department_id
 
                         var div_data = '<option value=""><?php echo $this->lang->line('select'); ?></option>';
                         var url = "";
                         $.ajax({
                             type: "GET",
                             url: baseurl + "sections/getByClass",
-                            data: {'class_id': class_id},
+                            data: {'class_id': class_id, 'department_id': department_id}, // Pass department_id
                             dataType: "json",
                             success: function (data) {
                                 $.each(data, function (i, obj)
@@ -349,12 +369,12 @@ if ($student_id != '') {
                     $(document).on('change', '#section_id', function (e) {
                           var class_id = $('#class_id').val();
                         var section_id = $('#section_id').val();
-
-                        getStudentsByClassAndSection(class_id,section_id);
+                        getStudentsByClassAndSection(class_id,section_id, 0);
+                        populateSubject(class_id,section_id,0);
                     });
 
 
-   function populateSubject(class_id_post,section_id_post,subject_id_post) {
+                    function populateSubject(class_id_post,section_id_post,subject_id_post) {
 
                         if (section_id_post != 0 && class_id_post != 0) {
 
@@ -364,7 +384,7 @@ if ($student_id != '') {
                             $.ajax({
                                 type: "POST",
                                 url: baseurl + "admin/subjectgroup/getAllSubjectByClassandSection",
-                            data: {'class_id': class_id_post,'section_id':section_id_post},
+                                data: {'class_id': class_id_post,'section_id':section_id_post},
                                 dataType: "json",
                                 success: function (data) {
                                     $.each(data, function (i, obj)
@@ -373,11 +393,6 @@ if ($student_id != '') {
                                         if (subject_id_post == obj.subject_id) {
                                             var select = "selected=selected";
                                         }
-                                        
-                                        // var select = "";
-                                        // if (subject_id_post == obj.subject_code) {
-                                        //     var select = "selected=selected";
-                                        // }
                                         
                                         var code ='';
                                         if(obj.subject_code){

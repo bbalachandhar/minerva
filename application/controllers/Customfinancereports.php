@@ -19,6 +19,8 @@ class Customfinancereports extends Admin_Controller
         $this->load->model("student_model");
         $this->load->model("class_model");
         $this->load->model("feediscount_model"); // Load the discount model
+        $this->load->model('Department_model');
+        $this->current_session = $this->setting_model->getCurrentSession();
     }
 
     public function custombalancefeesreport()
@@ -36,6 +38,7 @@ class Customfinancereports extends Admin_Controller
         $data['classlist']       = $class;
         $data['sch_setting']     = $this->sch_setting_detail;
         $data['adm_auto_insert'] = $this->sch_setting_detail->adm_auto_insert;
+        $data['department_list'] = $this->Department_model->getDepartmentType(); // Load department list
 
         // Get all discount types for table headers
         $data['discount_list'] = $this->feediscount_model->get();
@@ -50,11 +53,12 @@ class Customfinancereports extends Admin_Controller
             $search_type   = $this->input->post('search_type');
             $class_id   = $this->input->post('class_id');
             $section_id = $this->input->post('section_id');
+            $department_id = $this->input->post('department_id');
 
             if (isset($class_id)) {
-                $studentlist = $this->student_model->searchByClassSectionWithSession($class_id, $section_id);
+                $studentlist = $this->student_model->searchByClassSectionWithSession($class_id, $section_id, $this->current_session, $department_id);
             } else {
-                $studentlist = $this->student_model->getStudents();
+                $studentlist = $this->student_model->getStudents($department_id); // Pass department_id
             }
 
             $student_Array = array();

@@ -106,6 +106,27 @@ if ((isset($search_type)) && ($search_type == $key)) {
                                     <span class="text-danger"><?php echo form_error('search_type'); ?></span>
                                 </div>
                             </div>
+                            <?php if ($sch_setting->institution_type == 'college') {?>
+                            <div class="col-sm-3 col-md-3">
+                                <div class="form-group">
+                                    <label><?php echo $this->lang->line('department'); ?></label>
+                                    <select autofocus="" id="department_id" name="department_id" class="form-control" >
+                                        <option value=""><?php echo $this->lang->line('select'); ?></option>
+                                        <?php
+foreach ($department_list as $department) {
+    ?>
+                                            <option value="<?php echo $department['id'] ?>" <?php if (set_value('department_id') == $department['id']) {
+        echo "selected=selected";
+    }
+    ?>><?php echo $department['department_name'] ?></option>
+                                            <?php
+}
+?>
+                                    </select>
+                                    <span class="text-danger" id="error_department_id"></span>
+                                </div>
+                            </div>
+                            <?php }?>
                             <div id='date_result'>
                             </div>
                             <div class="col-sm-3 col-md-3" >
@@ -257,8 +278,10 @@ $count++;
     });
 </script>
 <script>
-   
-
+    $(document).on('change', '#department_id', function(e) {
+        $('#class_id').val('');
+        $('#section_id').html('<option value=""><?php echo $this->lang->line('select'); ?></option>');
+    });
 
 <?php
 if ($search_type == 'period') {
@@ -272,12 +295,13 @@ if ($search_type == 'period') {
 if ($class_id != '') {
     ?>
         var class_id = <?php echo $class_id; ?>;
+        var department_id = $('#department_id').val(); // Get selected department_id
         var base_url = '<?php echo base_url() ?>';
         var div_data = '<option value=""><?php echo $this->lang->line('select'); ?></option>';
         $.ajax({
             type: "GET",
             url: base_url + "sections/getByClass",
-            data: {'class_id': class_id},
+            data: {'class_id': class_id, 'department_id': department_id}, // Pass department_id
             dataType: "json",
             success: function (data) {
                 $.each(data, function (i, obj)
@@ -299,13 +323,15 @@ if ($section_id != '') {
 ?>
 
     $(document).on('change', '#class_id', function (e) {
+        $('#section_id').html("");
         var class_id = $(this).val();
+        var department_id = $('#department_id').val(); // Get selected department_id
         var base_url = '<?php echo base_url() ?>';
         var div_data = '<option value=""><?php echo $this->lang->line('select'); ?></option>';
         $.ajax({
             type: "GET",
             url: base_url + "sections/getByClass",
-            data: {'class_id': class_id},
+            data: {'class_id': class_id, 'department_id': department_id}, // Pass department_id
             dataType: "json",
             success: function (data) {
                 $.each(data, function (i, obj)
