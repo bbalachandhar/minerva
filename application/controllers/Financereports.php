@@ -417,19 +417,31 @@ class Financereports extends Admin_Controller
 
             $this->session->set_userdata('subsub_menu', 'Reports/finance/studentacademicreport');
 
-            $data['title']           = 'student fee';
+                        $data['title']           = 'student fee';
 
-            $data['payment_type']    = $this->customlib->getPaymenttype();
+                        $data['payment_type']    = $this->customlib->getPaymenttype();
 
-            $class                   = $this->class_model->get();
+                        
 
-            $data['classlist']       = $class;
+                        $data['department_id_selected'] = $this->input->post('department_id');
 
-            $data['department_list'] = $this->Department_model->getDepartmentType(); // Load department list
+            
 
-            $data['sch_setting']     = $this->sch_setting_detail;
+                        if (!empty($data['department_id_selected'])) {
 
-            $data['adm_auto_insert'] = $this->sch_setting_detail->adm_auto_insert;
+                            $data['classlist'] = $this->class_model->getClassesByDepartment($data['department_id_selected']);
+
+                        } else {
+
+                            $data['classlist'] = $this->class_model->get(); // All classes if no department selected
+
+                        }
+
+                        $data['department_list'] = $this->Department_model->getDepartmentType();
+
+                        $data['sch_setting']     = $this->sch_setting_detail;
+
+                        $data['adm_auto_insert'] = $this->sch_setting_detail->adm_auto_insert;
 
             $this->form_validation->set_rules('search_type', $this->lang->line('search_type'), 'trim|required|xss_clean');
 
@@ -774,8 +786,14 @@ class Financereports extends Admin_Controller
         $this->session->set_userdata('subsub_menu', 'Reports/finance/duefeesremark');
         $data                = array();
         $data['title']       = 'student fees';
-        $class               = $this->class_model->get();
-        $data['classlist']   = $class;
+        $data['department_id_selected'] = $this->input->post('department_id');
+        $data['class_id_selected'] = $this->input->post('class_id');
+
+        if (!empty($data['department_id_selected'])) {
+            $data['classlist'] = $this->class_model->getClassesByDepartment($data['department_id_selected']);
+        } else {
+            $data['classlist'] = $this->class_model->get();
+        }
         $data['department_list'] = $this->Department_model->getDepartmentType(); // Load department list
         $data['sch_setting'] = $this->sch_setting_detail;
         $this->form_validation->set_rules('class_id', $this->lang->line('class'), 'trim|required|xss_clean');
@@ -1575,8 +1593,16 @@ class Financereports extends Admin_Controller
             $this->session->set_userdata('subsub_menu', 'Reports/finance/balancesummaryreport');
             $data['title']           = 'Balance Summary Report'; // Changed title
             $data['payment_type']    = $this->customlib->getPaymenttype();
-            $class                   = $this->class_model->get();
-            $data['classlist']       = $class;
+
+            $data['department_id_selected'] = $this->input->post('department_id');
+            $data['class_id_selected'] = $this->input->post('class_id');
+
+            if (!empty($data['department_id_selected'])) {
+                $data['classlist'] = $this->class_model->getClassesByDepartment($data['department_id_selected']);
+            } else {
+                $data['classlist'] = $this->class_model->get();
+            }
+
             $data['department_list'] = $this->Department_model->getDepartmentType(); // Load department list
             $data['sch_setting']     = $this->sch_setting_detail;
             $data['adm_auto_insert'] = $this->sch_setting_detail->adm_auto_insert;
@@ -1607,7 +1633,7 @@ class Financereports extends Admin_Controller
                 // Fetch students based on selected class_id or all classes
                 if ($class_id == 'all') {
                     // Assuming a method to get all students for the current session
-                    $studentlist = $this->student_model->getStudentsBySession($current_session_id);
+                    $studentlist = $this->student_model->getStudentsBySessionAndDepartment($current_session_id, $department_id);
                 } else {
                     // Assuming a method to get students by class_id and session
                     $studentlist = $this->student_model->searchByClassSectionWithSession($class_id, null, $current_session_id, $department_id); // Passing null for section_id
@@ -1774,4 +1800,239 @@ class Financereports extends Admin_Controller
             $this->load->view('financereports/balance_summary_report', $data); // New view
             $this->load->view('layout/footer', $data);
         }
+
+    public function categorywisebalancefeesreport()
+    {
+        if (!$this->rbac->hasPrivilege('balance_fees_report', 'can_view')) { // Using existing privilege for now
+            access_denied();
+        }
+
+        $this->session->set_userdata('top_menu', 'Reports');
+        $this->session->set_userdata('sub_menu', 'Reports/finance');
+        $this->session->set_userdata('subsub_menu', 'Reports/finance/categorywisebalancefeesreport');
+        $data['title']           = 'Category Wise Balance Fees Report'; // Changed title
+        $data['payment_type']    = $this->customlib->getPaymenttype();
+
+        $data['department_id_selected'] = $this->input->post('department_id');
+        $data['class_id_selected'] = $this->input->post('class_id');
+
+        if (!empty($data['department_id_selected'])) {
+            $data['classlist'] = $this->class_model->getClassesByDepartment($data['department_id_selected']);
+        } else {
+            $data['classlist'] = $this->class_model->get();
+        }
+
+        $data['department_list'] = $this->Department_model->getDepartmentType(); // Load department list
+        $data['sch_setting']     = $this->sch_setting_detail;
+        $data['adm_auto_insert'] = $this->sch_setting_detail->adm_auto_insert;
+
+        // Get all discount types for table headers
+        $this->load->model("feediscount_model"); // Load the discount model for this method
+        $data['discount_list'] = $this->feediscount_model->get();
+        $this->load->model("customstudentfeemaster_model"); // Load customstudentfeemaster_model for this method
+        $this->load->model("student_model"); // Load student_model for this method
+
+        $this->form_validation->set_rules('search_type', $this->lang->line('search_type'), 'trim|required|xss_clean');
+        $this->form_validation->set_rules('class_id', $this->lang->line('class'), 'trim|required|xss_clean'); // Changed to single select for now
+
+        if ($this->form_validation->run() == FALSE) {
+            $data['student_due_fee'] = array();
+            $data['resultarray']     = array();
+            $data['discount_totals_footer'] = array_fill_keys(array_column($data['discount_list'], 'id'), 0);
+        } else {
+            $student_Array = array();
+            $search_type   = $this->input->post('search_type');
+            $class_id   = $this->input->post('class_id');
+            $section_id = $this->input->post('section_id'); // Not used in this version according to requirement
+            $department_id = $this->input->post('department_id'); // Retrieve department_id
+
+            // Always use current session
+            $current_session_id = $this->setting_model->getCurrentSession();
+
+            // Fetch students based on selected class_id or all classes
+            if ($class_id == 'all') {
+                // Assuming a method to get all students for the current session
+                $studentlist = $this->student_model->getStudentsBySessionAndDepartment($current_session_id, $department_id);
+            } else {
+                // Assuming a method to get students by class_id and session
+                $studentlist = $this->student_model->searchByClassSectionWithSession($class_id, null, $current_session_id, $department_id); // Passing null for section_id
+            }
+
+            $class_summary = array();
+            
+            if (!empty($studentlist)) {
+                foreach ($studentlist as $eachstudent) {
+                    $class_name = $eachstudent['class'];
+                    $student_session_id = $eachstudent['student_session_id'];
+
+                    // Initialize class totals if not already set
+                    if (!isset($class_summary[$class_name])) {
+                        $class_summary[$class_name] = (object) [
+                            'class_name' => $class_name,
+                            'totalfee' => 0,
+                            'deposit' => 0,
+                            'fine' => 0,
+                            'discount' => 0,
+                            'balance' => 0,
+                            'last_yr_cf' => 0,
+                            'cf_paid' => 0,
+                            'cf_balance' => 0,
+                            'tuition_demand' => 0,
+                            'tuition_paid' => 0,
+                            'tuition_balance' => 0, // Added
+                            'other_demand' => 0,
+                            'other_paid' => 0,
+                            'other_balance' => 0, // Added
+                            'hostel_demand' => 0,
+                            'hostel_paid' => 0,
+                            'hostel_balance' => 0, // Added
+                            'transport_demand' => 0,
+                            'transport_paid' => 0,
+                            'transport_balance' => 0, // Added
+                            'advance_paid' => 0,
+                            'actual_balance' => 0,   // Added
+                        ];
+                        // Initialize dynamic discount properties
+                        foreach ($data['discount_list'] as $discount) {
+                            $prop_name = 'discount_' . $discount['id'];
+                            $class_summary[$class_name]->$prop_name = 0;
+                        }
+                    }
+
+                    // Get all fees and discounts for the student
+                    $fees_data = $this->customstudentfeemaster_model->getTransStudentFees($student_session_id);
+
+                    // Aggregate student's fees into class totals
+                    $class_summary[$class_name]->tuition_demand += $fees_data->tuition_demand;
+                    $class_summary[$class_name]->tuition_paid += $fees_data->tuition_paid;
+                    $class_summary[$class_name]->tuition_balance += ($fees_data->tuition_demand - $fees_data->tuition_paid);
+                    $class_summary[$class_name]->other_demand += $fees_data->other_demand;
+                    $class_summary[$class_name]->other_paid += $fees_data->other_paid;
+                    $class_summary[$class_name]->other_balance += ($fees_data->other_demand - $fees_data->other_paid);
+                    $class_summary[$class_name]->hostel_demand += $fees_data->hostel_demand;
+                    $class_summary[$class_name]->hostel_paid += $fees_data->hostel_paid;
+                    $class_summary[$class_name]->hostel_balance += ($fees_data->hostel_demand - $fees_data->hostel_paid);
+                    $class_summary[$class_name]->transport_demand += $fees_data->transport_demand;
+                    $class_summary[$class_name]->transport_paid += $fees_data->transport_paid;
+                    $class_summary[$class_name]->transport_balance += ($fees_data->transport_demand - $fees_data->transport_paid);
+                    $class_summary[$class_name]->advance_paid += $fees_data->advance_paid;
+
+                    // Sum from tuition, other, hostel, transport demand and paid
+                    $totalfee_student = $fees_data->tuition_demand + $fees_data->other_demand + $fees_data->hostel_demand + $fees_data->transport_demand;
+                    $total_paid_sum_student = $fees_data->tuition_paid + $fees_data->other_paid + $fees_data->hostel_paid + $fees_data->transport_paid;
+
+                    $total_fine_sum_student = 0;
+                    $total_discount_sum_student = 0;
+
+                    if (!empty($fees_data->fees)) {
+                        foreach ($fees_data->fees as $fee_item) {
+                            $total_fine_sum_student += $fee_item->total_fine;
+                            $total_discount_sum_student += $fee_item->total_discount;
+                        }
+                    }
+
+                    $class_summary[$class_name]->totalfee += $totalfee_student;
+                    $class_summary[$class_name]->deposit += $total_paid_sum_student;
+                    $class_summary[$class_name]->fine += $total_fine_sum_student;
+                    $class_summary[$class_name]->discount += $total_discount_sum_student;
+                    $class_summary[$class_name]->balance += $totalfee_student - $total_paid_sum_student;
+
+                    // Get and aggregate previous session balance (CF-Demand)
+                    $previous_session_balance_data = $this->customstudentfeemaster_model->getPreviousSessionBalance($student_session_id);
+                    $last_yr_cf_student = !empty($previous_session_balance_data) ? $previous_session_balance_data->amount : 0;
+                    $class_summary[$class_name]->last_yr_cf += $last_yr_cf_student;
+
+                    // Get and aggregate amount paid against previous session balance (CF-Paid)
+                    $cf_paid_student = $this->customstudentfeemaster_model->getPreviousSessionPaid($student_session_id);
+                    $class_summary[$class_name]->cf_paid += $cf_paid_student;
+
+                    // Calculate CF-Balance for the class
+                    $class_summary[$class_name]->cf_balance += ($last_yr_cf_student - $cf_paid_student);
+
+                    // Get student's applied discounts to find subsidies and accumulate
+                    $applied_discounts = $this->feediscount_model->getStudentFeesDiscount($student_session_id);
+                    
+                    $total_student_discount = 0;
+                    foreach ($applied_discounts as $student_discount) {
+                        $prop_name = 'discount_' . $student_discount['fees_discount_id'];
+                        $discount_amount = 0;
+                        if (isset($student_discount['custom_amount']) && $student_discount['custom_amount'] != null) {
+                            $discount_amount = $student_discount['custom_amount'];
+                        } else {
+                            $discount_amount = $student_discount['amount'];
+                        }
+                        
+                        if (property_exists($class_summary[$class_name], $prop_name)) {
+                            $class_summary[$class_name]->$prop_name += $discount_amount;
+                        }
+                        $total_student_discount += $discount_amount;
+                    }
+                }
+            }
+            
+            // After aggregating all students for a class
+            foreach ($class_summary as $class_name => $summary_obj) {
+                // Formula: TotalBalance - (Govt 7.5 Subsidy + Govt FG Subsidy + (Advance Payments - CF-Paid))
+                // TotalBalance for the class is $summary_obj->balance
+                // Govt 7.5 Subsidy for the class is $summary_obj->govt_7_5_subsidy
+                // Govt FG Subsidy for the class is $summary_obj->govt_fg_subsidy
+                // Advance Payments for the class is $summary_obj->advance_paid
+                // CF-Paid for the class is $summary_obj->cf_paid
+
+                $total_balance_class = $summary_obj->balance;
+                
+                $total_dynamic_discounts = 0;
+                foreach ($data['discount_list'] as $discount) {
+                    $prop_name = 'discount_' . $discount['id'];
+                    if (property_exists($summary_obj, $prop_name)) {
+                        $total_dynamic_discounts += $summary_obj->$prop_name;
+                    }
+                }
+
+                $advance_minus_cf_paid_class = $summary_obj->advance_paid - $summary_obj->cf_paid;
+
+                // $class_summary[$class_name]->actual_balance = $total_balance_class - ($total_dynamic_discounts + $advance_minus_cf_paid_class);
+
+                // Add CF-Balance to the balance for each class
+                $class_summary[$class_name]->balance += $class_summary[$class_name]->cf_balance;
+            }
+
+            // Sum up the total subsidies from all classes for the footer
+            $discount_totals_footer = array_fill_keys(array_column($data['discount_list'], 'id'), 0);
+            foreach ($class_summary as $summary_obj) {
+                foreach ($data['discount_list'] as $discount) {
+                    $prop_name = 'discount_' . $discount['id'];
+                    if (property_exists($summary_obj, $prop_name)) {
+                        $discount_totals_footer[$discount['id']] += $summary_obj->$prop_name;
+                    }
+                }
+            }
+            $data['discount_totals_footer'] = $discount_totals_footer;
+                                                    // Convert class_summary associative array to indexed array for the view
+                                            $student_Array = array_values($class_summary);    
+            log_message('debug', 'Final student_Array passed to view: ' . json_encode($student_Array));
+            $data['student_due_fee'] = $student_Array; // Renaming to be consistent if needed, but current_one uses student_due_fee
+
+        }
+
+        $this->load->view('layout/header', $data);
+        $this->load->view('financereports/category_wise_balance_fees_report', $data); // New view
+        $this->load->view('layout/footer', $data);
+    }
+    public function get_classes_by_department()
+    {
+        $this->output->set_content_type('application/json');
+        $department_id = $this->input->post('department_id');
+        log_message('debug', 'Financereports->get_classes_by_department - Received department_id: ' . $department_id);
+
+        $classes = array();
+        if (!empty($department_id)) {
+            $classes = $this->class_model->getClassesByDepartment($department_id);
+        } else {
+            // If department_id is empty, return all classes (as per "Select All" logic)
+            $classes = $this->class_model->get(); // Assuming get() without parameter returns all classes
+        }
+        
+        echo json_encode($classes);
+    }
 }

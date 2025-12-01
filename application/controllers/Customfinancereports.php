@@ -34,8 +34,13 @@ class Customfinancereports extends Admin_Controller
         $this->session->set_userdata('subsub_menu', 'Reports/finance/custombalancefeesreport');
         $data['title']           = 'Custom Balance Fees Report';
         $data['payment_type']    = $this->customlib->getPaymenttype();
-        $class                   = $this->class_model->get();
-        $data['classlist']       = $class;
+        $data['department_id_selected'] = $this->input->post('department_id'); // Keep track of selected department
+
+        if (!empty($data['department_id_selected'])) {
+            $data['classlist'] = $this->class_model->getClassesByDepartment($data['department_id_selected']);
+        } else {
+            $data['classlist'] = $this->class_model->get(); // All classes if no department selected
+        }
         $data['sch_setting']     = $this->sch_setting_detail;
         $data['adm_auto_insert'] = $this->sch_setting_detail->adm_auto_insert;
         $data['department_list'] = $this->Department_model->getDepartmentType(); // Load department list
@@ -238,7 +243,7 @@ class Customfinancereports extends Admin_Controller
                 $obj->deposit  = $total_paid_sum;
                 $obj->fine     = $total_fine_sum;
                 $obj->discount = $total_discount_sum;
-                                            $obj->balance  = $totalfee - $total_paid_sum;
+                $obj->balance  = $totalfee - $total_paid_sum;
                 // Filter based on search type
                 $include_student = false;
                 if ($search_type == 'all') {
@@ -267,5 +272,22 @@ class Customfinancereports extends Admin_Controller
             );
 
         echo json_encode($json_data);  // send data as json format
+    }
+
+    public function get_classes_by_department()
+    {
+        $this->output->set_content_type('application/json');
+        $department_id = $this->input->post('department_id');
+        log_message('debug', 'Customfinancereports->get_classes_by_department - Received department_id: ' . $department_id);
+
+        $classes = array();
+        if (!empty($department_id)) {
+            $classes = $this->class_model->getClassesByDepartment($department_id);
+        } else {
+            // If department_id is empty, return all classes (as per "Select All" logic)
+            $classes = $this->class_model->get(); // Assuming get() without parameter returns all classes
+        }
+        
+        echo json_encode($classes);
     }
 }

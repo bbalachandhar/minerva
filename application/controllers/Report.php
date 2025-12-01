@@ -441,7 +441,9 @@ class Report extends Admin_Controller
 
     public function getClassesByDepartment()
     {
+        log_message('debug', 'Report.php->getClassesByDepartment called. POST data: ' . print_r($this->input->post(), true));
         $department_id = $this->input->post('department_id');
+        log_message('debug', 'Report.php->getClassesByDepartment - Received department_id: ' . $department_id);
         $data          = $this->class_model->getClassesByDepartment($department_id);
         echo json_encode($data);
     }

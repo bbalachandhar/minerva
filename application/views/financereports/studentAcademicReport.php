@@ -232,12 +232,12 @@ foreach ($department_list as $department) {
     function removeElement() {
         document.getElementById("imgbox1").style.display = "block";
     }
-    function getSectionByClass(class_id, section_id) {
+    function getSectionByClass(class_id, section_id, department_id) { // Added department_id
         if (class_id != "") {
             $('#section_id').html("");
             var base_url = '<?php echo base_url() ?>';
             var div_data = '<option value=""><?php echo $this->lang->line('select'); ?></option>';
-            var department_id = $('#department_id').val(); // Get selected department_id
+            // var department_id = $('#department_id').val(); // Removed, now passed as param
             $.ajax({
                 type: "GET",
                 url: base_url + "sections/getByClass",
@@ -260,26 +260,32 @@ foreach ($department_list as $department) {
     $(document).ready(function () {
 
         $(document).on('change', '#department_id', function (e) {
-            $('#class_id').html('<option value=""><?php echo $this->lang->line('select'); ?></option>');
-            $('#section_id').html('<option value=""><?php echo $this->lang->line('select'); ?></option>');
-            $('#student_id').html('<option value=""><?php echo $this->lang->line('select'); ?></option>');
+            $('#class_id').html(''); // Clear all options
+            $('#section_id').html('<option value=""><?php echo $this->lang->line('select'); ?></option>'); // Clear section dropdown
+            $('#student_id').html('<option value=""><?php echo $this->lang->line('select'); ?></option>'); // Clear student dropdown
+
             var department_id = $(this).val();
             var base_url = '<?php echo base_url() ?>';
-            if (department_id != "") {
-                $.ajax({
-                    type: "POST",
-                    url: base_url + "report/getClassesByDepartment",
-                    data: {'department_id': department_id},
-                    dataType: "json",
-                    success: function (data) {
-                        $.each(data, function (i, obj)
-                        {
-                            var sel = "";
-                            $('#class_id').append("<option value=" + obj.id + " " + sel + ">" + obj.class + "</option>");
-                        });
-                    }
-                });
-            }
+            
+            // Always make the AJAX call to get classes based on department_id (or all if department_id is empty)
+            $.ajax({
+                type: "POST",
+                url: base_url + "financereports/get_classes_by_department", // Changed URL
+                data: {'department_id': department_id},
+                dataType: "json",
+                success: function (data) {
+                    $('#class_id').append('<option value=""><?php echo $this->lang->line('select_all'); ?></option>'); // Add "Select All" option
+                    $.each(data, function (i, obj)
+                    {
+                        $('#class_id').append("<option value=" + obj.id + ">" + obj.class + "</option>");
+                    });
+
+                    // After populating classes, ensure sections are also updated
+                    var class_id_initial = $('#class_id').val(); // Get current class selection (might be "Select All")
+                    var section_id_initial = '<?php echo set_value('section_id', 0) ?>';
+                    getSectionByClass(class_id_initial, section_id_initial);
+                }
+            });
         });
 
         $(document).on('change', '#class_id', function (e) {

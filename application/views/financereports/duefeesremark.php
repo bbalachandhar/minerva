@@ -23,16 +23,9 @@ $month_list= $this->customlib->getMonthDropdown($start_month);
                                         <label><?php echo $this->lang->line('department'); ?></label>
                                         <select autofocus="" id="department_id" name="department_id" class="form-control" >
                                             <option value=""><?php echo $this->lang->line('select'); ?></option>
-                                            <?php
-foreach ($department_list as $department) {
-    ?>
-                                                <option value="<?php echo $department['id'] ?>" <?php if (set_value('department_id') == $department['id']) {
-        echo "selected=selected";
-    }
-    ?>><?php echo $department['department_name'] ?></option>
-                                                <?php
-}
-?>
+                                            <?php foreach ($department_list as $department) { ?>
+                                                <option value="<?php echo $department['id'] ?>" <?php if (isset($department_id_selected) && $department_id_selected == $department['id']) echo "selected"; ?>><?php echo $department['department_name'] ?></option>
+                                            <?php } ?>
                                         </select>
                                         <span class="text-danger" id="error_department_id"></span>
                                     </div>
@@ -43,14 +36,9 @@ foreach ($department_list as $department) {
                                         <label for="exampleInputEmail1"><?php echo $this->lang->line('class'); ?></label><small class="req"> *</small>
                                         <select autofocus="" id="class_id" name="class_id" class="form-control" >
                                             <option value=""><?php echo $this->lang->line('select'); ?></option>
-                                            <?php
-                                            foreach ($classlist as $class) {
-                                                ?>
-                                                <option value="<?php echo $class['id'] ?>" <?php if (set_value('class_id') == $class['id']) echo "selected=selected" ?>><?php echo $class['class'] ?></option>
-                                                <?php
-                                                $count++;
-                                            }
-                                            ?>
+                                            <?php foreach ($classlist as $class) { ?>
+                                                <option value="<?php echo $class['id'] ?>" <?php if (isset($class_id_selected) && $class_id_selected == $class['id']) echo "selected" ?>><?php echo $class['class'] ?></option>
+                                            <?php } ?>
                                         </select>
                                         <span class="text-danger"><?php echo form_error('class_id'); ?></span>
                                     </div>
@@ -203,22 +191,17 @@ foreach ($department_list as $department) {
 
 <script type="text/javascript">
     $(document).ready(function () {
+        var department_id = $('#department_id').val();
+        var class_id = '<?php echo isset($class_id_selected) ? $class_id_selected : 0; ?>';
+        var section_id = '<?php echo isset($section_id) ? $section_id : 0; ?>';
 
-        var class_id = $('#class_id').val();
-        var section_id = '<?php echo set_value('section_id', 0) ?>';
-        getSectionByClass(class_id, section_id);
-
-
-    $('.detail_popover').popover({
-        placement: 'right',
-        title: '',
-        trigger: 'hover',
-        container: 'body',
-        html: true,
-        content: function () {
-            return $(this).closest('td').find('.fee_detail_popover').html();
+        if(department_id !== ""){
+            getClassesByDepartment(department_id, class_id);
         }
-    });
+
+        if(class_id !== 0){
+            getSectionByClass(class_id, section_id);
+        }
 
         $(document).on('change', '#department_id', function (e) {
             $('#class_id').html('<option value=""><?php echo $this->lang->line('select'); ?></option>');
@@ -228,7 +211,7 @@ foreach ($department_list as $department) {
             if (department_id != "") {
                 $.ajax({
                     type: "POST",
-                    url: base_url + "report/getClassesByDepartment",
+                    url: base_url + "financereports/get_classes_by_department",
                     data: {'department_id': department_id},
                     dataType: "json",
                     success: function (data) {
@@ -241,16 +224,35 @@ foreach ($department_list as $department) {
                 });
             }
         });
-    });
 
-    $(document).on('change', '#class_id', function (e) {
-        $('#section_id').html("");
-        var class_id = $(this).val();
-        getSectionByClass(class_id, 0);
+        $(document).on('change', '#class_id', function (e) {
+            $('#section_id').html("");
+            var class_id = $(this).val();
+            getSectionByClass(class_id, 0);
+        });
+
+        function getClassesByDepartment(department_id, class_id) {
+            if (department_id != "") {
+                $('#class_id').html('<option value=""><?php echo $this->lang->line('select'); ?></option>');
+                var base_url = '<?php echo base_url() ?>';
+                $.ajax({
+                    type: "POST",
+                    url: base_url + "financereports/get_classes_by_department",
+                    data: {'department_id': department_id},
+                    dataType: "json",
+                    success: function (data) {
+                        $.each(data, function (i, obj)
+                        {
+                            var sel = (class_id == obj.id) ? "selected" : "";
+                            $('#class_id').append("<option value=" + obj.id + " " + sel + ">" + obj.class + "</option>");
+                        });
+                    }
+                });
+            }
+        }
     });
 
     function getSectionByClass(class_id, section_id) {
-
         if (class_id != "") {
             $('#section_id').html("");
             var base_url = '<?php echo base_url() ?>';
@@ -281,66 +283,4 @@ foreach ($department_list as $department) {
             });
         }
     }
-    
-   $(document).on('click', '.print', function (e) {
-   
-                var $this = $(this);           
-                var class_id=$this.data('classId');
-                var section_id=$this.data('sectionId');
-  $.ajax({
-            type: "POST",
-            url: base_url+'financereports/printduefeesremark',
-            dataType: 'JSON',
-            data: {'class_id':class_id,'section_id':section_id}, // serializes the form's elements.
-            beforeSend: function () {
-                $this.button('loading');
-            },
-            success: function (response) {
-                Popup(response.page);
-            },
-            error: function (xhr) { // if error occured
-
-                alert("<?php echo $this->lang->line('error_occurred_please_try_again'); ?>");
-
-            },
-            complete: function () {
-                $this.button('reset');
-            }
-        });
-
-        e.preventDefault(); // avoid to execute the actual submit of the form.
-
-        });
-        
-    function Popup(data, winload = false)
-    {
-        var frame1 = $('<iframe />').attr("id", "printDiv");
-        frame1[0].name = "frame1";
-        frame1.css({"position": "absolute", "top": "-1000000px"});
-        $("body").append(frame1);
-        var frameDoc = frame1[0].contentWindow ? frame1[0].contentWindow : frame1[0].contentDocument.document ? frame1[0].contentDocument.document : frame1[0].contentDocument;
-        frameDoc.document.open();
-        //Create a new HTML document.
-        frameDoc.document.write('<html>');
-        frameDoc.document.write('<head>');
-        frameDoc.document.write('<title></title>');
-        frameDoc.document.write('</head>');
-        frameDoc.document.write('<body>');
-        frameDoc.document.write(data);
-        frameDoc.document.write('</body>');
-        frameDoc.document.write('</html>');
-        frameDoc.document.close();
-        setTimeout(function () {
-        document.getElementById('printDiv').contentWindow.focus();
-        document.getElementById('printDiv').contentWindow.print();
-        $("#printDiv", top.document).remove();
-            // frame1.remove();
-            if (winload) {
-                window.location.reload(true);
-            }
-        }, 500);
-
-        return true;
-    }  
-
 </script>

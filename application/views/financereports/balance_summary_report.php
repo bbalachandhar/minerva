@@ -26,16 +26,9 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                         <label><?php echo $this->lang->line('department'); ?></label>
                                         <select autofocus="" id="department_id" name="department_id" class="form-control" >
                                             <option value=""><?php echo $this->lang->line('select'); ?></option>
-                                            <?php
-foreach ($department_list as $department) {
-    ?>
-                                                <option value="<?php echo $department['id'] ?>" <?php if (set_value('department_id') == $department['id']) {
-        echo "selected=selected";
-    }
-    ?>><?php echo $department['department_name'] ?></option>
-                                                <?php
-}
-?>
+                                            <?php foreach ($department_list as $department) { ?>
+                                                <option value="<?php echo $department['id'] ?>" <?php if ($department_id_selected == $department['id']) echo "selected"; ?>><?php echo $department['department_name'] ?></option>
+                                            <?php } ?>
                                         </select>
                                         <span class="text-danger" id="error_department_id"></span>
                                     </div>
@@ -47,7 +40,7 @@ foreach ($department_list as $department) {
                                         <select autofocus="" id="class_id" name="class_id" class="form-control" >
                                             <option value="all"><?php echo $this->lang->line('all_classes'); ?></option>
                                             <?php foreach ($classlist as $class) { ?>
-                                                <option value="<?php echo $class['id'] ?>" <?php echo set_select('class_id', $class['id']); ?>><?php echo $class['class'] ?></option>
+                                                <option value="<?php echo $class['id'] ?>" <?php if ($class_id_selected == $class['id']) echo "selected"; ?>><?php echo $class['class'] ?></option>
                                             <?php } ?>
                                         </select>
                                         <span class="text-danger"><?php echo form_error('class_id'); ?></span>
@@ -227,8 +220,14 @@ foreach ($department_list as $department) {
 <script src="<?php echo base_url(); ?>backend/dist/datatables/js/vfs_fonts.js"></script>
 <script type="text/javascript">
     $(document).ready(function () {
-        var class_id = $('#class_id').val();
+        var department_id = $('#department_id').val();
+        var class_id = '<?php echo $class_id_selected; ?>';
         var section_id = '<?php echo set_value('section_id', 0) ?>';
+        
+        if(department_id !== ""){
+            getClassesByDepartment(department_id, class_id);
+        }
+
         getSectionByClass(class_id, section_id);
 
         $(document).on('change', '#department_id', function (e) {
@@ -238,7 +237,7 @@ foreach ($department_list as $department) {
             if (department_id != "") {
                 $.ajax({
                     type: "POST",
-                    url: base_url + "report/getClassesByDepartment",
+                    url: base_url + "financereports/get_classes_by_department",
                     data: {'department_id': department_id},
                     dataType: "json",
                     success: function (data) {
@@ -271,7 +270,28 @@ foreach ($department_list as $department) {
                 }
             });
         });
+
+        function getClassesByDepartment(department_id, class_id) {
+            if (department_id != "") {
+                $('#class_id').html('<option value="all"><?php echo $this->lang->line('all_classes'); ?></option>');
+                var base_url = '<?php echo base_url() ?>';
+                $.ajax({
+                    type: "POST",
+                    url: base_url + "financereports/get_classes_by_department",
+                    data: {'department_id': department_id},
+                    dataType: "json",
+                    success: function (data) {
+                        $.each(data, function (i, obj)
+                        {
+                            var sel = (class_id == obj.id) ? "selected" : "";
+                            $('#class_id').append("<option value=" + obj.id + " " + sel + ">" + obj.class + "</option>");
+                        });
+                    }
+                });
+            }
+        }
     });
+
     function getSectionByClass(class_id, section_id) {
         if (class_id != "") {
             $('#section_id').html("");

@@ -16,7 +16,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                     <div class="box-header with-border">
                         <h3 class="box-title"><i class="fa fa-search"></i> <?php echo $this->lang->line('select_criteria'); ?></h3>
                     </div>
-                    <form action="<?php echo site_url('customfinancereports/custombalancefeesreport') ?>"  method="post" accept-charset="utf-8">
+                    <form action="<?php echo site_url('financereports/categorywisebalancefeesreport') ?>"  method="post" accept-charset="utf-8">
                         <div class="box-body">
                             <?php echo $this->customlib->getCSRF(); ?>
                             <div class="row">
@@ -26,16 +26,9 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                         <label><?php echo $this->lang->line('department'); ?></label>
                                         <select autofocus="" id="department_id" name="department_id" class="form-control" >
                                             <option value=""><?php echo $this->lang->line('select'); ?></option>
-                                            <?php
-foreach ($department_list as $department) {
-    ?>
-                                                <option value="<?php echo $department['id'] ?>" <?php if (set_value('department_id') == $department['id']) {
-        echo "selected=selected";
-    }
-    ?>><?php echo $department['department_name'] ?></option>
-                                                <?php
-}
-?>
+                                            <?php foreach ($department_list as $department) { ?>
+                                                <option value="<?php echo $department['id'] ?>" <?php if ($department_id_selected == $department['id']) echo "selected"; ?>><?php echo $department['department_name'] ?></option>
+                                            <?php } ?>
                                         </select>
                                         <span class="text-danger" id="error_department_id"></span>
                                     </div>
@@ -44,33 +37,13 @@ foreach ($department_list as $department) {
                                 <div class="col-md-4">
                                     <div class="form-group">
                                         <label><?php echo $this->lang->line('class'); ?></label>
-                                        <select autofocus="" id="class_id" name="class_id[]" class="form-control select2" multiple="multiple">
-                                            <option value=""><?php echo $this->lang->line('select'); ?></option>
+                                        <select autofocus="" id="class_id" name="class_id" class="form-control" >
+                                            <option value="all"><?php echo $this->lang->line('all_classes'); ?></option>
                                             <?php foreach ($classlist as $class) { ?>
-                                                <option value="<?php echo $class['id'] ?>" <?php echo set_select('class_id[]', $class['id']); ?>><?php echo $class['class'] ?></option>
+                                                <option value="<?php echo $class['id'] ?>" <?php if ($class_id_selected == $class['id']) echo "selected"; ?>><?php echo $class['class'] ?></option>
                                             <?php } ?>
                                         </select>
                                         <span class="text-danger"><?php echo form_error('class_id'); ?></span>
-                                    </div>
-                                </div>
-                                <script>
-                                    $(document).ready(function() {
-                                        $('#class_id').select2();
-                                    });
-                                </script>
-                                <style>
-                                .select2-container--default .select2-selection--multiple {
-                                    max-height: 100px; /* Adjust as needed */
-                                    overflow-y: auto;
-                                }
-                                </style>
-                                <div class="col-md-4">
-                                    <div class="form-group">
-                                        <label><?php echo $this->lang->line('section'); ?></label>
-                                        <select  id="section_id" name="section_id" class="form-control" >
-                                            <option value=""><?php echo $this->lang->line('select'); ?></option>
-                                        </select>
-                                        <span class="text-danger"><?php echo form_error('section_id'); ?></span>
                                     </div>
                                 </div>
                                 <div class="col-md-4">
@@ -93,38 +66,36 @@ foreach ($department_list as $department) {
 
                     <?php if (isset($student_due_fee)) { ?>
                     <div class="box-header ptbnull">
-                        <h3 class="box-title titlefix"><i class="fa fa-users"></i> Custom Balance Fees Report</h3>
+                        <h3 class="box-title titlefix"><i class="fa fa-users"></i> Balance Summary Report</h3>
                     </div>
                     <div class="box-body">
                         <div class="dataTables_scrollBody" style="position: relative; overflow: auto; width: 100%; max-height: 300px;">
                             <table class="table table-striped table-hover headerTable" id="headerTable">
                             <thead>
                                 <tr>
-                                    <th><?php echo $this->lang->line('student_name'); ?></th>
-                                    <th><?php echo $this->lang->line('class'); ?></th>
-                                    <th><?php echo $this->lang->line('category'); ?></th>
-                                    <th><?php echo $this->lang->line('admission_no'); ?></th>
-                                                                         <?php foreach ($discount_list as $discount) { ?>
-                                                                            <th class="text-right"><?php echo $discount['name']; ?></th>
-                                                                        <?php } ?>                                    <th class="text-right">Tuition Fee (Demand)</th>
-                                    <th class="text-right">Tuition Fee (Paid)</th>
+                                    <th><?php echo $this->lang->line('class_name'); ?></th>
+                                    <th class="text-right">CF-Demand</th>
+                                    <th class="text-right">CF-Paid</th>
+                                    <th class="text-right">CF-Balance</th>
+                                    <?php foreach ($discount_list as $discount) { ?>
+                                        <th class="text-right"><?php echo $discount['name']; ?></th>
+                                    <?php } ?>
+                                    <th class="text-right">Tuition Fee (Demand)</th>
                                     <th class="text-right">Tuition Fee (Balance)</th>
                                     <th class="text-right">Other Fees (Demand)</th>
-                                    <th class="text-right">Other Fees (Paid)</th>
                                     <th class="text-right">Other Fees (Balance)</th>
                                     <th class="text-right">Hostel Fees (Demand)</th>
-                                    <th class="text-right">Hostel Fees (Paid)</th>
                                     <th class="text-right">Hostel Fees (Balance)</th>
                                     <th class="text-right">Transport Fees (Demand)</th>
-                                    <th class="text-right">Transport Fees (Paid)</th>
                                     <th class="text-right">Transport Fees (Balance)</th>
+
                                     <th class="text-right"><?php echo $this->lang->line('total_fees'); ?></th>
                                     <th class="text-right"><?php echo $this->lang->line('paid_fees'); ?></th>
                                     <th class="text-right">Advance Payments</th>
                                     <th class="text-right"><?php echo $this->lang->line('total') . " " . $this->lang->line('discount'); ?></th>
                                     <th class="text-right"><?php echo $this->lang->line('fine'); ?></th>
                                     <th class="text-right"><?php echo $this->lang->line('balance'); ?></th>
-                                    <th class="text-right">Net Balance(Balance-Advance Payments)</th>
+
                                 </tr>
                             </thead>
                             <tbody>
@@ -135,7 +106,7 @@ foreach ($department_list as $department) {
                                 $total_other_demand = 0; $total_other_paid = 0; $total_other_balance = 0;
                                 $total_hostel_demand = 0; $total_hostel_paid = 0; $total_hostel_balance = 0;
                                 $total_transport_demand = 0; $total_transport_paid = 0; $total_transport_balance = 0;
-                                $total_net_balance = 0;
+                                $total_actual_balance = 0; // Added // Commented out by Gemini
                                 $discount_totals = array_fill_keys(array_column($discount_list, 'id'), 0);
 
                                 if (!empty($student_due_fee)) {
@@ -160,78 +131,65 @@ foreach ($department_list as $department) {
                                         $total_transport_demand += $student->transport_demand;
                                         $total_transport_paid += $student->transport_paid;
                                         $total_transport_balance += $student->transport_balance;
+                                        // $total_actual_balance += $student->actual_balance;     // Added
                                         $total_discount += $student->discount;
-                                        $total_net_balance += $student->net_balance;
                                         ?>
                                         <tr>
-                                            <td><?php echo $student->name; ?></td>
-                                            <td><?php echo $student->class . " (" . $student->section . ")"; ?></td>
-                                            <td><?php echo $student->category; ?></td>
-                                            <td><?php echo $student->admission_no; ?></td>
-                                                                                         <?php 
-                                                                                        foreach ($discount_list as $discount) {
-                                                                                            $discount_amount = 0;
-                                                                                            if (!empty($student->applied_discounts)) {
-                                                                                                foreach ($student->applied_discounts as $student_discount) {
-                                                                                                    if ($student_discount['fees_discount_id'] == $discount['id']) {
-                                                                                                        if (isset($student_discount['custom_amount']) && $student_discount['custom_amount'] != null) {
-                                                                                                            $discount_amount = $student_discount['custom_amount'];
-                                                                                                        } else {
-                                                                                                            $discount_amount = $student_discount['amount'];
-                                                                                                        }
-                                                                                                        $discount_totals[$discount['id']] += $discount_amount;
-                                                                                                        break;
-                                                                                                    }
-                                                                                                }
-                                                                                            }
-                                                                                            echo "<td class='text-right'>" . amountFormat($discount_amount) . "</td>";
-                                                                                        }
-                                                                                        ?>                                            <td class="text-right"><?php echo amountFormat($student->tuition_demand); ?></td>
-                                            <td class="text-right"><?php echo amountFormat($student->tuition_paid); ?></td>
+                                            <td><?php echo $student->class_name; ?></td>
+                                            <td class="text-right"><?php echo amountFormat($student->last_yr_cf); ?></td>
+                                            <td class="text-right"><?php echo amountFormat($student->cf_paid); ?></td>
+                                            <td class="text-right"><?php echo amountFormat($student->cf_balance); ?></td>
+                                            <?php 
+                                            foreach ($discount_list as $discount) {
+                                                $prop_name = 'discount_' . $discount['id'];
+                                                $discount_amount_student = $student->$prop_name;
+                                                echo "<td class='text-right'>" . amountFormat($discount_amount_student) . "</td>";
+                                            }
+                                            ?>
+                                            <td class="text-right"><?php echo amountFormat($student->tuition_demand); ?></td>
                                             <td class="text-right"><?php echo amountFormat($student->tuition_balance); ?></td>
                                             <td class="text-right"><?php echo amountFormat($student->other_demand); ?></td>
-                                            <td class="text-right"><?php echo amountFormat($student->other_paid); ?></td>
                                             <td class="text-right"><?php echo amountFormat($student->other_balance); ?></td>
                                             <td class="text-right"><?php echo amountFormat($student->hostel_demand); ?></td>
-                                            <td class="text-right"><?php echo amountFormat($student->hostel_paid); ?></td>
                                             <td class="text-right"><?php echo amountFormat($student->hostel_balance); ?></td>
                                             <td class="text-right"><?php echo amountFormat($student->transport_demand); ?></td>
-                                            <td class="text-right"><?php echo amountFormat($student->transport_paid); ?></td>
                                             <td class="text-right"><?php echo amountFormat($student->transport_balance); ?></td>
+
                                             <td class="text-right"><?php echo amountFormat($student->totalfee); ?></td>
                                             <td class="text-right"><?php echo amountFormat($student->deposit); ?></td>
-                                            <td class="text-right"><?php echo amountFormat($student->advance_paid + $student->advance_discount); ?></td>
+                                            <td class="text-right"><?php echo amountFormat($student->advance_paid); ?></td>
                                             <td class="text-right"><?php echo amountFormat($student->discount); ?></td>
                                             <td class="text-right"><?php echo amountFormat($student->fine); ?></td>
                                             <td class="text-right"><?php echo amountFormat($student->balance); ?></td>
-                                            <td class="text-right"><?php echo amountFormat($student->net_balance); ?></td>
+
                                         </tr>
                                         <?php
                                     }
                                 } else {
                                     ?>
-                                    <tr><td colspan="<?php echo 10 + count($discount_list); ?>" class="text-center">No Record Found</td></tr>
+                                    <tr><td colspan="<?php echo 9 + count($discount_list); ?>" class="text-center">No Record Found</td></tr>
                                     <?php
                                 }
                                 ?>
                             </tbody>
                              <tfoot>
                                 <tr class="box box-solid total-bg">
-                                    <th colspan="4" class="text-right"><?php echo $this->lang->line('grand_total'); ?></th>
-                                    <?php foreach ($discount_totals as $total) { ?>
-                                        <td class="text-right"><?php echo $currency_symbol . amountFormat($total); ?></td>
+                                    <th><?php echo $this->lang->line('grand_total'); ?></th>
+                                    <td class="text-right"><?php echo $currency_symbol . amountFormat($total_last_yr_cf); ?></td>
+                                    <td class="text-right"><?php echo $currency_symbol . amountFormat($total_cf_paid); ?></td>
+                                    <td class="text-right"><?php echo $currency_symbol . amountFormat($total_cf_balance); ?></td>
+                                    <?php foreach ($discount_list as $discount) {
+                                        $total_for_discount = $discount_totals_footer[$discount['id']];
+                                        ?>
+                                        <td class="text-right"><?php echo $currency_symbol . amountFormat($total_for_discount); ?></td>
                                     <?php } ?>
                                     <td class="text-right"><?php echo $currency_symbol . amountFormat($total_tuition_demand); ?></td>
-                                    <td class="text-right"><?php echo $currency_symbol . amountFormat($total_tuition_paid); ?></td>
                                     <td class="text-right"><?php echo $currency_symbol . amountFormat($total_tuition_balance); ?></td>
                                     <td class="text-right"><?php echo $currency_symbol . amountFormat($total_other_demand); ?></td>
-                                    <td class="text-right"><?php echo $currency_symbol . amountFormat($total_other_paid); ?></td>
                                     <td class="text-right"><?php echo $currency_symbol . amountFormat($total_other_balance); ?></td>
                                     <td class="text-right"><?php echo $currency_symbol . amountFormat($total_hostel_demand); ?></td>
-                                    <td class="text-right"><?php echo $currency_symbol . amountFormat($total_hostel_paid); ?></td>
                                     <td class="text-right"><?php echo $currency_symbol . amountFormat($total_hostel_balance); ?></td>
                                     <td class="text-right"><?php echo $currency_symbol . amountFormat($total_transport_demand); ?></td>
-                                    <td class="text-right"><?php echo $currency_symbol . amountFormat($total_transport_paid); ?></td>
                                     <td class="text-right"><?php echo $currency_symbol . amountFormat($total_transport_balance); ?></td>
                                     <td class="text-right"><?php echo $currency_symbol . amountFormat($total_fees); ?></td>
                                     <td class="text-right"><?php echo $currency_symbol . amountFormat($total_paid); ?></td>
@@ -239,7 +197,7 @@ foreach ($department_list as $department) {
                                     <td class="text-right"><?php echo $currency_symbol . amountFormat($total_discount); ?></td>
                                     <td class="text-right"><?php echo $currency_symbol . amountFormat($total_fine); ?></td>
                                     <td class="text-right"><?php echo $currency_symbol . amountFormat($total_balance); ?></td>
-                                    <td class="text-right"><?php echo $currency_symbol . amountFormat($total_net_balance); ?></td>
+
                                 </tr>
                             </tfoot>
                         </table>
@@ -262,37 +220,35 @@ foreach ($department_list as $department) {
 <script src="<?php echo base_url(); ?>backend/dist/datatables/js/vfs_fonts.js"></script>
 <script type="text/javascript">
     $(document).ready(function () {
-        var class_id = $('#class_id').val();
+        var department_id = $('#department_id').val();
+        var class_id = '<?php echo $class_id_selected; ?>';
         var section_id = '<?php echo set_value('section_id', 0) ?>';
-        var department_id = $('#department_id').val(); // Get current department_id on ready
-        getSectionByClass(class_id, section_id, department_id); // Pass department_id
+        
+        if(department_id !== ""){
+            getClassesByDepartment(department_id, class_id);
+        }
+
+        getSectionByClass(class_id, section_id);
 
         $(document).on('change', '#department_id', function (e) {
-            $('#class_id').html(''); // Clear all options
-            $('#class_id').select2('val', ''); // Clear selected classes in multiselect
-            $('#section_id').html('<option value=""><?php echo $this->lang->line('select'); ?></option>'); // Clear section dropdown
-
+            $('#class_id').html('<option value="all"><?php echo $this->lang->line('all_classes'); ?></option>');
             var department_id = $(this).val();
             var base_url = '<?php echo base_url() ?>';
-            
-            $.ajax({
-                type: "POST",
-                url: base_url + "customfinancereports/get_classes_by_department",
-                data: {'department_id': department_id},
-                dataType: "json",
-                success: function (data) {
-                    $('#class_id').append('<option value=""><?php echo $this->lang->line('select_all'); ?></option>'); // Add "Select All" option
-                    $.each(data, function (i, obj) {
-                        $('#class_id').append("<option value=" + obj.id + ">" + obj.class + "</option>");
-                    });
-                    $('#class_id').select2(); // Re-initialize select2 after updating options
-
-                    // After populating classes, ensure sections are also updated
-                    var class_id_initial = $('#class_id').val();
-                    var section_id_initial = '<?php echo set_value('section_id', 0) ?>';
-                    getSectionByClass(class_id_initial, section_id_initial);
-                }
-            });
+            if (department_id != "") {
+                $.ajax({
+                    type: "POST",
+                    url: base_url + "financereports/get_classes_by_department",
+                    data: {'department_id': department_id},
+                    dataType: "json",
+                    success: function (data) {
+                        $.each(data, function (i, obj)
+                        {
+                            var sel = "";
+                            $('#class_id').append("<option value=" + obj.id + " " + sel + ">" + obj.class + "</option>");
+                        });
+                    }
+                });
+            }
         });
 
         $(document).on('change', '#class_id', function (e) {
@@ -300,11 +256,10 @@ foreach ($department_list as $department) {
             var class_id = $(this).val();
             var base_url = '<?php echo base_url() ?>';
             var div_data = '<option value=""><?php echo $this->lang->line('select'); ?></option>';
-            var department_id = $('#department_id').val(); // Get selected department_id
             $.ajax({
                 type: "GET",
                 url: base_url + "sections/getByClass",
-                data: {'class_id': class_id, 'department_id': department_id}, // Pass department_id
+                data: {'class_id': class_id},
                 dataType: "json",
                 success: function (data) {
                     $.each(data, function (i, obj)
@@ -315,17 +270,38 @@ foreach ($department_list as $department) {
                 }
             });
         });
+
+        function getClassesByDepartment(department_id, class_id) {
+            if (department_id != "") {
+                $('#class_id').html('<option value="all"><?php echo $this->lang->line('all_classes'); ?></option>');
+                var base_url = '<?php echo base_url() ?>';
+                $.ajax({
+                    type: "POST",
+                    url: base_url + "financereports/get_classes_by_department",
+                    data: {'department_id': department_id},
+                    dataType: "json",
+                    success: function (data) {
+                        $.each(data, function (i, obj)
+                        {
+                            var sel = (class_id == obj.id) ? "selected" : "";
+                            $('#class_id').append("<option value=" + obj.id + " " + sel + ">" + obj.class + "</option>");
+                        });
+                    }
+                });
+            }
+        }
     });
-    function getSectionByClass(class_id, section_id, department_id) { // Added department_id
+
+    function getSectionByClass(class_id, section_id) {
         if (class_id != "") {
             $('#section_id').html("");
             var base_url = '<?php echo base_url() ?>';
             var div_data = '<option value=""><?php echo $this->lang->line('select'); ?></option>';
-            // var department_id = $('#department_id').val(); // Removed, now passed as param
+            var department_id = $('#department_id').val();
             $.ajax({
                 type: "GET",
                 url: base_url + "sections/getByClass",
-                data: {'class_id': class_id, 'department_id': department_id}, // Pass department_id
+                data: {'class_id': class_id, 'department_id': department_id},
                 dataType: "json",
                 success: function (data) {
                     $.each(data, function (i, obj)
@@ -354,19 +330,19 @@ foreach ($department_list as $department) {
                 'copy', 'csv',
                 {
                     extend: 'excelHtml5',
-                    footer: true,
                     exportOptions: {
                         format: {
                             body: function ( data, row, column, node ) {
-                                // Strip HTML tags from data for excel
+                                // Strip HTML tags from data
                                 return data.replace( /(<([^>]+)>)/ig, '' );
                             },
                             footer: function ( data, row, column, node ) {
-                                // Strip HTML tags from data for excel
+                                // Strip HTML tags from data
                                 return data.replace( /(<([^>]+)>)/ig, '' );
                             }
                         }
-                    }
+                    },
+                    footer: true
                 },
                 'pdf', 'print'
             ]

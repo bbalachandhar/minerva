@@ -12,6 +12,11 @@
                 <div class="box box-primary">
                     <div class="box-header with-border">
                         <h3 class="box-title"><i class="fa fa-search"></i> <?php echo $this->lang->line('select_criteria'); ?></h3>
+                        <div class="box-tools pull-right">
+                            <a href="javascript:history.back()" class="btn btn-primary btn-sm" data-toggle="tooltip" title="<?php echo $this->lang->line('back'); ?>">
+                                <i class="fa fa-arrow-left"></i> <?php echo $this->lang->line('back'); ?>
+                            </a>
+                        </div>
                     </div>
                     <form action="<?php echo site_url('financereports/incidental_fee_report') ?>" method="post" accept-charset="utf-8">
                         <div class="box-body">

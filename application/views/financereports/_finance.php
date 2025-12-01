@@ -23,6 +23,8 @@
                         <li class="col-lg-4 col-md-4 col-sm-6 <?php echo set_SubSubmenu('Reports/finance/studentacademicreport'); ?>"><a href="<?php echo base_url(); ?>financereports/studentacademicreport"><i class="fa fa-file-text-o"></i> <?php echo $this->lang->line('balance_fees_report'); ?></a></li>
                         <li class="col-lg-4 col-md-4 col-sm-6 <?php echo set_SubSubmenu('Reports/finance/custombalancefeesreport'); ?>"><a href="<?php echo base_url(); ?>customfinancereports/custombalancefeesreport"><i class="fa fa-file-text-o"></i> Custom Balance Fees Report</a></li>
                         <li class="col-lg-4 col-md-4 col-sm-6 <?php echo set_SubSubmenu('Reports/finance/balancesummaryreport'); ?>"><a href="<?php echo base_url(); ?>financereports/balancesummaryreport"><i class="fa fa-file-text-o"></i> Balance Summary Report</a></li>
+<li class="col-lg-4 col-md-4 col-sm-6 <?php echo set_SubSubmenu('Reports/finance/categorywisebalancefeesreport'); ?>"><a href="<?php echo base_url(); ?>financereports/categorywisebalancefeesreport"><i class="fa fa-file-text-o"></i> Category wise balance fees report</a></li>
+
                                 
                     <?php   }  if ($this->rbac->hasPrivilege('fees_collection_report', 'can_view')) {   ?>
 
