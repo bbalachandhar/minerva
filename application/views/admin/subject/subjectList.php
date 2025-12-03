@@ -70,6 +70,11 @@
                 <div class="box box-primary" id="sublist">
                     <div class="box-header ptbnull">
                         <h3 class="box-title titlefix"><?php echo $this->lang->line('subject_list'); ?></h3>
+                        <div class="box-tools pull-right">
+                            <?php if ($this->rbac->hasPrivilege('subject', 'can_add')) { ?>
+                                <a href="<?php echo base_url(); ?>admin/subject/bulk_upload" class="btn btn-primary btn-sm"><i class="fa fa-upload"></i> <?php echo $this->lang->line('bulk_upload_subjects'); ?></a>
+                            <?php } ?>
+                        </div>
                     </div>
                     <div class="box-body">
                         <div class="table-responsive mailbox-messages">
