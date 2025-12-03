@@ -654,7 +654,7 @@ echo ($currency_symbol . amountFormat($total_balance_amount - $alot_fee_discount
         });
 
         $(document).on('change', '#department_id', function (e) {
-            $('#class_id').html('<option value=""><?php echo $this->lang->line('select'); ?></option>').select2('val', '');
+            $('#class_id').html('').select2('val', '');
             $('#section_id').html('<option value=""><?php echo $this->lang->line('select'); ?></option>');
             $('#student_id').html('<option value=""><?php echo $this->lang->line('select'); ?></option>');
             var department_id = $(this).val();

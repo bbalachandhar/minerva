@@ -30,7 +30,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                             <?php
 foreach ($department_list as $department) {
     ?>
-                                                <option value="<?php echo $department['id'] ?>" <?php if (set_value('department_id') == $department['id']) {
+                                                <option value="<?php echo $department['id'] ?>" <?php if (set_value('department_id', $department_id_selected) == $department['id']) {
         echo "selected=selected";
     }
     ?>><?php echo $department['department_name'] ?></option>
@@ -50,9 +50,8 @@ foreach ($department_list as $department) {
                                             <?php
                                             foreach ($classlist as $class) {
                                                 ?>
-                                                <option value="<?php echo $class['id'] ?>" <?php if (set_value('class_id') == $class['id']) echo "selected=selected" ?>><?php echo $class['class'] ?></option>
+                                                <option value="<?php echo $class['id'] ?>" <?php if (set_value('class_id', $class_id_selected) == $class['id']) echo "selected=selected" ?>><?php echo $class['class'] ?></option>
                                                 <?php
-                                                $count++;
                                             }
                                             ?>
                                         </select>
@@ -64,17 +63,6 @@ foreach ($department_list as $department) {
                                         <label for="exampleInputEmail1"><?php echo $this->lang->line('section'); ?></label>
                                         <select  id="section_id" name="section_id" class="form-control" >
                                             <option value=""><?php echo $this->lang->line('select'); ?></option>
-                                            <?php
-                                            foreach ($section_list as $value) {
-                                                ?>
-                                                <option  <?php
-                                                if ($value['section_id'] == $section_id) {
-                                                    echo "selected";
-                                                }
-                                                ?> value="<?php echo $value['section_id']; ?>"><?php echo $value['section']; ?></option>
-                                                    <?php
-                                                }
-                                                ?>
                                         </select>
                                         <span class="text-danger"><?php echo form_error('section_id'); ?></span>
                                     </div>
@@ -105,7 +93,7 @@ foreach ($department_list as $department) {
                     <div class="row">
 
                         <?php
-                        if (isset($student_due_fee) && !empty($student_due_fee)) {
+                        if (isset($student_due_fee)) {
                             ?>
 
                             <div class="" id="transfee">
@@ -117,8 +105,7 @@ foreach ($department_list as $department) {
                             echo $this->lang->line('balance_fees_report') . "<br>";
                             $this->customlib->get_postmessage();
                             ?></div> 
-                                    <a class="btn btn-default btn-xs pull-right" id="print" onclick="printDiv()" ><i class="fa fa-print"></i></a> <button class="btn btn-default btn-xs pull-right" id="btnExport" onclick="fnExcelReport();"> <i class="fa fa-file-excel-o"></i> </button>  
-                                    <table class="table table-striped table-hover" id="headerTable">
+                                    <table class="table table-striped table-bordered table-hover example" id="headerTable">
                                         <thead>
                                             <tr>
                                                 
@@ -143,15 +130,15 @@ foreach ($department_list as $department) {
                                         </thead>  
                                         <tbody> 
                                             <?php
-                                            if (!empty($resultarray)) {
+                                            if (!empty($student_due_fee)) {
                                                         $totalfeelabel = 0;
                                                         $depositfeelabel = 0;
                                                         $discountlabel = 0;
                                                         $finelabel = 0;
                                                         $balancelabel = 0;                                       
-                                                foreach ($resultarray as $key => $section) {                                                   
+                                                foreach ($student_due_fee as $students) {                                                   
                                                      
-                                                        foreach ($section['result'] as $students) {                                                            
+                                                                                               
                                                             $totalfeelabel += $students->totalfee;
                                                             $depositfeelabel += $students->deposit;
                                                             $discountlabel += $students->discount;
@@ -180,9 +167,12 @@ foreach ($department_list as $department) {
                                                             <td class="text-right"><?php echo amountFormat($students->balance);?></td>
                                                             </tr>
                                                                 <?php
-                                                        }
-                                                            ?>
-                                                               <tr class="box box-solid total-bg">
+                                                        
+                                                              ?>
+                                                              
+                                                        <?php                                
+                                                          } ?>
+                                                          <tr class="box box-solid total-bg">
                                                                 
                                                                 <td></td>
                                                                 <td></td>
@@ -198,21 +188,20 @@ foreach ($department_list as $department) {
                                                                     <?php 
                                                                      } 
                                                                 ?>
-                                                                <td><?php echo $this->lang->line('total'); ?></td>
+                                                                <td class="text-right"><?php echo $this->lang->line('grand_total'); ?></td>
                                                                 <td class="text-right"><?php echo amountFormat($totalfeelabel);  ?></td>
                                                                 <td class="text-right"><?php echo amountFormat($depositfeelabel); ?></td>
                                                                 <td class="text-right"><?php echo amountFormat($discountlabel); ?></td>
                                                                 <td class="text-right"><?php echo amountFormat($finelabel); ?></td>
                                                                 <td class="text-right"><?php echo amountFormat($balancelabel); ?></td>
                                                             </tr>
-                                                        <?php                                
-                                                          } ?>
+                                                            <?php } ?>
                                             </tbody> 
                                         </table>
                                     </div>                            
                                 </div>  
  <?php
-                        }
+                        
                     }else{ 
 ?>
                             <div class="col-md-12" ><div class="col-md-12" ><div class="alert alert-info"><?php echo $this->lang->line('no_record_found'); ?></div></div></div>
@@ -227,21 +216,89 @@ foreach ($department_list as $department) {
             </div>
     </section>
 </div>
-
 <script type="text/javascript">
-    function removeElement() {
-        document.getElementById("imgbox1").style.display = "block";
+    $(document).ready(function () {
+        var department_id = '<?php echo set_value('department_id', $department_id_selected) ?>';
+        var class_id = '<?php echo set_value('class_id', $class_id_selected) ?>';
+        var section_id = '<?php echo set_value('section_id', $section_id_selected) ?>';
+
+        if(department_id !== ""){
+            getClassesByDepartment(department_id, class_id);
+        }
+        
+        getSectionByClass(class_id, section_id);
+
+        $(document).on('change', '#department_id', function (e) {
+            $('#class_id').html('<option value=""><?php echo $this->lang->line('select'); ?></option>');
+            var department_id = $(this).val();
+            var base_url = '<?php echo base_url() ?>';
+            if (department_id != "") {
+                $.ajax({
+                    type: "POST",
+                    url: base_url + "report/getClassesByDepartment",
+                    data: {'department_id': department_id},
+                    dataType: "json",
+                    success: function (data) {
+                        $.each(data, function (i, obj)
+                        {
+                            var sel = "";
+                            $('#class_id').append("<option value=" + obj.id + " " + sel + ">" + obj.class + "</option>");
+                        });
+                    }
+                });
+            }
+        });
+
+        $(document).on('change', '#class_id', function (e) {
+            $('#section_id').html("");
+            var class_id = $(this).val();
+            var base_url = '<?php echo base_url() ?>';
+            var div_data = '<option value=""><?php echo $this->lang->line('select'); ?></option>';
+            $.ajax({
+                type: "GET",
+                url: base_url + "sections/getByClass",
+                data: {'class_id': class_id},
+                dataType: "json",
+                success: function (data) {
+                    $.each(data, function (i, obj)
+                    {
+                        div_data += "<option value=" + obj.section_id + ">" + obj.section + "</option>";
+                    });
+                    $('#section_id').html(div_data);
+                }
+            });
+        });
+    });
+
+    function getClassesByDepartment(department_id, class_id) {
+        if (department_id != "") {
+            $('#class_id').html('<option value=""><?php echo $this->lang->line('select'); ?></option>');
+            var base_url = '<?php echo base_url() ?>';
+            $.ajax({
+                type: "POST",
+                url: base_url + "report/getClassesByDepartment",
+                data: {'department_id': department_id},
+                dataType: "json",
+                success: function (data) {
+                    $.each(data, function (i, obj)
+                    {
+                        var sel = (class_id == obj.id) ? "selected" : "";
+                        $('#class_id').append("<option value=" + obj.id + " " + sel + ">" + obj.class + "</option>");
+                    });
+                }
+            });
+        }
     }
-    function getSectionByClass(class_id, section_id, department_id) { // Added department_id
+
+    function getSectionByClass(class_id, section_id) {
         if (class_id != "") {
             $('#section_id').html("");
             var base_url = '<?php echo base_url() ?>';
             var div_data = '<option value=""><?php echo $this->lang->line('select'); ?></option>';
-            // var department_id = $('#department_id').val(); // Removed, now passed as param
             $.ajax({
                 type: "GET",
                 url: base_url + "sections/getByClass",
-                data: {'class_id': class_id, 'department_id': department_id}, // Pass department_id
+                data: {'class_id': class_id},
                 dataType: "json",
                 success: function (data) {
                     $.each(data, function (i, obj)
@@ -257,128 +314,14 @@ foreach ($department_list as $department) {
             });
         }
     }
-    $(document).ready(function () {
-
-        $(document).on('change', '#department_id', function (e) {
-            $('#class_id').html(''); // Clear all options
-            $('#section_id').html('<option value=""><?php echo $this->lang->line('select'); ?></option>'); // Clear section dropdown
-            $('#student_id').html('<option value=""><?php echo $this->lang->line('select'); ?></option>'); // Clear student dropdown
-
-            var department_id = $(this).val();
-            var base_url = '<?php echo base_url() ?>';
-            
-            // Always make the AJAX call to get classes based on department_id (or all if department_id is empty)
-            $.ajax({
-                type: "POST",
-                url: base_url + "financereports/get_classes_by_department", // Changed URL
-                data: {'department_id': department_id},
-                dataType: "json",
-                success: function (data) {
-                    $('#class_id').append('<option value=""><?php echo $this->lang->line('select_all'); ?></option>'); // Add "Select All" option
-                    $.each(data, function (i, obj)
-                    {
-                        $('#class_id').append("<option value=" + obj.id + ">" + obj.class + "</option>");
-                    });
-
-                    // After populating classes, ensure sections are also updated
-                    var class_id_initial = $('#class_id').val(); // Get current class selection (might be "Select All")
-                    var section_id_initial = '<?php echo set_value('section_id', 0) ?>';
-                    getSectionByClass(class_id_initial, section_id_initial);
-                }
-            });
-        });
-
-        $(document).on('change', '#class_id', function (e) {
-            $('#section_id').html("");
-            var class_id = $(this).val();
-            var base_url = '<?php echo base_url() ?>';
-            var div_data = '<option value=""><?php echo $this->lang->line('select'); ?></option>';
-            var department_id = $('#department_id').val(); // Get selected department_id
-            $.ajax({
-                type: "GET",
-                url: base_url + "sections/getByClass",
-                data: {'class_id': class_id, 'department_id': department_id}, // Pass department_id
-                dataType: "json",
-                success: function (data) {
-                    $.each(data, function (i, obj)
-                    {
-                        div_data += "<option value=" + obj.section_id + ">" + obj.section + "</option>";
-                    });
-
-                    $('#section_id').html(div_data);
-                }
-            });
-        });
-        $(document).on('change', '#section_id', function (e) {
-            getStudentsByClassAndSection();
-        });
-        var class_id = $('#class_id').val();
-        var section_id = '<?php echo set_value('section_id') ?>';
-        getSectionByClass(class_id, section_id);
-    });
-    function getStudentsByClassAndSection() {
-        $('#student_id').html("");
-        var class_id = $('#class_id').val();
-        var section_id = $('#section_id').val();
-        var base_url = '<?php echo base_url() ?>';
-        var div_data = '<option value=""><?php echo $this->lang->line('select'); ?></option>';
-        var department_id = $('#department_id').val(); // Get selected department_id
-        $.ajax({
-            type: "GET",
-            url: base_url + "student/getByClassAndSection",
-            data: {'class_id': class_id, 'section_id': section_id, 'department_id': department_id}, // Pass department_id
-            dataType: "json",
-            success: function (data) {
-                $.each(data, function (i, obj)
-                {
-                    div_data += "<option value=" + obj.id + ">" + obj.firstname + " " + obj.lastname + "</option>";
-                });
-                $('#student_id').append(div_data);
-            }
-        });
-    }
-
-    $(document).ready(function () {
-        $("ul.type_dropdown input[type=checkbox]").each(function () {
-            $(this).change(function () {
-                var line = "";
-                $("ul.type_dropdown input[type=checkbox]").each(function () {
-                    if ($(this).is(":checked")) {
-                        line += $("+ span", this).text() + ";";
-                    }
-                });
-                $("input.form-control").val(line);
-            });
-        });
-    });
-    $(document).ready(function () {
-        $.extend($.fn.dataTable.defaults, {
-            ordering: false,
-            paging: false,
-            bSort: false,
-            info: false
-        });
-    });
 </script>
 <script>
-
-    document.getElementById("print").style.display = "block";
-    document.getElementById("btnExport").style.display = "block";
-
-    function printDiv() {
-        document.getElementById("print").style.display = "none";
-        document.getElementById("btnExport").style.display = "none";
-        var divElements = document.getElementById('transfee').innerHTML;
-        var oldPage = document.body.innerHTML;
-        document.body.innerHTML =
-                "<html><head><title></title></head><body>" +
-                divElements + "</body>";
-        window.print();
-        document.body.innerHTML = oldPage;
-
-        location.reload(true);
-    }
-
-    
-    
+$(document).ready(function() {
+    $('.example').DataTable({
+        dom: 'Bfrtip',
+        buttons: [
+            'copy', 'csv', 'excel', 'pdf', 'print'
+        ]
+    });
+});
 </script>

@@ -1300,13 +1300,13 @@ class Studentfeemaster_model extends MY_Model
     {
         $where_condition = array();
         if ($class_id != null) {
-            $where_condition[] = " AND student_session.class_id=" . $class_id;
+            $where_condition[] = "student_session.class_id=" . $this->db->escape($class_id);
         }
         if ($section_id != null) {
-            $where_condition[] = "student_session.section_id=" . $section_id;
+            $where_condition[] = "student_session.section_id=" . $this->db->escape($section_id);
         }
         if ($department_id != null) {
-            $where_condition[] = "classes.department_id=" . $department_id; // Add department filter
+            $where_condition[] = "classes.department_id=" . $this->db->escape($department_id);
         }
         $where_condition_string = "";
         if (!empty($where_condition)) {

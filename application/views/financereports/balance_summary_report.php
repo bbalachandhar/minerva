@@ -222,13 +222,10 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
     $(document).ready(function () {
         var department_id = $('#department_id').val();
         var class_id = '<?php echo $class_id_selected; ?>';
-        var section_id = '<?php echo set_value('section_id', 0) ?>';
         
         if(department_id !== ""){
             getClassesByDepartment(department_id, class_id);
         }
-
-        getSectionByClass(class_id, section_id);
 
         $(document).on('change', '#department_id', function (e) {
             $('#class_id').html('<option value="all"><?php echo $this->lang->line('all_classes'); ?></option>');
@@ -237,7 +234,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
             if (department_id != "") {
                 $.ajax({
                     type: "POST",
-                    url: base_url + "financereports/get_classes_by_department",
+                    url: base_url + "report/getClassesByDepartment",
                     data: {'department_id': department_id},
                     dataType: "json",
                     success: function (data) {
@@ -251,33 +248,13 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
             }
         });
 
-        $(document).on('change', '#class_id', function (e) {
-            $('#section_id').html("");
-            var class_id = $(this).val();
-            var base_url = '<?php echo base_url() ?>';
-            var div_data = '<option value=""><?php echo $this->lang->line('select'); ?></option>';
-            $.ajax({
-                type: "GET",
-                url: base_url + "sections/getByClass",
-                data: {'class_id': class_id},
-                dataType: "json",
-                success: function (data) {
-                    $.each(data, function (i, obj)
-                    {
-                        div_data += "<option value=" + obj.section_id + ">" + obj.section + "</option>";
-                    });
-                    $('#section_id').html(div_data);
-                }
-            });
-        });
-
         function getClassesByDepartment(department_id, class_id) {
             if (department_id != "") {
                 $('#class_id').html('<option value="all"><?php echo $this->lang->line('all_classes'); ?></option>');
                 var base_url = '<?php echo base_url() ?>';
                 $.ajax({
                     type: "POST",
-                    url: base_url + "financereports/get_classes_by_department",
+                    url: base_url + "report/getClassesByDepartment",
                     data: {'department_id': department_id},
                     dataType: "json",
                     success: function (data) {
@@ -291,32 +268,6 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
             }
         }
     });
-
-    function getSectionByClass(class_id, section_id) {
-        if (class_id != "") {
-            $('#section_id').html("");
-            var base_url = '<?php echo base_url() ?>';
-            var div_data = '<option value=""><?php echo $this->lang->line('select'); ?></option>';
-            var department_id = $('#department_id').val();
-            $.ajax({
-                type: "GET",
-                url: base_url + "sections/getByClass",
-                data: {'class_id': class_id, 'department_id': department_id},
-                dataType: "json",
-                success: function (data) {
-                    $.each(data, function (i, obj)
-                    {
-                        var sel = "";
-                        if (section_id == obj.section_id) {
-                            sel = "selected";
-                        }
-                        div_data += "<option value=" + obj.section_id + " " + sel + ">" + obj.section + "</option>";
-                    });
-                    $('#section_id').html(div_data);
-                }
-            });
-        }
-    }
 </script>
 
 <script>
