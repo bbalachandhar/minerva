@@ -87,6 +87,13 @@ class CI_Router {
 	public $directory;
 
 	/**
+	 * CI_URI class object
+	 *
+	 * @var	object
+	 */
+	public $uri;
+
+	/**
 	 * Default controller (and method if specific)
 	 *
 	 * @var	string

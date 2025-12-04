@@ -5,14 +5,12 @@ defined('BASEPATH') or exit('No direct script access allowed');
 class Auth_model extends CI_Model
 {
 
-    public $client_service               = "smartschool";
-    public $auth_key                     = "schoolAdmin@";
-    public $security_authentication_flag = 0;
-
     public function __construct()
     {
         parent::__construct();
         $this->load->model(array('user_model', 'setting_model', 'student_model'));
+        $this->client_service = $this->config->item('auth_client_service');
+        $this->auth_key = $this->config->item('auth_key');
     }
 
     public function check_auth_client()

@@ -10,7 +10,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
   | URL to your CodeIgniter root. Typically this will be your base URL,
   | WITH a trailing slash:
   |
-  |	http://example.com/
+  |\thttp://example.com/
   |
   | WARNING: You MUST set this value!
   |
@@ -27,7 +27,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
  
 // $config['base_url'] = 'https://demo.smart-school.in/api/';
 
-$config['base_url'] = 'https://localhost/minerva/api/';
+$config['base_url'] = 'https://192.168.1.6/minerva/api/';
 
 
 /*
@@ -129,17 +129,17 @@ $config['subclass_prefix'] = 'MY_';
   | Enabling this setting will tell CodeIgniter to look for a Composer
   | package auto-loader script in application/vendor/autoload.php.
   |
-  |	$config['composer_autoload'] = TRUE;
+  |\t$config['composer_autoload'] = TRUE;
   |
   | Or if you have your vendor/ directory located somewhere else, you
   | can opt to set a specific path as well:
   |
-  |	$config['composer_autoload'] = '/path/to/vendor/autoload.php';
+  |\t$config['composer_autoload'] = '/path/to/vendor/autoload.php';
   |
   | For more information about Composer, please visit http://getcomposer.org/
   |
   | Note: This will NOT disable or override the CodeIgniter-specific
-  |	autoloading (application/config/autoload.php)
+  |\tautoloading (application/config/autoload.php)
  */
 $config['composer_autoload'] = FALSE;
 
@@ -204,15 +204,15 @@ $config['directory_trigger'] = 'd';
   | You can enable error logging by setting a threshold over zero. The
   | threshold determines what gets logged. Threshold options are:
   |
-  |	0 = Disables logging, Error logging TURNED OFF
-  |	1 = Error Messages (including PHP errors)
-  |	2 = Debug Messages
-  |	3 = Informational Messages
-  |	4 = All Messages
+  |\t0 = Disables logging, Error logging TURNED OFF
+  |\t1 = Error Messages (including PHP errors)
+  |\t2 = Debug Messages
+  |\t3 = Informational Messages
+  |\t4 = All Messages
   |
   | You can also pass an array with threshold levels to show individual error types
   |
-  | 	array(2) = Debug Messages, without Error Messages
+  | \tarray(2) = Debug Messages, without Error Messages
   |
   | For a live site you'll usually only enable Errors (1) to be logged otherwise
   | your log files will fill up very fast.
@@ -298,12 +298,12 @@ $config['cache_path'] = '';
   | Whether to take the URL query string into consideration when generating
   | output cache files. Valid options are:
   |
-  |	FALSE      = Disabled
-  |	TRUE       = Enabled, take all query parameters into account.
-  |	             Please be aware that this may result in numerous cache
-  |	             files generated for the same page over and over again.
-  |	array('q') = Enabled, but only take into account the specified list
-  |	             of query parameters.
+  |\tFALSE      = Disabled
+  |\tTRUE       = Enabled, take all query parameters into account.
+  |\t             Please be aware that this may result in numerous cache
+  |\t             files generated for the same page over and over again.
+  |\tarray('q') = Enabled, but only take into account the specified list
+  |\t             of query parameters.
   |
  */
 $config['cache_query_string'] = FALSE;
@@ -328,45 +328,45 @@ $config['encryption_key'] = '';
   |
   | 'sess_driver'
   |
-  |	The storage driver to use: files, database, redis, memcached
+  |\tThe storage driver to use: files, database, redis, memcached
   |
   | 'sess_cookie_name'
   |
-  |	The session cookie name, must contain only [0-9a-z_-] characters
+  |\tThe session cookie name, must contain only [0-9a-z_-] characters
   |
   | 'sess_expiration'
   |
-  |	The number of SECONDS you want the session to last.
-  |	Setting to 0 (zero) means expire when the browser is closed.
+  |\tThe number of SECONDS you want the session to last.
+  |\tSetting to 0 (zero) means expire when the browser is closed.
   |
   | 'sess_save_path'
   |
-  |	The location to save sessions to, driver dependent.
+  |\tThe location to save sessions to, driver dependent.
   |
-  |	For the 'files' driver, it's a path to a writable directory.
-  |	WARNING: Only absolute paths are supported!
+  |\tFor the 'files' driver, it's a path to a writable directory.
+  |\tWARNING: Only absolute paths are supported!
   |
-  |	For the 'database' driver, it's a table name.
-  |	Please read up the manual for the format with other session drivers.
+  |\tFor the 'database' driver, it's a table name.
+  |\tPlease read up the manual for the format with other session drivers.
   |
-  |	IMPORTANT: You are REQUIRED to set a valid save path!
+  |\tIMPORTANT: You are REQUIRED to set a valid save path!
   |
   | 'sess_match_ip'
   |
-  |	Whether to match the user's IP address when reading the session data.
+  |\tWhether to match the user's IP address when reading the session data.
   |
-  |	WARNING: If you're using the database driver, don't forget to update
-  |	         your session table's PRIMARY KEY when changing this setting.
+  |\tWARNING: If you're using the database driver, don't forget to update
+  |\t         your session table's PRIMARY KEY when changing this setting.
   |
   | 'sess_time_to_update'
   |
-  |	How many seconds between CI regenerating the session ID.
+  |\tHow many seconds between CI regenerating the session ID.
   |
   | 'sess_regenerate_destroy'
   |
-  |	Whether to destroy session data associated with the old session ID
-  |	when auto-regenerating the session ID. When set to FALSE, the data
-  |	will be later deleted by the garbage collector.
+  |\tWhether to destroy session data associated with the old session ID
+  |\twhen auto-regenerating the session ID. When set to FALSE, the data
+  |\twill be later deleted by the garbage collector.
   |
   | Other session cookie settings are shared with the rest of the application,
   | except for 'cookie_prefix' and 'cookie_httponly', which are ignored here.
@@ -513,10 +513,14 @@ $config['rewrite_short_tags'] = FALSE;
   | You can use both an array or a comma-separated list of proxy addresses,
   | as well as specifying whole subnets. Here are a few examples:
   |
-  | Comma-separated:	'10.0.1.200,192.168.5.0/24'
-  | Array:		array('10.0.1.200', '192.168.5.0/24')
+  | Comma-separated:\t'10.0.1.200,192.168.5.0/24'
+  | Array:\t\t\tarray('10.0.1.200', '192.168.5.0/24')
  */
 $config['routine_session'] = 16;
 $config['routine_update'] = 1529539200;
 $config['proxy_ips'] = '';
 $config['upload_path'] = "../uploads";
+
+// Custom API Authentication Keys
+$config['auth_client_service'] = 'your_client_service_value';
+$config['auth_key'] = 'your_auth_key_value';

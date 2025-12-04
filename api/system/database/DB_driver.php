@@ -111,6 +111,13 @@ abstract class CI_DB_driver {
 	public $dbprefix		= '';
 
 	/**
+	 * Failover
+	 *
+	 * @var	array
+	 */
+	public $failover		= array();
+
+	/**
 	 * Character set
 	 *
 	 * @var	string

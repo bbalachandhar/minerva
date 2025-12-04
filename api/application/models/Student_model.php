@@ -6,6 +6,8 @@ if (!defined('BASEPATH')) {
 
 class Student_model extends CI_Model
 {
+    public $current_session;
+    public $current_date;
 
     public function __construct()
     {

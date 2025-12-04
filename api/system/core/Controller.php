@@ -66,6 +66,22 @@ class CI_Controller {
 	 */
 	public $load;
 
+	// Common CodeIgniter Libraries
+	public $log;
+	public $utf8;
+	public $benchmark;
+	public $config;
+	public $hooks;
+	public $lang;
+	public $uri;
+	public $router;
+	public $output;
+	public $security;
+	public $input;
+	public $form_validation;
+	public $session;
+	public $db;
+
 	/**
 	 * Class constructor
 	 *
