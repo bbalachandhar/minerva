@@ -33,6 +33,17 @@ class App extends CI_Controller
         $current_month_end = date('Y-m-t');
         // 'no' for shd_notification as a default, adjust if a notification is desired
         $resp['public_events'] = $this->event_model->getPublicEvents($current_month_start, $current_month_end, 'no'); 
+        $resp['url'] = base_url();
+        $resp['site_url'] = base_url();
+        // Fetch settings from setting_model
+        $app_settings = $this->setting_model->get(); 
+
+        // Populate app_ver and app_logo from app_settings
+        $resp['app_ver'] = isset($app_settings[0]->app_ver) ? $app_settings[0]->app_ver : "1.0"; 
+        $resp['app_logo'] = isset($app_settings[0]->app_logo) ? base_url('uploads/school_content/admin_logo/' . $app_settings[0]->app_logo) : ""; 
+        $resp['app_secondary_color_code'] = isset($app_settings[0]->app_secondary_color_code) ? $app_settings[0]->app_secondary_color_code : "";
+        $resp['app_primary_color_code'] = isset($app_settings[0]->app_primary_color_code) ? $app_settings[0]->app_primary_color_code : "";
+        $resp['lang_code'] = isset($app_settings[0]->language_code) ? $app_settings[0]->language_code : ""; // ADD THIS LINE
 
         $date_list             = array();
         foreach ($resp['public_events'] as &$ev_tsk_value) {
@@ -54,7 +65,7 @@ class App extends CI_Controller
             }
         }
 
-        print_r($resp['public_events']);
+        echo json_encode($resp);
     }
 
     public function index1()

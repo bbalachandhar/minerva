@@ -6,13 +6,15 @@ if (!defined('BASEPATH')) {
 
 class Customlib {
 
-    // api ver: 3.5
-
+    public $setting_model;
+    public $studentfeemaster_model;
+    public $course_model;
     public $CI;
 
     public function __construct() {
         $this->CI = &get_instance();
-        $this->CI->load->model('Setting_model');
+        $this->CI->load->model('setting_model'); // Corrected to lowercase 's'
+        $this->setting_model = $this->CI->setting_model; // Assign to declared property
     }
     
     public function getSchoolCurrencyPrice()
@@ -67,7 +69,7 @@ class Customlib {
     }
 
     public function getSchoolName() {
-        $admin = $this->CI->Setting_model->getSetting();
+        $admin = $this->CI->setting_model->getSetting();
         return $admin->name;
     }
 
@@ -111,7 +113,7 @@ class Customlib {
     
     public function getCurrencyFormat()
     {
-        $admin = $this->CI->Setting_model->getSetting();
+        $admin = $this->CI->setting_model->getSetting();
         return $admin->currency_format;             
     }
 	
@@ -170,7 +172,7 @@ class Customlib {
 
 
     public function get_online_course_curriculam_status($fieldname){
-        $this->CI->load->model('Course_model');
+        $this->CI->load->model('course_model');
         $course_setting             = $this->CI->course_model->getOnlineCourseSettings();
         $active_curriculam_status   = "" ;
        

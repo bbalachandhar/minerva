@@ -9,6 +9,7 @@ class Auth
     public $CI;
     protected $errors;
     protected $messages;
+    public $email;
 
     //this is the expiration for a non-remember session
     //var $session_expire    = 600;
