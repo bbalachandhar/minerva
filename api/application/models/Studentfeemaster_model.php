@@ -9,6 +9,7 @@ class Studentfeemaster_model extends CI_Model
 
     protected $balance_group;
     protected $balance_type;
+    public $current_session;
 
     public function __construct()
     {

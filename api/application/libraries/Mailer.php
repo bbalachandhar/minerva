@@ -15,6 +15,7 @@ require_once(APPPATH.'third_party/PHPMailer/src/SMTP.php');
 
 class Mailer {
 
+    public $CI;
     public $mail_config;
     private $sch_setting;
 

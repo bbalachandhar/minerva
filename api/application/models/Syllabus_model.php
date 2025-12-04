@@ -6,6 +6,8 @@ if (!defined('BASEPATH')) {
 
 class Syllabus_model extends CI_Model
 {
+    public $current_session;
+    public $superadmin_visible;
 
     public function __construct()
     {

@@ -6,6 +6,7 @@ if (!defined('BASEPATH')) {
 
 class Grade_model extends CI_Model
 {
+    public $current_session;
 
     public function __construct()
     {

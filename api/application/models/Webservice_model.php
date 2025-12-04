@@ -4,6 +4,7 @@ defined('BASEPATH') or exit('No direct script access allowed');
 
 class Webservice_model extends CI_Model
 {
+    public $current_session;
 
     public function __construct()
     {

@@ -5,6 +5,55 @@ defined('BASEPATH') or exit('No direct script access allowed');
 class Webservice extends CI_Controller
 {
 
+    public $email;
+    public $Setting_model;
+    public $customlib;
+    public $mailer;
+    public $enc_lib;
+    public $user_model;
+    public $student_model;
+    public $auth_model;
+    public $route_model;
+    public $attendencetype_model;
+    public $studentfeemaster_model;
+    public $feediscount_model;
+    public $teachersubject_model;
+    public $timetable_model;
+    public $examgroup_model;
+    public $staff_model;
+    public $webservice_model;
+    public $grade_model;
+    public $librarymember_model;
+    public $bookissue_model;
+    public $homework_model;
+    public $event_model;
+    public $vehroute_model;
+    public $timeline_model;
+    public $module_model;
+    public $paymentsetting_model;
+    public $customfield_model;
+    public $subjecttimetable_model;
+    public $onlineexam_model;
+    public $leave_model;
+    public $chatuser_model;
+    public $conference_model;
+    public $syllabus_model;
+    public $gmeet_model;
+    public $category_model;
+    public $student_edit_field_model;
+    public $filetype_model;
+    public $course_model;
+    public $video_tutorial_model;
+    public $visitors_model;
+    public $pickuppoint_model;
+    public $assign_incident_model;
+    public $offlinePayment_model;
+    public $studentAppliedDiscount_model;
+    public $emailconfig_model;
+    public $mail_config;
+    public $setting_model;
+    public $security_authentication_flag;
+
     public function __construct()
     {
         parent::__construct();

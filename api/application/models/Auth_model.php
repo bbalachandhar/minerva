@@ -4,6 +4,8 @@ defined('BASEPATH') or exit('No direct script access allowed');
 
 class Auth_model extends CI_Model
 {
+    public $client_service;
+    public $auth_key;
 
     public function __construct()
     {

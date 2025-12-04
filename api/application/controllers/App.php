@@ -4,20 +4,36 @@ defined('BASEPATH') or exit('No direct script access allowed');
 
 class App extends CI_Controller
 {
+    // Declare properties to avoid dynamic property deprecation warnings
+    public $email;
+    public $setting_model; // Corrected capitalization from Setting_model
+    public $customlib;
+    public $student_model;
+    public $examgroup_model;
+    public $event_model;
+    public $load; // Declare $this->load property
+    public $grade_model; // Also declare grade_model as it's used in getGradeByMarks
 
     public function __construct()
     {
         parent::__construct();
 
+        $this->load->model('setting_model'); // Add this line
         $this->load->model('student_model');
-        $this->load->model('examschedule_model');
+        $this->load->model('examgroup_model');
         $this->load->model('event_model');
+        $this->load->model('grade_model'); // Add this line
     }
 
     public function index()
     {
+        // Fix for ArgumentCountError: getPublicEvents expects 3 arguments
+        // Using the first and last day of the current month as default dates
+        $current_month_start = date('Y-m-01');
+        $current_month_end = date('Y-m-t');
+        // 'no' for shd_notification as a default, adjust if a notification is desired
+        $resp['public_events'] = $this->event_model->getPublicEvents($current_month_start, $current_month_end, 'no'); 
 
-        $resp['public_events'] = $this->event_model->getPublicEvents(5);
         $date_list             = array();
         foreach ($resp['public_events'] as &$ev_tsk_value) {
             $evt_array = array();
@@ -45,7 +61,7 @@ class App extends CI_Controller
     {        
         $student_id = 2;
         $student    = $this->student_model->get($student_id);
-        $examList   = $this->examschedule_model->getExamByClassandSection($student['class_id'], $student['section_id']);
+        $examList   = $this->examgroup_model->getExamByClassandSection($student['class_id'], $student['section_id']);
         $response   = array();
         if (!empty($examList)) {
             $new_array = array();
@@ -54,7 +70,7 @@ class App extends CI_Controller
                 $x       = array();
                 $exam_id = $ex_value['exam_id'];
                 $student['id'];
-                $exam_subjects = $this->examschedule_model->getresultByStudentandExam($exam_id, $student['id']);
+                $exam_subjects = $this->examgroup_model->getresultByStudentandExam($exam_id, $student['id']);
                 $total_marks   = 0;
                 $get_marks     = 0;
                 $result        = "Pass";

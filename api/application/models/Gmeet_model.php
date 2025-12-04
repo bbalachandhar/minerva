@@ -6,6 +6,7 @@ if (!defined('BASEPATH')) {
 
 class Gmeet_model extends CI_Model
 {
+    public $current_session;
 
     public function __construct()
     {
