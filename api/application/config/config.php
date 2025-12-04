@@ -522,5 +522,5 @@ $config['proxy_ips'] = '';
 $config['upload_path'] = "../uploads";
 
 // Custom API Authentication Keys
-$config['auth_client_service'] = 'your_client_service_value';
-$config['auth_key'] = 'your_auth_key_value';
+$config['auth_client_service'] = 'smartschool';
+$config['auth_key'] = 'schoolAdmin@';
