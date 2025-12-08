@@ -25,11 +25,11 @@ class Attendance_model extends CI_Model {
         $this->load->model('staff_model');
 
         foreach ($punches as $punch) {
-            log_message('debug', 'Processing punch for employee_id: ' . $punch['staff_id']);
-            $staff = $this->staff_model->get_by_employee_id($punch['staff_id']);
+            log_message('debug', 'Processing punch for biometric_id: ' . $punch['staff_id']);
+            $staff = $this->staff_model->get_by_biometric_id($punch['staff_id']);
 
             if ($staff) {
-                log_message('debug', 'Staff found for employee_id: ' . $punch['staff_id'] . '. Staff ID: ' . $staff->id);
+                log_message('debug', 'Staff found for biometric_id: ' . $punch['staff_id'] . '. Staff ID: ' . $staff->id);
                 $staff_id = $staff->id;
 
                 // Check for duplicate before inserting
@@ -51,7 +51,7 @@ class Attendance_model extends CI_Model {
                     log_message('debug', 'Duplicate found for staff_id: ' . $staff_id . ' and punch_time: ' . $punch['punch_time']);
                 }
             } else {
-                log_message('error', 'Biometric API: Staff with employee_id ' . $punch['staff_id'] . ' not found.');
+                log_message('error', 'Biometric API: Staff with biometric_id ' . $punch['staff_id'] . ' not found.');
             }
         }
         return $inserted_count;
@@ -127,156 +127,166 @@ class Attendance_model extends CI_Model {
         $half_day_id = $attendence_config['half_day'];
         $permission_first_session_id = $attendence_config['permission_first_session'];
         $permission_second_session_id = $attendence_config['permission_second_session'];
+        $first_half_absent_id = $attendence_config['first_half_absent'];
+        $second_half_absent_id = $attendence_config['second_half_absent'];
 
         $office_end_time = $setting->office_end_time;
         $morning_session_end_time = $setting->morning_session_end_time;
         $evening_session_end_time = $setting->evening_session_end_time;
-        $afternoon_permission_start_time = date('H:i:s', strtotime($evening_session_end_time) - 3600);
         $max_late_allowed = $setting->max_late_allowed;
         $max_permission_allowed = $setting->max_permission_allowed;
 
+        $all_staff = $this->staff_model->get(); 
+        $staff_punches_by_day = [];
+
+        // Initialize all active staff to handle absentees
+        foreach ($all_staff as $staff_member) {
+            $staff_punches_by_day[$staff_member['id']] = [];
+        }
+        
         $raw_punches = $this->db->select('staff_id, punch_time')
                                 ->where('DATE(punch_time)', $date)
                                 ->order_by('staff_id, punch_time', 'ASC')
                                 ->get('staff_biometric_punches')
                                 ->result_array();
 
-        if (empty($raw_punches)) {
-            log_message('info', 'No raw biometric punches found for ' . $date);
-            return true; // Nothing to process
-        }
-
-        $staff_punches_by_day = [];
         foreach ($raw_punches as $punch) {
-            $staff_punches_by_day[$punch['staff_id']][] = strtotime($punch['punch_time']);
+            if(isset($staff_punches_by_day[$punch['staff_id']])){
+                 $staff_punches_by_day[$punch['staff_id']][] = strtotime($punch['punch_time']);
+            }
         }
 
         foreach ($staff_punches_by_day as $staff_id => $timestamps) {
-            sort($timestamps); // Ensure punches are in chronological order
-
-            $total_seconds_worked = 0;
-            $in_time_final = '';
-            $out_time_final = '';
-
-            // Calculate total time worked based on in/out pairs
-            for ($i = 0; $i < count($timestamps); $i++) {
-                if ($i % 2 == 0) { // This is an 'in' punch
-                    if (empty($in_time_final)) {
-                        $in_time_final = date('H:i:s', $timestamps[$i]);
-                    }
-                    
-                    // If there's a corresponding 'out' punch
-                    if (isset($timestamps[$i+1])) {
-                        $total_seconds_worked += ($timestamps[$i+1] - $timestamps[$i]);
-                        $out_time_final = date('H:i:s', $timestamps[$i+1]); // Update last out time
-                    } else { // Unmatched 'in' punch at the end of day
-                        $out_time_final = null; // No final out for summary calculation if last is unmatched
-                    }
-                }
-            }
-            
-            $total_hours_worked = round($total_seconds_worked / 3600, 2);
-
-            $attendance_type_id = $present_id; // Default to present
-            $remark = '';
 
             $staff_detail = $this->staff_model->get($staff_id);
             $role_id = isset($staff_detail['role_id']) ? $staff_detail['role_id'] : null;
 
-            // Get or create monthly summary record
-            $month = date('m', strtotime($date));
-            $year = date('Y', strtotime($date));
-            $summary = $this->staffattendancemonthlysummary_model->get_summary($staff_id, $month, $year);
-            if (!$summary) {
-                $summary_data = [
-                    'staff_id' => $staff_id,
-                    'session_id' => $this->current_session,
-                    'month' => $month,
-                    'year' => $year,
-                ];
-                $this->staffattendancemonthlysummary_model->add_summary($summary_data);
+            if (!$role_id) {
+                continue; // Skip staff without a role
+            }
+
+            // Get settings for all relevant attendance types for this role
+            $present_settings = $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($role_id, $present_id);
+            $late_settings = $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($role_id, $late_id);
+            $fhp_settings = $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($role_id, $permission_first_session_id);
+
+            if (empty($timestamps)) {
+                // No punches for the day, mark as Absent
+                $attendance_type_id = $absent_id;
+                $in_time_final = null;
+                $out_time_final = null;
+                $total_hours_worked = 0;
+                $remark = 'No punch found';
+            } else {
+                sort($timestamps);
+                $in_time_final = date('H:i:s', $timestamps[0]);
+                $out_time_final = (count($timestamps) > 1) ? date('H:i:s', end($timestamps)) : null;
+
+                $total_seconds_worked = 0;
+                for ($i = 0; $i < count($timestamps); $i += 2) {
+                    if (isset($timestamps[$i + 1])) {
+                        $total_seconds_worked += ($timestamps[$i + 1] - $timestamps[$i]);
+                    }
+                }
+                $total_hours_worked = round($total_seconds_worked / 3600, 2);
+
+                // Default to present and then evaluate rules
+                $attendance_type_id = $present_id;
+                $remark = '';
+
+                $month = date('m', strtotime($date));
+                $year = date('Y', strtotime($date));
                 $summary = $this->staffattendancemonthlysummary_model->get_summary($staff_id, $month, $year);
-            }
+                if (!$summary) {
+                    $summary_data = ['staff_id' => $staff_id, 'session_id' => $this->current_session, 'month' => $month, 'year' => $year];
+                    $this->staffattendancemonthlysummary_model->add_summary($summary_data);
+                    $summary = $this->staffattendancemonthlysummary_model->get_summary($staff_id, $month, $year);
+                }
 
-            // Get attendance setting for the staff's role if available
-            $staff_attendance_setting = null;
-            if ($role_id) {
-                $staff_attendance_setting = $this->staffAttendaceSetting_model->getAttendanceTypeByRole($role_id, $in_time_final); 
-            }
-
-            // Logic for Late/Permission/Absent
-            if ($staff_attendance_setting) {
-                if (strtotime($in_time_final) > strtotime($staff_attendance_setting->entry_time_to)) {
-                    if ($summary->late_count < $max_late_allowed) {
-                        $attendance_type_id = $late_id;
-                        $remark = 'Late arrival';
-                        $summary->late_count++;
+                // Morning Session Logic (Arrival)
+                if ($present_settings && strtotime($in_time_final) > strtotime($present_settings->entry_time_to)) {
+                    // Arrived after the 'Present' window
+                    if ($fhp_settings && strtotime($in_time_final) <= strtotime($fhp_settings->entry_time_to)) {
+                        // It's within the FHP window
+                        if ($summary->permission_count < $max_permission_allowed) {
+                            $attendance_type_id = $permission_first_session_id;
+                            $remark = 'First Half Permission';
+                            $summary->permission_count++;
+                        } else {
+                            // FHP quota is used, now check for Late
+                            if ($late_settings && strtotime($in_time_final) <= strtotime($late_settings->entry_time_to)) {
+                                $attendance_type_id = $late_id;
+                                $remark = 'Permission quota exceeded, marked as Late';
+                            } else {
+                                 $attendance_type_id = $first_half_absent_id;
+                                 $remark = 'Permission quota exceeded and arrived after Late window';
+                            }
+                        }
+                    } elseif ($late_settings && strtotime($in_time_final) <= strtotime($late_settings->entry_time_to)) {
+                         $attendance_type_id = $late_id;
+                         $remark = 'Late arrival';
                     } else {
-                        $attendance_type_id = $absent_id;
-                        $remark = 'Late limit exceeded';
-                    }
-                } elseif (strtotime($in_time_final) > strtotime($staff_attendance_setting->entry_time_from)) {
-                    if ($summary->permission_count < $max_permission_allowed) {
-                        $attendance_type_id = $permission_first_session_id;
-                        $remark = 'Permission';
-                        $summary->permission_count++;
-                    } else {
-                        $attendance_type_id = $absent_id;
-                        $remark = 'Permission limit exceeded';
+                        // Arrived after all grace periods for the morning
+                        $attendance_type_id = $first_half_absent_id;
+                        $remark = 'Arrived after morning session cut-off';
                     }
                 }
+                
+                            // Evening Session Logic (Departure)
+                            if ($out_time_final) {
+                                if ($attendance_type_id != $absent_id && $attendance_type_id != $first_half_absent_id) { // Don't override a morning absence
+                                    if (strtotime($out_time_final) < strtotime($morning_session_end_time)) {
+                                        $attendance_type_id = $half_day_id;
+                                        $remark = 'Left before morning session ended';
+                                    } elseif (strtotime($out_time_final) < strtotime($evening_session_end_time)) { // Left before evening session ended
+                                        $shp_settings = $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($role_id, $permission_second_session_id);
+                
+                                        if ($shp_settings && strtotime($out_time_final) >= strtotime($shp_settings->entry_time_from) && strtotime($out_time_final) <= strtotime($shp_settings->entry_time_to)) {
+                                            // If within SHP window and quota available
+                                            if ($summary->permission_count < $max_permission_allowed) {
+                                                $attendance_type_id = $permission_second_session_id;
+                                                $remark = 'Second Half Permission';
+                                                $summary->permission_count++;
+                                            } else {
+                                                // SHP quota exhausted
+                                                $attendance_type_id = $second_half_absent_id;
+                                                $remark = 'Second Half Permission quota exceeded';
+                                            }
+                                        } else {
+                                            // Not within SHP window or no SHP settings
+                                            $attendance_type_id = $second_half_absent_id;
+                                            $remark = 'Left before evening session ended, outside SHP window';
+                                        }
+                                    }
+                                }
+                            } else {
+                                 // No final out punch
+                                 if($attendance_type_id != $absent_id && $attendance_type_id != $first_half_absent_id){
+                                    $attendance_type_id = $second_half_absent_id;
+                                    $remark = 'No closing punch found';
+                                 }
+                            }                $this->staffattendancemonthlysummary_model->update_summary($summary->id, (array)$summary);
             }
 
-            // Logic for Half Day and afternoon permission
-            if ($out_time_final) {
-                if (strtotime($out_time_final) < strtotime($morning_session_end_time)) {
-                    $attendance_type_id = $half_day_id;
-                    $remark = 'Half Day';
-                } elseif (strtotime($out_time_final) > strtotime($evening_session_end_time)) {
-                    // Overtime calculation
-                    $overtime_seconds = strtotime($out_time_final) - strtotime($office_end_time);
-                    if ($overtime_seconds > 0) {
-                        $summary->overtime_hours += round($overtime_seconds / 3600, 2);
-                    }
-                } elseif (strtotime($out_time_final) < strtotime($evening_session_end_time) && strtotime($out_time_final) > strtotime($afternoon_permission_start_time)) {
-                    if ($summary->permission_count < $max_permission_allowed) {
-                        $attendance_type_id = $permission_second_session_id;
-                        $remark = 'Permission';
-                        $summary->permission_count++;
-                    } else {
-                        $attendance_type_id = $absent_id;
-                        $remark = 'Permission limit exceeded';
-                    }
-                } else {
-                    $summary->early_leaving_count++;
-                }
-            }
-
-            // Update summary table
-            $this->staffattendancemonthlysummary_model->update_summary($summary->id, (array)$summary);
-
-            // Prepare data for staff_attendance
+            // Prepare and save the final record
             $attendance_record_data = [
                 'staff_id'                 => $staff_id,
                 'date'                     => $date,
                 'staff_attendance_type_id' => $attendance_type_id,
                 'remark'                   => $remark,
-                'in_time'                  => $in_time_final, // First in-time for the day
-                'out_time'                 => $out_time_final, // Last out-time from a matched pair
+                'in_time'                  => $in_time_final,
+                'out_time'                 => $out_time_final,
                 'total_hours_worked'       => $total_hours_worked,
                 'updated_at'               => date('Y-m-d H:i:s'),
             ];
-
-            // Check if attendance already exists for this staff and date, then update or insert
+            
             $existing_attendance = $this->staffattendancemodel->getAttendanceByStaffIdAndDate($staff_id, $date);
-
             if ($existing_attendance) {
                 $this->staffattendancemodel->update($existing_attendance['id'], $attendance_record_data);
             } else {
                 $this->staffattendancemodel->add($attendance_record_data);
             }
         }
-
         return true;
     }
 

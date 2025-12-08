@@ -61,6 +61,13 @@ if (!$staffid_auto_insert) {
                                                     <span class="text-danger"><?php echo form_error('employee_id'); ?></span>
                                                 </div>
                                             </div>
+                                            <div class="col-md-3">
+                                                <div class="form-group">
+                                                    <label for="biometric_id"><?php echo $this->lang->line('biometric_id'); ?></label>
+                                                    <input id="biometric_id" name="biometric_id" placeholder="" type="text" class="form-control"  value="<?php echo set_value('biometric_id') ?>" />
+                                                    <span class="text-danger"><?php echo form_error('biometric_id'); ?></span>
+                                                </div>
+                                            </div>
                                             <?php
 }
 ?>

@@ -311,6 +311,88 @@
 						</ul>
                         <div class="tab-content pb0">
                         <div class="tab-pane <?php if($classid==0){ echo "active";}else{ echo ""; }  ?>" id="staff">
+<div class="box box-primary">
+    <div class="box-header with-border">
+        <h3 class="box-title">Common Settings</h3>
+    </div>
+    <div class="box-body">
+        <div class="panel panel-info" id="common_settings_panel">
+            <div class="panel-body pr-05 ps-5">
+                <div class="row">
+                    <div class="col-sm-12 col-lg-12 col-md-12">
+                        <div class="col-sm-3 col-lg-3 col-md-3">
+                            <label><?php echo $this->lang->line('attendance_type'); ?></label>
+                        </div>
+                        <div class="col-sm-9 col-lg-9 col-md-9">
+                            <div class="row">
+                                <div class="col-sm-4 col-lg-4 col-md-4">
+                                    <label><?php echo $this->lang->line('entry_from'); ?> (hh:mm:ss)</label>
+                                </div>
+                                <div class="col-sm-4 col-lg-4 col-md-4">
+                                    <label><?php echo $this->lang->line('entry_upto'); ?> (hh:mm:ss)</label>
+                                </div>
+                                <div class="col-sm-4 col-lg-4 col-md-4">
+                                    <label><?php echo $this->lang->line('total_hour'); ?></label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="append_row paddA10">
+                    <?php
+                    if (!empty($attendance_type)) {
+                        foreach ($attendance_type as $att_type_key => $att_type_value) {
+                    ?>
+                            <div class="row common-setting-row" data-attendance-type-id="<?php echo $att_type_value->id; ?>">
+                                <div class="col-sm-3 col-lg-3 col-md-3">
+                                    <?php echo $this->lang->line($att_type_value->long_lang_name) . " (" . $att_type_value->key_value . ")"; ?>
+                                </div>
+                                <div class="col-sm-9 col-lg-9 col-md-9">
+                                    <div class="row">
+                                        <div class="col-sm-4 col-lg-4 col-md-4">
+                                            <div class="form-group">
+                                                <div class="input-group">
+                                                    <input type="text" class="form-control common_entry_from time">
+                                                    <div class="input-group-addon">
+                                                        <span class="fa fa-clock-o"></span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-4 col-lg-4 col-md-4">
+                                            <div class="form-group">
+                                                <div class="input-group">
+                                                    <input type="text" class="form-control common_entry_to time">
+                                                    <div class="input-group-addon">
+                                                        <span class="fa fa-clock-o"></span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-4 col-lg-4 col-md-4">
+                                            <div class="form-group">
+                                                <div class="input-group">
+                                                    <input type="text" class="form-control common_total_hour time_hour">
+                                                    <div class="input-group-addon">
+                                                        <span class="fa fa-clock-o"></span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                    <?php
+                        }
+                    }
+                    ?>
+                </div>
+            </div>
+        </div>
+        <button type="button" id="apply_all_staff_times" class="btn btn-primary btn-sm pull-right">Apply All</button>
+    </div>
+</div>
 							<div class="box box-primary">
 								<div class="box-header with-border">
 									<h3 class="box-title"><?php echo $this->lang->line('staff_attendance_setting'); ?></h3>
@@ -873,4 +955,35 @@ $(document).on('submit','#form_timetable',function(e){
         });
     });
 
+</script>
+<script type="text/javascript">
+    $(document).ready(function() {
+        $('#apply_all_staff_times').on('click', function() {
+            $('.common-setting-row').each(function() {
+                var attendanceTypeId = $(this).data('attendance-type-id');
+                var common_from = $(this).find('.common_entry_from').val();
+                var common_to = $(this).find('.common_entry_to').val();
+                var common_total = $(this).find('.common_total_hour').val();
+
+                // Find all role forms
+                $('form.update').each(function() {
+                    var roleForm = $(this);
+                    // Find the row within the role form that corresponds to the current attendance type
+                    var targetRow = roleForm.find('input[name^="attendance_type_id_"][value="' + attendanceTypeId + '"]').closest('.row');
+
+                    if(targetRow.length > 0) {
+                        if(common_from) {
+                            targetRow.find('.entry_time_from').val(common_from);
+                        }
+                        if(common_to) {
+                            targetRow.find('.entry_time_to').val(common_to);
+                        }
+                        if(common_total) {
+                            targetRow.find('.total_institute_hour').val(common_total);
+                        }
+                    }
+                });
+            });
+        });
+    });
 </script>

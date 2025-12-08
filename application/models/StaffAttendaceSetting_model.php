@@ -69,4 +69,16 @@ class StaffAttendaceSetting_model extends CI_Model
         $query = $this->db->get('staff_attendence_schedules');
         return $query->result();
     }
+
+    public function getAttendanceTypeByRoleAndType($role_id, $type_id)
+    {
+        $this->db->where('role_id', $role_id);
+        $this->db->where('staff_attendence_type_id', $type_id);
+        $query = $this->db->get('staff_attendence_schedules');
+        if ($query->num_rows() > 0) {
+            return $query->row();
+        } else {
+            return false;
+        }
+    }
 }

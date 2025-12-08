@@ -1019,9 +1019,10 @@ class Staff_model extends MY_Model
        return $query->result_array();
     }
 
-    public function get_by_employee_id($employee_id)
+
+    public function get_by_biometric_id($biometric_id)
     {
-        $this->db->where('employee_id', $employee_id);
+        $this->db->where('biometric_id', $biometric_id);
         $query = $this->db->get('staff');
         if ($query->num_rows() > 0) {
             return $query->row();

@@ -455,6 +455,7 @@ class Staff extends Admin_Controller
             }
 
             $employee_id       = $this->input->post("employee_id");
+            $biometric_id      = $this->input->post("biometric_id");
             $department        = empty2null($this->input->post("department"));
             $designation       = empty2null($this->input->post("designation"));
             $role              = $this->input->post("role");
@@ -496,6 +497,7 @@ class Staff extends Admin_Controller
             $data_insert = array(
                 'password'               => $this->enc_lib->passHashEnc($password),
                 'employee_id'            => $employee_id,
+                'biometric_id'           => $biometric_id,
                 'name'                   => $name,
                 'email'                  => $email,
                 'dob'                    => date('Y-m-d', $this->customlib->datetostrtotime($dob)),
@@ -850,6 +852,7 @@ class Staff extends Admin_Controller
             }
 
             $employee_id = $this->input->post("employee_id");
+            $biometric_id = $this->input->post("biometric_id");
             $department = empty2null($this->input->post("department"));
             $designation = empty2null($this->input->post("designation"));
             $role = $this->input->post("role");
@@ -888,6 +891,7 @@ class Staff extends Admin_Controller
             $data_update = array(
                 'id' => $id,
                 'employee_id' => $employee_id,
+                'biometric_id'           => $biometric_id,
                 'name' => $name,
                 'email' => $email,
                 'dob' => date('Y-m-d', $this->customlib->datetostrtotime($dob)),

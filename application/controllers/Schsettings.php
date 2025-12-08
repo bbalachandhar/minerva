@@ -754,9 +754,47 @@ class Schsettings extends Admin_Controller
         //staff attedance settings
         $staff_attendance_data   = $this->staffAttendaceSetting_model->getRoleAttendanceSetting();  
         $attendance_type         = $this->attendencetype_model->getScheduleTypeStaffAttendance();
+        
+        echo '<!-- Original attendance types: ' . print_r($attendance_type, true) . ' -->';
+        
+        // Custom reordering of attendance types
+        $reordered_attendance = array();
+        $buckets = [];
+
+        // Separate special items into buckets
+        foreach ($attendance_type as $type) {
+            if ($type->id == 7 || $type->id == 9 || $type->id == 10 || $type->id == 11) { // Include new absent types in buckets
+                $buckets[$type->id] = $type;
+            } else {
+                $reordered_attendance[] = $type;
+            }
+        }
+        
+        // Rebuild the array, inserting items from buckets in the correct order
+        $final_ordered_list = [];
+        foreach($reordered_attendance as $type) {
+            $final_ordered_list[] = $type;
+            if ($type->id == 2 && isset($buckets[7])) { // After Late (ID 2) insert FHP (ID 7)
+                $final_ordered_list[] = $buckets[7];
+            }
+            if ($type->id == 6 && isset($buckets[9])) { // After Half Day (ID 6) insert SHP (ID 9)
+                $final_ordered_list[] = $buckets[9];
+            }
+        }
+
+        // Add absent types at the end if they weren't placed by reordering (e.g., if Late/Half Day are missing)
+        if (isset($buckets[10])) { // First Half Absent
+            $final_ordered_list[] = $buckets[10];
+        }
+        if (isset($buckets[11])) { // Second Half Absent
+            $final_ordered_list[] = $buckets[11];
+        }
+
+        echo '<!-- Final ordered attendance types: ' . print_r($final_ordered_list, true) . ' -->';
+        
         $user_roles              = $this->staff_model->getStaffRole();
         $data['user_roles']      = $user_roles;    
-        $data['attendance_type'] = $attendance_type;
+        $data['attendance_type'] = $final_ordered_list;
         $new_list_attendance     = array();
 
         foreach ($staff_attendance_data as $key => $value) {

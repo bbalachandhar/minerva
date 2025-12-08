@@ -145,6 +145,9 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                 <b><?php echo $this->lang->line('staff_id'); ?></b> <a class="pull-right text-aqua"><?php echo $staff['employee_id']; ?></a>
                             </li>
                             <li class="list-group-item listnoback">
+                                <b><?php echo $this->lang->line('biometric_id'); ?></b> <a class="pull-right text-aqua"><?php echo $staff['biometric_id']; ?></a>
+                            </li>
+                            <li class="list-group-item listnoback">
                                 <b><?php echo $this->lang->line('prefix'); ?></b> <a class="pull-right text-aqua"><?php echo $staff['prefix']; ?></a>
                             </li>
                             <li class="list-group-item listnoback">

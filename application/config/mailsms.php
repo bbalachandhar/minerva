@@ -53,7 +53,11 @@ $config['attendence'] = array(
     'absent'           => 4,
     'holiday'          => 5,
     'half_day'         => 6,
-    'half_day_second_shift'         => 8, //added
+    'permission_first_session' => 7,
+    'half_day_second_shift'         => 8, 
+    'permission_second_session' => 9,
+    'first_half_absent' => 10,
+    'second_half_absent' => 11,
 );
 
 $config['attendence_exam'] = array(

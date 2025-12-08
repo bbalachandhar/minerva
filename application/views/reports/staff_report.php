@@ -171,12 +171,12 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                                 <td><?php echo date($this->customlib->getSchoolDateFormat(), strtotime($staff['dob'])); ?></td>
                                                 <td><?php if(!empty($staff['date_of_joining'])){ echo date($this->customlib->getSchoolDateFormat(), strtotime($staff['date_of_joining'])); } ?></td>
                                                 <td><?php echo $staff['contact_no']; ?></td>
-                                                <td><?php echo $staff['emergency_contact_number']; ?></td>
+                                                <td><?php echo isset($staff['emergency_contact_number']) ? $staff['emergency_contact_number'] : ''; ?></td>
                                                 <td><?php echo $staff['marital_status']; ?></td>
                                                 <td><?php echo $staff['local_address']; ?></td>
                                                 <td><?php echo $staff['permanent_address']; ?></td>
                                                 <td><?php echo $staff['qualification']; ?></td>
-                                                <td><?php echo $staff['work_experience'] ?></td>
+                                                <td><?php echo isset($staff['work_experience']) ? $staff['work_experience'] : ''; ?></td>
                                                 <td><?php echo $staff['note'] ?></td>
                                                 <td><?php echo $staff['epf_no']; ?></td>
                                                 <td><?php if(!empty($staff['basic_salary'])){ echo amountFormat($staff['basic_salary']); } ?></td>
