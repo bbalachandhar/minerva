@@ -1693,6 +1693,65 @@ class Student extends Admin_Controller
             $student_id = $this->input->post('student_id');
             $student    = $this->student_model->get($student_id);
 
+            $old_route_pickup_point_id = $student['route_pickup_point_id'];
+            $current_student_session_id = $student['student_session_id'];
+            $new_route_pickup_point_id = $this->input->post('route_pickup_point_id');
+            $new_vehroute_id = $this->input->post('vehroute_id');
+            
+            // Check if route_pickup_point_id is actually changing or becoming empty
+            if ($old_route_pickup_point_id != $new_route_pickup_point_id || (empty($new_route_pickup_point_id) && !empty($old_route_pickup_point_id))) {
+                // Get all previously assigned transport fees for the student
+                $all_old_transport_fees_assigned = $this->studentfeemaster_model->getStudentTransportFeesByStudentSessionId($current_student_session_id, $old_route_pickup_point_id);
+
+                $total_paid_old_transport_amount = 0;
+                if (!empty($all_old_transport_fees_assigned)) {
+                    foreach ($all_old_transport_fees_assigned as $old_fee) {
+                        // For each transport fee, get its deposit details
+                        $deposit_details = $this->studentfeemaster_model->studentTransportDeposit($old_fee->id);
+                        
+                        // Calculate paid amount for this specific transport fee
+                        $amount_paid = 0;
+                        if (!empty($deposit_details->amount_detail)) {
+                            $fee_deposits = json_decode($deposit_details->amount_detail);
+                            foreach ($fee_deposits as $fee_deposit) {
+                                $amount_paid += $fee_deposit->amount;
+                            }
+                        }
+                        $total_paid_old_transport_amount += $amount_paid;
+                    }
+                }
+
+                // If there's any paid amount from the old transport fees, transfer it to advance payments
+                if ($total_paid_old_transport_amount > 0) {
+                    $advance_fee_ids = $this->studentfeemaster_model->get_or_create_advance_fee_ids($current_student_session_id);
+                    $staff_record = $this->staff_model->get($this->customlib->getStaffID());
+                    $collected_by = $this->customlib->getAdminSessionUserName() . "(" . $staff_record['employee_id'] . ")";
+                    $date = date('Y-m-d'); // Use current date for the advance payment entry
+
+                    $json_array_advance = [
+                        'amount'          => $total_paid_old_transport_amount,
+                        'amount_discount' => 0,
+                        'amount_fine'     => 0,
+                        'date'            => $date,
+                        'description'     => 'Transfer from old Transport Fees (Route Change)',
+                        'collected_by'    => $collected_by,
+                        'payment_mode'    => 'Transfer', // New payment mode for this specific scenario
+                        'received_by'     => $staff_record['id'],
+                    ];
+
+                    $data_to_insert_advance = [
+                        'fee_category'           => 'fees',
+                        'student_fees_master_id' => $advance_fee_ids->student_fees_master_id,
+                        'fee_groups_feetype_id'  => $advance_fee_ids->fee_groups_feetype_id,
+                        'amount_detail'          => $json_array_advance,
+                    ];
+
+                    $this->studentfeemaster_model->fee_deposit($data_to_insert_advance, null, [], $date);
+                    $this->session->set_flashdata('msg', '<div class="alert alert-success">' . $this->lang->line('transport_fees_transferred_to_advance_successfully') . '</div>');
+
+                }
+            }
+
             $sibling_id            = $this->input->post('sibling_id');
             $siblings_counts       = $this->input->post('siblings_counts');
             $siblings              = $this->student_model->getMySiblings($student['parent_id'], $student_id);

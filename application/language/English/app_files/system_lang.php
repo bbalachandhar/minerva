@@ -2839,3 +2839,5 @@ $lang['first_half_absent'] = 'First Half Absent';
 $lang['second_half_absent'] = 'Second Half Absent';
 $lang['advance_fees_collected_successfully'] = "Advance Fees Collected Successfully";
 $lang['error_collecting_advance_fees'] = "Error Collecting Advance Fees";
+$lang['transport_fees_transferred_to_advance_successfully'] = "Transport Fees Transferred to Advance Successfully";
+$lang['file_upload_failed_could_not_move_uploaded_file_to_destination'] = "File upload failed: Could not move uploaded file to destination.";

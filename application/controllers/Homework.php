@@ -346,29 +346,45 @@ class Homework extends Admin_Controller
                 'description'              => $this->input->post("description"),
                 'create_date'              => date("Y-m-d"),
                 'created_by'               => $userdata["id"],
-                'subject_id'               => NULL,
+                'subject_id'               => $this->input->post("modal_subject_id"),
             );
 
-            if ($record_id > 0) {
-                $homeworklist = $this->homework_model->get($record_id);
+            $document_to_save = NULL; // Default to NULL, or empty string if preferred for DB column
+
+            if ($record_id > 0) { // Editing existing homework
+                $homeworklist = $this->homework_model->get($record_id); 
+                $document_to_save = $homeworklist['document']; // Retain existing document by default
 
                 if (isset($_FILES["userfile"]) && $_FILES['userfile']['name'] != '' && (!empty($_FILES['userfile']['name']))) {
-                    $img_name = $this->media_storage->fileupload("userfile", "./uploads/homework/");
-                } else {
-                    $img_name = $homeworklist['document'];
+                    $upload_result = $this->media_storage->fileupload("userfile", "./uploads/homework/");
+                    if ($upload_result['status'] === false) {
+                        $msg = array('userfile' => $upload_result['message']);
+                        $array = array('status' => 'fail', 'error' => $msg, 'message' => $upload_result['message']);
+                        echo json_encode($array);
+                        return; 
+                    }
+                    $document_to_save = $upload_result['message']; // Get the actual filename
+
+                    // Delete old document only if a new one was successfully uploaded and old one exists
+                    if (!empty($homeworklist['document'])) {
+                        $this->media_storage->filedelete($homeworklist['document'], "uploads/homework"); 
+                    }
                 }
-
-                $data['document'] = $img_name;
-
+            } else { // Creating new homework
                 if (isset($_FILES["userfile"]) && $_FILES['userfile']['name'] != '' && (!empty($_FILES['userfile']['name']))) {
-                    $this->media_storage->filedelete($homeworklist['document'], "uploads/homework");
+                    $upload_result = $this->media_storage->fileupload("userfile", "./uploads/homework/");
+                    if ($upload_result['status'] === false) {
+                        $msg = array('userfile' => $upload_result['message']);
+                        $array = array('status' => 'fail', 'error' => $msg, 'message' => $upload_result['message']);
+                        echo json_encode($array);
+                        return; 
+                    }
+                    $document_to_save = $upload_result['message']; // Get the actual filename
                 }
-            } else {
-                $img_name         = $this->media_storage->fileupload("userfile", "./uploads/homework/");
-                $data['document'] = $img_name;
             }
+            $data['document'] = $document_to_save; // Assign the determined document name
 
-            $id = $this->homework_model->add($data);
+            $id = $this->homework_model->add($data); 
 
             if ($record_id > 0) {
                 $id = $record_id;
@@ -376,14 +392,14 @@ class Homework extends Admin_Controller
             }
 
             if ($record_id == 0) {
-                $homework_detail = $this->homework_model->get($id);
+                $homework_detail = $this->homework_model->get($id); 
 
                 $sender_details = array(
                     'class_id'      => $this->input->post("modal_class_id"),
                     'section_id'    => $this->input->post("modal_section_id"),
-                    'homework_date' => date($this->customlib->getSchoolDateFormat(), $this->customlib->dateYYYYMMDDtoStrtotime($homework_detail['homework_date'])),
-                    'submit_date'   => date($this->customlib->getSchoolDateFormat(), $this->customlib->dateYYYYMMDDtoStrtotime($homework_detail['submit_date'])),
-                    'subject'       => $homework_detail['subject_name'],
+                    'homework_date' => date($this->customlib->getSchoolDateFormat(), $this->customlib->dateYYYYMMDDtoStrtotime($this->input->post('homework_date'))),
+                    'submit_date'   => date($this->customlib->getSchoolDateFormat(), $this->customlib->dateYYYYMMDDtoStrtotime($this->input->post('submit_date'))),
+                    'subject'       => $homework_detail['subject_name'], 
                 );
 
                 $this->mailsmsconf->mailsms('homework', $sender_details);
@@ -398,39 +414,50 @@ class Homework extends Admin_Controller
 
     public function handle_upload()
     {
-        $image_validate = $this->config->item('file_validate');
-        $result         = $this->filetype_model->get();
-        if (isset($_FILES["userfile"]) && !empty($_FILES['userfile']['name'])) {
+        $result = $this->filetype_model->get(); // This retrieves file type validation settings
 
+        if (isset($_FILES["userfile"]) && !empty($_FILES['userfile']['name'])) {
             $file_type = $_FILES["userfile"]['type'];
             $file_size = $_FILES["userfile"]["size"];
             $file_name = $_FILES["userfile"]["name"];
+
+            // Check for upload errors
+            if ($_FILES["userfile"]["error"] !== UPLOAD_ERR_OK) {
+                // Return a specific message for upload errors
+                $this->form_validation->set_message('handle_upload', $this->lang->line('file_upload_failed_could_not_move_uploaded_file_to_destination'));
+                return false;
+            }
 
             $allowed_extension = array_map('trim', array_map('strtolower', explode(',', $result->file_extension)));
             $allowed_mime_type = array_map('trim', array_map('strtolower', explode(',', $result->file_mime)));
             $ext               = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
 
-            if ($files = filesize($_FILES['userfile']['tmp_name'])) {
+            // Use finfo_open for more reliable MIME type detection
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+            $mtype = finfo_file($finfo, $_FILES['userfile']['tmp_name']);
+            finfo_close($finfo);
 
-                if (!in_array($file_type, $allowed_mime_type)) {
-                    $this->form_validation->set_message('handle_upload', $this->lang->line('file_type_not_allowed'));
-                    return false;
-                }
-                if (!in_array($ext, $allowed_extension) || !in_array($file_type, $allowed_mime_type)) {
-                    $this->form_validation->set_message('handle_upload', $this->lang->line('file_type_not_allowed'));
-                    return false;
-                }
-                if ($file_size > $result->file_size) {
-                    $this->form_validation->set_message('handle_upload', $this->lang->line('file_size_shoud_be_less_than') . number_format($result->file_size / 1048576, 2) . " MB");
-                    return false;
-                }
-            } else {
+            // Validate MIME type
+            if (!in_array($mtype, $allowed_mime_type)) {
                 $this->form_validation->set_message('handle_upload', $this->lang->line('file_type_not_allowed'));
+                return false;
+            }
+
+            // Validate extension
+            if (!in_array($ext, $allowed_extension)) {
+                $this->form_validation->set_message('handle_upload', $this->lang->line('extension_not_allowed'));
+                return false;
+            }
+            
+            // Validate file size
+            if ($file_size > $result->file_size) {
+                $this->form_validation->set_message('handle_upload', $this->lang->line('file_size_shoud_be_less_than') . number_format($result->file_size / 1048576, 2) . " MB");
                 return false;
             }
 
             return true;
         }
+        // No file uploaded, which is acceptable if not required
         return true;
     }
 
