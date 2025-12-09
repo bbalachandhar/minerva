@@ -73,7 +73,7 @@ if ($class_id == $class["id"]) {
                         <div class="col-md-2 col-lg-2 col-sm-4">
                             <div class="form-group">
                                 <label><?php echo $this->lang->line('date'); ?></label><small class="req"> *</small>
-                                <input type="text" name="date" class="form-control date">
+                                <input type="text" name="date" id="date" class="form-control date">
                                 <span class="text-danger" id="error_date"></span>
                             </div>
                         </div>
@@ -89,9 +89,7 @@ if ($class_id == $class["id"]) {
                     <h3 class="box-title"><i class="fa fa-users"> </i> <?php echo $this->lang->line('daily_assignment_list'); ?></h3>
                 </div>
                 <div class="box-body table-responsive">                    
-                    <table class="table table-striped table-bordered table-hover dailyassignmentlist" data-export-title="<?php echo $this->lang->line('daily_assignment_list') . "<br>";
-$this->customlib->get_postmessage();
-?>">
+                    <table class="table table-striped table-bordered table-hover dailyassignmentlist" data-export-title="<?php echo $this->lang->line('daily_assignment_list'); ?>">
                         <thead>
                             <tr>
                                 <th><?php echo $this->lang->line('student_name') ?></th>                         
@@ -247,8 +245,8 @@ $this->customlib->get_postmessage();
 
 <script type="text/javascript">
     $(document).ready(function () {
-        var date_format = '<?php echo $result = strtr($this->customlib->getSchoolDateFormat(), ['d' => 'dd', 'm' => 'mm', 'Y' => 'yyyy']) ?>';
-        $('#homework_date,#submit_date,#homeworkdate,#submitdate').datepicker({
+        var date_format = <?php echo json_encode(strtr($this->customlib->getSchoolDateFormat(), ['d' => 'dd', 'm' => 'mm', 'Y' => 'yyyy'])); ?>;
+        $('#date,#homework_date,#submit_date,#homeworkdate,#submitdate').datepicker({
             format: date_format,
             autoclose: true,
             language: '<?php echo $language_name ?>'

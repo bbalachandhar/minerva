@@ -28,7 +28,7 @@ $feesinbackdate = $this->customlib->getfeesinbackdate();
 <script src="<?php echo base_url(); ?>backend/plugins/input-mask/jquery.inputmask.js"></script>
 <script src="<?php echo base_url(); ?>backend/plugins/input-mask/jquery.inputmask.date.extensions.js"></script>
 <script src="<?php echo base_url(); ?>backend/plugins/input-mask/jquery.inputmask.extensions.js"></script>
-<script src="<?php echo base_url(); ?>backend/plugins/tempusdominus/js/tempus-dominus.min.js"></script>
+
 <script src="<?php echo base_url(); ?>backend/plugins/daterangepicker/daterangepicker.js"></script>
 <script src="<?php echo base_url(); ?>backend/plugins/colorpicker/bootstrap-colorpicker.min.js"></script>
 
@@ -146,18 +146,18 @@ $(document).ready(function () {
 </script>
 
 <script type="text/javascript">
-    $(document).ready(function () {
-        $('.time').timepicker({
-            showInputs: false,
-            icons: {
-                up: 'fa fa-chevron-up',
-                down: 'fa fa-chevron-down'
-            }
-        });
+    // $(document).ready(function () {
+    //     $('.time').timepicker({
+    //         showInputs: false,
+    //         icons: {
+    //             up: 'fa fa-chevron-up',
+    //             down: 'fa fa-chevron-down'
+    //         }
+    //     });
 
-        // Initialize Dropify
-        $('.dropify').dropify();
-    });
+    //     // Initialize Dropify
+    //     $('.dropify').dropify();
+    // });
 </script>
 <script type="text/javascript">
 
@@ -253,11 +253,11 @@ if ($this->session->flashdata('success_msg')) {
 <?php } ?>
 
 <script type="text/javascript">
-    var calendar_date_time_format = '<?php echo $result = strtr($this->customlib->getSchoolDateFormat(), ['d' => 'DD', 'm' => 'MM', 'M' => 'MMM', 'Y' => 'YYYY']) ?>';
+    var calendar_date_time_format = <?php echo json_encode(strtr($this->customlib->getSchoolDateFormat(), ['d' => 'DD', 'm' => 'MM', 'M' => 'MMM', 'Y' => 'YYYY'])); ?>;
 
-    var datetime_format = '<?php echo $result = strtr($this->customlib->getSchoolDateFormat(true, true), ['d' => 'DD', 'm' => 'MM', 'Y' => 'YYYY', 'H' => 'hh', 'i' => 'mm']) ?>';
+    var datetime_format = <?php echo json_encode(strtr($this->customlib->getSchoolDateFormat(true, true), ['d' => 'DD', 'm' => 'mm', 'Y' => 'YYYY', 'H' => 'hh', 'i' => 'mm'])); ?>;
 
-    var date_format = '<?php echo $result = strtr($this->customlib->getSchoolDateFormat(), ['d' => 'dd', 'm' => 'mm', 'Y' => 'yyyy', 'M' => 'M']) ?>';
+    var date_format = <?php echo json_encode(strtr($this->customlib->getSchoolDateFormat(), ['d' => 'dd', 'm' => 'mm', 'Y' => 'yyyy'])); ?>;
 
     function savedata(eventData) {
         var base_url = '<?php echo base_url() ?>';
@@ -319,7 +319,7 @@ if (isset($title)) {
         },
         timezone: 'UTC',
         draggable: false,
-        locale: '<?php echo $language_name ?>',
+        locale: <?php echo json_encode($language_name); ?>,
         editable: false,
         eventLimit: false, // allow "more" link when too many events
 
@@ -532,7 +532,7 @@ if (isset($title)) {
                 format: date_format,
                 autoclose: true,
                 weekStart : start_week,
-                language: '<?php echo $language_name ?>'
+                language: <?php echo json_encode($language_name); ?>
             });
         });
 
@@ -581,17 +581,17 @@ if (isset($title)) {
 
     });
 
-    function loadDate() {
+    // function loadDate() {
 
-        var date_format = '<?php echo $result = strtr($this->customlib->getSchoolDateFormat(), ['d' => 'dd', 'm' => 'mm', 'Y' => 'yyyy']) ?>';
+    //     var date_format = <?php echo json_encode(strtr($this->customlib->getSchoolDateFormat(), ['d' => 'dd', 'm' => 'mm', 'Y' => 'yyyy'])); ?>;
 
-        $('.date').datetimepicker({
-            format: datetime_format,
-            locale:
-                    '<?php echo $language_name ?>',
+    //     $('.date').datetimepicker({
+    //         format: datetime_format,
+    //         locale:
+    //                 <?php echo json_encode($language_name); ?>,
 
-        });
-    }
+    //     });
+    // }
 
     // showdate('this_year');
 
@@ -687,7 +687,7 @@ if (isset($_POST['date_from']) && $_POST['date_from'] != '' && isset($_POST['dat
         },
         timezone: 'UTC',
         draggable: false,
-        locale: '<?php echo $language_name ?>',
+        locale: <?php echo json_encode($language_name); ?>,
         editable: false,
         eventLimit: false, // allow "more" link when too many events
 
@@ -710,7 +710,5 @@ if (isset($_POST['date_from']) && $_POST['date_from'] != '' && isset($_POST['dat
     });
 </script>
 <script src="<?php echo base_url(); ?>backend/multiselect/js/jquery.multiselect.js"></script>
-<script>
-    $.widget.bridge('uibutton', $.ui.button);
-</script>
+
 </html>

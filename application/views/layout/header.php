@@ -29,7 +29,7 @@ $this->load->view('layout/theme');
         <!-- Old timepicker CSS removed -->
 
         <link rel="stylesheet" href="<?php echo base_url(); ?>backend/dist/css/custom_style.css">
-        <link rel="stylesheet" href="<?php echo base_url(); ?>backend/plugins/tempusdominus/css/tempus-dominus.min.css">
+
 
         <!--file dropify-->
         <link rel="stylesheet" href="<?php echo base_url(); ?>backend/dist/css/dropify.min.css">
@@ -49,11 +49,7 @@ $this->load->view('layout/theme');
         <script src="<?php echo base_url(); ?>backend/custom/jquery.min.js"></script>
         <script src="<?php echo base_url(); ?>backend/dist/js/moment.min.js"></script>
 
-        <script src="<?php echo base_url(); ?>backend/datepicker/js/bootstrap-datetimepicker.js"></script>
-         <link rel="stylesheet" href="<?php echo base_url(); ?>backend/datepicker/css/bootstrap-datetimepicker.css">
-        <script src="<?php echo base_url(); ?>backend/plugins/colorpicker/bootstrap-colorpicker.js"></script>
 
-        <script src="<?php echo base_url(); ?>backend/dist/js/jquery-ui.min.js"></script>
         <script src="<?php echo base_url(); ?>backend/dist/js/jquery.mCustomScrollbar.concat.min.js"></script>
         <script src="<?php echo base_url(); ?>backend/js/school-custom.js"></script>
         <script src="<?php echo base_url(); ?>backend/js/school-admin-custom.js?v=<?php echo time(); ?>"></script>
