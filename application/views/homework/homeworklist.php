@@ -722,13 +722,16 @@ $(document).on('submit','form#evaluation_data',function(e){
         }
     })
 </script>
-<script>
+<script type="text/javascript">
 $(document).ready(function() {
-     emptyDatatable('homework-list');
-});
-
-$(document).ready(function() {
-     emptyDatatable('homework-list-close');
+    var initial_params = {
+        class_id: "<?php echo $class_id; ?>",
+        section_id: "<?php echo $section_id; ?>",
+        subject_group_id: "<?php echo $subject_group_id; ?>",
+        subject_id: "<?php echo $subject_id; ?>"
+    };
+    initDatatable('homework-list', 'homework/dthomeworklist', initial_params, [], 100);
+    initDatatable('homework-list-close', 'homework/closehomeworklist', initial_params, [], 100);
 });
 </script>
 <script type="text/javascript">
