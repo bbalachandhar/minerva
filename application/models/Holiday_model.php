@@ -199,26 +199,126 @@ class Holiday_model extends MY_model {
         }
     }
 
-    public function check_data_exists($name, $id)
-    {
-        if ($id != 0) {
-            $data  = array('id != ' => $id, 'type' => $name);
-            $query = $this->db->where($data)->get('holiday_type');
-            if ($query->num_rows() > 0) {
-                return true;
+        public function check_data_exists($name, $id)
+
+        {
+
+            if ($id != 0) {
+
+                $data  = array('id != ' => $id, 'type' => $name);
+
+                $query = $this->db->where($data)->get('holiday_type');
+
+                if ($query->num_rows() > 0) {
+
+                    return true;
+
+                } else {
+
+                    return false;
+
+                }
+
             } else {
-                return false;
+
+                $this->db->where('type', $name);
+
+                $query = $this->db->get('holiday_type');
+
+                if ($query->num_rows() > 0) {
+
+                    return true;
+
+                } else {
+
+                    return false;
+
+                }
+
             }
-        } else {
-            $this->db->where('type', $name);
+
+        }
+
+    
+
+        // New method: Check if a holiday already exists for the current session
+
+        public function checkHolidayExists($from_date, $description)
+
+        {
+
+            $session_id = $this->setting_model->getCurrentSession();
+
+            $this->db->where('from_date', $from_date);
+
+            $this->db->where('description', $description);
+
+            $this->db->where('session_id', $session_id);
+
+            $query = $this->db->get('annual_calendar');
+
+            return $query->num_rows() > 0;
+
+        }
+
+    
+
+        // New method: Add multiple holiday records in a batch
+
+        public function addBatch($data)
+
+        {
+
+            $this->db->trans_start();
+
+            $this->db->trans_strict(false);
+
+    
+
+            $this->db->insert_batch('annual_calendar', $data);
+
+            
+
+            $message = "Batch Inserted " . count($data) . " holidays into annual_calendar";
+
+            $action = "Batch Insert";
+
+            $record_id = null; // No single record ID for batch insert
+
+            $this->log($message, $record_id, $action);
+
+    
+
+            $this->db->trans_complete();
+
+    
+
+            if ($this->db->trans_status() === FALSE) {
+
+                $this->db->trans_rollback();
+
+                return false;
+
+            } else {
+
+                return true;
+
+            }
+
+        }
+
+        // New method to get holiday type by name
+        public function get_holiday_type_by_name($type_name)
+        {
+            $this->db->where('type', $type_name);
             $query = $this->db->get('holiday_type');
             if ($query->num_rows() > 0) {
-                return true;
-            } else {
-                return false;
+                return $query->row_array();
             }
+            return false;
         }
+
     }
 
-}
+    
 ?>

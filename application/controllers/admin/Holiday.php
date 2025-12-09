@@ -183,6 +183,119 @@ class Holiday extends Admin_Controller
         redirect('admin/holiday/holidaytype');
     }
     
+    public function importIndianHolidays()
+    {
+        if (!$this->rbac->hasPrivilege('annual_calendar', 'can_add')) {
+            access_denied();
+        }
+
+        $this->form_validation->set_rules('import_year', $this->lang->line('year'), 'trim|required|numeric|xss_clean');
+        $this->form_validation->set_rules('import_region', $this->lang->line('region_state_optional'), 'trim|xss_clean');
+
+        if ($this->form_validation->run() == false) {
+            $msg = array(
+                'import_year'   => form_error('import_year'),
+                'import_region' => form_error('import_region'),
+            );
+            $array = array('status' => 'fail', 'error' => $msg, 'message' => '');
+        } else {
+            $year = $this->input->post('import_year');
+            $region = $this->input->post('import_region');
+
+            // --- Placeholder for fetching holidays ---
+            // In a real-world scenario, you would integrate with an external API
+            // or parse a local data source here.
+            // For now, we'll use a dummy data structure.
+            $indianHolidays = $this->getDummyIndianHolidays($year, $region);
+            // --- End Placeholder ---
+
+            $holidaysToAdd = [];
+            $existingHolidaysCount = 0;
+            $addedHolidaysCount = 0;
+
+            $session_id = $this->setting_model->getCurrentSession();
+            $staff_id = $this->customlib->getStaffID();
+            $default_holiday_type_id = null; // Assuming a default holiday type for imported holidays
+
+            // Try to find a default holiday type, e.g., 'Holiday' or 'National Holiday'
+            $holidayTypes = $this->holiday_model->get_holiday_type();
+            foreach ($holidayTypes as $type) {
+                if (strtolower($type['type']) == 'holiday' || strtolower($type['type']) == 'national holiday' || strtolower($type['type']) == 'national') { // Added 'national' as another check
+                    $default_holiday_type_id = $type['id'];
+                    break;
+                }
+            }
+
+            // If no suitable default type is found, we might need to create one or log an error
+            if (is_null($default_holiday_type_id)) {
+                // As a fallback, use the first available holiday type, or create a new one
+                if (!empty($holidayTypes)) {
+                    $default_holiday_type_id = $holidayTypes[0]['id'];
+                } else {
+                     // Handle case where no holiday types exist, perhaps create one programmatically
+                     // For this example, we'll just return an error
+                     $array = array('status' => 'fail', 'error' => array('message' => $this->lang->line('no_holiday_types_found_please_create_one')), 'message' => $this->lang->line('no_holiday_types_found_please_create_one'));
+                     echo json_encode($array);
+                     return;
+                }
+            }
+
+
+            foreach ($indianHolidays as $holiday) {
+                $from_date = $holiday['date']; // Assuming date is YYYY-MM-DD
+                $to_date = $holiday['date'];   // Assuming single-day holidays for now
+                $description = $holiday['name'];
+                $holiday_type_id = (isset($holiday['type_id']) && $holiday['type_id']) ? $holiday['type_id'] : $default_holiday_type_id;
+
+                if (!$this->holiday_model->checkHolidayExists($from_date, $description)) {
+                    $holidaysToAdd[] = [
+                        'holiday_type'  => $holiday_type_id,
+                        'from_date'     => $from_date,
+                        'to_date'       => $to_date,
+                        'description'   => $description,
+                        'front_site'    => 1, // Assume imported holidays are visible on front site
+                        'created_by'    => $staff_id,
+                        'holiday_color' => '#FF0000', // Red for imported holidays? Or any default.
+                        'session_id'    => $session_id,
+                        'created_at'    => date('Y-m-d H:i:s'),
+                    ];
+                    $addedHolidaysCount++;
+                } else {
+                    $existingHolidaysCount++;
+                }
+            }
+
+            if (!empty($holidaysToAdd)) {
+                $this->holiday_model->addBatch($holidaysToAdd); // New batch add method in model
+            }
+
+            // Using language line for success message
+            $message = sprintf($this->lang->line('holidays_imported_successfully_added_s_existing_s'), $addedHolidaysCount, $existingHolidaysCount);
+            $array = array('status' => 'success', 'error' => '', 'message' => $message);
+        }
+
+        echo json_encode($array);
+    }
+
+    // --- Placeholder for fetching holidays ---
+    private function getDummyIndianHolidays($year, $region = '')
+    {
+        // This function would normally make an API call or parse a file.
+        // For demonstration, returning some fixed data.
+        $holidays = [
+            ['date' => $year . '-01-26', 'name' => 'Republic Day', 'type_id' => null],
+            ['date' => $year . '-08-15', 'name' => 'Independence Day', 'type_id' => null],
+            ['date' => $year . '-10-02', 'name' => 'Gandhi Jayanti', 'type_id' => null],
+        ];
+
+        // Add some regional holidays based on a dummy region filter
+        if (strtolower($region) == 'maharashtra') {
+            $holidays[] = ['date' => $year . '-05-01', 'name' => 'Maharashtra Day', 'type_id' => null];
+        }
+
+        return $holidays;
+    }
+    // --- End Placeholder ---
 }
 
 ?>

@@ -9,9 +9,10 @@
     <h3 class="box-title">  <?php echo $this->lang->line('annual_calendar'); ?></h3>
 		<div class="box-tools pull-right">
 			<?php if ($this->rbac->hasPrivilege('annual_calendar', 'can_add')) { ?>
-			<button type="button" onclick="add_holiday()" class="btn btn-sm btn-primary" data-toggle="tooltip"><i class="fa fa-plus"></i> <?php echo $this->lang->line('add'); ?></button>  
-			<?php } ?>
-          </div>
+			            <button type="button" onclick="add_holiday()" class="btn btn-sm btn-primary" data-toggle="tooltip"><i class="fa fa-plus"></i> <?php echo $this->lang->line('add'); ?></button>
+			            <button type="button" onclick="showImportModal()" class="btn btn-sm btn-info" data-toggle="tooltip" title="<?php echo $this->lang->line('import_indian_holidays'); ?>"><i class="fa fa-cloud-download"></i> <?php echo $this->lang->line('import_indian_holidays'); ?></button>
+			            <a href="<?php echo site_url('admin/bulkholliday/index'); ?>" class="btn btn-sm btn-success" data-toggle="tooltip" title="<?php echo $this->lang->line('bulk_upload_holidays'); ?>"><i class="fa fa-upload"></i> <?php echo $this->lang->line('bulk_upload'); ?></a>
+						<?php } ?>          </div>
    </div>
    <!-- Seaching section Start-->
    <form class="assign_teacher_form" action="<?php echo base_url(); ?>admin/holiday" method="post" enctype="multipart/form-data">
@@ -87,7 +88,7 @@
         <td>
 			<?php  echo date($this->customlib->getSchoolDateFormat(),strtotime($value['from_date'])). ' '. $this->lang->line('to') .' '. date($this->customlib->getSchoolDateFormat(),strtotime($value['to_date'])); ?></td>
 
-          <td><?php if($value['is_default'] != 1) { echo $value['type']; }else{ echo $this->lang->line(strtolower($value['type'])); } ?></td>
+          <td><?php if($value['is_default']==1){ echo $this->lang->line(strtolower($value['type'])); }else{ echo $value['type']; } ?></td>
           <td><?php echo $value['description']; ?></td>
           <td width="10%"> 
 			<?php 				
@@ -156,7 +157,7 @@
                 echo $this->lang->line(strtolower($value['type']));
             }else{
                 echo $value['type'];
-            }
+            } 
             ?></div></label>
           </li>
         <?php }  ?>			
@@ -321,5 +322,3 @@
   }
  
 </script>
-
-

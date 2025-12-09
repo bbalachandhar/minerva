@@ -1,0 +1,5 @@
+from_date,to_date,description,holiday_type
+2025-01-01,2025-01-01,New Year's Day,National Holiday
+2025-12-25,2025-12-25,Christmas Day,National Holiday
+2025-10-24,2025-10-24,Diwali,Festival
+2025-08-15,2025-08-15,Independence Day,National Holiday
