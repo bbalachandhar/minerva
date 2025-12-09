@@ -241,6 +241,7 @@ $count++;
                 },
                 success: function (data) {
                     $('.ava_quantity').html(data.qty);
+                    console.log("Server returned quantity:", data.qty);
                 },
                 complete: function () {
                 }

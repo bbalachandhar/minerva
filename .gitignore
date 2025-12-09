@@ -29,3 +29,5 @@ Minerva_User_Manual.html
 Minerva_User_Manual.md
 /api/application/sessions
 /uploads/homework/assignment
+/uploads
+application/config/config.php

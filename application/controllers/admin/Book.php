@@ -286,14 +286,28 @@ class Book extends Admin_Controller
 
     public function getAvailQuantity()
     {
+        ob_start(); // Start output buffering
+        
         $book_id   = $this->input->post('book_id');
-        $available = 0;
+        $available = 0; // Initialize to 0
+
         if ($book_id != "") {
+            // Call the getAvailQuantity method from Bookissue_model (this method returns $result->available as 'YES'/'NO')
             $result    = $this->bookissue_model->getAvailQuantity($book_id);
-            $available = $result->qty - $result->total_issue;
+            
+            // Calculate available quantity based on the 'YES'/'NO' logic
+            if (isset($result->available) && strtolower($result->available) == 'yes' && (int)$result->total_issue == 0) {
+                 $available = 1; // If it's YES and not issued, then 1 is available
+            } else {
+                 $available = 0; // Otherwise 0 available
+            }
         }
         $result_final = array('status' => '1', 'qty' => $available);
-        echo json_encode($result_final);
+
+        $json_output = json_encode($result_final);
+        file_put_contents(APPPATH . 'logs/ajax_response_debug.log', $json_output); // Keep log for now
+        ob_end_clean(); // End and clean output buffer
+        echo $json_output;
     }
 
     public function get_subcategories_by_category_id()
@@ -796,7 +810,14 @@ class Book extends Admin_Controller
 
     public function getbooklist()
     {
-        $listbook        = $this->book_model->getbooklist();
+        // Get the filter value from the AJAX request
+        $availability_filter = $this->input->post('availability_filter');
+        if (!isset($availability_filter)) {
+            $availability_filter = 'all'; // Default to 'all' if not set
+        }
+
+        // Pass the filter to the model's getbooklist method
+        $listbook        = $this->book_model->getbooklist($availability_filter);
         log_message('debug', 'Raw listbook JSON: ' . $listbook);
         $m               = json_decode($listbook);
         log_message('debug', 'Decoded listbook object: ' . print_r($m, true));

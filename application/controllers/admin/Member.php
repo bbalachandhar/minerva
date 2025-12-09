@@ -12,6 +12,7 @@ class Member extends Admin_Controller
         parent::__construct();
         $this->load->library('media_storage');
         $this->sch_setting_detail = $this->setting_model->getSetting();
+        $this->load->model('book_model');
     }
 
     public function index()
@@ -90,12 +91,17 @@ class Member extends Admin_Controller
                 'member_id'      => $this->input->post('member_id'),
             );
             $this->bookissue_model->add($data);
+
+            // Update books.available to 'NO' after successful issue
+            $book_id = $this->input->post('book_id'); // Get the book_id again
+            $this->book_model->updateBookAvailability($book_id, 'NO');
+
             $this->session->set_flashdata('msg', '<div class="alert alert-success text-left">' . $this->lang->line('success_message') . '</div>');
             redirect('admin/member/issue/' . $member_id);
         }
        
         
-        $data['bookList']     = $bookList;
+        $data['bookList']     = $this->book_model->getAvailableBooks(); // Changed to get only available books
         
         $data['sch_setting'] = $this->sch_setting_detail;
         $this->load->view('layout/header');
@@ -126,6 +132,13 @@ class Member extends Admin_Controller
                 'is_returned' => 1,
             );
             $this->bookissue_model->update($data);
+
+            // Update books.available to 'YES' after book is returned
+            $book_issue_record = $this->bookissue_model->get($id); // Assuming get($id) returns the book_issue record
+            if ($book_issue_record) {
+                $book_id = $book_issue_record['book_id'];
+                $this->book_model->updateBookAvailability($book_id, 'YES');
+            }
 
             $array = array('status' => 'success', 'error' => '', 'message' => $this->lang->line('success_message'));
             echo json_encode($array);

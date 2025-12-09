@@ -165,7 +165,13 @@ class Bookissue_model extends MY_Model
     {
         $sql = "SELECT books.*,IFNULL(total_issue, '0') as `total_issue` FROM books LEFT JOIN (SELECT COUNT(*) as `total_issue`, book_id from book_issues  where is_returned= 0 GROUP by book_id ) as `book_count` on books.id=book_count.book_id WHERE books.id=$id";
         $query = $this->db->query($sql);
-        return $query->row();
+        $result = $query->row();
+        // Log intermediate values for debugging
+        log_message('debug', 'Bookissue_model->getAvailQuantity: book_id = ' . $id);
+        log_message('debug', 'Bookissue_model->getAvailQuantity: result->available = ' . (isset($result->available) ? $result->available : 'NULL'));
+        log_message('debug', 'Bookissue_model->getAvailQuantity: result->total_issue = ' . (isset($result->total_issue) ? $result->total_issue : 'NULL'));
+
+        return $result;
     }
 
     public function valid_check_exists($str)
@@ -176,7 +182,7 @@ class Bookissue_model extends MY_Model
             return true;
         }
 
-        if ($this->checkAvailQuantity($book_id)) {
+        if (!$this->checkAvailQuantity($book_id)) {
             $this->form_validation->set_message('check_exists', $this->lang->line('book_not_available'));
             return false;
         } 
@@ -203,13 +209,14 @@ class Bookissue_model extends MY_Model
     public function checkAvailQuantity($id = null)
     {
         $sql = "SELECT books.*,IFNULL(total_issue, '0') as `total_issue` FROM books LEFT JOIN (SELECT COUNT(*) as `total_issue`, book_id from book_issues  where is_returned= 0 GROUP by book_id) as `book_count` on books.id=book_count.book_id WHERE books.id=$id";
-        $query     = $this->db->query($sql);
-        $result    = $query->row();
-        $remaining = ($result->qty - $result->total_issue);
-        if ($remaining > 0) {
-            return false;
-        }
-        return true;
+                $query     = $this->db->query($sql);
+                $result    = $query->row();
+                
+                // If the 'available' column stores 'YES'/'NO' strings
+                if (isset($result->available) && strtolower($result->available) == 'yes' && (int)$result->total_issue == 0) {
+                    return true; // Book is available
+                }
+                return false; // Book is not available
     }
 
     public function studentBookIssue_report($start_date, $end_date)

@@ -35,7 +35,7 @@ class Book_model extends MY_Model
         }
     }
 
-    public function getbooklist()
+    public function getbooklist($filter = 'all') // Added $filter parameter
     {
         $this->datatables
             ->select('books.id,books.book_title,books.description,books.book_no,books.isbn_no,books.publish,books.author,books.subject,books.rack_no,books.shelf_id,books.perunitcost,books.postdate,books.barcode,books.category_name,books.subcategory_name,books.author2,books.edition,books.medium,books.book_type,books.class_no,books.edition_type,books.publish_year,books.purchase_date,books.bill_no,books.bill_date,books.pages,books.department,books.vendor,books.available,books.is_active,IFNULL(total_issue, "0") as `total_issue` ')
@@ -44,6 +44,14 @@ class Book_model extends MY_Model
             ->join(" (SELECT COUNT(*) as `total_issue`, book_id from book_issues  where is_returned= 0  GROUP by book_id) as `book_count`", "books.id=book_count.book_id", "left")
             ->sort('books.id','desc')
             ->from('books');
+
+        // Add filtering logic based on $filter
+        if ($filter == 'yes') {
+            $this->datatables->where('LOWER(books.available)', 'yes');
+        } elseif ($filter == 'no') {
+            $this->datatables->where('LOWER(books.available)', 'no');
+        }
+
         return $this->datatables->generate('json');
     }
 
@@ -360,5 +368,38 @@ class Book_model extends MY_Model
         $this->db->where('LOWER(TRIM(book_no))', strtolower(trim($book_no)));
         $query = $this->db->get('books');
         return $query->num_rows() > 0;
+    }
+
+    public function updateBookAvailability($book_id, $status)
+    {
+        $this->db->trans_start();
+        $this->db->trans_strict(false);
+
+        $data = array('available' => $status);
+        $this->db->where('id', $book_id);
+        $this->db->update('books', $data);
+
+        $message = UPDATE_RECORD_CONSTANT . " On books id " . $book_id . " availability to " . $status;
+        $action = "Update Availability";
+        $record_id = $book_id;
+        $this->log($message, $record_id, $action);
+
+        $this->db->trans_complete();
+
+        if ($this->db->trans_status() === FALSE) {
+            $this->db->trans_rollback();
+            return false;
+        } else {
+            return true;
+        }
+    }
+
+    public function getAvailableBooks()
+    {
+        $this->db->select()->from('books');
+        $this->db->where('LOWER(books.available)', 'yes');
+        $this->db->order_by('books.book_title', 'asc'); // Order by title for readability
+        $query = $this->db->get();
+        return $query->result_array();
     }
 }

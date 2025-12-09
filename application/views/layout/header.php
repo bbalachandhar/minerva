@@ -23,6 +23,7 @@ $this->load->view('layout/theme');
         <link rel="stylesheet" href="<?php echo base_url(); ?>backend/plugins/morris/morris.css">
         <link rel="stylesheet" href="<?php echo base_url(); ?>backend/plugins/jvectormap/jquery-jvectormap-1.2.2.css">
         <link rel="stylesheet" href="<?php echo base_url(); ?>backend/plugins/datepicker/datepicker3.css">
+        <link rel="stylesheet" href="<?php echo base_url(); ?>backend/datepicker/css/bootstrap-datetimepicker.css">
         <link rel="stylesheet" href="<?php echo base_url(); ?>backend/plugins/colorpicker/bootstrap-colorpicker.css">
 
         <link rel="stylesheet" href="<?php echo base_url(); ?>backend/plugins/daterangepicker/daterangepicker-bs3.css">
@@ -48,6 +49,10 @@ $this->load->view('layout/theme');
         <link rel="stylesheet" type="text/css" href="<?php echo base_url(); ?>backend/dist/css/bootstrap-select.min.css">
         <script src="<?php echo base_url(); ?>backend/custom/jquery.min.js"></script>
         <script src="<?php echo base_url(); ?>backend/dist/js/moment.min.js"></script>
+        <script type="text/javascript">
+            moment.locale(<?php echo json_encode($language_name); ?>);
+        </script>
+        <script src="<?php echo base_url(); ?>backend/datepicker/js/bootstrap-datetimepicker.js"></script>
 
 
         <script src="<?php echo base_url(); ?>backend/dist/js/jquery.mCustomScrollbar.concat.min.js"></script>

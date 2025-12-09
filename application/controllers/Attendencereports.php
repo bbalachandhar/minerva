@@ -20,6 +20,7 @@ class Attendencereports extends Admin_Controller
         $this->load->model("staffattendancemodel");
         $this->load->model("staff_model");
         $this->load->model("payroll_model");
+        $this->load->model("Department_model"); // Added to fix the error
         $this->sch_setting_detail = $this->setting_model->getSetting();
         $this->search_type        = $this->customlib->get_searchtype();
     }

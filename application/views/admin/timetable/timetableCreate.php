@@ -216,7 +216,7 @@ $count++;
                 $(document).on('focus', '.time', function () {
                     var $this = $(this);
                     $this.datetimepicker({
-                        format: 'LT'
+                        format: 'hh:mm A'
                     });
                 });
                 var tot_count = 0;

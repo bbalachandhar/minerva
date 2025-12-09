@@ -16,19 +16,26 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                     <div class="box-header ptbnull">
                         <h3 class="box-title titlefix"><?php echo $this->lang->line('book_list'); ?></h3>
                         <div class="box-tools pull-right">
-                            <?php if ($this->rbac->hasPrivilege('books', 'can_add')) {
-                                ?>
+                            <?php if ($this->rbac->hasPrivilege('books', 'can_add')) { ?>
                                 <a href="<?php echo base_url() ?>admin/book">
-
                                     <button class="btn btn-primary btn-sm" autocomplete="off"><i class="fa fa-plus"></i> <?php echo $this->lang->line('add_book'); ?></button>
                                 </a>
-                            <?php }
-                            ?>
+                            <?php } ?>
                         </div><!-- /.pull-right -->
                     </div><!-- /.box-header -->
                     <div class="box-body">
                         <div class="row" style="margin-bottom: 10px;">
-                            <div class="col-md-12">
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label for="availability_filter"><?php echo $this->lang->line('availability'); ?></label>
+                                    <select id="availability_filter" class="form-control">
+                                        <option value="all"><?php echo $this->lang->line('all'); ?></option>
+                                        <option value="yes"><?php echo $this->lang->line('available'); ?></option>
+                                        <option value="no"><?php echo $this->lang->line('not_available'); ?></option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-9 text-right pt20">
                                 <span style="font-weight: bold; font-size: 16px;"><?php echo "Total Books: " . $total_books; ?></span>
                                 <span style="font-weight: bold; font-size: 16px; margin-left: 20px;"><?php echo "Available Books: " . $available_books; ?></span>
                             </div>
@@ -36,17 +43,16 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                         <div class="mailbox-controls">
                             <!-- Check all button -->
                             <?php if ($this->session->flashdata('msg')) { ?>
-                                <?php 
-                                    echo $this->session->flashdata('msg');
-                                    $this->session->unset_userdata('msg');
+                                <?php
+                                echo $this->session->flashdata('msg');
+                                $this->session->unset_userdata('msg');
                                 ?>
                             <?php } ?>
                             <?php
                             if (isset($error_message)) {
                                 echo "<div class='alert alert-danger'>" . $error_message . "</div>";
                             }
-                            ?> 
-                        </div>
+                            ?>                        </div>
                         <div class="mailbox-messages table-responsive overflow-visible-1">
                             <table width="100%" class="table table-striped table-bordered table-hover book-list" data-export-title="<?php echo $this->lang->line('book_list'); ?>">
                                 <thead>
@@ -139,15 +145,20 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
 <script>
 $(document).ready(function() {
     emptyDatatable('book-list','data');
-});
 
-    ( function ( $ ) {
-    'use strict';
-    $(document).ready(function () {
-        initDatatable('book-list','admin/book/getbooklist',[],[],100,
+    function loadBookList(filterValue) {
+        initDatatable('book-list', 'admin/book/getbooklist', { 'availability_filter': filterValue }, [], 100,
             [
                 { "bSortable": false, "aTargets": [ -1 ] ,'sClass': 'dt-body-right'}
             ]);
+    }
+
+    // Load initial data with 'all' filter
+    loadBookList('all');
+
+    $('#availability_filter').on('change', function() {
+        var filterValue = $(this).val();
+        loadBookList(filterValue);
     });
-    } ( jQuery ) )
+});
 </script>
