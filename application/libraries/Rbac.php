@@ -30,6 +30,11 @@ class Rbac
 
         $admin = $this->CI->session->userdata('admin');
 
+        // Add this check
+        if (!$admin || !isset($admin['roles']) || empty($admin['roles'])) {
+            return false; // No admin logged in or roles not available, so no privilege
+        }
+
         $roles    = $admin['roles'];
         $role_key = key($roles);
         $role_id  = $roles[$role_key];

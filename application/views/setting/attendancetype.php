@@ -801,10 +801,7 @@ function get_student_input_value($array, $find_time)
 
 </script>
 
-<script type="text/javascript">
-    $('.datetimepicker').datetimepicker({
-      format: 'hh:mm A',
-});
+
 
 $(document).on('submit','#form_timetable',function(e){
 
@@ -866,18 +863,8 @@ $(document).on('submit','#form_timetable',function(e){
 
 
 
-<script type="text/javascript">
-    //****staff attendance settings****//
-    $(function() {
-        $('.time').datetimepicker({
-            format: 'HH:mm:ss'
-        });
-    });
-    $(function() {
-        $('.time_hour').datetimepicker({
-            format: 'HH:mm:ss'
-        });
-    });
+
+    
 
     $(document).on('submit', '.update', function(e) {
         var submit_btn = $(this).find("button[type=submit]");
@@ -987,3 +974,27 @@ $(document).on('submit','#form_timetable',function(e){
         });
     });
 </script>
+<script type="text/javascript">
+    $(document).ready(function() {
+        // Initialize Tempus Dominus for all relevant time input fields
+        $('.time, .time_hour, .datetimepicker').each(function() {
+            $(this).datetimepicker({
+                format: 'HH:mm:ss', // 24-hour format
+                stepping: 1, // Allow 1-minute stepping
+                // Icons (optional, if Font Awesome is loaded)
+                icons: {
+                    time: 'fa fa-clock-o',
+                    date: 'fa fa-calendar',
+                    up: 'fa fa-chevron-up',
+                    down: 'fa fa-chevron-down',
+                    previous: 'fa fa-chevron-left',
+                    next: 'fa fa-chevron-right',
+                    today: 'fa fa-calendar-check-o',
+                    clear: 'fa fa-trash',
+                    close: 'fa fa-times'
+                }
+            });
+        });
+    });
+</script>
+
