@@ -155,6 +155,7 @@ foreach ($categorylist as $value) {
                                 <button type="button" class="btn btn-sm btn-info printSelected" id="load" data-loading-text="<i class='fa fa-spinner fa-spin '></i> <?php echo $this->lang->line('please_wait') ?>"><i class="fa fa-print"></i> <?php echo $this->lang->line('print_selected'); ?></button>
                                 <?php if ($this->rbac->hasPrivilege('collect_fees', 'can_add')) { ?>
                                 <button type="button" class="btn btn-sm btn-warning collectSelected" id="load" data-loading-text="<i class='fa fa-spinner fa-spin '></i> <?php echo $this->lang->line('please_wait') ?>"><i class="fa fa-money"></i> <?php echo $this->lang->line('collect_selected'); ?></button><?php } ?>
+<button type="button" class="btn btn-sm btn-primary collectAdvanceFeesBtn" id="load" data-student_session_id="<?php echo $student['student_session_id']; ?>" data-student_name="<?php echo $this->customlib->getFullName($student['firstname'], $student['middlename'], $student['lastname'], $sch_setting->middlename, $sch_setting->lastname); ?>" data-loading-text="<i class='fa fa-spinner fa-spin '></i> <?php echo $this->lang->line('please_wait') ?>" style="margin-left:5px;"><i class="fa fa-plus"></i> Collect Advance Fees</button>
                                 <?php if ($student_processing_fee) {?>
                                     <a  href="javascript:void(0)" class="btn btn-sm btn-info getProcessingfees" data-loading-text="<i class='fa fa-spinner fa-spin '></i> <?php echo $this->lang->line('please_wait') ?>"><i class="fa fa-money"></i> <?php echo $this->lang->line('processing_fees') ?></a>
                                 <?php } ?>                              </div>
@@ -770,6 +771,53 @@ echo $currency_symbol . amountFormat(($total_balance_amount - $alot_fee_discount
 
                 </div>
             </div>
+    </div>
+</div>
+
+<div class="modal fade" id="myAdvanceFeesModal" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title title text-center advance_fees_title">Collect Advance Fees</h4>
+            </div>
+            <div class="modal-body minheight260">
+                <div class="modal_loader_div" style="display: none;"></div>
+                <div class="modal-body-inner">
+                    <form id="form_collect_advance_fees" action="" method="POST">
+                        <input type="hidden" name="student_session_id" id="advance_student_session_id" value="">
+                        <div class="form-group">
+                            <label for="advance_amount"><?php echo $this->lang->line('amount'); ?> <small class="req">*</small></label>
+                            <input type="text" class="form-control" name="amount" id="advance_amount">
+                            <span class="text-danger" id="advance_amount_error"></span>
+                        </div>
+                        <div class="form-group">
+                            <label for="advance_payment_mode"><?php echo $this->lang->line('payment_mode'); ?> <small class="req">*</small></label>
+                            <select class="form-control" name="payment_mode" id="advance_payment_mode">
+                                <?php foreach ($this->customlib->payment_mode() as $key => $value) { ?>
+                                    <option value="<?php echo $key; ?>"><?php echo $value; ?></option>
+                                <?php } ?>
+                            </select>
+                            <span class="text-danger" id="advance_payment_mode_error"></span>
+                        </div>
+                        <div class="form-group">
+                            <label for="advance_date"><?php echo $this->lang->line('date'); ?> <small class="req">*</small></label>
+                            <input type="text" class="form-control date" name="date" id="advance_date">
+                            <span class="text-danger" id="advance_date_error"></span>
+                        </div>
+                        <div class="form-group">
+                            <label for="advance_description"><?php echo $this->lang->line('description'); ?></label>
+                            <textarea class="form-control" name="description" id="advance_description"></textarea>
+                            <span class="text-danger" id="advance_description_error"></span>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default pull-left" data-dismiss="modal"><?php echo $this->lang->line('cancel'); ?></button>
+                <button type="button" class="btn btn-info submit_advance_fees" id="load" data-loading-text="<i class='fa fa-spinner fa-spin '></i> <?php echo $this->lang->line('processing'); ?>"> <?php echo $this->lang->line('collect_fees'); ?></button>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -1542,4 +1590,96 @@ $(document).ready(function() {
     });
 
 });
+</script>
+<script type="text/javascript">
+    $(document).ready(function() {
+        // Ensure myAdvanceFeesModal is initialized as hidden and static backdrop
+        $('#myAdvanceFeesModal').modal({
+            backdrop: 'static',
+            keyboard: false,
+            show: false
+        });
+
+        // Handle click on "Collect Advance Fees" button
+        $(document).on('click', '.collectAdvanceFeesBtn', function() {
+            var student_session_id = $(this).data('student_session_id');
+            var student_name = $(this).data('student_name');
+            
+            // Clear previous form data and errors
+            $('#form_collect_advance_fees')[0].reset();
+            $('span[id$="_error"]').html(''); // Clear all error spans
+
+            $('#myAdvanceFeesModal #advance_student_session_id').val(student_session_id);
+            $('#myAdvanceFeesModal .advance_fees_title').text('Collect Advance Fees for ' + student_name);
+            $('#myAdvanceFeesModal').modal('show');
+        });
+
+        // Initialize datetimepicker for advance_date when modal is shown
+        $("#myAdvanceFeesModal").on('shown.bs.modal', function() {
+            // Re-initialize datetimepicker to ensure it picks up the current element if it's dynamic
+            $('#advance_date').datetimepicker({
+                format: 'YYYY-MM-DD', // Adjust format as needed, ensure it's compatible with Tempus Dominus
+                // You can add more Tempus Dominus options here if needed, e.g., icons
+                icons: {
+                    time: 'fa fa-clock-o',
+                    date: 'fa fa-calendar',
+                    up: 'fa fa-chevron-up',
+                    down: 'fa fa-chevron-down',
+                    previous: 'fa fa-chevron-left',
+                    next: 'fa fa-chevron-right',
+                    today: 'fa fa-calendar-check-o',
+                    clear: 'fa fa-trash',
+                    close: 'fa fa-times'
+                }
+            });
+            // Set default date to today using moment().format('YYYY-MM-DD') for consistency
+            $('#advance_date').val(moment().format('YYYY-MM-DD'));
+        });
+
+        // Handle submission of advance fees form
+        $(document).on('click', '.submit_advance_fees', function() {
+            var $this = $(this);
+            $this.button('loading');
+            var form = $('#form_collect_advance_fees');
+            var student_session_id = form.find('#advance_student_session_id').val();
+            var amount = form.find('#advance_amount').val();
+            var payment_mode = form.find('#advance_payment_mode').val();
+            var date = form.find('#advance_date').val();
+            var description = form.find('#advance_description').val();
+
+            // Clear previous errors
+            $('span[id$="_error"]').html('');
+
+            $.ajax({
+                url: '<?php echo site_url("studentfee/collectAdvanceFeesAjax") ?>', // New AJAX endpoint
+                type: 'POST',
+                dataType: 'json',
+                data: {
+                    student_session_id: student_session_id,
+                    amount: amount,
+                    payment_mode: payment_mode,
+                    date: date,
+                    description: description
+                },
+                success: function(response) {
+                    $this.button('reset');
+                    if (response.status === 'success') {
+                        successMsg(response.message);
+                        $('#myAdvanceFeesModal').modal('hide');
+                        location.reload(true); // Reload page to update advance balance display
+                    } else {
+                        // Display validation errors
+                        $.each(response.error, function(index, value) {
+                            var errorDiv = '#advance_' + index + '_error'; // Corrected error div ID format
+                            $(errorDiv).empty().append(value);
+                        });
+                    }
+                },
+                error: function(xhr) {
+                    $this.button('reset');
+                    alert('<?php echo $this->lang->line('error_occurred_please_try_again'); ?>');
+                }
+            });
+        });
+    });
 </script>

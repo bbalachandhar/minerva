@@ -104,6 +104,9 @@ foreach ($department_list as $department) {
                                     <th><?php echo $this->lang->line('class'); ?></th>
                                     <th><?php echo $this->lang->line('category'); ?></th>
                                     <th><?php echo $this->lang->line('admission_no'); ?></th>
+                                    <th class="text-right">CF-Demand</th>
+                                    <th class="text-right">CF-Paid</th>
+                                    <th class="text-right">CF-Balance</th>
                                                                          <?php foreach ($discount_list as $discount) { ?>
                                                                             <th class="text-right"><?php echo $discount['name']; ?></th>
                                                                         <?php } ?>                                    <th class="text-right">Tuition Fee (Demand)</th>
@@ -168,6 +171,9 @@ foreach ($department_list as $department) {
                                             <td><?php echo $student->class . " (" . $student->section . ")"; ?></td>
                                             <td><?php echo $student->category; ?></td>
                                             <td><?php echo $student->admission_no; ?></td>
+                                            <td class="text-right"><?php echo amountFormat($student->last_yr_cf); ?></td>
+                                            <td class="text-right"><?php echo amountFormat($student->cf_paid); ?></td>
+                                            <td class="text-right"><?php echo amountFormat($student->cf_balance); ?></td>
                                                                                          <?php 
                                                                                         foreach ($discount_list as $discount) {
                                                                                             $discount_amount = 0;
@@ -210,7 +216,7 @@ foreach ($department_list as $department) {
                                     }
                                 } else {
                                     ?>
-                                    <tr><td colspan="<?php echo 10 + count($discount_list); ?>" class="text-center">No Record Found</td></tr>
+                                    <tr><td colspan="<?php echo 26 + count($discount_list); ?>" class="text-center">No Record Found</td></tr>
                                     <?php
                                 }
                                 ?>
@@ -218,6 +224,9 @@ foreach ($department_list as $department) {
                              <tfoot>
                                 <tr class="box box-solid total-bg">
                                     <th colspan="4" class="text-right"><?php echo $this->lang->line('grand_total'); ?></th>
+                                    <td class="text-right"><?php echo $currency_symbol . amountFormat($total_last_yr_cf); ?></td>
+                                    <td class="text-right"><?php echo $currency_symbol . amountFormat($total_cf_paid); ?></td>
+                                    <td class="text-right"><?php echo $currency_symbol . amountFormat($total_cf_balance); ?></td>
                                     <?php foreach ($discount_totals as $total) { ?>
                                         <td class="text-right"><?php echo $currency_symbol . amountFormat($total); ?></td>
                                     <?php } ?>

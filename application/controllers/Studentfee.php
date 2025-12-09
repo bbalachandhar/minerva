@@ -1339,6 +1339,70 @@ class Studentfee extends Admin_Controller
         }
     }
 
+    public function collectAdvanceFeesAjax()
+    {
+        $this->output->set_content_type('application/json');
+        if (!$this->rbac->hasPrivilege('collect_fees', 'can_add')) {
+            echo json_encode(['status' => 'fail', 'error' => ['message' => $this->lang->line('access_denied')]]);
+            return;
+        }
+
+        $this->form_validation->set_rules('student_session_id', $this->lang->line('student_session_id'), 'required|trim|xss_clean');
+        $this->form_validation->set_rules('amount', $this->lang->line('amount'), 'required|trim|xss_clean|numeric|greater_than[0]');
+        $this->form_validation->set_rules('payment_mode', $this->lang->line('payment_mode'), 'required|trim|xss_clean');
+        $this->form_validation->set_rules('date', $this->lang->line('date'), 'required|trim|xss_clean');
+        // Description is optional, so no rule for it
+
+        if ($this->form_validation->run() == false) {
+            $errors = array(
+                'student_session_id' => form_error('student_session_id'),
+                'amount'             => form_error('amount'),
+                'payment_mode'       => form_error('payment_mode'),
+                'date'               => form_error('date'),
+                'description'        => form_error('description'),
+            );
+            echo json_encode(['status' => 'fail', 'error' => $errors]);
+        } else {
+            $student_session_id = $this->input->post('student_session_id');
+            $amount             = convertCurrencyFormatToBaseAmount($this->input->post('amount'));
+            $payment_mode       = $this->input->post('payment_mode');
+            $date               = date('Y-m-d', $this->customlib->datetostrtotime($this->input->post('date')));
+            $description        = $this->input->post('description');
+
+            $staff_record = $this->staff_model->get($this->customlib->getStaffID());
+            $collected_by = $this->customlib->getAdminSessionUserName() . "(" . $staff_record['employee_id'] . ")";
+
+            // Get or create the advance fee master details
+            $advance_fee_ids = $this->studentfeemaster_model->get_or_create_advance_fee_ids($student_session_id);
+
+            $json_array_advance = [
+                'amount'          => $amount,
+                'amount_discount' => 0,
+                'amount_fine'     => 0,
+                'date'            => $date,
+                'description'     => empty($description) ? 'Advance Payment' : $description,
+                'collected_by'    => $collected_by,
+                'payment_mode'    => $payment_mode,
+                'received_by'     => $staff_record['id'],
+            ];
+
+            $data_to_insert_advance = [
+                'fee_category'           => 'fees',
+                'student_fees_master_id' => $advance_fee_ids->student_fees_master_id,
+                'fee_groups_feetype_id'  => $advance_fee_ids->fee_groups_feetype_id,
+                'amount_detail'          => $json_array_advance,
+            ];
+
+            $inserted_id = $this->studentfeemaster_model->fee_deposit($data_to_insert_advance, null, [], $date);
+
+            if ($inserted_id) {
+                echo json_encode(['status' => 'success', 'message' => $this->lang->line('advance_fees_collected_successfully')]);
+            } else {
+                echo json_encode(['status' => 'fail', 'error' => ['message' => $this->lang->line('error_collecting_advance_fees')]]);
+            }
+        }
+    }
+
     public function printFeesByName()
     {
         $data                    = array('payment' => "0");

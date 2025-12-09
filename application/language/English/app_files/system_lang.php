@@ -2837,3 +2837,5 @@ $lang['first_half_permission'] = 'First Half Permission';
 $lang['second_half_permission'] = 'Second Half Permission';
 $lang['first_half_absent'] = 'First Half Absent';
 $lang['second_half_absent'] = 'Second Half Absent';
+$lang['advance_fees_collected_successfully'] = "Advance Fees Collected Successfully";
+$lang['error_collecting_advance_fees'] = "Error Collecting Advance Fees";
