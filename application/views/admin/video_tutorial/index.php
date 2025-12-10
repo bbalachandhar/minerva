@@ -278,8 +278,8 @@ $("#addvideotutorial").on('submit', (function (e) {
                 window.location.reload(true);
             }
         },
-        error: function (xhr) { // if error occured
-            alert("<?php echo $this->lang->line('error_occurred_please_try_again'); ?>");
+        error: function (xhr, status, error) { // if error occured
+            alert("Error adding video tutorial. Details: " + xhr.responseText);
             $this.button('reset');
         },
         complete: function () {
@@ -333,8 +333,8 @@ $("#editvideotutorialform").on('submit', (function (e) {
                 window.location.reload(true);
             }
         },
-        error: function (xhr) { // if error occured
-            alert("<?php echo $this->lang->line('error_occurred_please_try_again'); ?>");
+        error: function (xhr, status, error) { // if error occured
+            alert("Error editing video tutorial. Details: " + xhr.responseText);
             $this.button('reset');
         },
         complete: function () {
