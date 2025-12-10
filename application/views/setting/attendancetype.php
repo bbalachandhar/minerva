@@ -311,91 +311,12 @@
 						</ul>
                         <div class="tab-content pb0">
                         <div class="tab-pane <?php if($classid==0){ echo "active";}else{ echo ""; }  ?>" id="staff">
-<div class="box box-primary">
-    <div class="box-header with-border">
-        <h3 class="box-title">Common Settings</h3>
-    </div>
-    <div class="box-body">
-        <div class="panel panel-info" id="common_settings_panel">
-            <div class="panel-body pr-05 ps-5">
-                <div class="row">
-                    <div class="col-sm-12 col-lg-12 col-md-12">
-                        <div class="col-sm-3 col-lg-3 col-md-3">
-                            <label><?php echo $this->lang->line('attendance_type'); ?></label>
-                        </div>
-                        <div class="col-sm-9 col-lg-9 col-md-9">
-                            <div class="row">
-                                <div class="col-sm-4 col-lg-4 col-md-4">
-                                    <label><?php echo $this->lang->line('entry_from'); ?> (hh:mm:ss)</label>
-                                </div>
-                                <div class="col-sm-4 col-lg-4 col-md-4">
-                                    <label><?php echo $this->lang->line('entry_upto'); ?> (hh:mm:ss)</label>
-                                </div>
-                                <div class="col-sm-4 col-lg-4 col-md-4">
-                                    <label><?php echo $this->lang->line('total_hour'); ?></label>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="append_row paddA10">
-                    <?php
-                    if (!empty($attendance_type)) {
-                        foreach ($attendance_type as $att_type_key => $att_type_value) {
-                    ?>
-                            <div class="row common-setting-row" data-attendance-type-id="<?php echo $att_type_value->id; ?>">
-                                <div class="col-sm-3 col-lg-3 col-md-3">
-                                    <?php echo $this->lang->line($att_type_value->long_lang_name) . " (" . $att_type_value->key_value . ")"; ?>
-                                </div>
-                                <div class="col-sm-9 col-lg-9 col-md-9">
-                                    <div class="row">
-                                        <div class="col-sm-4 col-lg-4 col-md-4">
-                                            <div class="form-group">
-                                                <div class="input-group">
-                                                    <input type="text" class="form-control common_entry_from time">
-                                                    <div class="input-group-addon">
-                                                        <span class="fa fa-clock-o"></span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="col-sm-4 col-lg-4 col-md-4">
-                                            <div class="form-group">
-                                                <div class="input-group">
-                                                    <input type="text" class="form-control common_entry_to time">
-                                                    <div class="input-group-addon">
-                                                        <span class="fa fa-clock-o"></span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="col-sm-4 col-lg-4 col-md-4">
-                                            <div class="form-group">
-                                                <div class="input-group">
-                                                    <input type="text" class="form-control common_total_hour time_hour">
-                                                    <div class="input-group-addon">
-                                                        <span class="fa fa-clock-o"></span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                    <?php
-                        }
-                    }
-                    ?>
-                </div>
-            </div>
-        </div>
-        <button type="button" id="apply_all_staff_times" class="btn btn-primary btn-sm pull-right">Apply All</button>
-    </div>
-</div>
 							<div class="box box-primary">
 								<div class="box-header with-border">
 									<h3 class="box-title"><?php echo $this->lang->line('staff_attendance_setting'); ?></h3>
+                                    <div class="box-tools pull-right">
+                                        <button type="button" class="btn btn-primary btn-sm" id="copy_staff_settings"><?php echo $this->lang->line('copy_settings_from_first_role'); ?></button>
+                                    </div>
 								</div>
 								<div class="box-body">
 								<?php
@@ -425,14 +346,11 @@
 																		</div>
 																		<div class="col-sm-9 col-lg-9 col-md-9">
 																			<div class="row">
-																				<div class="col-sm-4 col-lg-4 col-md-4">
+																				<div class="col-sm-6 col-lg-6 col-md-6">
 																					<label for="email"><?php echo $this->lang->line('entry_from'); ?> (hh:mm:ss)</label>
 																				</div>
-																				<div class="col-sm-4 col-lg-4 col-md-4">
+																				<div class="col-sm-6 col-lg-6 col-md-6">
 																					<label for="email"><?php echo $this->lang->line('entry_upto'); ?> (hh:mm:ss)</label>
-																				</div>
-																				<div class="col-sm-4 col-lg-4 col-md-4">
-																					<label for="email"><?php echo $this->lang->line('total_hour'); ?></label>
 																				</div>
 																			</div>
 																		</div>
@@ -448,10 +366,12 @@
 																		<div class="row">
 																			<div class="col-md-12">
 																				<?php
-																				if (!empty($attendance_type)) {
-																					foreach ($attendance_type as $att_type_key => $att_type_value) {
-																						$return_value = get_input_value($list_value['schedule'], $att_type_value->id);
-																					
+																				                                                if (!empty($attendance_type)) {
+																				                                                    foreach ($attendance_type as $att_type_key => $att_type_value) {
+																				                                                        if ($att_type_value->id == 4) {
+																				                                                            continue;
+																				                                                        }
+																				                                                        $return_value = get_input_value($list_value['schedule'], $att_type_value->id);																					
 																				?>
 																						<input type="hidden" name="row[]" value="<?php echo $row; ?>">
 																						<input type="hidden" name="attendance_type_id_<?php echo $row; ?>" value="<?php echo $att_type_value->id; ?>">
@@ -463,7 +383,7 @@
 																							</div>
 																							<div class="col-sm-9 col-lg-9 col-md-9">
 																								<div class="row">
-																									<div class="col-sm-4 col-lg-4 col-md-4">
+																									<div class="col-sm-6 col-lg-6 col-md-6">
 																										<div class="form-group">
 																											
 																											<div class="input-group">
@@ -474,22 +394,11 @@
 																											</div>
 																										</div>
 																									</div>
-																									<div class="col-sm-4 col-lg-4 col-md-4">
+																									<div class="col-sm-6 col-lg-6 col-md-6">
 																										<div class="form-group">
 																											
 																											<div class="input-group">
 																												<input type="text" name="entry_time_to_<?php echo $row; ?>" class="form-control entry_time_to time valid" id="time_to" value="<?php echo $return_value['entry_time_to'] ?>">
-																												<div class="input-group-addon">
-																													<span class="fa fa-clock-o"></span>
-																												</div>
-																											</div>
-																										</div>
-																									</div>
-																									<div class="col-sm-4 col-lg-4 col-md-4">
-																										<div class="form-group">
-																											
-																											<div class="input-group">
-																												<input type="text" name="total_institute_hour_<?php echo $row; ?>" class="form-control total_institute_hour time_hour valid" id="total_institute_hour" value="<?php echo $return_value['total_institute_hour'] ?>">
 																												<div class="input-group-addon">
 																													<span class="fa fa-clock-o"></span>
 																												</div>
@@ -599,6 +508,9 @@
                                                                         <?php
                                                                         if (!empty($student_attendance_type)) {
                                                                             foreach ($student_attendance_type as $att_type_key => $att_type_value) {
+                                                                                if ($att_type_value->id == 7) {
+                                                                                    continue;
+                                                                                }
                                                                                 $return_value = get_student_input_value($student_session_value['student_schedule'], $att_type_value->id);?>
                                                                                 <input type="hidden" name="row[]" value="<?php echo $row; ?>">
                                                                                 <input type="hidden" name="attendance_type_id_<?php echo $row; ?>" value="<?php echo $att_type_value->id; ?>">
@@ -703,19 +615,16 @@ function get_input_value($array, $find_time){
     if (!empty($array)) {
         foreach ($array as $array_key => $array_value) {
             if ($array_value->staff_attendence_type_id == $find_time) {
-                return [
-                    'entry_time_from' => $array_value->entry_time_from,
-                    'entry_time_to' => $array_value->entry_time_to,
-                    'total_institute_hour' => $array_value->total_institute_hour,                  
-                ];
-            }
-        }
-        return [
-            'entry_time_from' => '',
-            'entry_time_to' => '',
-            'total_institute_hour' => '',          
-        ];
-    }
+                                return [
+                                    'entry_time_from' => $array_value->entry_time_from,
+                                    'entry_time_to' => $array_value->entry_time_to,
+                                ];
+                            }
+                        }
+                        return [
+                            'entry_time_from' => '',
+                            'entry_time_to' => '',
+                        ];    }
 } ?>
 
 <?php
@@ -801,7 +710,10 @@ function get_student_input_value($array, $find_time)
 
 </script>
 
-
+<script type="text/javascript">
+    $('.datetimepicker').datetimepicker({
+      format: 'hh:mm A',
+});
 
 $(document).on('submit','#form_timetable',function(e){
 
@@ -863,8 +775,18 @@ $(document).on('submit','#form_timetable',function(e){
 
 
 
-
-    
+<script type="text/javascript">
+    //****staff attendance settings****//
+    $(function() {
+        $('.time').datetimepicker({
+            format: 'HH:mm:ss'
+        });
+    });
+    $(function() {
+        $('.time_hour').datetimepicker({
+            format: 'HH:mm:ss'
+        });
+    });
 
     $(document).on('submit', '.update', function(e) {
         var submit_btn = $(this).find("button[type=submit]");
@@ -942,68 +864,16 @@ $(document).on('submit','#form_timetable',function(e){
         });
     });
 
-</script>
-<script type="text/javascript">
-    $(document).ready(function() {
-        $('#apply_all_staff_times').on('click', function() {
-            // Go through each role's form
-            $('form.update').each(function() {
-                var roleForm = $(this);
+    $(document).on('click', '#copy_staff_settings', function() {
+        var first_role_panel = $('.update').first();
+        var first_role_inputs = first_role_panel.find('input[type="text"]');
 
-                // For each role, go through its attendance type rows
-                roleForm.find('.row').each(function() {
-                    var roleAttendanceRow = $(this);
-                    var attendanceTypeIdInput = roleAttendanceRow.find('input[name^="attendance_type_id_"]');
-                    
-                    if (attendanceTypeIdInput.length > 0) {
-                        var attendanceTypeId = attendanceTypeIdInput.val();
-
-                        // Now, find the corresponding common setting row
-                        var commonSettingRow = $('.common-setting-row[data-attendance-type-id="' + attendanceTypeId + '"]');
-
-                        if (commonSettingRow.length > 0) {
-                            var common_from = commonSettingRow.find('.common_entry_from').val();
-                            var common_to = commonSettingRow.find('.common_entry_to').val();
-                            var common_total = commonSettingRow.find('.common_total_hour').val();
-
-                            // Update the role's attendance row with the values from the common setting
-                            if (common_from) {
-                                roleAttendanceRow.find('.entry_time_from').val(common_from);
-                            }
-                            if (common_to) {
-                                roleAttendanceRow.find('.entry_time_to').val(common_to);
-                            }
-                            if (common_total) {
-                                roleAttendanceRow.find('.total_institute_hour').val(common_total);
-                            }
-                        }
-                    }
-                });
+        $('.update').not(':first').each(function(index, element) {
+            var current_role_inputs = $(element).find('input[type="text"]');
+            current_role_inputs.each(function(i, input) {
+                $(input).val(first_role_inputs.eq(i).val());
             });
         });
     });
-</script>
-<script type="text/javascript">
-    $(document).ready(function() {
-        // Initialize Tempus Dominus for all relevant time input fields
-        $('.time, .time_hour, .datetimepicker').each(function() {
-            $(this).datetimepicker({
-                format: 'HH:mm:ss', // 24-hour format
-                stepping: 1, // Allow 1-minute stepping
-                // Icons (optional, if Font Awesome is loaded)
-                icons: {
-                    time: 'fa fa-clock-o',
-                    date: 'fa fa-calendar',
-                    up: 'fa fa-chevron-up',
-                    down: 'fa fa-chevron-down',
-                    previous: 'fa fa-chevron-left',
-                    next: 'fa fa-chevron-right',
-                    today: 'fa fa-calendar-check-o',
-                    clear: 'fa fa-trash',
-                    close: 'fa fa-times'
-                }
-            });
-        });
-    });
-</script>
 
+</script>

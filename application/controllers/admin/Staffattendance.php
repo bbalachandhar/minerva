@@ -23,6 +23,7 @@ class Staffattendance extends Admin_Controller
         $this->load->model("biometric_device_model"); // Load the new model
         $this->load->model("staff_biometric_punches_model"); // Load the new model
         $this->load->library('biometric_api_client'); // Load the new library
+        $this->load->model("staffpermission_model");
     }
 
     public function index(){
@@ -280,33 +281,62 @@ class Staffattendance extends Admin_Controller
 
                     $in_time = date('H:i:s', $timestamps[0]);
                     $out_time = date('H:i:s', end($timestamps));
+                    $punches = count($timestamps);
 
-                    $total_seconds_worked = 0;
-                    for ($i = 0; $i < count($timestamps) - 1; $i += 2) {
-                        if (isset($timestamps[$i+1])) {
-                            $total_seconds_worked += ($timestamps[$i+1] - $timestamps[$i]);
-                        }
-                    }
-                    $total_hours_worked = round($total_seconds_worked / 3600, 2);
-
-                    $attendance_type_id = $this->config_attendance['present']; // Default to present
+                    $attendance_type_id = 3; // Absent
                     $remark = '';
 
-                    // Determine attendance type based on staff settings and total hours
-                    $attendance_setting = $this->staffAttendaceSetting_model->getAttendanceTypeByRole($role_id, $in_time); // This method might need adjustment to consider total hours
+                    if ($punches == 0) {
+                        $attendance_type_id = 3; // Absent
+                        $remark = 'No punch found';
+                    } elseif ($punches == 1) {
+                        $attendance_type_id = 3; // Absent
+                        $remark = 'No exit punch';
+                    } else {
+                        $morning_punch = null;
+                        $afternoon_punch = null;
 
-                    if ($attendance_setting && $in_time > $attendance_setting->entry_time_to) {
-                        $attendance_type_id = $this->config_attendance['late'];
-                        $remark = 'Late arrival';
-                    }
+                        foreach ($timestamps as $timestamp) {
+                            $punch_time = date('H:i:s', $timestamp);
+                            if ($punch_time >= '09:15:00' && $punch_time <= '10:15:00') {
+                                $morning_punch = $punch_time;
+                            }
 
-                    // Apply full day present threshold logic
-                    if ($total_hours_worked < $full_day_present_threshold) {
-                        // This is where you'd differentiate between half-day, etc.
-                        // For now, let's assume anything less than threshold is half-day if not already late/absent
-                        if ($attendance_type_id == $this->config_attendance['present']) {
-                             $attendance_type_id = $this->config_attendance['half_day']; // Assuming a half_day config exists
-                             $remark = 'Half Day (less than ' . $full_day_present_threshold . ' hours)';
+                            if ($punch_time >= '13:00:00' && $punch_time <= '16:30:00') {
+                                $afternoon_punch = $punch_time;
+                            }
+                        }
+
+                        // Morning session
+                        if ($morning_punch) {
+                            if ($morning_punch <= '09:17:00') {
+                                $attendance_type_id = 1; // Present
+                            } elseif ($morning_punch <= '09:28:00') {
+                                $attendance_type_id = 2; // Late
+                            } elseif ($morning_punch <= '10:15:00') {
+                                $permission_count = $this->staffpermission_model->get_permission_count($staff_id, $date)['count'];
+                                if ($permission_count < 2) {
+                                    $attendance_type_id = 7; // First Half Permission
+                                    $this->staffpermission_model->add_permission(['staff_id' => $staff_id, 'date' => $date]);
+                                } else {
+                                    $attendance_type_id = 10; // First Half Absent
+                                }
+                            }
+                        } else {
+                            $attendance_type_id = 10; // First Half Absent
+                        }
+
+                        // Afternoon session
+                        if ($afternoon_punch) {
+                            if ($afternoon_punch <= '13:15:00') {
+                                // Already present, do nothing
+                            } else {
+                                $attendance_type_id = 9; // Second Half Permission
+                            }
+                        } else {
+                            if ($attendance_type_id == 1 || $attendance_type_id == 2) {
+                                $attendance_type_id = 11; // Second Half Absent
+                            }
                         }
                     }
 
@@ -320,7 +350,6 @@ class Staffattendance extends Admin_Controller
                         'in_time' => $in_time,
                         'out_time' => $out_time,
                         'date' => $date,
-                        'total_hours_worked' => $total_hours_worked,
                         'updated_at' => date('Y-m-d H:i:s'),
                     ];
 

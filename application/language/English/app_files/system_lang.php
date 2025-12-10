@@ -1998,6 +1998,7 @@ $lang['stripe_api_secret_key'] = "Stripe API Secret Key";
 $lang['stripe_publishable_key'] = "Stripe Publishable Key";	
 $lang['stripe_settings_not_available'] = "Stripe Settings Not Available";	
 $lang['student'] = "Student";
+$lang['copy_settings_from_first_role'] = "Copy Settings From First Role";
 $lang['first_half_permission'] = 'First Half Permission';
 $lang['second_half_permission'] = 'Second Half Permission';
 $lang['first_half_absent'] = 'First Half Absent';

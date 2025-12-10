@@ -1087,9 +1087,8 @@ class Schsettings extends Admin_Controller
                 $class_section        = $this->input->post('role_id_' . $row_value);
                 $entry_time_from      = $this->input->post('entry_time_from_' . $row_value);
                 $entry_time_to        = $this->input->post('entry_time_to_' . $row_value);
-                $total_institute_hour = $this->input->post('total_institute_hour_' . $row_value);
              
-                if ($class_section == "" || $entry_time_from == "" || $entry_time_to == "" || $total_institute_hour == "" || $attendance_type == "") {
+                if ($class_section == "" || $entry_time_from == "" || $entry_time_to == "" || $attendance_type == "") {
                     $this->form_validation->set_rules(
                         'fields',
                         'fields --r',
@@ -1117,14 +1116,12 @@ class Schsettings extends Admin_Controller
                 $attendance_type = $this->input->post('attendance_type_id_' . $row_value);
                 $entry_time_from = $this->input->post('entry_time_from_' . $row_value);
                 $entry_time_to = $this->input->post('entry_time_to_' . $row_value);
-                $total_institute_hour = $this->input->post('total_institute_hour_' . $row_value);
        
                 $insert_array[] = array(
                     'staff_attendence_type_id' => $attendance_type,
                     'role_id'                  => $class_section,
                     'entry_time_from'          => $entry_time_from,
-                    'entry_time_to'            => $entry_time_to,
-                    'total_institute_hour'     => ($total_institute_hour)
+                    'entry_time_to'            => $entry_time_to
                 );
             }
 
