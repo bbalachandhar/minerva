@@ -110,7 +110,7 @@ class BulkHoliday extends Admin_Controller
                         if ($found_type) {
                             $holiday_type_id = $found_type['id'];
                         } else {
-                            $current_row_errors[] = "Holiday Type not found" . ' (' . $holiday_type_name . '). ' . "Using default holiday type." . ' (Default ID: ' . $default_holiday_type_id . ')';
+                            $current_row_errors[] = $this->lang->line('holiday_type_not_found') . ' (' . $holiday_type_name . '). ' . $this->lang->line('using_default_holiday_type');
                         }
                     }
 
