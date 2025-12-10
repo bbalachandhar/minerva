@@ -30,8 +30,8 @@ class Enquiry extends CI_Controller
         $data['header_image'] = '';
         if ($header_footer) {
             foreach($header_footer as $head_foot){
-                if($head_foot->print_type == 'general_purpose'){
-                    $data['header_image'] = $head_foot->header_image;
+                if($head_foot['print_type'] == 'general_purpose'){
+                    $data['header_image'] = $head_foot['header_image'];
                     break;
                 }
             }
@@ -64,8 +64,14 @@ class Enquiry extends CI_Controller
                 )
             );
             $captcha = create_captcha($config);
-            $this->session->set_userdata('captcha_code', $captcha['word']);
-            $data['captcha_image'] = $captcha['image'];
+            if ($captcha === FALSE) {
+                log_message('error', 'CAPTCHA generation failed in Enquiry controller. Check captcha_images directory permissions.');
+                $data['captcha_image'] = '<div class="text-danger">CAPTCHA generation failed. Please ensure the captcha_images directory exists and is writable.</div>'; 
+                $this->session->set_flashdata('error_message', 'CAPTCHA generation failed. Please try again later.');
+            } else {
+                $this->session->set_userdata('captcha_code', $captcha['word']);
+                $data['captcha_image'] = $captcha['image'];
+            }
 
             // Load dropdown data
             $data['class_list'] = $this->class_model->get();

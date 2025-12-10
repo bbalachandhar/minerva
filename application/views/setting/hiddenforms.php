@@ -32,7 +32,7 @@
                                     <tr>
                                         <td>Online Admission Form</td>
                                         <td>A public form for students to apply for admission online.</td>
-                                        <td><a href="<?php echo site_url('welcome/admission'); ?>" target="_blank"><?php echo site_url('welcome/admission'); ?></a></td>
+                                        <td><a href="<?php echo site_url('publicadmissionform'); ?>" target="_blank"><?php echo site_url('publicadmissionform'); ?></a></td>
                                         <td class="text-right">
                                             <button class="btn btn-default btn-xs copy-to-clipboard" data-clipboard-text="<?php echo site_url('welcome/admission'); ?>" data-toggle="tooltip" title="Copy to Clipboard">
                                                 <i class="fa fa-clipboard"></i>

@@ -946,27 +946,36 @@ $(document).on('submit','#form_timetable',function(e){
 <script type="text/javascript">
     $(document).ready(function() {
         $('#apply_all_staff_times').on('click', function() {
-            $('.common-setting-row').each(function() {
-                var attendanceTypeId = $(this).data('attendance-type-id');
-                var common_from = $(this).find('.common_entry_from').val();
-                var common_to = $(this).find('.common_entry_to').val();
-                var common_total = $(this).find('.common_total_hour').val();
+            // Go through each role's form
+            $('form.update').each(function() {
+                var roleForm = $(this);
 
-                // Find all role forms
-                $('form.update').each(function() {
-                    var roleForm = $(this);
-                    // Find the row within the role form that corresponds to the current attendance type
-                    var targetRow = roleForm.find('input[name^="attendance_type_id_"][value="' + attendanceTypeId + '"]').closest('.row');
+                // For each role, go through its attendance type rows
+                roleForm.find('.row').each(function() {
+                    var roleAttendanceRow = $(this);
+                    var attendanceTypeIdInput = roleAttendanceRow.find('input[name^="attendance_type_id_"]');
+                    
+                    if (attendanceTypeIdInput.length > 0) {
+                        var attendanceTypeId = attendanceTypeIdInput.val();
 
-                    if(targetRow.length > 0) {
-                        if(common_from) {
-                            targetRow.find('.entry_time_from').val(common_from);
-                        }
-                        if(common_to) {
-                            targetRow.find('.entry_time_to').val(common_to);
-                        }
-                        if(common_total) {
-                            targetRow.find('.total_institute_hour').val(common_total);
+                        // Now, find the corresponding common setting row
+                        var commonSettingRow = $('.common-setting-row[data-attendance-type-id="' + attendanceTypeId + '"]');
+
+                        if (commonSettingRow.length > 0) {
+                            var common_from = commonSettingRow.find('.common_entry_from').val();
+                            var common_to = commonSettingRow.find('.common_entry_to').val();
+                            var common_total = commonSettingRow.find('.common_total_hour').val();
+
+                            // Update the role's attendance row with the values from the common setting
+                            if (common_from) {
+                                roleAttendanceRow.find('.entry_time_from').val(common_from);
+                            }
+                            if (common_to) {
+                                roleAttendanceRow.find('.entry_time_to').val(common_to);
+                            }
+                            if (common_total) {
+                                roleAttendanceRow.find('.total_institute_hour').val(common_total);
+                            }
                         }
                     }
                 });

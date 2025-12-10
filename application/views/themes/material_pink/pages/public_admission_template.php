@@ -54,15 +54,15 @@
 </head>
     <body>
     <?php if (!empty($header_image)) { ?>
-        <div class="header-image-container">
-            <img src="<?php echo base_url('uploads/school_content/print_headerfooter/' . $header_image); ?>" alt="Header Image" style="width: 100%; display: block;">
+        <div class="header-image-container text-center" style="padding-top: 20px; padding-bottom: 20px;">
+            <img src="<?php echo base_url('uploads/print_headerfooter/general_purpose/' . $header_image); ?>" alt="Header Image" style="max-width: 60%; height: auto; margin: 0 auto;">
         </div>
     <?php } ?>
 
-        <div class="container spacet60 spaceb60">
-            <div class="row spacet60">
+        <div class="container spaceb60">
+            <div class="row">
                 <?php
-                $page_colomn = "col-md-12 spacet60 pt-0-mobile";
+                $page_colomn = "col-md-12 pt-0-mobile";
                 if ($page_side_bar) {
                     $page_colomn = "col-md-9 col-sm-9";
                 }
