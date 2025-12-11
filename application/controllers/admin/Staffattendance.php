@@ -203,24 +203,19 @@ class Staffattendance extends Admin_Controller
 
         if ($this->form_validation->run() == FALSE) {
             $data['last_sync_datetime'] = $this->setting_model->getSetting()->last_biometric_sync_datetime;
-            $data['full_day_present_threshold'] = $this->setting_model->getSetting()->full_day_present_threshold; // Assuming this is also in settings
+            $data['full_day_present_threshold'] = $this->setting_model->getSetting()->full_day_present_threshold;
             $this->load->view('layout/header', $data);
             $this->load->view('admin/staffattendance/biometric_sync_settings', $data);
             $this->load->view('layout/footer', $data);
         } else {
             $full_day_present_threshold = $this->input->post('full_day_present_threshold');
-            // Update the setting
             $this->setting_model->update(array('full_day_present_threshold' => $full_day_present_threshold));
 
             $active_device = $this->biometric_device_model->getActiveDevice();
 
             if (empty($active_device)) {
-                $data['last_sync_datetime'] = $this->setting_model->getSetting()->last_biometric_sync_datetime;
-                $data['full_day_present_threshold'] = $this->setting_model->getSetting()->full_day_present_threshold;
-                $this->load->view('layout/header', $data);
-                $this->load->view('admin/staffattendance/biometric_sync_settings', $data);
-                $this->load->view('layout/footer', $data);
                 log_message('error', 'Staffattendance::sync_biometric_attendance - No active biometric device. Loading biometric_sync_settings view.');
+                $this->session->set_flashdata('msg', '<div class="alert alert-danger">No active biometric device configured.</div>');
                 redirect('admin/staffattendance/index');
             }
 
@@ -232,7 +227,7 @@ class Staffattendance extends Admin_Controller
             ]);
 
             $last_sync_datetime = $this->setting_model->getSetting()->last_biometric_sync_datetime;
-            $fromDateTime = $last_sync_datetime ? date('Y-m-d H:i:s', strtotime($last_sync_datetime)) : date('Y-m-d 00:00:00', strtotime('-1 day')); // Default to yesterday if no last sync
+            $fromDateTime = $last_sync_datetime ? date('Y-m-d H:i:s', strtotime($last_sync_datetime)) : date('Y-m-d 00:00:00', strtotime('-1 day'));
             $toDateTime = date('Y-m-d H:i:s');
 
             $raw_punches = $this->biometric_api_client->getAttendanceLogs($fromDateTime, $toDateTime);
@@ -242,137 +237,143 @@ class Staffattendance extends Admin_Controller
                 log_message('error', 'Staffattendance::sync_biometric_attendance - Failed to fetch attendance logs. Redirecting to index.');
                 redirect('admin/staffattendance/index');
             }
-
-            $processed_attendance_summary = [];
-            $staff_punches_by_day = [];
-            $unmatched_staff_ids = [];
-
+            
+            $inserted_count = 0;
             foreach ($raw_punches as $punch) {
                 $staff_id = $punch['staff_id'];
                 $punch_time = $punch['punch_time'];
                 $punch_date = date('Y-m-d', strtotime($punch_time));
 
-                // Store raw punch
                 $this->staff_biometric_punches_model->add([
                     'staff_id' => $staff_id,
                     'punch_time' => $punch_time,
                     'created_at' => date('Y-m-d H:i:s'),
                 ]);
-
-                if (!isset($staff_punches_by_day[$staff_id])) {
-                    $staff_punches_by_day[$staff_id] = [];
-                }
-                if (!isset($staff_punches_by_day[$staff_id][$punch_date])) {
-                    $staff_punches_by_day[$staff_id][$punch_date] = [];
-                }
-                $staff_punches_by_day[$staff_id][$punch_date][] = strtotime($punch_time);
+                $inserted_count++;
             }
 
-            foreach ($staff_punches_by_day as $staff_id => $dates) {
-                $staff_detail = $this->staff_model->get($staff_id);
-                if (empty($staff_detail)) {
-                    $unmatched_staff_ids[] = $staff_id;
-                    continue;
-                }
-                $role_id = $staff_detail['role_id'];
-
-                foreach ($dates as $date => $timestamps) {
-                    sort($timestamps);
-
-                    $in_time = date('H:i:s', $timestamps[0]);
-                    $out_time = date('H:i:s', end($timestamps));
-                    $punches = count($timestamps);
-
-                    $attendance_type_id = 3; // Absent
-                    $remark = '';
-
-                    if ($punches == 0) {
-                        $attendance_type_id = 3; // Absent
-                        $remark = 'No punch found';
-                    } elseif ($punches == 1) {
-                        $attendance_type_id = 3; // Absent
-                        $remark = 'No exit punch';
-                    } else {
-                        $morning_punch = null;
-                        $afternoon_punch = null;
-
-                        foreach ($timestamps as $timestamp) {
-                            $punch_time = date('H:i:s', $timestamp);
-                            if ($punch_time >= '09:15:00' && $punch_time <= '10:15:00') {
-                                $morning_punch = $punch_time;
-                            }
-
-                            if ($punch_time >= '13:00:00' && $punch_time <= '16:30:00') {
-                                $afternoon_punch = $punch_time;
-                            }
-                        }
-
-                        // Morning session
-                        if ($morning_punch) {
-                            if ($morning_punch <= '09:17:00') {
-                                $attendance_type_id = 1; // Present
-                            } elseif ($morning_punch <= '09:28:00') {
-                                $attendance_type_id = 2; // Late
-                            } elseif ($morning_punch <= '10:15:00') {
-                                $permission_count = $this->staffpermission_model->get_permission_count($staff_id, $date)['count'];
-                                if ($permission_count < 2) {
-                                    $attendance_type_id = 7; // First Half Permission
-                                    $this->staffpermission_model->add_permission(['staff_id' => $staff_id, 'date' => $date]);
-                                } else {
-                                    $attendance_type_id = 10; // First Half Absent
-                                }
-                            }
-                        } else {
-                            $attendance_type_id = 10; // First Half Absent
-                        }
-
-                        // Afternoon session
-                        if ($afternoon_punch) {
-                            if ($afternoon_punch <= '13:15:00') {
-                                // Already present, do nothing
-                            } else {
-                                $attendance_type_id = 9; // Second Half Permission
-                            }
-                        } else {
-                            if ($attendance_type_id == 1 || $attendance_type_id == 2) {
-                                $attendance_type_id = 11; // Second Half Absent
-                            }
-                        }
-                    }
-
-                    // Check if attendance already exists for this staff and date
-                    $existing_attendance = $this->staffattendancemodel->getAttendanceByStaffIdAndDate($staff_id, $date);
-
-                    $attendance_record = [
-                        'staff_id' => $staff_id,
-                        'staff_attendance_type_id' => $attendance_type_id,
-                        'remark' => $remark,
-                        'in_time' => $in_time,
-                        'out_time' => $out_time,
-                        'date' => $date,
-                        'updated_at' => date('Y-m-d H:i:s'),
-                    ];
-
-                    if ($existing_attendance) {
-                        $this->staffattendancemodel->update($existing_attendance['id'], $attendance_record);
-                    } else {
-                        $this->staffattendancemodel->add($attendance_record);
-                    }
-                }
-            }
-
-            // Update last sync datetime
             $this->setting_model->update(array('last_biometric_sync_datetime' => $toDateTime));
 
-            $msg = '<div class="alert alert-success">Biometric attendance synchronized successfully.</div>';
-            if (!empty($unmatched_staff_ids)) {
-                $msg .= '<div class="alert alert-warning">Warning: Unmatched staff IDs: ' . implode(', ', $unmatched_staff_ids) . '</div>';
-            }
+            $msg = '<div class="alert alert-success">Biometric raw punches synchronized successfully. ' . $inserted_count . ' new punches recorded.</div>';
             $this->session->set_flashdata('msg', $msg);
-            log_message('error', 'Staffattendance::sync_biometric_attendance - Sync successful. Redirecting to index.');
+            log_message('info', 'Staffattendance::sync_biometric_attendance - Raw punches synced. Redirecting to index.');
             redirect('admin/staffattendance/index');
         }
     }
+
+    private function _process_staff_attendance_from_punches($date_to_process)
+    {
+        $staff_punches_by_day = $this->staff_biometric_punches_model->get_punches_by_date($date_to_process);
+        $unmatched_staff_ids = [];
+
+        foreach ($staff_punches_by_day as $staff_id => $dates) {
+            $staff_detail = $this->staff_model->get($staff_id);
+            if (empty($staff_detail)) {
+                $unmatched_staff_ids[] = $staff_id;
+                continue;
+            }
+            $role_id = $staff_detail['role_id'];
+
+            foreach ($dates as $date => $timestamps) {
+                sort($timestamps);
+
+                $in_time = date('H:i:s', $timestamps[0]);
+                $out_time = date('H:i:s', end($timestamps));
+                $punches = count($timestamps);
+
+                $attendance_type_id = 3; // Default to Absent
+                $remark = '';
+
+                if ($punches == 0) {
+                    $attendance_type_id = 3; // Absent
+                    $remark = 'No punch found';
+                } elseif ($punches == 1) {
+                    $attendance_type_id = 3; // Absent
+                    $remark = 'No exit punch';
+                } else {
+                    // --- Morning Session Logic ---
+                    $morning_session_status_set = false;
+                    if ($in_time >= '09:29:00' && $in_time <= '10:15:00') {
+                        $permission_count_monthly = $this->staffpermission_model->get_permission_count($staff_id, $date)['count'];
+                        if ($permission_count_monthly < 2) {
+                            $attendance_type_id = 7; // First Half Permission
+                            $this->staffpermission_model->add_permission(['staff_id' => $staff_id, 'date' => $date]); // Add permission
+                            $morning_session_status_set = true;
+                        } else {
+                            $attendance_type_id = 10; // First Half Absent (permissions exhausted)
+                            $morning_session_status_set = true;
+                        }
+                    } elseif ($in_time <= '09:17:00') {
+                        $attendance_type_id = 1; // Present
+                        $morning_session_status_set = true;
+                    } elseif ($in_time <= '09:28:00') {
+                        $attendance_type_id = 2; // Late
+                        $morning_session_status_set = true;
+                    } else { // Arrived after 10:15, so automatically First Half Absent
+                         $attendance_type_id = 10; // First Half Absent
+                         $morning_session_status_set = true;
+                    }
+
+                    // --- Afternoon Session Logic ---
+                    // This logic is independent of morning session for permission consumption,
+                    // but determines the final attendance_type_id for the day.
+                    $afternoon_session_status_set = false;
+
+                    // If morning attendance was Present or Late, we can still have a Second Half Permission/Absent
+                    if ($attendance_type_id == 1 || $attendance_type_id == 2) {
+                         if ($out_time >= '15:15:00' && $out_time <= '16:30:00') { // Out_time falls within Second Half Permission window
+                            $permission_count_monthly = $this->staffpermission_model->get_permission_count($staff_id, $date)['count'];
+                            if ($permission_count_monthly < 2) {
+                                $attendance_type_id = 9; // Second Half Permission
+                                $this->staffpermission_model->add_permission(['staff_id' => $staff_id, 'date' => $date]); // Add permission
+                                $afternoon_session_status_set = true;
+                            } else {
+                                $attendance_type_id = 11; // Second Half Absent (permissions exhausted)
+                                $afternoon_session_status_set = true;
+                            }
+                        } elseif ($out_time < '15:15:00') { // Left before second half permission window
+                            $attendance_type_id = 11; // Second Half Absent
+                            $afternoon_session_status_set = true;
+                        }
+                        // If out_time > 16:30, it's valid, so morning Present/Late status remains.
+                    }
+
+                    // If morning was a permission or absent, and afternoon triggered a status, which one is final?
+                    // User's example: morning 9:29 -> FHP, evening 4:57 -> valid. Final: FHP.
+                    // This suggests morning status takes precedence if it's a permission/absent.
+                    // If morning was FHP (7) or FHA (10) or SHA (11), it typically defines the day.
+                    // If morning was Present (1) or Late (2), then afternoon can change it to SHP (9) or SHA (11).
+
+                    // If morning status was set and is a permission/absent, that is the primary attendance for the day.
+                    // The only time afternoon status should change it is if morning was Present/Late and afternoon is Absent/Permission.
+                    // But if morning was already Present/Late, the above afternoon logic applies.
+
+                } // end else (punches > 1)
+
+                $existing_attendance = $this->staffattendancemodel->getAttendanceByStaffIdAndDate($staff_id, $date);
+
+                $attendance_record = [
+                    'staff_id' => $staff_id,
+                    'staff_attendance_type_id' => $attendance_type_id,
+                    'remark' => $remark,
+                    'in_time' => $in_time,
+                    'out_time' => $out_time,
+                    'date' => $date,
+                    'updated_at' => date('Y-m-d H:i:s'),
+                ];
+
+                if ($existing_attendance) {
+                    $attendance_record['id'] = $existing_attendance['id'];
+                    $this->staffattendancemodel->add($attendance_record);
+                } else {
+                    $this->staffattendancemodel->add($attendance_record);
+                }
+            }
+        }
+        return ['unmatched_staff_ids' => $unmatched_staff_ids];
+    }
+
+
 
     public function handle_csv_upload()
     {
@@ -419,10 +420,54 @@ class Staffattendance extends Admin_Controller
             access_denied();
         }
 
-        $this->load->model('attendance_model');
-        $this->attendance_model->process_daily_biometric_attendance(date('Y-m-d'));
+        $this->session->set_userdata('top_menu', 'HR');
+        $this->session->set_userdata('sub_menu', 'admin/staffattendance/trigger_process_biometric_attendance');
+        $data['title'] = $this->lang->line('process_biometric_attendance');
 
-        $this->session->set_flashdata('msg', '<div class="alert alert-success">Biometric attendance processed successfully.</div>');
+        $setting = $this->setting_model->getSetting();
+        $last_processed_attendance_date = isset($setting->last_processed_attendance_date) ? $setting->last_processed_attendance_date : null;
+
+        $today = date('Y-m-d');
+        $this_month_first_day = date('Y-m-01');
+
+        if (empty($last_processed_attendance_date)) {
+            // First time processing, process from the beginning of the current month
+            $from_date = $this_month_first_day;
+        } else {
+            // Process from the day after the last processed date
+            $from_date = date('Y-m-d', strtotime($last_processed_attendance_date . ' +1 day'));
+        }
+
+        $to_date = $today; // Always process up to today
+
+        $messages = [];
+        $overall_unmatched_staff_ids = [];
+        $processed_dates_count = 0;
+
+        // Loop through each day from from_date to to_date (inclusive)
+        $current_date = $from_date;
+        while (strtotime($current_date) <= strtotime($to_date)) {
+            $result = $this->_process_staff_attendance_from_punches($current_date);
+            if (!empty($result['unmatched_staff_ids'])) {
+                $overall_unmatched_staff_ids = array_merge($overall_unmatched_staff_ids, $result['unmatched_staff_ids']);
+            }
+            $messages[] = 'Processed attendance for ' . $current_date . '.';
+            $processed_dates_count++;
+            $current_date = date('Y-m-d', strtotime($current_date . ' +1 day'));
+        }
+
+        // Update last_processed_attendance_date only if some dates were processed
+        if ($processed_dates_count > 0) {
+            $this->setting_model->add(array('last_processed_attendance_date' => $to_date));
+            $final_msg = '<div class="alert alert-success">Biometric attendance processed successfully for ' . $processed_dates_count . ' day(s) up to ' . $to_date . '.</div>';
+        } else {
+            $final_msg = '<div class="alert alert-info">No new attendance data to process. Last processed date: ' . ($last_processed_attendance_date ?: 'N/A') . '</div>';
+        }
+
+        if (!empty($overall_unmatched_staff_ids)) {
+            $final_msg .= '<div class="alert alert-warning">Warning: Unmatched staff IDs: ' . implode(', ', array_unique($overall_unmatched_staff_ids)) . '</div>';
+        }
+        $this->session->set_flashdata('msg', $final_msg);
 
         redirect('admin/staffattendance/index');
     }

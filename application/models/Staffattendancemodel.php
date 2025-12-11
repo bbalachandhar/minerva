@@ -198,5 +198,15 @@ class Staffattendancemodel extends MY_Model {
         return false;
     }
 
-
+    public function getAttendanceByStaffIdAndDate($staff_id, $date) {
+        $this->db->select('id, staff_id, staff_attendance_type_id, remark, in_time, out_time, date');
+        $this->db->from('staff_attendance');
+        $this->db->where('staff_id', $staff_id);
+        $this->db->where('date', $date);
+        $query = $this->db->get();
+        if ($query->num_rows() > 0) {
+            return $query->row_array();
+        }
+        return null;
+    }
 }
