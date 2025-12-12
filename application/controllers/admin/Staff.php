@@ -333,6 +333,28 @@ class Staff extends Admin_Controller
         redirect('admin/staff/profile/' . $id);
     }
 
+    public function change_password($id)
+    {
+        if (!$this->rbac->hasPrivilege('staff', 'can_edit')) {
+            access_denied();
+        }
+        $this->form_validation->set_rules('new_pass', $this->lang->line('new_password'), 'trim|required|xss_clean|matches[confirm_pass]');
+        $this->form_validation->set_rules('confirm_pass', $this->lang->line('confirm_password'), 'trim|required|xss_clean');
+        if ($this->form_validation->run() == false) {
+            $msg = array(
+                'new_pass' => form_error('new_pass'),
+                'confirm_pass' => form_error('confirm_pass'),
+            );
+            $array = array('status' => 'fail', 'error' => $msg, 'message' => '');
+        } else {
+            $data['password'] = $this->enc_lib->passHashEnc($this->input->post('new_pass'));
+            $data['id'] = $id;
+            $this->staff_model->add($data);
+            $array = array('status' => 'success', 'error' => '', 'message' => $this->lang->line('password_changed_successfully'));
+        }
+        echo json_encode($array);
+    }
+
     public function ajax_attendance()
     {
         $this->load->model("staffattendancemodel");
