@@ -18,6 +18,7 @@ $lang['account_type'] = "Account Type";
 $lang['action'] = "Action";	
 $lang['action_taken'] = "Action Taken";	
 $lang['active'] = "Active";	
+$lang['inactive'] = "Inactive";
 $lang['active_menu_array_key'] = "Active Menu Array Key";	
 $lang['add'] = "Add"; 	
 $lang['add_admit_card'] = "Add Admit Card";	

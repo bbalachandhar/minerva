@@ -59,6 +59,15 @@ if ($staff["user_type"] == $role["name"]) {
                                                 <span class="text-danger"><?php echo form_error('role'); ?></span>
                                             </div>
                                         </div>
+                                        <div class="col-md-3">
+                                            <div class="form-group">
+                                                <label for="is_active"><?php echo $this->lang->line('status'); ?></label>
+                                                <select id="is_active" name="is_active" class="form-control">
+                                                    <option value="1" <?php if($staff['is_active'] == 1) echo 'selected'; ?>><?php echo $this->lang->line('active'); ?></option>
+                                                    <option value="0" <?php if($staff['is_active'] == 0) echo 'selected'; ?>><?php echo $this->lang->line('inactive'); ?></option>
+                                                </select>
+                                            </div>
+                                        </div>
                                         <?php if ($sch_setting->staff_designation) {
     ?>
                                             <div class="col-md-3">

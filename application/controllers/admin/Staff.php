@@ -896,7 +896,7 @@ class Staff extends Admin_Controller
                 'email' => $email,
                 'dob' => date('Y-m-d', $this->customlib->datetostrtotime($dob)),
                 'gender' => $gender,
-                'is_active' => 1,
+                'is_active' => $this->input->post('is_active'),
                 'prefix' => $this->input->post('prefix'),
                 'ug_qualification' => $this->input->post('ug_qualification'),
                 'pg_qualification' => $this->input->post('pg_qualification'),
