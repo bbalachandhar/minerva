@@ -10,7 +10,7 @@ class Auth_model extends CI_Model
     public function __construct()
     {
         parent::__construct();
-        $this->load->model(array('user_model', 'setting_model', 'student_model'));
+        $this->load->model(array('user_model', 'setting_model', 'student_model', 'staff_model'));
         $this->client_service = $this->config->item('auth_client_service');
         $this->auth_key = $this->config->item('auth_key');
     }
@@ -328,6 +328,15 @@ class Auth_model extends CI_Model
         return array('status' => 200, 'message' => 'Successfully logout.');
     }
 
+    public function staff_logout($deviceToken)
+    {
+        $staff_id = $this->input->get_request_header('User-ID', true);
+        $token    = $this->input->get_request_header('Authorization', true);
+        $this->db->where('id', $staff_id)->update('staff', array('app_key' => null));
+        $this->db->where('users_id', $staff_id)->where('token', $token)->delete('users_authentication');
+        return array('status' => 200, 'message' => 'Successfully logout.');
+    }
+
     public function auth()
     {
         if ($this->security_authentication_flag) {
@@ -350,5 +359,63 @@ class Auth_model extends CI_Model
             return array('status' => 200, 'message' => 'Authorized.');
         }
     }
+
+    public function staff_login($email, $password, $app_key)
+    {
+        $login_post = array(
+            'email' => $email,
+            'password' => $password,
+        );
+
+        $result = $this->staff_model->checkLogin($login_post);
+
+        if (empty($result)) {
+            return array('status' => 0, 'message' => 'Invalid Email or Password');
+        } elseif ($result->is_active != 1) {
+            return array('status' => 0, 'message' => 'Your account is disabled please contact to administrator');
+        } else {
+            $setting_result = $this->setting_model->get();
+            $token = $this->getToken();
+
+            $this->db->trans_start();
+
+            // The users_authentication table might not be ideal for staff.
+            // A staff_authentication table would be better.
+            // For now, let's assume staff IDs won't clash with user IDs.
+            $this->db->insert('users_authentication', array(
+                'users_id' => $result->id, // Using staff id as users_id
+                'token' => $token,
+                'expired_at' => date("Y-m-d H:i:s", strtotime('+8760 hours'))
+            ));
+
+            $this->db->where('id', $result->id);
+            $this->db->update('staff', ['app_key' => $app_key]);
+
+            $session_data = array(
+                'id' => $result->id,
+                'role' => 'staff',
+                'username' => $result->name . " " . $result->surname,
+                'email' => $result->email,
+                'date_format' => $setting_result[0]['date_format'],
+                'currency_symbol' => $setting_result[0]['currency_symbol'],
+                'timezone' => $setting_result[0]['timezone'],
+                'sch_name' => $setting_result[0]['name'],
+                'language' => array('lang_id' => $result->language_id, 'language' => $result->language, 'is_rtl' => $result->is_rtl),
+                'is_rtl' => $result->is_rtl,
+                'theme' => $setting_result[0]['theme'],
+                'image' => $result->image,
+                'start_week' => $setting_result[0]['start_week'],
+            );
+
+            if ($this->db->trans_status() === false) {
+                $this->db->trans_rollback();
+                return array('status' => 0, 'message' => 'Internal server error.');
+            } else {
+                $this->db->trans_commit();
+                return array('status' => 1, 'message' => 'Successfully login.', 'id' => $result->id, 'token' => $token, 'role' => 'staff', 'record' => $session_data);
+            }
+        }
+    }
+
 
 }
