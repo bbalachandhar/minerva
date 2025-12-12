@@ -377,13 +377,35 @@ class Auth_model extends CI_Model
             $setting_result = $this->setting_model->get();
             $token = $this->getToken();
 
+            // Language Fallback Logic
+            if ($result->language_id == null || $result->language_id == 0) {
+                $lang_id = $setting_result[0]['lang_id'];
+                $language = $setting_result[0]['language'];
+                $is_rtl = $setting_result[0]['is_rtl'];
+                $default_lang_details = $this->db->select('short_code')->from('languages')->where('id', $lang_id)->get()->row();
+                $short_code = $default_lang_details->short_code ?? '';
+            } else {
+                $lang_id = $result->language_id;
+                $language = $result->language;
+                $is_rtl = $result->is_rtl;
+                $staff_lang_details = $this->db->select('short_code')->from('languages')->where('id', $lang_id)->get()->row();
+                $short_code = $staff_lang_details->short_code ?? '';
+            }
+
+            // Image fallback logic
+            $image = $result->image;
+            if (empty($image)) {
+                if ($result->gender == 'Female') {
+                    $image = 'default_female.jpg';
+                } else {
+                    $image = 'default_male.jpg';
+                }
+            }
+
             $this->db->trans_start();
 
-            // The users_authentication table might not be ideal for staff.
-            // A staff_authentication table would be better.
-            // For now, let's assume staff IDs won't clash with user IDs.
             $this->db->insert('users_authentication', array(
-                'users_id' => $result->id, // Using staff id as users_id
+                'users_id' => $result->id,
                 'token' => $token,
                 'expired_at' => date("Y-m-d H:i:s", strtotime('+8760 hours'))
             ));
@@ -400,10 +422,10 @@ class Auth_model extends CI_Model
                 'currency_symbol' => $setting_result[0]['currency_symbol'],
                 'timezone' => $setting_result[0]['timezone'],
                 'sch_name' => $setting_result[0]['name'],
-                'language' => array('lang_id' => $result->language_id, 'language' => $result->language, 'is_rtl' => $result->is_rtl),
-                'is_rtl' => $result->is_rtl,
+                'language' => array('lang_id' => $lang_id, 'language' => $language, 'short_code' => $short_code, 'is_rtl' => $is_rtl),
+                'is_rtl' => $is_rtl,
                 'theme' => $setting_result[0]['theme'],
-                'image' => $result->image,
+                'image' => $image,
                 'start_week' => $setting_result[0]['start_week'],
             );
 

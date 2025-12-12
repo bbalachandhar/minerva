@@ -12,8 +12,11 @@ $form_validation;
     public $db;
     public $email;
     public $customlib;
+    public $enc_lib;
     public $user_model;
     public $student_model;
+    public $staff_model;
+    public $staffroles_model;
     public $auth_model;
 
     public function __construct()
@@ -82,5 +85,10 @@ $form_validation;
                 json_output(400, array('status' => 400, 'message' => 'Bad request.'));
             }
         }
+    }
+
+    public function test()
+    {
+        echo "Test method reached.";
     }
 }

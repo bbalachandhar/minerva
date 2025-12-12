@@ -2,6 +2,7 @@
 
 class Staff_model extends MY_Model
 {
+    public $staffroles_model;
  
     public function __construct()
     {
