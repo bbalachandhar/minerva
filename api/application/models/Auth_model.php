@@ -392,15 +392,7 @@ class Auth_model extends CI_Model
                 $short_code = $staff_lang_details->short_code ?? '';
             }
 
-            // Image fallback logic
             $image = $result->image;
-            if (empty($image)) {
-                if ($result->gender == 'Female') {
-                    $image = 'default_female.jpg';
-                } else {
-                    $image = 'default_male.jpg';
-                }
-            }
 
             $this->db->trans_start();
 
@@ -418,6 +410,8 @@ class Auth_model extends CI_Model
                 'role' => 'staff',
                 'username' => $result->name . " " . $result->surname,
                 'email' => $result->email,
+                'employee_id' => $result->employee_id,
+                'contact_no' => $result->contact_no,
                 'date_format' => $setting_result[0]['date_format'],
                 'currency_symbol' => $setting_result[0]['currency_symbol'],
                 'timezone' => $setting_result[0]['timezone'],
@@ -426,6 +420,7 @@ class Auth_model extends CI_Model
                 'is_rtl' => $is_rtl,
                 'theme' => $setting_result[0]['theme'],
                 'image' => $image,
+                'gender' => $result->gender,
                 'start_week' => $setting_result[0]['start_week'],
             );
 
