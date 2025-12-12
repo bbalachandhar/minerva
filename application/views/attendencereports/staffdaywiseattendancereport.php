@@ -116,16 +116,10 @@
                                                     <th width="10%" class="text text-center"><?php echo $this->lang->line('attendance'); ?></th>
                                                     <?php
                                                     if ($sch_setting->staff_biometric) {
-
-                                                    <?php
-                                                    }
-                                                    ?>
-                                                        if ($sch_setting->staff_biometric) {
                                                     ?>
                                                         <th><?php echo $this->lang->line('ip_address'); ?></th>
                                                         <th><?php echo $this->lang->line('agent'); ?></th>
                                                         <th><?php echo $this->lang->line('scan_location'); ?></th>
-
                                                     <?php
                                                     }
                                                     ?>
@@ -172,7 +166,7 @@
                                                             ?>
                                                         </td>
                                                         <?php
-                                                        if ($sch_setting->biometric) {
+                                                        if ($sch_setting->staff_biometric) {
                                                         ?>
                                                             <td>
                                                                 <?php
@@ -204,7 +198,7 @@
                                                         </td>
 
                                                         <?php
-                                                        if ($sch_setting->biometric) {
+                                                        if ($sch_setting->staff_biometric) {
                                                         ?>
                                                             <td>
                                                                 <?php

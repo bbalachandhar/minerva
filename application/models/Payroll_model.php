@@ -172,9 +172,40 @@ class Payroll_model extends MY_Model
 
     public function count_attendance_obj($month, $year, $staff_id, $attendance_type = 1)
     {
-        $query = $this->db->select('count(*) as attendence')->where(array('staff_id' => $staff_id, 'month(date)' => $month, 'year(date)' => $year, 'staff_attendance_type_id' => $attendance_type))->get("staff_attendance");
+        $session_level_types = [7, 9, 10, 11]; // FHP, SHP, FHA, SHA
 
-        return $query->row()->attendence;
+        if (in_array($attendance_type, $session_level_types)) {
+            // New logic to count from JSON
+            $this->db->select('session_attendance_data');
+            $this->db->from('staff_attendance');
+            $this->db->where('staff_id', $staff_id);
+            $this->db->where('month(date)', $month);
+            $this->db->where('year(date)', $year);
+            $query = $this->db->get();
+            $results = $query->result_array();
+
+            $count = 0;
+            if (!empty($results)) {
+                foreach ($results as $row) {
+                    if (!empty($row['session_attendance_data'])) {
+                        $session_data = json_decode($row['session_attendance_data'], true);
+                        if ($session_data) {
+                            if ((isset($session_data['morning_session']) && $session_data['morning_session'] == $attendance_type)) {
+                                $count++;
+                            }
+                            if ((isset($session_data['afternoon_session']) && $session_data['afternoon_session'] == $attendance_type)) {
+                                $count++;
+                            }
+                        }
+                    }
+                }
+            }
+            return $count;
+        } else {
+            // Original logic for overall types
+            $query = $this->db->select('count(*) as attendence')->where(array('staff_id' => $staff_id, 'month(date)' => $month, 'year(date)' => $year, 'staff_attendance_type_id' => $attendance_type))->get("staff_attendance");
+            return $query->row()->attendence;
+        }
     }
 
     public function updatePaymentStatus($status, $id)

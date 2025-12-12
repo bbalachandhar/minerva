@@ -457,61 +457,62 @@ class Attendencereports extends Admin_Controller
             $this->load->view('attendencereports/staffattendancereport', $data);
             $this->load->view('layout/footer', $data);
         } else {
-            $resultlist             = array();
+
+            $this->load->model("holiday_model");
+            $holidays = $this->holiday_model->get();
+            $holiday_dates = array();
+            foreach ($holidays as $holiday_key => $holiday_value) {
+                $from_date = strtotime($holiday_value['from_date']);
+                $to_date = strtotime($holiday_value['to_date']);
+                for ($current_date = $from_date; $current_date <= $to_date; $current_date += (86400)) {
+                    $holiday_dates[] = date('Y-m-d', $current_date);
+                }
+            }
+            $data['holiday_dates'] = $holiday_dates;
+            
             $data['month_selected'] = $month;
             $data['year_selected']  = $searchyear;
             $data["role_selected"]  = $role;
-            $stafflist              = $this->staff_model->getEmployee($role);
-            $session_current        = $this->setting_model->getCurrentSessionName();
-            $startMonth             = $this->setting_model->getStartMonth();
-            $centenary              = substr($session_current, 0, 2); //2017-18 to 2017
-            $year_first_substring   = substr($session_current, 2, 2); //2017-18 to 2017
-            $year_second_substring  = substr($session_current, 5, 2); //2017-18 to 18
+            
             $month_number           = date("m", strtotime($month));
+            $num_of_days            = cal_days_in_month(CAL_GREGORIAN, $month_number, $searchyear);
+            
+            // Get the definitive list of staff for the selected role using the last day of the month
+            $last_day_of_month = $searchyear . "-" . $month_number . "-" . $num_of_days;
+            $stafflist = $this->staffattendancemodel->searchAttendanceReport($role, $last_day_of_month);
 
-            if ($month_number >= $startMonth && $month_number <= 12) {
-                $year = $centenary . $year_first_substring;
-            } else {
-                $year = $centenary . $year_second_substring;
-            }
-
-            $num_of_days        = cal_days_in_month(CAL_GREGORIAN, $month_number, $searchyear);
-            $attr_result        = array();
             $attendence_array   = array();
-            $student_result     = array();
-            $data['no_of_days'] = $num_of_days;
             $date_result        = array();
-            $monthAttendance    = array();
-
             for ($i = 1; $i <= $num_of_days; $i++) {
                 $att_date           = $searchyear . "-" . $month_number . "-" . sprintf("%02d", $i);
                 $attendence_array[] = $att_date;
 
                 $res = $this->staffattendancemodel->searchAttendanceReport($role, $att_date);
-
-                $student_result = $res;
-                $s              = array();
-
+                
+                $s = array();
                 foreach ($res as $result_k => $result_v) {
-                    $date    = $searchyear . "-" . $month;
-                    $newdate = date('Y-m-d', strtotime($date));
                     $s[$result_v['id']] = $result_v;
                 }
-
                 $date_result[$att_date] = $s;
             }
 
-            foreach ($res as $result_k => $result_v) {
-                $date              = $searchyear . "-" . $month;
-                $newdate           = date('Y-m-d', strtotime($date));
-                $monthAttendance[] = $this->monthAttendance($newdate, 1, $result_v['id']);
+            $monthAttendance = array();
+            if(!empty($stafflist)){
+                foreach ($stafflist as $result_k => $result_v) {
+                    $date              = $searchyear . "-" . $month;
+                    $newdate           = date('Y-m-d', strtotime($date));
+                    $monthAttendance[] = $this->monthAttendance($newdate, 1, $result_v['id']);
+                }
             }
+
 
             $data['monthAttendance'] = $monthAttendance;
             $data['resultlist']      = $date_result;
+            $data['no_of_days']      = $num_of_days;
+
             if (!empty($searchyear)) {
                 $data['attendence_array'] = $attendence_array;
-                $data['student_array']    = $student_result;
+                $data['student_array']    = $stafflist;
             } else {
                 $data['attendence_array'] = array();
                 $data['student_array']    = array();
@@ -530,9 +531,23 @@ class Attendencereports extends Admin_Controller
         $r     = array();
         $month = date('m', strtotime($st_month));
         $year  = date('Y', strtotime($st_month));
-        foreach ($this->staff_attendance as $att_key => $att_value) {
-            $s = $this->payroll_model->count_attendance_obj($month, $year, $emp, $att_value);
-            $r[$att_key] = $s;
+        
+        $attendance_types_from_db = $this->staffattendancemodel->getStaffAttendanceType(); 
+        $att_key_to_id_map = [];
+        foreach ($attendance_types_from_db as $type_row) {
+            $config_key = str_replace(" ", "_", strtolower($type_row['type']));
+            $att_key_to_id_map[$config_key] = $type_row['id'];
+        }
+
+        foreach ($this->staff_attendance as $att_key => $att_value_from_config) {
+            $attendance_type_id_for_query = $att_key_to_id_map[$att_key] ?? null;
+
+            if ($attendance_type_id_for_query !== null) {
+                $s = $this->payroll_model->count_attendance_obj($month, $year, $emp, $attendance_type_id_for_query);
+                $r[$att_key] = $s;
+            } else {
+                $r[$att_key] = 0;
+            }
         }
 
         $record[$emp] = $r;

@@ -2,11 +2,14 @@
 
 $config['staffattendance'] = array(
     'present' => 1,
-    'half_day' => 4,
     'late' => 2,
     'absent' => 3,
+    'half_day' => 6,
     'holiday' => 5,
-    'half_day_second_shift' => 6
+    'first_half_permission' => 7,
+    'second_half_permission' => 9,
+    'first_half_absent' => 10,
+    'second_half_absent' => 11
 );
 
 $config['contracttype'] = array(

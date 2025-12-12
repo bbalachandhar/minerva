@@ -246,7 +246,8 @@
                                                     <th><?php echo $this->lang->line('staff_id'); ?></th>
                                                     <th><?php echo $this->lang->line('name'); ?></th>
                                                     <th><?php echo $this->lang->line('role'); ?></th>
-                                                    <th ><?php echo $this->lang->line('attendance'); ?></th>
+                                                                                                        <th><?php echo $this->lang->line('attendance'); ?></th>
+                                                                                                        <th><?php echo $this->lang->line('session_attendance'); ?></th>
                                                     <?php  if ($sch_setting->staff_biometric) {  ?>
                                                         <th width="10%"><?php echo $this->lang->line('date'); ?></th>
                                                     <?php  }  ?>
@@ -336,6 +337,37 @@
                                                                 }
                                                                             ?>
                                                         </td>
+                                                    <td>
+                                                        <?php
+                                                        if (!empty($value['session_attendance_data'])) {
+                                                            $session_data = json_decode($value['session_attendance_data'], true);
+                                                            if ($session_data) {
+                                                                $morning_status = isset($session_data['morning_session']) ? $session_data['morning_session'] : null;
+                                                                $afternoon_status = isset($session_data['afternoon_session']) ? $session_data['afternoon_session'] : null;
+                                                                
+                                                                $morning_text = '';
+                                                                $afternoon_text = '';
+
+                                                                // Translate IDs to text using $attendencetypeslist
+                                                                foreach ($attendencetypeslist as $type) {
+                                                                    if ($type['id'] == $morning_status) {
+                                                                        $morning_text = $this->lang->line(($type['long_lang_name']));
+                                                                    }
+                                                                    if ($type['id'] == $afternoon_status) {
+                                                                        $afternoon_text = $this->lang->line(($type['long_lang_name']));
+                                                                    }
+                                                                }
+                                                                
+                                                                echo 'Morning: ' . ($morning_text ?: 'N/A') . '<br>';
+                                                                echo 'Afternoon: ' . ($afternoon_text ?: 'N/A');
+                                                            } else {
+                                                                echo 'N/A';
+                                                            }
+                                                        } else {
+                                                            echo 'N/A';
+                                                        }
+                                                        ?>
+                                                    </td>
                                                         <?php
                                                         if ($sch_setting->staff_biometric) {
                                                         ?>

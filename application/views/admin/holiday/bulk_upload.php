@@ -19,11 +19,11 @@
                     <div class="row">
                         <div class="col-md-12">
                             <div>
-                                <h4><?php echo $this->lang->line('instruction'); ?>:</h4>
-                                <p><b>1. <?php echo $this->lang->line('csv_file_should_have_columns'); ?>: `from_date`, `to_date`, `description`, `holiday_type` (<?php echo $this->lang->line('optional'); ?>).</b></p>
-                                <p><b>2. <?php echo $this->lang->line('do_not_change_heading'); ?>.</b></p>
-                                <p><b>3. <?php echo $this->lang->line('date_format'); ?>: YYYY-MM-DD <?php echo $this->lang->line('or'); ?> MM/DD/YYYY.</b></p>
-                                <p><b>4. <?php echo $this->lang->line('if_holiday_type_not_provided_or_not_found'); ?>: <?php echo $this->lang->line('system_will_use_default_type_selected_below'); ?>.</b></p>
+                                <h4><?php echo $this->lang->line('bulk_holiday_instruction_header'); ?></h4>
+                                <p><b><?php echo $this->lang->line('bulk_holiday_csv_columns_instruction'); ?></b></p>
+                                <p><b><?php echo $this->lang->line('bulk_holiday_type_note'); ?></b></p>
+                                <p><b><?php echo $this->lang->line('bulk_holiday_date_format_instruction'); ?></b></p>
+                                <p><b><?php echo $this->lang->line('bulk_holiday_check_exists_note'); ?></b></p>
                             </div>
                         </div>
                     </div>

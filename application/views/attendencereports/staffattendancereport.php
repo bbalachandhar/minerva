@@ -160,27 +160,20 @@
                                                 ?>
                                                 <?php
                                                 foreach ($attendence_array as $at_key => $at_value) {
-
+                                                     $header_class = '';
                                                     if (date('D', $this->customlib->dateyyyymmddTodateformat($at_value)) == "Sun") {
+                                                        $header_class = 'bg-danger';
+                                                    }elseif (in_array($at_value, $holiday_dates)) {
+                                                        $header_class = 'bg-warning';
+                                                    }
                                                 ?>
-                                                        <th class="tdcls text text-center bg-danger">
-                                                            <?php
-                                                            echo date('d', $this->customlib->dateyyyymmddTodateformat($at_value)) . "<br/>" .
-                                                                $this->lang->line(strtolower(date('D', $this->customlib->dateyyyymmddTodateformat($at_value))));
-                                                            ?>
-                                                        </th>
-
-                                                    <?php
-                                                    } else {
-                                                    ?>
-                                                        <th class="tdcls text text-center">
+                                                        <th class="tdcls text text-center <?php echo $header_class; ?>">
                                                             <?php
                                                             echo date('d', $this->customlib->dateyyyymmddTodateformat($at_value)) . "<br/>" .
                                                                 $this->lang->line(strtolower(date('D', $this->customlib->dateyyyymmddTodateformat($at_value))));
                                                             ?>
                                                         </th>
                                                 <?php
-                                                    }
                                                 }
                                                 ?>
                                             </tr>
@@ -226,18 +219,30 @@
                                                             <div class="fee_detail_popover" style="display: none"><?php echo $this->lang->line('staff_id'); ?>: <?php echo $student_value['employee_id']; ?></div>
                                                         </td>
                                                         <th><?php echo "<label $label>" . $print_percentage . "</label>"; ?></th>
-                                                        <th><?php echo $monthAttendance[$i][$student_value['id']]['present']; ?></th>
-                                                        <th><?php echo $monthAttendance[$i][$student_value['id']]['late']; ?></th>
-                                                        <th><?php echo $monthAttendance[$i][$student_value['id']]['absent']; ?></th>
-                                                        <th><?php echo $monthAttendance[$i][$student_value['id']]['half_day']; ?></th>
-                                                        <th><?php echo $monthAttendance[$i][$student_value['id']]['holiday']; ?></th>
-                                                        <th><?php echo $monthAttendance[$i][$student_value['id']]['half_day_second_shift']; ?></th>
                                                         <?php
-                                                        foreach ($attendence_array as $at_key => $at_value) {  ?>
-                                                            <th class="tdcls text text-center">
+                                                        if(!empty($monthAttendance)){
+                                                        foreach ($attendencetypeslist as $key => $value) {
+                                                          $att_type_key = str_replace(" ", "_", strtolower($value['type']));
+                                                        ?>
+                                                          <th><?php echo $monthAttendance[$i][$student_value['id']][$att_type_key] ?? 0; ?></th>
+                                                        <?php }
+                                                        }
+                                                         ?>
+                                                        <?php
+                                                        foreach ($attendence_array as $at_key => $at_value) {
+                                                            $cell_class = '';
+                                                            $attendance_key = $resultlist[$at_value][$student_value['id']]['key'] ?? null;
+
+                                                            if (date('D', $this->customlib->dateyyyymmddTodateformat($at_value)) == "Sun") {
+                                                                $cell_class = 'bg-danger';
+                                                            }elseif (in_array($at_value, $holiday_dates) || $attendance_key == 'HO') { 
+                                                                $cell_class = 'bg-warning';
+                                                            }
+                                                        ?>
+                                                            <th class="tdcls text text-center <?php echo $cell_class; ?>">
                                                                 <center>
                                                                 <span data-toggle="popover" class="detail_popover" data-original-title="" title="">
-                                                                <a href="#" style="color:#333"><?php  print_r($resultlist[$at_value][$student_value['id']]['key']);  ?></a></span>
+                                                                <a href="#" style="color:#333"><?php echo ($attendance_key ?? '');  ?></a></span>
                                                                 <div class="fee_detail_popover" style="display: none">
                                                                     <?php
                                                                         if (!empty($resultlist[$at_value][$student_value['id']]['remark'])) {
