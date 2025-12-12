@@ -299,19 +299,19 @@ class Staffattendance extends Admin_Controller
 
     private function _process_staff_attendance_from_punches($date_to_process)
     {
+        $all_active_staff = $this->staff_model->get();
         $staff_punches_by_day = $this->staff_biometric_punches_model->get_punches_by_date($date_to_process);
         $unmatched_staff_ids = [];
 
-        foreach ($staff_punches_by_day as $staff_id => $dates) {
+        foreach ($all_active_staff as $staff_member) {
+            $staff_id = $staff_member['id'];
 
-            $staff_detail = $this->staff_model->get($staff_id);
-            if (empty($staff_detail)) {
-                $unmatched_staff_ids[] = $staff_id;
-                continue;
-            }
-            $role_id = $staff_detail['role_id'];
+            if (isset($staff_punches_by_day[$staff_id])) {
+                $dates = $staff_punches_by_day[$staff_id];
+                // The $dates array is keyed by date, but since we process one date at a time, we can just grab the first element.
+                $timestamps = reset($dates);
+                $date = key($dates);
 
-            foreach ($dates as $date => $timestamps) {
                 $this->logger->log("--- Processing Staff ID: {$staff_id}, Date: {$date} ---");
                 sort($timestamps);
 
@@ -324,116 +324,89 @@ class Staffattendance extends Admin_Controller
                 $morning_session_status = 10; // Default to First Half Absent
                 $afternoon_session_status = 11; // Default to Second Half Absent
                 $overall_attendance_type_id = 3; // Default to Full Day Absent
-
                 $remark = '';
 
-                // If no punches, both sessions are absent
-                if ($punches == 0) {
-                    $this->logger->log("Scenario: No punches for staff {$staff_id}, Date: {$date}. Setting to Absent.");
-                    $morning_session_status = 10; // First Half Absent
-                    $afternoon_session_status = 11; // Second Half Absent
-                    $overall_attendance_type_id = 3; // Absent
-                    $remark = 'No punch found';
-                } elseif ($punches == 1) {
+                if ($punches == 1) {
                     $this->logger->log("Scenario: One punch for staff {$staff_id}, Date: {$date}. Setting to Absent (no exit punch).");
-                    $morning_session_status = 10; // First Half Absent
-                    $afternoon_session_status = 11; // Second Half Absent
-                    $overall_attendance_type_id = 3; // Absent
                     $remark = 'No exit punch';
                 } else {
-                    // --- Morning Session Status Determination ---
+                    // Logic for processing punches...
                     $this->logger->log("Morning Session: Evaluating in_time: {$in_time} for staff {$staff_id}, Date: {$date}");
                     if ($in_time >= '09:29:00' && $in_time <= '10:15:00') {
                         $permission_count_monthly = $this->staffpermission_model->get_permission_count($staff_id, $date)['count'];
-                        $this->logger->log("Staff {$staff_id}, Date: {$date}, monthly permission count (before morning check): {$permission_count_monthly}");
                         if ($permission_count_monthly < 2) {
-                            $morning_session_status = 7; // First Half Permission
-                            $this->staffpermission_model->add_permission(['staff_id' => $staff_id, 'date' => $date]); // Add permission
-                            $this->logger->log("Morning session status for staff {$staff_id}, Date: {$date}, set to FHP (ID: 7). Permission added.");
+                            $morning_session_status = 7; // FHP
+                            $this->staffpermission_model->add_permission(['staff_id' => $staff_id, 'date' => $date]);
                         } else {
-                            $morning_session_status = 10; // First Half Absent (permissions exhausted)
-                            $this->logger->log("Morning session status for staff {$staff_id}, Date: {$date}, set to FHA (ID: 10). Permissions exhausted.");
+                            $morning_session_status = 10; // FHA
                         }
                     } elseif ($in_time <= '09:17:00') {
                         $morning_session_status = 1; // Present
-                        $this->logger->log("Morning session status for staff {$staff_id}, Date: {$date}, set to Present (ID: 1).");
                     } elseif ($in_time <= '09:28:00') {
                         $morning_session_status = 2; // Late
-                        $this->logger->log("Morning session status for staff {$staff_id}, Date: {$date}, set to Late (ID: 2).");
-                    } else { // Arrived after 10:15, so First Half Absent
-                        $morning_session_status = 10; // First Half Absent
-                        $this->logger->log("Morning session status for staff {$staff_id}, Date: {$date}, set to FHA (ID: 10). Arrived after 10:15.");
+                    } else {
+                        $morning_session_status = 10; // FHA
                     }
 
-                    // --- Afternoon Session Status Determination ---
                     $this->logger->log("Afternoon Session: Evaluating out_time: {$out_time} for staff {$staff_id}, Date: {$date}");
-                    if ($out_time >= '15:15:00' && $out_time <= '16:30:00') { // Out_time falls within Second Half Permission window
+                    if ($out_time >= '15:15:00' && $out_time <= '16:30:00') {
                         $permission_count_monthly = $this->staffpermission_model->get_permission_count($staff_id, $date)['count'];
-                        $this->logger->log("Staff {$staff_id}, Date: {$date}, monthly permission count (before afternoon check): {$permission_count_monthly}");
                         if ($permission_count_monthly < 2) {
-                            $afternoon_session_status = 9; // Second Half Permission
-                            $this->staffpermission_model->add_permission(['staff_id' => $staff_id, 'date' => $date]); // Add permission
-                            $this->logger->log("Afternoon session status for staff {$staff_id}, Date: {$date}, set to SHP (ID: 9). Permission added.");
+                            $afternoon_session_status = 9; // SHP
+                            $this->staffpermission_model->add_permission(['staff_id' => $staff_id, 'date' => $date]);
                         } else {
-                            $afternoon_session_status = 11; // Second Half Absent (permissions exhausted)
-                            $this->logger->log("Afternoon session status for staff {$staff_id}, Date: {$date}, set to SHA (ID: 11). Permissions exhausted.");
+                            $afternoon_session_status = 11; // SHA
                         }
-                    } elseif ($out_time < '15:15:00') { // Left before second half permission window
-                        $afternoon_session_status = 11; // Second Half Absent
-                        $this->logger->log("Afternoon session status for staff {$staff_id}, Date: {$date}, set to SHA (ID: 11). Left before 15:15.");
-                    } elseif ($out_time > '16:30:00') { // Left after valid time, considered Present
+                    } elseif ($out_time < '15:15:00') {
+                        $afternoon_session_status = 11; // SHA
+                    } elseif ($out_time > '16:30:00') {
                         $afternoon_session_status = 1; // Present
-                        $this->logger->log("Afternoon session status for staff {$staff_id}, Date: {$date}, set to Present (ID: 1). Left after 16:30.");
-                    } else { // PUNCHES are there, but out_time doesn't fit criteria
-                        $afternoon_session_status = 1; // Default to Present for afternoon if nothing else applies
-                        $this->logger->log("Afternoon session status for staff {$staff_id}, Date: {$date}, set to Present (ID: 1) by default.");
+                    } else {
+                        $afternoon_session_status = 1; // Present
                     }
 
-                    // --- Determine Overall Attendance Type ID ---
-                    $this->logger->log("Overall: Morning ID: {$morning_session_status}, Afternoon ID: {$afternoon_session_status} for staff {$staff_id}, Date: {$date}");
                     if ($morning_session_status == 10 && $afternoon_session_status == 11) {
                         $overall_attendance_type_id = 3; // Absent
-                        $this->logger->log("Overall status for staff {$staff_id}, Date: {$date} set to Absent (ID: 3) due to both sessions being absent.");
                     } elseif ($morning_session_status == 1 && $afternoon_session_status == 1) {
                         $overall_attendance_type_id = 1; // Present
-                        $this->logger->log("Overall status for staff {$staff_id}, Date: {$date} set to Present (ID: 1) due to both sessions being present.");
-                    } elseif ($morning_session_status == 10 || $afternoon_session_status == 11) {
-                        $overall_attendance_type_id = 6; // Half Day (as First Half Absent or Second Half Absent is partial)
-                        $this->logger->log("Overall status for staff {$staff_id}, Date: {$date} set to Half Day (ID: 6) due to one session being absent.");
-                    } elseif ($morning_session_status == 7 || $afternoon_session_status == 9) {
-                        $overall_attendance_type_id = 6; // Half Day (as permission is also partial)
-                        $this->logger->log("Overall status for staff {$staff_id}, Date: {$date} set to Half Day (ID: 6) due to one session having permission.");
+                    } elseif ($morning_session_status == 10 || $afternoon_session_status == 11 || $morning_session_status == 7 || $afternoon_session_status == 9) {
+                        $overall_attendance_type_id = 6; // Half Day
                     } else {
-                        // Fallback, if morning present/late and afternoon present, but not both.
-                        $overall_attendance_type_id = $morning_session_status; // Prioritize morning status
-                        $this->logger->log("Overall status for staff {$staff_id}, Date: {$date} set to morning status fallback (ID: {$overall_attendance_type_id}).");
+                        $overall_attendance_type_id = $morning_session_status;
                     }
-                } // end else (punches > 1)
+                }
 
-                $session_attendance_data = json_encode([
-                    'morning_session' => $morning_session_status,
-                    'afternoon_session' => $afternoon_session_status,
-                ]);
-                $this->logger->log("Session Attendance Data JSON for staff {$staff_id}, Date: {$date}: {$session_attendance_data}");
-
-                $existing_attendance = $this->staffattendancemodel->getAttendanceByStaffIdAndDate($staff_id, $date);
-
+                $session_attendance_data = json_encode(['morning_session' => $morning_session_status, 'afternoon_session' => $afternoon_session_status]);
                 $attendance_record = [
                     'staff_id' => $staff_id,
-                    'staff_attendance_type_id' => $overall_attendance_type_id, // Store overall status here
-                    'session_attendance_data' => $session_attendance_data, // Store detailed session data here
+                    'staff_attendance_type_id' => $overall_attendance_type_id,
+                    'session_attendance_data' => $session_attendance_data,
                     'remark' => $remark,
-                    'in_time' => $in_time,
-                    'out_time' => $out_time,
+                    'in_time' => $in_time ?? null,
+                    'out_time' => $out_time ?? null,
                     'date' => $date,
                     'updated_at' => date('Y-m-d H:i:s'),
                 ];
-                $this->logger->log("Final attendance record for staff {$staff_id}, Date: {$date}: " . json_encode($attendance_record));
-
+                
+                $existing_attendance = $this->staffattendancemodel->getAttendanceByStaffIdAndDate($staff_id, $date);
                 if ($existing_attendance) {
                     $attendance_record['id'] = $existing_attendance['id'];
-                    $this->staffattendancemodel->add($attendance_record);
-                } else {
+                }
+                $this->staffattendancemodel->add($attendance_record);
+
+            } else {
+                // Staff has NO punches for this day. Mark as Absent.
+                $existing_attendance = $this->staffattendancemodel->getAttendanceByStaffIdAndDate($staff_id, $date_to_process);
+
+                if (!$existing_attendance) {
+                    $this->logger->log("--- No punches found for Staff ID: {$staff_id}, Date: {$date_to_process}. Marking as Absent. ---");
+                    $attendance_record = [
+                        'staff_id' => $staff_id,
+                        'staff_attendance_type_id' => 3, // 3 is for 'Absent'
+                        'remark' => 'No punch found',
+                        'date' => $date_to_process,
+                        'updated_at' => date('Y-m-d H:i:s'),
+                    ];
                     $this->staffattendancemodel->add($attendance_record);
                 }
             }
