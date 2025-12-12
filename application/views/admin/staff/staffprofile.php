@@ -855,7 +855,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                 <div class="col-lg-3 col-md-4 col-sm-6 col20per">
                                     <div class="staffprofile">
                                         <h5><?php echo $this->lang->line('total_present'); ?></h5>
-                                        <h4 class="total_present"><?php echo count($countAttendance['Present']); ?></h4>
+                                        <h4 class="total_present"><?php echo isset($countAttendance['Present']) ? count($countAttendance['Present']) : 0; ?></h4>
                                         <div class="icon">
                                             <i class="fa  fa-check-square-o"></i>
                                         </div>
@@ -900,8 +900,8 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                 </div><!--./col-md-3-->
                                  <div class="col-lg-3 col-md-4 col-sm-6 col20per">
                                     <div class="staffprofile">
-                                        <h5><?php echo $this->lang->line('half_day_second_shift'); ?></h5>
-                                        <h4 class="total_half_day_second_shift"><?php echo count($countAttendance['Half Day Second Shift']); ?></h4>
+                                        <h5><?php echo $this->lang->line('half_day'); ?></h5>
+                                        <h4 class="total_half_day"><?php echo isset($countAttendance['Half Day']) ? count($countAttendance['Half Day']) : 0; ?></h4>
                                         <div class="icon">
                                             <i class="fa  fa-check-square-o"></i>
                                         </div>
