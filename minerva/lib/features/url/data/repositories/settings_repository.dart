@@ -34,8 +34,8 @@ class SettingsRepository {
       // log('API returned site_url (raw): $responseSiteUrl');
 
       // Ensure API URL ends with a single slash
-      if (responseApiUrl.isNotEmpty && !responseApiUrl.endsWith('/')) {
-        responseApiUrl += '/';
+      if (responseApiUrl.isNotEmpty && responseApiUrl.endsWith('/')) {
+        responseApiUrl = responseApiUrl.substring(0, responseApiUrl.length - 1); // Remove trailing slash
       }
       // Ensure Site URL ends with a single slash
       if (responseSiteUrl.isNotEmpty && !responseSiteUrl.endsWith('/')) {

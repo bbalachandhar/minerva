@@ -1,6 +1,7 @@
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:minerva_flutter/features/staff_profile/data/repositories/staff_profile_repository.dart';
+import 'package:minerva_flutter/features/staff_profile/domain/entities/staff_profile.dart'; // Import StaffProfile
 
 part 'staff_profile_event.dart';
 part 'staff_profile_state.dart';

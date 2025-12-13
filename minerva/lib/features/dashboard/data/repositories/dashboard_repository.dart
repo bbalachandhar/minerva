@@ -65,7 +65,7 @@ class DashboardRepository {
       throw Exception('Missing required authentication or API information for dashboard modules.');
     }
 
-    final url = Uri.parse('$apiUrl$endpoint');
+    final url = Uri.parse('$apiUrl/$endpoint');
     log('Dashboard Modules API URL: $url');
 
     final response = await http.post(

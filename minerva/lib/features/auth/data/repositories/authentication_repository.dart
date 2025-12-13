@@ -31,7 +31,7 @@ class AuthenticationRepository {
 
   
 
-      final url = Uri.parse('$apiUrl${Constants.loginUrl}');
+      final url = Uri.parse('$apiUrl/${Constants.loginUrl}');
 
       log('Login URL: $url');
 
@@ -243,7 +243,7 @@ class AuthenticationRepository {
 
   
 
-      final url = Uri.parse('$apiUrl${Constants.staffLoginUrl}');
+      final url = Uri.parse('$apiUrl/${Constants.staffLoginUrl}');
 
       log('Staff Login URL: $url');
 

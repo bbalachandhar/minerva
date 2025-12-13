@@ -12,7 +12,7 @@ class StaffProfileInitial extends StaffProfileState {}
 class StaffProfileLoading extends StaffProfileState {}
 
 class StaffProfileLoaded extends StaffProfileState {
-  final Map<String, dynamic> profileData;
+  final StaffProfile profileData;
 
   const StaffProfileLoaded(this.profileData);
 

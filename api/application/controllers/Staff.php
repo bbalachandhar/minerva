@@ -4,15 +4,6 @@ defined('BASEPATH') or exit('No direct script access allowed');
 
 class Staff extends CI_Controller
 {
-    public $Auth_model; // To reference the Auth_model correctly
-    public $staff_model;
-    public $user_model;
-    public $setting_model;
-    public $student_model;
-    public $customlib;
-    public $enc_lib;
-    public $staffroles_model; // Not directly used in controller, but good practice if it ever gets loaded here.
-
     public function __construct()
     {
         parent::__construct();
@@ -38,7 +29,7 @@ class Staff extends CI_Controller
         $profile_data = $this->staff_model->getProfile($staff_id);
 
         if ($profile_data) {
-            json_output(200, array('status' => 200, 'message' => 'Profile data retrieved successfully', 'data' => $profile_data));
+            json_output(200, array('status' => 200, 'message' => 'Profile data retrieved successfully', 'data' => $profile_data, 'can_edit_profile' => true));
         } else {
             json_output(404, array('status' => 404, 'message' => 'Profile not found'));
         }
