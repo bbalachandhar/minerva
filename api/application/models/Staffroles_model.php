@@ -10,6 +10,7 @@ class Staffroles_model extends CI_Model {
     public function __construct() {
         parent::__construct();
         $CI =& get_instance();
+        $CI->load->model('setting_model');
         $this->current_session = $CI->setting_model->getCurrentSession();
     }
 

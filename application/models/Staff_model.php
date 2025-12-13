@@ -2,7 +2,6 @@
 
 class Staff_model extends MY_Model
 {
-    public $staffroles_model;
  
     public function __construct()
     {
@@ -798,10 +797,11 @@ class Staff_model extends MY_Model
         if ($record) {
             $pass_verify = $this->enc_lib->passHashDyc($data['password'], $record->password);
             if ($pass_verify) {
-                $this->load->model('staffroles_model'); // Load the model
-                $roles = $this->staffroles_model->getStaffRoles($record->id); // Fetch roles
+                $CI =& get_instance();
+                $CI->load->model('staffroles_model');
+                $roles = $CI->staffroles_model->getStaffRoles($record->id);
 
-                if (!empty($roles)) { // Add this check
+                if (!empty($roles)) {
                     $record->roles = array($roles[0]->name => $roles[0]->role_id);
                     return $record;
                 }
