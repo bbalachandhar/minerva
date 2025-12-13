@@ -54,6 +54,25 @@
                                         </div>
                                     </div>
                                 </div><!--./row-->
+                                <div class="row">
+                                    <div class="col-md-12">
+                                        <div class="settinghr"></div>
+                                        <div class="relative">   
+                                            <h4 class="session-head"><?php echo $this->lang->line('staff_mobile_app_settings'); ?> </h4>
+                                        </div>
+                                    </div><!--./col-md-12-->
+                                    <div class="col-md-12">
+                                        <div class="form-group row">
+                                            <label class="col-sm-4"> <?php echo $this->lang->line('enable_staff_profile_edit') ?></label>
+                                            <div class="col-sm-8">
+                                                <div class="material-switch">
+                                                    <input id="staff_profile_edit" name="staff_profile_edit" type="checkbox" class="chk" value="1" <?php echo ($result->staff_profile_edit == 1) ? 'checked="checked"' : ''; ?>>
+                                                    <label for="staff_profile_edit" class="label-success"></label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div><!--./row-->
                                 <div class="row hidden">
                                     <div class="col-md-12">
                                         <div class="settinghr"></div>

@@ -2862,3 +2862,5 @@ $lang['advance_fees_collected_successfully'] = "Advance Fees Collected Successfu
 $lang['error_collecting_advance_fees'] = "Error Collecting Advance Fees";
 $lang['transport_fees_transferred_to_advance_successfully'] = "Transport Fees Transferred to Advance Successfully";
 $lang['file_upload_failed_could_not_move_uploaded_file_to_destination'] = "File upload failed: Could not move uploaded file to destination.";
+$lang['enable_staff_profile_edit'] = "Enable Staff Profile Edit";
+$lang['staff_profile_edit'] = "Staff Profile Edit";
