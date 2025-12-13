@@ -12,10 +12,7 @@ import 'package:minerva_flutter/features/auth/presentation/pages/login_page.dart
 import 'package:minerva_flutter/features/dashboard/data/repositories/dashboard_repository.dart';
 import 'package:minerva_flutter/features/dashboard/presentation/bloc/dashboard_bloc.dart';
 import 'package:minerva_flutter/features/dashboard/presentation/pages/dashboard_page.dart';
-import 'package:minerva_flutter/features/fees/data/repositories/fees_repository.dart';
-import 'package:minerva_flutter/features/fees/presentation/bloc/fees_bloc.dart';
 import 'package:minerva_flutter/features/fees/presentation/pages/fees_screen.dart';
-import 'package:minerva_flutter/features/dashboard/presentation/pages/staff_dashboard_page.dart';
 import 'package:minerva_flutter/features/fees/presentation/pages/processing_fees_screen.dart';
 import 'package:minerva_flutter/features/fees/presentation/bloc/offline_payment_bloc.dart';
 import 'package:minerva_flutter/features/fees/presentation/bloc/processing_fees_bloc.dart';
@@ -81,6 +78,10 @@ import 'package:minerva_flutter/features/teachers_rating/presentation/pages/teac
 import 'package:minerva_flutter/features/staff_profile/data/repositories/staff_profile_repository.dart';
 import 'package:minerva_flutter/features/staff_profile/presentation/bloc/staff_profile_bloc.dart';
 import 'package:minerva_flutter/features/staff_profile/presentation/pages/staff_profile_page.dart';
+
+import '../features/dashboard/presentation/pages/staff_dashboard_page.dart';
+import '../features/fees/data/repositories/fees_repository.dart';
+import '../features/fees/presentation/bloc/fees_bloc.dart';
 
 
 

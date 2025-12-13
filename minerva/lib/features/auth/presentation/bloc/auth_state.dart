@@ -10,7 +10,14 @@ class AuthInitial extends AuthState {}
 
 class AuthLoading extends AuthState {}
 
-class AuthSuccess extends AuthState {}
+class AuthSuccess extends AuthState {
+  final String role;
+
+  const AuthSuccess(this.role);
+
+  @override
+  List<Object> get props => [role];
+}
 
 class AuthFailure extends AuthState {
   final String error;

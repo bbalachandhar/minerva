@@ -52,9 +52,8 @@ class _LoginPageState extends State<LoginPage> {
       body: BlocConsumer<AuthBloc, AuthState>(
         listener: (context, state) {
           if (state is AuthSuccess) {
-            final loginType = context.read<SharedPreferences>().getString(Constants.loginType);
-            if (loginType == 'staff') {
-              context.go('/staff/dashboard'); // Or wherever staff should go
+            if (state.role == 'staff') {
+              context.go('/staff/dashboard');
             } else {
               context.go('/dashboard');
             }
@@ -94,6 +93,14 @@ class _LoginPageState extends State<LoginPage> {
                       onPressed: (int index) {
                         setState(() {
                           _selectedLoginType = index == 0 ? LoginType.studentParent : LoginType.staff;
+                          if (_selectedLoginType == LoginType.staff) {
+                            _usernameController.text = 'skarusamy81@gmail.com';
+                            _passwordController.text = 'Testpass1!';
+                          } else {
+                            // Revert to existing student/parent default
+                            _usernameController.text = 'std60'; 
+                            _passwordController.text = 'ou11za';
+                          }
                         });
                       },
                       borderRadius: BorderRadius.circular(8.0),

@@ -2,8 +2,8 @@ class Constants {
   static const String clientService = "smartschool";
   static const String authKey = "schoolAdmin@";
   static const String contentType = "application/json";
-  static const String loginUrl = "api/auth/login";
-  static const String staffLoginUrl = "api/auth/staff_login";
+  static const String loginUrl = "auth/login";
+  static const String staffLoginUrl = "auth/staff_login";
   static const String staffLogoutUrl = "auth/staff_logout";
   static const String getStudentProfileUrl = "webservice/getStudentProfile";
   static const String getHomeworkUrl = "webservice/getHomework";
@@ -137,6 +137,9 @@ class Constants {
   static const String sectionId = "sectionId";
   static const String studentId = "studentId";
   static const String parentsId = "parentsId";
+  static const String employeeId = "employeeId"; // New constant
+  static const String mobileNo = "mobileNo"; // New constant
+  static const String email = "email"; // New constant
   static const String admissionNo = "admission_no";
   static const String userId = "userId";
   static const String permissionStatus = "permissionStatus";

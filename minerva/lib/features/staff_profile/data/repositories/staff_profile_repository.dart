@@ -21,7 +21,7 @@ class StaffProfileRepository {
       throw Exception('Authentication details not found.');
     }
 
-    final url = Uri.parse('$apiUrl/api/staff/profile');
+    final url = Uri.parse('$apiUrl/staff/profile');
     log('Get Staff Profile URL: $url');
 
     final response = await http.get(

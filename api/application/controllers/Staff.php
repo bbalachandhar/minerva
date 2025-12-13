@@ -4,6 +4,15 @@ defined('BASEPATH') or exit('No direct script access allowed');
 
 class Staff extends CI_Controller
 {
+    public $Auth_model; // To reference the Auth_model correctly
+    public $staff_model;
+    public $user_model;
+    public $setting_model;
+    public $student_model;
+    public $customlib;
+    public $enc_lib;
+    public $staffroles_model; // Not directly used in controller, but good practice if it ever gets loaded here.
+
     public function __construct()
     {
         parent::__construct();
