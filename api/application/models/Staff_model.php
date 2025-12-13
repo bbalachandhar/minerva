@@ -6,7 +6,8 @@ if (!defined('BASEPATH')) {
 
 class Staff_model extends CI_Model
 {
-    public $staffroles_model;
+    public $customlib;
+    public $enc_lib;
 
     public function __construct()
     {
@@ -72,6 +73,26 @@ class Staff_model extends CI_Model
             return $query->row_array();
         } else {
             return $query->result_array();
+        }
+    }
+
+    public function getProfile($id)
+    {
+        $this->db->select('staff.*'); // Select all columns directly from the staff table
+        $this->db->where("staff.id", $id);
+        $this->db->from('staff');
+        $query = $this->db->get();
+        return $query->row_array();
+    }
+
+    public function update($data)
+    {
+        $this->db->where('id', $data['id']);
+        $query = $this->db->update('staff', $data);
+        if ($query) {
+            return true;
+        } else {
+            return false;
         }
     }
 
