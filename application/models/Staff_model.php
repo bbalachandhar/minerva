@@ -1037,4 +1037,41 @@ class Staff_model extends MY_Model
         }
     }
 
+    // New method for calculating profile completion
+    public function calculateProfileCompletion($staffData)
+    {
+        if (empty($staffData)) {
+            return 0;
+        }
+
+        $total_fields = 0;
+        $filled_fields = 0;
+
+        $important_fields = [
+            'name', 'surname', 'gender', 'dob', 'marital_status',
+            'email', 'contact_no', 'emergency_contact_no', 'local_address', 'permanent_address',
+            'designation', 'department', 'qualification', 'ug_qualification', 'pg_qualification',
+            'higher_qualification', 'qualified_exam', 'subject_specialization', 'additional_qualification',
+            'work_exp', 'date_of_joining', 'date_of_leaving', 'shift', 'location',
+            'account_title', 'bank_account_no', 'bank_name', 'ifsc_code', 'bank_branch',
+            'payscale', 'basic_salary', 'epf_no', 'contract_type',
+            'facebook', 'twitter', 'linkedin', 'instagram', 'note',
+        ];
+
+        foreach ($important_fields as $field) {
+            $total_fields++;
+            if (!empty($staffData[$field])) {
+                $filled_fields++;
+            }
+        }
+
+        // Include image in completion calculation if it's considered an editable part of the profile
+        $total_fields++; // Profile picture counts as one field
+        if (!empty($staffData['image']) && $staffData['image'] != 'no_image.png' && $staffData['image'] != '') { // Assuming 'no_image.png' is the default
+            $filled_fields++;
+        }
+        
+        $percentage = ($total_fields > 0) ? round(($filled_fields / $total_fields) * 100) : 0;
+        return $percentage;
+    }
 }

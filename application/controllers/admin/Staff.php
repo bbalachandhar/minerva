@@ -1617,41 +1617,140 @@ class Staff extends Admin_Controller
         redirect('admin/staff/managebiometricdevice');
     }
 
-    public function sync_biometric_attendance() {
-        if (!($this->rbac->hasPrivilege('biometric_device', 'can_view'))) {
-            access_denied();
+        public function sync_biometric_attendance() {
+
+            if (!($this->rbac->hasPrivilege('biometric_device', 'can_view'))) {
+
+                access_denied();
+
+            }
+
+    
+
+            $this->load->model('biometric_api_model');
+
+            $this->load->model('attendance_model');
+
+    
+
+            $active_device = $this->attendance_model->get_active_biometric_device();
+
+    
+
+            if (!$active_device) {
+
+                $this->session->set_flashdata('msg', '<div class="alert alert-danger">' . $this->lang->line('no_active_biometric_device') . '</div>');
+
+                log_message('error', 'Staff::sync_biometric_attendance - No active biometric device. Redirecting to staffattendance/index.');
+
+                redirect('admin/staffattendance/index');
+
+            }
+
+    
+
+            $last_sync_datetime = $this->attendance_model->get_last_biometric_sync_datetime();
+
+            log_message('debug', 'Staff::sync_biometric_attendance - last_sync_datetime from model: ' . (is_string($last_sync_datetime) ? 'String: ' . $last_sync_datetime : 'Not a string, Type: ' . gettype($last_sync_datetime) . ', Value: ' . var_export($last_sync_datetime, true)));
+
+            $from_datetime = $last_sync_datetime ? $last_sync_datetime : date('Y-m-d H:i:s', strtotime('-30 days')); // Default to 30 days ago if no previous sync
+
+            $to_datetime = date('Y-m-d H:i:s');
+
+    
+
+            $punches = $this->biometric_api_model->get_punches_from_api($active_device, $from_datetime, $to_datetime);
+
+            log_message('debug', 'Punches received from API: ' . (is_array($punches) ? count($punches) : 'No punches received or API error.'));
+
+    
+
+            if ($punches !== false) { // Check for false to indicate API error
+
+                $inserted_count = $this->attendance_model->save_raw_biometric_punches($punches);
+
+                log_message('debug', 'Inserted count from model: ' . $inserted_count);
+
+                $this->attendance_model->update_last_biometric_sync_datetime($to_datetime);
+
+                $this->session->set_flashdata('msg', '<div class="alert alert-success">' . $this->lang->line('biometric_sync_success') . ' ' . $inserted_count . ' ' . $this->lang->line('new_punches_recorded') . '</div>');
+
+                log_message('info', 'Staff::sync_biometric_attendance - Sync successful. Redirecting to staffattendance/index.');
+
+                redirect('admin/staffattendance/index');
+
+            } else {
+
+                $this->session->set_flashdata('msg', '<div class="alert alert-danger">' . $this->lang->line('biometric_sync_failed') . '</div>');
+
+                redirect('admin/staffattendance/index');
+
+            }
+
         }
 
-        $this->load->model('biometric_api_model');
-        $this->load->model('attendance_model');
+    
 
-        $active_device = $this->attendance_model->get_active_biometric_device();
+        public function profile_completion_report()
 
-        if (!$active_device) {
-            $this->session->set_flashdata('msg', '<div class="alert alert-danger">' . $this->lang->line('no_active_biometric_device') . '</div>');
-            log_message('error', 'Staff::sync_biometric_attendance - No active biometric device. Redirecting to staffattendance/index.');
-            redirect('admin/staffattendance/index');
+        {
+
+            if (!$this->rbac->hasPrivilege('profile_completion_report', 'can_view')) {
+
+                access_denied();
+
+            }
+
+    
+
+            $this->session->set_userdata('top_menu', 'Reports');
+
+            $this->session->set_userdata('sub_menu', 'Reports/staff_profile_completion');
+
+            $data['title'] = $this->lang->line('staff_profile_completion_report');
+
+    
+
+            $staff_list = $this->staff_model->getAll(null, 1); // Get all active staff
+
+            $report_data = [];
+
+    
+
+            foreach ($staff_list as $staff) {
+
+                $staff_profile_completion = $this->staff_model->calculateProfileCompletion($staff);
+
+                $report_data[] = [
+
+                    'id' => $staff['id'],
+
+                    'employee_id' => $staff['employee_id'],
+
+                    'name' => $staff['name'],
+
+                    'surname' => $staff['surname'],
+
+                    'email' => $staff['email'],
+
+                    'completion_percentage' => $staff_profile_completion,
+
+                ];
+
+            }
+
+    
+
+            $data['report_data'] = $report_data;
+
+    
+
+            $this->load->view('layout/header', $data);
+
+            $this->load->view('admin/staff/profile_completion_report', $data); // We will create this view next
+
+            $this->load->view('layout/footer', $data);
+
         }
 
-        $last_sync_datetime = $this->attendance_model->get_last_biometric_sync_datetime();
-        log_message('debug', 'Staff::sync_biometric_attendance - last_sync_datetime from model: ' . (is_string($last_sync_datetime) ? 'String: ' . $last_sync_datetime : 'Not a string, Type: ' . gettype($last_sync_datetime) . ', Value: ' . var_export($last_sync_datetime, true)));
-        $from_datetime = $last_sync_datetime ? $last_sync_datetime : date('Y-m-d H:i:s', strtotime('-30 days')); // Default to 30 days ago if no previous sync
-        $to_datetime = date('Y-m-d H:i:s');
-
-        $punches = $this->biometric_api_model->get_punches_from_api($active_device, $from_datetime, $to_datetime);
-        log_message('debug', 'Punches received from API: ' . (is_array($punches) ? count($punches) : 'No punches received or API error.'));
-
-        if ($punches !== false) { // Check for false to indicate API error
-            $inserted_count = $this->attendance_model->save_raw_biometric_punches($punches);
-            log_message('debug', 'Inserted count from model: ' . $inserted_count);
-            $this->attendance_model->update_last_biometric_sync_datetime($to_datetime);
-            $this->session->set_flashdata('msg', '<div class="alert alert-success">' . $this->lang->line('biometric_sync_success') . ' ' . $inserted_count . ' ' . $this->lang->line('new_punches_recorded') . '</div>');
-            log_message('info', 'Staff::sync_biometric_attendance - Sync successful. Redirecting to staffattendance/index.');
-            redirect('admin/staffattendance/index');
-        } else {
-            $this->session->set_flashdata('msg', '<div class="alert alert-danger">' . $this->lang->line('biometric_sync_failed') . '</div>');
-            redirect('admin/staffattendance/index');
-        }
     }
-
-}

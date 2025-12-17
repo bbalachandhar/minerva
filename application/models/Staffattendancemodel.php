@@ -209,4 +209,28 @@ class Staffattendancemodel extends MY_Model {
         }
         return null;
     }
+
+    public function count_late_in_month($staff_id, $date)
+    {
+        $this->db->select('count(*) as count');
+        $this->db->from('staff_attendance');
+        $this->db->where('staff_id', $staff_id);
+        $this->db->where('staff_attendance_type_id', 2); // 2 is for Late
+        $this->db->where('MONTH(date)', date('m', strtotime($date)));
+        $this->db->where('YEAR(date)', date('Y', strtotime($date)));
+        $query = $this->db->get();
+        return $query->row_array();
+    }
+
+    public function count_permission_in_month($staff_id, $date)
+    {
+        $this->db->select('count(*) as count');
+        $this->db->from('staff_attendance');
+        $this->db->where('staff_id', $staff_id);
+        $this->db->where_in('staff_attendance_type_id', [7, 9]); // 7=FHP, 9=SHP
+        $this->db->where('MONTH(date)', date('m', strtotime($date)));
+        $this->db->where('YEAR(date)', date('Y', strtotime($date)));
+        $query = $this->db->get();
+        return $query->row_array();
+    }
 }
