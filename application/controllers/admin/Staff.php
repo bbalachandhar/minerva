@@ -1730,4 +1730,106 @@ class Staff extends Admin_Controller
 
         }
 
+    public function export()
+    {
+        if (!$this->rbac->hasPrivilege('staff', 'can_view')) {
+            access_denied();
+        }
+
+        $this->load->helper('download');
+
+        $staff_list = $this->staff_model->getAll(null, 1);
+
+        $file_name = 'staff_export_' . date('Y-m-d') . '.csv';
+
+        header("Content-Description: File Transfer");
+        header("Content-Disposition: attachment; filename=$file_name");
+        header("Content-Type: application/csv;");
+
+        // file creation
+        $file = fopen('php://output', 'w');
+
+        $header = array("Staff ID", "Name", "Surname", "Role", "Department", "Designation", "Mobile Number", "Basic Salary");
+        fputcsv($file, $header);
+
+        foreach ($staff_list as $staff) {
+            $data = array(
+                $staff['employee_id'],
+                $staff['name'],
+                $staff['surname'],
+                $staff['role'],
+                $staff['department'],
+                $staff['designation'],
+                $staff['contact_no'],
+                $staff['basic_salary']
+            );
+            fputcsv($file, $data);
+        }
+
+        fclose($file);
+        exit;
     }
+
+    public function update_all_staff_basic_pay()
+    {
+        if (!$this->rbac->hasPrivilege('staff', 'can_edit')) {
+            access_denied();
+        }
+
+        if (isset($_POST['submit']) && $_POST['submit'] == 'upload') {
+            if (isset($_FILES["csv_file"]) && !empty($_FILES['csv_file']['name'])) {
+                $file_path = $_FILES["csv_file"]["tmp_name"];
+
+                $csv_data = array_map('str_getcsv', file($file_path));
+                $header = array_shift($csv_data); // remove header
+                $name_col_index = array_search('NAME', $header);
+                $basic_pay_col_index = array_search('BASIC PAY', $header);
+
+                if ($name_col_index === false || $basic_pay_col_index === false) {
+                    $this->session->set_flashdata('msg', '<div class="alert alert-danger">CSV file is not in the correct format. It must have "NAME" and "BASIC PAY" columns.</div>');
+                    redirect('admin/staff/update_all_staff_basic_pay');
+                }
+
+                $updated_staff = [];
+                $not_found_staff = [];
+
+                foreach ($csv_data as $row) {
+                    if (isset($row[$name_col_index]) && isset($row[$basic_pay_col_index])) {
+                        $name = trim($row[$name_col_index]);
+                        $basic_pay = $row[$basic_pay_col_index];
+
+                        $staff = $this->staff_model->get_by_name($name);
+
+                        if ($staff) {
+                            $data = array(
+                                'id' => $staff['id'],
+                                'basic_salary' => $basic_pay,
+                            );
+                            $this->staff_model->add($data);
+                            $updated_staff[] = $name;
+                        } else {
+                            $not_found_staff[] = $name;
+                        }
+                    }
+                }
+
+                $message = '<div class="alert alert-success">Basic pay updated for ' . count($updated_staff) . ' staff members.</div>';
+                if (!empty($not_found_staff)) {
+                    $message .= '<div class="alert alert-warning">Could not find the following staff members: ' . implode(', ', $not_found_staff) . '</div>';
+                }
+
+                $this->session->set_flashdata('msg', $message);
+                redirect('admin/staff/update_all_staff_basic_pay');
+
+            } else {
+                $this->session->set_flashdata('msg', '<div class="alert alert-danger">Please select a CSV file to upload.</div>');
+                redirect('admin/staff/update_all_staff_basic_pay');
+            }
+        } else {
+            $this->load->view('layout/header');
+            $this->load->view('admin/staff/update_basic_pay_view');
+            $this->load->view('layout/footer');
+        }
+    }
+
+}
