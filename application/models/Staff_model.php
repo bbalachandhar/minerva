@@ -1074,4 +1074,58 @@ class Staff_model extends MY_Model
         $percentage = ($total_fields > 0) ? round(($filled_fields / $total_fields) * 100) : 0;
         return $percentage;
     }
+
+    public function updateSelfProfile($data)
+    {
+        $this->db->trans_start(); // Starting Transaction
+        $this->db->trans_strict(false); // See Note 01. If you wish can remove as well
+
+        $staff_id = $data['id'];
+        unset($data['id']); // Remove ID from data to be updated
+
+        // Fields allowed for self-edit
+        $allowed_fields = [
+            'email', 'contact_no', 'emergency_contact_number', 'local_address',
+            'permanent_address', 'ug_qualification', 'pg_qualification', 'higher_qualification',
+            'qualified_exam', 'subject_specialization', 'additional_qualification',
+            'facebook', 'twitter', 'linkedin', 'instagram', 'image' // Added 'image' for profile picture
+        ];
+
+        $update_data = [];
+        foreach ($allowed_fields as $field) {
+            if (isset($data[$field])) {
+                $update_data[$field] = $data[$field];
+            }
+        }
+        
+        // Ensure email is unique if updated
+        if (isset($update_data['email'])) {
+            $this->db->where('email', $update_data['email']);
+            $this->db->where('id !=', $staff_id);
+            $query = $this->db->get('staff');
+            if ($query->num_rows() > 0) {
+                // Email already exists for another staff member, handle error or return false
+                $this->db->trans_rollback();
+                return false; // Or throw an exception
+            }
+        }
+
+        $this->db->where('id', $staff_id);
+        $this->db->update('staff', $update_data);
+
+        $message   = UPDATE_RECORD_CONSTANT . " On staff self-edit id " . $staff_id;
+        $action    = "Update Self Profile";
+        $record_id = $staff_id;
+        $this->log($message, $record_id, $action);
+
+        $this->db->trans_complete(); // Completing transaction
+
+        if ($this->db->trans_status() === false) {
+            $this->db->trans_rollback();
+            return false;
+        } else {
+            $this->db->trans_commit();
+            return true;
+        }
+    }
 }

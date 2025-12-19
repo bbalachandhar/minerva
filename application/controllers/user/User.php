@@ -1316,7 +1316,7 @@ class User extends Student_Controller
         
         if ($this->form_validation->run() == false) {
             $this->load->view('layout/student/header', $data);
-            $this->load->view('user/edit', $data);
+            $this->load->view('user/studentselfedit', $data);
             $this->load->view('layout/student/footer', $data);
         } else {
 

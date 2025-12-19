@@ -512,7 +512,7 @@ class Staffattendance extends Admin_Controller
         $today = date('Y-m-d');
         $this_month_first_day = date('Y-m-01');
 
-        if (empty($last_processed_attendance_date)) {
+        if ($last_processed_attendance_date === null || $last_processed_attendance_date === '') {
             // First time processing, process from the beginning of the current month
             $from_date = $this_month_first_day;
         } else {

@@ -289,6 +289,8 @@ class Schsettings extends Admin_Controller
                 'id'              => $this->input->post('sch_id'),
                 'institution_type' => $this->input->post('institution_type'),
                 'transport_fee_type' => $this->input->post('transport_fee_type'),
+                'staff_self_edit' => $this->input->post('staff_self_edit') ? 1 : 0,
+                'student_self_edit' => $this->input->post('student_self_edit') ? 1 : 0,
                 'session_id'      => $this->input->post('sch_session_id'),
                 'name'            => $this->input->post('sch_name'),
                 'phone'           => $this->input->post('sch_phone'),
@@ -503,6 +505,7 @@ class Schsettings extends Admin_Controller
                             $setting->folder_path = '';
                             // It might be good to also initialize staff_profile_edit here if setting was initially null
                             $setting->staff_profile_edit = 0; 
+                            $setting->staff_self_edit = 0;
                         }        $setting->base_url    = ($setting->base_url == "") ? base_url() : $setting->base_url;
         $setting->folder_path = FCPATH;
         $data['result']       = $setting;
@@ -534,6 +537,14 @@ class Schsettings extends Admin_Controller
             echo json_encode($array);
         } else {
             $staff_profile_edit = $this->input->post('staff_profile_edit') ? 1 : 0;
+            $staff_self_edit = $this->input->post('staff_self_edit') ? 1 : 0;
+            
+            // --- START Debug Logging ---
+            log_message('debug', 'Schsettings::savemobileapp - POST data: ' . print_r($this->input->post(), true));
+            log_message('debug', 'Schsettings::savemobileapp - staff_self_edit from POST (raw): ' . var_export($this->input->post('staff_self_edit'), true));
+            log_message('debug', 'Schsettings::savemobileapp - staff_self_edit (processed): ' . $staff_self_edit);
+            // --- END Debug Logging ---
+
             $data = array(
                 'id'                             => $this->input->post('sch_id'),
                 'mobile_api_url'                 => $this->input->post('mobile_api_url'),
@@ -543,6 +554,7 @@ class Schsettings extends Admin_Controller
                 'admin_app_secondary_color_code' => $this->input->post('admin_app_secondary_color_code'),
                 'admin_mobile_api_url'           => $this->input->post('admin_mobile_api_url'),
                 'staff_profile_edit'             => $staff_profile_edit,
+                'staff_self_edit'                => $staff_self_edit,
             );
 
             $this->setting_model->add($data);

@@ -72,6 +72,17 @@
                                             </div>
                                         </div>
                                     </div>
+                                    <div class="col-md-12">
+                                        <div class="form-group row">
+                                            <label class="col-sm-4"> <?php echo $this->lang->line('enable_staff_self_profile_edit') ?></label>
+                                            <div class="col-sm-8">
+                                                <div class="material-switch">
+                                                    <input id="staff_self_edit" name="staff_self_edit" type="checkbox" class="chk" value="1" <?php echo ($result->staff_self_edit == 1) ? 'checked="checked"' : ''; ?>>
+                                                    <label for="staff_self_edit" class="label-success"></label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div><!--./row-->
                                 <div class="row hidden">
                                     <div class="col-md-12">

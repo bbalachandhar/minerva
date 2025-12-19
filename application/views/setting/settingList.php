@@ -59,6 +59,28 @@
                                             </div>
                                         </div>
                                     </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group row">
+                                            <label class="col-sm-4 text-lg-end">Enable Staff Self Profile Edit</label>
+                                            <div class="col-sm-8">
+                                                <div class="material-switch">
+                                                    <input id="staff_self_edit" name="staff_self_edit" type="checkbox" class="chk" value="1" <?php echo ($result->staff_self_edit == 1) ? 'checked="checked"' : ''; ?>>
+                                                    <label for="staff_self_edit" class="label-success"></label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group row">
+                                            <label class="col-sm-4 text-lg-end">Enable Student Self Profile Edit</label>
+                                            <div class="col-sm-8">
+                                                <div class="material-switch">
+                                                    <input id="student_self_edit" name="student_self_edit" type="checkbox" class="chk" value="1" <?php echo ($result->student_self_edit == 1) ? 'checked="checked"' : ''; ?>>
+                                                    <label for="student_self_edit" class="label-success"></label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div><!--./row-->
                                 <div class="row">
                                     <div class="col-md-12">

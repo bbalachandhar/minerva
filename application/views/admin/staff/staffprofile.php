@@ -356,6 +356,20 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                         <?php
                             }
                         }
+
+                        // New condition for staff self-edit
+                        $logged_in_staff_id = $this->customlib->getStaffID();
+                        $logged_in_user_role_id = $logged_in_User_Role->id;
+
+                        if ($sch_setting->staff_self_edit == 1 && $logged_in_staff_id == $id && $logged_in_user_role_id != 7) {
+                        ?>
+                            <li class="pull-right">
+                                <a href="<?php echo base_url('admin/staff/selfedit/' . $id); ?>" data-toggle="tooltip" data-placement="bottom" title="<?php echo $this->lang->line('edit_my_profile'); ?>" class="text-light">
+                                    <i class="fa fa-pencil"></i>
+                                </a>
+                            </li>
+                        <?php
+                        }
                         ?>
                     </ul>
                     <div class="tab-content">

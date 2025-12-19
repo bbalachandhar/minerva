@@ -1134,22 +1134,357 @@ class Staff extends Admin_Controller
         $this->load->view('layout/footer', $data);
     }
 
-    public function username_check($str)
+    public function selfedit()
     {
-        log_message('debug', 'username_check called with: str=' . $str . ', id=' . $this->input->post('id') . ', editid=' . $this->input->post('editid'));
-        $id = $this->input->post('employee_id');
-        if (!empty($id)) {
-            $data = $this->staff_model->valid_employee_id($str);
-        } else {
-            $data = $this->staff_model->valid_employee_id($str);
+        $id = $this->customlib->getStaffID(); // Get the ID of the logged-in staff member
+        // Removed: if (!$this->rbac->hasPrivilege('staff', 'can_edit')) { access_denied(); }
+        $this->session->set_userdata('top_menu', 'HR');
+        $this->session->set_userdata('sub_menu', 'admin/staff');
+        $data['title'] = $this->lang->line('edit_staff'); // Changed title
+        $data['id'] = $id;
+        $data['sch_setting'] = $this->sch_setting_detail;
+        $data['staffid_auto_insert'] = $this->sch_setting_detail->staffid_auto_insert;
+
+        $data['getStaffRole'] = $this->role_model->get();
+        $data['designation'] = $this->staff_model->getStaffDesignation();
+        $data['department'] = $this->staff_model->getDepartment();
+        $genderList = $this->customlib->getGender();
+        $data['genderList'] = $genderList;
+        $payscaleList = $this->staff_model->getPayroll();
+        $leavetypeList = $this->staff_model->getLeaveType();
+        $data["leavetypeList"] = $leavetypeList;
+        $data["payscaleList"] = $payscaleList;
+        $marital_status = $this->marital_status;
+        $data["marital_status"] = $marital_status;
+        $data["contract_type"] = $this->contract_type;
+        $staff = $this->staff_model->get($id);
+        $data['staff'] = $staff;
+
+        $staff_leaves          = $this->leaverequest_model->staff_leave_request($id);
+        $alloted_leavetype           = $this->staff_model->allotedLeaveType($id);
+        $i                           = 0;
+        $leaveDetail                 = array();
+        foreach ($alloted_leavetype as $key => $value) {
+            $count_leaves[]                   = $this->leaverequest_model->countLeavesData($id, $value["leave_type_id"]);
+            $leaveDetail[$i]['type']          = $value["type"];
+            $leaveDetail[$i]['id']            = $value["leave_type_id"];
+            $leaveDetail[$i]['alloted_leave'] = $value["alloted_leave"];
+            $leaveDetail[$i]['approve_leave'] = $count_leaves[$i]['approve_leave'];
+            $i++;
         }
-        if ($data == false) {
-            $this->form_validation->set_message('username_check', $this->lang->line('staff_id_already_exists'));
-            return false;
-        } else {
-            return true;
+        $data['staffLeaveDetails'] = (array) $leaveDetail;
+
+        $custom_fields = $this->customfield_model->getByBelong('staff');
+        foreach ($custom_fields as $custom_fields_key => $custom_fields_value) {
+            if ($custom_fields_value['validation']) {
+                $custom_fields_id = $custom_fields_value['id'];
+                $custom_fields_name = $custom_fields_value['name'];
+                $this->form_validation->set_rules("custom_fields[staff][" . $custom_fields_id . "]", $custom_fields_name, 'trim|required');
+            }
         }
+
+        $this->form_validation->set_rules('name', $this->lang->line('name'), 'trim|required|xss_clean');
+        $this->form_validation->set_rules('role', $this->lang->line('role'), 'trim|required|xss_clean'); // Role should not be editable by self
+        $this->form_validation->set_rules('gender', $this->lang->line('gender'), 'trim|required|xss_clean');
+        $this->form_validation->set_rules('dob', $this->lang->line('date_of_birth'), 'trim|required|xss_clean');
+        $this->form_validation->set_rules('file', $this->lang->line('image'), 'callback_handle_upload');
+        $this->form_validation->set_rules('first_doc', $this->lang->line('image'), 'callback_handle_first_upload');
+        $this->form_validation->set_rules('second_doc', $this->lang->line('image'), 'callback_handle_second_upload');
+        $this->form_validation->set_rules('third_doc', $this->lang->line('image'), 'callback_handle_third_upload');
+        $this->form_validation->set_rules('fourth_doc', $this->lang->line('image'), 'callback_handle_fourth_upload');
+
+        $this->form_validation->set_rules(
+            'email', $this->lang->line('email'), array('required', 'valid_email',
+                array('check_exists', array($this->staff_model, 'valid_email_id')),
+            )
+        );
+        // Employee ID should not be editable by self
+        // if (!$this->sch_setting_detail->staffid_auto_insert) {
+        //     $this->form_validation->set_rules('employee_id', $this->lang->line('staff_id'), 'callback_username_check');
+        // }
+
+        if ($this->form_validation->run() == true) {
+
+            $custom_field_post = $this->input->post("custom_fields[staff]");
+            $custom_value_array = array();
+            if (!empty($custom_fields)) {
+                foreach ($custom_field_post as $key => $value) {
+                    $check_field_type = $this->input->post("custom_fields[staff][" . $key . "]");
+                    $field_value = is_array($check_field_type) ? implode(",", $check_field_type) : $check_field_type;
+                    $array_custom = array(
+                        'belong_table_id' => 0,
+                        'custom_field_id' => $key,
+                        'field_value' => $field_value,
+                    );
+                    $custom_value_array[] = $array_custom;
+                }
+            }
+
+            $employee_id = $this->input->post("employee_id");
+            $biometric_id = $this->input->post("biometric_id");
+            $department = empty2null($this->input->post("department"));
+            $designation = empty2null($this->input->post("designation"));
+            $role = $this->input->post("role");
+            $name = $this->input->post("name");
+            $gender = $this->input->post("gender");
+            $marital_status = $this->input->post("marital_status");
+            $dob = $this->input->post("dob");
+            $contact_no = $this->input->post("contactno");
+            $emergency_no = $this->input->post("emergency_no");
+            $email = $this->input->post("email");
+            $date_of_joining = $this->input->post("date_of_joining");
+            $date_of_leaving = $this->input->post("date_of_leaving");
+            $address = $this->input->post("address");
+            $qualification = $this->input->post("qualification");
+            $work_experience = $this->input->post("work_experience");
+            $basic_salary = $this->input ->post('basic_salary');
+            $account_title = $this->input->post("account_title");
+            $bank_account_no = $this->input->post("bank_account_no");
+            $bank_name = $this->input->post("bank_name");
+            $ifsc_code = $this->input->post("ifsc_code");
+            $bank_branch = $this->input->post("bank_branch");
+            $contract_type = $this->input->post("contract_type");
+            $shift = $this->input->post("shift");
+            $location = $this->input->post("location");
+            $facebook = $this->input->post("facebook");
+            $twitter = $this->input->post("twitter");
+            $linkedin = $this->input->post("linkedin");
+            $instagram = $this->input->post("instagram");
+            $permanent_address = $this->input->post("permanent_address");
+            $father_name = $this->input->post("father_name");
+            $surname = $this->input->post("surname");
+            $mother_name = $this->input->post("mother_name");
+            $note = $this->input->post("note");
+            $epf_no = $this->input->post("epf_no");
+
+            $data_update = array(
+                'id' => $id,
+                // 'employee_id' => $employee_id, // Self-edit should not change employee ID
+                'biometric_id'           => $biometric_id, // If staff can edit biometric ID
+                'name' => $name,
+                'email' => $email,
+                'dob' => date('Y-m-d', $this->customlib->datetostrtotime($dob)),
+                'gender' => $gender,
+                // 'is_active' => $this->input->post('is_active'), // Self-edit should not change active status
+                'prefix' => $this->input->post('prefix'),
+                'ug_qualification' => $this->input->post('ug_qualification'),
+                'pg_qualification' => $this->input->post('pg_qualification'),
+                'higher_qualification' => $this->input->post('higher_qualification'),
+                'qualified_exam' => $this->input->post('qualified_exam'),
+                'subject_specialization' => $this->input->post('subject_specialization'),
+                'additional_qualification' => $this->input->post('additional_qualification'),
+            );
+
+            if (isset($surname)) {
+                $data_update['surname'] = $surname;
+            }
+
+            if (isset($department)) {
+                $data_update['department'] = $department;
+            }
+
+            if (isset($designation)) {
+                $data_update['designation'] = $designation;
+            }
+
+            if (isset($mother_name)) {
+                $data_update['mother_name'] = $mother_name;
+            }
+
+            if (isset($father_name)) {
+                $data_update['father_name'] = $father_name;
+            }
+
+            if (isset($contact_no)) {
+                $data_update['contact_no'] = $contact_no;
+            }
+
+            if (isset($emergency_no)) {
+                $data_update['emergency_contact_no'] = $emergency_no;
+            }
+
+            if (isset($marital_status)) {
+                $data_update['marital_status'] = $marital_status;
+            }
+
+            if (isset($address)) {
+                $data_update['local_address'] = $address;
+            }
+
+            if (isset($permanent_address)) {
+                $data_update['permanent_address'] = $permanent_address;
+            }
+
+            if (isset($qualification)) {
+                $data_update['qualification'] = $qualification;
+            }
+
+            if (isset($work_experience)) {
+                $data_update['work_exp'] = $work_experience;
+            }
+
+            if (isset($note)) {
+                $data_update['note'] = $note;
+            }
+
+            if (isset($epf_no)) {
+                $data_update['epf_no'] = $epf_no;
+            }
+
+            if (isset($basic_salary)) {
+                $data_update['basic_salary'] = $basic_salary;
+            }
+
+            if (isset($contract_type)) {
+                $data_update['contract_type'] = $contract_type;
+            }
+
+            if (isset($shift)) {
+                $data_update['shift'] = $shift;
+            }
+
+            if (isset($location)) {
+                $data_update['location'] = $location;
+            }
+
+            if (isset($bank_account_no)) {
+                $data_update['bank_account_no'] = $bank_account_no;
+            }
+
+            if (isset($bank_name)) {
+                $data_update['bank_name'] = $bank_name;
+            }
+
+            if (isset($account_title)) {
+                $data_update['account_title'] = $account_title;
+            }
+
+            if (isset($ifsc_code)) {
+                $data_update['ifsc_code'] = $ifsc_code;
+            }
+
+            if (isset($bank_branch)) {
+                $data_update['bank_branch'] = $bank_branch;
+            }
+
+            if (isset($facebook)) {
+                $data_update['facebook'] = $facebook;
+            }
+
+            if (isset($twitter)) {
+                $data_update['twitter'] = $twitter;
+            }
+
+            if (isset($linkedin)) {
+                $data_update['linkedin'] = $linkedin;
+            }
+
+            if (isset($instagram)) {
+                $data_update['instagram'] = $instagram;
+            }
+
+            if ($date_of_joining != "") {
+                $data_update['date_of_joining'] = $this->customlib->dateFormatToYYYYMMDD($date_of_joining);
+            }
+
+            if ($date_of_leaving != "") {
+                $data_update['date_of_leaving'] = $this->customlib->dateFormatToYYYYMMDD($date_of_leaving);
+            } else {
+                $data_update['date_of_leaving'] = null;
+            }
+
+            // Role and leave types should not be editable by self
+            // $leave_type = $this->input->post('leave_type');
+            // $leave_array = array();
+            // if (!empty($leave_type)) {
+            //     foreach ($leave_type as $leave_key => $leave_value) {
+            //         $leave_array[] = array(
+            //             'staff_id' => $id,
+            //             'leave_type_id' => $leave_value,
+            //             'alloted_leave' => $this->input->post('alloted_leave_' . $leave_value),
+            //         );
+            //     }
+            // }
+            // $role_array = array('role_id' => $this->input->post('role'), 'staff_id' => $id);
+
+            if (isset($_FILES["file"]) && !empty($_FILES['file']['name'])) {
+                $upload_result = $this->media_storage->fileupload("file", "./uploads/staff_images/");
+                if ($upload_result['status'] === false) {
+                    $this->session->set_flashdata('error', $upload_result['message']);
+                    redirect('admin/staff/selfedit'); // Redirect to selfedit on error
+                }
+                $img_name = $upload_result['message'];
+                $data_update['image'] = $img_name;
+            }
+
+            // Call staff_model->add for update, passing only data_update since role_array and leave_array are not handled in self-edit
+            $this->staff_model->add($data_update);
+            if (!empty($custom_value_array)) {
+                $this->customfield_model->updateRecord($custom_value_array, $id);
+            }
+
+            $upload_dir = './uploads/staff_documents/' . $id . '/';
+            if (!is_dir($upload_dir) && !mkdir($upload_dir)) {
+                die("Error creating folder $upload_dir");
+            }
+
+            if (isset($_FILES["first_doc"]) && !empty($_FILES['first_doc']['name'])) {
+                $upload_result = $this->media_storage->fileupload("first_doc", $upload_dir);
+                if ($upload_result['status'] === false) {
+                    $this->session->set_flashdata('error', $upload_result['message']);
+                    redirect('admin/staff/selfedit'); // Redirect to selfedit on error
+                }
+                $resume = $upload_result['message'];
+                $data_doc['resume'] = $resume;
+            }
+
+            if (isset($_FILES["second_doc"]) && !empty($_FILES['second_doc']['name'])) {
+                $upload_result = $this->media_storage->fileupload("second_doc", $upload_dir);
+                if ($upload_result['status'] === false) {
+                    $this->session->set_flashdata('error', $upload_result['message']);
+                    redirect('admin/staff/selfedit'); // Redirect to selfedit on error
+                }
+                $joining_letter = $upload_result['message'];
+                $data_doc['joining_letter'] = $joining_letter;
+            }
+
+            if (isset($_FILES["third_doc"]) && !empty($_FILES['third_doc']['name'])) {
+                $upload_result = $this->media_storage->fileupload("third_doc", $upload_dir);
+                if ($upload_result['status'] === false) {
+                    $this->session->set_flashdata('error', $upload_result['message']);
+                    redirect('admin/staff/selfedit'); // Redirect to selfedit on error
+                }
+                $resignation_letter = $upload_result['message'];
+                $data_doc['resignation_letter'] = $resignation_letter;
+            }
+
+            if (isset($_FILES["fourth_doc"]) && !empty($_FILES['fourth_doc']['name'])) {
+                $upload_result = $this->media_storage->fileupload("fourth_doc", $upload_dir);
+                if ($upload_result['status'] === false) {
+                    $this->session->set_flashdata('error', $upload_result['message']);
+                    redirect('admin/staff/selfedit'); // Redirect to selfedit on error
+                }
+                $fourth_doc = $upload_result['message'];
+                $data_doc['other_document_file'] = $fourth_doc;
+                $data_doc['other_document_name'] = $this->input->post('fourth_title');
+            }
+
+            if (isset($data_doc)) {
+                $data_doc['id'] = $id;
+                $this->staff_model->add($data_doc);
+            }
+
+            $this->session->set_flashdata('msg', '<div class="alert alert-success">' . $this->lang->line('update_message') . '</div>');
+            redirect('admin/staff/profile/' . $id);
+        }
+
+        $this->load->view('layout/header', $data);
+        $this->load->view('admin/staff/staffselfedit', $data); // Load staffselfedit view
+        $this->load->view('layout/footer', $data);
     }
+
+
+
 
     public function handle_upload()
     {
