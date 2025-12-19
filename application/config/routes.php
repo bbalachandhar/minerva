@@ -45,58 +45,11 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 |
 | <p>You can add your own custom routes here. Please read the User Guide for more info.</p>
 |
-|
 */
 $route['default_controller'] = 'site/login';
-$route['admin/librarycategory/import'] = 'admin/librarycategory/import';
-$route['admin/librarysubcategory/import'] = 'admin/librarysubcategory/import';
-$route['admin/librarypublisher/import'] = 'admin/librarypublisher/import';
-$route['admin/libraryvendor/import'] = 'admin/libraryvendor/import';
-$route['admin/librarybooktype/import'] = 'admin/librarybooktype/import';
-$route['admin/librarysubject/import'] = 'admin/librarysubject/import';
-$route['admin/librarypositionrack/import'] = 'admin/librarypositionrack/import';
-$route['admin/librarypositionshelf/import'] = 'admin/librarypositionshelf/import';
-$route['admin/bulkholliday'] = 'admin/BulkHoliday';
-$route['admin/bulkholliday/(:any)'] = 'admin/BulkHoliday/$1';
-$route['404_override'] = '';
+$route['4.04_override'] = '';
 $route['translate_uri_dashes'] = FALSE;
 
-$route['admin/librarycategory'] = 'admin/librarycategory';
-$route['admin/librarycategory/(:any)'] = 'admin/librarycategory/$1';
-$route['admin/librarysubcategory'] = 'admin/librarysubcategory';
-$route['admin/librarysubcategory/(:any)'] = 'admin/librarysubcategory/$1';
-$route['admin/librarypublisher'] = 'admin/librarypublisher';
-$route['admin/librarypublisher/(:any)'] = 'admin/librarypublisher/$1';
-$route['admin/libraryvendor'] = 'admin/libraryvendor';
-$route['admin/libraryvendor/(:any)'] = 'admin/libraryvendor/$1';
-$route['admin/librarybooktype'] = 'admin/librarybooktype';
-$route['admin/librarybooktype/(:any)'] = 'admin/librarybooktype/$1';
-$route['admin/librarysubject'] = 'admin/librarysubject';
-$route['admin/librarysubject/(:any)'] = 'admin/librarysubject/$1';
-$route['admin/librarypositionrack'] = 'admin/librarypositionrack';
-$route['admin/librarypositionrack/(:any)'] = 'admin/librarypositionrack/$1';
-$route['admin/librarypositionshelf'] = 'admin/librarypositionshelf';
-$route['admin/librarypositionshelf/(:any)'] = 'admin/librarypositionshelf/$1';
-        $route['admin/birthday_list'] = 'admin/birthday/birthday_list';
-
-        // Hall Management Module Routes
-        $route['admin/hall/hall_master'] = 'admin/hall/hall_master';
-        $route['admin/hall/hall_bookings'] = 'admin/hall/hall_bookings';
-        $route['admin/hall/book'] = 'admin/hall/book';
-        $route['admin/hall/approval_configuration'] = 'admin/hall/approval_configuration';
-
-        $route['404_override'] = '';
-
-        $route['naac/configuration'] = 'admin/naac/configuration';
-        $route['naac/iiqa'] = 'admin/naac/iiqa';
-        $route['naac/ssr'] = 'admin/naac/ssr';
-        $route['naac/aqar'] = 'admin/naac/aqar';
-
-$route['admin/staff/managebiometricdevice'] = 'admin/staff/managebiometricdevice';
-$route['admin/staff/add_biometric_device'] = 'admin/staff/add_biometric_device';
-$route['admin/staff/edit_biometric_device/(:num)'] = 'admin/staff/edit_biometric_device/$1';
-$route['admin/staff/delete_biometric_device/(:num)'] = 'admin/staff/delete_biometric_device/$1';
-$route['studentfee/do_bulk_upload_by_feetype'] = 'studentfee/do_bulk_upload_by_feetype';
-$route['admin/staff/activate_biometric_device/(:num)'] = 'admin/staff/activate_biometric_device/$1';
-$route['enquiry'] = 'enquiry';
-$route['enquiry/(:any)'] = 'enquiry/$1';
+// Custom routes
+$route['admin/staff/export'] = 'admin/staff/export';
+$route['admin/staff/update_all_staff_basic_pay'] = 'admin/staff/update_all_staff_basic_pay';

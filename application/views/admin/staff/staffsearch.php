@@ -26,6 +26,14 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                 <?php if ($this->rbac->hasPrivilege('staff', 'can_add')) {?> <a href="<?php echo base_url(); ?>admin/staff/create" class="btn btn-primary btn-sm"   >
                                 <i class="fa fa-plus"></i> <?php echo $this->lang->line('add_staff'); ?>
                             </a><?php }?>
+                            <?php if ($this->rbac->hasPrivilege('staff', 'can_edit')) {?>
+                                <a href="<?php echo base_url(); ?>admin/staff/update_all_staff_basic_pay" class="btn btn-primary btn-sm" data-toggle="tooltip" title="Update All Basic Pay">
+                                    <i class="fa fa-money"></i> Update All Basic Pay
+                                </a>
+                                <a href="<?php echo base_url(); ?>admin/staff/export" class="btn btn-primary btn-sm" data-toggle="tooltip" title="Export">
+                                    <i class="fa fa-download"></i> Export
+                                </a>
+                            <?php }?>
                         </small>
                        </div>
                     </div>
