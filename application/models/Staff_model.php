@@ -1037,15 +1037,6 @@ class Staff_model extends MY_Model
         }
     }
 
-    public function get_by_name($name)
-    {
-        $this->db->select('id, name, basic_salary');
-        $this->db->from('staff');
-        $this->db->where('name', $name);
-        $query = $this->db->get();
-        return $query->row_array();
-    }
-
     // New method for calculating profile completion
     public function calculateProfileCompletion($staffData)
     {
