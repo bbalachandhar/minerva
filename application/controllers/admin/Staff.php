@@ -1986,9 +1986,11 @@ class Staff extends Admin_Controller
 
             $last_sync_datetime = $this->attendance_model->get_last_biometric_sync_datetime();
 
-            log_message('debug', 'Staff::sync_biometric_attendance - last_sync_datetime from model: ' . (is_string($last_sync_datetime) ? 'String: ' . $last_sync_datetime : 'Not a string, Type: ' . gettype($last_sync_datetime) . ', Value: ' . var_export($last_sync_datetime, true)));
-
+            log_message('debug', 'Staff::sync_biometric_attendance - Raw $last_sync_datetime from model: ' . var_export($last_sync_datetime, true));
+            
             $from_datetime = $last_sync_datetime ? $last_sync_datetime : date('Y-m-d H:i:s', strtotime('-30 days')); // Default to 30 days ago if no previous sync
+            
+            log_message('debug', 'Staff::sync_biometric_attendance - Determined $from_datetime: ' . $from_datetime);
 
             $to_datetime = date('Y-m-d H:i:s');
 
