@@ -340,6 +340,11 @@ class User extends Student_Controller
              redirect('site/logout');
         }        
         
+        // --- Custom logic to determine if any fields are editable ---
+        $editable_fields_count = count($this->student_edit_field_model->get_all_enabled_fields());
+        $data['has_editable_fields'] = ($this->sch_setting_detail->student_profile_edit == 1 && $editable_fields_count > 0);
+        // --- End Custom logic ---
+
         //------- Behaviour Report Start--------
         if ($this->module_lib->hasModule('behaviour_records')) {
             

@@ -2090,4 +2090,23 @@ class Staff extends Admin_Controller
 
         }
 
+    
+    public function username_check($employee_id)
+    {
+        $id = $this->input->post('editid'); // Correctly get ID from 'editid' hidden field
+
+        // If in edit mode, exclude current staff member from uniqueness check
+        if ($id) {
+            $result = $this->staff_model->check_staffid_exists($employee_id, $id);
+        } else {
+            $result = $this->staff_model->check_staffid_exists($employee_id);
+        }
+
+        if ($result) {
+            $this->form_validation->set_message('username_check', $this->lang->line('staff_id_already_exists'));
+            return FALSE;
+        } else {
+            return TRUE;
+        }
     }
+}

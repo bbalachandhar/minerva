@@ -189,7 +189,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                         <!------- Behaviour Report End--------->
 
                         <?php
-                        if ($sch_setting->student_self_edit) {
+                        if ($has_editable_fields) {
                         ?>
                             <li class="pull-right">
                                 <a href="<?php echo site_url('user/user/edit') ?>" data-toggle="tooltip" data-placement="bottom" title="" data-original-title="<?php echo $this->lang->line('edit') ?>"><i class="fa fa-pencil"></i>

@@ -848,9 +848,12 @@ class Staff_model extends MY_Model
         $this->db->where("staff_id", $role_data["staff_id"])->update("staff_roles", $role_data);
     }
 
-    public function check_staffid_exists($employee_id)
+    public function check_staffid_exists($employee_id, $exclude_id = null)
     {
-        $this->db->where(array('employee_id' => $employee_id));
+        $this->db->where('employee_id', $employee_id);
+        if ($exclude_id) {
+            $this->db->where('id !=', $exclude_id);
+        }
         $query = $this->db->get('staff');
         if ($query->num_rows() > 0) {
             return true;

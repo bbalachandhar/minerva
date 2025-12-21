@@ -48,6 +48,14 @@ class Student_edit_field_model extends MY_Model {
         return $query->result();
     }
     
+    public function get_all_enabled_fields() {
+        $this->db->select('*');
+        $this->db->from('student_edit_fields');
+        $this->db->where('status', 1); // Only get fields where status is 1 (enabled)
+        $query = $this->db->get();
+        return $query->result();
+    }
+    
     public function checkprofilesettingfieldexist($fieldname)
     {
         $this->db->where('name', $fieldname);

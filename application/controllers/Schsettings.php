@@ -290,7 +290,6 @@ class Schsettings extends Admin_Controller
                 'institution_type' => $this->input->post('institution_type'),
                 'transport_fee_type' => $this->input->post('transport_fee_type'),
                 'staff_self_edit' => $this->input->post('staff_self_edit') ? 1 : 0,
-                'student_self_edit' => $this->input->post('student_self_edit') ? 1 : 0,
                 'session_id'      => $this->input->post('sch_session_id'),
                 'name'            => $this->input->post('sch_name'),
                 'phone'           => $this->input->post('sch_phone'),
