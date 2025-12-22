@@ -2453,6 +2453,8 @@ class Report extends Admin_Controller
                 $row   = array();
                 $row[] = $student->admission_no;
                 $row[] = $viewbtn;
+                $row[] = $student->class;
+                $row[] = $student->section;
 
                 if (isset($student_username)) {
                     $row[] = $student_username;
