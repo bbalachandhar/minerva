@@ -2414,8 +2414,8 @@ class Report extends Admin_Controller
         $class_id   = $this->input->post('class_id');
         $section_id = $this->input->post('section_id');
 
-        $this->form_validation->set_rules('class_id', $this->lang->line('class'), 'trim|required|xss_clean');
-        $this->form_validation->set_rules('section_id', $this->lang->line('section'), 'trim|required|xss_clean');
+        $this->form_validation->set_rules('class_id', $this->lang->line('class'), 'trim|xss_clean');
+        $this->form_validation->set_rules('section_id', $this->lang->line('section'), 'trim|xss_clean');
 
         if ($this->form_validation->run() == false) {
             $error = array();
@@ -2438,6 +2438,15 @@ class Report extends Admin_Controller
         $sch_setting = $this->sch_setting_detail;
         $class_id    = $this->input->post("class_id");
         $section_id  = $this->input->post("section_id");
+
+        // Set class_id and section_id to null if they are empty for the model to handle "all" cases
+        if (empty($class_id)) {
+            $class_id = null;
+        }
+        if (empty($section_id)) {
+            $section_id = null;
+        }
+
         $result      = $this->student_model->getdtforlogincredential($class_id, $section_id);
         $resultlist  = json_decode($result);
         $dt_data     = array();

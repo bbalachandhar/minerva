@@ -15,7 +15,7 @@
                                 <?php echo $this->customlib->getCSRF(); ?>
                                 <div class="col-sm-6 col-md-6">
                                     <div class="form-group">
-                                        <label><?php echo $this->lang->line('class'); ?><small class="req" > *</small></label>
+                                        <label><?php echo $this->lang->line('class'); ?></label>
                                         <select autofocus="" id="class_id" name="class_id" class="form-control" >
                                             <option value=""><?php echo $this->lang->line('select'); ?></option>
                                             <?php
@@ -32,7 +32,7 @@
                                 </div> 
                                 <div class="col-sm-6 col-md-6">
                                     <div class="form-group">
-                                        <label><?php echo $this->lang->line('section'); ?><small class="req" > *</small></label>
+                                        <label><?php echo $this->lang->line('section'); ?></label>
                                         <select autofocus="" id="section_id" name="section_id" class="form-control" >
                                             <option value=""><?php echo $this->lang->line('select'); ?></option>
                                         </select>
@@ -157,7 +157,7 @@ $(document).on('submit','#reportform',function(e){
                     $('#error_' + key).html(value);
                     });
                 }else{                 
-                   initDatatable('student-list','report/dtcredentialreportlist',response.params);
+                   initDatatable('student-list','report/dtcredentialreportlist',response.params,[],100,[{ "bSortable": true, "aTargets": [ 0, 1, 2, 3 ] },{ "bSortable": false, "aTargets": [ 4, 5 ] }]);
                 }
               },
              error: function() { // your error handler
