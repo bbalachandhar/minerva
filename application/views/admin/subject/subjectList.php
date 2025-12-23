@@ -52,6 +52,22 @@
                                     <input id="category" name="code" placeholder="" type="text" class="form-control"  value="<?php echo set_value('code'); ?>" />
                                     <span class="text-danger"><?php echo form_error('code'); ?></span>
                                 </div>
+                                <?php if ($this->sch_setting_detail->institution_type == 'college') { ?>
+                                    <div class="form-group">
+                                        <label for="exampleInputEmail1"><?php echo $this->lang->line('teacher'); ?></label><small class="req"> *</small>
+                                        <select  id="teacher_id" name="teacher_id" class="form-control" >
+                                            <option value=""><?php echo $this->lang->line('select'); ?></option>
+                                            <?php
+                                            foreach ($teacherlist as $teacher) {
+                                                ?>
+                                                <option value="<?php echo $teacher['id'] ?>"<?php if (set_value('teacher_id') == $teacher['id']) echo "selected=selected" ?>><?php echo $teacher['name'] ?></option>
+                                                <?php
+                                            }
+                                            ?>
+                                        </select>
+                                        <span class="text-danger"><?php echo form_error('teacher_id'); ?></span>
+                                    </div>
+                                <?php } ?>
                             </div>
                             <div class="box-footer">
                                 <button type="submit" class="btn btn-info pull-right"><?php echo $this->lang->line('save'); ?></button>
@@ -85,6 +101,9 @@
                                         <th><?php echo $this->lang->line('subject'); ?></th>
                                         <th><?php echo $this->lang->line('subject_code'); ?></th>
                                         <th><?php echo $this->lang->line('subject_type'); ?></th>
+                                        <?php if ($this->sch_setting_detail->institution_type == 'college') { ?>
+                                        <th><?php echo $this->lang->line('teacher'); ?></th>
+                                        <?php } ?>
                                         <th class="text-right no-print noExport"><?php echo $this->lang->line('action'); ?></th>
                                     </tr>
                                 </thead>
@@ -97,6 +116,9 @@
                                             <td class="mailbox-name"> <?php echo $subject['name'] ?></td>
                                             <td class="mailbox-name"><?php echo $subject['code'] ?></td>
                                             <td class="mailbox-name"><?php echo ucfirst($subject['type']) ?></td>
+                                            <?php if ($this->sch_setting_detail->institution_type == 'college') { ?>
+                                            <td class="mailbox-name"><?php echo $subject['teacher_name'] ?></td>
+                                            <?php } ?>
                                             <td class="mailbox-date pull-right no-print">
                                                 <?php
                                                 if ($this->rbac->hasPrivilege('subject', 'can_edit')) {
@@ -133,6 +155,9 @@
         $("#btnreset").click(function () {
             $("#form1")[0].reset();
         });
+        <?php if ($this->sch_setting_detail->institution_type == 'college') { ?>
+            $('#teacher_id').select2();
+        <?php } ?>
     });
 </script>
 

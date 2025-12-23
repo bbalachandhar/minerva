@@ -24,6 +24,9 @@
                                         <li><?php echo $this->lang->line('bulk_upload_instruction_2'); ?></li>
                                         <li><?php echo $this->lang->line('bulk_upload_instruction_3'); ?></li>
                                         <li><?php echo $this->lang->line('bulk_upload_instruction_4'); ?></li>
+                                        <?php if ($this->sch_setting_detail->institution_type == 'college') { ?>
+                                        <li><?php echo $this->lang->line('bulk_upload_instruction_5'); ?></li>
+                                        <?php } ?>
                                     </ul>
                                 </div>
                                 <div class="form-group">

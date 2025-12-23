@@ -24,6 +24,10 @@ class Subject extends Admin_Controller
         $subject_result        = $this->subject_model->get();
         $data['subjectlist']   = $subject_result;
         $data['subject_types'] = $this->customlib->subjectType();
+        if ($this->sch_setting_detail->institution_type == 'college') {
+            $this->load->model('staff_model');
+            $data['teacherlist'] = $this->staff_model->getStaffbyrole(2);
+        }
         $this->form_validation->set_rules('name', $this->lang->line('subject_name'), 'trim|required|xss_clean|callback__check_name_exists');
         $this->form_validation->set_rules('type', $this->lang->line('type'), 'trim|required|xss_clean');
         if ($this->input->post('code')) {
@@ -37,8 +41,11 @@ class Subject extends Admin_Controller
             $data = array(
                 'name' => $this->input->post('name'),
                 'code' => $this->input->post('code'),
-                'type' => $this->input->post('type'),
+                'type' => strtolower($this->input->post('type')),
             );
+            if ($this->sch_setting_detail->institution_type == 'college') {
+                $data['teacher_id'] = $this->input->post('teacher_id');
+            }
             $this->subject_model->add($data);
             $this->session->set_flashdata('msg', '<div class="alert alert-success text-left">' . $this->lang->line('success_message') . '</div>');
             redirect('admin/subject/index');
@@ -102,6 +109,10 @@ class Subject extends Admin_Controller
         $subject               = $this->subject_model->get($id);
         $data['subject']       = $subject;
         $data['subject_types'] = $this->customlib->subjectType();
+        if ($this->sch_setting_detail->institution_type == 'college') {
+            $this->load->model('staff_model');
+            $data['teacherlist'] = $this->staff_model->getStaffbyrole(2);
+        }
         $this->form_validation->set_rules('name', $this->lang->line('subject'), 'trim|required|xss_clean');
         if ($this->form_validation->run() == false) {
             $this->load->view('layout/header', $data);
@@ -112,8 +123,11 @@ class Subject extends Admin_Controller
                 'id'   => $id,
                 'name' => $this->input->post('name'),
                 'code' => $this->input->post('code'),
-                'type' => $this->input->post('type'),
+                'type' => strtolower($this->input->post('type')),
             );
+            if ($this->sch_setting_detail->institution_type == 'college') {
+                $data['teacher_id'] = $this->input->post('teacher_id');
+            }
             $this->subject_model->add($data);
             $this->session->set_flashdata('msg', '<div class="alert alert-success text-left">' . $this->lang->line('update_message') . '</div>');
             redirect('admin/subject/index');
@@ -144,6 +158,9 @@ class Subject extends Admin_Controller
                         $this->load->view('admin/subject/subjectBulkUpload', $data);
                         $this->load->view('layout/footer', $data);
                     } else {
+                        if ($this->sch_setting_detail->institution_type == 'college') {
+                            $this->load->model('staff_model');
+                        }
                         log_message('debug', 'Starting bulk upload process.');
                         // File has been uploaded and validated
                         // Process the file content
@@ -171,7 +188,7 @@ class Subject extends Admin_Controller
                                 log_message('debug', 'Processing row ' . $line_number . ': ' . print_r($row, true));
                                 // Basic validation
                                 $name = trim($row['name'] ?? '');
-                                $type = trim($row['type'] ?? '');
+                                $type = strtolower(trim($row['type'] ?? ''));
                                 $code = trim($row['code'] ?? '');
         
                                 if (empty($name) || empty($type)) {
@@ -186,6 +203,18 @@ class Subject extends Admin_Controller
                                     'type' => $type,
                                     'code' => $code,
                                 );
+
+                                if ($this->sch_setting_detail->institution_type == 'college') {
+                                    $teacher_name = trim($row['teacher_name'] ?? '');
+                                    if (!empty($teacher_name)) {
+                                        $teacher = $this->staff_model->getTeacherByName($teacher_name);
+                                        if ($teacher) {
+                                            $subject_data['teacher_id'] = $teacher['id'];
+                                        } else {
+                                            $error_messages[] = 'Teacher not found for subject "' . $name . '" in row ' . $line_number . ': ' . $teacher_name;
+                                        }
+                                    }
+                                }
         
                                 // Check if subject name already exists
                                 if ($this->subject_model->check_data_exists(array('name' => $name))) {

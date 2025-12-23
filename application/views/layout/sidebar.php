@@ -81,6 +81,9 @@ foreach ($side_list_value->submenus as $submenu_key => $submenu_value) {
                                     continue;
                                 }
                             }
+                            if ($submenu_value->url == 'admin/subjectgroup' && $this->sch_setting_detail->institution_type != 'college') {
+                                continue;
+                            }
 
                             ?>
 

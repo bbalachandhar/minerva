@@ -11,7 +11,7 @@ class Subject_model extends MY_Model {
 
         public function get($id = null) {
         if($id!=null){
-            $this->db->select()->from('subjects');
+            $this->db->select('subjects.*, staff.name as teacher_name')->from('subjects')->join('staff', 'staff.id = subjects.teacher_id', 'left');
                 $this->db->where('subjects.id', $id);
                 $this->db->order_by('id');
                  $query = $this->db->get();
@@ -57,7 +57,7 @@ $my_subjects[]=$value;
                
              return array();
             }else{
-                 $this->db->select()->from('subjects');
+                 $this->db->select('subjects.*, staff.name as teacher_name')->from('subjects')->join('staff', 'staff.id = subjects.teacher_id', 'left');
                  $this->db->order_by('id');
                  $query = $this->db->get();
                  return $query->result_array(); 

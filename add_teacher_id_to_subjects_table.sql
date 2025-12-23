@@ -1,0 +1,1 @@
+ALTER TABLE `subjects` ADD `teacher_id` INT NULL DEFAULT NULL AFTER `type`;

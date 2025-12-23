@@ -813,7 +813,7 @@ class Staff_model extends MY_Model
 
     public function getStaffbyrole($id)
     {
-        $this->db->select('staff.*,staff_designation.designation as designation,staff_roles.role_id, department.department_name as department,roles.name as user_type');
+        $this->db->select('staff.*, CONCAT(staff.name, " (", staff.employee_id, ")") as name, staff_designation.designation as designation,staff_roles.role_id, department.department_name as department,roles.name as user_type');
         $this->db->join("staff_designation", "staff_designation.id = staff.designation", "left");
         $this->db->join("department", "department.id = staff.department", "left");
         $this->db->join("staff_roles", "staff_roles.staff_id = staff.id", "left");
@@ -947,6 +947,22 @@ class Staff_model extends MY_Model
         $this->db->select('sum(`rate`) as rate, count(*) as total')->from('staff_rating');
         $this->db->where('staff_id', $id);
         $this->db->where('status', 1);
+        $query = $this->db->get();
+        return $query->row_array();
+    }
+
+    public function getTeacherByName($name)
+    {
+        $this->db->select('staff.id, staff.name');
+        $this->db->from('staff');
+        $this->db->join('staff_roles', 'staff_roles.staff_id = staff.id', 'left');
+        $this->db->join('roles', 'staff_roles.role_id = roles.id', 'left');
+        $this->db->where('roles.id', 2); // Assuming role '2' is for teachers
+        $this->db->where('staff.is_active', 1);
+        $this->db->group_start();
+        $this->db->where('staff.name', $name);
+        $this->db->or_where('staff.employee_id', $name);
+        $this->db->group_end();
         $query = $this->db->get();
         return $query->row_array();
     }

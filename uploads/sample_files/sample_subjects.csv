@@ -1,5 +1,5 @@
-name,code,type
-Mathematics,MATH101,Theory
-Physics,PHY201,Practical
-Chemistry,CHEM301,Theory
-English,ENG101,Theory
+name,code,type,teacher_name
+Mathematics,MATH101,Theory,John Doe
+Physics,PHY201,Practical,Jane Smith
+Chemistry,CHEM301,Theory,
+English,ENG101,Theory,Peter Jones
