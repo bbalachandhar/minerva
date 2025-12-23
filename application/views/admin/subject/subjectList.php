@@ -55,7 +55,7 @@
                                 <?php if ($this->sch_setting_detail->institution_type == 'college') { ?>
                                     <div class="form-group">
                                         <label for="exampleInputEmail1"><?php echo $this->lang->line('teacher'); ?></label><small class="req"> *</small>
-                                        <select  id="teacher_id" name="teacher_id" class="form-control" >
+                                        <select  id="teacher_id" name="teacher_id[]" class="form-control" multiple="multiple">
                                             <option value=""><?php echo $this->lang->line('select'); ?></option>
                                             <?php
                                             foreach ($teacherlist as $teacher) {

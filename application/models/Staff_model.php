@@ -972,6 +972,16 @@ class Staff_model extends MY_Model
         return $this->db->select("CONCAT_WS(' ',name,surname) as name,employee_id,id")->from('staff')->where('id', $id)->get()->row_array();
     }
 
+    public function getTeachersByIds($ids)
+    {
+        $this->db->select('staff.id, CONCAT(staff.name, " (", staff.employee_id, ")") as name');
+        $this->db->from('staff');
+        $this->db->where_in('staff.id', $ids);
+        $query = $this->db->get();
+        return $query->result_array();
+    }
+
+
     public function staff_report($condition)
     {            
         $rolescondition = '';

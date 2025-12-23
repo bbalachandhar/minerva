@@ -54,12 +54,12 @@ foreach ($subject_types as $subject_type_key => $subject_type_value) {
                                 <?php if ($this->sch_setting_detail->institution_type == 'college') { ?>
                                 <div class="form-group">
                                     <label for="exampleInputEmail1"><?php echo $this->lang->line('teacher'); ?></label><small class="req"> *</small>
-                                    <select  id="teacher_id" name="teacher_id" class="form-control" >
+                                    <select  id="teacher_id" name="teacher_id[]" class="form-control" multiple="multiple">
                                         <option value=""><?php echo $this->lang->line('select'); ?></option>
                                         <?php
                                         foreach ($teacherlist as $teacher) {
                                             ?>
-                                            <option value="<?php echo $teacher['id'] ?>"<?php if (set_value('teacher_id', $subject['teacher_id']) == $teacher['id']) echo "selected=selected" ?>><?php echo $teacher['name'] ?></option>
+                                            <option value="<?php echo $teacher['id'] ?>" <?php if (in_array($teacher['id'], $subject['teacher_id'])) echo "selected=selected" ?>><?php echo $teacher['name'] ?></option>
                                             <?php
                                         }
                                         ?>
