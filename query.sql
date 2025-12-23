@@ -1,1 +1,0 @@
-SELECT * FROM student_fees_discounts WHERE fees_discount_id = 8;

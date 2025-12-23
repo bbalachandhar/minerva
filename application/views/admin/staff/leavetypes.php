@@ -45,6 +45,84 @@ if (isset($result)) {
     }
     ?>" />
                                 </div>
+                                <div class="form-group">
+                                    <label for="is_staff_specific"><?php echo $this->lang->line('applicable_for'); ?></label>
+                                    <select name="is_staff_specific" class="form-control">
+                                        <option value="All" <?php if (isset($result) && $result['is_staff_specific'] == 'All') {
+    echo 'selected';
+}
+?>><?php echo $this->lang->line('all'); ?></option>
+                                        <option value="Student" <?php if (isset($result) && $result['is_staff_specific'] == 'Student') {
+    echo 'selected';
+}
+?>><?php echo $this->lang->line('student'); ?></option>
+                                        <option value="Staff" <?php if (isset($result) && $result['is_staff_specific'] == 'Staff') {
+    echo 'selected';
+}
+?>><?php echo $this->lang->line('staff'); ?></option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="max_leave_days"><?php echo $this->lang->line('max_leave_days'); ?></label>
+                                    <input type="number" name="max_leave_days" class="form-control" value="<?php if (isset($result)) {
+    echo $result['max_leave_days'];
+} else {
+    echo 0;
+}
+?>">
+                                </div>
+                                <div class="form-group">
+                                    <label class="checkbox-inline">
+                                        <input type="checkbox" name="is_lop" value="1" <?php if (isset($result) && $result['is_lop'] == 1) {
+    echo 'checked';
+}
+?>> <?php echo $this->lang->line('loss_of_pay'); ?>
+                                    </label>
+                                </div>
+                                <div class="form-group">
+                                    <label class="checkbox-inline">
+                                        <input type="checkbox" id="is_carry_forward" name="is_carry_forward" value="1" <?php if (isset($result) && $result['is_carry_forward'] == 1) {
+    echo 'checked';
+}
+?>> <?php echo $this->lang->line('carry_forward'); ?>
+                                    </label>
+                                </div>
+                                <div class="form-group" id="max_carry_forward_group" <?php if (!isset($result) || $result['is_carry_forward'] != 1) {
+    echo 'style="display: none;"';
+}
+?>>
+                                    <label for="max_carry_forward"><?php echo $this->lang->line('max_carry_forward'); ?></label>
+                                    <input type="number" name="max_carry_forward" class="form-control" value="<?php if (isset($result)) {
+    echo $result['max_carry_forward'];
+}
+?>">
+                                </div>
+                                <div class="form-group">
+                                    <label for="gender_specific"><?php echo $this->lang->line('gender_specific'); ?></label>
+                                    <select name="gender_specific" class="form-control">
+                                        <option value=""><?php echo $this->lang->line('select'); ?></option>
+                                        <option value="All" <?php if (isset($result) && ($result['gender_specific'] == 'All' || $result['gender_specific'] == '')) {
+    echo 'selected';
+}
+?>><?php echo $this->lang->line('all'); ?></option>
+                                        <option value="Male" <?php if (isset($result) && $result['gender_specific'] == 'Male') {
+    echo 'selected';
+}
+?>><?php echo $this->lang->line('male'); ?></option>
+                                        <option value="Female" <?php if (isset($result) && $result['gender_specific'] == 'Female') {
+    echo 'selected';
+}
+?>><?php echo $this->lang->line('female'); ?></option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label class="checkbox-inline">
+                                        <input type="checkbox" name="leave_encashment" value="1" <?php if (isset($result) && $result['leave_encashment'] == 1) {
+    echo 'checked';
+}
+?>> <?php echo $this->lang->line('leave_encashment'); ?>
+                                    </label>
+                                </div>
                             </div>
                             <div class="box-footer">
                                 <button type="submit" class="btn btn-info pull-right"><?php echo $this->lang->line('save'); ?></button>
@@ -73,6 +151,13 @@ if ($this->rbac->hasPrivilege('leave_types', 'can_add')) {
                                 <thead>
                                     <tr>
                                         <th><?php echo $this->lang->line('name'); ?></th>
+                                        <th><?php echo $this->lang->line('applicable_for'); ?></th>
+                                        <th><?php echo $this->lang->line('max_leave_days'); ?></th>
+                                        <th><?php echo $this->lang->line('loss_of_pay'); ?></th>
+                                        <th><?php echo $this->lang->line('carry_forward'); ?></th>
+                                        <th><?php echo $this->lang->line('max_carry_forward'); ?></th>
+                                        <th><?php echo $this->lang->line('gender_specific'); ?></th>
+                                        <th><?php echo $this->lang->line('leave_encashment'); ?></th>
                                         <th class="text-right noExport"><?php echo $this->lang->line('action'); ?>
                                         </th>
                                     </tr>
@@ -81,18 +166,16 @@ if ($this->rbac->hasPrivilege('leave_types', 'can_add')) {
                                     <?php
 $count = 1;
 foreach ($leavetype as $value) {
-    $status = "";
-
-    if ($value["is_active"] == "yes") {
-
-        $status = "Active";
-    } else {
-        $status = "Inactive";
-    }
     ?>
                                         <tr>
-
                                             <td class="mailbox-name"> <?php echo $value['type'] ?></td>
+                                            <td class="mailbox-name"> <?php echo $value['is_staff_specific'] ?></td>
+                                            <td class="mailbox-name"> <?php echo $value['max_leave_days'] ?></td>
+                                            <td class="mailbox-name"> <?php echo ($value['is_lop']) ? $this->lang->line('yes') : $this->lang->line('no'); ?></td>
+                                            <td class="mailbox-name"> <?php echo ($value['is_carry_forward']) ? $this->lang->line('yes') : $this->lang->line('no'); ?></td>
+                                            <td class="mailbox-name"> <?php echo $value['max_carry_forward'] ?></td>
+                                            <td class="mailbox-name"> <?php echo $value['gender_specific'] ?></td>
+                                            <td class="mailbox-name"> <?php echo ($value['leave_encashment']) ? $this->lang->line('yes') : $this->lang->line('no'); ?></td>
                                             <td class="mailbox-date pull-right no-print">
                                                 <?php if ($this->rbac->hasPrivilege('leave_types', 'can_edit')) {?>
                                                     <a href="<?php echo base_url(); ?>admin/leavetypes/leaveedit/<?php echo $value['id'] ?>" class="btn btn-default btn-xs"  data-toggle="tooltip" title="<?php echo $this->lang->line('edit'); ?>">
@@ -122,4 +205,15 @@ $count++;
         </div>
     </section>
 </div>
+<script>
+    $(document).ready(function () {
+        $('#is_carry_forward').change(function () {
+            if (this.checked) {
+                $('#max_carry_forward_group').show();
+            } else {
+                $('#max_carry_forward_group').hide();
+            }
+        });
+    });
+</script>
 

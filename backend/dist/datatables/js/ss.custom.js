@@ -246,35 +246,37 @@ $(document).ready(function(){
                   }
             },
             {
-                extend:    'excel',
+                // Custom Excel export button
                 text:      '<i class="fa fa-file-excel-o"></i>',
                 titleAttr: 'Excel',
-                     className: "btn-excel",
-                title: $('.'+_selector).data("exportTitle"),
-                  exportOptions: {
-                    columns: ["thead th:not(.noExport)"]
-                  }
+                className: "btn-excel",
+                action: function ( e, dt, button, config ) {
+                    var class_id = (params.class_id && params.class_id !== '') ? params.class_id : '';
+                    var section_id = (params.section_id && params.section_id !== '') ? params.section_id : '';
+                    window.location.href = baseurl + 'report/logindetailreport_export_excel?class_id=' + class_id + '&section_id=' + section_id;
+                }
             },
             {
-                extend:    'csv',
+                // Custom CSV export button
                 text:      '<i class="fa fa-file-text-o"></i>',
                 titleAttr: 'CSV',
                 className: "btn-csv",
-                title: $('.'+_selector).data("exportTitle"),
-                  exportOptions: {
-                    columns: ["thead th:not(.noExport)"]
-                  }
+                action: function ( e, dt, button, config ) {
+                    var class_id = (params.class_id && params.class_id !== '') ? params.class_id : '';
+                    var section_id = (params.section_id && params.section_id !== '') ? params.section_id : '';
+                    window.location.href = baseurl + 'report/logindetailreport_export_csv?class_id=' + class_id + '&section_id=' + section_id;
+                }
             },
             {
-                extend:    'pdf',
+                // Custom PDF export button
                 text:      '<i class="fa fa-file-pdf-o"></i>',
                 titleAttr: 'PDF',
                 className: "btn-pdf",
-                title: $('.'+_selector).data("exportTitle"),
-                  exportOptions: {
-                    columns: ["thead th:not(.noExport)"]
-                  },
-
+                action: function ( e, dt, button, config ) {
+                    var class_id = (params.class_id && params.class_id !== '') ? params.class_id : '';
+                    var section_id = (params.section_id && params.section_id !== '') ? params.section_id : '';
+                    window.location.href = baseurl + 'report/logindetailreport_export_pdf?class_id=' + class_id + '&section_id=' + section_id;
+                }
             },
             {
                 extend:    'print',
