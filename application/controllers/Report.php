@@ -2608,7 +2608,6 @@ class Report extends Admin_Controller
                 $footer[] = $category['total_student_count'];
                 $overall_grand_total += $category['total_student_count'];
             }
-            $footer[] = $overall_grand_total;
             fputcsv($output, $footer);
 
             fclose($output);
@@ -2616,5 +2615,141 @@ class Report extends Admin_Controller
             // Handle invalid export type or redirect back
             redirect('report/category_report');
         }
+    } // Added missing closing brace for category_report_export function
+    public function logindetailreport_export_excel()
+    {
+        $this->load->library('excel');
+        $this->excel->setActiveSheetIndex(0);
+        $this->excel->getActiveSheet()->setTitle($this->lang->line('student_login_credential_report'));
+
+        $class_id = $this->input->post_get('class_id');
+        $section_id = $this->input->post_get('section_id');
+
+        log_message('debug', 'logindetailreport_export_excel: Received class_id = ' . $class_id . ', section_id = ' . $section_id);
+
+        $report_data = $this->student_model->getlogincredentialreportfor_export($class_id, $section_id);
+
+        log_message('debug', 'logindetailreport_export_excel: Returned ' . count($report_data) . ' records from model.');
+        $sch_setting = $this->sch_setting_detail;
+
+        $header = array(
+            $this->lang->line('admission_no'),
+            $this->lang->line('student_name'),
+            $this->lang->line('class'),
+            $this->lang->line('section'),
+            $this->lang->line('username'),
+            $this->lang->line('password')
+        );
+
+        $this->excel->getActiveSheet()->fromArray($header, null, 'A1');
+        $row_number = 2;
+
+        foreach ($report_data as $student) {
+            $studentlist      = $this->user_model->getUserLoginDetails($student->id);
+            $student_username = $studentlist["username"] ?? "";
+            $student_password = $studentlist["password"] ?? "";
+
+            $student_name = $this->customlib->getFullName($student->firstname, $student->middlename, $student->lastname, $sch_setting->middlename, $sch_setting->lastname);
+
+            $row = array(
+                $student->admission_no,
+                $student_name,
+                $student->class,
+                $student->section,
+                $student_username,
+                $student_password
+            );
+            $this->excel->getActiveSheet()->fromArray($row, null, 'A' . $row_number);
+            $row_number++;
+        }
+
+        $filename = "Student_Login_Credential_Report_" . date('Y-m-d_H-i-s') . ".xls";
+        header('Content-Type: application/vnd.ms-excel');
+        header('Content-Disposition: attachment;filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+        $objWriter = PHPExcel_IOFactory::createWriter($this->excel, 'Excel5');
+        $objWriter->save('php://output');
+        exit;
+    }
+
+    public function logindetailreport_export_csv()
+    {
+        $class_id = $this->input->post_get('class_id');
+        $section_id = $this->input->post_get('section_id');
+
+        $report_data = $this->student_model->getlogincredentialreportfor_export($class_id, $section_id);
+        $sch_setting = $this->sch_setting_detail;
+
+        $filename = "Student_Login_Credential_Report_" . date('Y-m-d_H-i-s') . ".csv";
+        header('Content-Type: text/csv');
+        header('Content-Disposition: attachment;filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+
+        $output = fopen('php://output', 'w');
+
+        $header = array(
+            $this->lang->line('admission_no'),
+            $this->lang->line('student_name'),
+            $this->lang->line('class'),
+            $this->lang->line('section'),
+            $this->lang->line('username'),
+            $this->lang->line('password')
+        );
+        fputcsv($output, $header);
+
+        foreach ($report_data as $student) {
+            $studentlist      = $this->user_model->getUserLoginDetails($student->id);
+            $student_username = $studentlist["username"] ?? "";
+            $student_password = $studentlist["password"] ?? "";
+
+            $student_name = $this->customlib->getFullName($student->firstname, $student->middlename, $student->lastname, $sch_setting->middlename, $sch_setting->lastname);
+
+            $row = array(
+                $student->admission_no,
+                $student_name,
+                $student->class,
+                $student->section,
+                $student_username,
+                $student_password
+            );
+            fputcsv($output, $row);
+        }
+        fclose($output);
+        exit;
+    }
+
+    public function logindetailreport_export_pdf()
+    {
+        $class_id = $this->input->post_get('class_id');
+        $section_id = $this->input->post_get('section_id');
+
+        $report_data = $this->student_model->getlogincredentialreportfor_export($class_id, $section_id);
+        $sch_setting = $this->sch_setting_detail;
+
+        $data['report_data'] = array();
+        foreach ($report_data as $student) {
+            $studentlist      = $this->user_model->getUserLoginDetails($student->id);
+            $student_username = $studentlist["username"] ?? "";
+            $student_password = $studentlist["password"] ?? "";
+
+            $student_name = $this->customlib->getFullName($student->firstname, $student->middlename, $student->lastname, $sch_setting->middlename, $sch_setting->lastname);
+
+            $data['report_data'][] = (object)array(
+                'admission_no' => $student->admission_no,
+                'student_name' => $student_name,
+                'class'        => $student->class,
+                'section'      => $student->section,
+                'username'     => $student_username,
+                'password'     => $student_password
+            );
+        }
+
+        $this->load->library('m_pdf');
+        $data['title'] = $this->lang->line('student_login_credential_report');
+        $html = $this->load->view('reports/logindetailreport_pdf', $data, true); // Create a separate PDF view if needed
+        $pdfFilePath = "Student_Login_Credential_Report_" . date('Y-m-d_H-i-s') . ".pdf";
+        $this->m_pdf->pdf->WriteHTML($html);
+        $this->m_pdf->pdf->Output($pdfFilePath, "D");
+        exit;
     }
 }

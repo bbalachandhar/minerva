@@ -45,9 +45,16 @@ class LeaveTypes extends Admin_Controller
         
         if ($this->form_validation->run()) {
 
-            $type        = $this->input->post("type");
-            
-            $status      = $this->input->post("status");
+            $type = $this->input->post("type");
+            $leavetypeid = $this->input->post("leavetypeid");
+            $is_lop = $this->input->post("is_lop");
+            $is_carry_forward = $this->input->post("is_carry_forward");
+            $max_carry_forward = $this->input->post("max_carry_forward");
+            $gender_specific = $this->input->post("gender_specific");
+            $leave_encashment = $this->input->post("leave_encashment");
+            $is_staff_specific = $this->input->post("is_staff_specific");
+            $max_leave_days = $this->input->post("max_leave_days");
+
             if (empty($leavetypeid)) {
 
                 if (!$this->rbac->hasPrivilege('leave_types', 'can_add')) {
@@ -60,19 +67,29 @@ class LeaveTypes extends Admin_Controller
                 }
             }
 
-            if (!empty($leavetypeid)) {
-                $data = array('type' => $type, 'is_active' => 'yes', 'id' => $leavetypeid);
-            } else {
+            $data = array(
+                'type' => $type,
+                'is_lop' => $is_lop ? 1 : 0,
+                'is_carry_forward' => $is_carry_forward ? 1 : 0,
+                'max_carry_forward' => $is_carry_forward ? $max_carry_forward : 0,
+                'gender_specific' => $gender_specific,
+                'leave_encashment' => $leave_encashment ? 1 : 0,
+                'is_staff_specific' => $is_staff_specific,
+                'max_leave_days' => $max_leave_days,
+                'is_active' => 'yes'
+            );
 
-                $data = array('type' => $type, 'is_active' => 'yes');
+            if (!empty($leavetypeid)) {
+                $data['id'] = $leavetypeid;
             }
 
-            $insert_id = $this->leavetypes_model->addLeaveType($data);
+            $this->leavetypes_model->addLeaveType($data);
             $this->session->set_flashdata('msg', '<div class="alert alert-success">' . $this->lang->line('success_message') . '</div>');
             redirect("admin/leavetypes");
         } else {
 
-            $LeaveTypes        = $this->leavetypes_model->getLeaveType();
+            $this->session->set_flashdata('msg', '<div class="alert alert-danger">' . validation_errors() . '</div>');
+            $LeaveTypes = $this->leavetypes_model->getLeaveType();
             $data["leavetype"] = $LeaveTypes;
             $this->load->view("layout/header");
             $this->load->view("admin/staff/leavetypes", $data);

@@ -660,4 +660,126 @@ class Payroll extends Admin_Controller
 
     }
 
+    public function bulkupload()
+    {
+        if (!$this->rbac->hasPrivilege('staff_payroll', 'can_view')) {
+            access_denied();
+        }
+        $this->load->view("layout/header");
+        $this->load->view("admin/payroll/bulkupload");
+        $this->load->view("layout/footer");
+    }
+
+    public function bulkimport()
+    {
+        $this->form_validation->set_rules('file', $this->lang->line('file'), 'callback_handle_csv_upload');
+        $this->form_validation->set_rules('month', $this->lang->line('month'), 'trim|required|xss_clean');
+        $this->form_validation->set_rules('year', $this->lang->line('year'), 'trim|required|xss_clean');
+
+        if ($this->form_validation->run() == false) {
+            $this->bulkupload();
+        } else {
+            $month = $this->input->post('month');
+            $year = $this->input->post('year');
+            $file_path = $this->session->userdata('csv_path');
+            $this->load->library('csvreader');
+            $result = $this->csvreader->parse_file($file_path, true);
+
+            if (!empty($result)) {
+                $this->db->trans_start();
+                $header = array_keys($result[0]);
+                foreach ($result as $row) {
+                    $staff = $this->staff_model->get_staff_by_employee_id($row['staff_id']);
+                    if ($staff) {
+                        $total_allowance = 0;
+                        $total_deduction = 0;
+                        $allowances = [];
+                        foreach ($header as $key) {
+                            if ($key != 'staff_id') {
+                                $amount = $row[$key];
+                                if ($amount != 0) {
+                                    if ($amount > 0) {
+                                        $total_allowance += $amount;
+                                        $allowances[] = ['type' => $key, 'amount' => $amount, 'cal_type' => 'positive'];
+                                    } else {
+                                        $total_deduction += abs($amount);
+                                        $allowances[] = ['type' => $key, 'amount' => abs($amount), 'cal_type' => 'negative'];
+                                    }
+                                }
+                            }
+                        }
+
+                        $data = array(
+                            'staff_id' => $staff['id'],
+                            'basic' => 0,
+                            'total_allowance' => $total_allowance,
+                            'total_deduction' => $total_deduction,
+                            'net_salary' => $total_allowance - $total_deduction,
+                            'payment_date' => date("Y-m-d"),
+                            'status' => 'generated',
+                            'month' => $month,
+                            'year' => $year,
+                            'tax' => 0,
+                            'leave_deduction' => '0',
+                        );
+
+                        $payslipid = $this->payroll_model->createPayslip($data);
+
+                        foreach ($allowances as $allowance) {
+                            $allowance_data = array(
+                                'payslip_id' => $payslipid,
+                                'allowance_type' => $allowance['type'],
+                                'amount' => $allowance['amount'],
+                                'staff_id' => $staff['id'],
+                                'cal_type' => $allowance['cal_type'],
+                            );
+                            $this->payroll_model->add_allowance($allowance_data);
+                        }
+                    }
+                }
+                $this->db->trans_complete();
+                $this->session->set_flashdata('msg', '<div class="alert alert-success text-center">' . $this->lang->line('records_found_in_csv_file_total') . ' ' . count($result) . ' ' . $this->lang->line('records_imported_successfully') . '</div>');
+            } else {
+                $this->session->set_flashdata('msg', '<div class="alert alert-danger text-center">' . $this->lang->line('no_record_found') . '</div>');
+            }
+            redirect('admin/payroll/bulkupload');
+        }
+    }
+
+    public function handle_csv_upload()
+    {
+        $error = "";
+        if (isset($_FILES["file"]) && !empty($_FILES['file']['name'])) {
+            $allowedExts = array('csv');
+            $temp = explode(".", $_FILES["file"]["name"]);
+            $extension = end($temp);
+            if ($_FILES["file"]["error"] > 0) {
+                $error .= "Error: " . $_FILES["file"]["error"] . "<br>";
+            }
+            if (!in_array($extension, $allowedExts)) {
+                $error .= "Error: Please select CSV file only.";
+            }
+            if ($error == "") {
+                $file_name = $_FILES["file"]["name"];
+                $file_size = $_FILES["file"]["size"];
+                $file_tmp = $_FILES["file"]["tmp_name"];
+                $file_type = $_FILES["file"]["type"];
+
+                $path = "uploads/payroll_import/";
+                if (!is_dir($path)) {
+                    mkdir($path, 0777, true);
+                }
+                $file_path = $path . $file_name;
+                move_uploaded_file($file_tmp, $file_path);
+                $this->session->set_userdata('csv_path', $file_path);
+                return true;
+            } else {
+                $this->form_validation->set_message('handle_csv_upload', $error);
+                return false;
+            }
+        } else {
+            $this->form_validation->set_message('handle_csv_upload', "Please select a file.");
+            return false;
+        }
+    }
 }
