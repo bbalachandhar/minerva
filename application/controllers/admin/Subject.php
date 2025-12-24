@@ -24,11 +24,46 @@ class Subject extends Admin_Controller
         $subject_result        = $this->subject_model->get();
         $data['subjectlist']   = $subject_result;
         $data['subject_types'] = $this->customlib->subjectType();
+
+        $debug_subjectlist_initial = 'Subject Controller Index: Initial $data[\'subjectlist\'] after model get: ' . print_r($data['subjectlist'], true);
+        log_message('debug', $debug_subjectlist_initial);
+        log_message('debug', 'Subject Controller Index: institution_type: ' . $this->sch_setting_detail->institution_type);
+
+        $this->load->model('staff_model'); // Load staff model unconditionally
+
+        foreach ($data['subjectlist'] as $key => $value) {
+            $data['subjectlist'][$key]['teacher_name'] = ''; // Initialize to empty string by default
+            log_message('debug', 'Subject Controller Index: Processing subject ID ' . $value['id'] . ', initial teacher_id: ' . $value['teacher_id']);
+
+            if ($this->sch_setting_detail->institution_type == 'college') {
+                $teacher_ids = json_decode($value['teacher_id'], true);
+                $debug_decoded_teacher_ids = 'Subject Controller Index: Decoded teacher_ids for subject ' . $value['id'] . ': ' . print_r($teacher_ids, true);
+                log_message('debug', $debug_decoded_teacher_ids);
+
+                if (is_array($teacher_ids) && !empty($teacher_ids)) {
+                    $teachers = $this->staff_model->getTeachersByIds($teacher_ids);
+                    $debug_teachers_found = 'Subject Controller Index: Teachers found by IDs for subject ' . $value['id'] . ': ' . print_r($teachers, true);
+                    log_message('debug', $debug_teachers_found);
+                    $teacher_names = array();
+                    foreach ($teachers as $teacher) {
+                        $teacher_names[] = $teacher['name'];
+                    }
+                    $data['subjectlist'][$key]['teacher_name'] = implode(', ', $teacher_names);
+                }
+            }
+            log_message('debug', 'Subject Controller Index: Final teacher_name for subject ID ' . $value['id'] . ': ' . $data['subjectlist'][$key]['teacher_name']);
+        }
+
+        if ($this->sch_setting_detail->institution_type == 'college') {
+            $data['teacherlist'] = $this->staff_model->getStaffbyrole(2); // For the dropdown in add form
+        }
+
         $this->form_validation->set_rules('name', $this->lang->line('subject_name'), 'trim|required|xss_clean|callback__check_name_exists');
         $this->form_validation->set_rules('type', $this->lang->line('type'), 'trim|required|xss_clean');
         if ($this->input->post('code')) {
             $this->form_validation->set_rules('code', $this->lang->line('code'), 'trim|required|callback__check_code_exists');
         }
+
         if ($this->form_validation->run() == false) {
             $this->load->view('layout/header', $data);
             $this->load->view('admin/subject/subjectList', $data);
@@ -37,8 +72,15 @@ class Subject extends Admin_Controller
             $data = array(
                 'name' => $this->input->post('name'),
                 'code' => $this->input->post('code'),
-                'type' => $this->input->post('type'),
+                'type' => strtolower($this->input->post('type')),
             );
+            if ($this->sch_setting_detail->institution_type == 'college') {
+                $data['teacher_id'] = json_encode($this->input->post('teacher_id'));
+            } else {
+                // For non-college institutions, ensure teacher_id is explicitly set to NULL or empty.
+                // This prevents JSON encoding of a single teacher_id when it should not be an array.
+                $data['teacher_id'] = null; 
+            }
             $this->subject_model->add($data);
             $this->session->set_flashdata('msg', '<div class="alert alert-success text-left">' . $this->lang->line('success_message') . '</div>');
             redirect('admin/subject/index');
@@ -96,12 +138,55 @@ class Subject extends Admin_Controller
             access_denied();
         }
         $subject_result        = $this->subject_model->get();
-        $data['subjectlist']   = $subject_result;
+        $data['subjectlist']   = $subject_result; // This is used for the table in the right pane.
         $data['title']         = 'Edit Subject';
         $data['id']            = $id;
-        $subject               = $this->subject_model->get($id);
+        $subject               = $this->subject_model->get($id); // Subject being edited.
+        
+        $this->load->model('staff_model'); // Load staff model unconditionally
+
+        log_message('debug', 'Subject Controller Edit: institution_type: ' . $this->sch_setting_detail->institution_type);
+        log_message('debug', 'Subject Controller Edit: Initial $data[\'subjectlist\'] after model get: ' . print_r($data['subjectlist'], true));
+        log_message('debug', 'Subject Controller Edit: Subject being edited - initial teacher_id: ' . $subject['teacher_id']);
+
+        // Process teacher names for subjectlist table in edit view
+        foreach ($data['subjectlist'] as $key => $value) {
+            $data['subjectlist'][$key]['teacher_name'] = ''; // Initialize to empty string by default
+            log_message('debug', 'Subject Controller Edit: Processing subject ID ' . $value['id'] . ', initial teacher_id: ' . $value['teacher_id']);
+
+            if ($this->sch_setting_detail->institution_type == 'college') {
+                $teacher_ids = json_decode($value['teacher_id'], true); // Decode as associative array
+                if (!is_array($teacher_ids)) {
+                    $teacher_ids = array();
+                }
+                log_message('debug', 'Subject Controller Edit: Decoded teacher_ids for subject ' . $value['id'] . ': ' . print_r($teacher_ids, true));
+
+                if (is_array($teacher_ids) && !empty($teacher_ids)) {
+                    $teachers = $this->staff_model->getTeachersByIds($teacher_ids);
+                    log_message('debug', 'Subject Controller Edit: Teachers found by IDs for subject ' . $value['id'] . ': ' . print_r($teachers, true));
+                    $teacher_names = array();
+                    foreach ($teachers as $teacher) {
+                        $teacher_names[] = $teacher['name'];
+                    }
+                    $data['subjectlist'][$key]['teacher_name'] = implode(', ', $teacher_names);
+                }
+            }
+            log_message('debug', 'Subject Controller Edit: Final teacher_name for subject ID ' . $value['id'] . ': ' . $data['subjectlist'][$key]['teacher_name']);
+        }
+        
+        if ($this->sch_setting_detail->institution_type == 'college') {
+            $decoded_teacher_id = json_decode($subject['teacher_id'], true); // Decode as associative array for consistent handling
+            if (!is_array($decoded_teacher_id)) {
+                $decoded_teacher_id = array();
+            }
+            $subject['teacher_id'] = $decoded_teacher_id;
+            log_message('debug', 'Subject Controller Edit: Decoded teacher_id for subject being edited (after json_decode): ' . print_r($subject['teacher_id'], true));
+            $data['teacherlist'] = $this->staff_model->getStaffbyrole(2); // For the dropdown in edit form
+        }
+
         $data['subject']       = $subject;
         $data['subject_types'] = $this->customlib->subjectType();
+        
         $this->form_validation->set_rules('name', $this->lang->line('subject'), 'trim|required|xss_clean');
         if ($this->form_validation->run() == false) {
             $this->load->view('layout/header', $data);
@@ -112,8 +197,15 @@ class Subject extends Admin_Controller
                 'id'   => $id,
                 'name' => $this->input->post('name'),
                 'code' => $this->input->post('code'),
-                'type' => $this->input->post('type'),
+                'type' => strtolower($this->input->post('type')),
             );
+            if ($this->sch_setting_detail->institution_type == 'college') {
+                $data['teacher_id'] = json_encode($this->input->post('teacher_id'));
+            } else {
+                // For non-college institutions, ensure teacher_id is explicitly set to NULL or empty.
+                // This prevents JSON encoding of a single teacher_id when it should not be an array.
+                $data['teacher_id'] = null;
+            }
             $this->subject_model->add($data);
             $this->session->set_flashdata('msg', '<div class="alert alert-success text-left">' . $this->lang->line('update_message') . '</div>');
             redirect('admin/subject/index');
@@ -144,6 +236,9 @@ class Subject extends Admin_Controller
                         $this->load->view('admin/subject/subjectBulkUpload', $data);
                         $this->load->view('layout/footer', $data);
                     } else {
+                        if ($this->sch_setting_detail->institution_type == 'college') {
+                            $this->load->model('staff_model');
+                        }
                         log_message('debug', 'Starting bulk upload process.');
                         // File has been uploaded and validated
                         // Process the file content
@@ -171,7 +266,7 @@ class Subject extends Admin_Controller
                                 log_message('debug', 'Processing row ' . $line_number . ': ' . print_r($row, true));
                                 // Basic validation
                                 $name = trim($row['name'] ?? '');
-                                $type = trim($row['type'] ?? '');
+                                $type = strtolower(trim($row['type'] ?? ''));
                                 $code = trim($row['code'] ?? '');
         
                                 if (empty($name) || empty($type)) {
@@ -186,6 +281,22 @@ class Subject extends Admin_Controller
                                     'type' => $type,
                                     'code' => $code,
                                 );
+
+                                if ($this->sch_setting_detail->institution_type == 'college') {
+                                    $teacher_name = trim($row['teacher_name'] ?? '');
+                                    if (!empty($teacher_name)) {
+                                        $teacher = $this->staff_model->getTeacherByName($teacher_name);
+                                        if ($teacher) {
+                                            $subject_data['teacher_id'] = json_encode(array($teacher['id'])); // Store as JSON array
+                                        } else {
+                                            $error_messages[] = 'Teacher not found for subject "' . $name . '" in row ' . $line_number . ': ' . $teacher_name;
+                                        }
+                                    } else {
+                                        $subject_data['teacher_id'] = null;
+                                    }
+                                } else {
+                                    $subject_data['teacher_id'] = null;
+                                }
         
                                 // Check if subject name already exists
                                 if ($this->subject_model->check_data_exists(array('name' => $name))) {

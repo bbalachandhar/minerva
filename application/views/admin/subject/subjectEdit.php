@@ -41,7 +41,7 @@ if ($this->rbac->hasPrivilege('subject', 'can_add') || $this->rbac->hasPrivilege
 foreach ($subject_types as $subject_type_key => $subject_type_value) {
         ?>
                                     <label class="radio-inline">
-                                        <input type="radio" value="<?php echo $subject_type_key ?>" name="type" <?php echo set_radio('type', $subject_type_key, (set_value('type', $subject['type']) == $subject_type_key) ? true : false); ?> ><?php echo $subject_type_value; ?>
+                                        <input type="radio" value="<?php echo $subject_type_key ?>" name="type" <?php echo set_radio('type', $subject_type_key, ($subject['type'] == $subject_type_key)); ?> ><?php echo $subject_type_value; ?>
                                     </label>
                                     <?php
 }
@@ -51,6 +51,22 @@ foreach ($subject_types as $subject_type_key => $subject_type_value) {
                                     <input id="category" name="code" placeholder="" type="text" class="form-control"  value="<?php echo set_value('code', $subject['code']); ?>" />
                                     <span class="text-danger"><?php echo form_error('code'); ?></span>
                                 </div>
+                                <?php if ($this->sch_setting_detail->institution_type == 'college') { ?>
+                                <div class="form-group">
+                                    <label for="exampleInputEmail1"><?php echo $this->lang->line('teacher'); ?></label><small class="req"> *</small>
+                                    <select  id="teacher_id" name="teacher_id[]" class="form-control" multiple="multiple">
+                                        <option value=""><?php echo $this->lang->line('select'); ?></option>
+                                        <?php
+                                        foreach ($teacherlist as $teacher) {
+                                            ?>
+                                            <option value="<?php echo $teacher['id'] ?>" <?php if (in_array($teacher['id'], $subject['teacher_id'])) echo "selected=selected" ?>><?php echo $teacher['name'] ?></option>
+                                            <?php
+                                        }
+                                        ?>
+                                    </select>
+                                    <span class="text-danger"><?php echo form_error('teacher_id'); ?></span>
+                                </div>
+                                <?php } ?>
                             </div>
                             <div class="box-footer">
                                 <button type="submit" class="btn btn-info pull-right"><?php echo $this->lang->line('save'); ?></button>
@@ -79,6 +95,9 @@ if ($this->rbac->hasPrivilege('subject', 'can_add') || $this->rbac->hasPrivilege
                                         <th><?php echo $this->lang->line('subject'); ?></th>
                                         <th><?php echo $this->lang->line('subject_code'); ?></th>
                                         <th><?php echo $this->lang->line('subject_type'); ?></th>
+                                        <?php if ($this->sch_setting_detail->institution_type == 'college') { ?>
+                                        <th><?php echo $this->lang->line('teacher'); ?></th>
+                                        <?php } ?>
                                         <th class="text-right noExport"><?php echo $this->lang->line('action'); ?></th>
                                     </tr>
                                 </thead>
@@ -91,6 +110,9 @@ foreach ($subjectlist as $subject) {
                                             <td class="mailbox-name"> <?php echo $subject['name'] ?></td>
                                             <td class="mailbox-name"><?php echo $subject['code'] ?></td>
                                             <td class="mailbox-name"><?php echo ucfirst($subject['type']) ?></td>
+                                            <?php if ($this->sch_setting_detail->institution_type == 'college') { ?>
+                                            <td class="mailbox-name"><?php echo $subject['teacher_name'] ?></td>
+                                            <?php } ?>
                                             <td class="mailbox-date pull-right no-print">
                                                 <?php
 if ($this->rbac->hasPrivilege('subject', 'can_edit')) {
@@ -127,6 +149,9 @@ $count++;
         $("#btnreset").click(function () {
             $("#form1")[0].reset();
         });
+        <?php if ($this->sch_setting_detail->institution_type == 'college') { ?>
+            $('#teacher_id').select2();
+        <?php } ?>
     });
 </script>
 

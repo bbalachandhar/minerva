@@ -82,7 +82,7 @@ class Setting_model extends MY_Model {
 
     public function getSchoolDetail($id = null) {
 
-        $this->db->select('sch_settings.id,sch_settings.base_url,sch_settings.folder_path,sch_settings.lang_id,sch_settings.is_rtl,sch_settings.timezone,
+        $this->db->select('sch_settings.id,sch_settings.institution_type,sch_settings.base_url,sch_settings.folder_path,sch_settings.lang_id,sch_settings.is_rtl,sch_settings.timezone,
           sch_settings.name,sch_settings.email,sch_settings.student_biometric,sch_settings.staff_biometric,sch_settings.biometric_device,sch_settings.phone,languages.language,sch_settings.address,sch_settings.dise_code,sch_settings.date_format,sch_settings.currency,sch_settings.start_month,sch_settings.start_week,sch_settings.session_id,sch_settings.image,sch_settings.theme,sessions.session,sch_settings.online_admission,sch_settings.maintenance_mode,sch_settings.office_end_time,sch_settings.morning_session_end_time,sch_settings.evening_session_end_time,sch_settings.max_late_allowed,sch_settings.max_permission_allowed,currencies.symbol as currency_symbol,currencies.base_price,currencies.short_name as currency');
         $this->db->from('sch_settings');
         $this->db->join('sessions', 'sessions.id = sch_settings.session_id');

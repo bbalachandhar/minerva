@@ -10,6 +10,10 @@ class Subjectgroup extends Admin_Controller
     public function __construct()
     {
         parent::__construct();
+        if ($this->sch_setting_detail->institution_type != 'college') {
+            $this->session->set_flashdata('msg', '<div class="alert alert-danger text-left">' . $this->lang->line('access_denied') . '</div>');
+            redirect('admin/admin/dashboard');
+        }
     }
 
     public function index()
