@@ -126,4 +126,20 @@ class Leavetypes_model extends MY_model
         }
     }
 
+    public function update_staff_leave_details($staff_id, $leave_type_id, $days, $overwrite = false)
+    {
+        $this->db->where('staff_id', $staff_id);
+        $this->db->where('leave_type_id', $leave_type_id);
+        $q = $this->db->get('staff_leave_details');
+
+        if ($q->num_rows() > 0) {
+            if ($overwrite || $q->row()->alloted_leave == 0 || $q->row()->alloted_leave == null) {
+                $this->db->where('staff_id', $staff_id);
+                $this->db->where('leave_type_id', $leave_type_id);
+                $this->db->update('staff_leave_details', array('alloted_leave' => $days));
+            }
+        } else {
+            $this->db->insert('staff_leave_details', array('staff_id' => $staff_id, 'leave_type_id' => $leave_type_id, 'alloted_leave' => $days));
+        }
+    }
 }

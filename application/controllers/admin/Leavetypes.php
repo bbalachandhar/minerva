@@ -115,4 +115,64 @@ class LeaveTypes extends Admin_Controller
         redirect('admin/leavetypes');
     }
 
+    public function applyLeaveToAll()
+    {
+        $this->form_validation->set_rules('leave_type_id', $this->lang->line('leave_type'), 'required');
+        $this->form_validation->set_rules('days', $this->lang->line('days'), 'required|numeric');
+
+        if ($this->form_validation->run() == FALSE) {
+            $array = array('status' => 'fail', 'message' => validation_errors());
+            echo json_encode($array);
+        } else {
+            $leave_type_id = $this->input->post('leave_type_id');
+            $days = $this->input->post('days');
+            $overwrite = $this->input->post('overwrite') ? true : false;
+
+            $staff_list = $this->staff_model->get();
+
+            foreach ($staff_list as $staff) {
+                $this->leavetypes_model->update_staff_leave_details($staff['id'], $leave_type_id, $days, $overwrite);
+            }
+
+            $array = array('status' => 'success', 'message' => $this->lang->line('record_updated_successfully'));
+            echo json_encode($array);
+        }
+    }
+
+    public function bulk_upload()
+    {
+        $this->load->view("layout/header");
+        $this->load->view("admin/staff/leavetypes_bulk_upload");
+        $this->load->view("layout/footer");
+    }
+
+    public function handle_bulk_upload()
+    {
+        if (isset($_FILES['file']) && $_FILES['file']['error'] == 0) {
+            $this->load->library('csvreader');
+            $result = $this->csvreader->parse_file($_FILES['file']['tmp_name']);
+
+            foreach ($result as $row) {
+                $staff_id = $row['staff_id'];
+                $leave_type_id = $row['leave_type_id'];
+                $days = $row['days'];
+                $this->leavetypes_model->update_staff_leave_details($staff_id, $leave_type_id, $days, true);
+            }
+
+            $this->session->set_flashdata('msg', '<div class="alert alert-success">' . $this->lang->line('bulk_upload_successfully') . '</div>');
+            redirect("admin/leavetypes/bulk_upload");
+        } else {
+            $this->session->set_flashdata('msg', '<div class="alert alert-danger">' . $this->lang->line('please_upload_a_csv_file') . '</div>');
+            redirect("admin/leavetypes/bulk_upload");
+        }
+    }
+    
+    public function download_sample()
+    {
+        $this->load->helper('download');
+        $filepath = "uploads/sample_leave_allotment.csv";
+        $data     = file_get_contents($filepath);
+        $name     = 'sample_leave_allotment.csv';
+        force_download($name, $data);
+    }
 }

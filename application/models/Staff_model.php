@@ -644,6 +644,24 @@ class Staff_model extends MY_Model
         return $filter_get_student_name['name'];
     }
 
+    public function getEmployeeByDepartment($department_id, $exclude_staff_id = null)
+    {
+        $this->db->select('staff.*, staff_designation.designation, department.department_name as department, roles.name as user_type, roles.id as role_id');
+        $this->db->from('staff');
+        $this->db->join('staff_designation', "staff_designation.id = staff.designation", "left");
+        $this->db->join('staff_roles', "staff_roles.staff_id = staff.id", "left");
+        $this->db->join('roles', "roles.id = staff_roles.role_id", "left");
+        $this->db->join('department', "department.id = staff.department", "left");
+        $this->db->where('staff.is_active', 1);
+        $this->db->where('staff.department', $department_id);
+        if ($exclude_staff_id !== null) {
+            $this->db->where('staff.id !=', $exclude_staff_id);
+        }
+        $query = $this->db->get();
+        return $query->result_array();
+    }
+
+
     public function searchFullText($searchterm, $active)
     {
         $i             = 1;

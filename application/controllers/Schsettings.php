@@ -50,6 +50,9 @@ class Schsettings extends Admin_Controller
         $setting->base_url    = ($setting->base_url == "") ? base_url() : $setting->base_url;
         $setting->folder_path = FCPATH;
         $data['result']           = $setting;
+        
+        $this->load->model('staff_model');
+        $data['staff_list'] = $this->staff_model->get(null, 1);
 	 
         $this->load->view('layout/header', $data);
         $this->load->view('setting/settingList', $data);
@@ -303,7 +306,7 @@ class Schsettings extends Admin_Controller
                 'currency_format' => $this->input->post('currency_format'),
                 'currency_place'  => $this->input->post('currency_place'),
                 'base_url'        => $this->input->post('base_url'),
-
+                'leave_approver_id' => $this->input->post('leave_approver_id'),
             );
 
             $this->setting_model->add($data);
