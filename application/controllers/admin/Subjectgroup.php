@@ -27,8 +27,10 @@ class Subjectgroup extends Admin_Controller
         $this->session->set_userdata('sub_menu', 'subjectgroup/index');
         $data['title']         = 'Add Class';
         $data['title_list']    = 'Class List';
+        
         $class                 = $this->class_model->get();
         $data['classlist']     = $class;
+        
         $data['section_array'] = $json_array;
 
         $this->form_validation->set_rules(
@@ -51,6 +53,7 @@ class Subjectgroup extends Admin_Controller
 
         if ($this->form_validation->run() == false) {
             $data['section_array'] = $this->input->post('sections');
+            // No need to set department_id_selected again here, it's set below for the view
         } else {
             $name        = $this->input->post('name');
             $session     = $this->setting_model->getCurrentSession();
@@ -66,10 +69,13 @@ class Subjectgroup extends Admin_Controller
             $this->session->set_flashdata('msg', '<div class="alert alert-success text-left">' . $this->lang->line('success_message') . '</div>');
             redirect('admin/subjectgroup');
         }
+        
+        // Load data for the view, applying filter if present
         $subject_list             = $this->subject_model->get();
         $data['subjectlist']      = $subject_list;
-        $subjectgroupList         = $this->subjectgroup_model->getByID();
+        $subjectgroupList         = $this->subjectgroup_model->getByID(); // Apply filter
         $data['subjectgroupList'] = $subjectgroupList;
+
         $this->load->view('layout/header', $data);
         $this->load->view('admin/subjectgroup/subjectgroupList', $data);
         $this->load->view('layout/footer', $data);

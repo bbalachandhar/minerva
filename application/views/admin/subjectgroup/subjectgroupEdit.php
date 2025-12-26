@@ -52,6 +52,7 @@ if (set_value('class_id', $class_id) == $class['id']) {
                                     </select>
                                     <span class="text-danger"><?php echo form_error('class_id'); ?></span>
                                 </div>
+                                
                                 <div class="form-group"> <!-- Radio group !-->
                                     <label class="control-label"><?php echo $this->lang->line('sections') ?></label><small class="req"> *</small>
                                     <div class="section_checkbox">

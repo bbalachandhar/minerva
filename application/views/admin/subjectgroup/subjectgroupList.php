@@ -51,6 +51,7 @@ if (set_value('class_id') == $class['id']) {
                                     </select>
                                     <span class="text-danger"><?php echo form_error('class_id'); ?></span>
                                 </div>
+                                
                                 <div class="form-group"> <!-- Radio group !-->
                                     <label class="control-label"><?php echo $this->lang->line('sections'); ?></label><small class="req"> *</small>
                                     <div class="section_checkbox">
@@ -113,6 +114,7 @@ if ($this->rbac->hasPrivilege('subject_group', 'can_add')) {
                                 <thead>
                                     <tr>
                                         <th><?php echo $this->lang->line('name'); ?></th>
+                                        
                                         <th class="text-left"><?php echo $this->lang->line('class_section'); ?></th>
                                         <th><?php echo $this->lang->line('subject'); ?></th>
                                         <th class="text-right no_print"><?php echo $this->lang->line('action'); ?></th>
@@ -139,6 +141,7 @@ if ($subjectgroup->description == "") {
     ?>
                                                 </div>
                                             </td>
+                                            
                                             <td  class="text-left">
                                                 <ol>
 

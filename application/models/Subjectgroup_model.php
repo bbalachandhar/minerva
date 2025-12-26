@@ -208,7 +208,6 @@ class Subjectgroup_model extends MY_Model {
 
     public function getByID($id = null) {
         $this->db->select('subject_groups.*')->from('subject_groups');
-        $this->db->where('subject_groups.session_id', $this->current_session);
 
         if ($id != null) {
             $this->db->where('subject_groups.id', $id);
@@ -217,14 +216,25 @@ class Subjectgroup_model extends MY_Model {
         }
 
         $query = $this->db->get();
-        $subject_groups = $query->result();
-        if (!empty($subject_groups)) {
-            foreach ($subject_groups as $subject_group_key => $subject_group_value) {
-                $subject_groups[$subject_group_key]->group_subject = $this->getGroupsubjects($subject_group_value->id);
-                $subject_groups[$subject_group_key]->sections = $this->getClassSectionByGroup($subject_group_value->id);
+        if ($id != null) {
+            $subject_groups = $query->result();
+            if (!empty($subject_groups)) {
+                foreach ($subject_groups as $key => $value) {
+                    $value->sections = $this->getClassSectionByGroup($value->id);
+                    $value->group_subject = $this->getGroupsubjects($value->id);
+                }
             }
+            return $subject_groups;
+        } else {
+            $subject_groups = $query->result();
+            if (!empty($subject_groups)) {
+                foreach ($subject_groups as $key => $value) {
+                    $value->sections = $this->getClassSectionByGroup($value->id);
+                    $value->group_subject = $this->getGroupsubjects($value->id);
+                }
+            }
+            return $subject_groups;
         }
-        return $subject_groups;
     }
 
     public function getClassSectionByGroup($subject_group_id) {

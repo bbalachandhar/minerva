@@ -1,0 +1,96 @@
+-- Please execute this SQL manually to create the `staff` table.
+-- After creating the table, you can execute the INSERT statement below to add the initial data.
+
+-- DROP TABLE IF EXISTS `staff`; -- Uncomment this line if you need to drop an existing staff table first
+
+CREATE TABLE `staff` (
+  `id` int(11) NOT NULL,
+  `prefix` varchar(10) DEFAULT NULL,
+  `ug_qualification` varchar(100) DEFAULT NULL,
+  `pg_qualification` varchar(100) DEFAULT NULL,
+  `higher_qualification` varchar(100) DEFAULT NULL,
+  `qualified_exam` varchar(100) DEFAULT NULL,
+  `subject_specialization` varchar(255) DEFAULT NULL,
+  `additional_qualification` text DEFAULT NULL,
+  `employee_id` varchar(200) NOT NULL,
+  `biometric_id` varchar(255) DEFAULT NULL,
+  `lang_id` int(11) NOT NULL,
+  `currency_id` int(11) DEFAULT 0,
+  `department` int(11) DEFAULT NULL,
+  `designation` int(11) DEFAULT NULL,
+  `qualification` varchar(200) NOT NULL,
+  `work_exp` varchar(200) NOT NULL,
+  `name` varchar(200) NOT NULL,
+  `surname` varchar(200) NOT NULL,
+  `father_name` varchar(200) NOT NULL,
+  `mother_name` varchar(200) NOT NULL,
+  `contact_no` varchar(200) NOT NULL,
+  `emergency_contact_no` varchar(200) NOT NULL,
+  `email` varchar(200) NOT NULL,
+  `dob` date DEFAULT NULL,
+  `marital_status` varchar(100) NOT NULL,
+  `date_of_joining` date DEFAULT NULL,
+  `date_of_leaving` date DEFAULT NULL,
+  `local_address` varchar(300) NOT NULL,
+  `permanent_address` varchar(200) NOT NULL,
+  `note` varchar(200) NOT NULL,
+  `image` varchar(200) NOT NULL,
+  `password` varchar(250) NOT NULL,
+  `gender` varchar(50) NOT NULL,
+  `account_title` varchar(200) NOT NULL,
+  `bank_account_no` varchar(200) NOT NULL,
+  `bank_name` varchar(200) NOT NULL,
+  `ifsc_code` varchar(200) NOT NULL,
+  `bank_branch` varchar(100) NOT NULL,
+  `payscale` varchar(200) NOT NULL,
+  `basic_salary` int(11) DEFAULT NULL,
+  `epf_no` varchar(200) NOT NULL,
+  `contract_type` varchar(100) NOT NULL,
+  `shift` varchar(100) NOT NULL,
+  `location` varchar(100) NOT NULL,
+  `facebook` varchar(200) NOT NULL,
+  `twitter` varchar(200) NOT NULL,
+  `linkedin` varchar(200) NOT NULL,
+  `instagram` varchar(200) NOT NULL,
+  `resume` varchar(200) NOT NULL,
+  `joining_letter` varchar(200) NOT NULL,
+  `resignation_letter` varchar(200) NOT NULL,
+  `other_document_name` varchar(200) NOT NULL,
+  `other_document_file` varchar(200) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `is_active` int(11) NOT NULL,
+  `verification_code` varchar(100) NOT NULL,
+  `disable_at` date DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `app_key` text DEFAULT NULL,
+  `previous_institution` varchar(255) DEFAULT NULL,
+  `subject_expertise` varchar(255) DEFAULT NULL,
+  `aadhaar_no` varchar(255) DEFAULT NULL,
+  `religion` varchar(255) DEFAULT NULL,
+  `caste` varchar(255) DEFAULT NULL,
+  `blood_group` varchar(255) DEFAULT NULL,
+  `country` varchar(255) DEFAULT NULL,
+  `state` varchar(255) DEFAULT NULL,
+  `pincode` varchar(255) DEFAULT NULL,
+  `is_visiting_faculty` tinyint(1) DEFAULT NULL,
+  `is_part_time_faculty` tinyint(1) DEFAULT NULL,
+  `is_full_time_faculty` tinyint(1) DEFAULT NULL,
+  `previous_salary` decimal(10,2) DEFAULT NULL,
+  `uan_no` varchar(255) DEFAULT NULL,
+  `pan_no` varchar(255) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+ALTER TABLE `staff`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `employee_id` (`employee_id`),
+  ADD UNIQUE KEY `biometric_id` (`biometric_id`),
+  ADD KEY `department` (`department`),
+  ADD KEY `designation` (`designation`);
+
+ALTER TABLE `staff`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+-- Insert statement for initial data
+INSERT INTO `staff` (`id`, `prefix`, `ug_qualification`, `pg_qualification`, `higher_qualification`, `qualified_exam`, `subject_specialization`, `additional_qualification`, `employee_id`, `biometric_id`, `lang_id`, `currency_id`, `department`, `designation`, `qualification`, `work_exp`, `name`, `surname`, `father_name`, `mother_name`, `contact_no`, `emergency_contact_no`, `email`, `dob`, `marital_status`, `date_of_joining`, `date_of_leaving`, `local_address`, `permanent_address`, `note`, `image`, `password`, `gender`, `account_title`, `bank_account_no`, `bank_name`, `ifsc_code`, `bank_branch`, `payscale`, `basic_salary`, `epf_no`, `contract_type`, `shift`, `location`, `facebook`, `twitter`, `linkedin`, `instagram`, `resume`, `joining_letter`, `resignation_letter`, `other_document_name`, `other_document_file`, `user_id`, `is_active`, `verification_code`, `disable_at`, `created_at`, `updated_at`, `app_key`, `previous_institution`, `subject_expertise`, `aadhaar_no`, `religion`, `caste`, `blood_group`, `country`, `state`, `pincode`, `is_visiting_faculty`, `is_part_time_faculty`, `is_full_time_faculty`, `previous_salary`, `uan_no`, `pan_no`) VALUES
+(1, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '9000', '9000', 0, 0, NULL, NULL, '', '', 'Super Admin', '', '', '', '', '', 'b.balachandhar@gmail.com', '2020-01-01', '', NULL, NULL, '', '', '', '', '$2y$10$1e2Ap50oRAHImb90sLHJb.z4BMMHPRBhhQ9qJxobRixixzrFwV4oq', 'Male', '', '', '', '', '', '', NULL, '', '', '', '', '', '', '', '', '', '', '', '', '', 0, 1, '', NULL, '2025-09-25 15:40:56', '2025-12-22 06:59:34', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);

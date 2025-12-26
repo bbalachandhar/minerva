@@ -514,6 +514,20 @@ class Staff extends Admin_Controller
             $note              = $this->input.post("note");
             $epf_no            = $this->input.post("epf_no");
 
+            $aadhaar_no = $this->input->post('aadhaar_no');
+            $religion = $this->input->post('religion');
+            $caste = $this->input->post('caste');
+            $blood_group = $this->input->post('blood_group');
+            $country = $this->input->post('country');
+            $state = $this->input->post('state');
+            $pincode = $this->input->post('pincode');
+            $is_visiting_faculty = $this->input->post('is_visiting_faculty');
+            $is_part_time_faculty = $this->input->post('is_part_time_faculty');
+            $is_full_time_faculty = $this->input->post('is_full_time_faculty');
+            $previous_salary = $this->input->post('previous_salary');
+            $uan_no = $this->input->post('uan_no');
+            $pan_no = $this->input->post('pan_no');
+
             $password = $this->role->get_random_password($chars_min = 6, $chars_max = 6, $use_upper_case = false, $include_numbers = true, $include_special_chars = false);
 
             $data_insert = array(
@@ -534,6 +548,21 @@ class Staff extends Admin_Controller
                 'qualified_exam'         => $this->input->post('qualified_exam'),
                 'subject_specialization' => $this->input->post('subject_specialization'),
                 'additional_qualification' => $this->input->post('additional_qualification'),
+                'aadhaar_no' => $aadhaar_no,
+                'religion' => $religion,
+                'caste' => $caste,
+                'blood_group' => $blood_group,
+                'country' => $country,
+                'state' => $state,
+                'pincode' => $pincode,
+                'is_visiting_faculty' => $is_visiting_faculty,
+                'is_part_time_faculty' => $is_part_time_faculty,
+                'is_full_time_faculty' => $is_full_time_faculty,
+                'previous_salary' => $previous_salary,
+                'uan_no' => $uan_no,
+                'pan_no' => $pan_no,
+                'previous_institution' => $this->input->post('previous_institution'),
+                'subject_expertise' => $this->input->post('subject_expertise'),
             );
 
             if (isset($surname)) {
@@ -1634,10 +1663,37 @@ class Staff extends Admin_Controller
             "resignation_letter"       => "resignation_letter",
             "designation"              => "designation",
             "department"               => "department",
+            "aadhaar_no" => "aadhaar_no",
+            "religion" => "religion",
+            "caste" => "caste",
+            "blood_group" => "blood_group",
+            "country" => "country",
+            "state" => "state",
+            "pincode" => "pincode",
+            "is_visiting_faculty" => "is_visiting_faculty",
+            "is_part_time_faculty" => "is_part_time_faculty",
+            "is_full_time_faculty" => "is_full_time_faculty",
+            "previous_salary" => "previous_salary",
+            "uan_no" => "uan_no",
+            "pan_no" => "pan_no",
+            "previous_institution" => "previous_institution",
+            "subject_expertise" => "subject_expertise",
         );
 
         $roles               = $this->role_model->get();
         $data["roles"]       = $roles;
+        $all_designations    = $this->staff_model->getStaffDesignation();
+        $designation_map     = [];
+        foreach ($all_designations as $designation_item) {
+            $designation_map[strtolower($designation_item['designation'])] = $designation_item['id'];
+        }
+        $all_departments     = $this->staff_model->getDepartment();
+        $department_map      = [];
+        foreach ($all_departments as $department_item) {
+            $department_map[strtolower($department_item['department_name'])] = $department_item['id'];
+        }
+        $data["designation"] = $all_designations;
+        $data["department"]  = $all_departments;
         $all_designations    = $this->staff_model->getStaffDesignation();
         $designation_map     = [];
         foreach ($all_designations as $designation_item) {
@@ -1703,7 +1759,13 @@ class Staff extends Admin_Controller
                             if (isset($designation_map[$csv_designation_name])) {
                                 $staff_data['designation'] = $designation_map[$csv_designation_name];
                             } else {
-                                $staff_data['designation'] = null;
+                                if (!empty($csv_designation_name)) {
+                                    $designation_id = $this->staff_model->add_designation(array('designation' => $csv_designation_name, 'is_active' => 'yes'));
+                                    $staff_data['designation'] = $designation_id;
+                                    $designation_map[$csv_designation_name] = $designation_id;
+                                } else {
+                                    $staff_data['designation'] = null;
+                                }
                             }
 
                             // Handle department mapping
@@ -1714,11 +1776,21 @@ class Staff extends Admin_Controller
                                 $staff_data['department'] = null;
                             }
 
+                            // Handle boolean-like values for faculty type fields
+                            $staff_data['is_visiting_faculty'] = (in_array(strtolower($staff_data['is_visiting_faculty']), ['yes', 'true', '1'])) ? 1 : 0;
+                            $staff_data['is_part_time_faculty'] = (in_array(strtolower($staff_data['is_part_time_faculty']), ['yes', 'true', '1'])) ? 1 : 0;
+                            $staff_data['is_full_time_faculty'] = (in_array(strtolower($staff_data['is_full_time_faculty']), ['yes', 'true', '1'])) ? 1 : 0;
+
+                            // Handle gender and marital status mapping
+                            $staff_data['gender'] = ucfirst(strtolower($staff_data['gender']));
+                            $staff_data['marital_status'] = ucfirst(strtolower($staff_data['marital_status']));
+                            $staff_data['contract_type'] = ucfirst(strtolower($staff_data['contract_type']));
+
                             $staff_data['is_active'] = 1;
 
-                            $existing_staff_id = $this->staff_model->getStaffIdByEmployeeIdOrEmail($staff_data['employee_id'], $staff_data['email']);
+                            $existing_staff = $this->staff_model->getStaffIdByEmployeeIdOrEmail($staff_data['employee_id'], $staff_data['email']);
 
-                            if ($existing_staff_id) {
+                            if ($existing_staff) {
                                 log_message('debug', 'Skipping existing record for Employee ID: ' . $staff_data['employee_id'] . ', Email: ' . $staff_data['email']);
                                 $skipped_count++;
                                 continue;

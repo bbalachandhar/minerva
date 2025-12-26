@@ -22,6 +22,7 @@ class Subject extends Admin_Controller
         $this->session->set_userdata('sub_menu', 'Academics/subject');
         $data['title']         = 'Add subject';
         $subject_result        = $this->subject_model->get();
+
         $data['subjectlist']   = $subject_result;
         $data['subject_types'] = $this->customlib->subjectType();
 
@@ -30,6 +31,8 @@ class Subject extends Admin_Controller
         log_message('debug', 'Subject Controller Index: institution_type: ' . $this->sch_setting_detail->institution_type);
 
         $this->load->model('staff_model'); // Load staff model unconditionally
+        $this->load->model('department_model'); // Load department model
+        $data['departmentlist'] = $this->department_model->getDepartmentType(); // Fetch all department types
 
         foreach ($data['subjectlist'] as $key => $value) {
             $data['subjectlist'][$key]['teacher_name'] = ''; // Initialize to empty string by default
@@ -73,6 +76,7 @@ class Subject extends Admin_Controller
                 'name' => $this->input->post('name'),
                 'code' => $this->input->post('code'),
                 'type' => strtolower($this->input->post('type')),
+                'department_id' => $this->input->post('department_id'), // Add department_id
             );
             if ($this->sch_setting_detail->institution_type == 'college') {
                 $data['teacher_id'] = json_encode($this->input->post('teacher_id'));
@@ -144,6 +148,8 @@ class Subject extends Admin_Controller
         $subject               = $this->subject_model->get($id); // Subject being edited.
         
         $this->load->model('staff_model'); // Load staff model unconditionally
+        $this->load->model('department_model'); // Load department model
+        $data['departmentlist'] = $this->department_model->getDepartmentType(); // Fetch all department types
 
         log_message('debug', 'Subject Controller Edit: institution_type: ' . $this->sch_setting_detail->institution_type);
         log_message('debug', 'Subject Controller Edit: Initial $data[\'subjectlist\'] after model get: ' . print_r($data['subjectlist'], true));
@@ -198,6 +204,7 @@ class Subject extends Admin_Controller
                 'name' => $this->input->post('name'),
                 'code' => $this->input->post('code'),
                 'type' => strtolower($this->input->post('type')),
+                'department_id' => $this->input->post('department_id'), // Add department_id
             );
             if ($this->sch_setting_detail->institution_type == 'college') {
                 $data['teacher_id'] = json_encode($this->input->post('teacher_id'));
@@ -243,15 +250,52 @@ class Subject extends Admin_Controller
                         // File has been uploaded and validated
                         // Process the file content
                         $file_path = $_FILES['file']['tmp_name'];
-                        $file_type = pathinfo($_FILES['file']['name'], PATHINFO_EXTENSION);
-                        log_message('debug', 'Uploaded file type: ' . $file_type . ', path: ' . $file_path);
+                        $file_name = $_FILES['file']['name'];
+                        $file_extension = pathinfo($file_name, PATHINFO_EXTENSION);
+                        log_message('debug', 'Uploaded file extension: ' . $file_extension . ', path: ' . $file_path);
         
-                        if ($file_type == 'csv') {
+                        $result = [];
+        
+                        if ($file_extension == 'csv') {
                             $this->load->library('csvreader');
                             $result = $this->csvreader->parse_file($file_path);
                             log_message('debug', 'CSV parsed result: ' . print_r($result, true));
-                        } else { // Only CSV is supported for now
-                            log_message('error', 'Unsupported file type attempted: ' . $file_type);
+                        } elseif (in_array($file_extension, ['xlsx', 'xls'])) {
+                            // Load PhpSpreadsheet library
+                            // This assumes PhpSpreadsheet is installed and autoloaded.
+                            // If not, you'll need to install it (e.g., via Composer: composer require phpoffice/phpspreadsheet)
+                            // and ensure it's properly loaded (e.g., in config/autoload.php or here).
+                            require_once APPPATH . 'third_party/vendor/autoload.php'; // Adjust path as necessary if not using Composer autoload
+                            
+                            try {
+                                $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($file_path);
+                                $worksheet = $spreadsheet->getActiveSheet();
+                                $excel_data = $worksheet->toArray(null, true, true, true);
+        
+                                if (!empty($excel_data)) {
+                                    $header = array_map('strtolower', array_values(array_filter($excel_data[1]))); // Get header from the first row, filter empty values
+                                    unset($excel_data[1]); // Remove header row from data
+        
+                                    foreach ($excel_data as $row_num => $row) {
+                                        if (empty(array_filter($row))) { // Skip empty rows
+                                            continue;
+                                        }
+                                        $temp = [];
+                                        foreach ($header as $key => $col_name) {
+                                            $col_index = chr(65 + $key); // Convert numerical index to Excel column letter (A, B, C, ...)
+                                            $temp[$col_name] = $row[$col_index] ?? '';
+                                        }
+                                        $result[] = $temp;
+                                    }
+                                }
+                                log_message('debug', 'Excel parsed result: ' . print_r($result, true));
+                            } catch (Exception $e) {
+                                log_message('error', 'Error parsing Excel file: ' . $e->getMessage());
+                                $this->session->set_flashdata('msg', '<div class="alert alert-danger text-left">' . $this->lang->line('error_processing_file') . ': ' . $e->getMessage() . '</div>');
+                                redirect('admin/subject/bulk_upload');
+                            }
+                        } else {
+                            log_message('error', 'Unsupported file type attempted: ' . $file_extension);
                             $this->session->set_flashdata('msg', '<div class="alert alert-danger text-left">' . $this->lang->line('file_type_not_allowed') . '</div>');
                             redirect('admin/subject/bulk_upload');
                         }
@@ -268,29 +312,59 @@ class Subject extends Admin_Controller
                                 $name = trim($row['name'] ?? '');
                                 $type = strtolower(trim($row['type'] ?? ''));
                                 $code = trim($row['code'] ?? '');
-        
+                                $department_name = trim($row['department_name'] ?? ''); // New field
+
                                 if (empty($name) || empty($type)) {
                                     $error_msg = $this->lang->line('subject_name_and_type_required_in_row') . ' ' . $line_number;
                                     $error_messages[] = $error_msg;
-                                    log_message('error', 'Validation error: ' . $error_msg . ' - Name: ' . $name . ', Type: ' . $type);
+                                    log_message('error', 'Validation error: ' . $error_msg . ' - Name: ' . $name . ', Type: ' . $type . ', Department: ' . $department_name);
                                     continue;
+                                }
+
+                                $department_id = null;
+                                if (!empty($department_name)) {
+                                    $this->load->model('department_model'); // Ensure model is loaded
+                                    $department = $this->department_model->getDepartmentByName($department_name);
+                                    if ($department) {
+                                        $department_id = $department['id'];
+                                    } else {
+                                        $error_messages[] = 'Department not found for subject "' . $name . '" in row ' . $line_number . ': ' . $department_name;
+                                        log_message('error', 'Validation error: Department not found for subject "' . $name . '" - Department: ' . $department_name);
+                                        continue; // Stop processing this row if department is not found
+                                    }
+                                } else {
+                                    // If department name is empty, you might want to make it required or handle it as null
+                                    // For now, we'll allow it to be null if not provided
                                 }
         
                                 $subject_data = array(
-                                    'name' => $name,
-                                    'type' => $type,
-                                    'code' => $code,
+                                    'name'          => $name,
+                                    'type'          => $type,
+                                    'code'          => $code,
+                                    'department_id' => $department_id, // Add department_id
                                 );
 
                                 if ($this->sch_setting_detail->institution_type == 'college') {
-                                    $teacher_name = trim($row['teacher_name'] ?? '');
-                                    if (!empty($teacher_name)) {
-                                        $teacher = $this->staff_model->getTeacherByName($teacher_name);
-                                        if ($teacher) {
-                                            $subject_data['teacher_id'] = json_encode(array($teacher['id'])); // Store as JSON array
-                                        } else {
-                                            $error_messages[] = 'Teacher not found for subject "' . $name . '" in row ' . $line_number . ': ' . $teacher_name;
+                                    $teacher_ids_csv = trim($row['teacher_ids'] ?? ''); // New: Expecting comma-separated teacher IDs
+                                    $assigned_teacher_ids = [];
+                                    if (!empty($teacher_ids_csv)) {
+                                        $teacher_ids_array = explode(',', $teacher_ids_csv);
+                                        foreach ($teacher_ids_array as $teacher_id) {
+                                            $teacher_id = trim($teacher_id);
+                                            if (!empty($teacher_id)) {
+                                                // Assuming a method to get staff by ID or check if ID exists
+                                                $teacher_exists = $this->staff_model->get($teacher_id); 
+                                                if ($teacher_exists) {
+                                                    $assigned_teacher_ids[] = $teacher_id;
+                                                } else {
+                                                    $error_messages[] = 'Teacher with ID "' . $teacher_id . '" not found for subject "' . $name . '" in row ' . $line_number . '.';
+                                                    log_message('error', 'Validation error: Teacher with ID ' . $teacher_id . ' not found.');
+                                                }
+                                            }
                                         }
+                                    }
+                                    if (!empty($assigned_teacher_ids)) {
+                                        $subject_data['teacher_id'] = json_encode($assigned_teacher_ids); // Store as JSON array of IDs
                                     } else {
                                         $subject_data['teacher_id'] = null;
                                     }
@@ -346,7 +420,12 @@ class Subject extends Admin_Controller
     public function handle_csv_upload()
     {
         if (isset($_FILES["file"]) && $_FILES['file']['name'] != '') {
-            $allowed_mimes = array('text/csv', 'text/x-comma-separated-values');
+            $allowed_mimes = array(
+                'text/csv', 
+                'text/x-comma-separated-values', 
+                'application/vnd.ms-excel', // .xls
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' // .xlsx
+            );
             $mime_type = get_mime_by_extension($_FILES['file']['name']);
             log_message('debug', 'Detected MIME type for uploaded file: ' . $mime_type);
             

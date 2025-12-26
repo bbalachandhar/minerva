@@ -610,7 +610,7 @@ class Staff_model extends MY_Model
  
     public function getStaffIdByEmployeeIdOrEmail($employee_id, $email)
     {
-        $this->db->select('id');
+        $this->db->select('*');
         $this->db->from('staff');
         $this->db->group_start();
         $this->db->where('employee_id', $employee_id);
@@ -619,7 +619,7 @@ class Staff_model extends MY_Model
         $query = $this->db->get();
 
         if ($query->num_rows() > 0) {
-            return $query->row()->id;
+            return $query->row();
         } else {
             return null;
         }
@@ -979,6 +979,18 @@ class Staff_model extends MY_Model
         $this->db->where_in('staff.id', $ids);
         $query = $this->db->get();
         return $query->result_array();
+    }
+
+    public function add_designation($data)
+    {
+        $this->db->where('designation', $data['designation']);
+        $query = $this->db->get('staff_designation');
+        if ($query->num_rows() > 0) {
+            return $query->row()->id;
+        } else {
+            $this->db->insert('staff_designation', $data);
+            return $this->db->insert_id();
+        }
     }
 
 

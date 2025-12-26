@@ -66,6 +66,20 @@ foreach ($subject_types as $subject_type_key => $subject_type_value) {
                                     </select>
                                     <span class="text-danger"><?php echo form_error('teacher_id'); ?></span>
                                 </div>
+                                <div class="form-group">
+                                    <label for="department_id"><?php echo $this->lang->line('department'); ?></label><small class="req"> *</small>
+                                    <select  id="department_id" name="department_id" class="form-control" >
+                                        <option value=""><?php echo $this->lang->line('select'); ?></option>
+                                        <?php
+                                        foreach ($departmentlist as $department) {
+                                            ?>
+                                            <option value="<?php echo $department['id'] ?>" <?php if ($subject['department_id'] == $department['id']) echo "selected=selected" ?>><?php echo $department['department_name'] ?></option>
+                                            <?php
+                                        }
+                                        ?>
+                                    </select>
+                                    <span class="text-danger"><?php echo form_error('department_id'); ?></span>
+                                </div>
                                 <?php } ?>
                             </div>
                             <div class="box-footer">
@@ -95,6 +109,7 @@ if ($this->rbac->hasPrivilege('subject', 'can_add') || $this->rbac->hasPrivilege
                                         <th><?php echo $this->lang->line('subject'); ?></th>
                                         <th><?php echo $this->lang->line('subject_code'); ?></th>
                                         <th><?php echo $this->lang->line('subject_type'); ?></th>
+                                        <th><?php echo $this->lang->line('department'); ?></th> 
                                         <?php if ($this->sch_setting_detail->institution_type == 'college') { ?>
                                         <th><?php echo $this->lang->line('teacher'); ?></th>
                                         <?php } ?>
@@ -110,6 +125,7 @@ foreach ($subjectlist as $subject) {
                                             <td class="mailbox-name"> <?php echo $subject['name'] ?></td>
                                             <td class="mailbox-name"><?php echo $subject['code'] ?></td>
                                             <td class="mailbox-name"><?php echo ucfirst($subject['type']) ?></td>
+                                            <td class="mailbox-name"><?php echo $subject['department_name'] ?></td>
                                             <?php if ($this->sch_setting_detail->institution_type == 'college') { ?>
                                             <td class="mailbox-name"><?php echo $subject['teacher_name'] ?></td>
                                             <?php } ?>

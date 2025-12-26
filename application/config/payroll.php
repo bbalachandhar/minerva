@@ -27,7 +27,7 @@ $config['marital_status'] = array(
     'Single' => lang('single'),
     'Married' => lang('married'),
     'Widowed' => lang('widowed'),
-    'Seperated' => lang('separated'),
+    'Separated' => lang('separated'),
     'Not Specified' => lang('not_specified'),
 );
 

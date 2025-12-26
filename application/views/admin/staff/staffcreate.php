@@ -346,6 +346,124 @@ echo display_custom_fields('staff');
                                     </div>
                                 </div>
                             </div>
+
+                            <div class="tshadow mb25 bozero">
+                                <h4 class="pagetitleh2"><?php echo "Other Information"; ?></h4>
+                                <div class="row around10">
+                                    <div class="col-md-3">
+                                        <div class="form-group">
+                                            <label for="aadhaar_no">Aadhaar No</label>
+                                            <input id="aadhaar_no" name="aadhaar_no" placeholder="" type="text" class="form-control"  value="<?php echo set_value('aadhaar_no') ?>" />
+                                            <span class="text-danger"><?php echo form_error('aadhaar_no'); ?></span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="form-group">
+                                            <label for="religion">Religious</label>
+                                            <input id="religion" name="religion" placeholder="" type="text" class="form-control"  value="<?php echo set_value('religion') ?>" />
+                                            <span class="text-danger"><?php echo form_error('religion'); ?></span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="form-group">
+                                            <label for="caste">Communal Category</label>
+                                            <input id="caste" name="caste" placeholder="" type="text" class="form-control"  value="<?php echo set_value('caste') ?>" />
+                                            <span class="text-danger"><?php echo form_error('caste'); ?></span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="form-group">
+                                            <label for="blood_group">Blood Group</label>
+                                            <input id="blood_group" name="blood_group" placeholder="" type="text" class="form-control"  value="<?php echo set_value('blood_group') ?>" />
+                                            <span class="text-danger"><?php echo form_error('blood_group'); ?></span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row around10">
+                                    <div class="col-md-3">
+                                        <div class="form-group">
+                                            <label for="country">Country</label>
+                                            <input id="country" name="country" placeholder="" type="text" class="form-control"  value="<?php echo set_value('country') ?>" />
+                                            <span class="text-danger"><?php echo form_error('country'); ?></span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="form-group">
+                                            <label for="state">State</label>
+                                            <input id="state" name="state" placeholder="" type="text" class="form-control"  value="<?php echo set_value('state') ?>" />
+                                            <span class="text-danger"><?php echo form_error('state'); ?></span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="form-group">
+                                            <label for="pincode">Pincode</label>
+                                            <input id="pincode" name="pincode" placeholder="" type="text" class="form-control"  value="<?php echo set_value('pincode') ?>" />
+                                            <span class="text-danger"><?php echo form_error('pincode'); ?></span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row around10">
+                                    <div class="col-md-3">
+                                        <div class="form-group">
+                                            <label for="is_visiting_faculty">Visiting Faculty</label>
+                                            <input id="is_visiting_faculty" name="is_visiting_faculty" placeholder="" type="checkbox" class=""  value="1" <?php echo set_checkbox('is_visiting_faculty', '1'); ?> />
+                                            <span class="text-danger"><?php echo form_error('is_visiting_faculty'); ?></span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="form-group">
+                                            <label for="is_part_time_faculty">Part Time Faculty</label>
+                                            <input id="is_part_time_faculty" name="is_part_time_faculty" placeholder="" type="checkbox" class=""  value="1" <?php echo set_checkbox('is_part_time_faculty', '1'); ?> />
+                                            <span class="text-danger"><?php echo form_error('is_part_time_faculty'); ?></span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="form-group">
+                                            <label for="is_full_time_faculty">Full Time Faculty</label>
+                                            <input id="is_full_time_faculty" name="is_full_time_faculty" placeholder="" type="checkbox" class=""  value="1" <?php echo set_checkbox('is_full_time_faculty', '1'); ?> />
+                                            <span class="text-danger"><?php echo form_error('is_full_time_faculty'); ?></span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row around10">
+                                    <div class="col-md-3">
+                                        <div class="form-group">
+                                            <label for="previous_salary">Previous Salary</label>
+                                            <input id="previous_salary" name="previous_salary" placeholder="" type="text" class="form-control"  value="<?php echo set_value('previous_salary') ?>" />
+                                            <span class="text-danger"><?php echo form_error('previous_salary'); ?></span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="form-group">
+                                            <label for="uan_no">UAN Number</label>
+                                            <input id="uan_no" name="uan_no" placeholder="" type="text" class="form-control"  value="<?php echo set_value('uan_no') ?>" />
+                                            <span class="text-danger"><?php echo form_error('uan_no'); ?></span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="form-group">
+                                            <label for="pan_no">PAN Number</label>
+                                            <input id="pan_no" name="pan_no" placeholder="" type="text" class="form-control"  value="<?php echo set_value('pan_no') ?>" />
+                                            <span class="text-danger"><?php echo form_error('pan_no'); ?></span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="form-group">
+                                            <label for="previous_institution">Previous Institution</label>
+                                            <input id="previous_institution" name="previous_institution" placeholder="" type="text" class="form-control"  value="<?php echo set_value('previous_institution') ?>" />
+                                            <span class="text-danger"><?php echo form_error('previous_institution'); ?></span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="form-group">
+                                            <label for="subject_expertise">Subject Expertise</label>
+                                            <input id="subject_expertise" name="subject_expertise" placeholder="" type="text" class="form-control"  value="<?php echo set_value('subject_expertise') ?>" />
+                                            <span class="text-danger"><?php echo form_error('subject_expertise'); ?></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
                             <div class="box-group collapsed-box">
                                 <div class="panel box box-success collapsed-box">
                                     <div class="box-header with-border">
