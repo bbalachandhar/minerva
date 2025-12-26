@@ -141,6 +141,11 @@ if ($this->rbac->hasPrivilege('leave_types', 'can_add')) {
                 <div class="box box-primary" id="tachelist">
                     <div class="box-header ptbnull">
                         <h3 class="box-title titlefix"><?php echo $this->lang->line('leave_type_list'); ?></h3>
+                        <div class="box-tools pull-right">
+                            <a href="<?php echo site_url('admin/leavetypes/bulk_upload'); ?>" class="btn btn-primary btn-sm">
+                                <i class="fa fa-upload"></i> <?php echo $this->lang->line('bulk_upload_leaves'); ?>
+                            </a>
+                        </div>
                     </div>
                     <div class="box-body">
                         <div class="mailbox-controls">
@@ -177,6 +182,9 @@ foreach ($leavetype as $value) {
                                             <td class="mailbox-name"> <?php echo $value['gender_specific'] ?></td>
                                             <td class="mailbox-name"> <?php echo ($value['leave_encashment']) ? $this->lang->line('yes') : $this->lang->line('no'); ?></td>
                                             <td class="mailbox-date pull-right no-print">
+                                                <a class="btn btn-info btn-xs apply_to_all" data-toggle="tooltip" title="<?php echo $this->lang->line('apply_to_all'); ?>" data-original-title="<?php echo $this->lang->line('apply_to_all'); ?>" data-leave-type-id="<?php echo $value['id']; ?>">
+                                                    <i class="fa fa-solid fa-square-check"></i>
+                                                </a>
                                                 <?php if ($this->rbac->hasPrivilege('leave_types', 'can_edit')) {?>
                                                     <a href="<?php echo base_url(); ?>admin/leavetypes/leaveedit/<?php echo $value['id'] ?>" class="btn btn-default btn-xs"  data-toggle="tooltip" title="<?php echo $this->lang->line('edit'); ?>">
                                                         <i class="fa fa-pencil"></i>
@@ -205,6 +213,37 @@ $count++;
         </div>
     </section>
 </div>
+
+<!-- Modal -->
+<div id="applyLeaveModal" class="modal fade" role="dialog">
+    <div class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title"><?php echo $this->lang->line('apply_leave_to_all_staff'); ?></h4>
+            </div>
+            <form id="applyLeaveForm" method="post" action="<?php echo site_url('admin/leavetypes/applyLeaveToAll'); ?>">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="days"><?php echo $this->lang->line('number_of_days'); ?></label>
+                        <input type="number" class="form-control" id="days" name="days" required>
+                        <input type="hidden" id="leave_type_id" name="leave_type_id">
+                    </div>
+                    <div class="form-group">
+                        <label class="checkbox-inline">
+                            <input type="checkbox" id="overwrite" name="overwrite" value="1"> <?php echo $this->lang->line('overwrite_existing_leave_days_that_are_not_zero'); ?>
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary"><?php echo $this->lang->line('save'); ?></button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
     $(document).ready(function () {
         $('#is_carry_forward').change(function () {
@@ -212,6 +251,39 @@ $count++;
                 $('#max_carry_forward_group').show();
             } else {
                 $('#max_carry_forward_group').hide();
+            }
+        });
+
+        $('.apply_to_all').click(function () {
+            var leave_type_id = $(this).data('leave-type-id');
+            $('#leave_type_id').val(leave_type_id);
+            $('#applyLeaveModal').modal('show');
+        });
+
+        $('#applyLeaveForm').submit(function (e) {
+            e.preventDefault();
+            var form = $(this);
+            var overwrite = form.find('#overwrite').is(':checked');
+            var confirmation_message = overwrite ? "<?php echo $this->lang->line('are_you_sure_you_want_to_overwrite_existing_leave_days'); ?>" : "<?php echo $this->lang->line('you_are_applying_this_leave_type_with_given_days_to_all_the_employee_those_who_are_not_having_value'); ?>";
+
+            if (confirm(confirmation_message)) {
+                $.ajax({
+                    url: form.attr('action'),
+                    type: 'POST',
+                    data: form.serialize(),
+                    dataType: 'json',
+                    success: function (response) {
+                        if (response.status == 'success') {
+                            successMsg(response.message);
+                            $('#applyLeaveModal').modal('hide');
+                        } else {
+                            errorMsg(response.message);
+                        }
+                    },
+                    error: function () {
+                        errorMsg('<?php echo $this->lang->line('an_error_occurred'); ?>');
+                    }
+                });
             }
         });
     });

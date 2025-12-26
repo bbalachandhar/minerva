@@ -67,11 +67,16 @@ class Department_model extends MY_model
 
     public function getDepartmentType($id = null)
     {
+        $this->db->select('department.*, CONCAT(staff.name, " ", staff.surname) as dept_head_name');
+        $this->db->from('department');
+        $this->db->join('staff', 'staff.id = department.dept_head_id', 'left');
+        
         if (!empty($id)) {
-            $query = $this->db->where("id", $id)->get('department');
+            $this->db->where("department.id", $id);
+            $query = $this->db->get();
             return $query->row_array();
         } else {
-            $query = $this->db->get("department");
+            $query = $this->db->get();
             return $query->result_array();
         }
     }

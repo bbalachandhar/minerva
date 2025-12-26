@@ -46,6 +46,18 @@ if (isset($result)) {
     }
     ?>" />
                                 </div>
+                                <div class="form-group">
+                                    <label for="exampleInputEmail1"><?php echo $this->lang->line('department_head'); ?></label><small class="req"> *</small>
+                                    <select name="dept_head_id" class="form-control">
+                                        <option value=""><?php echo $this->lang->line('select'); ?></option>
+                                        <?php foreach ($stafflist as $staff): ?>
+                                            <option value="<?php echo $staff['id']; ?>" <?php if (isset($result) && $result['dept_head_id'] == $staff['id']) echo 'selected'; ?>>
+                                                <?php echo $staff['name'] . ' ' . $staff['surname'] . ' (' . $staff['employee_id'] . ')'; ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <span class="text-danger"><?php echo form_error('dept_head_id'); ?></span>
+                                </div>
 
                             </div>
                             <div class="box-footer">
@@ -75,6 +87,7 @@ if (($this->rbac->hasPrivilege('department', 'can_add')) || ($this->rbac->hasPri
                                 <thead>
                                     <tr>
                                         <th><?php echo $this->lang->line('name'); ?></th>
+                                        <th><?php echo $this->lang->line('department_head'); ?></th>
                                         <th class="text-right noExport"><?php echo $this->lang->line('action'); ?></th>
                                     </tr>
                                 </thead>
@@ -92,6 +105,9 @@ foreach ($departmenttype as $value) {
     ?>
                                         <tr>
                                             <td class="mailbox-name"> <?php echo $value['department_name'] ?></td>
+                                            <td class="mailbox-name"> 
+                                                <?php echo $value['dept_head_name']; ?>
+                                            </td>
                                             <td class="mailbox-date pull-right no-print">
                                                 <?php if ($this->rbac->hasPrivilege('department', 'can_edit')) {
         ?>

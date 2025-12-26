@@ -33,6 +33,8 @@ if ($this->rbac->hasPrivilege('approve_leave_request', 'can_add')) {
                                         <th><?php echo $this->lang->line('leave_date'); ?></th>
                                         <th><?php echo $this->lang->line('days'); ?></th>
                                         <th><?php echo $this->lang->line('apply_date'); ?></th>
+                                        <th><?php echo $this->lang->line('recommender_status'); ?></th>
+                                        <th><?php echo $this->lang->line('approver_status'); ?></th>
                                         <th><?php echo $this->lang->line('status'); ?></th>
                                         <th class="text-right noExport"><?php echo $this->lang->line('action'); ?></th>
                                         </thead>
@@ -49,6 +51,8 @@ foreach ($leave_request as $key => $value) {
 
                                                     <td><?php echo $value["leave_days"]; ?></td>
                                                     <td><?php echo date($this->customlib->getSchoolDateFormat(), strtotime($value["date"]));  ?></td>
+                                                    <td><?php echo $this->lang->line(strtolower($value['recommender_status'])); ?></td>
+                                                    <td><?php echo $this->lang->line(strtolower($value['approver_status'])); ?></td>
                                                     <?php
 if ($value["status"] == "approved") {
         $status1 = 'approve';
@@ -67,7 +71,7 @@ if ($value["status"] == "approved") {
                                                     <td class="pull-right no-print white-space-nowrap">
                                                         <a href="#leavedetails" onclick="getRecord('<?php echo $value["id"] ?>')" role="button" class="btn btn-default btn-xs" data-toggle="tooltip" title="<?php echo $this->lang->line('view'); ?>" ><i class="fa fa-reorder"></i></a>
 
-                                                        <?php if ($value["applied_by"] == $this->customlib->getAdminSessionUserName()) {
+                                                        <?php if ($value["applied_by"] == $this->customlib->getAdminSessionUserName() || $this->customlib->getStaffID() == $value['recommender_id'] || $this->customlib->getStaffID() == $value['approver_id']) {
         ?>
                                                             <?php
 if ($this->rbac->hasPrivilege('approve_leave_request', 'can_edit')) {
@@ -149,38 +153,52 @@ $i++;
                                     <td><span id="applied_date"></span></td>
                                 </tr>
                                 <tr>
+                                    <th><?php echo $this->lang->line('reason'); ?></th>
+                                    <td><span id="remark"> </span></td>
+                                    <th><?php echo $this->lang->line('recommender'); ?></th>
+                                    <td><span id="recommender_name"></span></td>
+                                </tr>
+                                <tr>
+                                    <th><?php echo $this->lang->line('recommender_status'); ?></th>
+                                    <td><span id="recommender_status"></span></td>
+                                    <th><?php echo $this->lang->line('recommender_remark'); ?></th>
+                                    <td><span id="recommender_remark"></span></td>
+                                </tr>
+                                <tr>
+                                    <th><?php echo $this->lang->line('approver'); ?></th>
+                                    <td><span id="approver_name"></span></td>
+                                    <th><?php echo $this->lang->line('approver_status'); ?></th>
+                                    <td><span id="approver_status"></span></td>
+                                </tr>
+                                <tr>
+                                    <th><?php echo $this->lang->line('approver_remark'); ?></th>
+                                    <td colspan="3"><span id="approver_remark"></span></td>
+                                </tr>
+                                <tr id="action_row" style="display: none;">
                                     <?php if ($this->rbac->hasPrivilege('approve_leave_request', 'can_edit')) {
     ?>
                                         <th><?php echo $this->lang->line('status'); ?></th>
                                         <td>
                                             <label class="radio-inline">
-                                                <input type="radio" value="<?php echo "pending"; ?>" name="status" checked ><?php echo $status["pending"]; ?>
+                                                <input type="radio" value="<?php echo "pending"; ?>" name="status" checked ><?php echo $this->lang->line('pending'); ?>
                                             </label>
                                             <label class="radio-inline">
-                                                <input type="radio" value="<?php echo "approved"; ?>" name="status"><?php echo $status["approve"]; ?>
+                                                <input type="radio" value="<?php echo "approved"; ?>" name="status"><?php echo $this->lang->line('approve'); ?>
                                             </label>
                                             <label class="radio-inline">
-                                                <input type="radio" value="<?php echo "disapproved"; ?>" name="status"><?php echo $status["disapprove"]; ?>
+                                                <input type="radio" value="<?php echo "disapproved"; ?>" name="status"><?php echo $this->lang->line('disapprove'); ?>
                                             </label>
                                             <span class="text-danger"><?php echo form_error('status'); ?></span>
                                         </td>
                                     <?php }
 ?>
-                                    <th><?php echo $this->lang->line('reason'); ?></th>
-                                    <td><span id="remark"> </span></td>
-                                </tr>
-                                <tr>
                                     <th><?php echo $this->lang->line('note'); ?></th>
-                                </tr>
-                                <tr>
-                                    <td colspan=" 4">
-                                        <div id="reason">
-                                            <textarea class="form-control" style="resize: none;" rows="2" id="detailremark" name="detailremark" placeholder=""></textarea>
-                                            <span class="text-danger"><?php echo form_error('address'); ?></span>
-                                        </div>
+                                    <td>
+                                        <textarea class="form-control" style="resize: none;" rows="2" id="detailremark" name="detailremark" placeholder=""></textarea>
+                                        <span class="text-danger"><?php echo form_error('address'); ?></span>
                                     </td>
                                 </tr>
-                                <tr>
+                                <tr id="action_button_row" style="display: none;">
                                     <?php
 if ($this->rbac->hasPrivilege('approve_leave_request', 'can_edit')) {
     ?>
@@ -251,17 +269,44 @@ if ($this->rbac->hasPrivilege('approve_leave_request', 'can_edit')) {
                                 <input type="text" readonly id="leave_from_date" name="leave_from_date" class="form-control date" >
                             <!-- /.input group -->
                         </div>
-                         <div class="form-group col-xs-12 col-sm-12 col-md-12 col-lg-6">
-                            <label><?php echo $this->lang->line('leave_to_date'); ?></label><small class="req"> *</small>
-                                <input type="text" readonly id="leave_to_date" name="leave_to_date" class="form-control date" >
-                            <!-- /.input group -->
+                                                   <div class="form-group col-xs-12 col-sm-12 col-md-12 col-lg-6">
+                                                     <label><?php echo $this->lang->line('leave_to_date'); ?></label><small class="req"> *</small>
+                                                         <input type="text" readonly id="leave_to_date" name="leave_to_date" class="form-control date" >
+                                                     <!-- /.input group -->
+                                                 </div>
+                         
+                        <div class="form-group col-xs-12 col-sm-12 col-md-12 col-lg-6">
+                            <label><?php echo $this->lang->line('recommender'); ?></label>
+                            <input type="text" class="form-control" value="<?php echo $recommender_info; ?>" readonly>
                         </div>
                         <div class="form-group col-xs-12 col-sm-12 col-md-12 col-lg-6">
-                            <label><?php echo $this->lang->line('reason'); ?></label><br/>
-                            <textarea name="reason" id="reason" style="resize: none;" rows="4" class="form-control"></textarea>
-                            <input type="hidden" name="leaverequestid" id="leaverequestid">
+                            <label><?php echo $this->lang->line('approver'); ?></label>
+                            <input type="text" class="form-control" value="<?php echo $approver_info; ?>" readonly>
                         </div>
-                        <div class="form-group col-xs-12 col-sm-12 col-md-12 col-lg-6" id="reason">
+
+                                                 <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
+                                                     <h4 class="modal-title section-title"><?php echo $this->lang->line('substitution_details'); ?></h4>
+                                                 </div>
+                                                 <div id="timetable_section" class="col-xs-12 col-sm-12 col-md-12 col-lg-12" style="display: none;">
+                                                     <div class="form-group">
+                                                         <label><?php echo $this->lang->line('your_timetable'); ?></label>
+                                                         <div id="timetable_display">
+                                                             <!-- Timetable will be dynamically loaded here -->
+                                                         </div>
+                                                     </div>
+                                                     <div class="form-group">
+                                                         <label><?php echo $this->lang->line('suggest_substitute'); ?></label>
+                                                         <div id="substitution_fields">
+                                                             <!-- Substitution fields will be dynamically loaded here -->
+                                                         </div>
+                                                     </div>
+                                                 </div>
+                         
+                                                 <div class="form-group col-xs-12 col-sm-12 col-md-12 col-lg-6">
+                                                     <label><?php echo $this->lang->line('reason'); ?></label><br/>
+                                                     <textarea name="reason" id="reason" style="resize: none;" rows="4" class="form-control"></textarea>
+                                                     <input type="hidden" name="leaverequestid" id="leaverequestid">
+                                                 </div>                        <div class="form-group col-xs-12 col-sm-12 col-md-12 col-lg-6" id="reason">
                             <label><?php echo $this->lang->line('note'); ?></label>
                             <textarea class="form-control" style="resize: none;" rows="4" id="remark" name="remark" placeholder=""></textarea>
                             <span class="text-danger"><?php echo form_error('remark'); ?></span>
@@ -358,6 +403,10 @@ if ($this->rbac->hasPrivilege('approve_leave_request', 'can_edit')) {
         var date = '<?php echo set_value('date', date($this->customlib->getSchoolDateFormat())); ?>';
         $('input[type=text][name=applieddate]').val(date);
 
+        // Clear recommender and approver info
+        $('input[name="recommender"]').val('');
+        $('input[name="approver"]').val('');
+
         $('#addleave').modal({
             show: true,
             backdrop: 'static',
@@ -387,6 +436,28 @@ if ($this->rbac->hasPrivilege('approve_leave_request', 'can_edit')) {
                 $('#applied_date').html(result.date);
                 $('#appliedby').html(result.applied_by);
                 $("#detailremark").text(result.admin_remark);
+
+                // Populate recommender and approver details
+                $('#recommender_name').html(result.recommender_name ? result.recommender_name + ' ' + result.recommender_surname : '');
+                $('#recommender_status').html(result.recommender_status ? '<?php echo $this->lang->line(''); ?>' + result.recommender_status.toLowerCase() : '');
+                $('#recommender_remark').html(result.recommender_remark);
+
+                $('#approver_name').html(result.approver_name ? result.approver_name + ' ' + result.approver_surname : '');
+                $('#approver_status').html(result.approver_status ? '<?php echo $this->lang->line(''); ?>' + result.approver_status.toLowerCase() : '');
+                $('#approver_remark').html(result.approver_remark);
+                
+                // Conditional display of action row
+                var current_user_id = <?php echo $this->customlib->getStaffID(); ?>;
+                var is_recommender = (result.recommender_id == current_user_id);
+                var is_approver = (result.approver_id == current_user_id);
+
+                if ((is_recommender && result.recommender_status == 'pending') || (is_approver && result.recommender_status == 'approved' && result.approver_status == 'pending')) {
+                    $('#action_row').show();
+                    $('#action_button_row').show();
+                } else {
+                    $('#action_row').hide();
+                    $('#action_button_row').hide();
+                }
 
                 if (result.status == 'approved') {
                     $('input:radio[name=status]')[1].checked = true;
@@ -500,6 +571,32 @@ if ($this->rbac->hasPrivilege('approve_leave_request', 'can_edit')) {
             }
         });
     }
+
+    // Function to get and set recommender/approver info
+    $(document).on('change', '#empname', function() {
+        var staff_id = $(this).val();
+        if (staff_id) {
+            var base_url = '<?php echo base_url() ?>';
+            $.ajax({
+                type: "POST",
+                url: base_url + "admin/leaverequest/getRecommenderApproverInfo",
+                data: {'staff_id': staff_id},
+                dataType: "json",
+                success: function (response) {
+                    if (response.status === 'success') {
+                        $('input[name="recommender"]').val(response.recommender_info);
+                        $('input[name="approver"]').val(response.approver_info);
+                    } else {
+                        $('input[name="recommender"]').val('<?php echo $this->lang->line('not_assigned'); ?>');
+                        $('input[name="approver"]').val('<?php echo $this->lang->line('not_assigned'); ?>');
+                    }
+                }
+            });
+        } else {
+            $('input[name="recommender"]').val('');
+            $('input[name="approver"]').val('');
+        }
+    });
 
     function setEmployeeName(role, id = '') {
         var ne = "";
@@ -625,4 +722,77 @@ if ($this->rbac->hasPrivilege('approve_leave_request', 'can_edit')) {
             }
         }
     }
+
+    $(document).ready(function() {
+        // Event listeners for date fields
+        $('#leave_from_date, #leave_to_date, #empname').change(function() {
+            var staff_id = $('#empname').val();
+            var leave_from_date = $('#leave_from_date').val();
+            var leave_to_date = $('#leave_to_date').val();
+            
+            if (staff_id && leave_from_date && leave_to_date) {
+                loadTimetableAndSubstitutes(staff_id, leave_from_date, leave_to_date);
+            } else {
+                $('#timetable_section').hide();
+            }
+        });
+    });
+
+    function loadTimetableAndSubstitutes(staff_id, leave_from_date, leave_to_date) {
+        var base_url = '<?php echo base_url() ?>';
+        $.ajax({
+            url: base_url + 'admin/leaverequest/getTimetableAndSubstitutes',
+            type: 'POST',
+            data: {
+                staff_id: staff_id,
+                leave_from_date: leave_from_date,
+                leave_to_date: leave_to_date
+            },
+            dataType: 'json',
+            success: function(response) {
+                if (response.status === 'success') {
+                    $('#timetable_display').html(response.timetable_html);
+                    $('#substitution_fields').html(response.substitution_html);
+                    $('#timetable_section').show();
+                } else {
+                    $('#timetable_section').hide();
+                    errorMsg(response.message);
+                }
+            },
+            error: function() {
+                $('#timetable_section').hide();
+                errorMsg('<?php echo $this->lang->line('error_fetching_timetable'); ?>');
+            }
+        });
+    }
+
+    // Override addLeave and editRecord to call loadTimetableAndSubstitutes
+    var originalAddLeave = addLeave;
+    addLeave = function() {
+        originalAddLeave();
+        // Clear previous timetable/substitution data
+        $('#timetable_display').empty();
+        $('#substitution_fields').empty();
+        $('#timetable_section').hide();
+    };
+
+    var originalEditRecord = editRecord;
+    editRecord = function(id) {
+        originalEditRecord(id);
+        // Clear previous timetable/substitution data
+        $('#timetable_display').empty();
+        $('#substitution_fields').empty();
+        $('#timetable_section').hide();
+
+        // After editRecord populates fields, trigger loadTimetableAndSubstitutes
+        // This might need a slight delay to ensure all fields are updated
+        setTimeout(function() {
+            var staff_id = $('#empname').val();
+            var leave_from_date = $('#leave_from_date').val();
+            var leave_to_date = $('#leave_to_date').val();
+            if (staff_id && leave_from_date && leave_to_date) {
+                loadTimetableAndSubstitutes(staff_id, leave_from_date, leave_to_date);
+            }
+        }, 500); // Small delay
+    };
 </script>

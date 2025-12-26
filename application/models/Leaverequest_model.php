@@ -21,11 +21,15 @@ class Leaverequest_model extends MY_model
             }
         }
 
-        $query = $this->db->select('staff.name,staff.surname,staff.employee_id,staff_leave_request.*,leave_types.type')
+        $query = $this->db->select('staff.name,staff.surname,staff.employee_id,staff_leave_request.*,leave_types.type,
+            recommender.name as recommender_name, recommender.surname as recommender_surname,
+            approver.name as approver_name, approver.surname as approver_surname')
             ->join("staff", "staff.id = staff_leave_request.staff_id")
             ->join("leave_types", "leave_types.id = staff_leave_request.leave_type_id")
             ->join("staff_roles", "staff_roles.staff_id = staff.id")
             ->join("roles", "staff_roles.role_id = roles.id")
+            ->join("staff as recommender", "recommender.id = staff_leave_request.recommender_id", "left")
+            ->join("staff as approver", "approver.id = staff_leave_request.approver_id", "left")
             ->where("staff.is_active", "1")
             ->order_by("staff_leave_request.id", "desc")
             ->get("staff_leave_request");
@@ -44,11 +48,15 @@ class Leaverequest_model extends MY_model
 
     public function user_leave_request($id = null)
     {
-        $this->db->select('staff.name,staff.surname,staff.employee_id,staff_leave_request.*,leave_types.type');
+        $this->db->select('staff.name,staff.surname,staff.employee_id,staff_leave_request.*,leave_types.type,
+            recommender.name as recommender_name, recommender.surname as recommender_surname,
+            approver.name as approver_name, approver.surname as approver_surname');
         $this->db->join("staff", "staff.id = staff_leave_request.staff_id");
         $this->db->join("staff_roles", "staff_roles.staff_id = staff.id", "left");
         $this->db->join("roles", "staff_roles.role_id = roles.id", "left");
         $this->db->join("leave_types", "leave_types.id = staff_leave_request.leave_type_id");
+        $this->db->join("staff as recommender", "recommender.id = staff_leave_request.recommender_id", "left");
+        $this->db->join("staff as approver", "approver.id = staff_leave_request.approver_id", "left");
         $this->db->where("staff.is_active", "1");
         $this->db->where("staff.id", $id);
 
@@ -174,7 +182,14 @@ class Leaverequest_model extends MY_model
                 //return $return_value;
             }
         } else {
-
+            // Set initial status for new leave requests
+            if (!isset($data['recommender_status'])) {
+                $data['recommender_status'] = 'pending';
+            }
+            if (!isset($data['approver_status'])) {
+                $data['approver_status'] = 'pending';
+            }
+            
             $this->db->insert("staff_leave_request", $data);
             $id        = $this->db->insert_id();
             $message   = INSERT_RECORD_CONSTANT . " On staff leave request id " . $id;
@@ -203,6 +218,32 @@ class Leaverequest_model extends MY_model
         $this->db->where('staff_leave_request.id', $id);
         $result = $this->db->get();
         return $result->row_array();
+    }
+
+    public function addLeaveSubstitutions($leave_request_id, $substitutions_data)
+    {
+        $this->db->trans_start();
+        $this->db->trans_strict(false);
+
+        // Delete existing substitutions for this leave request (in case of update)
+        $this->db->where('leave_request_id', $leave_request_id);
+        $this->db->delete('leave_substitutions');
+
+        if (!empty($substitutions_data)) {
+            foreach ($substitutions_data as $key => $data) {
+                $substitutions_data[$key]['leave_request_id'] = $leave_request_id;
+            }
+            $this->db->insert_batch('leave_substitutions', $substitutions_data);
+        }
+
+        $this->db->trans_complete();
+
+        if ($this->db->trans_status() === false) {
+            $this->db->trans_rollback();
+            return false;
+        } else {
+            return true;
+        }
     }
 
 }

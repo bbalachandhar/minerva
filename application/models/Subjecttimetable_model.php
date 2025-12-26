@@ -194,6 +194,31 @@ class Subjecttimetable_model extends MY_Model
         }
     }
 
+    public function getStaffTimetable($staff_id, $start_date, $end_date)
+    {
+        $full_timetable = [];
+        $current_date = strtotime($start_date);
+        $end_date_ts = strtotime($end_date);
+
+        while ($current_date <= $end_date_ts) {
+            $day_name = date('l', $current_date); // 'l' gives full day name, e.g., 'Monday'
+            $formatted_date = date('Y-m-d', $current_date);
+            
+            // Assuming getDaysname() returns an array mapping full day names to some internal key, or is not needed if day_value directly uses full day name
+            // For simplicity, let's assume getByStaffandDay can take the full day name directly.
+            $daily_timetable = $this->getByStaffandDay($staff_id, $day_name);
+            
+            if ($daily_timetable) {
+                $full_timetable[$formatted_date] = $daily_timetable;
+            } else {
+                $full_timetable[$formatted_date] = [];
+            }
+            $current_date = strtotime('+1 day', $current_date);
+        }
+        return $full_timetable;
+    }
+
+
     public function getByStaffClassTeachersubjects($staff_id)
     {
         $sql = "select GROUP_CONCAT(subject_timetable.subject_group_subject_id) as subject_group_subject_id from class_teacher inner join subject_timetable on class_teacher.class_id=subject_timetable.class_id  and class_teacher.section_id=subject_timetable.section_id WHERE  class_teacher.staff_id=" . $this->db->escape($staff_id) . " and subject_timetable.session_id =" . $this->current_session;

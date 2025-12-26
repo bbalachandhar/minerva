@@ -27,7 +27,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
  
 // $config['base_url'] = 'https://demo.smart-school.in/api/';
 
-$config['base_url'] = 'http://192.168.1.6/minerva/api/';
+$config['base_url'] = 'http://10.211.3.4/minerva/api/';
 
 
 /*
@@ -218,7 +218,7 @@ $config['directory_trigger'] = 'd';
   | your log files will fill up very fast.
   |
  */
-$config['log_threshold'] = 0;
+$config['log_threshold'] = 4;
 
 /*
   |--------------------------------------------------------------------------
