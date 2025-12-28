@@ -1,5 +1,7 @@
 <IfModule mod_rewrite.c>
 RewriteEngine On
+# Exclude the 'api' directory from the rewrite rules
+RewriteRule ^(api/.*)$ - [L]
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^(.*)$ index.php?/$1 [L]

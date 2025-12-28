@@ -421,7 +421,7 @@ if (!function_exists('main_menu_array')) {
 
 if (!function_exists('activate_main_menu')) {
 
-    function activate_main_menu($menu, $class_active = "active menu-open")
+    function activate_main_menu($menu, $class_active = "nav-item-expanded nav-item-open active")
     {
         $CI     = get_instance();
         $class  = $CI->router->fetch_class();

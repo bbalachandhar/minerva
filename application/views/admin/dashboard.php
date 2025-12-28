@@ -6,8 +6,6 @@
     .sidebar-collapse #lineChart{height: 100% !important;}
     .tooltip-inner {max-width: 135px;}
 </style>
-<div class="content-wrapper">
-    <section class="content">
         <div class="">
             <?php if (ENVIRONMENT != 'production') { ?>
                 <div class="alert alert-danger">
@@ -51,17 +49,21 @@ if ($this->module_lib->hasActive('fees_collection')) {
     if ($this->rbac->hasPrivilege('fees_awaiting_payment_widegts', 'can_view')) {
         ?>
                     <div class="<?php echo $std_graphclass; ?>">
-                        <div class="topprograssstart">
-                            <p class="mt5 clearfix font14"><i class="fa fa-money ftlayer"></i><?php echo $this->lang->line('fees_awaiting_payment'); ?><span class="pull-right"><?php echo $total_paid; ?>/<?php echo $total_fees ?></span>
-                            </p>
-                            <div class="progress-group">
-                                <div class="progress progress-minibar">
-                                    <div class="progress-bar progress-bar-aqua" style="width: <?php echo $fessprogressbar; ?>%"></div>
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center">
+                                    <i class="fa fa-money mr-3 icon-2x text-info"></i>
+                                    <div class="flex-fill">
+                                        <h5 class="mb-0"><?php echo $this->lang->line('fees_awaiting_payment'); ?></h5>
+                                        <span class="text-muted"><?php echo $total_paid; ?>/<?php echo $total_fees ?></span>
+                                    </div>
+                                </div>
+                                <div class="progress mt-3" style="height: 0.5rem;">
+                                    <div class="progress-bar bg-info" style="width: <?php echo $fessprogressbar; ?>%"></div>
                                 </div>
                             </div>
-                        </div><!--./topprograssstart-->
-                    </div><!--./col-md-3-->
-                    <?php
+                        </div>
+                    </div>                    <?php
 }
 }
 ?>
@@ -71,17 +73,21 @@ if ($this->module_lib->hasActive('fees_collection')) {
     if ($this->rbac->hasPrivilege('staff_approved_leave_widegts', 'can_view')) {
         ?>
                     <div class="<?php echo $std_graphclass; ?>">
-                        <div class="topprograssstart shadow">
-                            <p class="mt5 font14"><i class="fa fa-ioxhost ftlayer"></i><?php echo $this->lang->line('staff_approved_leave'); ?><span class="pull-right"><?php echo ($getStaffApproveMonthlyLeave) + 0; ?>/<?php echo ($getStaffMonthlyLeave); ?></span>
-                            </p>
-                            <div class="progress-group">
-                                <div class="progress progress-minibar">
-                                    <div class="progress-bar progress-bar-lris-blue" style="width: <?php echo $staffapprovemonthlyleave; ?>%"></div>
+                        <div class="card shadow">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center">
+                                    <i class="fa fa-ioxhost mr-3 icon-2x text-primary"></i>
+                                    <div class="flex-fill">
+                                        <h5 class="mb-0"><?php echo $this->lang->line('staff_approved_leave'); ?></h5>
+                                        <span class="text-muted"><?php echo ($getStaffApproveMonthlyLeave) + 0; ?>/<?php echo ($getStaffMonthlyLeave); ?></span>
+                                    </div>
+                                </div>
+                                <div class="progress mt-3" style="height: 0.5rem;">
+                                    <div class="progress-bar bg-primary" style="width: <?php echo $staffapprovemonthlyleave; ?>%"></div>
                                 </div>
                             </div>
-                        </div><!--./topprograssstart-->
-                    </div><!--./col-md-3-->
-                    <?php
+                        </div>
+                    </div>                    <?php
 }
  ?>
  
@@ -89,17 +95,21 @@ if ($this->module_lib->hasActive('fees_collection')) {
     if ($this->rbac->hasPrivilege('student_approved_leave_widegts', 'can_view')) {
         ?>
                     <div class="<?php echo $std_graphclass; ?>">
-                        <div class="topprograssstart shadow">
-                            <p class="mt5 font14"><i class="fa fa-ioxhost ftlayer"></i><?php echo $this->lang->line('student_approved_leave'); ?><span class="pull-right"><?php echo ($getStudentApproveMonthlyLeave) + 0; ?>/<?php echo ($getStudentMonthlyLeave); ?></span>
-                            </p>
-                            <div class="progress-group">
-                                <div class="progress progress-minibar">
-                                    <div class="progress-bar" style="width: <?php echo $studentapprovemonthlyleave; ?>%"></div>
+                        <div class="card shadow">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center">
+                                    <i class="fa fa-ioxhost mr-3 icon-2x text-success"></i>
+                                    <div class="flex-fill">
+                                        <h5 class="mb-0"><?php echo $this->lang->line('student_approved_leave'); ?></h5>
+                                        <span class="text-muted"><?php echo ($getStudentApproveMonthlyLeave) + 0; ?>/<?php echo ($getStudentMonthlyLeave); ?></span>
+                                    </div>
+                                </div>
+                                <div class="progress mt-3" style="height: 0.5rem;">
+                                    <div class="progress-bar bg-success" style="width: <?php echo $studentapprovemonthlyleave; ?>%"></div>
                                 </div>
                             </div>
-                        </div><!--./topprograssstart-->
-                    </div><!--./col-md-3-->
-                    <?php
+                        </div>
+                    </div>                    <?php
 }
   ?>
 
@@ -109,17 +119,21 @@ if ($this->module_lib->hasActive('front_office')) {
     if ($this->rbac->hasPrivilege('conveted_leads_widegts', 'can_view')) {
         ?>
                     <div class="<?php echo $std_graphclass; ?>">
-                        <div class="topprograssstart">
-                            <p class="mt5 clearfix font14"><i class="fa fa-ioxhost ftlayer"></i><?php echo $this->lang->line('converted_leads'); ?><span class="pull-right"><?php echo $total_complete + 0; ?>/<?php echo $total_enquiry; ?></span>
-                            </p>
-                            <div class="progress-group">
-                                <div class="progress progress-minibar">
-                                    <div class="progress-bar progress-bar-red" style="width: <?php echo $fenquiryprogressbar; ?>%"></div>
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center">
+                                    <i class="fa fa-ioxhost mr-3 icon-2x text-danger"></i>
+                                    <div class="flex-fill">
+                                        <h5 class="mb-0"><?php echo $this->lang->line('converted_leads'); ?></h5>
+                                        <span class="text-muted"><?php echo $total_complete + 0; ?>/<?php echo $total_enquiry; ?></span>
+                                    </div>
+                                </div>
+                                <div class="progress mt-3" style="height: 0.5rem;">
+                                    <div class="progress-bar bg-danger" style="width: <?php echo $fenquiryprogressbar; ?>%"></div>
                                 </div>
                             </div>
-                        </div><!--./topprograssstart-->
-                    </div><!--./col-md-3-->
-                    <?php
+                        </div>
+                    </div>                    <?php
 }
 } ?>
 	
@@ -127,17 +141,21 @@ if ($this->module_lib->hasActive('front_office')) {
 if ($this->rbac->hasPrivilege('staff_present_today_widegts', 'can_view')) {
     ?>
                 <div class="<?php echo $std_graphclass; ?>">
-                    <div class="topprograssstart">
-                        <p class="mt5 clearfix font14"><i class="fa fa-calendar-check-o ftlayer"></i><?php echo $this->lang->line('staff_present_today'); ?><span class="pull-right"><?php echo $Staffattendence_data + 0; ?>/<?php echo $getTotalStaff_data; ?></span>
-                        </p>
-                        <div class="progress-group">
-                            <div class="progress progress-minibar">
-                                <div class="progress-bar progress-bar-green" style="width: <?php echo $percentTotalStaff_data; ?>%"></div>
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center">
+                                <i class="fa fa-calendar-check-o mr-3 icon-2x text-success"></i>
+                                <div class="flex-fill">
+                                    <h5 class="mb-0"><?php echo $this->lang->line('staff_present_today'); ?></h5>
+                                    <span class="text-muted"><?php echo $Staffattendence_data + 0; ?>/<?php echo $getTotalStaff_data; ?></span>
+                                </div>
+                            </div>
+                            <div class="progress mt-3" style="height: 0.5rem;">
+                                <div class="progress-bar bg-success" style="width: <?php echo $percentTotalStaff_data; ?>%"></div>
                             </div>
                         </div>
-                    </div><!--./topprograssstart-->
-                </div><!--./col-md-3-->
-                <?php
+                    </div>
+                </div>                <?php
 } ?>
 
 <?php
@@ -145,17 +163,21 @@ if ($this->module_lib->hasActive('student_attendance') && $sch_setting->attenden
     if ($this->rbac->hasPrivilege('student_present_today_widegts', 'can_view')) {
         ?>
                     <div class="<?php echo $std_graphclass; ?>">
-                        <div class="topprograssstart">
-                            <p class="mt5 clearfix font14"><i class="fa fa-calendar-check-o ftlayer"></i><?php echo $this->lang->line('student_present_today'); ?><span class="pull-right"> <?php echo 0 + $attendence_data['total_half_day'] + $attendence_data['total_late'] + $attendence_data['total_present']; ?>/<?php echo $total_students; ?></span>
-                            </p>
-                            <div class="progress-group">
-                                <div class="progress progress-minibar">
-                                    <div class="progress-bar progress-bar-yellow" style="width: <?php if ($total_students > 0) {echo (0 + $attendence_data['total_half_day'] + $attendence_data['total_late'] + $attendence_data['total_present'] / $total_students * 100);}?>%"></div>
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center">
+                                    <i class="fa fa-calendar-check-o mr-3 icon-2x text-warning"></i>
+                                    <div class="flex-fill">
+                                        <h5 class="mb-0"><?php echo $this->lang->line('student_present_today'); ?></h5>
+                                        <span class="text-muted"> <?php echo 0 + $attendence_data['total_half_day'] + $attendence_data['total_late'] + $attendence_data['total_present']; ?>/<?php echo $total_students; ?></span>
+                                    </div>
+                                </div>
+                                <div class="progress mt-3" style="height: 0.5rem;">
+                                    <div class="progress-bar bg-warning" style="width: <?php if ($total_students > 0) {echo (0 + $attendence_data['total_half_day'] + $attendence_data['total_late'] + $attendence_data['total_present'] / $total_students * 100);}?>%"></div>
                                 </div>
                             </div>
-                        </div><!--./topprograssstart-->
-                    </div><!--./col-md-3-->
-                <?php }
+                        </div>
+                    </div>                <?php }
 }
 ?>
 
@@ -263,78 +285,100 @@ if ($this->module_lib->hasActive('fees_collection')) {
     if ($this->rbac->hasPrivilege('fees_overview_widegts', 'can_view')) {
         ?>
                     <div class="col-md-3 col-sm-6 mb10">
-                        <div class="topprograssstart flex-card">
-                            <h5 class="pro-border"><?php echo $this->lang->line('fees_overview'); ?></h5>
-                            <p class="text-uppercase mt10 clearfix"><?php echo $fees_overview['total_unpaid']; ?> <?php echo $this->lang->line('unpaid'); ?><span class="pull-right"><?php echo round($fees_overview['unpaid_progress'], 2); ?>%</span>
-                            </p>
-                            <div class="progress-group">
-                                <div class="progress progress-minibar">
-                                    <div class="progress-bar" style="width: <?php echo $fees_overview['unpaid_progress']; ?>%"></div>
+                        <div class="card flex-card">
+                            <div class="card-header header-elements-inline">
+                                <h5 class="card-title"><?php echo $this->lang->line('fees_overview'); ?></h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <span class="text-uppercase"><?php echo $fees_overview['total_unpaid']; ?> <?php echo $this->lang->line('unpaid'); ?></span>
+                                        <span><?php echo round($fees_overview['unpaid_progress'], 2); ?>%</span>
+                                    </div>
+                                    <div class="progress" style="height: 0.5rem;">
+                                        <div class="progress-bar bg-danger" style="width: <?php echo $fees_overview['unpaid_progress']; ?>%"></div>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <span class="text-uppercase"><?php echo $fees_overview['total_partial']; ?> <?php echo $this->lang->line('partial'); ?></span>
+                                        <span><?php echo round($fees_overview['partial_progress'], 2); ?>%</span>
+                                    </div>
+                                    <div class="progress" style="height: 0.5rem;">
+                                        <div class="progress-bar bg-warning" style="width: <?php echo $fees_overview['partial_progress']; ?>%"></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <span class="text-uppercase"><?php echo $fees_overview['total_paid']; ?> <?php echo $this->lang->line('paid'); ?></span>
+                                        <span><?php echo round($fees_overview['paid_progress'], 2); ?>%</span>
+                                    </div>
+                                    <div class="progress" style="height: 0.5rem;">
+                                        <div class="progress-bar bg-success" style="width: <?php echo $fees_overview['paid_progress']; ?>%"></div>
+                                    </div>
                                 </div>
                             </div>
-                            <p class="text-uppercase mt10 clearfix"><?php echo $fees_overview['total_partial']; ?> <?php echo $this->lang->line('partial'); ?><span class="pull-right"><?php echo round($fees_overview['partial_progress'], 2); ?>%</span>
-                            </p>
-                            <div class="progress-group">
-                                <div class="progress progress-minibar">
-                                    <div class="progress-bar progress-bar-aqua" style="width: <?php echo $fees_overview['partial_progress']; ?>%"></div>
-                                </div>
-                            </div>
-                            <p class="text-uppercase mt10 clearfix"><?php echo $fees_overview['total_paid']; ?> <?php echo $this->lang->line('paid'); ?><span class="pull-right"><?php echo round($fees_overview['paid_progress'], 2); ?>%</span>
-                            </p>
-                            <div class="progress-group">
-                                <div class="progress progress-minibar">
-                                    <div class="progress-bar progress-bar-aqua" style="width: <?php echo $fees_overview['paid_progress']; ?>%"></div>
-                                </div>
-                            </div>
-                        </div><!--./topprograssstart-->
-                    </div><!--./col-md-3-->
-        <?php
+                        </div><!--./card-->
+                    </div><!--./col-md-3-->        <?php
 }
 }
 if ($this->module_lib->hasActive('front_office')) {
     if ($this->rbac->hasPrivilege('enquiry_overview_widegts', 'can_view')) {
         ?>
                     <div class="col-md-3 col-sm-6 mb10">
-                        <div class="topprograssstart flex-card">
-                            <h5 class="pro-border"><?php echo $this->lang->line('enquiry_overview'); ?></h5>
-                            <p class="text-uppercase mt10 clearfix"><?php echo $enquiry_overview['active']; ?> <?php echo $this->lang->line('active') ?><span class="pull-right"><?php echo round($enquiry_overview['active_progress'], 2); ?>%</span>
-                            </p>
-                            <div class="progress-group">
-                                <div class="progress progress-minibar">
-                                    <div class="progress-bar progress-bar-red" style="width: <?php echo $enquiry_overview['active_progress']; ?>%"></div>
+                        <div class="card flex-card">
+                            <div class="card-header header-elements-inline">
+                                <h5 class="card-title"><?php echo $this->lang->line('enquiry_overview'); ?></h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <span class="text-uppercase"><?php echo $enquiry_overview['active']; ?> <?php echo $this->lang->line('active') ?></span>
+                                        <span><?php echo round($enquiry_overview['active_progress'], 2); ?>%</span>
+                                    </div>
+                                    <div class="progress" style="height: 0.5rem;">
+                                        <div class="progress-bar bg-danger" style="width: <?php echo $enquiry_overview['active_progress']; ?>%"></div>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <span class="text-uppercase"><?php echo $enquiry_overview['won']; ?> <?php echo $this->lang->line('won') ?></span>
+                                        <span><?php echo round($enquiry_overview['won_progress'], 2); ?>%</span>
+                                    </div>
+                                    <div class="progress" style="height: 0.5rem;">
+                                        <div class="progress-bar bg-success" style="width: <?php echo $enquiry_overview['won_progress']; ?>%"></div>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <span class="text-uppercase"><?php echo $enquiry_overview['passive']; ?> <?php echo $this->lang->line('passive') ?></span>
+                                        <span><?php echo round($enquiry_overview['passive_progress'], 2); ?>%</span>
+                                    </div>
+                                    <div class="progress" style="height: 0.5rem;">
+                                        <div class="progress-bar bg-warning" style="width: <?php echo $enquiry_overview['passive_progress']; ?>%"></div>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <span class="text-uppercase"><?php echo $enquiry_overview['lost']; ?> <?php echo $this->lang->line('lost') ?></span>
+                                        <span><?php echo round($enquiry_overview['lost_progress'], 2); ?>%</span>
+                                    </div>
+                                    <div class="progress" style="height: 0.5rem;">
+                                        <div class="progress-bar bg-secondary" style="width: <?php echo $enquiry_overview['lost_progress']; ?>%"></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <span class="text-uppercase"><?php echo $enquiry_overview['dead']; ?> <?php echo $this->lang->line('dead') ?></span>
+                                        <span><?php echo round($enquiry_overview['dead_progress'], 2); ?>%</span>
+                                    </div>
+                                    <div class="progress" style="height: 0.5rem;">
+                                        <div class="progress-bar bg-dark" style="width: <?php echo $enquiry_overview['dead_progress']; ?>%"></div>
+                                    </div>
                                 </div>
                             </div>
-                            <p class="text-uppercase mt10 clearfix"><?php echo $enquiry_overview['won']; ?> <?php echo $this->lang->line('won') ?><span class="pull-right"><?php echo round($enquiry_overview['won_progress'], 2); ?>%</span>
-                            </p>
-                            <div class="progress-group">
-                                <div class="progress progress-minibar">
-                                    <div class="progress-bar progress-bar-yellow" style="width: <?php echo $enquiry_overview['won_progress']; ?>%"></div>
-                                </div>
-                            </div>
-                            <p class="text-uppercase mt10 clearfix"><?php echo $enquiry_overview['passive']; ?> <?php echo $this->lang->line('passive') ?><span class="pull-right"><?php echo round($enquiry_overview['passive_progress'], 2); ?>%</span>
-                            </p>
-                            <div class="progress-group">
-                                <div class="progress progress-minibar">
-                                    <div class="progress-bar progress-bar-yellow" style="width: <?php echo $enquiry_overview['passive_progress']; ?>%"></div>
-                                </div>
-                            </div>
-                            <p class="text-uppercase mt10 clearfix"><?php echo $enquiry_overview['lost']; ?> <?php echo $this->lang->line('lost') ?><span class="pull-right"><?php echo round($enquiry_overview['lost_progress'], 2); ?>%</span>
-                            </p>
-                            <div class="progress-group">
-                                <div class="progress progress-minibar">
-                                    <div class="progress-bar progress-bar-yellow" style="width: <?php echo $enquiry_overview['lost_progress']; ?>%"></div>
-                                </div>
-                            </div>
-                            <p class="text-uppercase mt10 clearfix"><?php echo $enquiry_overview['dead']; ?> <?php echo $this->lang->line('dead') ?><span class="pull-right"><?php echo round($enquiry_overview['dead_progress'], 2); ?>%</span>
-                            </p>
-                            <div class="progress-group">
-                                <div class="progress progress-minibar">
-                                    <div class="progress-bar progress-bar-yellow" style="width: <?php echo $enquiry_overview['dead_progress']; ?>%"></div>
-                                </div>
-                            </div>
-                        </div><!--./topprograssstart-->
-                    </div><!--./col-md-3-->
-        <?php
+                        </div><!--./card-->
+                    </div><!--./col-md-3-->        <?php
 }
 }
 
@@ -342,78 +386,100 @@ if ($this->module_lib->hasActive('library')) {
     if ($this->rbac->hasPrivilege('book_overview_widegts', 'can_view')) {
         ?>
                     <div class="col-md-3 col-sm-6 mb10">
-                        <div class="topprograssstart flex-card">
-                            <h5 class="pro-border"><?php echo $this->lang->line('library_overview'); ?></h5>
-                            <p class="text-uppercase mt10 clearfix"><?php echo $book_overview['dueforreturn']; ?> <?php echo $this->lang->line('due_for_return'); ?><span class="pull-right"></span>
-                            </p>
-                            <div class="progress-group">
-                                <div class="progress progress-minibar">
-                                    <div class="progress-bar progress-bar-green" style="width: <?php echo $book_overview['dueforreturn']; ?>%"></div>
+                        <div class="card flex-card">
+                            <div class="card-header header-elements-inline">
+                                <h5 class="card-title"><?php echo $this->lang->line('library_overview'); ?></h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <span class="text-uppercase"><?php echo $book_overview['dueforreturn']; ?> <?php echo $this->lang->line('due_for_return'); ?></span>
+                                        <span></span>
+                                    </div>
+                                    <div class="progress" style="height: 0.5rem;">
+                                        <div class="progress-bar bg-warning" style="width: <?php echo $book_overview['dueforreturn']; ?>%"></div>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <span class="text-uppercase"><?php echo $book_overview['forreturn']; ?> <?php echo $this->lang->line('returned') ?></span>
+                                        <span></span>
+                                    </div>
+                                    <div class="progress" style="height: 0.5rem;">
+                                        <div class="progress-bar bg-success" style="width: <?php echo $book_overview['forreturn']; ?>%"></div>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <span class="text-uppercase"><?php echo $book_overview['total_issued']; ?> <?php echo $this->lang->line('issued_out_of'); ?> <?php echo $book_overview['total'] ?></span>
+                                        <span><?php echo $book_overview['issued_progress']; ?>%</span>
+                                    </div>
+                                    <div class="progress" style="height: 0.5rem;">
+                                        <div class="progress-bar bg-info" style="width: <?php echo $book_overview['issued_progress']; ?>%"></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <span class="text-uppercase"><?php echo $book_overview['availble']; ?> <?php echo $this->lang->line('available_out_of') ?> <?php echo $book_overview['total']; ?></span>
+                                        <span><?php echo $book_overview['availble_progress']; ?>%</span>
+                                    </div>
+                                    <div class="progress" style="height: 0.5rem;">
+                                        <div class="progress-bar bg-primary" style="width: <?php echo $book_overview['availble_progress']; ?>%"></div>
+                                    </div>
                                 </div>
                             </div>
-                            <p class="text-uppercase mt10 clearfix"><?php echo $book_overview['forreturn']; ?> <?php echo $this->lang->line('returned') ?><span class="pull-right"></span>
-                            </p>
-                            <div class="progress-group">
-                                <div class="progress progress-minibar">
-                                    <div class="progress-bar progress-bar-green" style="width: <?php echo $book_overview['forreturn']; ?>%"></div>
-                                </div>
-                            </div>
-                            <p class="text-uppercase mt10 clearfix"><?php echo $book_overview['total_issued']; ?> <?php echo $this->lang->line('issued_out_of'); ?> <?php echo $book_overview['total'] ?><span class="pull-right"><?php echo $book_overview['issued_progress']; ?>%</span>
-                            </p>
-                            <div class="progress-group">
-                                <div class="progress progress-minibar">
-                                    <div class="progress-bar progress-bar-green" style="width: <?php echo $book_overview['issued_progress']; ?>%"></div>
-                                </div>
-                            </div>
-                            <p class="text-uppercase mt10 clearfix"><?php echo $book_overview['availble']; ?> <?php echo $this->lang->line('available_out_of') ?> <?php echo $book_overview['total']; ?><span class="pull-right"><?php echo $book_overview['availble_progress']; ?>%</span>
-                            </p>
-                            <div class="progress-group">
-                                <div class="progress progress-minibar">
-                                    <div class="progress-bar progress-bar-green" style="width: <?php echo $book_overview['availble_progress']; ?>%"></div>
-                                </div>
-                            </div>
-                        </div><!--./topprograssstart-->
-                    </div><!--./col-md-3-->
-        <?php
+                        </div><!--./card-->
+                    </div><!--./col-md-3-->        <?php
 }
 }
 if ($this->module_lib->hasActive('student_attendance')) {
     if ($this->rbac->hasPrivilege('today_attendance_widegts', 'can_view')) {
         ?>
                     <div class="col-md-3 col-sm-6 mb10">
-                        <div class="topprograssstart flex-card">
-                            <h5 class="pro-border"> <?php echo $this->lang->line('student_today_attendance'); ?></h5>
-                            <p class="text-uppercase mt10 clearfix"><?php echo $attendence_data['total_present']; ?> <?php echo $this->lang->line('present'); ?><span class="pull-right"><?php echo $attendence_data['present']; ?></span>
-                            </p>
-                            <div class="progress-group">
-                                <div class="progress progress-minibar">
-                                    <div class="progress-bar" style="width: <?php echo $attendence_data['present']; ?>"></div>
+                        <div class="card flex-card">
+                            <div class="card-header header-elements-inline">
+                                <h5 class="card-title"> <?php echo $this->lang->line('student_today_attendance'); ?></h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <span class="text-uppercase"><?php echo $attendence_data['total_present']; ?> <?php echo $this->lang->line('present'); ?></span>
+                                        <span><?php echo $attendence_data['present']; ?></span>
+                                    </div>
+                                    <div class="progress" style="height: 0.5rem;">
+                                        <div class="progress-bar bg-success" style="width: <?php echo $attendence_data['present']; ?>%"></div>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <span class="text-uppercase"><?php echo $attendence_data['total_late']; ?> <?php echo $this->lang->line('late') ?></span>
+                                        <span><?php echo $attendence_data['late']; ?></span>
+                                    </div>
+                                    <div class="progress" style="height: 0.5rem;">
+                                        <div class="progress-bar bg-warning" style="width: <?php echo $attendence_data['late']; ?>%"></div>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <span class="text-uppercase"><?php echo $attendence_data['total_absent']; ?> <?php echo $this->lang->line('absent'); ?></span>
+                                        <span><?php echo $attendence_data['absent']; ?></span>
+                                    </div>
+                                    <div class="progress" style="height: 0.5rem;">
+                                        <div class="progress-bar bg-danger" style="width: <?php echo $attendence_data['absent']; ?>%"></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <span class="text-uppercase"><?php echo $attendence_data['total_half_day']; ?> <?php echo $this->lang->line('half_day'); ?></span>
+                                        <span><?php echo $attendence_data['half_day']; ?></span>
+                                    </div>
+                                    <div class="progress" style="height: 0.5rem;">
+                                        <div class="progress-bar bg-info" style="width: <?php echo $attendence_data['half_day']; ?>%"></div>
+                                    </div>
                                 </div>
                             </div>
-                            <p class="text-uppercase mt10 clearfix"><?php echo $attendence_data['total_late']; ?> <?php echo $this->lang->line('late') ?><span class="pull-right"><?php echo $attendence_data['late']; ?></span>
-                            </p>
-                            <div class="progress-group">
-                                <div class="progress progress-minibar">
-                                    <div class="progress-bar" style="width: <?php echo $attendence_data['late']; ?>"></div>
-                                </div>
-                            </div>
-                            <p class="text-uppercase mt10 clearfix"><?php echo $attendence_data['total_absent']; ?> <?php echo $this->lang->line('absent'); ?><span class="pull-right"><?php echo $attendence_data['absent']; ?></span>
-                            </p>
-                            <div class="progress-group">
-                                <div class="progress progress-minibar">
-                                    <div class="progress-bar" style="width: <?php echo $attendence_data['absent']; ?>"></div>
-                                </div>
-                            </div>
-                            <p class="text-uppercase mt10 clearfix"><?php echo $attendence_data['total_half_day']; ?> <?php echo $this->lang->line('half_day'); ?><span class="pull-right"><?php echo $attendence_data['half_day']; ?></span>
-                            </p>
-                            <div class="progress-group">
-                                <div class="progress progress-minibar">
-                                    <div class="progress-bar" style="width: <?php echo $attendence_data['half_day']; ?>"></div>
-                                </div>
-                            </div>
-                        </div><!--./topprograssstart-->
-                    </div><!--./col-md-3-->
-                    <?php
+                        </div><!--./card-->
+                    </div><!--./col-md-3-->                    <?php
 }
 }
 
@@ -460,17 +526,16 @@ if ($this->module_lib->hasActive('fees_collection')) {
     if ($this->rbac->hasPrivilege('Monthly fees_collection_widget', 'can_view')) {
         ?>
                                 <div class="col-lg-3 col-md-6 col-sm-6">
-                                    <div class="info-box">
-                                        <a href="<?php echo site_url('studentfee') ?>">
-                                            <span class="info-box-icon"><i class="fa fa-money"></i></span>
-                                            <div class="info-box-content">
-                                                <span class="info-box-text"><?php echo $this->lang->line('monthly_fees_collection'); ?></span>
-                                                <span class="info-box-number"><?php if($month_collection){ echo $currency_symbol . amountFormat($month_collection); } ?></span>
+                                    <div class="card card-body">
+                                        <a href="<?php echo site_url('studentfee') ?>" class="d-flex align-items-center">
+                                            <i class="fa fa-money icon-2x mr-3 text-primary"></i>
+                                            <div class="flex-fill">
+                                                <h6 class="mb-0 font-weight-semibold"><?php echo $this->lang->line('monthly_fees_collection'); ?></h6>
+                                                <span class="text-muted"><?php if($month_collection){ echo $currency_symbol . amountFormat($month_collection); } ?></span>
                                             </div>
                                         </a>
                                     </div>
-                                </div>
-    <?php }
+                                </div>    <?php }
 }
 ?>
 <?php
@@ -478,49 +543,46 @@ if ($this->module_lib->hasActive('expense')) {
     if ($this->rbac->hasPrivilege('monthly_expense_widget', 'can_view')) {
         ?>
                                 <div class="col-lg-3 col-md-6 col-sm-6">
-                                    <div class="info-box">
-                                        <a href="<?php echo site_url('admin/expense') ?>">
-                                            <span class="info-box-icon"><i class="fa fa-credit-card"></i></span>
-                                            <div class="info-box-content">
-                                                <span class="info-box-text"><?php echo $this->lang->line('monthly_expenses'); ?></span>
-                                                <span class="info-box-number"><?php if($month_expense){ echo $currency_symbol . amountFormat($month_expense); } ?></span>
+                                    <div class="card card-body">
+                                        <a href="<?php echo site_url('admin/expense') ?>" class="d-flex align-items-center">
+                                            <i class="fa fa-credit-card icon-2x mr-3 text-warning"></i>
+                                            <div class="flex-fill">
+                                                <h6 class="mb-0 font-weight-semibold"><?php echo $this->lang->line('monthly_expenses'); ?></h6>
+                                                <span class="text-muted"><?php if($month_expense){ echo $currency_symbol . amountFormat($month_expense); } ?></span>
                                             </div>
                                         </a>
                                     </div>
-                                </div>
-    <?php
+                                </div>    <?php
 }
 }
 
 if ($this->rbac->hasPrivilege('student_count_widget', 'can_view')) {
     ?>
                             <div class="col-lg-3 col-md-6 col-sm-6">
-                                <div class="info-box">
-                                    <a href="<?php echo site_url('student/search') ?>">
-                                        <span class="info-box-icon"><i class="fa fa-user"></i></span>
-                                        <div class="info-box-content">
-                                            <span class="info-box-text"><?php echo $this->lang->line('student'); ?></span>
-                                            <span class="info-box-number"><?php echo $total_students; ?></span>
+                                <div class="card card-body">
+                                    <a href="<?php echo site_url('student/search') ?>" class="d-flex align-items-center">
+                                        <i class="fa fa-user icon-2x mr-3 text-success"></i>
+                                        <div class="flex-fill">
+                                            <h6 class="mb-0 font-weight-semibold"><?php echo $this->lang->line('student'); ?></h6>
+                                            <span class="text-muted"><?php echo $total_students; ?></span>
                                         </div>
                                     </a>
                                 </div>
-                            </div>
-<?php } ?>
+                            </div><?php } ?>
 
 <!-- added new features -->
    <?php if ($this->rbac->hasPrivilege('student_head_count_widget', 'can_view')) {  ?>
                             <div class="col-lg-3 col-md-6 col-sm-6">
-                                <div class="info-box">
-                                    <a href="<?php echo site_url('student/search') ?>">
-                                        <span class="info-box-icon"><i class="fa fa-user"></i></span>
-                                        <div class="info-box-content">
-                                            <span class="info-box-text"><?php echo $this->lang->line('student_head_count'); ?></span>
-                                            <span class="info-box-number"><?php echo $total_students_heads; ?></span>
+                                <div class="card card-body">
+                                    <a href="<?php echo site_url('student/search') ?>" class="d-flex align-items-center">
+                                        <i class="fa fa-user icon-2x mr-3 text-info"></i>
+                                        <div class="flex-fill">
+                                            <h6 class="mb-0 font-weight-semibold"><?php echo $this->lang->line('student_head_count'); ?></h6>
+                                            <span class="text-muted"><?php echo $total_students_heads; ?></span>
                                         </div>
                                     </a>
                                 </div>
-                            </div>
-                        <?php }?>
+                            </div>                        <?php }?>
                     </div>
 
 <?php
@@ -544,22 +606,19 @@ if ($this->rbac->hasPrivilege('staff_role_count_widget', 'can_view')) {
                     <div class="col-lg-3 col-md-3 col-sm-12 col20">
     <?php foreach ($roles as $key => $value) {
         ?>
-                            <div class="info-box">
-                                <a href="#">
-                                    <span class="info-box-icon"><i class="fa fa-user-secret"></i></span>
-                                    <div class="info-box-content">
-                                        <span class="info-box-text"><?php echo $key; ?></span>
-                                        <span class="info-box-number"><?php echo $value; ?></span>
+                            <div class="card card-body">
+                                <a href="#" class="d-flex align-items-center">
+                                    <span class="info-box-icon"><i class="fa fa-user-secret icon-2x mr-3 text-secondary"></i></span>
+                                    <div class="flex-fill">
+                                        <h6 class="mb-0 font-weight-semibold"><?php echo $key; ?></h6>
+                                        <span class="text-muted"><?php echo $value; ?></span>
                                     </div>
                                 </a>
                             </div>
     <?php }?>
                     </div><!--./col-lg-3-->
 <?php }?>
-            </div><!--./row-->
-        </div><!--./row-->
-</div>
-<div id="newEventModal" class="modal fade " role="dialog">
+            <div id="newEventModal" class="modal fade " role="dialog">
     <div class="modal-dialog modal-dialog2 modal-lg">
         <div class="modal-content">
             <div class="modal-header">

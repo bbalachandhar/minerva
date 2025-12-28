@@ -629,6 +629,7 @@ function getLocation()
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, "http://ipwhois.app/json/" . $ip);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 60);
     $execute = curl_exec($ch);
     curl_close($ch);
     $ipResult = json_decode($execute);
