@@ -176,11 +176,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                             <?php if ($sch_setting->staff_contract_type) {
                             ?>
                                 <li class="list-group-item listnoback">
-                                    <b><?php echo $this->lang->line('contract_type'); ?></b> <a class="pull-right text-aqua"><?php
-                                                                                                                                if (array_key_exists($staff['contract_type'], $contract_type)) {
-                                                                                                                                    echo $contract_type[$staff['contract_type']];
-                                                                                                                                }
-                                                                                                                                ?></a>
+                                    <b><?php echo $this->lang->line('contract_type'); ?></b> <a class="pull-right text-aqua"><?php echo $staff['contract_type']; ?></a>
                                 </li>
                             <?php }
                             if ($sch_setting->staff_work_shift) { ?>
@@ -579,6 +575,68 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                     </div>
                                 </div>
                             <?php } ?>
+                            <div class="tshadow mb25 bozero">
+                                <h3 class="pagetitleh2"><?php echo $this->lang->line('additional_details'); ?></h3>
+                                <div class="table-responsive around10 pt10">
+                                    <table class="table table-hover table-striped tmb0">
+                                        <tbody>
+                                            <tr>
+                                                <td><?php echo $this->lang->line('payscale'); ?></td>
+                                                <td><?php echo $staff['payscale']; ?></td>
+                                            </tr>
+                                            <tr>
+                                                <td><?php echo $this->lang->line('aadhaar_no'); ?></td>
+                                                <td><?php echo $staff['aadhaar_no']; ?></td>
+                                            </tr>
+                                            <tr>
+                                                <td><?php echo $this->lang->line('religion'); ?></td>
+                                                <td><?php echo $staff['religion']; ?></td>
+                                            </tr>
+                                            <tr>
+                                                <td><?php echo $this->lang->line('caste'); ?></td>
+                                                <td><?php echo $staff['caste']; ?></td>
+                                            </tr>
+                                            <tr>
+                                                <td><?php echo $this->lang->line('blood_group'); ?></td>
+                                                <td><?php echo $staff['blood_group']; ?></td>
+                                            </tr>
+                                            <tr>
+                                                <td><?php echo $this->lang->line('country'); ?></td>
+                                                <td><?php echo $staff['country']; ?></td>
+                                            </tr>
+                                            <tr>
+                                                <td><?php echo $this->lang->line('state'); ?></td>
+                                                <td><?php echo $staff['state']; ?></td>
+                                            </tr>
+                                            <tr>
+                                                <td><?php echo $this->lang->line('pincode'); ?></td>
+                                                <td><?php echo $staff['pincode']; ?></td>
+                                            </tr>
+                                            
+                                            <tr>
+                                                <td><?php echo $this->lang->line('previous_salary'); ?></td>
+                                                <td><?php echo $staff['previous_salary']; ?></td>
+                                            </tr>
+                                            <tr>
+                                                <td><?php echo $this->lang->line('uan_no'); ?></td>
+                                                <td><?php echo $staff['uan_no']; ?></td>
+                                            </tr>
+                                            <tr>
+                                                <td><?php echo $this->lang->line('pan_no'); ?></td>
+                                                <td><?php echo $staff['pan_no']; ?></td>
+                                            </tr>
+                                            <tr>
+                                                <td><?php echo $this->lang->line('previous_institution'); ?></td>
+                                                <td><?php echo $staff['previous_institution']; ?></td>
+                                            </tr>
+                                            <tr>
+                                                <td><?php echo $this->lang->line('subject_expertise'); ?></td>
+                                                <td><?php echo $staff['subject_expertise']; ?></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
                         </div>
                         <div class="tab-pane" id="payroll">
                             <div class="row row-flex">

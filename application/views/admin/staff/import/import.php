@@ -24,6 +24,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                         <br/>
                         1. <?php echo $this->lang->line('csv_import_instruction_step1'); ?><br/>
                         2. <?php echo $this->lang->line('csv_import_instruction_step2_date_format'); ?><br/>
+                        3. For Contract Type use Visiting Faculty, Part Time Faculty, or Full Time Faculty value.<br/>
 
                         <hr/></div>
                     <div class="box-body table-responsive" style="overflow-x:auto;">

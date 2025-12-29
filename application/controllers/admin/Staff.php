@@ -936,9 +936,25 @@ class Staff extends Admin_Controller
             $father_name = $this->input->post("father_name");
             $surname = $this->input->post("surname");
             $mother_name = $this->input->post("mother_name");
+            $pan_no = $this->input->post("pan_no");
+            $previous_institution = $this->input->post("previous_institution");
+            $subject_expertise = $this->input->post("subject_expertise");
             $note = $this->input->post("note");
             $epf_no = $this->input->post("epf_no");
-
+            $payscale = $this->input->post("payscale");
+            $aadhaar_no = $this->input->post("aadhaar_no");
+            $religion = $this->input->post("religion");
+            $caste = $this->input->post("caste");
+            $blood_group = $this->input->post("blood_group");
+            $country = $this->input->post("country");
+            $state = $this->input->post("state");
+            $pincode = $this->input->post("pincode");
+            $previous_salary = $this->input->post("previous_salary");
+            $uan_no = $this->input->post("uan_no");
+            $pan_no = $this->input->post("pan_no");
+            $previous_institution = $this->input->post("previous_institution");
+            $subject_expertise = $this->input->post("subject_expertise");
+            
             $data_update = array(
                 'id' => $id,
                 'employee_id' => $employee_id,
@@ -955,6 +971,19 @@ class Staff extends Admin_Controller
                 'qualified_exam' => $this->input->post('qualified_exam'),
                 'subject_specialization' => $this->input->post('subject_specialization'),
                 'additional_qualification' => $this->input->post('additional_qualification'),
+                'payscale' => $payscale,
+                'aadhaar_no' => $aadhaar_no,
+                'religion' => $religion,
+                'caste' => $caste,
+                'blood_group' => $blood_group,
+                'country' => $country,
+                'state' => $state,
+                'pincode' => $pincode,
+                'previous_salary' => $previous_salary,
+                'uan_no' => $uan_no,
+                'pan_no' => $pan_no,
+                'previous_institution' => $previous_institution,
+                'subject_expertise' => $subject_expertise,
             );
 
             if (isset($surname)) {
@@ -1670,9 +1699,6 @@ class Staff extends Admin_Controller
             "country" => "country",
             "state" => "state",
             "pincode" => "pincode",
-            "is_visiting_faculty" => "is_visiting_faculty",
-            "is_part_time_faculty" => "is_part_time_faculty",
-            "is_full_time_faculty" => "is_full_time_faculty",
             "previous_salary" => "previous_salary",
             "uan_no" => "uan_no",
             "pan_no" => "pan_no",
@@ -1775,11 +1801,6 @@ class Staff extends Admin_Controller
                             } else {
                                 $staff_data['department'] = null;
                             }
-
-                            // Handle boolean-like values for faculty type fields
-                            $staff_data['is_visiting_faculty'] = (in_array(strtolower($staff_data['is_visiting_faculty']), ['yes', 'true', '1'])) ? 1 : 0;
-                            $staff_data['is_part_time_faculty'] = (in_array(strtolower($staff_data['is_part_time_faculty']), ['yes', 'true', '1'])) ? 1 : 0;
-                            $staff_data['is_full_time_faculty'] = (in_array(strtolower($staff_data['is_full_time_faculty']), ['yes', 'true', '1'])) ? 1 : 0;
 
                             // Handle gender and marital status mapping
                             $staff_data['gender'] = ucfirst(strtolower($staff_data['gender']));

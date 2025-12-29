@@ -109,7 +109,26 @@ if ($staff["department"] == $value["id"]) {
                                                     <span class="text-danger"><?php echo form_error('department'); ?></span>
                                                 </div>
                                             </div>
-                                        <?php }?>
+                                        <?php } if ($sch_setting->staff_contract_type) { ?>
+                                            <div class="col-md-3">
+                                                <div class="form-group">
+                                                    <label for="exampleInputEmail1"><?php echo $this->lang->line('contract_type'); ?></label>
+                                                    <select class="form-control" name="contract_type">
+                                                        <option value=""><?php echo $this->lang->line('select') ?></option>
+
+                                                        <?php foreach ($contract_type as $key => $value) {?>
+                                                            <option value="<?php echo $key ?>" <?php
+if ($staff["contract_type"] == $key) {
+        echo "selected";
+    }
+        ?>><?php echo $value ?></option>
+
+                                                        <?php }?>
+                                                    </select>
+                                                    <span class="text-danger"><?php echo form_error('contract_type'); ?></span>
+                                                </div>
+                                            </div>
+                                        <?php } ?>
                                     </div>
                                     <div class="row">
                                         <div class="col-md-3">
@@ -342,10 +361,110 @@ if ($staff["marital_status"] == $mavalue) {
                                                 <span class="text-danger"><?php echo form_error('additional_qualification'); ?></span>
                                             </div>
                                         </div>
+                                    </div>
                                     <div class="row">
+                                        <div class="col-md-3">
+                                            <div class="form-group">
+                                                <label for="payscale"><?php echo $this->lang->line('payscale'); ?></label>
+                                                <input id="payscale" name="payscale" placeholder="" type="text" class="form-control"  value="<?php echo set_value('payscale', $staff["payscale"]) ?>" />
+                                                <span class="text-danger"><?php echo form_error('payscale'); ?></span>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="form-group">
+                                                <label for="aadhaar_no"><?php echo $this->lang->line('aadhaar_no'); ?></label>
+                                                <input id="aadhaar_no" name="aadhaar_no" placeholder="" type="text" class="form-control"  value="<?php echo set_value('aadhaar_no', $staff["aadhaar_no"]) ?>" />
+                                                <span class="text-danger"><?php echo form_error('aadhaar_no'); ?></span>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="form-group">
+                                                <label for="religion"><?php echo $this->lang->line('religion'); ?></label>
+                                                <input id="religion" name="religion" placeholder="" type="text" class="form-control"  value="<?php echo set_value('religion', $staff["religion"]) ?>" />
+                                                <span class="text-danger"><?php echo form_error('religion'); ?></span>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="form-group">
+                                                <label for="caste"><?php echo $this->lang->line('caste'); ?></label>
+                                                <input id="caste" name="caste" placeholder="" type="text" class="form-control"  value="<?php echo set_value('caste', $staff["caste"]) ?>" />
+                                                <span class="text-danger"><?php echo form_error('caste'); ?></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-3">
+                                            <div class="form-group">
+                                                <label for="blood_group"><?php echo $this->lang->line('blood_group'); ?></label>
+                                                <input id="blood_group" name="blood_group" placeholder="" type="text" class="form-control"  value="<?php echo set_value('blood_group', $staff["blood_group"]) ?>" />
+                                                <span class="text-danger"><?php echo form_error('blood_group'); ?></span>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="form-group">
+                                                <label for="country"><?php echo $this->lang->line('country'); ?></label>
+                                                <input id="country" name="country" placeholder="" type="text" class="form-control"  value="<?php echo set_value('country', $staff["country"]) ?>" />
+                                                <span class="text-danger"><?php echo form_error('country'); ?></span>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="form-group">
+                                                <label for="state"><?php echo $this->lang->line('state'); ?></label>
+                                                <input id="state" name="state" placeholder="" type="text" class="form-control"  value="<?php echo set_value('state', $staff["state"]) ?>" />
+                                                <span class="text-danger"><?php echo form_error('state'); ?></span>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="form-group">
+                                                <label for="pincode"><?php echo $this->lang->line('pincode'); ?></label>
+                                                <input id="pincode" name="pincode" placeholder="" type="text" class="form-control"  value="<?php echo set_value('pincode', $staff["pincode"]) ?>" />
+                                                <span class="text-danger"><?php echo form_error('pincode'); ?></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-3">
+                                            <div class="form-group">
+                                                <label for="previous_salary"><?php echo $this->lang->line('previous_salary'); ?></label>
+                                                <input id="previous_salary" name="previous_salary" placeholder="" type="text" class="form-control"  value="<?php echo set_value('previous_salary', $staff["previous_salary"]) ?>" />
+                                                <span class="text-danger"><?php echo form_error('previous_salary'); ?></span>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="form-group">
+                                                <label for="uan_no"><?php echo $this->lang->line('uan_no'); ?></label>
+                                                <input id="uan_no" name="uan_no" placeholder="" type="text" class="form-control"  value="<?php echo set_value('uan_no', $staff["uan_no"]) ?>" />
+                                                <span class="text-danger"><?php echo form_error('uan_no'); ?></span>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="form-group">
+                                                <label for="pan_no"><?php echo $this->lang->line('pan_no'); ?></label>
+                                                <input id="pan_no" name="pan_no" placeholder="" type="text" class="form-control"  value="<?php echo set_value('pan_no', $staff["pan_no"]) ?>" />
+                                                <span class="text-danger"><?php echo form_error('pan_no'); ?></span>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="form-group">
+                                                <label for="previous_institution"><?php echo $this->lang->line('previous_institution'); ?></label>
+                                                <input id="previous_institution" name="previous_institution" placeholder="" type="text" class="form-control"  value="<?php echo set_value('previous_institution', $staff["previous_institution"]) ?>" />
+                                                <span class="text-danger"><?php echo form_error('previous_institution'); ?></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label for="subject_expertise"><?php echo $this->lang->line('subject_expertise'); ?></label>
+                                                <input id="subject_expertise" name="subject_expertise" placeholder="" type="text" class="form-control"  value="<?php echo set_value('subject_expertise', $staff["subject_expertise"]) ?>" />
+                                                <span class="text-danger"><?php echo form_error('subject_expertise'); ?></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                     <div class="row">
                                         <?php
-echo display_custom_fields('staff', $staff['id']);
-?>
+                                            echo display_custom_fields('staff', $staff['id']);
+                                        ?>
                                     </div>
                                 </div>
                             </div>
@@ -369,27 +488,7 @@ echo display_custom_fields('staff', $staff['id']);
                                                             <span class="text-danger"><?php echo form_error('epf_no'); ?></span>
                                                         </div>
                                                     </div>
-                                                <?php }if ($sch_setting->staff_contract_type) {
-    ?>
-                                                    <div class="col-md-4">
-                                                        <div class="form-group">
-                                                            <label for="exampleInputEmail1"><?php echo $this->lang->line('contract_type'); ?></label>
-                                                            <select class="form-control" name="contract_type">
-                                                                <option value=""><?php echo $this->lang->line('select') ?></option>
-
-                                                                <?php foreach ($contract_type as $key => $value) {?>
-                                                                    <option value="<?php echo $key ?>" <?php
-if ($staff["contract_type"] == $key) {
-        echo "selected";
-    }
-        ?>><?php echo $value ?></option>
-
-                                                                <?php }?>
-                                                            </select>
-                                                            <span class="text-danger"><?php echo form_error('contract_type'); ?></span>
-                                                        </div>
-                                                    </div>
-                                                <?php }if ($sch_setting->staff_basic_salary) {?>
+                                                if ($sch_setting->staff_basic_salary) {?>
                                                     <div class="col-md-4">
                                                         <div class="form-group">
                                                             <label for="exampleInputEmail1"><?php echo $this->lang->line('basic_salary'); ?></label>

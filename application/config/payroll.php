@@ -13,8 +13,9 @@ $config['staffattendance'] = array(
 );
 
 $config['contracttype'] = array(
-    'permanent' => lang('permanent'),
-    'probation' => lang('probation'),
+    'Visiting Faculty' => 'Visiting Faculty',
+    'Part Time Faculty' => 'Part Time Faculty',
+    'Full Time Faculty' => 'Full Time Faculty',
 );
 
 $config['status'] = array(

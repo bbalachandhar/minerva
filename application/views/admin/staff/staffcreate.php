@@ -404,26 +404,17 @@ echo display_custom_fields('staff');
                                 </div>
                                 <div class="row around10">
                                     <div class="col-md-3">
-                                        <div class="form-group">
-                                            <label for="is_visiting_faculty">Visiting Faculty</label>
-                                            <input id="is_visiting_faculty" name="is_visiting_faculty" placeholder="" type="checkbox" class=""  value="1" <?php echo set_checkbox('is_visiting_faculty', '1'); ?> />
-                                            <span class="text-danger"><?php echo form_error('is_visiting_faculty'); ?></span>
+                                            <div class="form-group">
+                                                <label for="contract_type">Contract Type</label>
+                                                <select class="form-control" name="contract_type">
+                                                    <option value="">Select</option>
+                                                    <option value="Visiting Faculty" <?php echo set_select('contract_type', 'Visiting Faculty'); ?>>Visiting Faculty</option>
+                                                    <option value="Part Time Faculty" <?php echo set_select('contract_type', 'Part Time Faculty'); ?>>Part Time Faculty</option>
+                                                    <option value="Full Time Faculty" <?php echo set_select('contract_type', 'Full Time Faculty'); ?>>Full Time Faculty</option>
+                                                </select>
+                                                <span class="text-danger"><?php echo form_error('contract_type'); ?></span>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <div class="form-group">
-                                            <label for="is_part_time_faculty">Part Time Faculty</label>
-                                            <input id="is_part_time_faculty" name="is_part_time_faculty" placeholder="" type="checkbox" class=""  value="1" <?php echo set_checkbox('is_part_time_faculty', '1'); ?> />
-                                            <span class="text-danger"><?php echo form_error('is_part_time_faculty'); ?></span>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <div class="form-group">
-                                            <label for="is_full_time_faculty">Full Time Faculty</label>
-                                            <input id="is_full_time_faculty" name="is_full_time_faculty" placeholder="" type="checkbox" class=""  value="1" <?php echo set_checkbox('is_full_time_faculty', '1'); ?> />
-                                            <span class="text-danger"><?php echo form_error('is_full_time_faculty'); ?></span>
-                                        </div>
-                                    </div>
                                 </div>
                                 <div class="row around10">
                                     <div class="col-md-3">
@@ -491,20 +482,7 @@ echo display_custom_fields('staff');
                                                             <input type="text" class="form-control" name="basic_salary" value="<?php echo set_value('basic_salary') ?>" >
                                                         </div>
                                                     </div>
-                                                <?php }if ($sch_setting->staff_contract_type) {?>
-                                                    <div class="col-md-4">
-                                                        <div class="form-group">
-                                                            <label for="exampleInputEmail1"><?php echo $this->lang->line('contract_type'); ?></label>
-                                                            <select class="form-control" name="contract_type">
-                                                                <option value=""><?php echo $this->lang->line('select') ?></option>
-                                                                <?php foreach ($contract_type as $key => $value) {?>
-                                                                    <option value="<?php echo $key ?>" <?php echo set_select('contract_type', $key, set_value('contract_type')); ?>><?php echo $value ?></option>
-                                                                <?php }?>
-                                                            </select>
-                                                            <span class="text-danger"><?php echo form_error('contract_type'); ?></span>
-                                                        </div>
-                                                    </div>
-                                                <?php }if ($sch_setting->staff_work_shift) {?>
+                                                if ($sch_setting->staff_work_shift) {?>
                                                     <div class="col-md-4">
                                                         <div class="form-group">
                                                             <label for="exampleInputEmail1"><?php echo $this->lang->line('work_shift'); ?></label>
