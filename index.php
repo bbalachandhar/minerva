@@ -37,30 +37,65 @@
  */
 
 /*
- *---------------------------------------------------------------
- * APPLICATION ENVIRONMENT
- *---------------------------------------------------------------
- *
- * You can load different configurations depending on your
- * current environment. Setting the environment also influences
- * things like logging and error reporting.
- *
- * This can be set to anything, but default usage is:
- *
- *     development
- *     testing
- *     production
- *
- * NOTE: If you change these, also change the error_reporting() code below
- */
- 
-	define('ENVIRONMENT', 'development');
-	
-	
-	if( ! ini_get('date.timezone') )
-	{
-	   date_default_timezone_set('GMT');
-	} 	
+|--------------------------------------------------------------------------
+| APPLICATION ENVIRONMENT
+|--------------------------------------------------------------------------
+|
+| You can load different configurations depending on your
+| current environment. Setting the environment also influences
+| things like logging and error reporting.
+|
+| This can be set to anything, but default usage is:
+|
+|     development
+|     testing
+|     production
+|
+| NOTE: If you change these, also change the error_reporting() code below
+*/
+define('ENVIRONMENT', 'development'); // Set to 'production' on your EC2 server
+
+// --- START Multi-tenant Logic (Production Only) ---
+if (ENVIRONMENT === 'production') {
+
+    define('TENANTS_BASE_DIR_PATH', '/var/www/tenants/');
+
+    // Get the domain from the request
+    $tenant_host = $_SERVER['HTTP_HOST'];
+    $tenant_id = null;
+
+    // Extract tenant ID from hostname (e.g., 'subdomain.example.com' -> 'subdomain')
+    if (preg_match('/^([a-zA-Z0-9_-]+)\./', $tenant_host, $matches)) {
+        $tenant_id = $matches[1];
+    }
+    
+    // If no tenant ID could be determined from the subdomain, exit.
+    if (empty($tenant_id)) {
+        header('HTTP/1.1 503 Service Unavailable.', TRUE, 503);
+        echo 'Tenant could not be identified from hostname: ' . htmlspecialchars($tenant_host);
+        exit(1);
+    }
+    
+    // Define the tenant's specific root directory.
+    define('TENANT_ID', $tenant_id);
+    define('TENANT_ROOT', TENANTS_BASE_DIR_PATH . TENANT_ID . '/');
+    
+    // The create_tenant.sh script is responsible for creating directories on the server.
+    // We will just validate that the directory exists.
+    if ( ! is_dir(TENANT_ROOT))
+    {
+        header('HTTP/1.1 503 Service Unavailable.', TRUE, 503);
+        echo 'Tenant directory not found for: ' . htmlspecialchars(TENANT_ID);
+        exit(1);
+    }
+}
+// --- END Multi-tenant Logic ---
+
+
+if( ! ini_get('date.timezone') )
+{
+   date_default_timezone_set('GMT');
+} 	
 
 /*
  *---------------------------------------------------------------
