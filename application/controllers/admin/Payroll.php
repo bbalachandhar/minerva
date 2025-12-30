@@ -97,6 +97,17 @@ class Payroll extends Admin_Controller
         $data['result'] = $searchEmployee;
         $data["month"]  = $month;
         $data["year"]   = $year;
+        $data["earnings"]   = array();
+        $data["deductions"] = array();
+        $last_payslip = $this->payroll_model->getLastPayslip($id);
+
+        if(!empty($last_payslip)){
+            if($last_payslip['basic'] > 0){
+                $data['result']['basic_salary'] = $last_payslip['basic'];
+            }
+            $data["earnings"]   = $this->payroll_model->getAllowance($last_payslip['id'], 'positive');
+            $data["deductions"] = $this->payroll_model->getAllowance($last_payslip['id'], 'negative');
+        }
 
         $alloted_leave = $this->staff_model->alloted_leave($id);
 
@@ -132,6 +143,10 @@ class Payroll extends Admin_Controller
         $data['classlist']        = $user_type;
         $data['sch_setting']      = $this->sch_setting_detail;
         $searchEmployee           = $this->payroll_model->searchEmployeeById($employee_payroll['staff_id']);
+        if(empty($employee_payroll['basic']) || $employee_payroll['basic'] == 0){
+            $employee_payroll['basic'] = $searchEmployee['basic_salary'];
+        }
+        $data['employee_payroll'] = $employee_payroll;
         $date                     = $employee_payroll['year'] . "-" . $employee_payroll['month'];
         $data['result']           = $searchEmployee;
         $data["month"]            = $employee_payroll['month'];
@@ -688,9 +703,14 @@ class Payroll extends Admin_Controller
             if (!empty($result)) {
                 $this->db->trans_start();
                 $header = array_keys($result[0]);
+                $updated_count = 0;
+                $inserted_count = 0;
                 foreach ($result as $row) {
-                    $staff = $this->staff_model->get_staff_by_employee_id($row['staff_id']);
+                    $staff = $this->staff_model->get_by_employee_id($row['staff_id']);
                     if ($staff) {
+
+                        $existing_payslip = $this->payroll_model->getPayslipByStaffMonthYear($staff['id'], $month, $year);
+
                         $total_allowance = 0;
                         $total_deduction = 0;
                         $allowances = [];
@@ -711,7 +731,7 @@ class Payroll extends Admin_Controller
 
                         $data = array(
                             'staff_id' => $staff['id'],
-                            'basic' => 0,
+                            'basic' => $staff['basic_salary'],
                             'total_allowance' => $total_allowance,
                             'total_deduction' => $total_deduction,
                             'net_salary' => $total_allowance - $total_deduction,
@@ -723,7 +743,17 @@ class Payroll extends Admin_Controller
                             'leave_deduction' => '0',
                         );
 
-                        $payslipid = $this->payroll_model->createPayslip($data);
+                        if($existing_payslip){
+                            $updated_count++;
+                            $data['id'] = $existing_payslip->id;
+                            $payslipid = $this->payroll_model->createPayslip($data);
+                            $this->payroll_model->deletePayslipAllowances($payslipid);
+
+                        }else{
+                            $inserted_count++;
+                            $payslipid = $this->payroll_model->createPayslip($data);
+                        }
+
 
                         foreach ($allowances as $allowance) {
                             $allowance_data = array(
@@ -738,7 +768,7 @@ class Payroll extends Admin_Controller
                     }
                 }
                 $this->db->trans_complete();
-                $this->session->set_flashdata('msg', '<div class="alert alert-success text-center">' . $this->lang->line('records_found_in_csv_file_total') . ' ' . count($result) . ' ' . $this->lang->line('records_imported_successfully') . '</div>');
+                $this->session->set_flashdata('msg', '<div class="alert alert-success text-center">' . $this->lang->line('records_found_in_csv_file_total') . ' ' . count($result) . ' ' . $this->lang->line('records_imported_successfully') . ' (' . $this->lang->line('updated') . ': ' . $updated_count . ', ' . $this->lang->line('inserted') . ': ' . $inserted_count . ')' . '</div>');
             } else {
                 $this->session->set_flashdata('msg', '<div class="alert alert-danger text-center">' . $this->lang->line('no_record_found') . '</div>');
             }

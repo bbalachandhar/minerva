@@ -258,6 +258,23 @@ class Payroll_model extends MY_Model
         return $query->row_array();
     }
 
+    public function getLastPayslip($staff_id)
+    {
+        $this->db->select("staff_payslip.*");
+        $this->db->from('staff_payslip');
+        $this->db->where('staff_id', $staff_id);
+        $this->db->order_by('year', 'DESC');
+        $this->db->order_by('id', 'DESC');
+        $this->db->limit(1);
+        $query = $this->db->get();
+
+        if ($query->num_rows() > 0) {
+            $payslip_id = $query->row()->id;
+            return $this->getPayslip($payslip_id);
+        }
+        return false;
+    }
+
     public function getAllowance($id, $type = null)
     {
         if (!empty($type)) {
@@ -313,10 +330,28 @@ class Payroll_model extends MY_Model
         $this->db->where("payslip_id", $payslipid)->delete("payslip_allowance");
     }
 
+    public function deletePayslipAllowances($payslipid)
+    {
+        $this->db->where("payslip_id", $payslipid)->delete("payslip_allowance");
+    }
+
     public function revertPayslipStatus($payslipid)
     {
         $data = array('status' => "generated");
         $this->db->where("id", $payslipid)->update("staff_payslip", $data);
+    }
+
+    public function getPayslipByStaffMonthYear($staff_id, $month, $year)
+    {
+        $this->db->where('staff_id', $staff_id);
+        $this->db->where('month', $month);
+        $this->db->where('year', $year);
+        $this->db->order_by('id', 'DESC'); // Order by ID to get the most recent one consistently
+        $query = $this->db->get('staff_payslip');
+        if ($query->num_rows() > 0) { // Change condition to "> 0" to handle multiple existing duplicates
+            return $query->row(); // Return the first one (most recent due to order_by)
+        }
+        return false;
     }
 
     public function payrollYearCount()

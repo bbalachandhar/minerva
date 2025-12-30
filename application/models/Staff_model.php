@@ -2,7 +2,7 @@
 
 class Staff_model extends MY_Model
 {
- 
+
     public function __construct()
     {
         parent::__construct();
@@ -10,22 +10,22 @@ class Staff_model extends MY_Model
         $this->superadmin_visible = $this->customlib->superadmin_visible();
         $getStaffRole     = $this->customlib->getStaffRole();
         if(isset($getStaffRole)){
-            $this->staffrole   =   json_decode($getStaffRole); 
-        }      
+            $this->staffrole   =   json_decode($getStaffRole);
+        }
     }
 
     public function get($id = null)
-    {        
+    {
         $this->db->select('staff.*,languages.language,languages.is_rtl,roles.name as user_type,roles.id as role_id')->from('staff')->join("staff_roles", "staff_roles.staff_id = staff.id", "left")->join("roles", "staff_roles.role_id = roles.id", "left")->join("languages", "languages.id = staff.lang_id", "left");
-        
+
         if ($this->session->has_userdata('admin')) {
             if($this->staffrole->id != 7){
                 if ($this->superadmin_visible == 'disabled' ) {
-                    $this->db->where("roles.id !=", 7);             
-                } 
+                    $this->db->where("roles.id !=", 7);
+                }
             }
-        }        
-                  
+        }
+
         if ($id != null) {
             $this->db->where('staff.id', $id);
         } else {
@@ -439,7 +439,7 @@ class Staff_model extends MY_Model
         if (!isset($id)) {
             $id = 0;
         }
-        
+
         if (!isset($staff_id)) {
             $staff_id = 0;
         }
@@ -480,19 +480,19 @@ class Staff_model extends MY_Model
         if ($id != null) {
             $this->db->where('id', $id);
         } else {
-                      
+
             if ($this->superadmin_visible == 'disabled' && $this->staffrole->id != 7) {
-                $this->db->where("roles.id !=", 7);             
+                $this->db->where("roles.id !=", 7);
             }
 
-            $this->db->order_by('id'); 
+            $this->db->order_by('id');
         }
         $this->db->where("is_active", "yes");
         $query = $this->db->get();
         if ($id != null) {
             $result = $query->row_array();
         } else {
-            $result = $query->result_array();            
+            $result = $query->result_array();
         }
         return $result;
     }
@@ -537,12 +537,12 @@ class Staff_model extends MY_Model
                 $i++;
             }
         }
-       
-        $field_var = count($field_k_array) > 0 ? "," . implode(',', $field_k_array) : "";        
-         
-        if($this->staffrole->id != 7){        
+
+        $field_var = count($field_k_array) > 0 ? "," . implode(',', $field_k_array) : "";
+
+        if($this->staffrole->id != 7){
             if ($this->superadmin_visible == 'disabled') {
-                $this->db->where("roles.id !=", 7);             
+                $this->db->where("roles.id !=", 7);
             }
         }
 
@@ -550,22 +550,22 @@ class Staff_model extends MY_Model
         $this->db->join('staff_designation', "staff_designation.id = staff.designation", "left");
         $this->db->join('staff_roles', "staff_roles.staff_id = staff.id", "left");
         $this->db->join('roles', "roles.id = staff_roles.role_id", "left");
-        $this->db->join('department', "department.id = staff.department", "left");       
+        $this->db->join('department', "department.id = staff.department", "left");
 
         if ($class_id != "") {
             $this->db->join('class_teacher', 'staff.id=class_teacher.staff_id', 'left');
             $this->db->or_where('class_teacher.class_id', $student_current_class->class_id);
         }
-        $this->db->where("staff.is_active", $active);  
+        $this->db->where("staff.is_active", $active);
         if($role != ""){
         $this->db->where("roles.id", $role);
-          }   
+          }
         $query = $this->db->get();
 
         $result = $query->result_array();
                 return $result;
     }
-    
+
     public function getEmployeeByRoleID($role, $active = 1)
     {
         $query = $this->db->select("staff.*,staff_designation.designation,department.department_name as department, roles.id as role_id, roles.name as role")->join('staff_designation', "staff_designation.id = staff.designation", "left")->join('staff_roles', "staff_roles.staff_id = staff.id", "left")->join('roles', "roles.id = staff_roles.role_id", "left")->join('department', "department.id = staff.department", "left")->where("staff.is_active", $active)->where("roles.id", $role)->get("staff");
@@ -587,18 +587,18 @@ class Staff_model extends MY_Model
 
     public function getLeaveRecord($id)
     {
-        $query = $this->db->select('leave_types.type,leave_types.id as lid,roles.id as staff_role,staff.name,staff.surname,staff.id as staff_id,roles.name as user_type,staff.employee_id,staff_leave_request.*')->join("leave_types", "leave_types.id = staff_leave_request.leave_type_id")->join("staff", "staff.id = staff_leave_request.staff_id")->join("staff_roles", "staff.id = staff_roles.staff_id")->join("roles", "staff_roles.role_id = roles.id")->where("staff_leave_request.id", $id)->get("staff_leave_request");    
-        
-        $result =  $query->row();        
-        $applied_by  =   $this->staff_model->get($result->applied_by) ;            
-            
+        $query = $this->db->select('leave_types.type,leave_types.id as lid,roles.id as staff_role,staff.name,staff.surname,staff.id as staff_id,roles.name as user_type,staff.employee_id,staff_leave_request.*')->join("leave_types", "leave_types.id = staff_leave_request.leave_type_id")->join("staff", "staff.id = staff_leave_request.staff_id")->join("staff_roles", "staff.id = staff_roles.staff_id")->join("roles", "staff_roles.role_id = roles.id")->where("staff_leave_request.id", $id)->get("staff_leave_request");
+
+        $result =  $query->row();
+        $applied_by  =   $this->staff_model->get($result->applied_by) ;
+
         if(!empty($applied_by['employee_id'])){
             $result->applied_by =  $applied_by['name'].' '.$applied_by['surname'].' ('. $applied_by['employee_id'] .')';
         }else{
             $result->applied_by = '';
         }
-       
-        return $result;        
+
+        return $result;
     }
 
     public function getStaffId($empid)
@@ -607,7 +607,7 @@ class Staff_model extends MY_Model
         $query = $this->db->select('id')->where($data)->get("staff");
         return $query->row_array();
     }
- 
+
     public function getStaffIdByEmployeeIdOrEmail($employee_id, $email)
     {
         $this->db->select('*');
@@ -624,7 +624,7 @@ class Staff_model extends MY_Model
             return null;
         }
     }
- 
+
     public function getProfile($id)
     {
         $this->db->select('staff.*,staff_designation.designation as designation,staff_roles.role_id, department.department_name as department,roles.name as user_type, staff.prefix, staff.ug_qualification, staff.pg_qualification, staff.higher_qualification, staff.qualified_exam, staff.subject_specialization, staff.additional_qualification');
@@ -672,16 +672,16 @@ class Staff_model extends MY_Model
         if (!empty($custom_fields)) {
             foreach ($custom_fields as $custom_fields_key => $custom_fields_value) {
                 $tb_counter = "table_custom_" . $i;
-                array_push($field_k_array, '`table_custom_' . $i . '`.`field_value` as `' . $custom_fields_value->name . '`');               
+                array_push($field_k_array, '`table_custom_' . $i . '`.`field_value` as `' . $custom_fields_value->name . '`');
                 $join_array .= " LEFT JOIN `custom_field_values` as `" . $tb_counter . "` ON `staff`.`id` = `" . $tb_counter . "`.`belong_table_id` AND `" . $tb_counter . "`.`custom_field_id` = " . $custom_fields_value->id;
                 $i++;
             }
         }
-        
-        $condition = '';               
+
+        $condition = '';
         if($this->staffrole->id != 7){
             if ($this->superadmin_visible == 'disabled' ) {
-                $condition = "and roles.id != 7 "  ;            
+                $condition = "and roles.id != 7 "  ;
             }
         }
 
@@ -745,11 +745,11 @@ class Staff_model extends MY_Model
             $file_name = $staff['other_document_file'];
             $data      = array('other_document_name' => '', 'other_document_file' => '');
         }
-      
+
         if($file_name != ""){
             $this->media_storage->filedelete($file_name,  "./uploads/staff_documents/" . $id);
         }
-     
+
         $this->db->where('id', $id)->update("staff", $data);
     }
 
@@ -852,9 +852,9 @@ class Staff_model extends MY_Model
         $this->db->like('staff.name', $searchterm);
         $this->db->group_end();
         $this->db->where("staff.is_active", "1");
-        $this->db->order_by('staff.id');        
+        $this->db->order_by('staff.id');
         if ($this->superadmin_visible == 'disabled' && $this->staffrole->id != 7) {
-                $this->db->where("roles.id !=", 7);          
+                $this->db->where("roles.id !=", 7);
         }
         $this->db->limit(15);
         $query = $this->db->get();
@@ -1013,17 +1013,17 @@ class Staff_model extends MY_Model
 
 
     public function staff_report($condition)
-    {            
+    {
         $rolescondition = '';
-        
+
         if ($this->session->has_userdata('admin')) {
             if($this->staffrole->id != 7){
-                if ($this->superadmin_visible == 'disabled' ) { 
+                if ($this->superadmin_visible == 'disabled' ) {
                     $rolescondition = " and roles.id != 7 ";
-                } 
+                }
             }
         }
-        
+
         $i             = 1;
         $custom_fields = $this->customfield_model->get_custom_fields('staff', 1);
 
@@ -1038,7 +1038,7 @@ class Staff_model extends MY_Model
                 $i++;
             }
         }
-      
+
         $field_var = count($field_k_array) > 0 ? "," . implode(',', $field_k_array) : "";
 
         $query = "SELECT `staff`.*, `staff_designation`.`designation` as `designation`, `department`.`department_name` as `department`,`roles`.`name` as user_type " . $field_var . ",GROUP_CONCAT(leave_type_id,'@',alloted_leave) as leaves  FROM `staff` " . $join_array . " LEFT JOIN `staff_designation` ON `staff_designation`.`id` = `staff`.`designation` LEFT JOIN `staff_roles` ON `staff_roles`.`staff_id` = `staff`.`id` LEFT JOIN `roles` ON `staff_roles`.`role_id` = `roles`.`id` LEFT JOIN `department` ON `department`.`id` = `staff`.`department` left join staff_leave_details ON staff_leave_details.staff_id=staff.id WHERE 1  " . $condition .    $rolescondition . " group by staff.id";
@@ -1048,38 +1048,38 @@ class Staff_model extends MY_Model
     }
 
     public function inventry_staff()
-    {         
+    {
         if ($this->superadmin_visible == 'disabled' && $this->staffrole->id != 7) {
-                $this->db->where("staff_roles.role_id !=", 7);            
+                $this->db->where("staff_roles.role_id !=", 7);
         }
-        
+
         $this->db->select("CONCAT_WS(' ',staff.name,staff.surname) as name,staff.employee_id,roles.id as role_id,staff.id");
         $this->db->from('staff');
         $this->db->join("staff_roles", "staff_roles.staff_id = staff.id", "left");
         $this->db->join("roles", "staff_roles.role_id = roles.id", "left");
-        $this->db->where('staff.is_active', 1); 
+        $this->db->where('staff.is_active', 1);
         $query = $this->db->get();
         return $query->result_array();
     }
-    
+
     public function getstaffemail($id = null)
     {
         $this->db->select('staff.*,languages.language,roles.name as user_type,roles.id as role_id')->from('staff')->join("staff_roles", "staff_roles.staff_id = staff.id", "left")->join("roles", "staff_roles.role_id = roles.id", "left")->join("languages", "languages.id = staff.lang_id", "left");
-        $this->db->where('staff.id', $id); 
+        $this->db->where('staff.id', $id);
         $query = $this->db->get();
-        return $query->result_array();        
+        return $query->result_array();
     }
 
     public function getemployeeidbystaffid($id){
-        $this->db->select('staff.employee_id,email,contact_no')->from('staff')->where('staff.id', $id); 
+        $this->db->select('staff.employee_id,email,contact_no')->from('staff')->where('staff.id', $id);
         $query = $this->db->get();
         $result =  $query->row_array();
         return $result['employee_id'];
     }
 
     public function get_staff_list($array = null)
-    {      
-       $array = implode(',', $array); 
+    {
+       $array = implode(',', $array);
        $query=$this->db->query("select * from staff where staff.id in ($array)");
        return $query->result_array();
     }
@@ -1091,6 +1091,17 @@ class Staff_model extends MY_Model
         $query = $this->db->get('staff');
         if ($query->num_rows() > 0) {
             return $query->row();
+        } else {
+            return false;
+        }
+    }
+
+    public function get_by_employee_id($employee_id)
+    {
+        $this->db->where('employee_id', $employee_id);
+        $query = $this->db->get('staff');
+        if ($query->num_rows() > 0) {
+            return $query->row_array();
         } else {
             return false;
         }
@@ -1129,7 +1140,7 @@ class Staff_model extends MY_Model
         if (!empty($staffData['image']) && $staffData['image'] != 'no_image.png' && $staffData['image'] != '') { // Assuming 'no_image.png' is the default
             $filled_fields++;
         }
-        
+
         $percentage = ($total_fields > 0) ? round(($filled_fields / $total_fields) * 100) : 0;
         return $percentage;
     }
@@ -1156,7 +1167,7 @@ class Staff_model extends MY_Model
                 $update_data[$field] = $data[$field];
             }
         }
-        
+
         // Ensure email is unique if updated
         if (isset($update_data['email'])) {
             $this->db->where('email', $update_data['email']);

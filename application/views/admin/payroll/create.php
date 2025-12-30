@@ -132,40 +132,76 @@ foreach ($monthAttendance as $attendence_key => $attendence_value) {
                                 <div class="col-md-4 col-sm-4">
                                     <h3 class="box-title"><?php echo $this->lang->line('earning'); ?></h3>
                                     <button type="button" onclick="add_more()" class="plusign"><i class="fa fa-plus"></i></button>
-                                    <div class="sameheight">
-                                        <div class="feebox">
-                                            <table class="table3" id="tableID">
-                                                <tr id="row0">
-                                                    <td><input type="text" class="form-control" id="allowance_type" name="allowance_type[]" placeholder="<?php echo $this->lang->line('type'); ?>"></td>
-                                                    <td><input type="text" id="allowance_amount" name="allowance_amount[]" class="form-control" value="0"></td>
-
-                                                </tr>
-                                            </table>
-                                        </div>
-                                    </div>
-                                </div><!--./col-md-4-->
-                                <div class="col-md-4 col-sm-4">
-                                    <h3 class="box-title"><?php echo $this->lang->line('deduction'); ?></h3>
-                                    <button type="button" onclick="add_more_deduction()" class="plusign"><i class="fa fa-plus"></i></button>
-                                    <div class="sameheight">
-                                        <div class="feebox">
-                                            <table class="table3" id="tableID2">
-                                                <?php
-                                                if (!empty($deductions)) {
-                                                    $count = 0;
-                                                    foreach ($deductions as $deduction) {
-                                                        ?>
-                                                        <tr id="deduction_row<?php echo $count; ?>">
-                                                            <td><input type="text" id="deduction_type" name="deduction_type[]" class="form-control" placeholder="<?php echo $this->lang->line('type'); ?>" value="<?php echo $deduction['allowance_type']; ?>" readonly></td>
-                                                            <td><input type="text" id="deduction_amount" name="deduction_amount[]" class="form-control" value="<?php echo $deduction['amount']; ?>"></td>
-                                                        </tr>
-                                                        <?php
-                                                        $count++;
-                                                    }
-                                                }
-                                                ?>
-                                            </table>
-                                        </div>
+                                                                         <div class="sameheight">
+                                                                            <div class="feebox">
+                                                                                <table class="table3" id="tableID">
+                                                                                    <?php
+                                    if (!empty($earnings)) {
+                                        $count = 1;
+                                        foreach ($earnings as $earning) {
+                                            ?>
+                                                                                            <tr id="row<?php echo $count; ?>">
+                                                                                                <td>
+                                                                                                    <input type="text" class="form-control" name="allowance_type[]" id="allowance_type_<?php echo $count; ?>" placeholder="<?php echo $this->lang->line('type'); ?>" value="<?php echo $earning['allowance_type']; ?>">
+                                                                                                </td>
+                                                                                                <td>
+                                                                                                    <input type="text" name="allowance_amount[]" id="allowance_amount_<?php echo $count; ?>" class="form-control" value="<?php echo $earning['amount']; ?>">
+                                                                                                </td>
+                                                                                                <td>
+                                                                                                    <button type="button" onclick="delete_row(<?php echo $count; ?>)" class="closebtn"><i class="fa fa-remove"></i></button>
+                                                                                                </td>
+                                                                                            </tr>
+                                                                                            <?php
+                                    $count++;
+                                        }
+                                    } else {
+                                        ?>
+                                                                                        <tr id="row0">
+                                                                                            <td><input type="text" class="form-control" id="allowance_type" name="allowance_type[]" placeholder="<?php echo $this->lang->line('type'); ?>"></td>
+                                                                                            <td><input type="text" id="allowance_amount" name="allowance_amount[]" class="form-control" value="0"></td>
+                                    
+                                                                                        </tr>
+                                                                                    <?php }
+                                    ?>
+                                                                                </table>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div><!--./col-md-4-->
+                                                                    <div class="col-md-4 col-sm-4">
+                                                                        <h3 class="box-title"><?php echo $this->lang->line('deduction'); ?></h3>
+                                                                        <button type="button" onclick="add_more_deduction()" class="plusign"><i class="fa fa-plus"></i></button>
+                                                                        <div class="sameheight">
+                                                                            <div class="feebox">
+                                                                                <table class="table3" id="tableID2">
+                                                                                    <?php
+                                    if (!empty($deductions)) {
+                                        $count = 1;
+                                        foreach ($deductions as $deduction) {
+                                            ?>
+                                                                                            <tr id="deduction_row<?php echo $count; ?>">
+                                                                                                <td>
+                                                                                                    <input type="text" id="deduction_type_<?php echo $count; ?>" name="deduction_type[]" class="form-control" placeholder="<?php echo $this->lang->line('type'); ?>" value="<?php echo $deduction['allowance_type']; ?>">
+                                                                                                </td>
+                                                                                                <td>
+                                                                                                    <input type="text" id="deduction_amount_<?php echo $count; ?>" name="deduction_amount[]" class="form-control" value="<?php echo $deduction['amount']; ?>">
+                                                                                                </td>
+                                                                                                 <td>
+                                                                                                    <button type="button" onclick="delete_deduction_row(<?php echo $count; ?>)" class="closebtn"><i class="fa fa-remove"></i></button>
+                                                                                                </td>
+                                                                                            </tr>
+                                                                                            <?php
+                                    $count++;
+                                        }
+                                    } else {
+                                        ?>
+                                                                                     <tr id="deduction_row0">
+                                                                                        <td><input type="text" class="form-control" id="deduction_type" name="deduction_type[]" placeholder="<?php echo $this->lang->line('type'); ?>"></td>
+                                                                                        <td><input type="text" id="deduction_amount" name="deduction_amount[]" class="form-control" value="0"></td>
+                                                                                    </tr>
+                                                                                    <?php
+                                    }
+                                    ?>
+                                                                                </table>                                        </div>
                                     </div>
                                 </div><!--./col-md-4-->
                                 <div class="col-md-4 col-sm-4">

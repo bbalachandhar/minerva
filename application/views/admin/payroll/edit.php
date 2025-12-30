@@ -221,7 +221,7 @@ $deduction_count++;
                                             <div class="form-group">
                                                 <label class="col-sm-4 control-label"><?php echo $this->lang->line('basic_salary'); ?></label>
                                                 <div class="col-sm-8">
-                                                    <input class="form-control" name="basic" value="<?php echo convertBaseAmountCurrencyFormat($employee_payroll['basic']); ?>" id="basic"  type="text" />
+                                                    <input class="form-control" name="basic" value="<?php echo $employee_payroll['basic']; ?>" id="basic"  type="text" />
                                                 </div>
                                             </div><!--./form-group-->
                                             <div class="form-group">
