@@ -1,4 +1,3 @@
-<?php $currency_symbol = $this->customlib->getSchoolCurrencyFormat();?>
 <!-- Content Wrapper. Contains page content -->
 <div class="content-wrapper">
     <!-- Main content -->
@@ -26,14 +25,26 @@ if (isset($error_message)) {
     }
     ?>
                                 <?php echo $this->customlib->getCSRF(); ?>
- 
                                 <div class="form-group">
-                                    <label for="exampleInputEmail1"><?php echo $this->lang->line('name'); ?></label> <small class="req">*</small>
-                                    <input autofocus="" id="name" name="name" placeholder="" type="text" class="form-control"  value="<?php echo set_value('name'); ?>" />
-                                    <span class="text-danger"><?php echo form_error('name'); ?></span>
+                                    <label for="exampleInputEmail1"><?php echo $this->lang->line('department'); ?><small class="req"> *</small></label>
+                                    <select autofocus="" id="department_id" name="department_id" class="form-control" >
+                                        <option value=""><?php echo $this->lang->line('select'); ?></option>
+                                        <?php
+foreach ($departmentlist as $department) {
+        ?>
+                                            <option value="<?php echo $department['id'] ?>" <?php
+if (set_value('department_id') == $department['id']) {
+            echo "selected=selected";
+        }
+        ?>><?php echo $department['department_name'] ?></option>
+                                                        <?php
+}
+    ?>
+                                    </select>
+                                    <span class="text-danger"><?php echo form_error('department_id'); ?></span>
                                 </div>
                                 <div class="form-group">
-                                    <label for="exampleInputEmail1"><?php echo $this->lang->line('class'); ?> </label><small class="req"> *</small>
+                                    <label for="exampleInputEmail1"><?php echo $this->lang->line('class'); ?> </label><small class="req">*</small>
                                     <select  id="class_id" name="class_id" class="form-control" >
                                         <option value=""><?php echo $this->lang->line('select'); ?></option>
                                         <?php
@@ -50,6 +61,12 @@ if (set_value('class_id') == $class['id']) {
     ?>
                                     </select>
                                     <span class="text-danger"><?php echo form_error('class_id'); ?></span>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="exampleInputEmail1"><?php echo $this->lang->line('name'); ?></label> <small class="req">*</small>
+                                    <input autofocus="" id="name" name="name" placeholder="" type="text" class="form-control"  value="<?php echo set_value('name'); ?>" />
+                                    <span class="text-danger"><?php echo form_error('name'); ?></span>
                                 </div>
                                 
                                 <div class="form-group"> <!-- Radio group !-->
@@ -101,6 +118,41 @@ if ($this->rbac->hasPrivilege('subject_group', 'can_add')) {
                     <div class="box-header ptbnull">
                         <h3 class="box-title titlefix"><?php echo $this->lang->line('subject_group_list'); ?></h3>
                         <div class="box-tools pull-right">
+                            <form class="form-inline" action="<?php echo site_url('admin/subjectgroup/index') ?>" method="post" accept-charset="utf-8">
+                                <div class="form-group">
+                                    <select  id="search_department_id" name="department_id" class="form-control" >
+                                        <option value=""><?php echo $this->lang->line('select_department'); ?></option>
+                                        <?php
+foreach ($departmentlist as $department) {
+    ?>
+                                            <option value="<?php echo $department['id'] ?>" <?php
+if (set_value('department_id', $department_id_selected) == $department['id']) {
+        echo "selected=selected";
+    }
+    ?>><?php echo $department['department_name'] ?></option>
+                                        <?php
+}
+    ?>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <select  id="search_class_id" name="class_id" class="form-control" >
+                                        <option value=""><?php echo $this->lang->line('select_class'); ?></option>
+                                        <?php
+foreach ($classlist as $class) {
+    ?>
+                                            <option value="<?php echo $class['id'] ?>" <?php
+if (set_value('class_id') == $class['id']) {
+        echo "selected=selected";
+    }
+    ?>><?php echo $class['class'] ?></option>
+                                        <?php
+}
+    ?>
+                                    </select>
+                                </div>
+                                <button type="submit" class="btn btn-primary btn-sm"><?php echo $this->lang->line('search'); ?></button>
+                            </form>
                         </div><!-- /.box-tools -->
                     </div><!-- /.box-header -->
                     <div class="box-body">
@@ -208,14 +260,14 @@ if ($this->rbac->hasPrivilege('subject_group', 'can_delete')) {
     var post_section_array = <?php echo json_encode($section_array); ?>;
     $(document).ready(function () {
         var post_class_id = '<?php echo set_value('class_id', 0) ?>';
-        if (post_section_array !== null && post_section_array.length > 1) {
+        var post_department_id = '<?php echo set_value('department_id', 0) ?>';
 
-            $.each(post_section_array, function (i, elem) {
-
-            });
+        if (post_department_id !== 0) {
+            getClassesByDepartmentForSubjectGroup(post_department_id, post_class_id);
+        } else {
+            getSectionByClass(post_class_id, 0); // Original call if no department selected
         }
 
-        getSectionByClass(post_class_id, 0);
         $('.detail_popover').popover({
             placement: 'right',
             trigger: 'hover',
@@ -226,11 +278,78 @@ if ($this->rbac->hasPrivilege('subject_group', 'can_delete')) {
             }
         });
 
+        $(document).on('change', '#department_id', function (e) {
+            $('#class_id').html("");
+            var department_id = $(this).val();
+            var base_url = '<?php echo base_url() ?>';
+            var div_data = '<option value=""><?php echo $this->lang->line('select'); ?></option>';
+
+            $.ajax({
+                type: "POST",
+                url: base_url + "admin/subjectgroup/getclassesbydepartment",
+                data: {'department_id': department_id},
+                dataType: "json",
+                success: function (data) {
+                    $.each(data, function (i, obj)
+                    {
+                        div_data += "<option value=" + obj.id + ">" + obj.class + "</option>";
+                    });
+
+                    $('#class_id').append(div_data);
+                }
+            });
+        });
+
+        $(document).on('change', '#search_department_id', function (e) {
+            var department_id = $(this).val();
+            var base_url = '<?php echo base_url() ?>';
+            var $search_class_id = $('#search_class_id');
+            $search_class_id.html('<option value=""><?php echo $this->lang->line('select_class'); ?></option>'); // Clear existing options
+
+            if (department_id) {
+                $.ajax({
+                    type: "POST",
+                    url: base_url + "admin/subjectgroup/getclassesbydepartment",
+                    data: {'department_id': department_id},
+                    dataType: "json",
+                    success: function (data) {
+                        $.each(data, function (i, obj) {
+                            $search_class_id.append("<option value='" + obj.id + "'>" + obj.class + "</option>");
+                        });
+                    }
+                });
+            }
+        });
+
         $(document).on('change', '#class_id', function (e) {
             var class_id = $(this).val();
             getSectionByClass(class_id, 0);
         });
     });
+
+    function getClassesByDepartmentForSubjectGroup(department_id, selected_class_id) {
+        var base_url = '<?php echo base_url() ?>';
+        var $class_id_dropdown = $('#class_id');
+        $class_id_dropdown.html('<option value=""><?php echo $this->lang->line('select'); ?></option>'); // Clear existing options
+
+        if (department_id) {
+            $.ajax({
+                type: "POST",
+                url: base_url + "admin/subjectgroup/getclassesbydepartment",
+                data: {'department_id': department_id},
+                dataType: "json",
+                success: function (data) {
+                    $.each(data, function (i, obj) {
+                        var sel = (selected_class_id && selected_class_id == obj.id) ? "selected" : "";
+                        $class_id_dropdown.append("<option value='" + obj.id + "' " + sel + ">" + obj.class + "</option>");
+                    });
+                    if (selected_class_id) {
+                        getSectionByClass(selected_class_id, 0);
+                    }
+                }
+            });
+        }
+    }
 
     function getSectionByClass(class_id, section_array) {
         $('.section_checkbox').html('');

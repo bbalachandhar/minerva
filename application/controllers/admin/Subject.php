@@ -353,9 +353,9 @@ class Subject extends Admin_Controller
                                             $teacher_id = trim($teacher_id);
                                             if (!empty($teacher_id)) {
                                                 // Assuming a method to get staff by ID or check if ID exists
-                                                $teacher_exists = $this->staff_model->get($teacher_id); 
-                                                if ($teacher_exists) {
-                                                    $assigned_teacher_ids[] = $teacher_id;
+                                                $teacher_data = $this->staff_model->get_by_employee_id($teacher_id); 
+                                                if ($teacher_data) {
+                                                    $assigned_teacher_ids[] = $teacher_data['id'];
                                                 } else {
                                                     $error_messages[] = 'Teacher with ID "' . $teacher_id . '" not found for subject "' . $name . '" in row ' . $line_number . '.';
                                                     log_message('error', 'Validation error: Teacher with ID ' . $teacher_id . ' not found.');

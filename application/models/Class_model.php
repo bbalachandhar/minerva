@@ -214,4 +214,13 @@ class Class_model extends MY_Model
         }
         return false;
     }
+    
+    public function get_class_by_department($department_id)
+    {
+        $this->db->select('*');
+        $this->db->from('classes');
+        $this->db->where('department_id', $department_id);
+        $query = $this->db->get();
+        return $query->result_array();
+    }
 }

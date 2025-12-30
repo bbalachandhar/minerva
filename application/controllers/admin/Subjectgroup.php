@@ -28,8 +28,15 @@ class Subjectgroup extends Admin_Controller
         $data['title']         = 'Add Class';
         $data['title_list']    = 'Class List';
         
-        $class                 = $this->class_model->get();
-        $data['classlist']     = $class;
+        $this->load->model('department_model');
+        $data['departmentlist'] = $this->department_model->getDepartmentType();
+        $data['department_id_selected'] = $this->input->post('department_id') ? $this->input->post('department_id') : '';
+
+        if (!empty($data['department_id_selected'])) {
+            $data['classlist'] = $this->class_model->get_class_by_department($data['department_id_selected']);
+        } else {
+            $data['classlist'] = $this->class_model->get();
+        }
         
         $data['section_array'] = $json_array;
 
@@ -41,6 +48,7 @@ class Subjectgroup extends Admin_Controller
         );
 
         $this->form_validation->set_rules('class_id', $this->lang->line('class'), 'trim|required|xss_clean');
+        $this->form_validation->set_rules('department_id', $this->lang->line('department'), 'trim|required|xss_clean');
 
         $this->form_validation->set_rules('subject[]', $this->lang->line('subject'), 'trim|required|xss_clean');
 
@@ -61,6 +69,8 @@ class Subjectgroup extends Admin_Controller
                 'name'        => $this->input->post('name'),
                 'session_id'  => $session,
                 'description' => $this->input->post('description'),
+                'class_id' => $this->input->post('class_id'),
+                'department_id' => $this->input->post('department_id'),
             );
             $subject  = $this->input->post('subject');
             $sections = $this->input->post('sections');
@@ -73,13 +83,14 @@ class Subjectgroup extends Admin_Controller
         // Load data for the view, applying filter if present
         $subject_list             = $this->subject_model->get();
         $data['subjectlist']      = $subject_list;
-        $subjectgroupList         = $this->subjectgroup_model->getByID(); // Apply filter
+        $subjectgroupList         = $this->subjectgroup_model->getByID(null, $data['department_id_selected'], $this->input->post('class_id')); // Apply filter
         $data['subjectgroupList'] = $subjectgroupList;
 
         $this->load->view('layout/header', $data);
         $this->load->view('admin/subjectgroup/subjectgroupList', $data);
         $this->load->view('layout/footer', $data);
     }
+
 
     public function delete($id)
     {
@@ -255,15 +266,40 @@ class Subjectgroup extends Admin_Controller
         echo json_encode($data);
     }
 
-    public function getGroupsubjects()
-    {
-        $subject_group_id = $this->input->post('subject_group_id');
-         $session_id = $this->input->post('session_id');
-        if(!isset($session_id)){
-            $session_id=NULL;
+        public function getGroupsubjects()
+
+        {
+
+            $subject_group_id = $this->input->post('subject_group_id');
+
+             $session_id = $this->input->post('session_id');
+
+            if(!isset($session_id)){
+
+                $session_id=NULL;
+
+            }
+
+            $data             = $this->subjectgroup_model->getGroupsubjects($subject_group_id,$session_id);      
+
+            echo json_encode($data);
+
         }
-        $data             = $this->subjectgroup_model->getGroupsubjects($subject_group_id,$session_id);      
-        echo json_encode($data);
+
+    
+
+        public function getclassesbydepartment()
+
+        {
+
+            $department_id = $this->input->post('department_id');
+
+            $data = $this->class_model->get_class_by_department($department_id);
+
+            echo json_encode($data);
+
+        }
+
     }
 
-}
+    

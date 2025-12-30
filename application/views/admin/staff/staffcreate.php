@@ -482,7 +482,7 @@ echo display_custom_fields('staff');
                                                             <input type="text" class="form-control" name="basic_salary" value="<?php echo set_value('basic_salary') ?>" >
                                                         </div>
                                                     </div>
-                                                if ($sch_setting->staff_work_shift) {?>
+                                                <?php if ($sch_setting->staff_work_shift) {?>
                                                     <div class="col-md-4">
                                                         <div class="form-group">
                                                             <label for="exampleInputEmail1"><?php echo $this->lang->line('work_shift'); ?></label>

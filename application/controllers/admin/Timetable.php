@@ -13,6 +13,138 @@ class Timetable extends Admin_Controller
         $this->load->model("classteacher_model");
     }
 
+    public function bulk()
+    {
+        $this->load->model('subject_model');
+        $this->load->model('subjecttimetable_model');
+        $this->load->dbutil();
+        $this->load->library('csvreader');
+        $this->session->set_userdata('top_menu', 'Academics');
+        $this->session->set_userdata('sub_menu', 'Academics/timetable');
+
+        $class             = $this->class_model->get();
+        $this->load->model('department_model');
+        $data['departmentlist'] = $this->department_model->getDepartmentType();
+        $data['classlist'] = $class;
+
+        $this->form_validation->set_rules('class_id', $this->lang->line('class'), 'trim|required|xss_clean');
+        $this->form_validation->set_rules('section_id', $this->lang->line('section'), 'trim|required|xss_clean');
+        $this->form_validation->set_rules('subject_group_id', $this->lang->line('subject_group'), 'trim|required|xss_clean');
+        $this->form_validation->set_rules('file', $this->lang->line('file'), 'callback_handle_csv_upload');
+
+        if ($this->form_validation->run() == true) {
+            $class_id         = $this->input->post('class_id');
+            $section_id       = $this->input->post('section_id');
+            $subject_group_id = $this->input->post('subject_group_id');
+            $session          = $this->setting_model->getCurrentSession();
+
+            if (isset($_FILES["file"]) && !empty($_FILES['file']['name'])) {
+                $file = $_FILES["file"]["tmp_name"];
+                $result = $this->csvreader->parse_file($file);
+                log_message('debug', 'Timetable bulk upload - CSV parsed result: ' . print_r($result, true));
+
+                if (!empty($result)) {
+                    $insert_array = [];
+                    $success_count = 0;
+                    $error_messages = [];
+                    $line_number = 1; // Start from 1 for header, actual data starts from line 2
+
+                    foreach ($result as $row) {
+                        $line_number++;
+                        log_message('debug', 'Timetable bulk upload - Processing row ' . $line_number . ': ' . print_r($row, true));
+
+                        // Basic validation for required CSV columns
+                        if (empty($row['day']) || empty($row['subject_code']) || empty($row['time_from']) || empty($row['time_to']) || empty($row['room_no'])) {
+                            $error_messages[] = $this->lang->line('missing_required_fields') . ' in row ' . $line_number;
+                            log_message('error', 'Timetable bulk upload - Missing required fields in row ' . $line_number . ': ' . print_r($row, true));
+                            continue;
+                        }
+
+                        $subject = $this->subject_model->getbycodeandclass($row['subject_code'], $class_id);
+                        
+                        if (!$subject) {
+                            $error_messages[] = $this->lang->line('subject') . ' ' . $row['subject_code'] . ' not found for class ' . $class_id . ' in row ' . $line_number;
+                            log_message('error', 'Timetable bulk upload - Subject not found: ' . $row['subject_code'] . ' for class ' . $class_id . ' in row ' . $line_number);
+                            continue;
+                        }
+                        log_message('debug', 'Timetable bulk upload - Subject found: ' . print_r($subject, true));
+
+                        $staff_id = null;
+                        if (!empty($subject->teacher_id)) {
+                            $teacher_ids = json_decode($subject->teacher_id, true);
+                            if (is_array($teacher_ids) && !empty($teacher_ids)) {
+                                $staff_id = $teacher_ids[0]; // Use the first assigned teacher
+                                $staff = $this->staff_model->get($staff_id);
+
+                                if (!$staff) {
+                                    $error_messages[] = $this->lang->line('teacher_not_found_for_subject_code') . ' ' . $row['subject_code'] . ' in row ' . $line_number;
+                                    log_message('error', 'Timetable bulk upload - Teacher not found for subject code: ' . $row['subject_code'] . ' with ID ' . $staff_id . ' in row ' . $line_number);
+                                    continue;
+                                }
+                                log_message('debug', 'Timetable bulk upload - Staff found: ' . print_r($staff, true));
+                            } else {
+                                $error_messages[] = $this->lang->line('no_teacher_assigned_to_subject_code') . ' ' . $row['subject_code'] . ' in row ' . $line_number;
+                                log_message('error', 'Timetable bulk upload - No teacher assigned to subject code: ' . $row['subject_code'] . ' in row ' . $line_number);
+                                continue;
+                            }
+                        } else {
+                            $error_messages[] = $this->lang->line('no_teacher_assigned_to_subject_code') . ' ' . $row['subject_code'] . ' in row ' . $line_number;
+                            log_message('error', 'Timetable bulk upload - No teacher assigned to subject code: ' . $row['subject_code'] . ' in row ' . $line_number);
+                            continue;
+                        }
+                        
+                        $insert_array[] = array(
+                            'day'                      => $row['day'],
+                            'class_id'                 => $class_id,
+                            'section_id'               => $section_id,
+                            'subject_group_id'         => $subject_group_id,
+                            'subject_group_subject_id' => $subject->id,
+                            'staff_id'                 => $staff['id'],
+                            'time_from'                => $row['time_from'],
+                            'time_to'                  => $row['time_to'],
+                            'start_time'               => $this->customlib->timeFormat($row['time_from'], true),
+                            'end_time'                 => $this->customlib->timeFormat($row['time_to'], true),
+                            'room_no'                  => $row['room_no'],
+                            'session_id'               => $session,
+                        );
+                        $success_count++;
+                    }
+
+                    log_message('debug', 'Timetable bulk upload - Final insert array: ' . print_r($insert_array, true));
+
+                    if (!empty($insert_array)) {
+                        $db_result = $this->subjecttimetable_model->add(null, $insert_array, null);
+                        log_message('debug', 'Timetable bulk upload - subjecttimetable_model->add() returned: ' . $db_result);
+
+                        if ($db_result) {
+                            $this->session->set_flashdata('msg', '<div class="alert alert-success text-center">' . $success_count . ' ' . $this->lang->line('timetable_entries_imported_successfully') . '</div>');
+                        } else {
+                            $error_messages[] = $this->lang->line('something_went_wrong_inserting_to_db');
+                            $this->session->set_flashdata('msg', '<div class="alert alert-danger text-center">' . $this->lang->line('error_processing_file') . ': ' . implode('<br>', $error_messages) . '</div>');
+                        }
+                    } else {
+                        $this->session->set_flashdata('msg', '<div class="alert alert-danger text-center">' . $this->lang->line('no_valid_records_to_insert') . ': ' . implode('<br>', $error_messages) . '</div>');
+                    }
+                    redirect('admin/timetable/bulk');
+                } else {
+                    $this->session->set_flashdata('msg', '<div class="alert alert-danger text-center">' . $this->lang->line('csv_file_empty_or_could_not_be_parsed') . '</div>');
+                    redirect('admin/timetable/bulk');
+                }
+            } else {
+                // This block handles validation errors from form_validation->run() == false for file field
+                // The form_validation->set_message will handle the message for the file field directly in the view
+                // No need for a flashdata here for file field specific errors if they are inline
+            }
+        } else {
+            // This block handles validation errors for class_id, section_id, subject_group_id
+            // Form errors will be displayed inline.
+        }
+
+        $this->load->view('layout/header', $data);
+        $this->load->view('admin/timetable/timetableBulk', $data);
+        $this->load->view('layout/footer', $data);
+    }
+
     public function index()
     {
 
@@ -29,6 +161,8 @@ class Timetable extends Admin_Controller
         $data['section_id'] = "";
 
         $class             = $this->class_model->get();
+        $this->load->model('department_model');
+        $data['departmentlist'] = $this->department_model->getDepartmentType();
         $data['classlist'] = $class;
 
         $this->form_validation->set_rules('class_id', $this->lang->line('class'), 'trim|required|xss_clean');
@@ -159,6 +293,8 @@ class Timetable extends Admin_Controller
         $data['section_id'] = "";
         $exam               = $this->exam_model->get();
         $class              = $this->class_model->get('', $classteacher = 'yes');
+        $this->load->model('department_model');
+        $data['departmentlist'] = $this->department_model->getDepartmentType();
         $data['examlist']   = $exam;
         $data['classlist']  = $class;
         $userdata           = $this->customlib->getUserData();
@@ -191,6 +327,14 @@ class Timetable extends Admin_Controller
         }
     }
 
+    public function getclassesbydepartment()
+    {
+        $department_id = $this->input->post('department_id');
+        $data = $this->class_model->get_class_by_department($department_id);
+        echo json_encode($data);
+    }
+
+
     public function classreport()
     {
         if (!$this->rbac->hasPrivilege('class_timetable', 'can_view')) {
@@ -206,6 +350,8 @@ class Timetable extends Admin_Controller
         $data['section_id']      = "";
         $exam                    = $this->exam_model->get();
         $class                   = $this->class_model->get('', $classteacher = 'yes');
+        $this->load->model('department_model');
+        $data['departmentlist'] = $this->department_model->getDepartmentType();
         $data['examlist']        = $exam;
         $data['classlist']       = $class;
         $userdata                = $this->customlib->getUserData();
@@ -435,6 +581,26 @@ class Timetable extends Admin_Controller
         $this->output
             ->set_content_type('application/json')
             ->set_output(json_encode($json_array));
+    }
+
+    public function handle_csv_upload()
+    {
+        $this->load->library('csvreader');
+        if (isset($_FILES["file"]) && !empty($_FILES['file']['name'])) {
+            $file_type = $_FILES["file"]['type'];
+            $file_name = $_FILES["file"]["name"];
+            $allowed_file_type = array('text/csv', 'application/vnd.ms-excel');
+            if (in_array($file_type, $allowed_file_type)) {
+                 return true;
+            } else {
+                $this->form_validation->set_message('handle_csv_upload', $this->lang->line('file_type_not_allowed'));
+                return false;
+            }
+           
+        } else {
+            $this->form_validation->set_message('handle_csv_upload', $this->lang->line('the_file_field_is_required'));
+            return false;
+        }
     }
 
 

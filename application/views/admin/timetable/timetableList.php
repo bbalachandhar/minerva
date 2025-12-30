@@ -12,53 +12,38 @@
     }
 </style>
 
-<div class="content-wrapper" style="min-height: 946px;">  
-    <section class="content-header">
-        <h1>
-            <i class="fa fa-mortar-board"></i> <?php echo $this->lang->line('academics'); ?> <small><?php echo $this->lang->line('student_fees1'); ?></small></h1>
-    </section>
-    <!-- Main content -->
-    <section class="content">
-        <div class="row">       
-            <div class="col-md-12">          
-                <div class="box box-primary">
-                    <div class="box-header with-border">
-                        <h3 class="box-title">
-                            <i class="fa fa-search"></i> <?php echo $this->lang->line('select_criteria'); ?></h3>
-                        <div class="box-tools pull-right">
-                            <?php if ($this->rbac->hasPrivilege('class_timetable', 'can_add')) { ?>
-                                <a href="<?php echo base_url(); ?>admin/timetable/create" class="btn btn-primary btn-sm"  data-toggle="tooltip" title="<?php echo $this->lang->line('add_timetable'); ?>" >
-                                    <i class="fa fa-plus"></i> <?php echo $this->lang->line('add'); ?>
-                                </a>
-                            <?php } ?>
-                        </div>
-                    </div>
-                    <form action="<?php echo site_url('admin/timetable/index') ?>"  method="post" accept-charset="utf-8">
-                        <div class="box-body">
-                            <?php echo $this->customlib->getCSRF(); ?>
                             <div class="row">
-                                <div class="col-md-6">
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label><?php echo $this->lang->line('department'); ?></label><small class="req"> *</small>
+                                        <select autofocus="" id="department_id" name="department_id" class="form-control" >
+                                            <option value=""><?php echo $this->lang->line('select'); ?></option>
+                                            <?php
+foreach ($departmentlist as $department) {
+    ?>
+                                                <option value="<?php echo $department['id'] ?>" <?php if (set_value('department_id') == $department['id']) {
+        echo "selected=selected";
+    }
+    ?>><?php echo $department['department_name'] ?></option>
+                                                <?php
+}
+?>
+                                        </select>
+                                        <span class="text-danger"><?php echo form_error('department_id'); ?></span>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
                                     <div class="form-group">
                                         <label for="exampleInputEmail1"><?php echo $this->lang->line('class'); ?></label><small class="req"> *</small>
                                         <select autofocus="" id="class_id" name="class_id" class="form-control" >
-                                            <option value=""><?php echo $this->lang->line('select'); ?></option>
-                                            <?php
-                                            foreach ($classlist as $class) {
-                                                ?>
-                                                <option value="<?php echo $class['id'] ?>" <?php if (set_value('class_id') == $class['id']) echo "selected=selected"; ?>><?php echo $class['class'] ?></option>
-                                                <?php
-                                                $count++;
-                                            }
-                                            ?>
                                         </select>
                                         <span class="text-danger"><?php echo form_error('class_id'); ?></span>
                                     </div>
                                 </div>
-                                <div class="col-md-6">
+                                <div class="col-md-4">
                                     <div class="form-group">
                                         <label for="exampleInputEmail1"><?php echo $this->lang->line('section'); ?></label><small class="req"> *</small>
                                         <select  id="section_id" name="section_id" class="form-control" >
-                                            <option value=""><?php echo $this->lang->line('select'); ?></option>
                                         </select>
                                         <span class="text-danger"><?php echo form_error('section_id'); ?></span>
                                     </div>
@@ -71,8 +56,8 @@
                     </form>
                 </div>
                 <?php
-                if (isset($result_array)) {
-                    ?>
+if (isset($result_array)) {
+    ?>
                     <div class="box box-info" id="timetable">
                         <div class="box-header with-border">
                             <h3 class="box-title"><i class="fa fa-users"></i> <?php echo $this->lang->line('class_timetable'); ?></h3>
@@ -86,8 +71,8 @@
                                 </div>
                             </div>
                             <?php
-                            if (!empty($result_array)) {
-                                ?>
+if (!empty($result_array)) {
+        ?>
                                 <div class="table-responsive">
                                     <div class="download_label"><?php echo $this->lang->line('class_timetable'); ?></div>
                                     <table class="table table-bordered example">
@@ -97,135 +82,175 @@
                                                     <?php echo $this->lang->line('subject'); ?>
                                                 </th>
                                                 <?php foreach ($getDaysnameList as $key => $value) {
-                                                    ?>
+            ?>
                                                     <th class="text text-center">
                                                         <?php echo $value; ?>
                                                     </th>
                                                 <?php }
-                                                ?>
+?>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             <?php foreach ($result_array as $key => $timetable) {
-                                                ?>
+            ?>
                                                 <tr>
                                                     <th><?php echo $key; ?></th>
                                                     <?php
-                                                    foreach ($timetable as $key => $value) {
-                                                        $status = $value->status;
-                                                        if ($status == "Yes") {
-                                                            ?>
+foreach ($timetable as $key => $value) {
+                $status = $value->status;
+                if ($status == "Yes") {
+                    ?>
                                                             <td class="text text-center">
                                                                 <div class="attachment-block clearfix">
                                                                     <?php
-                                                                    if ($value->start_time != "" && $value->end_time != "") {
-                                                                        ?>
+if ($value->start_time != "" && $value->end_time != "") {
+                        ?>
                                                                         <strong class="text-green"><?php echo $value->start_time; ?></strong>
                                                                         <b class="text text-center">-</b>
                                                                         <strong class="text-green"><?php echo $value->end_time; ?></strong><br/>
                                                                         <strong class="text-green"><?php echo $this->lang->line('room_no'); ?>: <?php echo $value->room_no; ?></strong>
                                                                         <?php
-                                                                    } else {
-                                                                        ?>
+} else {
+                        ?>
                                                                         <b class="text text-center"><?php echo $this->lang->line('not'); ?> <br/><?php echo $this->lang->line('scheduled'); ?></b><br/>
                                                                         <strong class="text-green"></strong>
                                                                         <?php
-                                                                    }
-                                                                    ?>
+}
+                    ?>
                                                                 </div>
                                                             </td>
                                                             <?php
-                                                        } else {
-                                                            ?>
+} else {
+                    ?>
                                                             <td class="text text-center">
                                                                 <div class="attachment-block clearfix">
                                                                     <strong class="text-red"><?php echo $value->start_time; ?></strong>
                                                                 </div>
                                                             </td>
                                                             <?php
-                                                        }
-                                                    }
-                                                    ?>
+}
+            }
+            ?>
                                                 </tr>
                                                 <?php
-                                            }
-                                            ?>
+}
+        ?>
                                         </tbody>
                                     </table>
                                 </div>
                                 <?php
-                            } else {
-                                ?>
+} else {
+        ?>
                                 <div class="alert alert-info"><?php echo $this->lang->line('no_record_found'); ?></div>
                                 <?php
-                            }
-                            ?>
+}
+    ?>
                         </div>
                     </div>
                 </div> 
             </div>  
             <?php
-        } else {
-            
-        }
-        ?>
+} else {
+}
+?>
     </section>
 </div>
 
 <script type="text/javascript">
-    function getSectionByClass(class_id, section_id) {
-        if (class_id != "" && section_id != "") {
-            $('#section_id').html("");
-            var base_url = '<?php echo base_url() ?>';
-            var div_data = '<option value=""><?php echo $this->lang->line('select'); ?></option>';
-            $.ajax({
-                type: "GET",
-                url: base_url + "sections/getByClass",
-                data: {'class_id': class_id},
-                dataType: "json",
-                success: function (data) {
-                    $.each(data, function (i, obj)
-                    {
-                        var sel = "";
-                        if (section_id == obj.section_id) {
-                            sel = "selected";
-                        }
-                        div_data += "<option value=" + obj.section_id + " " + sel + ">" + obj.section + "</option>";
-                    });
-
-                    $('#section_id').append(div_data);
-                }
-            });
-        }
-    }
     $(document).ready(function () {
-        $(document).on('change', '#class_id', function (e) {
-            $('#section_id').html("");
-            var class_id = $(this).val();
-            var base_url = '<?php echo base_url() ?>';
-            var div_data = '<option value=""><?php echo $this->lang->line('select'); ?></option>';
-            $.ajax({
-                type: "GET",
-                url: base_url + "sections/getByClass",
-                data: {'class_id': class_id},
-                dataType: "json",
-                success: function (data) {
-                    $.each(data, function (i, obj)
-                    {
-                        div_data += "<option value=" + obj.section_id + ">" + obj.section + "</option>";
-                    });
+        var base_url = '<?php echo base_url() ?>';
+        var prev_department_id = '<?php echo set_value('department_id') ?>';
+        var prev_class_id = '<?php echo set_value('class_id') ?>';
+        var prev_section_id = '<?php echo set_value('section_id') ?>';
 
-                    $('#section_id').append(div_data);
-                }
-            });
+        // Function to get classes by department and pre-select
+        function getClassesByDepartment(department_id, selected_class_id) {
+            $('#class_id').html('<option value=""><?php echo $this->lang->line('select'); ?></option>'); // Reset class dropdown
+            $('#section_id').html('<option value=""><?php echo $this->lang->line('select'); ?></option>'); // Reset section dropdown
+
+            if (department_id !== "") {
+                $.ajax({
+                    type: "POST",
+                    url: base_url + "admin/timetable/getclassesbydepartment",
+                    data: {'department_id': department_id},
+                    dataType: "json",
+                    success: function (data) {
+                        var div_data = ''; // Start with empty string
+                        $.each(data, function (i, obj) {
+                            var sel = "";
+                            if (selected_class_id && selected_class_id == obj.id) {
+                                sel = "selected";
+                            }
+                            div_data += "<option value='" + obj.id + "' " + sel + ">" + obj.class + "</option>";
+                        });
+                        $('#class_id').append(div_data);
+
+                        // If a class was previously selected, trigger section load
+                        if (selected_class_id) {
+                            getSectionByClass(selected_class_id, prev_section_id);
+                        }
+                    }
+                });
+            }
+        }
+
+        // Function to get sections by class and pre-select
+        function getSectionByClass(class_id, selected_section_id) {
+            $('#section_id').html('<option value=""><?php echo $this->lang->line('select'); ?></option>'); // Reset section dropdown
+            if (class_id !== "") {
+                $.ajax({
+                    type: "GET",
+                    url: base_url + "sections/getByClass",
+                    data: {'class_id': class_id},
+                    dataType: "json",
+                    success: function (data) {
+                        var div_data = ''; // Start with empty string
+                        $.each(data, function (i, obj) {
+                            var sel = "";
+                            if (selected_section_id && selected_section_id == obj.section_id) {
+                                sel = "selected";
+                            }
+                            div_data += "<option value='" + obj.section_id + "' " + sel + ">" + obj.section + "</option>";
+                        });
+                        $('#section_id').append(div_data);
+                    }
+                });
+            }
+        }
+
+        // --- Event Listeners ---
+
+        // Department change event
+        $(document).on('change', '#department_id', function (e) {
+            var department_id = $(this).val();
+            getClassesByDepartment(department_id, null); // Don't pre-select class, it's a new selection
         });
-        var class_id = $('#class_id').val();
-        var section_id = '<?php echo set_value('section_id') ?>';
-        getSectionByClass(class_id, section_id);
+
+        // Class change event
+        $(document).on('change', '#class_id', function (e) {
+            var class_id = $(this).val();
+            getSectionByClass(class_id, null); // Don't pre-select section, it's a new selection
+        });
+
+        // Section change event (submits form)
+        // This is outside the main $(document).ready block in the original, so I'll put it here.
+        // It's important to keep event listeners consistent.
+        $(document).on('change', '#section_id', function (e) {
+            $("form#schedule-form").submit();
+        });
+
+
+        // --- Initial Load Logic ---
+        // On page load, if a department was previously selected, trigger the cascade
+        if (prev_department_id !== "") {
+            getClassesByDepartment(prev_department_id, prev_class_id);
+            // The getClassesByDepartment will then call getSectionByClass if prev_class_id is set
+        }
+
+        // Existing feecategory_id change (unrelated to current issue, but keep it)
         $(document).on('change', '#feecategory_id', function (e) {
             $('#feetype_id').html("");
             var feecategory_id = $(this).val();
-            var base_url = '<?php echo base_url() ?>';
             var div_data = '<option value=""><?php echo $this->lang->line('select'); ?></option>';
             $.ajax({
                 type: "GET",
@@ -233,67 +258,15 @@
                 data: {'feecategory_id': feecategory_id},
                 dataType: "json",
                 success: function (data) {
-                    $.each(data, function (i, obj)
-                    {
+                    $.each(data, function (i, obj) {
                         div_data += "<option value=" + obj.id + ">" + obj.type + "</option>";
                     });
-
                     $('#feetype_id').append(div_data);
                 }
             });
         });
     });
-
+</script>
     $(document).on('change', '#section_id', function (e) {
         $("form#schedule-form").submit();
     });
-</script>
-
-<script type="text/javascript">
-    var base_url = '<?php echo base_url() ?>';
-    function printDiv(elem) {
-        var cls = $("#class_id option:selected").text();
-        var sec = $("#section_id option:selected").text();
-        $('.cls').html(cls + '(' + sec + ')');
-        Popup(jQuery(elem).html());
-    }
-
-    function Popup(data)
-    {
-
-        var frame1 = $('<iframe />');
-        frame1[0].name = "frame1";
-        frame1.css({"position": "absolute", "top": "-1000000px"});
-        $("body").append(frame1);
-        var frameDoc = frame1[0].contentWindow ? frame1[0].contentWindow : frame1[0].contentDocument.document ? frame1[0].contentDocument.document : frame1[0].contentDocument;
-        frameDoc.document.open();
-        //Create a new HTML document.
-        frameDoc.document.write('<html>');
-        frameDoc.document.write('<head>');
-        frameDoc.document.write('<title></title>');
-        frameDoc.document.write('<link rel="stylesheet" href="' + base_url + 'backend/bootstrap/css/bootstrap.min.css">');
-        frameDoc.document.write('<link rel="stylesheet" href="' + base_url + 'backend/dist/css/font-awesome.min.css">');
-        frameDoc.document.write('<link rel="stylesheet" href="' + base_url + 'backend/dist/css/ionicons.min.css">');
-        frameDoc.document.write('<link rel="stylesheet" href="' + base_url + 'backend/dist/css/AdminLTE.min.css">');
-        frameDoc.document.write('<link rel="stylesheet" href="' + base_url + 'backend/dist/css/skins/_all-skins.min.css">');
-        frameDoc.document.write('<link rel="stylesheet" href="' + base_url + 'backend/plugins/iCheck/flat/blue.css">');
-        frameDoc.document.write('<link rel="stylesheet" href="' + base_url + 'backend/plugins/morris/morris.css">');
-        frameDoc.document.write('<link rel="stylesheet" href="' + base_url + 'backend/plugins/jvectormap/jquery-jvectormap-1.2.2.css">');
-        frameDoc.document.write('<link rel="stylesheet" href="' + base_url + 'backend/plugins/datepicker/datepicker3.css">');
-        frameDoc.document.write('<link rel="stylesheet" href="' + base_url + 'backend/plugins/daterangepicker/daterangepicker-bs3.css">');
-        frameDoc.document.write('</head>');
-        frameDoc.document.write('<body>');
-        frameDoc.document.write(data);
-        frameDoc.document.write('</body>');
-        frameDoc.document.write('</html>');
-        frameDoc.document.close();
-        setTimeout(function () {
-            window.frames["frame1"].focus();
-            window.frames["frame1"].print();
-            frame1.remove();
-        }, 500);
-
-
-        return true;
-    }
-</script>

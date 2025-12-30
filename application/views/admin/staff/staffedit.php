@@ -488,7 +488,8 @@ if ($staff["marital_status"] == $mavalue) {
                                                             <span class="text-danger"><?php echo form_error('epf_no'); ?></span>
                                                         </div>
                                                     </div>
-                                                if ($sch_setting->staff_basic_salary) {?>
+                                                <?php } // Closing for if ($sch_setting->staff_epf_no) ?>
+                                                <?php if ($sch_setting->staff_basic_salary) {?>
                                                     <div class="col-md-4">
                                                         <div class="form-group">
                                                             <label for="exampleInputEmail1"><?php echo $this->lang->line('basic_salary'); ?></label>

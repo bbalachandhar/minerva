@@ -493,12 +493,12 @@ class Staff extends Admin_Controller
             $address           = $this->input->post("address");
             $qualification     = $this->input->post("qualification");
             $work_experience          = $this->input->post("work_experience");
-            $basic_salary      = $this->input.post('basic_salary');
-            $account_title     = $this->input.post("account_title");
+            $basic_salary      = $this->input->post('basic_salary');
+            $account_title     = $this->input->post("account_title");
             $bank_account_no   = $this->input->post("bank_account_no");
             $bank_name         = $this->input->post("bank_name");
             $ifsc_code         = $this->input->post("ifsc_code");
-            $bank_branch       = $this->input.post("bank_branch");
+            $bank_branch       = $this->input->post("bank_branch");
             $contract_type     = $this->input->post("contract_type");
             $shift             = $this->input->post("shift");
             $location          = $this->input->post("location");
@@ -511,8 +511,8 @@ class Staff extends Admin_Controller
             $father_name       = $this->input->post("father_name");
             $surname           = $this->input->post("surname");
             $mother_name       = $this->input->post("mother_name");
-            $note              = $this->input.post("note");
-            $epf_no            = $this->input.post("epf_no");
+            $note              = $this->input->post("note");
+            $epf_no            = $this->input->post("epf_no");
 
             $aadhaar_no = $this->input->post('aadhaar_no');
             $religion = $this->input->post('religion');
@@ -521,9 +521,7 @@ class Staff extends Admin_Controller
             $country = $this->input->post('country');
             $state = $this->input->post('state');
             $pincode = $this->input->post('pincode');
-            $is_visiting_faculty = $this->input->post('is_visiting_faculty');
-            $is_part_time_faculty = $this->input->post('is_part_time_faculty');
-            $is_full_time_faculty = $this->input->post('is_full_time_faculty');
+
             $previous_salary = $this->input->post('previous_salary');
             $uan_no = $this->input->post('uan_no');
             $pan_no = $this->input->post('pan_no');
@@ -555,9 +553,7 @@ class Staff extends Admin_Controller
                 'country' => $country,
                 'state' => $state,
                 'pincode' => $pincode,
-                'is_visiting_faculty' => $is_visiting_faculty,
-                'is_part_time_faculty' => $is_part_time_faculty,
-                'is_full_time_faculty' => $is_full_time_faculty,
+
                 'previous_salary' => $previous_salary,
                 'uan_no' => $uan_no,
                 'pan_no' => $pan_no,

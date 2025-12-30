@@ -1198,4 +1198,13 @@ class Staff_model extends MY_Model
             return true;
         }
     }
+
+    public function getbyempID($id)
+    {
+        $this->db->select('*');
+        $this->db->from('staff');
+        $this->db->where('employee_id', $id);
+        $query = $this->db->get();
+        return $query->row();
+    }
 }

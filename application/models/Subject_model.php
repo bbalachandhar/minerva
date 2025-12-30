@@ -160,4 +160,31 @@ $my_subjects[]=$value;
         }
     }
 
+    public function getbybecknclass($name, $class_id)
+    {
+        $this->db->select('`subjects`.*');
+        $this->db->from('subjects');
+        $this->db->join('subject_group_subjects', 'subject_group_subjects.subject_id = subjects.id');
+        $this->db->join('subject_groups', 'subject_groups.id = subject_group_subjects.subject_group_id');
+        $this->db->join('subject_group_class_sections', 'subject_group_class_sections.subject_group_id = subject_groups.id');
+        $this->db->join('class_sections', 'class_sections.id = subject_group_class_sections.class_section_id');
+        $this->db->where('class_sections.class_id', $class_id);
+        $this->db->where('subjects.name', $name);
+        $query = $this->db->get();
+        return $query->row();
+    }
+
+    public function getbycodeandclass($code, $class_id)
+    {
+        $this->db->select('`subjects`.*');
+        $this->db->from('subjects');
+        $this->db->join('subject_group_subjects', 'subject_group_subjects.subject_id = subjects.id');
+        $this->db->join('subject_groups', 'subject_groups.id = subject_group_subjects.subject_group_id');
+        $this->db->join('subject_group_class_sections', 'subject_group_class_sections.subject_group_id = subject_groups.id');
+        $this->db->join('class_sections', 'class_sections.id = subject_group_class_sections.class_section_id');
+        $this->db->where('class_sections.class_id', $class_id);
+        $this->db->where('subjects.code', $code);
+        $query = $this->db->get();
+        return $query->row();
+    }
 }

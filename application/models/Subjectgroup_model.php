@@ -206,8 +206,22 @@ class Subjectgroup_model extends MY_Model {
         return $query->row_array();
     }
 
-    public function getByID($id = null) {
-        $this->db->select('subject_groups.*')->from('subject_groups');
+    public function getByID($id = null, $department_id = null, $class_id = null) {
+        $this->db->select('subject_groups.*');
+        $this->db->from('subject_groups');
+        
+        if ($department_id != null || $class_id != null) {
+            $this->db->join('subject_group_class_sections', 'subject_groups.id = subject_group_class_sections.subject_group_id');
+            $this->db->join('class_sections', 'class_sections.id = subject_group_class_sections.class_section_id');
+            if ($department_id != null) {
+                $this->db->join('classes', 'classes.id = class_sections.class_id');
+                $this->db->where('classes.department_id', $department_id);
+            }
+            if ($class_id != null) {
+                $this->db->where('class_sections.class_id', $class_id);
+            }
+            $this->db->group_by('subject_groups.id');
+        }
 
         if ($id != null) {
             $this->db->where('subject_groups.id', $id);

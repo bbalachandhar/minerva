@@ -21,253 +21,267 @@
                         <div class="box-body">
 
                             <?php echo $this->customlib->getCSRF(); ?>
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label for="exampleInputEmail1"><?php echo $this->lang->line('class'); ?></label><small class="req"> *</small>
-                                        <select autofocus="" id="class_id" name="class_id" class="form-control" >
-                                            <option value=""><?php echo $this->lang->line('select'); ?></option>
-                                            <?php
-                                            foreach ($classlist as $class) {
-                                                ?>
-                                                <option value="<?php echo $class['id'] ?>" <?php
-                                                if (set_value('class_id') == $class['id']) {
-                                                    echo "selected=selected";
-                                                }
-                                                ?>><?php echo $class['class'] ?></option>
-                                                        <?php
-                                                    }
-                                                    ?>
-                                        </select>
-                                        <span class="text-danger"><?php echo form_error('class_id'); ?></span>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label for="exampleInputEmail1"><?php echo $this->lang->line('section'); ?></label><small class="req"> *</small>
-                                        <select  id="section_id" name="section_id" class="form-control" >
-                                            <option value=""><?php echo $this->lang->line('select'); ?></option>
-                                        </select>
-                                        <span class="text-danger"><?php echo form_error('section_id'); ?></span>
-                                    </div>
-                                </div>
-
-                            </div>
-                        </div>
-                        <div class="box-footer">
-                            <button type="submit" class="btn btn-primary pull-right btn-sm" name="search"><?php echo $this->lang->line('search'); ?></button>
-                        </div>
-                    </form>
-
-                    <?php
-                    if (isset($timetable)) {
-                        ?>
-                        <div class="box-header ptbnull"></div>
-                        <div class="box-body">
-                            <?php
-                            if (!empty($timetable)) {
+                                                        <div class="row">
+                                                            <div class="col-md-4">
+                                                                <div class="form-group">
+                                                                    <label><?php echo $this->lang->line('department'); ?></label><small class="req"> *</small>
+                                                                    <select autofocus="" id="department_id" name="department_id" class="form-control" >
+                                                                        <option value=""><?php echo $this->lang->line('select'); ?></option>
+                                                                        <?php
+                            foreach ($departmentlist as $department) {
                                 ?>
-   <button type="submit" title="<?php echo $this->lang->line('print'); ?>" class="btn btn-primary btn-xs pull-right  print_timetable"  data-class_id="<?php echo set_value('class_id');?>" data-section_id="<?php echo set_value('section_id');?>" id="load" data-loading-text="<i class='fa fa-spinner fa-spin'></i> <?php echo $this->lang->line('please_wait'); ?>"><i class="fa fa-print"></i></button>
-                                <div class="table-responsive">    
-                                    <table class="table table-stripped">
-                                        <thead>
-                                            <tr>
-                                                <?php
-                                                foreach ($timetable as $tm_key => $tm_value) {
-                                                    ?>
-                                                    <th class="text"><?php echo $this->lang->line(strtolower($tm_key)); ?></th>
-                                                    <?php
-                                                }
-                                                ?>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr>
-                                                <?php
-                                                foreach ($timetable as $tm_key => $tm_value) {
-                                                    ?>
-                                                    <td class="text" width="14%">
-
-                                                        <?php
-                                                        if (!$timetable[$tm_key]) {
-                                                            ?>
-                                                            <div class="attachment-block block-b-noraml clearfix">
-                                                                <b class="text text-danger"><i class="fa fa-times-circle text-danger"></i> <?php echo $this->lang->line('not_scheduled'); ?></b><br>
-                                                            </div>
-                                                            <?php
-                                                        } else {
-                                                            foreach ($timetable[$tm_key] as $tm_k => $tm_kue) {
-                                                                ?>
-                                                                <div class="attachment-block attachment-block-normal clearfix">
-
-                                                                    <div class="relative attachment-left-space"><i class="fa fa-book"></i> <?php echo $this->lang->line('subject') ?>: <?php
-                                                                        echo $tm_kue->subject_name;
-                                                                        if ($tm_kue->code != '') {
-                                                                            echo " (" . $tm_kue->code . ")";
-                                                                        }
-                                                                        ?>
-
-                                                                    </div>
-
-                                                                    <div class="relative attachment-left-space"><i class="fa fa-clock-o"></i> <?php echo $tm_kue->time_from ?>
-                                                                    <b class="text text-center">-</b>
-                                                                    <strong class=""><?php echo $tm_kue->time_to; ?></strong>
-                                                                    </div>
-
-                                                                    <div class="relative attachment-left-space"><i class="fa fa-user"></i> <?php echo $tm_kue->name." ".$tm_kue->surname." (".$tm_kue->employee_id.")";?>
-                                                                    </div>
-                                                                    <div class="relative attachment-left-space"><i class="fa fa-building"></i> <?php echo $this->lang->line('room_no'); ?>: <?php echo $tm_kue->room_no; ?></div>
-
-                                                                </div>
-                                                                <?php
-                                                            }
-                                                        }
-                                                        ?>
-                                                    </td>
-                                                    <?php
-                                                }
-                                                ?>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>  
-                                <?php
+                                                                            <option value="<?php echo $department['id'] ?>" <?php if (set_value('department_id') == $department['id']) {
+                                    echo "selected=selected";
+                                }
+                                ?>><?php echo $department['department_name'] ?></option>
+                                                                            <?php
                             }
                             ?>
+                                                                    </select>
+                                                                    <span class="text-danger"><?php echo form_error('department_id'); ?></span>
+                                                                </div>
+                                                            </div>
+                                                            <div class="col-md-4">
+                                                                <div class="form-group">
+                                                                    <label for="exampleInputEmail1"><?php echo $this->lang->line('class'); ?></label><small class="req"> *</small>
+                                                                    <select autofocus="" id="class_id" name="class_id" class="form-control" >
+                                                                        <option value=""><?php echo $this->lang->line('select'); ?></option>
+                                                                    </select>
+                                                                    <span class="text-danger"><?php echo form_error('class_id'); ?></span>
+                                                                </div>
+                                                            </div>
+                                                            <div class="col-md-4">
+                                                                <div class="form-group">
+                                                                    <label for="exampleInputEmail1"><?php echo $this->lang->line('section'); ?></label><small class="req"> *</small>
+                                                                    <select  id="section_id" name="section_id" class="form-control" >
+                                                                        <option value=""><?php echo $this->lang->line('select'); ?></option>
+                                                                    </select>
+                                                                    <span class="text-danger"><?php echo form_error('section_id'); ?></span>
+                                                                </div>
+                                                            </div>
+                            
+                                                        </div>
+                                                    </div>
+                                                    <div class="box-footer">
+                                                        <button type="submit" class="btn btn-primary pull-right btn-sm" name="search"><?php echo $this->lang->line('search'); ?></button>
+                                                    </div>
+                                                </form>
+                            
+                                                <?php
+                            if (isset($timetable)) {
+                                ?>
+                                                    <div class="box-header ptbnull"></div>
+                                                    <div class="box-body">
+                                                        <?php
+                            if (!empty($timetable)) {
+                                    ?>
+                               <button type="submit" title="<?php echo $this->lang->line('print'); ?>" class="btn btn-primary btn-xs pull-right  print_timetable"  data-class_id="<?php echo set_value('class_id'); ?>" data-section_id="<?php echo set_value('section_id'); ?>" id="load" data-loading-text="<i class='fa fa-spinner fa-spin'></i> <?php echo $this->lang->line('please_wait'); ?>"><i class="fa fa-print"></i></button>
+                                                            <div class="table-responsive">    
+                                                                <table class="table table-stripped">
+                                                                    <thead>
+                                                                        <tr>
+                                                                            <?php
+                            foreach ($timetable as $tm_key => $tm_value) {
+                                        ?>
+                                                                                <th class="text"><?php echo $this->lang->line(strtolower($tm_key)); ?></th>
+                                                                                <?php
+                            }
+                                    ?>
+                                                                        </tr>
+                                                                    </thead>
+                                                                    <tbody>
+                                                                        <tr>
+                                                                            <?php
+                            foreach ($timetable as $tm_key => $tm_value) {
+                                        ?>
+                                                                                <td class="text" width="14%">
+                            
+                                                                                    <?php
+                            if (!$timetable[$tm_key]) {
+                                            ?>
+                                                                                        <div class="attachment-block block-b-noraml clearfix">
+                                                                                            <b class="text text-danger"><i class="fa fa-times-circle text-danger"></i> <?php echo $this->lang->line('not_scheduled'); ?></b><br>
+                                                                                        </div>
+                                                                                        <?php
+                            } else {
+                                            foreach ($timetable[$tm_key] as $tm_k => $tm_kue) {
+                                                ?>
+                                                                                            <div class="attachment-block attachment-block-normal clearfix">
+                            
+                                                                                                <div class="relative attachment-left-space"><i class="fa fa-book"></i> <?php echo $this->lang->line('subject') ?>: <?php
+                            echo $tm_kue->subject_name;
+                                                if ($tm_kue->code != '') {
+                                                    echo " (" . $tm_kue->code . ")";
+                                                }
+                                                ?>
+                            
+                                                                                                </div>
+                            
+                                                                                                <div class="relative attachment-left-space"><i class="fa fa-clock-o"></i> <?php echo $tm_kue->time_from ?>
+                                                                                                <b class="text text-center">-</b>
+                                                                                                <strong class=""><?php echo $tm_kue->time_to; ?></strong>
+                                                                                                </div>
+                            
+                                                                                                <div class="relative attachment-left-space"><i class="fa fa-user"></i> <?php echo $tm_kue->name . " " . $tm_kue->surname . " (" . $tm_kue->employee_id . ")"; ?>
+                                                                                                </div>
+                                                                                                <div class="relative attachment-left-space"><i class="fa fa-building"></i> <?php echo $this->lang->line('room_no'); ?>: <?php echo $tm_kue->room_no; ?></div>
+                            
+                                                                                            </div>
+                                                                                            <?php
+                            }
+                                        }
+                                        ?>
+                                                                                </td>
+                                                                                <?php
+                            }
+                                    ?>
+                                                                        </tr>
+                                                                    </tbody>
+                                                                </table>
+                                                            </div>  
+                                                            <?php
+                            }
+                                ?>
+                            
+                                                    </div>
+                                                </div>
+                                            </div>   
+                                            <?php
+                            }
+                            ?>
+                            
+                            
+                                </section>
+                            </div>
+                            
+                            
+                            <script type="text/javascript">
+                                $(document).ready(function () {
+                                    var base_url = '<?php echo base_url() ?>';
+                                    var prev_department_id = '<?php echo set_value('department_id') ?>';
+                                    var prev_class_id = '<?php echo set_value('class_id') ?>';
+                                    var prev_section_id = '<?php echo set_value('section_id') ?>';
 
-                        </div>
-                    </div>
-                </div>   
-                <?php
-            }
-            ?>
+                                    function getClassesByDepartment(department_id, selected_class_id) {
+                                        $('#class_id').html('<option value=""><?php echo $this->lang->line('select'); ?></option>'); // Reset class dropdown
+                                        $('#section_id').html('<option value=""><?php echo $this->lang->line('select'); ?></option>'); // Reset section dropdown
 
+                                        if (department_id !== "") {
+                                            $.ajax({
+                                                type: "POST",
+                                                url: base_url + "admin/timetable/getclassesbydepartment",
+                                                data: {'department_id': department_id},
+                                                dataType: "json",
+                                                success: function (data) {
+                                                    var div_data = ''; // Start with empty string
+                                                    $.each(data, function (i, obj) {
+                                                        var sel = "";
+                                                        if (selected_class_id && selected_class_id == obj.id) {
+                                                            sel = "selected";
+                                                        }
+                                                        div_data += "<option value='" + obj.id + "' " + sel + ">" + obj.class + "</option>";
+                                                    });
+                                                    $('#class_id').append(div_data);
 
-    </section>
-</div>
+                                                    if (selected_class_id) {
+                                                        getSectionByClass(selected_class_id, prev_section_id);
+                                                    }
+                                                }
+                                            });
+                                        }
+                                    }
 
+                                    function getSectionByClass(class_id, selected_section_id) {
+                                        $('#section_id').html('<option value=""><?php echo $this->lang->line('select'); ?></option>'); // Reset section dropdown
 
-<script type="text/javascript">
-    $(document).on('focus', '.time', function () {
-        var $this = $(this);
-        $this.datetimepicker({
-            format: 'LT'
-        });
-    });
-    var tot_count = 0;
-    var class_id = $('#class_id').val();
-    var section_id = '<?php echo set_value('section_id') ?>';
-    var subject_group_id = '<?php echo set_value('subject_group_id') ?>';
-    $(document).ready(function () {
+                                        if (class_id !== "") {
+                                            $.ajax({
+                                                type: "GET",
+                                                url: base_url + "sections/getByClass",
+                                                data: {'class_id': class_id},
+                                                dataType: "json",
+                                                success: function (data) {
+                                                    var div_data = ''; // Start with empty string
+                                                    $.each(data, function (i, obj) {
+                                                        var sel = "";
+                                                        if (selected_section_id && selected_section_id == obj.section_id) {
+                                                            sel = "selected";
+                                                        }
+                                                        div_data += "<option value='" + obj.section_id + "' " + sel + ">" + obj.section + "</option>";
+                                                    });
+                                                    $('#section_id').append(div_data);
+                                                }
+                                            });
+                                        }
+                                    }
 
-        $('#myTabs a:first').tab('show') // Select first tab
-        getSectionByClass(class_id, section_id);
-        getGroupByClassandSection(class_id, section_id, subject_group_id);
+                                    // Event listener for department change
+                                    $(document).on('change', '#department_id', function (e) {
+                                        var department_id = $(this).val();
+                                        getClassesByDepartment(department_id, null); // Clear class and section
+                                    });
 
-        $(document).on('change', '#class_id', function (e) {
-            $('#section_id').html("");
-            var class_id = $(this).val();
-            var base_url = '<?php echo base_url() ?>';
-            var div_data = '<option value=""><?php echo $this->lang->line('select'); ?></option>';
+                                    // Event listener for class change
+                                    $(document).on('change', '#class_id', function (e) {
+                                        var class_id = $(this).val();
+                                        getSectionByClass(class_id, null); // Clear section
+                                    });
 
-            $.ajax({
-                type: "GET",
-                url: base_url + "sections/getByClass",
-                data: {'class_id': class_id},
-                dataType: "json",
-                success: function (data) {
-                    $.each(data, function (i, obj)
-                    {
-                        div_data += "<option value=" + obj.section_id + ">" + obj.section + "</option>";
-                    });
-
-                    $('#section_id').append(div_data);
-                }
-            });
-        });
-
-        $(document).on('change', '#section_id', function (e) {
-            $('#subject_group_id').html("");
-            var section_id = $(this).val();
-            var class_id = $('#class_id').val();
-            var base_url = '<?php echo base_url() ?>';
-            var div_data = '<option value=""><?php echo $this->lang->line('select'); ?></option>';
-            $.ajax({
-                type: "POST",
-                url: base_url + "admin/subjectgroup/getGroupByClassandSection",
-                data: {'class_id': class_id, 'section_id': section_id},
-                dataType: "json",
-                success: function (data) {
-                    $.each(data, function (i, obj)
-                    {
-                        div_data += "<option value=" + obj.subject_group_id + ">" + obj.name + "</option>";
-                    });
-
-                    $('#subject_group_id').append(div_data);
-                }
-            });
-        });
-    });
-
-
-
-    function getSectionByClass(class_id, section_id) {
-       
-        if (class_id != ""  ) {
-            $('#section_id').html("");
-            var base_url = '<?php echo base_url() ?>';
-            var div_data = '<option value=""><?php echo $this->lang->line('select'); ?></option>';
-
-            $.ajax({
-                type: "GET",
-                url: base_url + "sections/getByClass",
-                data: {'class_id': class_id},
-                dataType: "json",
-                success: function (data) {
-                    $.each(data, function (i, obj)
-                    {
-                        var sel = "";
-                        if (section_id == obj.section_id) {
-                            sel = "selected";
-                        }
-                        div_data += "<option value=" + obj.section_id + " " + sel + ">" + obj.section + "</option>";
-                    });
-                    $('#section_id').append(div_data);
-                }
-            });
-        }
-    }
-
-
-    function getGroupByClassandSection(class_id, section_id, subject_group_id) {
-        if (class_id != "" && section_id != "" && subject_group_id != "") {
-            $('#subject_group_id').html("");
-
-            var base_url = '<?php echo base_url() ?>';
-            var div_data = '<option value=""><?php echo $this->lang->line('select'); ?></option>';
-            $.ajax({
-                type: "POST",
-                url: base_url + "admin/subjectgroup/getGroupByClassandSection",
-                data: {'class_id': class_id, 'section_id': section_id},
-                dataType: "json",
-                success: function (data) {
-                    console.log(subject_group_id);
-                    $.each(data, function (i, obj)
-                    {
-                        var sel = "";
-                        if (subject_group_id == obj.subject_group_id) {
-                            sel = "selected";
-                        }
-                        div_data += "<option value=" + obj.subject_group_id + " " + sel + ">" + obj.name + "</option>";
-                    });
-
-                    $('#subject_group_id').append(div_data);
-                }
-            });
-
-        }
-
-    }
+                                    // Initial load logic
+                                    if (prev_department_id !== "") {
+                                        getClassesByDepartment(prev_department_id, prev_class_id);
+                                    } else if (prev_class_id !== "") {
+                                        getSectionByClass(prev_class_id, prev_section_id);
+                                    }
+                                });
+                            </script>
+                            <script type="text/javascript">
+                                $(document).on('focus', '.time', function () {
+                                    var $this = $(this);
+                                    $this.datetimepicker({
+                                        format: 'LT'
+                                    });
+                                });
+                                var tot_count = 0;
+                                var class_id = $('#class_id').val();
+                                var section_id = '<?php echo set_value('section_id') ?>';
+                                var subject_group_id = '<?php echo set_value('subject_group_id') ?>';
+                                $(document).ready(function () {
+                            
+                                    $('#myTabs a:first').tab('show') // Select first tab
+                                    // Removed initial call to getSectionByClass and getGroupByClassandSection here,
+                                    // as they are now handled by the cascading logic above based on department/class
+                                });
+                            
+                                function getGroupByClassandSection(class_id, section_id, subject_group_id) {
+                                    if (class_id != "" && section_id != "" && subject_group_id != "") {
+                                        $('#subject_group_id').html("");
+                            
+                                        var base_url = '<?php echo base_url() ?>';
+                                        var div_data = '<option value=""><?php echo $this->lang->line('select'); ?></option>';
+                                        $.ajax({
+                                            type: "POST",
+                                            url: base_url + "admin/subjectgroup/getGroupByClassandSection",
+                                            data: {'class_id': class_id, 'section_id': section_id},
+                                            dataType: "json",
+                                            success: function (data) {
+                                                console.log(subject_group_id);
+                                                $.each(data, function (i, obj)
+                                                {
+                                                    var sel = "";
+                                                    if (subject_group_id == obj.subject_group_id) {
+                                                        sel = "selected";
+                                                    }
+                                                    div_data += "<option value=" + obj.subject_group_id + " " + sel + ">" + obj.name + "</option>";
+                                                });
+                            
+                                                $('#subject_group_id').append(div_data);
+                                            }
+                                        });
+                            
+                                    }
+                            
+                                }
 
     $('a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
 
