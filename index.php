@@ -53,43 +53,34 @@
 |
 | NOTE: If you change these, also change the error_reporting() code below
 */
-define('ENVIRONMENT', 'development'); // Set to 'production' on your EC2 server
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
 
-// --- START Multi-tenant Logic (Production Only) ---
-if (ENVIRONMENT === 'production') {
+// --- START Multi-tenant Logic ---
+$tenant_host = $_SERVER['HTTP_HOST'];
+$tenant_id = null;
 
-    define('TENANTS_BASE_DIR_PATH', '/var/www/tenants/');
+// Dynamically extract tenant ID from hostname (e.g., 'subdomain.example.com' -> 'subdomain')
+if (preg_match('/^([a-zA-Z0-9_-]+)\./', $tenant_host, $matches)) {
+    $tenant_id = $matches[1];
+}
 
-    // Get the domain from the request
-    $tenant_host = $_SERVER['HTTP_HOST'];
-    $tenant_id = null;
-
-    // Extract tenant ID from hostname (e.g., 'subdomain.example.com' -> 'subdomain')
-    if (preg_match('/^([a-zA-Z0-9_-]+)\./', $tenant_host, $matches)) {
-        $tenant_id = $matches[1];
-    }
-    
-    // If no tenant ID could be determined from the subdomain, exit.
-    if (empty($tenant_id)) {
+// Fallback for local development (if using 'localhost' or an IP)
+if (empty($tenant_id) || $tenant_id === 'localhost' || filter_var($tenant_host, FILTER_VALIDATE_IP)) {
+    // For local development, we don't define a tenant root, so the app runs in single-tenant mode.
+} else {
+    // For production-like domains (e.g., mce.beebasoft.com), define the tenant root.
+    define('TENANT_ROOT', '/var/www/tenants/' . $tenant_id . '/');
+    if (!is_dir(TENANT_ROOT)) {
         header('HTTP/1.1 503 Service Unavailable.', TRUE, 503);
-        echo 'Tenant could not be identified from hostname: ' . htmlspecialchars($tenant_host);
-        exit(1);
-    }
-    
-    // Define the tenant's specific root directory.
-    define('TENANT_ID', $tenant_id);
-    define('TENANT_ROOT', TENANTS_BASE_DIR_PATH . TENANT_ID . '/');
-    
-    // The create_tenant.sh script is responsible for creating directories on the server.
-    // We will just validate that the directory exists.
-    if ( ! is_dir(TENANT_ROOT))
-    {
-        header('HTTP/1.1 503 Service Unavailable.', TRUE, 503);
-        echo 'Tenant directory not found for: ' . htmlspecialchars(TENANT_ID);
+        echo 'Tenant directory not found for: ' . htmlspecialchars($tenant_id);
         exit(1);
     }
 }
 // --- END Multi-tenant Logic ---
+
+define('ENVIRONMENT', 'production');
 
 
 if( ! ini_get('date.timezone') )
