@@ -30,7 +30,6 @@ class Subjectgroup extends Admin_Controller
         
         $this->load->model('department_model');
         $data['departmentlist'] = $this->department_model->getDepartmentType();
-        $data['department_id_selected'] = $this->input->post('department_id') ? $this->input->post('department_id') : '';
 
         if (!empty($data['department_id_selected'])) {
             $data['classlist'] = $this->class_model->get_class_by_department($data['department_id_selected']);
@@ -83,7 +82,7 @@ class Subjectgroup extends Admin_Controller
         // Load data for the view, applying filter if present
         $subject_list             = $this->subject_model->get();
         $data['subjectlist']      = $subject_list;
-        $subjectgroupList         = $this->subjectgroup_model->getByID(null, $data['department_id_selected'], $this->input->post('class_id')); // Apply filter
+        $subjectgroupList         = $this->subjectgroup_model->getByID(null, null, $this->input->post('class_id')); // Apply filter
         $data['subjectgroupList'] = $subjectgroupList;
 
         $this->load->view('layout/header', $data);
@@ -300,6 +299,6 @@ class Subjectgroup extends Admin_Controller
 
         }
 
-    }
+}
 
     
