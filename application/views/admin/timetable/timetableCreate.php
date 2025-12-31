@@ -353,6 +353,13 @@ $count++;
             getGroupdata(target, target_id, ajax_data);
         }
 
+        $('a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
+            var target = $(e.target).attr("href");
+            var target_id = $(e.target).attr("id");
+            var ajax_data = $(e.target).data();
+            getGroupdata(target, target_id, ajax_data);
+        });
+
         // Additional existing JavaScript
         $(document).on('submit','.create_time_table',function(e){
             document.getElementById("insertbtn").disabled = true;

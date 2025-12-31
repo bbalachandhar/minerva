@@ -829,19 +829,33 @@ class Staff_model extends MY_Model
         return false;
     }
 
-    public function getStaffbyrole($id)
-    {
-        $this->db->select('staff.*, CONCAT(staff.name, " (", staff.employee_id, ")") as name, staff_designation.designation as designation,staff_roles.role_id, department.department_name as department,roles.name as user_type');
-        $this->db->join("staff_designation", "staff_designation.id = staff.designation", "left");
-        $this->db->join("department", "department.id = staff.department", "left");
-        $this->db->join("staff_roles", "staff_roles.staff_id = staff.id", "left");
-        $this->db->join("roles", "staff_roles.role_id = roles.id", "left");
-        $this->db->where("staff_roles.role_id", $id);
-        $this->db->where("staff.is_active", "1");
-        $this->db->from('staff');
-        $query = $this->db->get();
-        return $query->result_array();
-    }
+            public function getStaffbyrole($id)
+
+            {
+
+                $this->db->select('staff.*, staff_designation.designation as designation,staff_roles.role_id, department.department_name as department,roles.name as user_type');
+
+                $this->db->join("staff_designation", "staff_designation.id = staff.designation", "left");
+
+                $this->db->join("department", "department.id = staff.department", "left");
+
+                $this->db->join("staff_roles", "staff_roles.staff_id = staff.id", "left");
+
+                $this->db->join("roles", "staff_roles.role_id = roles.id", "left");
+
+                $this->db->where("staff_roles.role_id", $id);
+
+                $this->db->where("staff.is_active", "1");
+
+                $this->db->from('staff');
+
+                $this->db->group_by('staff.id'); // Add this line to ensure unique staff members
+
+                $query = $this->db->get();
+
+                return $query->result_array();
+
+            }
 
     public function searchNameLike($searchterm)
     {
