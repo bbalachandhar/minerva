@@ -419,4 +419,17 @@ class Subjectgroup_model extends MY_Model {
         return $query->result();
     }
 
+    public function getSubjectGroupSubjectID($subject_group_id, $subject_id) {
+        $this->db->select('id');
+        $this->db->from('subject_group_subjects');
+        $this->db->where('subject_group_id', $subject_group_id);
+        $this->db->where('subject_id', $subject_id);
+        $this->db->where('session_id', $this->current_session);
+        $query = $this->db->get();
+        if ($query->num_rows() > 0) {
+            return $query->row();
+        } else {
+            return false;
+        }
+    }
 }

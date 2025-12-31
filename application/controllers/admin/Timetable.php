@@ -67,6 +67,15 @@ class Timetable extends Admin_Controller
                             log_message('error', 'Timetable bulk upload - Subject not found: ' . $row['subject_code'] . ' for class ' . $class_id . ' in row ' . $line_number);
                             continue;
                         }
+
+                        $subject_group_subject = $this->subjectgroup_model->getSubjectGroupSubjectID($subject_group_id, $subject->id);
+
+                        if(!$subject_group_subject){
+                             $error_messages[] = $this->lang->line('subject') . ' ' . $row['subject_code'] . ' not found for subject group ' . $subject_group_id . ' in row ' . $line_number;
+                            log_message('error', 'Timetable bulk upload - Subject not found in group: ' . $row['subject_code'] . ' for subject group ' . $subject_group_id . ' in row ' . $line_number);
+                            continue;
+                        }
+
                         log_message('debug', 'Timetable bulk upload - Subject found: ' . print_r($subject, true));
 
                         $staff_id = null;
@@ -98,7 +107,7 @@ class Timetable extends Admin_Controller
                             'class_id'                 => $class_id,
                             'section_id'               => $section_id,
                             'subject_group_id'         => $subject_group_id,
-                            'subject_group_subject_id' => $subject->id,
+                            'subject_group_subject_id' => $subject_group_subject->id,
                             'staff_id'                 => $staff['id'],
                             'time_from'                => $row['time_from'],
                             'time_to'                  => $row['time_to'],
