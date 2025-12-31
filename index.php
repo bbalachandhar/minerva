@@ -53,34 +53,42 @@
 |
 | NOTE: If you change these, also change the error_reporting() code below
 */
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
+define('ENVIRONMENT', 'development'); // Set to 'production' on your EC2 server
 
-// --- START Multi-tenant Logic ---
-$tenant_host = $_SERVER['HTTP_HOST'];
-$tenant_id = null;
+// --- START Multi-tenant Logic (Production Only) ---
+if (ENVIRONMENT === 'production') {
 
-// Dynamically extract tenant ID from hostname (e.g., 'subdomain.example.com' -> 'subdomain')
-if (preg_match('/^([a-zA-Z0-9_-]+)\./', $tenant_host, $matches)) {
-    $tenant_id = $matches[1];
-}
+    define('TENANTS_BASE_DIR_PATH', '/var/www/tenants/');
 
-// Fallback for local development (if using 'localhost' or an IP)
-if (empty($tenant_id) || $tenant_id === 'localhost' || filter_var($tenant_host, FILTER_VALIDATE_IP)) {
-    // For local development, we don't define a tenant root, so the app runs in single-tenant mode.
-} else {
-    // For production-like domains (e.g., mce.beebasoft.com), define the tenant root.
-    define('TENANT_ROOT', '/var/www/tenants/' . $tenant_id . '/');
-    if (!is_dir(TENANT_ROOT)) {
+    // Get the domain from the request
+    $tenant_host = $_SERVER['HTTP_HOST'];
+    $tenant_id = null;
+
+    // Extract tenant ID from hostname (e.g., 'subdomain.example.com' -> 'subdomain')
+    if (preg_match('/^([a-zA-Z0-9_-]+)\./', $tenant_host, $matches)) {
+        $tenant_id = $matches[1];
+    }
+    
+    // If no tenant ID could be determined from the subdomain, exit.
+    if (empty($tenant_id)) {
         header('HTTP/1.1 503 Service Unavailable.', TRUE, 503);
-        echo 'Tenant directory not found for: ' . htmlspecialchars($tenant_id);
+        echo 'Tenant could not be identified from hostname: ' . htmlspecialchars($tenant_id);
+        exit(1);
+    }
+    
+    // Define the tenant's specific root directory.
+    define('TENANT_ID', $tenant_id);
+    define('TENANT_ROOT', TENANTS_BASE_DIR_PATH . TENANT_ID . '/');
+    
+    // The create_tenant.sh script is responsible for creating directories on the server.
+    // We will just validate that the directory exists.
+    if ( ! is_dir(TENANT_ROOT)) {
+        header('HTTP/1.1 503 Service Unavailable.', TRUE, 503);
+        echo 'Tenant directory not found for: ' . htmlspecialchars(TENANT_ID);
         exit(1);
     }
 }
 // --- END Multi-tenant Logic ---
-
-define('ENVIRONMENT', 'production');
 
 
 if( ! ini_get('date.timezone') )
@@ -274,8 +282,7 @@ switch (ENVIRONMENT)
 	}
 	else
 	{
-		if ( ! is_dir(BASEPATH.$application_folder.DIRECTORY_SEPARATOR))
-		{
+		if ( ! is_dir(BASEPATH.$application_folder.DIRECTORY_SEPARATOR)) {
 			header('HTTP/1.1 503 Service Unavailable.', TRUE, 503);
 			echo 'Your application folder path does not appear to be set correctly. Please open the following file and correct this: '.SELF;
 			exit(3); // EXIT_CONFIG
@@ -285,31 +292,25 @@ switch (ENVIRONMENT)
 	}
 
 	// The path to the "views" folder
-	if ( ! is_dir($view_folder))
-	{
-		if ( ! empty($view_folder) && is_dir(APPPATH.$view_folder.DIRECTORY_SEPARATOR))
-		{
+	if ( ! is_dir($view_folder)) {
+		if ( ! empty($view_folder) && is_dir(APPPATH.$view_folder.DIRECTORY_SEPARATOR)) {
 			$view_folder = APPPATH.$view_folder;
 		}
-		elseif ( ! is_dir(APPPATH.'views'.DIRECTORY_SEPARATOR))
-		{
+		elseif ( ! is_dir(APPPATH.'views'.DIRECTORY_SEPARATOR)) {
 			header('HTTP/1.1 503 Service Unavailable.', TRUE, 503);
 			echo 'Your view folder path does not appear to be set correctly. Please open the following file and correct this: '.SELF;
 			exit(3); // EXIT_CONFIG
 		}
-		else
-		{
+		else {
 			$view_folder = APPPATH.'views';
 		}
 	}
 
-	if (($_temp = realpath($view_folder)) !== FALSE)
-	{
+	if (($_temp = realpath($view_folder)) !== FALSE) {
 		$view_folder = $_temp.DIRECTORY_SEPARATOR;
 	}
-	else
-	{
-		$view_folder = rtrim($view_folder, '/\\').DIRECTORY_SEPARATOR;
+	else {
+		$view_folder = rtrim($view_folder, '/\').DIRECTORY_SEPARATOR;
 	}
 
 	define('VIEWPATH', $view_folder);

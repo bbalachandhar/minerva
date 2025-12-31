@@ -30,4 +30,5 @@ Minerva_User_Manual.md
 /api/application/sessions
 /uploads/homework/assignment
 /uploads
-/application/config/production
+/config
+
