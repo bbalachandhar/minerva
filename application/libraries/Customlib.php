@@ -30,11 +30,6 @@ class Customlib
 
         public function getFolderPath()
         {
-            // In production, TENANT_ROOT will be defined in index.php. Use it.
-            if (defined('TENANT_ROOT')) {
-                return TENANT_ROOT;
-            }
-            // In local development, fall back to the application's root directory.
             return FCPATH;
         }
     public function getCSRF()

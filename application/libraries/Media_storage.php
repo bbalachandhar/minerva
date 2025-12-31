@@ -42,14 +42,8 @@ class Media_storage
         $file_name   = time() . "-" . uniqid(rand()) . "-" . $name;
         $destination = $this->_CI->customlib->getFolderPath() . $upload_path . $file_name;
 
-        $destination_dir = dirname($destination);
-
-        // Generic directory creation
-        if (!is_dir($destination_dir)) {
-            mkdir($destination_dir, 0755, true);
-        }
-
         // Check if destination directory is writable
+        $destination_dir = dirname($destination);
         if (!is_writable($destination_dir)) {
             return array('status' => false, 'message' => 'Upload directory is not writable: ' . $destination_dir);
         }

@@ -2217,37 +2217,23 @@ class Student extends Admin_Controller
 
     public function doupload($id)
     {
-        $relative_path = 'uploads/student_images/';
-        // Use the patched media_storage library for the upload.
-        // It will handle directory creation.
-        $upload_result = $this->media_storage->fileupload('file', $relative_path);
-
-        if ($upload_result['status']) {
-            // The upload was successful, but the file has a unique name.
-            // We need to rename it to id.jpg as per the original function's logic.
-            $unique_filename = $upload_result['message'];
-            $new_filename    = $id . ".jpg";
-
-            $old_filepath = $this->customlib->getFolderPath() . $relative_path . $unique_filename;
-            $new_filepath = $this->customlib->getFolderPath() . $relative_path . $new_filename;
-
-            // Rename the file
-            if (rename($old_filepath, $new_filepath)) {
-                // File renamed successfully, now update the database with the correct name.
-                $data_record = array('id' => $id, 'image' => $relative_path . $new_filename);
-                $this->setting_model->add($data_record);
-
-                $data['upload_data'] = ['file_name' => $new_filename]; // For the success view
-                $this->load->view('upload_success', $data);
-            } else {
-                // Rename failed, show an error.
-                $error = array('error' => 'Failed to rename the uploaded file.');
-                $this->load->view('file_view', $error);
-            }
-
+        $config = array(
+            'upload_path'   => "./uploads/student_images/",
+            'allowed_types' => "gif|jpg|png|jpeg|df",
+            'overwrite'     => true,
+        );
+        $config['file_name'] = $id . ".jpg";
+        $this->upload->initialize($config);
+        $this->load->library('upload', $config);
+        if ($this->upload->do_upload()) {
+            $data        = array('upload_data' => $this->upload->data());
+            $upload_data = $this->upload->data();
+            $data_record = array('id' => $id, 'image' => $upload_data['file_name']);
+            $this->setting_model->add($data_record);
+            $this->load->view('upload_success', $data);
         } else {
-            // Upload failed, show the error from the media_storage library.
-            $error = array('error' => $upload_result['message']);
+            $error = array('error' => $this->upload->display_errors());
+
             $this->load->view('file_view', $error);
         }
     }

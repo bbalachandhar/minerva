@@ -517,27 +517,3 @@ $config['routine_session'] = 16;
 $config['routine_update'] = 1529539200;
 $config['proxy_ips'] = '';
 $config['installed'] = true;
-
-/*
-|--------------------------------------------------------------------------
-| Multi-Tenant Configuration Loader
-|--------------------------------------------------------------------------
-|
-| This section loads tenant-specific configuration files if the application
-| is running in a multi-tenant environment (i.e., if TENANT_ROOT is defined).
-|
-*/
-if (defined('TENANT_ROOT')) {
-
-    // --- Load Tenant-Specific Config ---
-    $tenant_config_path = TENANT_ROOT . 'config/config.php';
-    if (file_exists($tenant_config_path)) {
-        include($tenant_config_path);
-    }
-
-    // --- Load Tenant-Specific Database Config ---
-    $tenant_db_path = TENANT_ROOT . 'config/database.php';
-    if (file_exists($tenant_db_path)) {
-        include($tenant_db_path);
-    }
-}
