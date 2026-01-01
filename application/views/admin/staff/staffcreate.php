@@ -103,7 +103,7 @@ foreach ($roles as $key => $role) {
                                                     <span class="text-danger"><?php echo form_error('designation'); ?></span>
                                                 </div>
                                             </div>
-                                        <?php }if ($sch_setting->staff_department) {
+                                        <?php } if ($sch_setting->staff_department) {
     ?>
                                             <div class="col-md-3">
                                                 <div class="form-group">
@@ -144,7 +144,7 @@ foreach ($roles as $key => $role) {
                                                     <span class="text-danger"><?php echo form_error('surname'); ?></span>
                                                 </div>
                                             </div>
-                                        <?php }if ($sch_setting->staff_father_name) {?>
+                                        <?php } if ($sch_setting->staff_father_name) {?>
                                             <div class="col-md-3">
                                                 <div class="form-group">
                                                     <label for="exampleInputEmail1"><?php echo $this->lang->line('father_name'); ?></label>
@@ -152,7 +152,7 @@ foreach ($roles as $key => $role) {
                                                     <span class="text-danger"><?php echo form_error('father_name'); ?></span>
                                                 </div>
                                             </div>
-                                        <?php }if ($sch_setting->staff_mother_name) {?>
+                                        <?php } if ($sch_setting->staff_mother_name) {?>
                                             <div class="col-md-3">
                                                 <div class="form-group">
                                                     <label for="exampleInputEmail1"><?php echo $this->lang->line('mother_name'); ?></label>
@@ -212,7 +212,7 @@ foreach ($genderList as $key => $value) {
                                                     <span class="text-danger"><?php echo form_error('contactno'); ?></span>
                                                 </div>
                                             </div>
-                                        <?php }if ($sch_setting->staff_emergency_contact) {?>
+                                        <?php } if ($sch_setting->staff_emergency_contact) {?>
                                             <div class="col-md-3">
                                                 <div class="form-group">
                                                     <label for="exampleInputEmail1"><?php echo $this->lang->line('emergency_contact_number'); ?></label>
@@ -220,7 +220,7 @@ foreach ($genderList as $key => $value) {
                                                     <span class="text-danger"><?php echo form_error('emergency_no'); ?></span>
                                                 </div>
                                             </div>
-                                        <?php }if ($sch_setting->staff_marital_status) {
+                                        <?php } if ($sch_setting->staff_marital_status) {
     ?>
                                             <div class="col-md-3">
                                                 <div class="form-group">
@@ -237,7 +237,7 @@ foreach ($genderList as $key => $value) {
                                                     <span class="text-danger"><?php echo form_error('marital_status'); ?></span>
                                                 </div>
                                             </div>
-                                        <?php }if ($sch_setting->staff_photo) {?>
+                                        <?php } if ($sch_setting->staff_photo) {?>
                                             <div class="col-md-3">
                                                 <div class="form-group">
                                                     <label for="exampleInputFile"><?php echo $this->lang->line('photo'); ?></label>
@@ -257,7 +257,7 @@ foreach ($genderList as $key => $value) {
                                                     </div>
                                                     <span class="text-danger"></span></div>
                                             </div>
-                                        <?php }if ($sch_setting->staff_permanent_address) {?>
+                                        <?php } if ($sch_setting->staff_permanent_address) {?>
                                             <div class="col-md-6">
                                                 <div class="form-group">
                                                     <label for="exampleInputFile"><?php echo $this->lang->line('permanent_address'); ?></label>
@@ -265,7 +265,7 @@ foreach ($genderList as $key => $value) {
                                                     </div>
                                                     <span class="text-danger"></span></div>
                                             </div>
-                                        <?php }if ($sch_setting->staff_qualification) {?>
+                                        <?php } if ($sch_setting->staff_qualification) {?>
                                             <div class="col-md-3">
 
                                                 <div class="form-group">
@@ -274,7 +274,7 @@ foreach ($genderList as $key => $value) {
                                                     <span class="text-danger"><?php echo form_error('qualification'); ?></span>
                                                 </div>
                                             </div>
-                                        <?php }if ($sch_setting->staff_work_experience) {?>
+                                        <?php } if ($sch_setting->staff_work_experience) {?>
                                             <div class="col-md-3">
 
                                                 <div class="form-group">
@@ -283,7 +283,7 @@ foreach ($genderList as $key => $value) {
                                                     <span class="text-danger"><?php echo form_error('work_experience'); ?></span>
                                                 </div>
                                             </div>
-                                        <?php }if ($sch_setting->staff_note) {?>
+                                        <?php } if ($sch_setting->staff_note) {?>
                                             <div class="col-md-6">
                                                 <div class="form-group">
                                                     <label for="exampleInputFile"><?php echo $this->lang->line('note'); ?></label>
@@ -475,13 +475,14 @@ echo display_custom_fields('staff');
                                                             <span class="text-danger"><?php echo form_error('epf_no'); ?></span>
                                                         </div>
                                                     </div>
-                                                <?php }if ($sch_setting->staff_basic_salary) {?>
+                                                <?php } if ($sch_setting->staff_basic_salary) {?>
                                                     <div class="col-md-4">
                                                         <div class="form-group">
                                                             <label for="exampleInputEmail1"><?php echo $this->lang->line('basic_salary'); ?></label>
                                                             <input type="text" class="form-control" name="basic_salary" value="<?php echo set_value('basic_salary') ?>" >
                                                         </div>
                                                     </div>
+                                                <?php } ?>
                                                 <?php if ($sch_setting->staff_work_shift) {?>
                                                     <div class="col-md-4">
                                                         <div class="form-group">
@@ -490,7 +491,7 @@ echo display_custom_fields('staff');
                                                             <span class="text-danger"><?php echo form_error('shift'); ?></span>
                                                         </div>
                                                     </div>
-                                                <?php }if ($sch_setting->staff_work_location) {?>
+                                                <?php } if ($sch_setting->staff_work_location) {?>
                                                     <div class="col-md-4">
                                                         <div class="form-group">
 
@@ -525,7 +526,7 @@ foreach ($leavetypeList as $key => $leave) {
                                                     <?php }?>
                                                 </div>
                                             </div>
-                                        <?php }if ($sch_setting->staff_account_details) {?>
+                                        <?php } if ($sch_setting->staff_account_details) {?>
                                             <div class="tshadow mb25 bozero">
                                                 <h4 class="pagetitleh2"><?php echo $this->lang->line('bank_account_details'); ?>
                                                 </h4>
@@ -568,7 +569,7 @@ foreach ($leavetypeList as $key => $leave) {
                                                     </div>
                                                 </div>
                                             </div>
-                                        <?php }if ($sch_setting->staff_social_media) {?>
+                                        <?php } if ($sch_setting->staff_social_media) {?>
                                             <div class="tshadow mb25 bozero">
                                                 <h4 class="pagetitleh2"><?php echo $this->lang->line('social_media'); ?>
                                                 </h4>
@@ -603,7 +604,7 @@ foreach ($leavetypeList as $key => $leave) {
                                                     </div>
                                                 </div>
                                             </div>
-                                        <?php }if ($sch_setting->staff_upload_documents) {?>
+                                        <?php } if ($sch_setting->staff_upload_documents) {?>
                                             <div id='upload_documents_hide_show'>
                                                 <div class="row">
                                                     <div class="col-md-12">
