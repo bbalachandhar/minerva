@@ -866,6 +866,7 @@ class Staff extends Admin_Controller
         $this->form_validation->set_rules('role', $this->lang->line('role'), 'trim|required|xss_clean');
         $this->form_validation->set_rules('gender', $this->lang->line('gender'), 'trim|required|xss_clean');
         $this->form_validation->set_rules('dob', $this->lang->line('date_of_birth'), 'trim|required|xss_clean');
+        $this->form_validation->set_rules('biometric_id', $this->lang->line('biometric_id'), 'trim|xss_clean|callback__check_biometric_id_exists');
         $this->form_validation->set_rules('file', $this->lang->line('image'), 'callback_handle_upload');
         $this->form_validation->set_rules('first_doc', $this->lang->line('image'), 'callback_handle_first_upload');
         $this->form_validation->set_rules('second_doc', $this->lang->line('image'), 'callback_handle_second_upload');
@@ -954,7 +955,7 @@ class Staff extends Admin_Controller
             $data_update = array(
                 'id' => $id,
                 'employee_id' => $employee_id,
-                'biometric_id'           => $biometric_id,
+                'biometric_id'           => ($biometric_id == "") ? NULL : $biometric_id,
                 'name' => $name,
                 'email' => $email,
                 'dob' => date('Y-m-d', $this->customlib->datetostrtotime($dob)),
@@ -1539,6 +1540,16 @@ class Staff extends Admin_Controller
 
 
 
+
+    public function _check_biometric_id_exists($biometric_id)
+    {
+        $id = $this->input->post('editid');
+        if ($this->staff_model->check_biometric_id_exists($biometric_id, $id)) {
+            $this->form_validation->set_message('_check_biometric_id_exists', 'The Biometric ID is already in use by another staff member.');
+            return false;
+        }
+        return true;
+    }
 
     public function handle_upload()
     {

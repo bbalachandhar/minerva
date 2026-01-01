@@ -38,7 +38,7 @@
                                 <?php echo form_open_multipart('admin/subject/bulk_upload'); ?>
                                     <div class="form-group">
                                         <label for="exampleInputFile"><?php echo $this->lang->line('select_csv_file'); ?></label>
-                                        <input type="file" name="file" id="file" class="form-control" required>
+                                        <input type="file" name="file" id="file" class="dropify form-control" required>
                                     </div>
                                     <button type="submit" class="btn btn-info"><?php echo $this->lang->line('upload'); ?></button>
                                 <?php echo form_close(); ?>
@@ -53,6 +53,6 @@
 
 <script type="text/javascript">
     $(document).ready(function() {
-        // Any specific JS for this page if needed
+        $('.dropify').dropify();
     });
 </script>

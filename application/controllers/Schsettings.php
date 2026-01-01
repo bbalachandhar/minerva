@@ -1285,18 +1285,18 @@ class Schsettings extends Admin_Controller
 			}
 		}
 	
-		        return TRUE;
-		    }
+		return TRUE;
+    }
 		
-		    public function hiddenforms()
-		    {
-		        $this->session->set_userdata('top_menu', 'System Settings');
-		        $this->session->set_userdata('sub_menu', 'schsettings/index');
-		        $this->session->set_userdata('subsub_menu', 'schsettings/hiddenforms');
-		
-		        $this->load->view('layout/header');
-		        $this->load->view('setting/hiddenforms');
-		        $this->load->view('layout/footer');
-		    }
-		    
-		}
+    public function hiddenforms()
+    {
+        $this->session->set_userdata('top_menu', 'System Settings');
+        $this->session->set_userdata('sub_menu', 'schsettings/index');
+        $this->session->set_userdata('subsub_menu', 'schsettings/hiddenforms');
+
+        $this->load->view('layout/header');
+        $this->load->view('setting/hiddenforms');
+        $this->load->view('layout/footer');
+    }
+    
+}

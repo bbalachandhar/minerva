@@ -481,6 +481,21 @@ class Staff_model extends MY_Model
         }
     }
 
+    public function check_biometric_id_exists($biometric_id, $staff_id)
+    {
+        if ($biometric_id != '') {
+            $this->db->where('biometric_id', $biometric_id);
+            if ($staff_id != 0) {
+                $this->db->where('id !=', $staff_id);
+            }
+            $query = $this->db->get('staff');
+            if ($query->num_rows() > 0) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public function getStaffRole($id = null)
     {
         $this->db->select('roles.id,roles.name as type')->from('roles');
