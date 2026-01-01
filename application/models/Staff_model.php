@@ -244,7 +244,15 @@ class Staff_model extends MY_Model
 
             // Update staff_roles
             $this->db->where('staff_id', $staff_id);
-            $this->db->update('staff_roles', $roles);
+            $q = $this->db->get('staff_roles');
+
+            if ( $q->num_rows() > 0 ) {
+                $this->db->where('staff_id', $staff_id);
+                $this->db->update('staff_roles', $roles);
+            } else {
+                $roles['staff_id'] = $staff_id;
+                $this->db->insert('staff_roles', $roles);
+            }
 
             // Update staff_leave_details
             if (!empty($leave_array)) {

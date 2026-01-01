@@ -22,8 +22,6 @@
 # 
 # # SQL scripts
 # alter_table_books.sql
-application/config/config.php
-application/config/config.php
 Minerva_Presentation_Outline.md
 Minerva_User_Manual.html
 Minerva_User_Manual.md
@@ -31,4 +29,5 @@ Minerva_User_Manual.md
 /uploads/homework/assignment
 /uploads
 /config
+/application/config/production
 
