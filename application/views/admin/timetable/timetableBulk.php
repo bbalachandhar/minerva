@@ -64,7 +64,7 @@ if (set_value('department_id') == $department['id']) {
                                 <div class="col-md-6">
                                     <div class="form-group">
                                         <label for="exampleInputFile"><?php echo $this->lang->line('select_csv_file'); ?><small class="req"> *</small></label>
-                                        <input class="form-control" type="file" name="file" id="file" size="20" />
+                                        <input class="dropify form-control" type="file" name="file" id="file" size="20" />
                                         <span class="text-danger"><?php echo form_error('file'); ?></span>
                                     </div>
                                 </div>
@@ -81,6 +81,8 @@ if (set_value('department_id') == $department['id']) {
 </div>
 <script type="text/javascript">
     $(document).ready(function () {
+        $('.dropify').dropify();
+
         var base_url = '<?php echo base_url() ?>';
         var prev_department_id = '<?php echo set_value('department_id') ?>';
         var prev_class_id = '<?php echo set_value('class_id') ?>';
