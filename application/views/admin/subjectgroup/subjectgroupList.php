@@ -26,7 +26,7 @@ if (isset($error_message)) {
     ?>
                                 <?php echo $this->customlib->getCSRF(); ?>
                                 <div class="form-group">
-                                    <label for="exampleInputEmail1">1. <?php echo $this->lang->line('department'); ?><small class="req"> *</small></label>
+                                    <label for="exampleInputEmail1"><?php echo $this->lang->line('department'); ?><small class="req"> *</small></label>
                                     <select autofocus="" id="department_id" name="department_id" class="form-control" data-field-number="1" >
                                         <option value=""><?php echo $this->lang->line('select'); ?></option>
                                         <?php
@@ -44,7 +44,7 @@ if (set_value('department_id') == $department['id']) {
                                     <span class="text-danger"><?php echo form_error('department_id'); ?></span>
                                 </div>
                                 <div class="form-group">
-                                    <label for="exampleInputEmail1">2. <?php echo $this->lang->line('class'); ?> </label><small class="req">*</small>
+                                    <label for="exampleInputEmail1"><?php echo $this->lang->line('class'); ?> </label><small class="req">*</small>
                                     <select  id="class_id" name="class_id" class="form-control" data-field-number="2" >
                                         <option value=""><?php echo $this->lang->line('select'); ?></option>
                                         <?php
@@ -64,32 +64,31 @@ if (set_value('class_id') == $class['id']) {
                                 </div>
                                 
                                 <div class="form-group">
-                                    <label for="exampleInputEmail1">3. <?php echo $this->lang->line('name'); ?></label> <small class="req">*</small>
+                                    <label for="exampleInputEmail1"><?php echo $this->lang->line('name'); ?></label> <small class="req">*</small>
                                     <input autofocus="" id="name" name="name" placeholder="" type="text" class="form-control"  value="<?php echo set_value('name'); ?>" data-field-number="3" />
                                     <span class="text-danger"><?php echo form_error('name'); ?></span>
                                 </div>
                                 
                                 <div class="form-group"> <!-- Radio group !-->
-                                    <label class="control-label">4. <?php echo $this->lang->line('sections'); ?></label><small class="req"> *</small>
+                                    <label class="control-label"><?php echo $this->lang->line('sections'); ?></label><small class="req"> *</small>
                                     <div class="section_checkbox" data-field-number="4">
                                         <?php echo $this->lang->line('no_section'); ?>
                                     </div>
                                     <span class="text-danger"><?php echo form_error('sections[]'); ?></span>
                                 </div>
-                                <div class="form-group">
-                                    <label for="subject_code_search">5a. <?php echo $this->lang->line('search_by_subject_code'); ?></label>
-                                    <input type="text" class="form-control" id="subject_code_search" name="subject_code_search" placeholder="<?php echo $this->lang->line('enter_comma_separated_subject_codes'); ?>" data-field-number="5a" />
-                                    <div id="subject_code_verification_display" class="help-block"></div>
-                                </div>
                                 <div class="form-group" data-field-number="5">
-                                    <label for="exampleInputEmail1">5. <?php echo $this->lang->line('subject') ?></label><small class="req"> *</small>
-
+                                    <label for="exampleInputEmail1"><?php echo $this->lang->line('subject') ?></label><small class="req"> *</small>
+                                    <div class="form-group">
+                                        <label for="subject_code_search"><?php echo $this->lang->line('search_by_subject_code'); ?></label>
+                                        <input type="text" class="form-control" id="subject_code_search" name="subject_code_search" placeholder="<?php echo $this->lang->line('enter_comma_separated_subject_codes'); ?>" data-field-number="5a" />
+                                        <div id="subject_code_verification_display" class="help-block"></div>
+                                    </div>
                                     <?php
 foreach ($subjectlist as $subject) {
         ?>
                                         <div class="checkbox">
                                             <label>
-                                                <input type="checkbox" name="subject[]" value="<?php echo $subject['id'] ?>" id="subject_id_<?php echo $subject['id']; ?>" data-subject-code="<?php echo $subject['code']; ?>" class="subject_checkbox" <?php echo set_checkbox('subject[]', $subject['id']); ?> ><?php echo $subject['name'] ?>
+                                                <input type="checkbox" name="subject[]" value="<?php echo $subject['id'] ?>" id="subject_id_<?php echo $subject['id']; ?>" data-subject-code="<?php echo $subject['code']; ?>" class="subject_checkbox" <?php echo set_checkbox('subject[]', $subject['id']); ?> ><?php echo $subject['code'] ?> - <?php echo $subject['name'] ?>
                                             </label>
                                         </div>
                                         <?php
@@ -98,7 +97,7 @@ foreach ($subjectlist as $subject) {
                                     <span class="text-danger"><?php echo form_error('subject[]'); ?></span>
                                 </div>
                                 <div class="form-group">
-                                    <label for="exampleInputEmail1">6. <?php echo $this->lang->line('description'); ?></label>
+                                    <label for="exampleInputEmail1"><?php echo $this->lang->line('description'); ?></label>
                                     <textarea class="form-control" id="description" name="description" placeholder="" rows="3" placeholder="Enter ..." data-field-number="6"><?php echo set_value('description'); ?></textarea>
                                     <span class="text-danger"></span>
                                 </div>
