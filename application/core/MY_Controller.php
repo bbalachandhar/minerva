@@ -7,6 +7,8 @@ class MY_Controller extends CI_Controller
 {
 
     protected $langs = array();
+    protected $language_name;
+    protected $data = array();
 
     public function __construct()
     {
@@ -42,6 +44,7 @@ class MY_Controller extends CI_Controller
         }
 
         $this->load->language($lang_array, $language);
+        $this->language_name = $language;
     }
 
 }
@@ -76,6 +79,7 @@ class Admin_Controller extends MY_Controller
         $this->load->helper('menu');
         $side_list = side_menu_list(1);
         log_message('debug', 'Admin_Controller __construct - $side_list: ' . print_r($side_list, true));
+        $this->data['language_name'] = $this->language_name;
     }
 
 }

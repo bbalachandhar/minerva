@@ -195,6 +195,8 @@ if ($this->session->flashdata('success_msg')) {
 }
 ?>
     });
+</script>
+<script type="text/javascript"> // New script block opened here
 
     function complete_event(id, status) {
         $.ajax({

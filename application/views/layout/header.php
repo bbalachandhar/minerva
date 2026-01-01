@@ -50,7 +50,8 @@ $this->load->view('layout/theme');
         <script src="<?php echo base_url(); ?>backend/custom/jquery.min.js"></script>
         <script src="<?php echo base_url(); ?>backend/dist/js/moment.min.js"></script>
         <script type="text/javascript">
-            moment.locale(<?php echo json_encode($language_name); ?>);
+            var currentLanguage = <?php echo json_encode(isset($language_name) ? $language_name : 'en'); ?>;
+            moment.locale(currentLanguage);
         </script>
         <script src="<?php echo base_url(); ?>backend/datepicker/js/bootstrap-datetimepicker.js"></script>
 

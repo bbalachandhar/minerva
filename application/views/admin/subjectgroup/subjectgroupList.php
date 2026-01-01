@@ -1,6 +1,6 @@
 <!-- Content Wrapper. Contains page content -->
 <div class="content-wrapper">
-    <!-- Main content -->
+    <!-- Main main -->
     <section class="content">
         <div class="row">
             <?php
@@ -26,8 +26,8 @@ if (isset($error_message)) {
     ?>
                                 <?php echo $this->customlib->getCSRF(); ?>
                                 <div class="form-group">
-                                    <label for="exampleInputEmail1"><?php echo $this->lang->line('department'); ?><small class="req"> *</small></label>
-                                    <select autofocus="" id="department_id" name="department_id" class="form-control" >
+                                    <label for="exampleInputEmail1">1. <?php echo $this->lang->line('department'); ?><small class="req"> *</small></label>
+                                    <select autofocus="" id="department_id" name="department_id" class="form-control" data-field-number="1" >
                                         <option value=""><?php echo $this->lang->line('select'); ?></option>
                                         <?php
 foreach ($departmentlist as $department) {
@@ -44,8 +44,8 @@ if (set_value('department_id') == $department['id']) {
                                     <span class="text-danger"><?php echo form_error('department_id'); ?></span>
                                 </div>
                                 <div class="form-group">
-                                    <label for="exampleInputEmail1"><?php echo $this->lang->line('class'); ?> </label><small class="req">*</small>
-                                    <select  id="class_id" name="class_id" class="form-control" >
+                                    <label for="exampleInputEmail1">2. <?php echo $this->lang->line('class'); ?> </label><small class="req">*</small>
+                                    <select  id="class_id" name="class_id" class="form-control" data-field-number="2" >
                                         <option value=""><?php echo $this->lang->line('select'); ?></option>
                                         <?php
 foreach ($classlist as $class) {
@@ -64,27 +64,32 @@ if (set_value('class_id') == $class['id']) {
                                 </div>
                                 
                                 <div class="form-group">
-                                    <label for="exampleInputEmail1"><?php echo $this->lang->line('name'); ?></label> <small class="req">*</small>
-                                    <input autofocus="" id="name" name="name" placeholder="" type="text" class="form-control"  value="<?php echo set_value('name'); ?>" />
+                                    <label for="exampleInputEmail1">3. <?php echo $this->lang->line('name'); ?></label> <small class="req">*</small>
+                                    <input autofocus="" id="name" name="name" placeholder="" type="text" class="form-control"  value="<?php echo set_value('name'); ?>" data-field-number="3" />
                                     <span class="text-danger"><?php echo form_error('name'); ?></span>
                                 </div>
                                 
                                 <div class="form-group"> <!-- Radio group !-->
-                                    <label class="control-label"><?php echo $this->lang->line('sections'); ?></label><small class="req"> *</small>
-                                    <div class="section_checkbox">
+                                    <label class="control-label">4. <?php echo $this->lang->line('sections'); ?></label><small class="req"> *</small>
+                                    <div class="section_checkbox" data-field-number="4">
                                         <?php echo $this->lang->line('no_section'); ?>
                                     </div>
                                     <span class="text-danger"><?php echo form_error('sections[]'); ?></span>
                                 </div>
                                 <div class="form-group">
-                                    <label for="exampleInputEmail1"><?php echo $this->lang->line('subject') ?></label><small class="req"> *</small>
+                                    <label for="subject_code_search">5a. <?php echo $this->lang->line('search_by_subject_code'); ?></label>
+                                    <input type="text" class="form-control" id="subject_code_search" name="subject_code_search" placeholder="<?php echo $this->lang->line('enter_comma_separated_subject_codes'); ?>" data-field-number="5a" />
+                                    <div id="subject_code_verification_display" class="help-block"></div>
+                                </div>
+                                <div class="form-group" data-field-number="5">
+                                    <label for="exampleInputEmail1">5. <?php echo $this->lang->line('subject') ?></label><small class="req"> *</small>
 
                                     <?php
 foreach ($subjectlist as $subject) {
         ?>
                                         <div class="checkbox">
                                             <label>
-                                                <input type="checkbox" name="subject[]" value="<?php echo $subject['id'] ?>" <?php echo set_checkbox('subject[]', $subject['id']); ?> ><?php echo $subject['name'] ?>
+                                                <input type="checkbox" name="subject[]" value="<?php echo $subject['id'] ?>" id="subject_id_<?php echo $subject['id']; ?>" data-subject-code="<?php echo $subject['code']; ?>" class="subject_checkbox" <?php echo set_checkbox('subject[]', $subject['id']); ?> ><?php echo $subject['name'] ?>
                                             </label>
                                         </div>
                                         <?php
@@ -93,8 +98,8 @@ foreach ($subjectlist as $subject) {
                                     <span class="text-danger"><?php echo form_error('subject[]'); ?></span>
                                 </div>
                                 <div class="form-group">
-                                    <label for="exampleInputEmail1"><?php echo $this->lang->line('description'); ?></label>
-                                    <textarea class="form-control" id="description" name="description" placeholder="" rows="3" placeholder="Enter ..."><?php echo set_value('description'); ?></textarea>
+                                    <label for="exampleInputEmail1">6. <?php echo $this->lang->line('description'); ?></label>
+                                    <textarea class="form-control" id="description" name="description" placeholder="" rows="3" placeholder="Enter ..." data-field-number="6"><?php echo set_value('description'); ?></textarea>
                                     <span class="text-danger"></span>
                                 </div>
                             </div><!-- /.box-body -->
@@ -225,8 +230,8 @@ if ($this->rbac->hasPrivilege('subject_group', 'can_delete')) {
 <script>
     var post_section_array = [];
     $(document).ready(function () {
-        var post_class_id = '<?php echo set_value('class_id', 0) ?>';
-        var post_department_id = '<?php echo set_value('department_id', 0) ?>';
+        var post_class_id = <?php echo json_encode(set_value('class_id', 0)) ?>;
+        var post_department_id = <?php echo json_encode(set_value('department_id', 0)) ?>;
 
         if (post_department_id !== 0) {
             getClassesByDepartmentForSubjectGroup(post_department_id, post_class_id);
@@ -247,8 +252,8 @@ if ($this->rbac->hasPrivilege('subject_group', 'can_delete')) {
         $(document).on('change', '#department_id', function (e) {
             $('#class_id').html("");
             var department_id = $(this).val();
-            var base_url = '<?php echo base_url() ?>';
-            var div_data = '<option value=""><?php echo $this->lang->line('select'); ?></option>';
+            var base_url = <?php echo json_encode(base_url()) ?>;
+            var div_data = '<option value="">' + <?php echo json_encode($this->lang->line('select')) ?> + '</option>';
 
             $.ajax({
                 type: "POST",
@@ -275,7 +280,7 @@ if ($this->rbac->hasPrivilege('subject_group', 'can_delete')) {
     });
 
     function getClassesByDepartmentForSubjectGroup(department_id, selected_class_id) {
-        var base_url = '<?php echo base_url() ?>';
+        var base_url = <?php echo json_encode(base_url()) ?>;
         var $class_id_dropdown = $('#class_id');
         $class_id_dropdown.html('<option value=""><?php echo $this->lang->line('select'); ?></option>'); // Clear existing options
 
@@ -331,7 +336,7 @@ if ($this->rbac->hasPrivilege('subject_group', 'can_delete')) {
                     $('.section_checkbox').html(div_data);
                 },
                 error: function (xhr) { // if error occured
-                    alert("<?php echo $this->lang->line('error_occurred_please_try_again'); ?>");
+                    alert(<?php echo json_encode($this->lang->line('error_occurred_please_try_again')); ?>);
 
                 },
                 complete: function () {
@@ -359,6 +364,56 @@ if ($this->rbac->hasPrivilege('subject_group', 'can_delete')) {
         location.reload(true);
     }
 
-  
+    $(document).ready(function() {
+        // Collect available subject codes on page load for efficient lookup
+        var available_subject_codes_map = {};
+        $('.subject_checkbox').each(function() {
+            var code = $(this).data('subject-code').toUpperCase();
+            var id = $(this).val();
+            available_subject_codes_map[code] = id;
+        });
 
-</script>
+        $(document).on('keyup', '#subject_code_search', function() {
+            var search_codes_str = $(this).val();
+            var input_codes = search_codes_str.split(',').map(function(item) {
+                return item.trim().toUpperCase();
+            }).filter(Boolean);
+
+            var valid_codes_found = [];
+            var invalid_codes_found = [];
+            
+            // Uncheck all checkboxes first to handle removals
+            $('.subject_checkbox').prop('checked', false);
+
+            input_codes.forEach(function(code) {
+                if (available_subject_codes_map.hasOwnProperty(code)) {
+                    // If code is valid, check the corresponding checkbox
+                    $('#subject_id_' + available_subject_codes_map[code]).prop('checked', true);
+                    valid_codes_found.push(code);
+                } else {
+                    // If code is invalid
+                                invalid_codes_found.push(code);
+                                    }
+                                });
+
+            // Update the verification display div
+            var verification_html = '';
+            if (valid_codes_found.length > 0) {
+                verification_html += '<p style="color: green;">Valid Codes: ' + valid_codes_found.join(', ') + '</p>';
+            }
+            if (invalid_codes_found.length > 0) {
+                verification_html += '<p style="color: red;">Invalid Codes: ' + invalid_codes_found.join(', ') + '</p>';
+            }
+            
+            var $verification_display_div = $('#subject_code_verification_display');
+            $verification_display_div.html(verification_html);
+        });
+
+        // Clear verification on blur if input is empty
+        $(document).on('blur', '#subject_code_search', function() {
+            if ($(this).val().trim() === '') {
+                $('#subject_code_verification_display').html('');
+            }
+        });
+    });
+	</script>
