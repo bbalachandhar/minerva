@@ -156,7 +156,7 @@ class Payroll extends Admin_Controller
         $data["deductions"] = $this->payroll_model->getAllowance($id, 'negative');
 
         $alloted_leave           = $this->staff_model->alloted_leave($employee_payroll['staff_id']);
-        $newdate                 = date('Y-m-d', strtotime($date . " +1 month"));
+        $newdate                 = date("Y-m-d");
         $data['monthAttendance'] = $this->monthAttendance($newdate, 3, $employee_payroll['staff_id']);
         $data['monthLeaves']     = $this->monthLeaves($newdate, 3, $employee_payroll['staff_id']);
         $data["attendanceType"]  = $this->staffattendancemodel->getStaffAttendanceType();
@@ -347,7 +347,7 @@ class Payroll extends Admin_Controller
         $this->staff_attendance  = $this->config->item('staffattendance');
 
         $record = array();
-        for ($i = 1; $i <= $no_of_months; $i++) {
+        for ($i = 0; $i < $no_of_months; $i++) {
 
             $r     = array();
             $month = date('m', strtotime($st_month . " -$i month"));
