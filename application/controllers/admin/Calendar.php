@@ -231,86 +231,72 @@ class Calendar extends Admin_Controller
     {
         $userdata = $this->customlib->getUserData();
         $result   = $this->calendar_model->getEvents();
+        $eventdata = array(); // Initialize $eventdata here
+
         if (!empty($result)) {
-
-            foreach ($result as $key => $value) {
-
-                $event_type = $value["event_type"];
-
-                if ($event_type == 'private') {
-
-                    $event_for = $userdata["id"];
-                } else if ($event_type == 'sameforall') {
-
-                    $event_for = $userdata["role_id"];
-                } else if ($event_type == 'public') {
-
-                    $event_for = "0";
-                } else if ($event_type == 'task') {
-
-                    $event_for = $userdata["id"];
-                }
-
-                if ($event_type == 'task') {
-                    if (($event_for == $value["event_for"]) && ($value["role_id"] == $userdata["role_id"])) {
-                        $eventdata[] = array('title' => $value["event_title"],
-                            'start'                      => $value["start_date"],
-                            'end'                        => $value["end_date"],
-                            'description'                => $value["event_description"],
-                            'id'                         => $value["id"],
-                            'backgroundColor'            => $value["event_color"],
-                            'borderColor'                => $value["event_color"],
-                            'event_type'                 => $value["event_type"],
-                        );
-                    }
+            foreach ($result as $value) {
+                // Check if it's a holiday entry from annual_calendar
+                if (isset($value["holiday_type"]) && $value["holiday_type"] != 0) {
+                    $event_title = ($value['is_default'] == 1) ? $this->lang->line(strtolower($value['event_title'])) : $value['event_title'];
+                    
+                    $eventdata[] = array(
+                        'title'           => $event_title,
+                        'start'           => $value["start_date"],
+                        'end'             => $value["end_date"],
+                        'description'     => $value["event_description"],
+                        'id'              => 'holiday-' . $value["id"], // Use unique ID for holidays
+                        'backgroundColor' => $value["event_color"],
+                        'borderColor'     => $value["event_color"],
+                        'event_type'      => 'holiday', // Explicitly define type for FullCalendar
+                    );
                 } else {
-                    if ($event_for == $value["event_for"]) {
-                        $eventdata[] = array('title' => $value["event_title"],
-                            'start'                      => $value["start_date"],
-                            'end'                        => $value["end_date"],
-                            'description'                => $value["event_description"],
-                            'id'                         => $value["id"],
-                            'backgroundColor'            => $value["event_color"],
-                            'borderColor'                => $value["event_color"],
-                            'event_type'                 => $value["event_type"],
-                        );
-                    } elseif ($event_type == 'protected') {
-                        $eventdata[] = array('title' => $value["event_title"],
-                            'start'                      => $value["start_date"],
-                            'end'                        => $value["end_date"],
-                            'description'                => $value["event_description"],
-                            'id'                         => $value["id"],
-                            'backgroundColor'            => $value["event_color"],
-                            'borderColor'                => $value["event_color"],
-                            'event_type'                 => $value["event_type"],
-                        );
+                    // This is an event from the 'events' table, apply user-specific filtering
+                    $event_type = $value["event_type"];
+                    $event_for = null; // Reset for clarity
+
+                    if ($event_type == 'private') {
+                        $event_for = $userdata["id"];
+                    } else if ($event_type == 'sameforall') {
+                        $event_for = $userdata["role_id"];
+                    } else if ($event_type == 'public') {
+                        $event_for = "0";
+                    } else if ($event_type == 'task') {
+                        $event_for = $userdata["id"];
+                    }
+
+                    if ($event_for !== null) { // Only add if $event_for was set by the conditions
+                        if ($event_type == 'task') {
+                             if (($event_for == $value["event_for"]) && ($value["role_id"] == $userdata["role_id"])) {
+                                $eventdata[] = array(
+                                    'title'           => $value["event_title"],
+                                    'start'           => $value["start_date"],
+                                    'end'             => $value["end_date"],
+                                    'description'     => $value["event_description"],
+                                    'id'              => $value["id"],
+                                    'backgroundColor' => $value["event_color"],
+                                    'borderColor'     => $value["event_color"],
+                                    'event_type'      => $value["event_type"],
+                                );
+                            }
+                        } else { // Handles 'private', 'sameforall', 'public', 'protected'
+                            if ($event_for == $value["event_for"] || $event_type == 'protected') {
+                                $eventdata[] = array(
+                                    'title'           => $value["event_title"],
+                                    'start'           => $value["start_date"],
+                                    'end'             => $value["end_date"],
+                                    'description'     => $value["event_description"],
+                                    'id'              => $value["id"],
+                                    'backgroundColor' => $value["event_color"],
+                                    'borderColor'     => $value["event_color"],
+                                    'event_type'      => $value["event_type"],
+                                );
+                            }
+                        }
                     }
                 }
-                if ($value["holiday_type"]!=null || $value["holiday_type"]!=0) { //for holidays
-                    if($value['is_default']==1){
-                        $event_title =  $this->lang->line(strtolower($value['event_title']));
-                    }else{
-                        $event_title =  $value['event_title'];
-                    }
-
-                    $title          =     $event_title;
-                    $from_date      =     $value["start_date"];
-                    $to_date        =     $value["end_date"];                            
-                    $eventdata[]    =     array(
-                        'title'                      => $title,
-                        'start'                      => $from_date,
-                        'end'                        => $to_date,
-                        'description'                => $value["event_description"],
-                        'id'                         => '',
-                        'backgroundColor'            => $value["event_color"],
-                        'borderColor'                => $value["event_color"],
-                        'event_type'                 => $value["event_type"],
-                         ); 
-
-                    }
             }
-            echo json_encode($eventdata);
         }
+        echo json_encode($eventdata);
     }
 
     public function view_event($id)
