@@ -705,8 +705,10 @@ class Payroll extends Admin_Controller
                 $header = array_keys($result[0]);
                 $updated_count = 0;
                 $inserted_count = 0;
+                $skipped_count = 0;
+                $skipped_staff = [];
                 foreach ($result as $row) {
-                    $staff = $this->staff_model->get_by_employee_id($row['staff_id']);
+                    $staff = $this->staff_model->get_by_employee_id(trim($row['staff_id']));
                     if ($staff) {
 
                         $existing_payslip = $this->payroll_model->getPayslipByStaffMonthYear($staff['id'], $month, $year);
@@ -717,7 +719,7 @@ class Payroll extends Admin_Controller
                         foreach ($header as $key) {
                             if ($key != 'staff_id') {
                                 $amount = $row[$key];
-                                if ($amount != 0) {
+                                if (is_numeric($amount) && $amount != 0) {
                                     if ($amount > 0) {
                                         $total_allowance += $amount;
                                         $allowances[] = ['type' => $key, 'amount' => $amount, 'cal_type' => 'positive'];
@@ -734,7 +736,7 @@ class Payroll extends Admin_Controller
                             'basic' => $staff['basic_salary'],
                             'total_allowance' => $total_allowance,
                             'total_deduction' => $total_deduction,
-                            'net_salary' => $total_allowance - $total_deduction,
+                            'net_salary' => $staff['basic_salary'] + $total_allowance - $total_deduction,
                             'payment_date' => date("Y-m-d"),
                             'status' => 'generated',
                             'month' => $month,
@@ -765,10 +767,17 @@ class Payroll extends Admin_Controller
                             );
                             $this->payroll_model->add_allowance($allowance_data);
                         }
+                    } else {
+                        $skipped_count++;
+                        $skipped_staff[] = $row['staff_id'];
                     }
                 }
                 $this->db->trans_complete();
-                $this->session->set_flashdata('msg', '<div class="alert alert-success text-center">' . $this->lang->line('records_found_in_csv_file_total') . ' ' . count($result) . ' ' . $this->lang->line('records_imported_successfully') . ' (' . $this->lang->line('updated') . ': ' . $updated_count . ', ' . $this->lang->line('inserted') . ': ' . $inserted_count . ')' . '</div>');
+                $message = '<div class="alert alert-success text-center">' . $this->lang->line('records_found_in_csv_file_total') . ' ' . count($result) . '. ' . $this->lang->line('records_imported_successfully') . ' (' . $this->lang->line('updated') . ': ' . $updated_count . ', ' . $this->lang->line('inserted') . ': ' . $inserted_count . ')' . '</div>';
+                if ($skipped_count > 0) {
+                    $message .= '<div class="alert alert-warning text-center">Skipped ' . $skipped_count . ' records for the following staff IDs: ' . implode(', ', $skipped_staff) . '</div>';
+                }
+                $this->session->set_flashdata('msg', $message);
             } else {
                 $this->session->set_flashdata('msg', '<div class="alert alert-danger text-center">' . $this->lang->line('no_record_found') . '</div>');
             }

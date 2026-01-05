@@ -172,15 +172,6 @@ $i++;
                                 <?php echo $this->lang->line('available_leave'); ?></label><small class="req"> *</small>
                             <div id="leavetypeddl">
                                 <select name="leave_type" id="leave_type1" class="form-control" >
-                                    <?php
-foreach ($leavetype as $leave_key => $leave_value) {
-    if (!empty($leave_value["alloted_leave"])) {
-        ?>
-                                            <option value="<?php echo $leave_value["typeid"] ?>"><?php echo $leave_value["type"] . "(" . $leave_value["alloted_leave"] . ")" ?></option>
-                                            <?php
-}
-}
-?>
                                 </select>
                             </div>
                             <span class="text-danger"><?php echo form_error('leave_type'); ?></span>
@@ -264,9 +255,9 @@ foreach ($leavetype as $leave_key => $leave_value) {
             timePickerIncrement: 5, locale: {
                 format: calendar_date_time_format
             }});
-        var date = '<?php echo set_value('date', date($this->customlib->getSchoolDateFormat())); ?>';
-        $('#addleave').modal({
-            show: true,
+            var date = '<?php echo set_value('date', date($this->customlib->getSchoolDateFormat())); ?>';
+            $('#applieddate').val(date);
+            $('#addleave').modal({            show: true,
             backdrop: 'static',
             keyboard: false
         });
@@ -470,10 +461,10 @@ foreach ($leavetype as $leave_key => $leave_value) {
             url: base_url + 'admin/leaverequest/countLeave/' + id,
             type: 'POST',
             data: {lid: lid},
-            success: function (result) {
-                $("#leavetypeddl").html(result);
-            }
-        });
+                    success: function (result) {
+                        console.log(result);
+                        $("#leavetypeddl").html(result);
+                    }        });
     }
 
     function editRecord(id) {

@@ -273,7 +273,10 @@ class Staff extends Admin_Controller
         }
         $data['staff_id'] = $staff_id; // Explicitly add staff_id to data array
         $data['leaverequestlist'] = $this->leaverequest_model->staff_leave_request($staff_id); // Use the existing method
-
+        
+        $leavetype = $this->staff_model->getLeaveType();
+        $data['leavetype'] = $leavetype;
+        
         $this->load->view('layout/header', $data);
         $this->load->view('admin/staff/leaverequest', $data); // Assuming a view file named leaverequest.php
         $this->load->view('layout/footer', $data);
@@ -847,6 +850,7 @@ class Staff extends Admin_Controller
             $count_leaves[]                   = $this->leaverequest_model->countLeavesData($id, $value["leave_type_id"]);
             $leaveDetail[$i]['type']          = $value["type"];
             $leaveDetail[$i]['id']            = $value["leave_type_id"];
+            $leaveDetail[$i]['altid']         = $value["id"];
             $leaveDetail[$i]['alloted_leave'] = $value["alloted_leave"];
             $leaveDetail[$i]['approve_leave'] = $count_leaves[$i]['approve_leave'];
             $i++;
@@ -1101,14 +1105,15 @@ class Staff extends Admin_Controller
                 $data_update['date_of_leaving'] = null;
             }
 
-            $leave_type = $this->input->post('leave_type');
+            $leave_type_ids = $this->input->post('leave_type_id');
+            $alloted_leaves = $this->input->post('alloted_leave');
             $leave_array = array();
-            if (!empty($leave_type)) {
-                foreach ($leave_type as $leave_key => $leave_value) {
+            if (!empty($leave_type_ids)) {
+                foreach ($leave_type_ids as $key => $leave_type_id) {
                     $leave_array[] = array(
                         'staff_id' => $id,
-                        'leave_type_id' => $leave_value,
-                        'alloted_leave' => $this->input->post('alloted_leave_' . $leave_value),
+                        'leave_type_id' => $leave_type_id,
+                        'alloted_leave' => $alloted_leaves[$key],
                     );
                 }
             }
@@ -1211,23 +1216,23 @@ class Staff extends Admin_Controller
         $data["payscaleList"] = $payscaleList;
         $marital_status = $this->marital_status;
         $data["marital_status"] = $marital_status;
-        $data["contract_type"] = $this->contract_type;
-        $staff = $this->staff_model->get($id);
-        $data['staff'] = $staff;
-
-        $staff_leaves          = $this->leaverequest_model->staff_leave_request($id);
-        $alloted_leavetype           = $this->staff_model->allotedLeaveType($id);
-        $i                           = 0;
-        $leaveDetail                 = array();
-        foreach ($alloted_leavetype as $key => $value) {
-            $count_leaves[]                   = $this->leaverequest_model->countLeavesData($id, $value["leave_type_id"]);
-            $leaveDetail[$i]['type']          = $value["type"];
-            $leaveDetail[$i]['id']            = $value["leave_type_id"];
-            $leaveDetail[$i]['alloted_leave'] = $value["alloted_leave"];
-            $leaveDetail[$i]['approve_leave'] = $count_leaves[$i]['approve_leave'];
-            $i++;
-        }
-        $data['staffLeaveDetails'] = (array) $leaveDetail;
+            $data["contract_type"] = $this->contract_type;
+            $staff = $this->staff_model->get($id);
+            $data['staff'] = $staff;
+        
+            $staff_leaves          = $this->leaverequest_model->staff_leave_request($id);
+            $alloted_leavetype           = $this->staff_model->allotedLeaveType($id);
+            $i                           = 0;
+            $leaveDetail                 = array();
+            foreach ($alloted_leavetype as $key => $value) {
+                $count_leaves[]                   = $this->leaverequest_model->countLeavesData($id, $value["leave_type_id"]);
+                $leaveDetail[$i]['type']          = $value["type"];
+                $leaveDetail[$i]['id']            = $value["leave_type_id"];
+                $leaveDetail[$i]['altid']         = $value["id"];
+                $leaveDetail[$i]['alloted_leave'] = $value["alloted_leave"];
+                $leaveDetail[$i]['approve_leave'] = $count_leaves[$i]['approve_leave'];
+                $i++;
+            }        $data['staffLeaveDetails'] = (array) $leaveDetail;
 
         $custom_fields = $this->customfield_model->getByBelong('staff');
         foreach ($custom_fields as $custom_fields_key => $custom_fields_value) {

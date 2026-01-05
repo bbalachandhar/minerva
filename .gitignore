@@ -31,3 +31,9 @@ Minerva_User_Manual.md
 /config
 /application/config/production
 
+application/controllers/Dbcheck.php
+application/controllers/Dbupdate.php
+clear_cache.php
+clear_cache.php
+create_tenant.sh
+phpinfo.php

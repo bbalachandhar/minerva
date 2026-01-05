@@ -392,20 +392,25 @@ if ($this->rbac->hasPrivilege('approve_leave_request', 'can_edit')) {
         });
 
     function addLeave() {
-        $('.leave_title').html('<?php echo $this->lang->line('add_details'); ?>')
-        $('input[type=text]').val('');
+        $('.leave_title').html('<?php echo $this->lang->line('add_details'); ?>');
+        $("#addleave_form")[0].reset(); // Reset the form fields to their initial state
         $('textarea[name="reason"]').text('');
-        $("#resetbutton").click();
-        $("#clearform").click();
-
-        var date_format = '<?php echo $result = strtr($this->customlib->getSchoolDateFormat(), ['d' => 'dd', 'm' => 'mm', 'Y' => 'yyyy']) ?>';
-
-        var date = '<?php echo set_value('date', date($this->customlib->getSchoolDateFormat())); ?>';
-        $('input[type=text][name=applieddate]').val(date);
+        $('textarea[name="remark"]').text('');
+        $('input[name="filename"]').val(''); // Clear filename if any
 
         // Clear recommender and approver info
         $('input[name="recommender"]').val('');
         $('input[name="approver"]').val('');
+
+        // Ensure leave from/to dates are cleared/reset as well
+        $('#leave_from_date').val('');
+        $('#leave_to_date').val('');
+        
+        // Hide timetable section on new leave request
+        $('#timetable_section').hide();
+
+        // Set the applieddate field to the current date using the datepicker's API
+        $('#applieddate').datepicker('setDate', 'now');
 
         $('#addleave').modal({
             show: true,
@@ -766,33 +771,5 @@ if ($this->rbac->hasPrivilege('approve_leave_request', 'can_edit')) {
         });
     }
 
-    // Override addLeave and editRecord to call loadTimetableAndSubstitutes
-    var originalAddLeave = addLeave;
-    addLeave = function() {
-        originalAddLeave();
-        // Clear previous timetable/substitution data
-        $('#timetable_display').empty();
-        $('#substitution_fields').empty();
-        $('#timetable_section').hide();
-    };
 
-    var originalEditRecord = editRecord;
-    editRecord = function(id) {
-        originalEditRecord(id);
-        // Clear previous timetable/substitution data
-        $('#timetable_display').empty();
-        $('#substitution_fields').empty();
-        $('#timetable_section').hide();
-
-        // After editRecord populates fields, trigger loadTimetableAndSubstitutes
-        // This might need a slight delay to ensure all fields are updated
-        setTimeout(function() {
-            var staff_id = $('#empname').val();
-            var leave_from_date = $('#leave_from_date').val();
-            var leave_to_date = $('#leave_to_date').val();
-            if (staff_id && leave_from_date && leave_to_date) {
-                loadTimetableAndSubstitutes(staff_id, leave_from_date, leave_to_date);
-            }
-        }, 500); // Small delay
-    };
 </script>

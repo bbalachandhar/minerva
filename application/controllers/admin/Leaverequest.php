@@ -92,39 +92,70 @@ class Leaverequest extends Admin_Controller
     {
         $lid               = $this->input->post("lid");
         $alloted_leavetype = $this->leaverequest_model->allotedLeaveType($id);
+        $all_leavetypes    = $this->staff_model->getLeaveType();
 
-        $i    = 0;
         $html = "<select  name='leave_type' id='leave_type' class='form-control'><option value=''>" . $this->lang->line('select') . "</option>";
-        $data = array();
+        
+        $leave_types_to_display = array();
 
-        foreach ($alloted_leavetype as $key => $value) {
-            $count_leaves[]            = $this->leaverequest_model->countLeavesData($id, $value["leave_type_id"]);
-            $data[$i]['type']          = $value["type"];
-            $data[$i]['id']            = $value["leave_type_id"];
-            $data[$i]['alloted_leave'] = $value["alloted_leave"];
-            $data[$i]['approve_leave'] = $count_leaves[$i]['approve_leave'];
-
-            $i++;
+        // Create a map of allotted leaves for easier lookup
+        $allotted_map = array();
+        foreach($alloted_leavetype as $leave){
+            $allotted_map[$leave['leave_type_id']] = $leave;
         }
 
-        foreach ($data as $dkey => $dvalue) {
-            if (!empty($dvalue["alloted_leave"])) {
-                if ($lid == $dvalue["id"]) {
-                    $a = "selected";
+        if (!empty($all_leavetypes)) {
+            foreach ($all_leavetypes as $key => $value) {
+                
+                $is_allotted = isset($allotted_map[$value['id']]);
+                $is_lop = isset($value['is_lop']) && $value['is_lop'] == 1;
+
+                if ($is_lop) {
+                    if ($is_allotted) {
+                        // It's LOP, but has an allotted amount for tracking. Show it, with count (0 or negative is fine).
+                        $allotted_leave_days = $allotted_map[$value['id']]['alloted_leave'];
+                        $count_leaves = $this->leaverequest_model->countLeavesData($id, $value["id"]);
+                        $approve_leave = isset($count_leaves['approve_leave']) ? $count_leaves['approve_leave'] : 0;
+                        $available = $allotted_leave_days - $approve_leave;
+
+                        $leave_types_to_display[$value['id']] = array(
+                            'id' => $value['id'],
+                            'type' => $value['type'],
+                            'display' => $value['type'] . " (" . $available . ")"
+                        );
+                    } else {
+                        // It's a LOP leave not specifically allotted, so it's unlimited
+                         $leave_types_to_display[$value['id']] = array(
+                            'id' => $value['id'],
+                            'type' => $value['type'],
+                            'display' => $value['type']
+                        );
+                    }
                 } else {
-                    $a = "";
-                }
+                    // Regular allotted leave
+                    if ($is_allotted) {
+                        $allotted_leave_days = $allotted_map[$value['id']]['alloted_leave'];
+                        $count_leaves = $this->leaverequest_model->countLeavesData($id, $value["id"]);
+                        $approve_leave = isset($count_leaves['approve_leave']) ? $count_leaves['approve_leave'] : 0;
+                        $available = $allotted_leave_days - $approve_leave;
 
-                if ($dvalue["alloted_leave"] == "") {
-
-                    $available = $dvalue["approve_leave"];
-                } else {
-                    $available = $dvalue["alloted_leave"] - $dvalue["approve_leave"];
+                        if ($available >= 0) {
+                            $leave_types_to_display[$value['id']] = array(
+                                'id' => $value['id'],
+                                'type' => $value['type'],
+                               'display' => $value['type'] . " (" . $available . ")"
+                            );
+                        }
+                    }
                 }
-                if ($available > 0) {
+            }
+        }
 
-                    $html .= "<option value=" . $dvalue["id"] . " $a>" . $dvalue["type"] . " (" . $available . ")" . "</option>";
-                }
+        // Generate HTML
+        if (!empty($leave_types_to_display)) {
+            foreach ($leave_types_to_display as $leave) {
+                $selected = ($lid == $leave["id"]) ? "selected" : "";
+                $html .= "<option value='" . $leave["id"] . "' " . $selected . ">" . $leave["display"] . "</option>";
             }
         }
 
