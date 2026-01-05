@@ -103,19 +103,20 @@ foreach ($attendanceType as $key => $value) {
                                                 <th class="bozero"><span data-toggle="tooltip" title="<?php echo $this->lang->line('approved_leave'); ?>">V</span></th>
                                             </tr>
                                             <?php
-foreach ($monthAttendance as $attendence_key => $attendence_value) {
-    ?><tr>
-                                                    <td><?php echo date("F", strtotime($attendence_key)); ?></td>
-                                                    <td><?php echo $attendence_value['present'] ?></td>
-                                                    <td><?php echo $attendence_value['late']; ?></td>
-                                                    <td><?php echo $attendence_value['absent']; ?></td>
-                                                    <td><?php echo $attendence_value['half_day']; ?></td>
-                                                    <td><?php echo $attendence_value['holiday']; ?></td>
-                                                    <td><?php echo $monthLeaves[date("m", strtotime($attendence_key))]; ?></td>
-                                                </tr>
-                                                <?php
-}
-?>
+    foreach ($monthAttendance as $attendence_key => $attendence_value) {
+    ?>
+        <tr>
+            <td><?php echo date("F", strtotime($attendence_key)); ?></td>
+            <?php foreach ($attendanceType as $type) {
+                $att_type_key = str_replace(" ", "_", strtolower($type['type']));
+                ?>
+                <td><?php echo $attendence_value[$att_type_key] ?? 0; ?></td>
+            <?php } ?>
+            <td><?php echo $monthLeaves[date("m", strtotime($attendence_key))]; ?></td>
+        </tr>
+        <?php
+    }
+    ?>
                                             <tr>
                                             </tr>
                                         </table>

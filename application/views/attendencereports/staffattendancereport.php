@@ -191,7 +191,7 @@
                                                 foreach ($student_array as $student_key => $student_value) {
                                                     $total_present = ($monthAttendance[$i][$student_value['id']]['present'] + $monthAttendance[$i][$student_value['id']]['late'] + $monthAttendance[$i][$student_value['id']]['half_day']);
 
-                                                    $total_days = $monthAttendance[$i][$student_value['id']]['present'] + $monthAttendance[$i][$student_value['id']]['late'] + $monthAttendance[$i][$student_value['id']]['absent'] + $monthAttendance[$i][$student_value['id']]['half_day'];
+                                                    $total_days = $monthAttendance[$i][$student_value['id']]['present'] + $monthAttendance[$i][$student_value['id']]['late'] + $monthAttendance[$i][$student_value['id']]['absent'] + $monthAttendance[$i][$student_value['id']]['half_day'] + $monthAttendance[$i][$student_value['id']]['holiday'];
 
                                                     if ($total_days == 0) {
                                                         $percentage       = -1;

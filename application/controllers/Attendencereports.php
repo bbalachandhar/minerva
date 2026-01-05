@@ -461,21 +461,35 @@ class Attendencereports extends Admin_Controller
             $this->load->model("holiday_model");
             $holidays = $this->holiday_model->get();
             $holiday_dates = array();
+            $month_number           = date("m", strtotime($month));
+            $num_of_days            = cal_days_in_month(CAL_GREGORIAN, $month_number, $searchyear);
+
+            for ($i = 1; $i <= $num_of_days; $i++) {
+                $att_date = $searchyear . "-" . $month_number . "-" . sprintf("%02d", $i);
+                if (date('w', strtotime($att_date)) == 0) {
+                    $holiday_dates[] = $att_date;
+                }
+            }
+
+
             foreach ($holidays as $holiday_key => $holiday_value) {
                 $from_date = strtotime($holiday_value['from_date']);
                 $to_date = strtotime($holiday_value['to_date']);
                 for ($current_date = $from_date; $current_date <= $to_date; $current_date += (86400)) {
-                    $holiday_dates[] = date('Y-m-d', $current_date);
+                     $date_month = date('m', $current_date);
+                    $date_year = date('Y', $current_date);
+
+                    if($date_month == $month_number && $date_year == $searchyear){
+                        $holiday_dates[] = date('Y-m-d', $current_date);
+                    }
                 }
             }
-            $data['holiday_dates'] = $holiday_dates;
+            $data['holiday_dates'] = array_unique($holiday_dates);
             
             $data['month_selected'] = $month;
             $data['year_selected']  = $searchyear;
             $data["role_selected"]  = $role;
             
-            $month_number           = date("m", strtotime($month));
-            $num_of_days            = cal_days_in_month(CAL_GREGORIAN, $month_number, $searchyear);
             
             // Get the definitive list of staff for the selected role using the last day of the month
             $last_day_of_month = $searchyear . "-" . $month_number . "-" . $num_of_days;
@@ -501,7 +515,7 @@ class Attendencereports extends Admin_Controller
                 foreach ($stafflist as $result_k => $result_v) {
                     $date              = $searchyear . "-" . $month;
                     $newdate           = date('Y-m-d', strtotime($date));
-                    $monthAttendance[] = $this->monthAttendance($newdate, 1, $result_v['id']);
+                    $monthAttendance[] = $this->monthAttendance($newdate, 1, $result_v['id'],$holiday_dates);
                 }
             }
 
@@ -524,7 +538,7 @@ class Attendencereports extends Admin_Controller
         }
     }
 
-    public function monthAttendance($st_month, $no_of_months, $emp)
+    public function monthAttendance($st_month, $no_of_months, $emp, $holiday_dates = array())
     {
         $this->load->model("payroll_model");
         $record = array();
@@ -541,6 +555,11 @@ class Attendencereports extends Admin_Controller
 
         foreach ($this->staff_attendance as $att_key => $att_value_from_config) {
             $attendance_type_id_for_query = $att_key_to_id_map[$att_key] ?? null;
+
+            if($att_key == 'holiday'){
+                $r[$att_key] = count($holiday_dates);
+                 continue;
+            }
 
             if ($attendance_type_id_for_query !== null) {
                 $s = $this->payroll_model->count_attendance_obj($month, $year, $emp, $attendance_type_id_for_query);
