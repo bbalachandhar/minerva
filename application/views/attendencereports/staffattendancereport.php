@@ -150,7 +150,7 @@
                                                 if (!empty($attendence_array)) {
                                                     foreach ($attendencetypeslist as $key => $value) {
                                                 ?>
-                                                        <th colspan=""><br /><span data-toggle="tooltip" title="<?php echo $this->lang->line('total') . ' ' . $value["type"]; ?>"><?php echo strip_tags($value["key_value"]); ?>
+                                                        <th colspan="1"><br /><span data-toggle="tooltip" title="<?php echo $this->lang->line('total') . ' ' . $value["type"]; ?>"><?php echo strip_tags($value["key_value"]); ?>
 
                                                             </span></th>
 
@@ -158,6 +158,7 @@
                                                     }
                                                 }
                                                 ?>
+                                                <th colspan="1"><br /><span data-toggle="tooltip" title="Sundays">Sun</span></th>
                                                 <?php
                                                 foreach ($attendence_array as $at_key => $at_value) {
                                                      $header_class = '';
@@ -178,88 +179,90 @@
                                                 ?>
                                             </tr>
                                         </thead>
-                                        <tbody>
-                                            <?php if (empty($student_array)) {
-                                            ?>
-                                                <tr>
-                                                    <td colspan="32" class="text-danger text-center"><?php echo $this->lang->line('no_record_found'); ?></td>
-                                                </tr>
-                                                <?php
-                                            } else {
-                                                $row_count = 1;
-                                                $i         = 0;
-                                                foreach ($student_array as $student_key => $student_value) {
-                                                    $total_present = ($monthAttendance[$i][$student_value['id']]['present'] + $monthAttendance[$i][$student_value['id']]['late'] + $monthAttendance[$i][$student_value['id']]['half_day']);
-
-                                                    $total_days = $monthAttendance[$i][$student_value['id']]['present'] + $monthAttendance[$i][$student_value['id']]['late'] + $monthAttendance[$i][$student_value['id']]['absent'] + $monthAttendance[$i][$student_value['id']]['half_day'] + $monthAttendance[$i][$student_value['id']]['holiday'];
-
-                                                    if ($total_days == 0) {
-                                                        $percentage       = -1;
-                                                        $print_percentage = "-";
-                                                    } else {
-
-                                                        $percentage       = ($total_present / $total_days) * 100;
-                                                        $print_percentage = round($percentage, 0);
-                                                    }
-
-                                                    if (($percentage < 75) && ($percentage >= 0)) {
-                                                        $label = "class='label label-danger'";
-                                                    } else if ($percentage > 75) {
-                                                        $label = "class='label label-success'";
-                                                    } else {
-                                                        $label = "class='label label-default'";
-                                                    }
-                                                ?>
-                                                    <tr>
-
-                                                        <td class="tdclsname">
-                                                            <span data-toggle="popover" class="detail_popover" data-original-title="" title="">
-                                                                <a href="#" style="color:#333"><?php echo $student_value['name'] . " " . $student_value['surname']; ?></a>
-                                                            </span>
-                                                            <div class="fee_detail_popover" style="display: none"><?php echo $this->lang->line('staff_id'); ?>: <?php echo $student_value['employee_id']; ?></div>
-                                                        </td>
-                                                        <th><?php echo "<label $label>" . $print_percentage . "</label>"; ?></th>
-                                                        <?php
-                                                        if(!empty($monthAttendance)){
-                                                        foreach ($attendencetypeslist as $key => $value) {
-                                                          $att_type_key = str_replace(" ", "_", strtolower($value['type']));
-                                                        ?>
-                                                          <th><?php echo $monthAttendance[$i][$student_value['id']][$att_type_key] ?? 0; ?></th>
-                                                        <?php }
-                                                        }
-                                                         ?>
-                                                        <?php
-                                                        foreach ($attendence_array as $at_key => $at_value) {
-                                                            $cell_class = '';
-                                                            $attendance_key = $resultlist[$at_value][$student_value['id']]['key'] ?? null;
-
-                                                            if (date('D', $this->customlib->dateyyyymmddTodateformat($at_value)) == "Sun") {
-                                                                $cell_class = 'bg-danger';
-                                                            }elseif (in_array($at_value, $holiday_dates) || $attendance_key == 'HO') { 
-                                                                $cell_class = 'bg-warning';
-                                                            }
-                                                        ?>
-                                                            <th class="tdcls text text-center <?php echo $cell_class; ?>">
-                                                                <center>
-                                                                <span data-toggle="popover" class="detail_popover" data-original-title="" title="">
-                                                                <a href="#" style="color:#333"><?php echo ($attendance_key ?? '');  ?></a></span>
-                                                                <div class="fee_detail_popover" style="display: none">
-                                                                    <?php
-                                                                        if (!empty($resultlist[$at_value][$student_value['id']]['remark'])) {
-                                                                                echo $resultlist[$at_value][$student_value['id']]['remark'];
-                                                                    }  ?></div>
-                                                            </center></th>
-                                                        <?php
-                                                        }
-                                                        ?>
-                                                    </tr>
-                                            <?php
-                                                    $i++;
-                                                }
-                                            }
-                                            ?>
-                                        </tbody>
-                                    </table>
+                                                                                <tbody>
+                                                                                    <?php if (empty($student_array)) {
+                                                                                    ?>
+                                                                                        <tr>
+                                                                                            <td colspan="32" class="text-danger text-center"><?php echo $this->lang->line('no_record_found'); ?></td>
+                                                                                        </tr>
+                                                                                        <?php
+                                                                                    } else {
+                                                                                        $row_count = 1;
+                                                                                        $i         = 0;
+                                                                                        foreach ($student_array as $student_key => $student_value) {
+                                                                                            $total_present = ($monthAttendance[$i][$student_value['id']]['present'] + $monthAttendance[$i][$student_value['id']]['late'] + $monthAttendance[$i][$student_value['id']]['half_day']);
+                                        
+                                                                                            $total_days = $monthAttendance[$i][$student_value['id']]['present'] + $monthAttendance[$i][$student_value['id']]['late'] + $monthAttendance[$i][$student_value['id']]['absent'] + $monthAttendance[$i][$student_value['id']]['half_day'] + $monthAttendance[$i][$student_value['id']]['holiday'] + $monthAttendance[$i][$student_value['id']]['sunday'];
+                                        
+                                                                                            if ($total_days == 0) {
+                                                                                                $percentage       = -1;
+                                                                                                $print_percentage = "-";
+                                                                                            } else {
+                                        
+                                                                                                $percentage       = ($total_present / $total_days) * 100;
+                                                                                                $print_percentage = round($percentage, 0);
+                                                                                            }
+                                        
+                                                                                            if (($percentage < 75) && ($percentage >= 0)) {
+                                                                                                $label = "class='label label-danger'";
+                                                                                            } else if ($percentage > 75) {
+                                                                                                $label = "class='label label-success'";
+                                                                                            } else {
+                                                                                                $label = "class='label label-default'";
+                                                                                            }
+                                                                                        ?>
+                                                                                            <tr>
+                                        
+                                                                                                <td class="tdclsname">
+                                                                                                    <span data-toggle="popover" class="detail_popover" data-original-title="" title="">
+                                                                                                        <a href="#"><?php echo $student_value['name'] . " " . $student_value['surname']; ?></a>
+                                                                                                    </span>
+                                                                                                    <div class="fee_detail_popover" style="display: none"><?php echo $this->lang->line('staff_id'); ?>: <?php echo $student_value['employee_id']; ?></div>
+                                                                                                </td>
+                                                                                                <td><?php echo "<label $label>" . $print_percentage . "</label>"; ?></td>
+                                                                                                <?php
+                                                                                                if(!empty($monthAttendance)){
+                                                                                                foreach ($attendencetypeslist as $key => $value) {
+                                                                                                  $att_type_key = str_replace(" ", "_", strtolower($value['type']));
+                                                                                                ?>
+                                                                                                  <td><?php echo $monthAttendance[$i][$student_value['id']][$att_type_key] ?? 0; ?></td>
+                                                                                                <?php }
+                                                                                                ?>
+                                                                                                  <td><?php echo $monthAttendance[$i][$student_value['id']]['sunday'] ?? 0; ?></td>
+                                                                                                <?php
+                                                                                                }
+                                                                                                 ?>
+                                                                                                <?php
+                                                                                                foreach ($attendence_array as $at_key => $at_value) {
+                                                                                                    $cell_class = '';
+                                                                                                    $attendance_key = $resultlist[$at_value][$student_value['id']]['key'] ?? null;
+                                        
+                                                                                                    if (date('D', $this->customlib->dateyyyymmddTodateformat($at_value)) == "Sun") {
+                                                                                                        $cell_class = 'bg-danger';
+                                                                                                    }elseif (in_array($at_value, $holiday_dates) || $attendance_key == 'HO') {
+                                                                                                        $cell_class = 'bg-warning';
+                                                                                                    }
+                                                                                                ?>
+                                                                                                    <td class="tdcls text text-center <?php echo $cell_class; ?>">
+                                                                                                        <center>
+                                                                                                        <span data-toggle="popover" class="detail_popover" data-original-title="" title="">
+                                                                                                        <a href="#"><?php echo ($attendance_key ?? '');  ?></a></span>
+                                                                                                        <div class="fee_detail_popover" style="display: none">
+                                                                                                            <?php
+                                                                                                                if (!empty($resultlist[$at_value][$student_value['id']]['remark'])) {
+                                                                                                                        echo $resultlist[$at_value][$student_value['id']]['remark'];
+                                                                                                            }  ?></div>
+                                                                                                    </center></td>
+                                                                                                <?php
+                                                                                                }
+                                                                                                ?>
+                                                                                            </tr>
+                                                                                    <?php
+                                                                                            $i++;
+                                                                                        }
+                                                                                    }
+                                                                                    ?>
+                                                                                </tbody>                                    </table>
                                 <?php
                                 } else {
                                 ?>
