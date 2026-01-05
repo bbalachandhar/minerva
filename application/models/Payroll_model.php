@@ -202,7 +202,6 @@ class Payroll_model extends MY_Model
             }
             return $count;
         } else {
-            // Original logic for overall types
             $query = $this->db->select('count(*) as attendence')->where(array('staff_id' => $staff_id, 'month(date)' => $month, 'year(date)' => $year, 'staff_attendance_type_id' => $attendance_type))->get("staff_attendance");
             return $query->row()->attendence;
         }
