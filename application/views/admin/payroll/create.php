@@ -26,7 +26,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                     </div><!--./box-header-->
                     <div class="box-body" style="padding-top:0;">
                         <div class="row">
-                            <div class="col-md-8 col-sm-12">
+                            <div class="col-md-12">
                                 <div class="sfborder">
                                     <div class="col-md-2">
                                         <div class="row">
@@ -84,38 +84,45 @@ $image=$this->media_storage->getImageURL("uploads/staff_images/" . $file);
                                             </table>
                                         </div>
                                     </div>
-                                </div></div><!--./col-md-8-->
-                            <div class="col-md-4 col-sm-12">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-12">
                                 <div class="sfborder relative overvisible">
                                     <div class="letest">
                                         <div class="rotatetest"><?php echo $this->lang->line("attendance") ?></div>
                                     </div>
                                     <div class="padd-en-rtl33">
                                         <table class="table mb0 font13" >
+                                            <thead>
                                             <tr>
                                                 <th  class="bozero"><?php echo $this->lang->line('month'); ?></th>
                                                 <?php foreach ($attendanceType as $key => $value) {?>
                                                     <th class="bozero"><span data-toggle="tooltip" title="<?php echo $value["type"]; ?>"><?php echo strip_tags($value["key_value"]); ?></span></th>
-                                                <?php }
-?>
+                                                <?php } ?>
+                                                <th class="bozero"><span data-toggle="tooltip" title="Sundays">Sun</span></th>
                                                 <th class="bozero"><span data-toggle="tooltip" title="<?php echo $this->lang->line('approved_leave'); ?>">V</span></th>
                                             </tr>
+                                            </thead>
+                                            <tbody>
                                             <?php
 foreach ($monthAttendance as $attendence_key => $attendence_value) {
-    ?><tr>
+    ?>
+                                                <tr>
                                                     <td><?php echo $this->lang->line(strtolower(date("F", strtotime($attendence_key)))); ?></td>
-                                                    <td><?php echo $attendence_value['present'] ?></td>
-                                                    <td><?php echo $attendence_value['late']; ?></td>
-                                                    <td><?php echo $attendence_value['absent']; ?></td>
-                                                    <td><?php echo $attendence_value['half_day']; ?></td>
-                                                    <td><?php echo $attendence_value['holiday']; ?></td>
+                                                    <?php foreach ($attendanceType as $key => $value) {
+        $type_key = str_replace(' ', '_', strtolower($value['type']));
+        ?>
+                                                        <td><?php echo $attendence_value[$type_key]; ?></td>
+                                                    <?php }?>
+                                                    <td><?php echo $attendence_value['sunday']; ?></td>
                                                     <td><?php echo $monthLeaves[date("m", strtotime($attendence_key))]; ?></td>
                                                 </tr>
                                                 <?php
 }
 ?>
-                                            <tr>
-                                            </tr>
+                                            </tbody>
                                         </table>
                                     </div>
                                 </div>

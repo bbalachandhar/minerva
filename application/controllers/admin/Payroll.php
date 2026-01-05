@@ -82,7 +82,8 @@ class Payroll extends Admin_Controller
         $data["absent"]              = 0;
         $data["late"]                = 0;
         $data["half_day"]            = 0;
-        $data["holiday"]             = 0;
+        $data["holiday"]             = 0; // This will store the "other leaves" count
+        $data["sunday_count"]        = 0; // New variable for Sundays
         $data["leave_count"]         = 0;
         $data["alloted_leave"]       = 0;
         $data['sch_setting']         = $this->sch_setting_detail;
@@ -113,9 +114,26 @@ class Payroll extends Admin_Controller
 
         $newdate = date('Y-m-d', strtotime($date . " +1 month"));
 
-        $data['monthAttendance'] = $this->monthAttendance($newdate, 3, $id);
+        $monthAttendanceData = $this->monthAttendance($newdate, 3, $id);
+        $data['monthAttendance'] = $monthAttendanceData; // Assign the full array
+
+        // Extract specific counts from monthAttendanceData
+        $currentMonthKey = date('01-m-Y', strtotime($date));
+        if (isset($monthAttendanceData[$currentMonthKey])) {
+            $data["holiday"] = $monthAttendanceData[$currentMonthKey]['holiday'] ?? 0;
+            $data["sunday_count"] = $monthAttendanceData[$currentMonthKey]['sunday'] ?? 0;
+        } else {
+             // Fallback if current month data isn't directly available (e.g., if $no_of_months logic shifts it)
+             // This might need more robust handling if monthAttendance can return data for other months.
+             // For now, let's assume the first entry is most relevant if monthAttendance is updated to return only one month.
+             $firstMonthData = reset($monthAttendanceData);
+             $data["holiday"] = $firstMonthData['holiday'] ?? 0;
+             $data["sunday_count"] = $firstMonthData['sunday'] ?? 0;
+        }
+
         $data['monthLeaves']     = $this->monthLeaves($newdate, 3, $id);
         $data["attendanceType"]  = $this->staffattendancemodel->getStaffAttendanceType();
+        $data["staff_attendance_keys"] = array_keys($this->staff_attendance);
         $data["alloted_leave"]   = $alloted_leave[0]["alloted_leave"];
 
         $this->load->view("layout/header", $data);
@@ -353,30 +371,44 @@ class Payroll extends Admin_Controller
             $month = date('m', strtotime($st_month . " -$i month"));
             $year  = date('Y', strtotime($st_month . " -$i month"));
 
-            $holiday_dates = array();
-            $num_of_days            = cal_days_in_month(CAL_GREGORIAN, $month, $year);
 
+            $holiday_dates = array();
+            $sundays_in_month = [];
+            $official_holiday_dates = [];
+            $num_of_days = cal_days_in_month(CAL_GREGORIAN, $month, $year);
+
+            // Calculate all Sundays in the month
             for ($day = 1; $day <= $num_of_days; $day++) {
                 $att_date = $year . "-" . $month . "-" . sprintf("%02d", $day);
-                if (date('w', strtotime($att_date)) == 0) {
-                    $holiday_dates[] = $att_date;
+                if (date('w', strtotime($att_date)) == 0) { // 0 for Sunday
+                    $sundays_in_month[] = $att_date;
                 }
             }
+            $sundays_in_month = array_unique($sundays_in_month);
 
-
+            // Collect official holiday dates from annual_calendar
             foreach ($holidays as $holiday_key => $holiday_value) {
-                $from_date = strtotime($holiday_value['from_date']);
-                $to_date = strtotime($holiday_value['to_date']);
-                for ($current_date = $from_date; $current_date <= $to_date; $current_date += (86400)) {
-                     $date_month = date('m', $current_date);
-                    $date_year = date('Y', $current_date);
-
-                    if($date_month == $month && $date_year == $year){
-                        $holiday_dates[] = date('Y-m-d', $current_date);
+                $from_date = new DateTime($holiday_value['from_date']);
+                $to_date = new DateTime($holiday_value['to_date']);
+                
+                $current = clone $from_date;
+                while ($current <= $to_date) {
+                    if ($current->format('m') == $month && $current->format('Y') == $year) {
+                        $official_holiday_dates[] = $current->format('Y-m-d');
                     }
+                    $current->modify('+1 day');
                 }
             }
-            $holiday_dates = array_unique($holiday_dates);
+            $official_holiday_dates = array_unique($official_holiday_dates);
+
+            // Calculate actual holidays that are NOT Sundays
+            $holidays_only_count = count(array_diff($official_holiday_dates, $sundays_in_month));
+            // Calculate Sundays that are NOT official holidays
+            $sundays_only_count = count(array_diff($sundays_in_month, $official_holiday_dates));
+
+            // Merge all actual holiday dates (excluding Sundays if they are also official holidays) into $holiday_dates
+            // This is for display in the "H" column for "other leaves"
+            $holidays_for_H_column = array_diff($official_holiday_dates, $sundays_in_month);
 
 
             $attendance_types_from_db = $this->staffattendancemodel->getStaffAttendanceType();
@@ -389,9 +421,10 @@ class Payroll extends Admin_Controller
             foreach ($this->staff_attendance as $att_key => $att_value_from_config) {
                 $attendance_type_id_for_query = $att_key_to_id_map[$att_key] ?? null;
 
-                if($att_key == 'holiday'){
-                    $r[$att_key] = count($holiday_dates);
-                     continue;
+                if ($att_key == 'holiday') {
+                    $r[$att_key] = count($holidays_for_H_column); // Now this only counts "other leaves"
+                    $r['sunday'] = count($sundays_in_month); // Adding Sundays to a new key
+                    continue;
                 }
 
                 if ($attendance_type_id_for_query !== null) {
