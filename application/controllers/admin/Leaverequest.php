@@ -485,7 +485,7 @@ class Leaverequest extends Admin_Controller
                 }
 
                 $setting = $this->setting_model->getSetting();
-                $approver_id = $setting->leave_approver_id;
+                $approver_id = isset($setting->leave_approver_id) ? $setting->leave_approver_id : null;
 
                 if (!empty($request_id)) {
                     $data = array('id' => $request_id,
@@ -544,11 +544,21 @@ class Leaverequest extends Admin_Controller
                 $recommender = $this->staff_model->get($recommender_id);
                 $approver = $this->staff_model->get($approver_id);
 
-                $message_to_recommender = "Dear " . $recommender['name'] . ",<br><br>A new leave request from " . $applicant_details['name'] . " " . $applicant_details['surname'] . " is awaiting your recommendation.<br><br>Thank you.";
-                $this->mailer->send_mail($recommender['email'], 'New Leave Request for Recommendation', $message_to_recommender);
+                // Only send to recommender if details are available
+                if ($recommender && isset($recommender['name']) && isset($recommender['surname']) && isset($recommender['email'])) {
+                    $message_to_recommender = "Dear " . $recommender['name'] . ",<br><br>A new leave request from " . $applicant_details['name'] . " " . $applicant_details['surname'] . " is awaiting your recommendation.<br><br>Thank you.";
+                    $this->mailer->send_mail($recommender['email'], 'New Leave Request for Recommendation', $message_to_recommender);
+                } else {
+                    log_message('error', 'Recommender details incomplete or not found for ID: ' . $recommender_id . '. Skipping email notification.');
+                }
 
-                $message_to_approver = "Dear " . $approver['name'] . ",<br><br>A new leave request from " . $applicant_details['name'] . " " . $applicant_details['surname'] . " has been submitted and is awaiting recommendation.<br><br>Thank you.";
-                $this->mailer->send_mail($approver['email'], 'New Leave Request Submitted', $message_to_approver);
+                // Only send to approver if details are available
+                if ($approver && isset($approver['name']) && isset($approver['surname']) && isset($approver['email'])) {
+                    $message_to_approver = "Dear " . $approver['name'] . ",<br><br>A new leave request from " . $applicant_details['name'] . " " . $applicant_details['surname'] . " has been submitted and is awaiting recommendation.<br><br>Thank you.";
+                    $this->mailer->send_mail($approver['email'], 'New Leave Request Submitted', $message_to_approver);
+                } else {
+                    log_message('error', 'Approver details incomplete or not found for ID: ' . $approver_id . '. Skipping email notification.');
+                }
 
                 $array = array('status' => 'success', 'error' => '', 'message' => $this->lang->line('success_message'));
     }
