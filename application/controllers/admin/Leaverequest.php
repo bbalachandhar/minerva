@@ -61,7 +61,7 @@ class Leaverequest extends Admin_Controller
 
             // Fetch Recommender (HOD) details
             $this->load->model('department_model');
-            $department = $this->department_model->getDepartmentType($staff_details['department']);
+            $department = $this->department_model->get_departments($staff_details['department']);
             if ($department && $department['dept_head_id']) {
                 $recommender_details = $this->staff_model->get($department['dept_head_id']);
                 $data['recommender_info'] = $recommender_details['name'] . ' ' . $recommender_details['surname'] . ' (' . $recommender_details['designation'] . ')';
@@ -412,7 +412,7 @@ class Leaverequest extends Admin_Controller
                 $msg = array(
                     'applieddate' => $this->lang->line('selected_leave_days') . " > " . $this->lang->line('available_leaves'),
                 );
-
+                log_message('error', 'Leave balance insufficient for staff leave request: ' . json_encode($msg));
                 $array = array('status' => 'fail', 'error' => $msg, 'message' => '');
             }
 
@@ -444,7 +444,7 @@ class Leaverequest extends Admin_Controller
                 'leave_type'      => form_error('leave_type'),
                 'userfile'        => form_error('userfile'),
             );
-
+            log_message('error', 'Staff leave request validation failed: ' . json_encode($msg));
             $array = array('status' => 'fail', 'error' => $msg, 'message' => '');
         } else {
 
@@ -462,7 +462,11 @@ class Leaverequest extends Admin_Controller
                 if (isset($_FILES["userfile"]) && !empty($_FILES['userfile']['name'])) {
                     $uploaddir = './uploads/staff_documents/' . $staff_id . '/';
                     if (!is_dir($uploaddir) && !mkdir($uploaddir)) {
-                        die("Error creating folder $uploaddir");
+                        log_message('error', 'Failed to create upload directory: ' . $uploaddir . ' for staff ID: ' . $staff_id);
+                        $msg = array('userfile' => $this->lang->line('error_creating_upload_directory')); // Assuming 'error_creating_upload_directory' is a defined lang line
+                        $array = array('status' => 'fail', 'error' => $msg, 'message' => '');
+                        echo json_encode($array);
+                        return; // Terminate execution here as directory creation failed
                     }
                     $document = $this->media_storage->fileupload("userfile", $uploaddir);
                 } else {
@@ -548,14 +552,14 @@ class Leaverequest extends Admin_Controller
 
                 $array = array('status' => 'success', 'error' => '', 'message' => $this->lang->line('success_message'));
     }
+}
+}
 
     public function handle_upload($str, $var)
     {
-
         $image_validate = $this->config->item('file_validate');
         $result         = $this->filetype_model->get();
         if (isset($_FILES[$var]) && !empty($_FILES[$var]['name'])) {
-
             $file_type = $_FILES[$var]['type'];
             $file_size = $_FILES[$var]["size"];
             $file_name = $_FILES[$var]["name"];
@@ -565,12 +569,10 @@ class Leaverequest extends Admin_Controller
             $ext               = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
 
             if ($files = filesize($_FILES[$var]['tmp_name'])) {
-
                 if (!in_array($file_type, $allowed_mime_type)) {
                     $this->form_validation->set_message('handle_upload', $this->lang->line('file_type_not_allowed'));
                     return false;
                 }
-
                 if (!in_array($ext, $allowed_extension) || !in_array($file_type, $allowed_mime_type)) {
                     $this->form_validation->set_message('handle_upload', $this->lang->line('extension_not_allowed'));
                     return false;
@@ -579,232 +581,98 @@ class Leaverequest extends Admin_Controller
                     $this->form_validation->set_message('handle_upload', $this->lang->line('file_size_shoud_be_less_than') . number_format($result->file_size / 1048576, 2) . " MB");
                     return false;
                 }
-
             } else {
                 $this->form_validation->set_message('handle_upload', $this->lang->line('file_type_extension_error_uploading_image'));
                 return false;
             }
-
             return true;
         }
         return true;
-
     }
-    
-        public function downloadleaverequestdoc($staff_id, $id)
-    
-        {
-    
-            $doc = $this->leaverequest_model->get_staff_leave($id);        
-    
-            $this->media_storage->filedownload($doc['document_file'], "./uploads/staff_documents/$staff_id");
-    
-    
-    
-        }
-    
-    
-    
-            public function getTimetableAndSubstitutes()
-    
-    
+            public function getTimetableAndSubstitutes()    
     
             {
     
-    
-    
                 $staff_id        = $this->input->post('staff_id');
-    
-    
-    
-                $leave_from_date = $this->input->post('leave_from_date');
-    
-    
-    
+   
+                    $leave_from_date = $this->input->post('leave_from_date');
+     
                 $leave_to_date   = $this->input->post('leave_to_date');
-    
-    
-    
         
-    
-    
-    
                 $staff_details = $this->staff_model->get($staff_id);
-    
-    
-    
-                
-    
-    
+   
     
                 $timetable_html = '';
     
-    
-    
                 $substitution_html = '';
     
-    
-    
-                $status = 'fail';
-    
-    
-    
+				$status = 'fail';
+  
                 $message = $this->lang->line('no_timetable_found_for_this_period');
-    
-    
-    
-        
-    
-    
-    
+   
                 if ($staff_details) {
-    
-    
     
                     $this->load->model('subjecttimetable_model');
     
-    
-    
                     $staff_timetable = $this->subjecttimetable_model->getStaffTimetable($staff_id, $leave_from_date, $leave_to_date);
     
-    
-    
                     $potential_substitutes = $this->staff_model->getEmployeeByDepartment($staff_details['department'], $staff_id);
-    
-    
-    
-        
-    
-    
-    
-        
-    
-    
+
     
                     if (!empty($staff_timetable)) {
-    
-    
-    
+ 
                         $timetable_html .= '<table class="table table-bordered table-striped">';
+            $timetable_html .= '<thead><tr><th>' . $this->lang->line('date') . '</th><th>' . $this->lang->line('day') . '</th><th>' . $this->lang->line('class') . '</th><th>' . $this->lang->line('section') . '</th><th>' . $this->lang->line('subject') . '</th><th>' . $this->lang->line('time') . '</th><th>' . $this->lang->line('room_no') . '</th></tr></thead>';
+               $timetable_html .= '<tbody>';
     
-    
-    
-                        $timetable_html .= '<thead><tr><th>' . $this->lang->line('date') . '</th><th>' . $this->lang->line('day') . '</th><th>' . $this->lang->line('class') . '</th><th>' . $this->lang->line('section') . '</th><th>' . $this->lang->line('subject') . '</th><th>' . $this->lang->line('time') . '</th><th>' . $this->lang->line('room_no') . '</th></tr></thead>';
-    
-    
-    
-                        $timetable_html .= '<tbody>';
-    
-    
-    
-        
-    
-    
-    
-        
-    
-    
-    
+      
                         $substitution_html .= '<table class="table table-bordered table-striped">';
-    
-    
-    
+      
                         $substitution_html .= '<thead><tr><th>' . $this->lang->line('date') . '</th><th>' . $this->lang->line('class') . ' - ' . $this->lang->line('subject') . ' (' . $this->lang->line('time') . ')</th><th>' . $this->lang->line('select_substitute') . '</th></tr></thead>';
-    
-    
-    
+   
                         $substitution_html .= '<tbody>';
-    
-    
-    
-                        
-    
-    
-    
+ 
                         foreach ($staff_timetable as $date => $daily_schedule) {
-    
-    
-    
+ 
                             $day_name = date('l', strtotime($date));
-    
-    
-    
+ 
                             if (!empty($daily_schedule)) {
-    
-    
-    
+
                                 foreach ($daily_schedule as $period) {
     
+                                     $timetable_html .= '<tr>';
     
-    
-                                    $timetable_html .= '<tr>';
-    
-    
-    
+
                                     $timetable_html .= '<td>' . $this->customlib->dateformat($date) . '</td>';
-    
-    
-    
+ 
                                     $timetable_html .= '<td>' . $this->lang->line(strtolower($day_name)) . '</td>';
-    
-    
-    
+ 
                                     $timetable_html .= '<td>' . $period->class . '</td>';
-    
-    
-    
+ 
                                     $timetable_html .= '<td>' . $period->section . '</td>';
-    
-    
-    
+ 
                                     $timetable_html .= '<td>' . $period->subject_name . ' (' . $period->subject_code . ')</td>';
-    
-    
-    
+ 
                                     $timetable_html .= '<td>' . $period->time_from . ' - ' . $period->time_to . '</td>';
-    
-    
-    
+ 
                                     $timetable_html .= '<td>' . $period->room_no . '</td>';
-    
-    
-    
+
                                     $timetable_html .= '</tr>';
-    
-    
-    
-        
-    
-    
-    
-        
-    
-    
+     
     
                                     // Substitution field generation
-    
-    
-    
+ 
                                     $substitution_html .= '<tr>';
-    
-    
-    
+  
                                     $substitution_html .= '<td>' . $this->customlib->dateformat($date) . '</td>';
-    
-    
-    
+ 
                                     $substitution_html .= '<td>' . $period->class . ' - ' . $period->subject_name . ' (' . $period->time_from . ' - ' . $period->time_to . ')</td>';
-    
-    
-    
+   
                                     $substitution_html .= '<td>';
-    
-    
-    
+ 
                                     $substitution_html .= '<select name="substitute_' . $date . '_' . str_replace([' ', ':'], '_', $period->time_from) . '_' . str_replace([' ', ':'], '_', $period->time_to) . '" class="form-control">';
     
-    
-    
+ 
                                     $substitution_html .= '<option value="">' . $this->lang->line('select_substitute') . '</option>';
     
     
@@ -814,228 +682,108 @@ class Leaverequest extends Admin_Controller
     
     
                                         $substitution_html .= '<option value="' . $substitute['id'] . '">' . $substitute['name'] . ' ' . $substitute['surname'] . ' (' . $substitute['employee_id'] . ')</option>';
-    
-    
-    
+ 
                                     }
-    
-    
-    
+ 
                                     $substitution_html .= '</select>';
-    
-    
-    
+
                                     $substitution_html .= '</td></tr>';
-    
-    
-    
+
                                 }
-    
-    
-    
+
                             } else {
-    
-    
-    
+
                                 $timetable_html .= '<tr><td colspan="7">' . $this->lang->line('no_classes_scheduled_for_this_day') . '</td></tr>';
-    
-    
-    
+
                                 $substitution_html .= '<tr><td colspan="3">' . $this->lang->line('no_substitutions_needed_for_this_day') . '</td></tr>';
-    
-    
-    
+ 
                             }
-    
-    
-    
+     
                         }
-    
-    
-    
+ 
                         $timetable_html .= '</tbody></table>';
-    
-    
-    
+
                         $substitution_html .= '</tbody></table>';
-    
-    
-    
+ 
                         $status = 'success';
-    
-    
-    
+ 
                         $message = $this->lang->line('timetable_fetched_successfully');
-    
-    
-    
-        
-    
-    
-    
-        
-    
-    
-    
+ 
                     } else {
-    
-    
-    
+
                         $timetable_html = '<div class="alert alert-info">' . $this->lang->line('no_timetable_found_for_this_period') . '</div>';
-    
-    
-    
+ 
                         $substitution_html = '<div class="alert alert-info">' . $this->lang->line('no_substitutions_needed_for_this_period') . '</div>';
-    
-    
-    
+ 
                     }
     
-    
-    
+ 
                 } else {
     
-    
-    
+ 
                     $message = $this->lang->line('staff_details_not_found');
-    
-    
-    
+
                 }
     
-    
-    
-        
-    
-    
-    
-        
-    
-    
-    
+     
                 echo json_encode(['status' => $status, 'message' => $message, 'timetable_html' => $timetable_html, 'substitution_html' => $substitution_html]);
-    
-    
-    
+ 
             }
-    
-    
-    
-            
-    
-    
+
     
             public function getRecommenderApproverInfo()
-    
-    
-    
+ 
             {
-    
-    
-    
+
                 $staff_id = $this->input->post('staff_id');
-    
-    
-    
+ 
                 $recommender_info = $this->lang->line('not_assigned');
-    
-    
-    
+
                 $approver_info = $this->lang->line('not_assigned');
-    
-    
-    
-        
-    
-    
+   
     
                 $staff_details = $this->staff_model->get($staff_id);
-    
-    
-    
-        
-    
-    
-    
+
                 if ($staff_details) {
-    
-    
-    
+ 
                     // Fetch Recommender (HOD) details
-    
-    
-    
+ 
                     $this->load->model('department_model');
-    
-    
-    
-                    $department = $this->department_model->getDepartmentType($staff_details['department']);
-    
-    
-    
+ 
+                    $department = $this->department_model->get_departments($staff_details['department']);
+  
                     if ($department && $department['dept_head_id']) {
-    
-    
-    
+ 
                         $recommender_details = $this->staff_model->get($department['dept_head_id']);
     
-    
-    
+ 
                         $recommender_info = $recommender_details['name'] . ' ' . $recommender_details['surname'] . ' (' . $recommender_details['designation'] . ')';
-    
-    
+
     
                     }
-    
-    
-    
-        
-    
-    
-    
+
                     // Fetch Approver details (from school settings)
-    
-    
-    
+ 
                     $setting = $this->setting_model->getSetting();
-    
-    
-    
+  
                     if ($setting && $setting->leave_approver_id) {
-    
-    
-    
+ 
                         $approver_details = $this->staff_model->get($setting->leave_approver_id);
-    
-    
-    
+ 
                         $approver_info = $approver_details['name'] . ' ' . $approver_details['surname'] . ' (' . $approver_details['designation'] . ')';
-    
-    
-    
+ 
                     }
-    
-    
-    
+ 
                 }
-    
-    
-    
-        
-    
-    
-    
+ 
                 echo json_encode([
     
-    
-    
+      
                     'status' => 'success',
-    
-    
+     
     
                     'recommender_info' => $recommender_info,
-    
-    
+       
     
                     'approver_info' => $approver_info
     

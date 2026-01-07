@@ -33,3 +33,4 @@ $lang['form_validation_error_message_not_set']	= 'Unable to access an error mess
 $lang['form_validation_in_list']		= 'The {field} field must be one of: {param}.';
 $lang['staff_id_already_exists'] = 'The Staff ID already exists.';
 $lang['csv_file_malformed_no_delimiters'] = 'The CSV file is malformed or not properly delimited. Please ensure columns are separated by commas.';
+$lang['error_creating_upload_directory'] = 'Error creating upload directory.';
