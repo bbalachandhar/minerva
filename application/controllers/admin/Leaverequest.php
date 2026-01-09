@@ -145,7 +145,16 @@ class Leaverequest extends Admin_Controller
                                 'type' => $value['type'],
                                'display' => $value['type'] . " (" . $available . ")"
                             );
-                                    }
+                        }
+                    } else { // Not LOP and not allotted
+                        // Display with 0 available
+                        $leave_types_to_display[$value['id']] = array(
+                            'id' => $value['id'],
+                            'type' => $value['type'],
+                           'display' => $value['type'] . " (0)"
+                        );
+                    }
+                }
             }
         }
 
