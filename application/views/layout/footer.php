@@ -532,7 +532,7 @@ if (isset($title)) {
     });
 
     $(document).ready(function () {
-        moment.lang('en', {
+        moment.locale('en', {
           week: { dow: start_week }
         });
 

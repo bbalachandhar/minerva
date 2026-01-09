@@ -389,8 +389,7 @@ foreach ($class_list as $key => $value) {
 </script>
 <script>
     $(document).ready(function () {
-      moment.lang('en', {
-          week: { dow: start_week }
+              moment.locale('en', {          week: { dow: start_week }
         });
      $('#enquiry_date').daterangepicker(
         {

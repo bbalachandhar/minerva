@@ -145,9 +145,77 @@ class Leaverequest extends Admin_Controller
                                 'type' => $value['type'],
                                'display' => $value['type'] . " (" . $available . ")"
                             );
-                        }
-                    }
-                }
+                                    }
+                        
+                        
+                        
+                                    public function getRecommenderApproverInfo()
+                        
+                                    {
+                        
+                                        $staff_id = $this->input->post('staff_id');
+                        
+                                        $recommender_info = $this->lang->line('not_assigned');
+                        
+                                        $approver_info = $this->lang->line('not_assigned');
+                        
+                        
+                                        $staff_details = $this->staff_model->get($staff_id);
+                        
+                                        if ($staff_details) {
+                        
+                                            // Fetch Recommender (HOD) details
+                        
+                                            $this->load->model('department_model');
+                        
+                                            $department = $this->department_model->get_departments($staff_details['department']);
+                        
+                                            if ($department && $department['dept_head_id']) {
+                        
+                                                $recommender_details = $this->staff_model->get($department['dept_head_id']);
+                        
+                        
+                                                $recommender_info = $recommender_details['name'] . ' ' . $recommender_details['surname'] . ' (' . $recommender_details['designation'] . ')';
+                        
+                        
+                                            }
+                        
+                                            // Fetch Approver details (from school settings)
+                        
+                                            $setting = $this->setting_model->getSetting();
+                        
+                                            if ($setting && $setting->leave_approver_id) {
+                        
+                                                $approver_details = $this->staff_model->get($setting->leave_approver_id);
+                        
+                                                $approver_info = $approver_details['name'] . ' ' . $approver_details['surname'] . ' (' . $approver_details['designation'] . ')';
+                        
+                                            }
+                        
+                                        }
+                        
+                                        echo json_encode([
+                        
+                        
+                                            'status' => 'success',
+                        
+                        
+                                            'recommender_info' => $recommender_info,
+                        
+                        
+                                            'approver_info' => $approver_info
+                        
+                        
+                        
+                                        ]);
+                        
+                        
+                        
+                                    }
+                        
+                        
+                        
+                                }
             }
         }
 
@@ -434,6 +502,7 @@ class Leaverequest extends Admin_Controller
         $this->form_validation->set_rules('leave_to_date', $this->lang->line('leave_to_date'), 'trim|required|xss_clean');
         $this->form_validation->set_rules('leave_type', $this->lang->line('available_leave'), 'trim|required|xss_clean');
         $this->form_validation->set_rules('userfile', $this->lang->line('file'), 'callback_handle_upload[userfile]');
+        $this->form_validation->set_rules('alternative_teacher_id', $this->lang->line('alternative_teacher'), 'trim|xss_clean');
 
         if ($this->form_validation->run() == false) {
 
@@ -450,6 +519,7 @@ class Leaverequest extends Admin_Controller
 
             $leavefrom = date("Y-m-d", $this->customlib->datetostrtotime($this->input->post('leave_from_date')));
             $leaveto   = date("Y-m-d", $this->customlib->datetostrtotime($this->input->post('leave_to_date')));
+            $alternative_teacher_id = $this->input->post('alternative_teacher_id');
 
             $staff_id     = $userdata["id"];
             $applied_by   = $this->customlib->getStaffID();
@@ -487,84 +557,92 @@ class Leaverequest extends Admin_Controller
                 $setting = $this->setting_model->getSetting();
                 $approver_id = isset($setting->leave_approver_id) ? $setting->leave_approver_id : null;
 
-                if (!empty($request_id)) {
-                    $data = array('id' => $request_id,
-                        'staff_id'         => $staff_id,
-                        'date'             => date('Y-m-d', $this->customlib->datetostrtotime($applied_date)),
-                        'leave_type_id'    => $leavetype,
-                        'leave_days'       => $leave_days,
-                        'leave_from'       => $leavefrom,
-                        'leave_to'         => $leaveto,
-                        'employee_remark'  => $reason,
-                        'status'           => $status,
-                        'admin_remark'     => $remark,
-                        'applied_by'       => $applied_by,
-                        'document_file'    => $document,
-                        'recommender_id' => $recommender_id,
-                        'approver_id' => $approver_id,
-                        'recommender_status' => 'pending', // Initial status
-                        'approver_status' => 'pending', // Initial status
-                    );
-                } else {
-
-                    $data = array('staff_id' => $staff_id, 'date' => date("Y-m-d", $this->customlib->datetostrtotime($applied_date)), 'leave_days' => $leave_days, 'leave_type_id' => $leavetype, 'leave_from' => $leavefrom, 'leave_to' => $leaveto, 'employee_remark' => $reason, 'status' => $status, 'admin_remark' => $remark, 'applied_by' => $applied_by, 'document_file' => $document,
-                        'recommender_id' => $recommender_id,
-                        'approver_id' => $approver_id,
-                        'recommender_status' => 'pending', // Initial status
-                        'approver_status' => 'pending', // Initial status
-                    );
-                }
-
-                $this->leaverequest_model->addLeaveRequest($data);
-                $leave_request_id = !empty($request_id) ? $request_id : $this->db->insert_id();
-
-                // Process and save substitution data
-                $substitutions_data = [];
-                foreach ($this->input->post() as $key => $value) {
-                    if (strpos($key, 'substitute_') === 0 && !empty($value)) {
-                        $parts = explode('_', $key);
-                        $date_part = $parts[1];
-                        $time_from_part = $parts[2];
-                        $time_to_part = $parts[3];
-
-                        $substitutions_data[] = [
-                            'leave_request_id' => $leave_request_id,
-                            'substitute_staff_id' => $value,
-                            'date' => $date_part,
-                            'period' => $time_from_part . ':' . $time_to_part // Store as HH:MM-HH:MM
-                        ];
+                                     $data = array('id' => $request_id,
+                                        'staff_id'         => $staff_id,
+                                        'date'             => date('Y-m-d', $this->customlib->datetostrtotime($applied_date)),
+                                        'leave_type_id'    => $leavetype,
+                                        'leave_days'       => $leave_days,
+                                        'leave_from'       => $leavefrom,
+                                        'leave_to'         => $leaveto,
+                                        'employee_remark'  => $reason,
+                                        'status'           => $status,
+                                        'admin_remark'     => $remark,
+                                        'applied_by'       => $applied_by,
+                                        'document_file'    => $document,
+                                        'recommender_id' => $recommender_id,
+                                        'approver_id' => $approver_id,
+                                        'recommender_status' => 'pending', // Initial status
+                                        'approver_status' => 'pending', // Initial status
+                                        'alternative_teacher_id' => $alternative_teacher_id,
+                                    );
+                                } else {
+                
+                                    $data = array('staff_id' => $staff_id, 'date' => date("Y-m-d", $this->customlib->datetostrtotime($applied_date)), 'leave_days' => $leave_days, 'leave_type_id' => $leavetype, 'leave_from' => $leavefrom, 'leave_to' => $leaveto, 'employee_remark' => $reason, 'status' => $status, 'admin_remark' => $remark, 'applied_by' => $applied_by, 'document_file' => $document,
+                                        'recommender_id' => $recommender_id,
+                                        'approver_id' => $approver_id,
+                                        'recommender_status' => 'pending', // Initial status
+                                        'approver_status' => 'pending', // Initial status
+                                        'alternative_teacher_id' => $alternative_teacher_id,
+                                    );
+                                }
+                
+                                $this->leaverequest_model->addLeaveRequest($data);
+                                $leave_request_id = !empty($request_id) ? $request_id : $this->db->insert_id();
+                
+                                // Process and save substitution data
+                                $substitutions_data = [];
+                                foreach ($this->input->post() as $key => $value) {
+                                    if (strpos($key, 'substitute_') === 0 && !empty($value)) {
+                                        $parts = explode('_', $key);
+                                        $date_part = $parts[1];
+                                        $time_from_part = $parts[2];
+                                        $time_to_part = $parts[3];
+                
+                                        $substitutions_data[] = [
+                                            'leave_request_id' => $leave_request_id,
+                                            'substitute_staff_id' => $value,
+                                            'date' => $date_part,
+                                            'period' => $time_from_part . ':' . $time_to_part // Store as HH:MM-HH:MM
+                                        ];
+                                    }
+                                }
+                                if (!empty($substitutions_data)) {
+                                    $this->leaverequest_model->addLeaveSubstitutions($leave_request_id, $substitutions_data);
+                                }
+                
+                                // Send email notifications
+                                $applicant_details = $this->staff_model->get($staff_id);
+                                $recommender = $this->staff_model->get($recommender_id);
+                                $approver = $this->staff_model->get($approver_id);
+                
+                                // Only send to recommender if details are available
+                                if ($recommender && isset($recommender['name']) && isset($recommender['surname']) && isset($recommender['email'])) {
+                                    $message_to_recommender = "Dear " . $recommender['name'] . ",<br><br>A new leave request from " . $applicant_details['name'] . " " . $applicant_details['surname'] . " is awaiting your recommendation.<br><br>Thank you.";
+                                    $this->mailer->send_mail($recommender['email'], 'New Leave Request for Recommendation', $message_to_recommender);
+                                } else {
+                                    log_message('error', 'Recommender details incomplete or not found for ID: ' . $recommender_id . '. Skipping email notification.');
+                                }
+                
+                                // Only send to approver if details are available
+                                if ($approver && isset($approver['name']) && isset($approver['surname']) && isset($approver['email'])) {
+                                    $message_to_approver = "Dear " . $approver['name'] . ",<br><br>A new leave request from " . $applicant_details['name'] . " " . $applicant_details['surname'] . " has been submitted and is awaiting recommendation.<br><br>Thank you.";
+                                    $this->mailer->send_mail($approver['email'], 'New Leave Request Submitted', $message_to_approver);
+                                } else {
+                                    log_message('error', 'Approver details incomplete or not found for ID: ' . $approver_id . '. Skipping email notification.');
+                                }
+                
+                                $array = array('status' => 'success', 'error' => '', 'message' => $this->lang->line('success_message'));
+                            } else {
+                                $msg = array(
+                                    'applieddate' => $this->lang->line('selected_leave_days') . " > " . $this->lang->line('available_leaves'),
+                                );
+                                log_message('error', 'Leave balance insufficient for staff leave request: ' . json_encode($msg));
+                                $array = array('status' => 'fail', 'error' => $msg, 'message' => '');
+                            }
+                
+                        }
+                        echo json_encode($array);
                     }
-                }
-                if (!empty($substitutions_data)) {
-                    $this->leaverequest_model->addLeaveSubstitutions($leave_request_id, $substitutions_data);
-                }
-
-                // Send email notifications
-                $applicant_details = $this->staff_model->get($staff_id);
-                $recommender = $this->staff_model->get($recommender_id);
-                $approver = $this->staff_model->get($approver_id);
-
-                // Only send to recommender if details are available
-                if ($recommender && isset($recommender['name']) && isset($recommender['surname']) && isset($recommender['email'])) {
-                    $message_to_recommender = "Dear " . $recommender['name'] . ",<br><br>A new leave request from " . $applicant_details['name'] . " " . $applicant_details['surname'] . " is awaiting your recommendation.<br><br>Thank you.";
-                    $this->mailer->send_mail($recommender['email'], 'New Leave Request for Recommendation', $message_to_recommender);
-                } else {
-                    log_message('error', 'Recommender details incomplete or not found for ID: ' . $recommender_id . '. Skipping email notification.');
-                }
-
-                // Only send to approver if details are available
-                if ($approver && isset($approver['name']) && isset($approver['surname']) && isset($approver['email'])) {
-                    $message_to_approver = "Dear " . $approver['name'] . ",<br><br>A new leave request from " . $applicant_details['name'] . " " . $applicant_details['surname'] . " has been submitted and is awaiting recommendation.<br><br>Thank you.";
-                    $this->mailer->send_mail($approver['email'], 'New Leave Request Submitted', $message_to_approver);
-                } else {
-                    log_message('error', 'Approver details incomplete or not found for ID: ' . $approver_id . '. Skipping email notification.');
-                }
-
-                $array = array('status' => 'success', 'error' => '', 'message' => $this->lang->line('success_message'));
-    }
-}
-}
-
     public function handle_upload($str, $var)
     {
         $image_validate = $this->config->item('file_validate');
