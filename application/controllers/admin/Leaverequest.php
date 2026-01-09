@@ -146,76 +146,6 @@ class Leaverequest extends Admin_Controller
                                'display' => $value['type'] . " (" . $available . ")"
                             );
                                     }
-                        
-                        
-                        
-                                    public function getRecommenderApproverInfo()
-                        
-                                    {
-                        
-                                        $staff_id = $this->input->post('staff_id');
-                        
-                                        $recommender_info = $this->lang->line('not_assigned');
-                        
-                                        $approver_info = $this->lang->line('not_assigned');
-                        
-                        
-                                        $staff_details = $this->staff_model->get($staff_id);
-                        
-                                        if ($staff_details) {
-                        
-                                            // Fetch Recommender (HOD) details
-                        
-                                            $this->load->model('department_model');
-                        
-                                            $department = $this->department_model->get_departments($staff_details['department']);
-                        
-                                            if ($department && $department['dept_head_id']) {
-                        
-                                                $recommender_details = $this->staff_model->get($department['dept_head_id']);
-                        
-                        
-                                                $recommender_info = $recommender_details['name'] . ' ' . $recommender_details['surname'] . ' (' . $recommender_details['designation'] . ')';
-                        
-                        
-                                            }
-                        
-                                            // Fetch Approver details (from school settings)
-                        
-                                            $setting = $this->setting_model->getSetting();
-                        
-                                            if ($setting && $setting->leave_approver_id) {
-                        
-                                                $approver_details = $this->staff_model->get($setting->leave_approver_id);
-                        
-                                                $approver_info = $approver_details['name'] . ' ' . $approver_details['surname'] . ' (' . $approver_details['designation'] . ')';
-                        
-                                            }
-                        
-                                        }
-                        
-                                        echo json_encode([
-                        
-                        
-                                            'status' => 'success',
-                        
-                        
-                                            'recommender_info' => $recommender_info,
-                        
-                        
-                                            'approver_info' => $approver_info
-                        
-                        
-                        
-                                        ]);
-                        
-                        
-                        
-                                    }
-                        
-                        
-                        
-                                }
             }
         }
 
@@ -758,7 +688,7 @@ class Leaverequest extends Admin_Controller
    
                                     $substitution_html .= '<td>';
  
-                                    $substitution_html .= '<select name="substitute_' . $date . '_' . str_replace([' ', ':'], '_', $period->time_from) . '_' . str_replace([' ', ':'], '_', $period->time_to) . '" class="form-control">';
+                                    $substitution_html .= '<select name="substitute_' . $date . '_' . str_replace([' ', ':'], '_', $period->time_from) . '_' . str_replace([' ', ':'], '_', $period->time_to) . '" class="form-control" aria-label="Select substitute for ' . $period->class . ' - ' . $period->subject_name . ' from ' . $period->time_from . ' to ' . $period->time_to . '">';
     
  
                                     $substitution_html .= '<option value="">' . $this->lang->line('select_substitute') . '</option>';
