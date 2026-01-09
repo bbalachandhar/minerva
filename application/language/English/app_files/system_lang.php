@@ -357,6 +357,7 @@ $lang['card_no_already_exists'] = "Card No. Already Exists";
 $lang['card_view'] = "Card View";	
 $lang['carry_forward_fees_due_days'] = "Carry Forward Fees Due Days";	
 $lang['cash'] = "Cash";	
+$lang['cashier_signature'] = "Cashier Signature";	
 $lang['cashfree'] = "Cashfree";	
 $lang['cashfree_settings_not_available'] = "Cashfree Settings Not Available";	
 $lang['cast'] = "Cast";	

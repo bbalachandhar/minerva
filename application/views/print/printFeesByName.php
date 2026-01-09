@@ -226,7 +226,7 @@ if(in_array('0', $print_copy)){
  
                             <div class="row">
                                 <div class="col-md-12 text text-center">
-                                    <?php echo $this->lang->line('office_copy'); ?>
+                                    <?php echo $this->lang->line('fees_receipt'); ?> - <?php echo $this->lang->line('office_copy'); ?>
                                 </div>
                             </div>
 
@@ -377,8 +377,11 @@ $amount_fine = $record->amount_fine;
                         </div>
                             
                         <div class="row header">
-                            <div class="col-sm-12">
+                            <div class="col-sm-6 text-left">
                                 <?php echo $this->setting_model->get_receiptfooter();?>
+                            </div>
+                            <div class="col-sm-6 text-right" style="padding-right: 20px;">
+                                <?php echo $this->lang->line('cashier_signature'); ?>
                             </div>
                         </div>
                     </div>
@@ -416,7 +419,7 @@ if (in_array('1', $print_copy)) {
              
                                 <div class="row">
                                     <div class="col-md-12 text text-center">
-                                        <?php echo $this->lang->line('student_copy'); ?>
+                                        <?php echo $this->lang->line('fees_receipt'); ?> - <?php echo $this->lang->line('student_copy'); ?>
                                     </div>
                                 </div>
     
@@ -575,9 +578,11 @@ $amount_fine = $record->amount_fine;
                                 </div>
                             </div>
                             <div class="row header ">
-                                <div class="col-sm-12">
+                                <div class="col-sm-6 text-left">
                                     <?php echo $this->setting_model->get_receiptfooter();?>
-
+                                </div>
+                                <div class="col-sm-6 text-right" style="padding-right: 20px;">
+                                    <?php echo $this->lang->line('cashier_signature'); ?>
                                 </div>
                             </div>
                         </div>
@@ -614,7 +619,7 @@ if (in_array('2', $print_copy)) {
              
                                 <div class="row">
                                     <div class="col-md-12 text text-center">
-                                        <?php echo $this->lang->line('bank_copy'); ?>
+                                        <?php echo $this->lang->line('fees_receipt'); ?> - <?php echo $this->lang->line('bank_copy'); ?>
                                     </div>
                                 </div>
     
@@ -722,7 +727,7 @@ $amount    = 0;
                                                     if ($feeList->is_system) {
                                                         echo $this->lang->line($feeList->type) . " (" . $this->lang->line($feeList->code) . ")";
                                                     } else {
-                                                        echo $feeList->type . " (" . $feeList->code . ")";
+                                                        echo $this->lang->line($feeList->type) . " (" . $this->lang->line($feeList->code) . ")";
                                                     }  ?>
                                                     </td>
 
@@ -765,9 +770,11 @@ $amount_fine = $record->amount_fine;
                                 </div>
                             </div>
                             <div class="row header ">
-                                <div class="col-sm-12">
+                                <div class="col-sm-6 text-left">
                                     <?php echo $this->setting_model->get_receiptfooter();?>
-
+                                </div>
+                                <div class="col-sm-6 text-right" style="padding-right: 20px;">
+                                    <?php echo $this->lang->line('cashier_signature'); ?>
                                 </div>
                             </div>
                         </div>

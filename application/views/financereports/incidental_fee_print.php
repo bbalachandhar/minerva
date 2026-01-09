@@ -58,8 +58,7 @@
                             <?php if ($receipt_header) { ?>
                                 <img src="<?php echo $this->media_storage->getImageURL('/uploads/print_headerfooter/student_receipt/'.$receipt_header);?>" style="height: 100px; width: 100%;">
                             <?php } ?>
-                            <h3><?php echo $sch_setting->name; ?></h3>
-                            <p><?php echo $sch_setting->address; ?></p>
+
                             <p><strong><?php echo $this->lang->line('incidental_fee_receipt'); ?></strong></p>
                         </div>
                     </div>

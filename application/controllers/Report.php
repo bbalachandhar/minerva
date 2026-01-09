@@ -2625,11 +2625,10 @@ class Report extends Admin_Controller
         $class_id = $this->input->post_get('class_id');
         $section_id = $this->input->post_get('section_id');
 
-        log_message('debug', 'logindetailreport_export_excel: Received class_id = ' . $class_id . ', section_id = ' . $section_id);
-
+        log_message('debug', '--- STARTING logindetailreport_export_excel ---');
         $report_data = $this->student_model->getlogincredentialreportfor_export($class_id, $section_id);
-
-        log_message('debug', 'logindetailreport_export_excel: Returned ' . count($report_data) . ' records from model.');
+        log_message('debug', 'Report data (JSON): ' . json_encode($report_data));
+        
         $sch_setting = $this->sch_setting_detail;
 
         $header = array(
@@ -2645,17 +2644,20 @@ class Report extends Admin_Controller
         $row_number = 2;
 
         foreach ($report_data as $student) {
-            $studentlist      = $this->user_model->getUserLoginDetails($student->id);
+            log_message('debug', 'Student variable type: ' . gettype($student));
+            log_message('debug', 'Student variable content: ' . print_r($student, true));
+
+            $studentlist      = $this->user_model->getUserLoginDetails($student['id']);
             $student_username = $studentlist["username"] ?? "";
             $student_password = $studentlist["password"] ?? "";
 
-            $student_name = $this->customlib->getFullName($student->firstname, $student->middlename, $student->lastname, $sch_setting->middlename, $sch_setting->lastname);
+            $student_name = $this->customlib->getFullName($student['firstname'], $student['middlename'], $student['lastname'], $sch_setting->middlename, $sch_setting->lastname);
 
             $row = array(
-                $student->admission_no,
+                $student['admission_no'],
                 $student_name,
-                $student->class,
-                $student->section,
+                $student['class'],
+                $student['section'],
                 $student_username,
                 $student_password
             );
@@ -2698,17 +2700,17 @@ class Report extends Admin_Controller
         fputcsv($output, $header);
 
         foreach ($report_data as $student) {
-            $studentlist      = $this->user_model->getUserLoginDetails($student->id);
+            $studentlist      = $this->user_model->getUserLoginDetails($student['id']);
             $student_username = $studentlist["username"] ?? "";
             $student_password = $studentlist["password"] ?? "";
 
-            $student_name = $this->customlib->getFullName($student->firstname, $student->middlename, $student->lastname, $sch_setting->middlename, $sch_setting->lastname);
+            $student_name = $this->customlib->getFullName($student['firstname'], $student['middlename'], $student['lastname'], $sch_setting->middlename, $sch_setting->lastname);
 
             $row = array(
-                $student->admission_no,
+                $student['admission_no'],
                 $student_name,
-                $student->class,
-                $student->section,
+                $student['class'],
+                $student['section'],
                 $student_username,
                 $student_password
             );
@@ -2728,17 +2730,17 @@ class Report extends Admin_Controller
 
         $data['report_data'] = array();
         foreach ($report_data as $student) {
-            $studentlist      = $this->user_model->getUserLoginDetails($student->id);
+            $studentlist      = $this->user_model->getUserLoginDetails($student['id']);
             $student_username = $studentlist["username"] ?? "";
             $student_password = $studentlist["password"] ?? "";
 
-            $student_name = $this->customlib->getFullName($student->firstname, $student->middlename, $student->lastname, $sch_setting->middlename, $sch_setting->lastname);
+            $student_name = $this->customlib->getFullName($student['firstname'], $student['middlename'], $student['lastname'], $sch_setting->middlename, $sch_setting->lastname);
 
             $data['report_data'][] = (object)array(
-                'admission_no' => $student->admission_no,
+                'admission_no' => $student['admission_no'],
                 'student_name' => $student_name,
-                'class'        => $student->class,
-                'section'      => $student->section,
+                'class'        => $student['class'],
+                'section'      => $student['section'],
                 'username'     => $student_username,
                 'password'     => $student_password
             );
