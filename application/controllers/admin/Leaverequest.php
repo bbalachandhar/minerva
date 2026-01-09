@@ -687,7 +687,7 @@ class Leaverequest extends Admin_Controller
                                     $substitution_html .= '<td>' . $period->class . ' - ' . $period->subject_name . ' (' . $period->time_from . ' - ' . $period->time_to . ')</td>';
    
                                     $substitution_html .= '<td>';
- 
+                                    $substitution_html .= '<label class="control-label">' . $this->lang->line('substitute') . ':</label>';
                                     $substitution_html .= '<select name="substitute_' . $date . '_' . str_replace([' ', ':'], '_', $period->time_from) . '_' . str_replace([' ', ':'], '_', $period->time_to) . '" class="form-control" aria-label="Select substitute for ' . $period->class . ' - ' . $period->subject_name . ' from ' . $period->time_from . ' to ' . $period->time_to . '">';
     
  
