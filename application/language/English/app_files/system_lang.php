@@ -2975,3 +2975,5 @@ $lang['uan_no'] = "UAN No";
 $lang['pan_no'] = "PAN No";
 $lang['previous_institution'] = "Previous Institution";
 $lang['subject_expertise'] = "Subject Expertise";
+$lang['alternative_teacher'] = "Alternative Teacher";
+$lang['select_alternative_teacher'] = "Select Alternative Teacher";
