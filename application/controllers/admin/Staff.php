@@ -276,6 +276,7 @@ class Staff extends Admin_Controller
         
         $leavetype = $this->staff_model->getLeaveType();
         $data['leavetype'] = $leavetype;
+        $data['status'] = $this->status;
         
         $this->load->view('layout/header', $data);
         $this->load->view('admin/staff/leaverequest', $data); // Assuming a view file named leaverequest.php

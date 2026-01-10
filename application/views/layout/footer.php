@@ -25,7 +25,7 @@ $feesinbackdate = $this->customlib->getfeesinbackdate();
 <script src="<?php echo base_url(); ?>backend/bootstrap/js/bootstrap.min.js"></script>
 
 <!-- Eonasdan Bootstrap Datetimepicker CSS -->
-<link rel="stylesheet" href="<?php echo base_url(); ?>backend/datepicker/css/bootstrap-datetimepicker.min.css">
+<link rel="stylesheet" href="<?php echo base_url(); ?>backend/datepicker/css/bootstrap-datetimepicker.css">
 <link rel="stylesheet" href="<?php echo base_url(); ?>backend/plugins/select2/select2.min.css">
 <script src="<?php echo base_url(); ?>backend/plugins/select2/select2.full.min.js"></script>
 <script src="<?php echo base_url(); ?>backend/plugins/input-mask/jquery.inputmask.js"></script>

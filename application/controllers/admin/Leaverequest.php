@@ -115,7 +115,7 @@ class Leaverequest extends Admin_Controller
                         // It's LOP, but has an allotted amount for tracking. Show it, with count (0 or negative is fine).
                         $allotted_leave_days = $allotted_map[$value['id']]['alloted_leave'];
                         $count_leaves = $this->leaverequest_model->countLeavesData($id, $value["id"]);
-                        $approve_leave = isset($count_leaves['approve_leave']) ? $count_leaves['approve_leave'] : 0;
+                        $approve_leave = !empty($count_leaves['approve_leave']) ? $count_leaves['approve_leave'] : 0;
                         $available = $allotted_leave_days - $approve_leave;
 
                         $leave_types_to_display[$value['id']] = array(
@@ -136,7 +136,7 @@ class Leaverequest extends Admin_Controller
                     if ($is_allotted) {
                         $allotted_leave_days = $allotted_map[$value['id']]['alloted_leave'];
                         $count_leaves = $this->leaverequest_model->countLeavesData($id, $value["id"]);
-                        $approve_leave = isset($count_leaves['approve_leave']) ? $count_leaves['approve_leave'] : 0;
+                        $approve_leave = !empty($count_leaves['approve_leave']) ? $count_leaves['approve_leave'] : 0;
                         $available = $allotted_leave_days - $approve_leave;
 
                         if ($available >= 0) {
@@ -496,34 +496,46 @@ class Leaverequest extends Admin_Controller
                 $setting = $this->setting_model->getSetting();
                 $approver_id = isset($setting->leave_approver_id) ? $setting->leave_approver_id : null;
 
-                                     $data = array('id' => $request_id,
-                                        'staff_id'         => $staff_id,
-                                        'date'             => date('Y-m-d', $this->customlib->datetostrtotime($applied_date)),
-                                        'leave_type_id'    => $leavetype,
-                                        'leave_days'       => $leave_days,
-                                        'leave_from'       => $leavefrom,
-                                        'leave_to'         => $leaveto,
-                                        'employee_remark'  => $reason,
-                                        'status'           => $status,
-                                        'admin_remark'     => $remark,
-                                        'applied_by'       => $applied_by,
-                                        'document_file'    => $document,
-                                        'recommender_id' => $recommender_id,
-                                        'approver_id' => $approver_id,
-                                        'recommender_status' => 'pending', // Initial status
-                                        'approver_status' => 'pending', // Initial status
-                                        'alternative_teacher_id' => $alternative_teacher_id,
-                                    );
-                                } else {
-                
-                                    $data = array('staff_id' => $staff_id, 'date' => date("Y-m-d", $this->customlib->datetostrtotime($applied_date)), 'leave_days' => $leave_days, 'leave_type_id' => $leavetype, 'leave_from' => $leavefrom, 'leave_to' => $leaveto, 'employee_remark' => $reason, 'status' => $status, 'admin_remark' => $remark, 'applied_by' => $applied_by, 'document_file' => $document,
-                                        'recommender_id' => $recommender_id,
-                                        'approver_id' => $approver_id,
-                                        'recommender_status' => 'pending', // Initial status
-                                        'approver_status' => 'pending', // Initial status
-                                        'alternative_teacher_id' => $alternative_teacher_id,
-                                    );
-                                }
+                if (!empty($request_id)) {
+                    $data = array(
+                        'id'                     => $request_id,
+                        'staff_id'               => $staff_id,
+                        'date'                   => date('Y-m-d', $this->customlib->datetostrtotime($applied_date)),
+                        'leave_type_id'          => $leavetype,
+                        'leave_days'             => $leave_days,
+                        'leave_from'             => $leavefrom,
+                        'leave_to'               => $leaveto,
+                        'employee_remark'        => $reason,
+                        'status'                 => $status,
+                        'admin_remark'           => $remark,
+                        'applied_by'             => $applied_by,
+                        'document_file'          => $document,
+                        'recommender_id'         => $recommender_id,
+                        'approver_id'            => $approver_id,
+                        'recommender_status'     => 'pending', // Initial status
+                        'approver_status'        => 'pending', // Initial status
+                        'alternative_teacher_id' => $alternative_teacher_id,
+                    );
+                } else {
+                    $data = array(
+                        'staff_id'               => $staff_id,
+                        'date'                   => date("Y-m-d", $this->customlib->datetostrtotime($applied_date)),
+                        'leave_days'             => $leave_days,
+                        'leave_type_id'          => $leavetype,
+                        'leave_from'             => $leavefrom,
+                        'leave_to'               => $leaveto,
+                        'employee_remark'        => $reason,
+                        'status'                 => $status,
+                        'admin_remark'           => $remark,
+                        'applied_by'             => $applied_by,
+                        'document_file'          => $document,
+                        'recommender_id'         => $recommender_id,
+                        'approver_id'            => $approver_id,
+                        'recommender_status'     => 'pending', // Initial status
+                        'approver_status'        => 'pending', // Initial status
+                        'alternative_teacher_id' => $alternative_teacher_id,
+                    );
+                }
                 
                                 $this->leaverequest_model->addLeaveRequest($data);
                                 $leave_request_id = !empty($request_id) ? $request_id : $this->db->insert_id();
