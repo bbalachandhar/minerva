@@ -75,7 +75,7 @@ class Leaverequest extends Admin_Controller
 
         // Fetch Approver details (from school settings)
         $setting = $this->setting_model->getSetting();
-        if ($setting && $setting->leave_approver_id) {
+        if ($setting && isset($setting->leave_approver_id)) {
             $approver_details = $this->staff_model->get($setting->leave_approver_id);
             $data['approver_info'] = $approver_details['name'] . ' ' . $approver_details['surname'] . ' (' . $approver_details['designation'] . ')';
         } else {
@@ -303,6 +303,7 @@ class Leaverequest extends Admin_Controller
         $this->form_validation->set_rules('leave_type', $this->lang->line('available_leave'), 'trim|required|xss_clean');
         $this->form_validation->set_rules('leave_type', $this->lang->line('leave_type'), 'trim|required|xss_clean');
         $this->form_validation->set_rules('userfile', $this->lang->line('file'), 'callback_handle_upload[userfile]');
+        $this->form_validation->set_rules('alternative_teacher_id', $this->lang->line('alternative_teacher'), 'trim|xss_clean');
 
         if ($this->form_validation->run() == false) {
 
@@ -320,6 +321,7 @@ class Leaverequest extends Admin_Controller
             $array = array('status' => 'fail', 'error' => $msg, 'message' => '');
         } else {
 
+            $alternative_teacher_id = $this->input->post('alternative_teacher_id');
             $leavefrom    = date("Y-m-d", $this->customlib->datetostrtotime($this->input->post('leave_from_date')));
             $leaveto      = date("Y-m-d", $this->customlib->datetostrtotime($this->input->post('leave_to_date')));
             $applied_by   = $this->customlib->getStaffID();
@@ -357,7 +359,7 @@ class Leaverequest extends Admin_Controller
                     }
 
                     $setting = $this->setting_model->getSetting();
-                    $approver_id = $setting->leave_approver_id;
+                    $approver_id = isset($setting->leave_approver_id) ? $setting->leave_approver_id : null;
 
                 if (!empty($request_id)) {				 
 					 
@@ -379,6 +381,7 @@ class Leaverequest extends Admin_Controller
                         'approver_id' => $approver_id,
                         'recommender_status' => 'pending', // Initial status
                         'approver_status' => 'pending', // Initial status
+                        'alternative_teacher_id' => $alternative_teacher_id,
                     );
 					
                 } else {
@@ -388,6 +391,7 @@ class Leaverequest extends Admin_Controller
                         'approver_id' => $approver_id,
                         'recommender_status' => 'pending', // Initial status
                         'approver_status' => 'pending', // Initial status
+                        'alternative_teacher_id' => $alternative_teacher_id,
                     );
                 }
 
@@ -805,7 +809,7 @@ class Leaverequest extends Admin_Controller
  
                     $setting = $this->setting_model->getSetting();
   
-                    if ($setting && $setting->leave_approver_id) {
+                    if ($setting && isset($setting->leave_approver_id)) {
  
                         $approver_details = $this->staff_model->get($setting->leave_approver_id);
  

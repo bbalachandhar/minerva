@@ -283,6 +283,16 @@ if ($this->rbac->hasPrivilege('approve_leave_request', 'can_edit')) {
                             <label><?php echo $this->lang->line('approver'); ?></label>
                             <input type="text" class="form-control" value="<?php echo $approver_info; ?>" readonly>
                         </div>
+                        <div class="form-group col-xs-12 col-sm-12 col-md-12 col-lg-6">
+                            <label><?php echo $this->lang->line('alternative_teacher'); ?></label>
+                            <select name="alternative_teacher_id" id="alternative_teacher_id" class="form-control">
+                                <option value=""><?php echo $this->lang->line('select'); ?></option>
+                                <?php foreach ($potential_substitutes as $substitute) { ?>
+                                    <option value="<?php echo $substitute['id']; ?>"><?php echo $substitute['name'] . ' ' . $substitute['surname'] . ' (' . $substitute['employee_id'] . ')'; ?></option>
+                                <?php } ?>
+                            </select>
+                            <span class="text-danger"><?php echo form_error('alternative_teacher_id'); ?></span>
+                        </div>
 
                                                  <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
                                                      <h4 class="modal-title section-title"><?php echo $this->lang->line('substitution_details'); ?></h4>
