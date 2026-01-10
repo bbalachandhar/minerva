@@ -163,13 +163,12 @@ class Leaverequest_model extends MY_model
         //=======================Code Start===========================
         if (isset($data['id'])) {
 
-            $this->db->where("id", $data["id"]);
-            $this->db->update("staff_leave_request", $data);
-            $message   = UPDATE_RECORD_CONSTANT . " On staff leave request id " . $data['id'];
-            $action    = "Update";
-            $record_id = $data['id'];
-            $this->log($message, $record_id, $action);
-            //======================Code End==============================
+                    $this->db->where("id", $data["id"]);
+                    $this->db->update("staff_leave_request", $data);
+                    $message   = UPDATE_RECORD_CONSTANT . " On staff leave request id " . $data['id'];
+                    $action    = "Update";
+                    $record_id = $data['id'];
+                    $this->log($message, $record_id, $action);            //======================Code End==============================
 
             $this->db->trans_complete(); # Completing transaction
             /* Optional */

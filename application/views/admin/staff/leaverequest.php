@@ -164,7 +164,8 @@ $i++;
                 <div class="row">
                     <form role="form" id="addleave_form" method="post" enctype="multipart/form-data" action="">
                         <div class="form-group  col-xs-12 col-sm-12 col-md-12 col-lg-6">
-                            <label><?php echo $this->lang->line('apply_date'); ?></label><small class="req"> *</small>
+                            <label>
+                                <?php echo $this->lang->line('apply_date'); ?></label><small class="req"> *</small>
                             <input type="text" id="applieddate" name="applieddate" value="" class="form-control date" readonly="readonly">
                         </div>
                         <div class="form-group  col-xs-12 col-sm-12 col-md-12 col-lg-6 ">
@@ -186,6 +187,44 @@ $i++;
                                 <input type="text" readonly id="leave_to_date" name="leave_to_date" class="form-control date" >
                             <!-- /.input group -->
                         </div>
+                        
+                        <div class="form-group col-xs-12 col-sm-12 col-md-12 col-lg-6">
+                            <label><?php echo $this->lang->line('recommender'); ?></label>
+                            <input type="text" class="form-control" value="<?php echo $recommender_info; ?>" readonly>
+                        </div>
+                        <div class="form-group col-xs-12 col-sm-12 col-md-12 col-lg-6">
+                            <label><?php echo $this->lang->line('approver'); ?></label>
+                            <input type="text" class="form-control" value="<?php echo $approver_info; ?>" readonly>
+                        </div>
+                        <div class="form-group col-xs-12 col-sm-12 col-md-12 col-lg-6">
+                            <label><?php echo $this->lang->line('alternative_teacher'); ?></label>
+                            <select name="alternative_teacher_id" id="alternative_teacher_id" class="form-control">
+                                <option value=""><?php echo $this->lang->line('select'); ?></option>
+                                <?php foreach ($potential_substitutes as $substitute) { ?>
+                                    <option value="<?php echo $substitute['id']; ?>"><?php echo $substitute['name'] . ' ' . $substitute['surname'] . ' (' . $substitute['employee_id'] . ')'; ?></option>
+                                <?php } ?>
+                            </select>
+                            <span class="text-danger"><?php echo form_error('alternative_teacher_id'); ?></span>
+                        </div>
+
+                                                 <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
+                                                     <h4 class="modal-title section-title"><?php echo $this->lang->line('substitution_details'); ?></h4>
+                                                 </div>
+                                                 <div id="timetable_section" class="col-xs-12 col-sm-12 col-md-12 col-lg-12" style="display: none;">
+                                                     <div class="form-group">
+                                                         <label><?php echo $this->lang->line('your_timetable'); ?></label>
+                                                         <div id="timetable_display">
+                                                             <!-- Timetable will be dynamically loaded here -->
+                                                         </div>
+                                                     </div>
+                                                     <div class="form-group">
+                                                         <label><?php echo $this->lang->line('suggest_substitute'); ?></label>
+                                                         <div id="substitution_fields">
+                                                             <!-- Substitution fields will be dynamically loaded here -->
+                                                         </div>
+                                                     </div>
+                                                 </div>
+                         
                         <div class="form-group col-xs-12 col-sm-12 col-md-12 col-lg-12">
                             <label><?php echo $this->lang->line('reason'); ?></label><br/>
                             <textarea name="reason" id="reason" style="resize: none;" rows="4" class="form-control"></textarea>
@@ -200,7 +239,7 @@ $i++;
                         <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
                             <button type="submit" id="submitbtn" class="btn btn-primary submit_addLeave pull-right" data-loading-text="<i class='fa fa-circle-o-notch fa-spin'></i> <?php echo $this->lang->line('processing'); ?>"> <?php echo $this->lang->line('save'); ?></button>
                             <input type="reset"  name="resetbutton" id="resetbutton" style="display:none">
-                            <button type="button" style="display: none;" id="clearform" onclick="clearForm(this.form)" class="btn btn-primary submit_addLeave pull-right" data-loading-text="<i class='fa fa-circle-o-notch fa-spin'></i> <?php echo $this->lang->line('processing'); ?>"> <?php echo $this->lang->line('clear'); ?></button>
+                            <button type="button" style="display: none;" id="clearform" class="btn btn-primary submit_addLeave pull-right" data-loading-text="<i class='fa fa-circle-o-notch fa-spin'></i> <?php echo $this->lang->line('processing'); ?>"> <?php echo $this->lang->line('clear'); ?></button>
                         </div>
                     </form>
                 </div>

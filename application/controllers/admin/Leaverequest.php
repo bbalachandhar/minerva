@@ -60,8 +60,7 @@ class Leaverequest extends Admin_Controller
             $potential_substitutes = $this->staff_model->getEmployeeByDepartment($staff_details['department'], $current_staff_id);
 
             // Fetch Recommender (HOD) details
-            $this->load->model('department_model');
-            $department = $this->department_model->get_departments($staff_details['department']);
+            $department = $this->department_model->getDepartmentType($staff_details['department']);
             if ($department && $department['dept_head_id']) {
                 $recommender_details = $this->staff_model->get($department['dept_head_id']);
                 $data['recommender_info'] = $recommender_details['name'] . ' ' . $recommender_details['surname'] . ' (' . $recommender_details['designation'] . ')';
@@ -194,6 +193,20 @@ class Leaverequest extends Admin_Controller
             
             if ($status == 'disapproved') {
                 $data['status'] = 'disapproved';
+            } elseif ($status == 'approved' && $leave_request['status'] == 'pending') {
+                // If recommender approves, and overall status is still pending, mark it as recommended
+                $data['status'] = 'recommended';
+                
+                // Send notification to approver
+                $approver_id = $leave_request['approver_id'];
+                if ($approver_id) {
+                    $approver_details = $this->staff_model->get($approver_id);
+                    $applicant_details = $this->staff_model->get($leave_request['staff_id']);
+                    if ($approver_details && isset($approver_details['email'])) {
+                        $message_to_approver = "Dear " . $approver_details['name'] . ",<br><br>A leave request from " . $applicant_details['name'] . " " . $applicant_details['surname'] . " has been recommended and is awaiting your final approval.<br><br>Thank you.";
+                        $this->mailer->send_mail($approver_details['email'], 'Leave Request Recommended for Approval', $message_to_approver);
+                    }
+                }
             }
         } elseif ($is_approver) {
             if ($leave_request['recommender_status'] == 'approved') {
@@ -380,7 +393,6 @@ class Leaverequest extends Admin_Controller
                         'recommender_id' => $recommender_id,
                         'approver_id' => $approver_id,
                         'recommender_status' => 'pending', // Initial status
-                        'approver_status' => 'pending', // Initial status
                         'alternative_teacher_id' => $alternative_teacher_id,
                     );
 					
@@ -390,7 +402,6 @@ class Leaverequest extends Admin_Controller
                         'recommender_id' => $recommender_id,
                         'approver_id' => $approver_id,
                         'recommender_status' => 'pending', // Initial status
-                        'approver_status' => 'pending', // Initial status
                         'alternative_teacher_id' => $alternative_teacher_id,
                     );
                 }

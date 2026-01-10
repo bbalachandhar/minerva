@@ -22,6 +22,7 @@ $config['status'] = array(
     'approve' => lang('approved'),
     'disapprove' => lang('disapproved'),
     'pending' => lang('pending'),
+    'recommended' => lang('recommended'),
 );
 
 $config['marital_status'] = array(

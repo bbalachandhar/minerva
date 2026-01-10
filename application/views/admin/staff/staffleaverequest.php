@@ -221,8 +221,6 @@ if ($this->rbac->hasPrivilege('approve_leave_request', 'can_edit')) {
         <div class="modal-content">
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal">&times;</button>
-                <h4 class="modal-title leave_title"></h4>
-            </div>
             <div class="modal-body">
                 <div class="row">
                     <form role="form" id="addleave_form" method="post" enctype="multipart/form-data" action="">
@@ -461,12 +459,56 @@ if ($this->rbac->hasPrivilege('approve_leave_request', 'can_edit')) {
                 $('#approver_status').html(result.approver_status ? '<?php echo $this->lang->line(''); ?>' + result.approver_status.toLowerCase() : '');
                 $('#approver_remark').html(result.approver_remark);
                 
-                // Conditional display of action row
+                // Conditional display of action row and dynamic labels
                 var current_user_id = <?php echo $this->customlib->getStaffID(); ?>;
                 var is_recommender = (result.recommender_id == current_user_id);
                 var is_approver = (result.approver_id == current_user_id);
 
-                if ((is_recommender && result.recommender_status == 'pending') || (is_approver && result.recommender_status == 'approved' && result.approver_status == 'pending')) {
+                var statusRadioHtml = '';
+                var initialStatusValue = '';
+
+                if (is_recommender && result.recommender_status == 'pending') {
+                    statusRadioHtml = `
+                        <label class="radio-inline">
+                            <input type="radio" value="pending" name="status" >${'<?php echo $this->lang->line('recommend_pending'); ?>'}
+                        </label>
+                        <label class="radio-inline">
+                            <input type="radio" value="approved" name="status" >${'<?php echo $this->lang->line('recommend_approve'); ?>'}
+                        </label>
+                        <label class="radio-inline">
+                            <input type="radio" value="disapproved" name="status" >${'<?php echo $this->lang->line('recommend_disapprove'); ?>'}
+                        </label>
+                    `;
+                    // Set initial selected status based on recommender_status
+                    if (result.recommender_status == 'approved') {
+                        initialStatusValue = 'approved';
+                    } else if (result.recommender_status == 'disapproved') {
+                        initialStatusValue = 'disapproved';
+                    } else {
+                        initialStatusValue = 'pending'; // Default for pending recommendation
+                    }
+                    $('#action_row').show();
+                    $('#action_button_row').show();
+                } else if (is_approver && result.recommender_status == 'approved' && result.approver_status == 'pending') {
+                    statusRadioHtml = `
+                        <label class="radio-inline">
+                            <input type="radio" value="pending" name="status" >${'<?php echo $this->lang->line('final_pending'); ?>'}
+                        </label>
+                        <label class="radio-inline">
+                            <input type="radio" value="approved" name="status" >${'<?php echo $this->lang->line('final_approve'); ?>'}
+                        </label>
+                        <label class="radio-inline">
+                            <input type="radio" value="disapproved" name="status" >${'<?php echo $this->lang->line('final_disapprove'); ?>'}
+                        </label>
+                    `;
+                     // Set initial selected status based on approver_status
+                    if (result.approver_status == 'approved') {
+                        initialStatusValue = 'approved';
+                    } else if (result.approver_status == 'disapproved') {
+                        initialStatusValue = 'disapproved';
+                    } else {
+                        initialStatusValue = 'pending'; // Default for pending approval
+                    }
                     $('#action_row').show();
                     $('#action_button_row').show();
                 } else {
@@ -474,13 +516,12 @@ if ($this->rbac->hasPrivilege('approve_leave_request', 'can_edit')) {
                     $('#action_button_row').hide();
                 }
 
-                if (result.status == 'approved') {
-                    $('input:radio[name=status]')[1].checked = true;
-                } else if (result.status == 'pending') {
-                    $('input:radio[name=status]')[0].checked = true;
-                } else if (result.status == 'disapproved') {
-                    $('input:radio[name=status]')[2].checked = true;
+                // Append the generated radio buttons
+                if (statusRadioHtml) {
+                    $('#action_row td:first').html(statusRadioHtml);
+                    $(`#action_row input[name=status][value='${initialStatusValue}']`).prop('checked', true);
                 }
+
             }
         });
 
@@ -694,6 +735,11 @@ if ($this->rbac->hasPrivilege('approve_leave_request', 'can_edit')) {
                     $('input:radio[name=addstatus]')[2].checked = true;
                 }
 
+                if (result.alternative_teacher_id) {
+                    $('#alternative_teacher_id').val(result.alternative_teacher_id);
+                } else {
+                    $('#alternative_teacher_id').val('');
+                }
                 $('#reservation').daterangepicker({
                     startDate: leave_from,
                     endDate: leave_to,

@@ -259,7 +259,7 @@ class Staff extends Admin_Controller
 
     public function leaverequest()
     {
-        if (!$this->rbac->hasPrivilege('staff_leave_request', 'can_view')) {
+        if (!$this->rbac->hasPrivilege('apply_leave', 'can_view')) {
             access_denied();
         }
         $this->session->set_userdata('top_menu', 'HR');
@@ -268,11 +268,61 @@ class Staff extends Admin_Controller
 
         // Load leave requests from the model
         $staff_id = $this->customlib->getStaffID();
+        log_message('debug', 'leaverequest: current_staff_id from customlib: ' . $staff_id);
+
         if (empty($staff_id)) {
             $staff_id = 0; // Default or handle as appropriate
+            log_message('debug', 'leaverequest: staff_id is empty, set to: ' . $staff_id);
         }
         $data['staff_id'] = $staff_id; // Explicitly add staff_id to data array
         $data['leaverequestlist'] = $this->leaverequest_model->staff_leave_request($staff_id); // Use the existing method
+        
+        // Fetch staff details, timetable, and potential substitutes
+        $current_staff_id = $this->customlib->getStaffID(); // Use current logged-in staff ID
+        log_message('debug', 'leaverequest: current_staff_id (again) : ' . $current_staff_id);
+
+        $staff_details = $this->staff_model->get($current_staff_id);
+        log_message('debug', 'leaverequest: staff_details for current_staff_id ' . $current_staff_id . ': ' . print_r($staff_details, true));
+
+        $data['current_staff_details'] = $staff_details;
+
+        $potential_substitutes = [];
+        if ($staff_details && isset($staff_details['department']) && !empty($staff_details['department'])) {
+            log_message('debug', 'leaverequest: Staff department ID: ' . $staff_details['department']);
+            $potential_substitutes = $this->staff_model->getEmployeeByDepartment($staff_details['department'], $current_staff_id);
+            log_message('debug', 'leaverequest: Potential substitutes count: ' . count($potential_substitutes));
+            log_message('debug', 'leaverequest: Potential substitutes: ' . print_r($potential_substitutes, true));
+
+            // Fetch Recommender (HOD) details
+            $this->load->model('department_model');
+            $department = $this->department_model->getDepartmentType($staff_details['department']);
+            if ($department && isset($department['dept_head_id']) && !empty($department['dept_head_id'])) {
+                $recommender_details = $this->staff_model->get($department['dept_head_id']);
+                $data['recommender_info'] = $recommender_details['name'] . ' ' . $recommender_details['surname'] . ' (' . $recommender_details['designation'] . ')';
+                log_message('debug', 'leaverequest: Recommender Info: ' . $data['recommender_info']);
+            } else {
+                $data['recommender_info'] = $this->lang->line('not_assigned');
+                log_message('debug', 'leaverequest: Recommender Info: Not Assigned');
+            }
+        } else {
+            $data['recommender_info'] = $this->lang->line('not_assigned');
+            log_message('debug', 'leaverequest: Staff department is empty or not set. Recommender Info: Not Assigned');
+        }
+        $data['potential_substitutes'] = $potential_substitutes;
+
+        // Fetch Approver details (from school settings)
+        $this->load->model('setting_model'); // Ensure setting_model is loaded
+        $setting = $this->setting_model->getSetting();
+        if ($setting && isset($setting->leave_approver_id)) {
+            $approver_details = $this->staff_model->get($setting->leave_approver_id);
+            $data['approver_info'] = $approver_details['name'] . ' ' . $approver_details['surname'] . ' (' . $approver_details['designation'] . ')';
+        } else {
+            $data['approver_info'] = $this->lang->line('not_assigned');
+        }
+
+        // Also add staffrole for the modal
+        $staffRole             = $this->staff_model->getStaffRole();
+        $data["staffrole"]     = $staffRole;
         
         $leavetype = $this->staff_model->getLeaveType();
         $data['leavetype'] = $leavetype;
