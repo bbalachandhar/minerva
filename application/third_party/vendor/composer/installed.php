@@ -3,7 +3,7 @@
         'name' => 'minerva/beebasoft',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => '0dccffd08f9dc104eee197b4f341cafe71c03893',
+        'reference' => '0782e19c26d6c841e836fc9b39aab898265d3ecd',
         'type' => 'library',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -116,7 +116,7 @@
         'minerva/beebasoft' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => '0dccffd08f9dc104eee197b4f341cafe71c03893',
+            'reference' => '0782e19c26d6c841e836fc9b39aab898265d3ecd',
             'type' => 'library',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
