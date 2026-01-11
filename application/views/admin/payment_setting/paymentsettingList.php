@@ -2059,21 +2059,21 @@ $onepay_result = check_in_array('onepay', $paymentlist);
                                                     </div>
                                                 </div>
                                                 <div class="form-group">
-                                                    <label class="col-sm-5 control-label"><?php echo $this->lang->line('key_id'); ?><small class="req"> *</small></label>
+                                                    <label class="col-sm-5 control-label"><?php echo $this->lang->line('billdesk_key_id_label'); ?><small class="req"> *</small></label>
                                                     <div class="col-sm-7">
                                                         <input type="text" class="form-control" name="billdesk_api_password" value="<?php echo isset($billdesk_result->api_password) ? $billdesk_result->api_password : ""; ?>">
                                                         <span class="text text-danger billdesk_api_password_error"></span>
                                                     </div>
                                                 </div>
                                                 <div class="form-group">
-                                                    <label class="col-sm-5 control-label"><?php echo $this->lang->line('encryption_password'); ?><small class="req"> *</small></label>
+                                                    <label class="col-sm-5 control-label"><?php echo $this->lang->line('billdesk_encryption_password_label'); ?><small class="req"> *</small></label>
                                                     <div class="col-sm-7">
                                                         <input type="text" class="form-control" name="billdesk_salt" value="<?php echo isset($billdesk_result->salt) ? $billdesk_result->salt : ""; ?>">
                                                         <span class="text text-danger billdesk_salt_error"></span>
                                                     </div>
                                                 </div>
                                                 <div class="form-group">
-                                                    <label class="col-sm-5 control-label"><?php echo $this->lang->line('signing_password'); ?><small class="req"> *</small></label>
+                                                    <label class="col-sm-5 control-label"><?php echo $this->lang->line('billdesk_signing_password_label'); ?><small class="req"> *</small></label>
                                                     <div class="col-sm-7">
                                                         <input type="text" class="form-control" name="billdesk_api_signature" value="<?php echo isset($billdesk_result->api_signature) ? $billdesk_result->api_signature : ""; ?>">
                                                         <span class="text text-danger billdesk_api_signature_error"></span>

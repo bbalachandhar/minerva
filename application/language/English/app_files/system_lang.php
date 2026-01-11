@@ -2983,3 +2983,6 @@ $lang['previous_institution'] = "Previous Institution";
 $lang['subject_expertise'] = "Subject Expertise";
 $lang['alternative_teacher'] = "Alternative Teacher";
 $lang['select_alternative_teacher'] = "Select Alternative Teacher";
+$lang['billdesk_key_id_label'] = "Billdesk Key ID";
+$lang['billdesk_encryption_password_label'] = "Encryption Password";
+$lang['billdesk_signing_password_label'] = "Signing Password";

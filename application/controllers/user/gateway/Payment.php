@@ -363,19 +363,26 @@ class Payment extends Studentgateway_Controller
                         $this->session->set_userdata("params", $params);
                         redirect(base_url("user/gateway/payhere"));
                     }
-                } else if ($pay_method->payment_type == "onepay") {
-                    if ($pay_method->api_publishable_key == "") {
-                        $this->session->set_flashdata('error', '<div class="alert alert-danger">' . $this->lang->line('onepay_settings_not_available') . '</div>');
-                        redirect($_SERVER['HTTP_REFERER']);
-                    } else {
-                        $this->session->set_userdata("params", $params);
-                        redirect(base_url("user/gateway/onepay"));
-                    }
-                } else {
-                    $this->session->set_flashdata('error', $this->lang->line('something_went_wrong'));
-                    redirect($_SERVER['HTTP_REFERER']);
-                }
-            }
+                                    } else if ($pay_method->payment_type == "onepay") {
+                                        if ($pay_method->api_publishable_key == "") {
+                                            $this->session->set_flashdata('error', '<div class="alert alert-danger">' . $this->lang->line('onepay_settings_not_available') . '</div>');
+                                            redirect($_SERVER['HTTP_REFERER']);
+                                        } else {
+                                            $this->session->set_userdata("params", $params);
+                                            redirect(base_url("user/gateway/onepay"));
+                                        }
+                                    } else if ($pay_method->payment_type == "billdesk") {
+                                        if ($pay_method->api_secret_key == "") {
+                                            $this->session->set_flashdata('error', '<div class="alert alert-danger">Billdesk settings not available</div>');
+                                            redirect($_SERVER['HTTP_REFERER']);
+                                        } else {
+                                            $this->session->set_userdata("params", $params);
+                                            redirect(base_url("user/gateway/billdesk"));
+                                        }
+                                    } else {
+                                        $this->session->set_flashdata('error', $this->lang->line('something_went_wrong'));
+                                        redirect($_SERVER['HTTP_REFERER']);
+                                    }            }
         }
     }
 
@@ -819,6 +826,14 @@ class Payment extends Studentgateway_Controller
                         } else {
                             $this->session->set_userdata("params", $params);
                             redirect(base_url("user/gateway/onepay"));
+                        }
+                    } else if ($pay_method->payment_type == "billdesk") {
+                        if ($pay_method->api_secret_key == "") {
+                            $this->session->set_flashdata('error', '<div class="alert alert-danger">Billdesk settings not available</div>');
+                            redirect($_SERVER['HTTP_REFERER']);
+                        } else {
+                            $this->session->set_userdata("params", $params);
+                            redirect(base_url("user/gateway/billdesk"));
                         }
                     } else {
                         $this->session->set_flashdata('error', $this->lang->line('something_went_wrong'));
