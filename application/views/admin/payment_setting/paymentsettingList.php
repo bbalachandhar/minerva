@@ -33,6 +33,7 @@
                         <li><a href="#tab_22" data-toggle="tab"><?php echo $this->lang->line('skrill'); ?></a></li>
                         <li><a href="#tab_23" data-toggle="tab"><?php echo $this->lang->line('payhere'); ?></a></li>
                         <li><a href="#tab_24" data-toggle="tab"><?php echo $this->lang->line('onepay'); ?></a></li>
+                        <li><a href="#tab_25" data-toggle="tab"><?php echo "Billdesk"; ?></a></li>
                     </ul>
                     <div class="tab-content pb0">
                         <!-- /.tab-pane -->
@@ -2037,6 +2038,102 @@ $onepay_result = check_in_array('onepay', $paymentlist);
                                 </div>
                             </form>
                         </div>
+                        <div class="tab-pane" id="tab_25">
+                            <form role="form" id="billdesk" action="<?php echo site_url('admin/paymentsettings/billdesk') ?>" class="form-horizontal" method="post">
+                                <div class="box-body">
+                                    <div class="row">
+                                            <div class="col-md-7">
+                                                <?php $billdesk_result = check_in_array('billdesk', $paymentlist); ?>
+                                                <div class="form-group">
+                                                    <label class="col-sm-5 control-label"><?php echo $this->lang->line('merchant_id'); ?><small class="req"> *</small></label>
+                                                    <div class="col-sm-7">
+                                                        <input type="text" class="form-control" name="billdesk_api_secret_key" value="<?php echo isset($billdesk_result->api_secret_key) ? $billdesk_result->api_secret_key : ""; ?>">
+                                                        <span class="text text-danger billdesk_api_secret_key_error"></span>
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label class="col-sm-5 control-label"><?php echo $this->lang->line('client_id'); ?><small class="req"> *</small></label>
+                                                    <div class="col-sm-7">
+                                                        <input type="text" class="form-control" name="billdesk_api_publishable_key" value="<?php echo isset($billdesk_result->api_publishable_key) ? $billdesk_result->api_publishable_key : ""; ?>">
+                                                        <span class="text text-danger billdesk_api_publishable_key_error"></span>
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label class="col-sm-5 control-label"><?php echo $this->lang->line('key_id'); ?><small class="req"> *</small></label>
+                                                    <div class="col-sm-7">
+                                                        <input type="text" class="form-control" name="billdesk_api_password" value="<?php echo isset($billdesk_result->api_password) ? $billdesk_result->api_password : ""; ?>">
+                                                        <span class="text text-danger billdesk_api_password_error"></span>
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label class="col-sm-5 control-label"><?php echo $this->lang->line('encryption_password'); ?><small class="req"> *</small></label>
+                                                    <div class="col-sm-7">
+                                                        <input type="text" class="form-control" name="billdesk_salt" value="<?php echo isset($billdesk_result->salt) ? $billdesk_result->salt : ""; ?>">
+                                                        <span class="text text-danger billdesk_salt_error"></span>
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label class="col-sm-5 control-label"><?php echo $this->lang->line('signing_password'); ?><small class="req"> *</small></label>
+                                                    <div class="col-sm-7">
+                                                        <input type="text" class="form-control" name="billdesk_api_signature" value="<?php echo isset($billdesk_result->api_signature) ? $billdesk_result->api_signature : ""; ?>">
+                                                        <span class="text text-danger billdesk_api_signature_error"></span>
+                                                    </div>
+                                                </div>
+                                                  <!-- processing charge -->
+                                                  <div class="form-group">
+                                                    <label class="control-label col-lg-5 col-md-5 col-sm-5 col-xs-12" for="exampleInputEmail1">
+                                                        <?php echo $this->lang->line('processing_fees_type'); ?>
+                                                    </label>
+                                                    <div class="col-lg-7 col-md-7 col-sm-7 col-xs-12">
+                                                        <div id="input-type" class="row">
+                                                            <div class="col-sm-4">
+                                                                <label class="radio-inline">
+                                                                    <input   checked="checked"   name="charge_type" class="finetype" onclick="get_payment_type('billdesk_charge_value',this.value)" id="charge_type" value="none" type="radio" <?php if(isset($billdesk_result->charge_type) && $billdesk_result->charge_type=='none'){ ?> checked="checked" <?php } ?>><?php echo $this->lang->line('none'); ?>    
+                                                                </label>
+                                                            </div>
+                                                            <div class="col-sm-4">
+                                                                <label class="radio-inline">
+                                                                    <input <?php if(isset($billdesk_result->charge_type) && $billdesk_result->charge_type=='percentage'){ ?> checked="checked" <?php } ?> onclick="get_payment_type('billdesk_charge_value',this.value)" name="charge_type" class="finetype" id="charge_type" value="percentage" type="radio"><?php echo $this->lang->line('percentage'); ?> (%)       
+                                                                </label>
+                                                            </div>
+                                                            <div class="col-sm-4">
+                                                                <label class="radio-inline" class="control-label col-lg-5 col-md-5 col-sm-5">
+                                                                    <input <?php if(isset($billdesk_result->charge_type) && $billdesk_result->charge_type=='fix'){ ?> checked="checked" <?php } ?> onclick="get_payment_type('billdesk_charge_value',this.value)" name="charge_type" class="finetype" id="charge_type" value="fix" type="radio"><?php echo $this->lang->line('fix_amount'); ?> (<?php echo $currency_symbol; ?>)
+                                                                </label>
+                                                            </div> 
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label class="control-label col-lg-5 col-md-5 col-sm-5 col-xs-12" for="exampleInputEmail1">
+                                                        <?php echo $this->lang->line('percentage_fix_amount'); ?><small class="req"></small>
+                                                    </label>
+                                                    <div class="col-lg-7 col-md-7 col-sm-7 col-xs-12">
+                                                        <input id="billdesk_charge_value" name="billdesk_charge_value" placeholder="" type="text" class="form-control"  value="<?php echo isset($billdesk_result->charge_value) ? $billdesk_result->charge_value : ""; ?>" />
+                                                        <span class=" text text-danger billdesk_charge_value_error"></span>
+                                                    </div>
+                                                </div>
+                                                <!-- processing charge -->
+                                            </div>
+                                            <div class="col-md-5 text text-center disblock">
+                                                <a href="https://www.billdesk.com/" target="_blank">
+                                                    <h5>Payment Gateway for India</h5>
+                                                    <img src="<?php echo base_url(); ?>/backend/images/billdesk_logo.png" width="200"><p>https://www.billdesk.com/</p></a>
+                                            </div>
+                                    </div>
+                                </div>
+                                <!-- /.box-body -->
+                                <div class="box-footer">
+                                    <div class="row">
+                                        <div class="col-md-6 col-sm-6 col-xs-12 col-md-offset-3">
+                                            <?php if ($this->rbac->hasPrivilege('payment_methods', 'can_edit')) {?>
+                                                <button type="submit" class="btn btn-primary billdesk_save" data-loading-text="<i class='fa fa-spinner fa-spin '></i> <?php echo $this->lang->line('save'); ?>"><?php echo $this->lang->line('save'); ?></button>
+                                            <?php }?>
+                                        </div>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
                     </div>
                     <!-- /.tab-content -->
                 </div>
@@ -2293,6 +2390,16 @@ if ($radio_check == 'onepay') {
 }
 ?>>
                                         <?php echo $this->lang->line('onepay'); ?>
+                                    </label>
+                                </div>
+                                <div class="radio">
+                                    <label>
+                                        <input type="radio"  name="payment_setting" value="billdesk" <?php
+if ($radio_check == 'billdesk') {
+    echo "checked";
+}
+?>>
+                                        <?php echo "Billdesk"; ?>
                                     </label>
                                 </div>
                                  <span class="text text-danger payment_setting_error"></span>
@@ -3143,34 +3250,126 @@ function check_in_array($find, $array)
         e.preventDefault();
     });
 
-     $("#onepay").submit(function (e) {
-        $("[class$='_error']").html("");
-        var $this = $(".onepay_save");
-        $this.button('loading');
-        var url = $(this).attr('action');
+          $("#onepay").submit(function (e) {
 
-        $.ajax({
-            type: "POST",
-            dataType: 'JSON',
-            url: url,
-            data: $("#onepay").serialize(),
-            success: function (data, textStatus, jqXHR)
-            {
-                if (data.st === 1) {
-                    $.each(data.msg, function (key, value) {
-                        $('.' + key + "_error").html(value);
-                    });
-                } else {
-                    successMsg(data.msg);
-                }
-            },
-            error: function (jqXHR, textStatus, errorThrown)
-            {
-                $(".custom_loader").html("");
-            }, complete: function () {
-                $this.button('reset');
-            }
-        });
-        e.preventDefault();
-    });
-</script>
+             $("[class$='_error']").html("");
+
+             var $this = $(".onepay_save");
+
+             $this.button('loading');
+
+             var url = $(this).attr('action');
+
+     
+
+             $.ajax({
+
+                 type: "POST",
+
+                 dataType: 'JSON',
+
+                 url: url,
+
+                 data: $("#onepay").serialize(),
+
+                 success: function (data, textStatus, jqXHR)
+
+                 {
+
+                     if (data.st === 1) {
+
+                         $.each(data.msg, function (key, value) {
+
+                             $('.' + key + "_error").html(value);
+
+                         });
+
+                     } else {
+
+                         successMsg(data.msg);
+
+                     }
+
+                 },
+
+                 error: function (jqXHR, textStatus, errorThrown)
+
+                 {
+
+                     $(".custom_loader").html("");
+
+                 },
+
+                 complete: function () {
+
+                     $this.button('reset');
+
+                 }
+
+             });
+
+             e.preventDefault();
+
+         });
+
+     
+
+         $("#billdesk").submit(function (e) {
+
+             $("[class$='_error']").html("");
+
+             var $this = $(".billdesk_save");
+
+             $this.button('loading');
+
+             var url = $(this).attr('action');
+
+             $.ajax({
+
+                 type: "POST",
+
+                 dataType: 'JSON',
+
+                 url: url,
+
+                 data: $("#billdesk").serialize(),
+
+                 success: function (data, textStatus, jqXHR)
+
+                 {
+
+                     if (data.st === 1) {
+
+                         $.each(data.msg, function (key, value) {
+
+                             $('.' + key + "_error").html(value);
+
+                         });
+
+                     } else {
+
+                         successMsg(data.msg);
+
+                     }
+
+                 },
+
+                 error: function (jqXHR, textStatus, errorThrown)
+
+                 {
+
+                     $(".custom_loader").html("");
+
+                 }, complete: function () {
+
+                     $this.button('reset');
+
+                 }
+
+             });
+
+             e.preventDefault();
+
+         });
+
+     </script>

@@ -824,6 +824,50 @@ class Paymentsettings extends Admin_Controller
         }
     }
     
+    public function billdesk()
+    {
+        $this->form_validation->set_error_delimiters('', '');
+        $this->form_validation->set_rules('billdesk_api_secret_key', $this->lang->line('merchant_id'), 'trim|required|xss_clean'); // mercid
+        $this->form_validation->set_rules('billdesk_api_publishable_key', $this->lang->line('client_id'), 'trim|required|xss_clean'); // clientid
+        $this->form_validation->set_rules('billdesk_api_password', $this->lang->line('key_id'), 'trim|required|xss_clean'); // keyid
+        $this->form_validation->set_rules('billdesk_salt', $this->lang->line('encryption_password'), 'trim|required|xss_clean'); // encryption_password
+        $this->form_validation->set_rules('billdesk_api_signature', $this->lang->line('signing_password'), 'trim|required|xss_clean'); // signing_password
+
+        if ($this->input->post('charge_type') != "none" && $this->input->post('charge_type') != "") {
+            $this->form_validation->set_rules('billdesk_charge_value', $this->lang->line('percentage_fix_amount'), 'trim|required|xss_clean|numeric');
+        }
+
+        if ($this->form_validation->run()) {
+
+            $data = array(
+                'api_secret_key'      => $this->input->post('billdesk_api_secret_key'),
+                'api_publishable_key' => $this->input->post('billdesk_api_publishable_key'),
+                'api_password'        => $this->input->post('billdesk_api_password'),
+                'salt'                => $this->input->post('billdesk_salt'),
+                'api_signature'       => $this->input->post('billdesk_api_signature'),
+                'payment_type'        => 'billdesk',
+                'charge_type'         => $this->input->post('charge_type'),
+                'charge_value'        => $this->input->post('billdesk_charge_value'),
+            );
+
+            $this->paymentsetting_model->add($data);
+            echo json_encode(array('st' => 0, 'msg' => $this->lang->line('update_message')));
+
+        } else {
+
+            $data = array(
+                'billdesk_api_secret_key'      => form_error('billdesk_api_secret_key'),
+                'billdesk_api_publishable_key' => form_error('billdesk_api_publishable_key'),
+                'billdesk_api_password'        => form_error('billdesk_api_password'),
+                'billdesk_salt'                => form_error('billdesk_salt'),
+                'billdesk_api_signature'       => form_error('billdesk_api_signature'),
+                'billdesk_charge_value'        => form_error('billdesk_charge_value'),
+            );
+
+            echo json_encode(array('st' => 1, 'msg' => $data));
+        }
+    }
+    
     public function payment_gateway_config()
     {
         $account_type = $this->input->post('account_type');
