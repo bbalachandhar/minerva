@@ -80,6 +80,7 @@ class Billdesk extends Student_Controller
             } catch (Exception $e) {
                 throw new Exception("Error creating JWE for Ecom Order: " . $e->getMessage());
             }
+            log_message('error', 'Billdesk Ecom Order Encrypted Request (JWE Token): ' . $ecom_jwe_token);
 
             try {
                 $ecom_jws_token = $this->billdesk_lib->create_jws($ecom_jwe_token);
