@@ -56,6 +56,20 @@ class Billdesk extends Student_Controller
                     'additional_info6' => 'NA',
                     'additional_info7' => 'NA',
                 ],
+                'split_payment' => [
+                    [
+                        'mercid' => 'UAT2K800C1',
+                        'amount' => $formatted_amount,
+                        'customer_refid' => 'V2EcomTestC1ORN' . time() . rand(11,99),
+                        'additional_info1' => 'NA',
+                        'additional_info2' => 'NA',
+                        'additional_info3' => 'NA',
+                        'additional_info4' => 'NA',
+                        'additional_info5' => 'NA',
+                        'additional_info6' => 'NA',
+                        'additional_info7' => 'NA',
+                    ]
+                ],
             ];
 
             log_message('error', '--- ECOM PAYLOAD (Base64 Encoded) ---');
