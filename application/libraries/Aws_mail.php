@@ -3,7 +3,7 @@
 }
 
 // include_once APPPATH . 'third_party/aws/aws-autoloader.php';
-require_once(APPPATH . 'third_party/omnipay/vendor/autoload.php');
+require_once(APPPATH . 'third_party/vendor/autoload.php');
 use Aws\Exception\AwsException;
 use Aws\Ses\SesClient;
 
