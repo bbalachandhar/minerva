@@ -88,6 +88,8 @@ class Billdesk extends Student_Controller
                 throw new Exception("Error creating JWS for Ecom Order: " . $e->getMessage());
             }
 
+            log_message('error', 'Billdesk Ecom Order Signed Request (JWS Token): ' . $ecom_jws_token);
+
             $ecom_headers = [
                 'Content-Type: application/jose',
                 'Accept: application/jose',
