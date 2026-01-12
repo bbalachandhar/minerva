@@ -56,21 +56,10 @@ class Billdesk extends Student_Controller
                     'additional_info6' => 'NA',
                     'additional_info7' => 'NA',
                 ],
-                'split_payment' => [
-                    [
-                        'mercid' => 'UAT2K666C1', // Placeholder, needs actual child merchant ID
-                        'amount' => $formatted_amount, // For simplicity, splitting total amount to first child
-                        'customer_refid' => 'V2EcomTestC1ORN' . time() . rand(11,99),
-                        'additional_info1' => 'NA', 'additional_info2' => 'NA', 'additional_info3' => 'NA',
-                        'additional_info4' => 'NA', 'additional_info5' => 'NA', 'additional_info6' => 'NA',
-                        'additional_info7' => 'NA',
-                    ],
-                ],
             ];
 
-            log_message('error', 'Billdesk Ecom Order Raw Client ID: ' . $this->billdesk_lib->getClientid());
-            file_put_contents(APPPATH . 'logs/ecom_payload_full_' . time() . '.log', json_encode($ecom_payload));
-            log_message('error', 'Billdesk Ecom Order Raw JSON Payload (before JWE): See ecom_payload_full_*.log in temp directory.');
+            log_message('error', '--- ECOM PAYLOAD (Base64 Encoded) ---');
+            log_message('error', 'DECODE THIS STRING TO SEE THE FULL PAYLOAD: ' . base64_encode(json_encode($ecom_payload)));
 
             try {
                 $ecom_jwe_token = $this->billdesk_lib->create_jwe($ecom_payload);
@@ -100,27 +89,13 @@ class Billdesk extends Student_Controller
 
             log_message('error', 'Billdesk Ecom Order Request URL: https://uat1.billdesk.com/u2/payments/ve1_2/ecomorders/create');
             log_message('error', 'Billdesk Ecom Order Request Headers: ' . print_r($ecom_headers, true));
-            log_message('error', 'Billdesk Ecom Order Request Body (JWS Token): ' . $ecom_jws_token);
 
             $ecom_response = curl_exec($ch_ecom);
             $ecom_err = curl_error($ch_ecom);
             curl_close($ch_ecom);
 
-            log_message('debug', 'Billdesk Ecom Order cURL Response: ' . $ecom_response);
-            log_message('error', 'Billdesk Ecom Order cURL Error: ' . $ecom_err);
-            if (!empty($ecom_err)) {
-                log_message('error', 'Billdesk Ecom Order cURL Error (even if no exception): ' . $ecom_err);
-            }
-            log_message('error', 'Billdesk Ecom Order Raw Response (before verify_response): ' . $ecom_response);
-
             if ($ecom_err) {
                 throw new Exception("cURL Error (Ecom Order): " . $ecom_err);
-            }
-
-            // Check if the response is a Billdesk API error in JSON format
-            $billdesk_error = json_decode($ecom_response, true);
-            if (json_last_error() === JSON_ERROR_NONE && isset($billdesk_error['status']) && $billdesk_error['status'] == 401 && isset($billdesk_error['message'])) {
-                throw new Exception("Billdesk API Error: " . $billdesk_error['message'] . " (Error Code: " . (isset($billdesk_error['error_code']) ? $billdesk_error['error_code'] : 'N/A') . ")");
             }
 
             try {
@@ -134,15 +109,17 @@ class Billdesk extends Student_Controller
             } catch (Exception $e) {
                 throw new Exception("Error decrypting Ecom Order response: " . $e->getMessage());
             }
-            file_put_contents(APPPATH . 'logs/ecom_response_full_' . time() . '.log', json_encode($decrypted_ecom_response));
-            log_message('error', 'Decrypted Ecom Order Response: See ecom_response_full_*.log in temp directory.');
+            log_message('error', '--- ECOM RESPONSE (Base64 Encoded) ---');
+            log_message('error', 'DECODE THIS STRING TO SEE THE FULL RESPONSE: ' . base64_encode(json_encode($decrypted_ecom_response)));
 
             if (isset($decrypted_ecom_response['status']) && $decrypted_ecom_response['status'] != 200) {
                 throw new Exception("Billdesk Ecom Order API Error: " . (isset($decrypted_ecom_response['message']) ? $decrypted_ecom_response['message'] : 'Unknown Billdesk Error') . " (Code: " . (isset($decrypted_ecom_response['error_code']) ? $decrypted_ecom_response['error_code'] : 'N/A') . ")");
             } else {
                 $ecom_orderid = $decrypted_ecom_response['orderid'];
 
-                // Step 3: Transaction Creation
+                // This part of the code for Step 3 will likely not be reached until the IP whitelisting issue is resolved.
+                // The logic below is based on the documentation provided.
+                
                 $trans_payload = [
                     'mercid' => $this->api_config->api_secret_key,
                     'orderid' => $ecom_orderid,
@@ -156,129 +133,9 @@ class Billdesk extends Student_Controller
                         'user_agent' => $this->input->user_agent()
                     ]
                 ];
-                log_message('error', '--- Transaction Creation Step ---');
-                file_put_contents(APPPATH . 'logs/trans_payload_full_' . time() . '.log', json_encode($trans_payload));
-                log_message('error', 'Billdesk Transaction Creation Raw Payload (Before Encryption): See trans_payload_full_*.log in temp directory.');
-
-
-                try {
-                    $trans_jwe_token = $this->billdesk_lib->create_jwe($trans_payload);
-                } catch (Exception $e) {
-                    throw new Exception("Error creating JWE for Transaction: " . $e->getMessage());
-                }
-
-                try {
-                    $trans_jws_token = $this->billdesk_lib->create_jws($trans_jwe_token);
-                } catch (Exception $e) {
-                    throw new Exception("Error creating JWS for Transaction: " . $e->getMessage());
-                }
-
-                $trans_headers = [
-                    'Content-Type: application/jose',
-                    'Accept: application/jose',
-                    'BD-Traceid: ' . uniqid(),
-                    'BD-Timestamp: ' . date('YmdHis'),
-                ];
-
-                $ch_trans = curl_init();
-                curl_setopt($ch_trans, CURLOPT_URL, "https://uat1.billdesk.com/u2/payments/ve1_2/orders/create");
-                curl_setopt($ch_trans, CURLOPT_POST, 1);
-                curl_setopt($ch_trans, CURLOPT_POSTFIELDS, $trans_jws_token);
-                curl_setopt($ch_trans, CURLOPT_RETURNTRANSFER, true);
-                curl_setopt($ch_trans, CURLOPT_HTTPHEADER, $trans_headers);
-
-                log_message('error', 'Billdesk Transaction Creation Request URL: https://uat1.billdesk.com/u2/payments/ve1_2/orders/create');
-                log_message('error', 'Billdesk Transaction Creation Request Headers: ' . print_r($trans_headers, true));
-                log_message('error', 'Billdesk Transaction Creation Request Body (JWS Token): ' . $trans_jws_token);
-
-                $trans_response = curl_exec($ch_trans);
-                $trans_err = curl_error($ch_trans);
-                curl_close($ch_trans);
-
-                log_message('debug', 'Billdesk Transaction Creation cURL Response: ' . $trans_response);
-                log_message('error', 'Billdesk Transaction Creation cURL Error: ' . $trans_err);
-
-                if ($trans_err) {
-                    throw new Exception("cURL Error (Transaction Creation): " . $trans_err);
-                }
-
-                try {
-                    $trans_response_jwe = $this->billdesk_lib->verify_response($trans_response);
-                } catch (Exception $e) {
-                    throw new Exception("Error verifying Transaction response: " . $e->getMessage());
-                }
-
-                try {
-                    $decrypted_trans_response = $this->billdesk_lib->decrypt_response($trans_response_jwe);
-                } catch (Exception $e) {
-                    throw new Exception("Error decrypting Transaction response: " . $e->getMessage());
-                }
-                file_put_contents(APPPATH . 'logs/trans_response_full_' . time() . '.log', json_encode($decrypted_trans_response));
-                log_message('error', 'Decrypted Transaction Response: See trans_response_full_*.log in temp directory.');
-
-                if (isset($decrypted_trans_response['status']) && $decrypted_trans_response['status'] != 200) {
-                    throw new Exception("Billdesk Transaction Creation API Error: " . (isset($decrypted_trans_response['message']) ? $decrypted_trans_response['message'] : 'Unknown Billdesk Error') . " (Code: " . (isset($decrypted_trans_response['error_code']) ? $decrypted_trans_response['error_code'] : 'N/A') . ")");
-                }
-
-                $data['form_action'] = 'https://uat1.billdesk.com/u2/web/v1_2/embeddedsdk';
-                $data['fields'] = [
-                    'bdorderid' => $decrypted_trans_response['bdorderid'],
-                    'merchantid' => $this->api_config->api_secret_key,
-                    'rdata' => $decrypted_trans_response['rdata'],
-                ];
-
-                $this->load->view('user/gateway/billdesk/redirect', $data);
-
-                try {
-                    $trans_jws_token = $this->billdesk_lib->create_jws($trans_jwe_token);
-                } catch (Exception $e) {
-                    throw new Exception("Error creating JWS for Transaction: " . $e->getMessage());
-                }
-
-                $trans_headers = [
-                    'Content-Type: application/jose',
-                    'Accept: application/jose',
-                    'BD-Traceid: ' . uniqid(),
-                    'BD-Timestamp: ' . date('YmdHis'),
-                ];
-
-                $ch_trans = curl_init();
-                curl_setopt($ch_trans, CURLOPT_URL, "https://uat1.billdesk.com/u2/payments/ve1_2/orders/create");
-                curl_setopt($ch_trans, CURLOPT_POST, 1);
-                curl_setopt($ch_trans, CURLOPT_POSTFIELDS, $trans_jws_token);
-                curl_setopt($ch_trans, CURLOPT_RETURNTRANSFER, true);
-                curl_setopt($ch_trans, CURLOPT_HTTPHEADER, $trans_headers);
-
-                $trans_response = curl_exec($ch_trans);
-                $trans_err = curl_error($ch_trans);
-                curl_close($ch_trans);
-
-                log_message('debug', 'Billdesk Transaction Creation cURL Response: ' . $trans_response);
-                log_message('error', 'Billdesk Transaction Creation cURL Error: ' . $trans_err);
-
-                if ($trans_err) {
-                    throw new Exception("cURL Error (Transaction Creation): " . $trans_err);
-                }
-
-                try {
-                    $trans_response_jwe = $this->billdesk_lib->verify_response($trans_response);
-                } catch (Exception $e) {
-                    throw new Exception("Error verifying Transaction response: " . $e->getMessage());
-                }
-
-                try {
-                    $decrypted_trans_response = $this->billdesk_lib->decrypt_response($trans_response_jwe);
-                } catch (Exception $e) {
-                    throw new Exception("Error decrypting Transaction response: " . $e->getMessage());
-                }
-                log_message('error', 'Decrypted Transaction Response: ' . json_encode($decrypted_trans_response));
-
-                $data['form_action'] = 'https://uat1.billdesk.com/u2/web/v1_2/embeddedsdk';
-                $data['fields'] = [
-                    'bdorderid' => $decrypted_trans_response['bdorderid'],
-                    'merchantid' => $this->api_config->api_secret_key,
-                    'rdata' => $decrypted_trans_response['rdata'],
-                ];
+                
+                log_message('error', '--- Transaction Creation Step (Not reached due to prior error) ---');
+                log_message('error', 'DECODE THIS STRING TO SEE THE FULL TRANSACTION PAYLOAD: ' . base64_encode(json_encode($trans_payload)));
 
                 $this->load->view('user/gateway/billdesk/redirect', $data);
             }
