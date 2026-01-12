@@ -69,7 +69,8 @@ class Billdesk extends Student_Controller
             ];
 
             log_message('error', 'Billdesk Ecom Order Raw Client ID: ' . $this->billdesk_lib->getClientid());
-            log_message('error', 'Billdesk Ecom Order Raw JSON Payload (before JWE): ' . json_encode($ecom_payload));
+            file_put_contents(APPPATH . 'logs/ecom_payload_full_' . time() . '.log', json_encode($ecom_payload));
+            log_message('error', 'Billdesk Ecom Order Raw JSON Payload (before JWE): See ecom_payload_full_*.log in temp directory.');
 
             try {
                 $ecom_jwe_token = $this->billdesk_lib->create_jwe($ecom_payload);
@@ -133,7 +134,8 @@ class Billdesk extends Student_Controller
             } catch (Exception $e) {
                 throw new Exception("Error decrypting Ecom Order response: " . $e->getMessage());
             }
-            log_message('error', 'Decrypted Ecom Order Response: ' . json_encode($decrypted_ecom_response));
+            file_put_contents(APPPATH . 'logs/ecom_response_full_' . time() . '.log', json_encode($decrypted_ecom_response));
+            log_message('error', 'Decrypted Ecom Order Response: See ecom_response_full_*.log in temp directory.');
 
             if (isset($decrypted_ecom_response['status']) && $decrypted_ecom_response['status'] != 200) {
                 throw new Exception("Billdesk Ecom Order API Error: " . (isset($decrypted_ecom_response['message']) ? $decrypted_ecom_response['message'] : 'Unknown Billdesk Error') . " (Code: " . (isset($decrypted_ecom_response['error_code']) ? $decrypted_ecom_response['error_code'] : 'N/A') . ")");
@@ -155,7 +157,8 @@ class Billdesk extends Student_Controller
                     ]
                 ];
                 log_message('error', '--- Transaction Creation Step ---');
-                log_message('error', 'Billdesk Transaction Creation Raw Payload (Before Encryption): ' . json_encode($trans_payload));
+                file_put_contents(APPPATH . 'logs/trans_payload_full_' . time() . '.log', json_encode($trans_payload));
+                log_message('error', 'Billdesk Transaction Creation Raw Payload (Before Encryption): See trans_payload_full_*.log in temp directory.');
 
 
                 try {
@@ -210,7 +213,8 @@ class Billdesk extends Student_Controller
                 } catch (Exception $e) {
                     throw new Exception("Error decrypting Transaction response: " . $e->getMessage());
                 }
-                log_message('error', 'Decrypted Transaction Response: ' . json_encode($decrypted_trans_response));
+                file_put_contents(APPPATH . 'logs/trans_response_full_' . time() . '.log', json_encode($decrypted_trans_response));
+                log_message('error', 'Decrypted Transaction Response: See trans_response_full_*.log in temp directory.');
 
                 if (isset($decrypted_trans_response['status']) && $decrypted_trans_response['status'] != 200) {
                     throw new Exception("Billdesk Transaction Creation API Error: " . (isset($decrypted_trans_response['message']) ? $decrypted_trans_response['message'] : 'Unknown Billdesk Error') . " (Code: " . (isset($decrypted_trans_response['error_code']) ? $decrypted_trans_response['error_code'] : 'N/A') . ")");
