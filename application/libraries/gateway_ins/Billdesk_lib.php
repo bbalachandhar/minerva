@@ -76,15 +76,19 @@ class Billdesk_lib
             ]
         );
 
+        $protected_header = [
+            'alg' => 'dir', // Direct Key Agreement
+            'enc' => 'A256GCM',
+            'clientid' => $this->clientid,
+            'kid' => $this->key_id
+        ];
+
+        log_message('error', 'JWE Protected Header being built: ' . json_encode($protected_header));
+
         $jwe = $jweBuilder
             ->create()
             ->withPayload(json_encode($payload))
-            ->withSharedProtectedHeader([
-                'alg' => 'dir', // Direct Key Agreement
-                'enc' => 'A256GCM',
-                'clientid' => $this->clientid,
-                'kid' => $this->key_id
-            ])
+            ->withSharedProtectedHeader($protected_header)
             ->addRecipient($shared_secret_jwk) // Add recipient with the shared secret JWK
             ->build();
 
@@ -112,10 +116,14 @@ class Billdesk_lib
             ]
         );
 
+        $signature_header = ['alg' => 'HS256', 'kid' => $this->key_id, 'clientid' => $this->clientid];
+
+        log_message('error', 'JWS Signature Header being built: ' . json_encode($signature_header));
+
         $jws = $jwsBuilder
             ->create()
             ->withPayload($jwe_token)
-            ->addSignature($jwk, ['alg' => 'HS256', 'kid' => $this->key_id, 'clientid' => $this->clientid])
+            ->addSignature($jwk, $signature_header)
             ->build();
         
         $serializer = new CompactSerializer();
