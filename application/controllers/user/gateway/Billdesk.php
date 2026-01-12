@@ -40,15 +40,19 @@ class Billdesk extends Student_Controller
             // Step 2: Ecom Order
             $ecom_payload = [
                 'mercid' => $this->api_config->api_secret_key,
-                'amount' => $total_amount, // Amount as a number, verify if BillDesk expects string like "100.00"
+                'amount' => $total_amount,
                 'order_ref_no' => time() . rand(1111, 9999),
                 'ecom_order_date' => date('Y-m-d\TH:i:sP'),
                 'ru' => base_url('user/gateway/billdesk/callback'),
                 'currency' => '356',
                 'itemcode' => 'DIRECT',
                 'additional_info' => [
-                    'additional_info1' => 'NA', 'additional_info2' => 'NA', 'additional_info3' => 'NA',
-                    'additional_info4' => 'NA', 'additional_info5' => 'NA', 'additional_info6' => 'NA',
+                    'additional_info1' => 'NA',
+                    'additional_info2' => 'NA',
+                    'additional_info3' => 'NA',
+                    'additional_info4' => 'NA',
+                    'additional_info5' => 'NA',
+                    'additional_info6' => 'NA',
                     'additional_info7' => 'NA',
                 ],
                 'split_payment' => [
@@ -129,21 +133,13 @@ class Billdesk extends Student_Controller
                 throw new Exception("Error decrypting Ecom Order response: " . $e->getMessage());
             }
             log_message('error', 'Decrypted Ecom Order Response: ' . json_encode($decrypted_ecom_response));
-
-            // --- Defensive coding for Ecom Order Response ---
-            // Assuming 200 is success for this API. Adjust if BillDesk uses another success code or status string.
-            if (isset($decrypted_ecom_response['status']) && $decrypted_ecom_response['status'] != 200) { 
-                throw new Exception("Billdesk Ecom Order API Error: " . (isset($decrypted_ecom_response['message']) ? $decrypted_ecom_response['message'] : 'Unknown Billdesk Error') . " (Code: " . (isset($decrypted_ecom_response['error_code']) ? $decrypted_ecom_response['error_code'] : 'N/A') . ")");
-            }
-            // --- End Defensive coding ---
-
-            $ecom_orderid = $decrypted_ecom_response['orderid']; // This line will only be reached if status is 200
+            $ecom_orderid = $decrypted_ecom_response['orderid'];
 
             // Step 3: Transaction Creation
             $trans_payload = [
                 'mercid' => $this->api_config->api_secret_key,
                 'orderid' => $ecom_orderid,
-                'amount' => $total_amount, // Amount as a number, verify if BillDesk expects string like "100.00"
+                'amount' => $total_amount,
                 'currency' => '356',
                 'itemcode' => 'DIRECT',
                 'ru' => base_url('user/gateway/billdesk/callback'),
@@ -153,8 +149,6 @@ class Billdesk extends Student_Controller
                     'user_agent' => $this->input->user_agent()
                 ]
             ];
-            log_message('error', 'Billdesk Transaction Creation Raw JSON Payload (before JWE): ' . json_encode($trans_payload)); // NEW LOG ADDED
-            
 
             try {
                 $trans_jwe_token = $this->billdesk_lib->create_jwe($trans_payload);
@@ -182,10 +176,6 @@ class Billdesk extends Student_Controller
             curl_setopt($ch_trans, CURLOPT_RETURNTRANSFER, true);
             curl_setopt($ch_trans, CURLOPT_HTTPHEADER, $trans_headers);
             
-            log_message('error', 'Billdesk Transaction Creation Request URL: https://uat1.billdesk.com/u2/payments/ve1_2/orders/create'); // NEW LOG ADDED
-            log_message('error', 'Billdesk Transaction Creation Request Headers: ' . print_r($trans_headers, true)); // NEW LOG ADDED
-            log_message('error', 'Billdesk Transaction Creation Request Body (JWS Token): ' . $trans_jws_token); // NEW LOG ADDED
-            
             $trans_response = curl_exec($ch_trans);
             $trans_err = curl_error($ch_trans);
             curl_close($ch_trans);
@@ -209,13 +199,6 @@ class Billdesk extends Student_Controller
                 throw new Exception("Error decrypting Transaction response: " . $e->getMessage());
             }
             log_message('error', 'Decrypted Transaction Response: ' . json_encode($decrypted_trans_response));
-            
-            // --- Defensive coding for Transaction Creation Response ---
-            // Assuming 200 is success for this API. Adjust if BillDesk uses another success code or status string.
-            if (isset($decrypted_trans_response['status']) && $decrypted_trans_response['status'] != 200) { 
-                throw new Exception("Billdesk Transaction Creation API Error: " . (isset($decrypted_trans_response['message']) ? $decrypted_trans_response['message'] : 'Unknown Billdesk Error') . " (Code: " . (isset($decrypted_trans_response['error_code']) ? $decrypted_trans_response['error_code'] : 'N/A') . ")");
-            }
-            // --- End Defensive coding ---
 
             // Step 4: Redirect to BillDesk
             $data['form_action'] = 'https://uat1.billdesk.com/u2/web/v1_2/embeddedsdk';
