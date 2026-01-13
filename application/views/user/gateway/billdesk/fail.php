@@ -25,11 +25,20 @@
                                 <?php if (isset($response['transaction_error_desc'])) { ?>
                                     <p>Reason: <?php echo $response['transaction_error_desc']; ?></p>
                                 <?php } ?>
+                                <p>Redirecting back to fees in 5 seconds...</p>
+                                <div class="text-center mt20">
+                                    <a href="<?php echo base_url('user/user/getfees'); ?>" class="btn btn-primary">Back to Fees</a>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
+        <script>
+            setTimeout(function(){
+                window.location.href = "<?php echo base_url('user/user/getfees'); ?>";
+            }, 5000);
+        </script>
     </body>
 </html>

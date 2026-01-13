@@ -25,11 +25,20 @@
                                 <p>Transaction ID: <?php echo $response['transactionid']; ?></p>
                                 <p>Amount: <?php echo $response['amount']; ?></p>
                                 <p>Status: <?php echo $response['transaction_error_desc']; ?></p>
+                                <p>Redirecting to invoice in 5 seconds...</p>
+                                <div class="text-center mt20">
+                                    <a href="<?php echo base_url('user/gateway/payment/successinvoice'); ?>" class="btn btn-primary">View Invoice</a>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
+        <script>
+            setTimeout(function(){
+                window.location.href = "<?php echo base_url('user/gateway/payment/successinvoice'); ?>";
+            }, 5000);
+        </script>
     </body>
 </html>
