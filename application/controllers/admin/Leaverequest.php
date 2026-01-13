@@ -347,9 +347,16 @@ class Leaverequest extends Admin_Controller
             $applied_by   = $this->customlib->getStaffID();
             $leave_days   = $this->dateDifference($leavefrom, $leaveto);
             $staff_id     = $empid;
+
+            $leave_type_details = $this->staff_model->getLeaveType($leavetype);
+            $is_lop_leave = false;
+            if ($leave_type_details && isset($leave_type_details['is_lop']) && $leave_type_details['is_lop'] == 1) {
+                $is_lop_leave = true;
+            }
+
             $my_laeve     = $this->leaverequest_model->myallotedLeaveType($staff_id, $leavetype);
             $total_remain = $my_laeve['alloted_leave'] - $my_laeve['total_applied'];
-            if ($total_remain >= $leave_days) {
+            if ($is_lop_leave || $total_remain >= $leave_days) {
 
                 if (isset($_FILES["userfile"]) && !empty($_FILES['userfile']['name'])) {
                     $uploaddir = './uploads/staff_documents/' . $staff_id . '/';
@@ -485,10 +492,17 @@ class Leaverequest extends Admin_Controller
             $staff_id     = $userdata["id"];
             $applied_by   = $this->customlib->getStaffID();
             $leave_days   = $this->dateDifference($leavefrom, $leaveto);
+
+            $leave_type_details = $this->staff_model->getLeaveType($leavetype);
+            $is_lop_leave = false;
+            if ($leave_type_details && isset($leave_type_details['is_lop']) && $leave_type_details['is_lop'] == 1) {
+                $is_lop_leave = true;
+            }
+
             $my_laeve     = $this->leaverequest_model->myallotedLeaveType($staff_id, $leavetype);
             $total_remain = $my_laeve['alloted_leave'] - $my_laeve['total_applied'];
 
-            if ($total_remain >= $leave_days) {
+            if ($is_lop_leave || $total_remain >= $leave_days) {
 
                 if (isset($_FILES["userfile"]) && !empty($_FILES['userfile']['name'])) {
                     $uploaddir = './uploads/staff_documents/' . $staff_id . '/';
