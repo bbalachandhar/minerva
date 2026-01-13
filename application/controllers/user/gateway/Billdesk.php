@@ -220,11 +220,11 @@ class Billdesk extends Student_Controller
                 log_message('error', '--- TRANSACTION RESPONSE (Base64 Encoded) ---');
                 log_message('error', 'DECODE THIS STRING TO SEE THE FULL TRANSACTION RESPONSE: ' . base64_encode(json_encode($decrypted_trans_response)));
 
-                if (isset($decrypted_trans_response['status']) && $decrypted_trans_response['status'] != 200) {
+                if (isset($decrypted_trans_response['status']) && $decrypted_trans_response['status'] != 200 && $decrypted_trans_response['status'] != 'PENDING' && $decrypted_trans_response['status'] != 'ACTIVE') {
                      // Check if it's just a pending status which might be okay, but usually 'status' in response means HTTP status code equivalent or API status. 
                      // In V1.2, success often has status 200 or similar.
-                     // If status is not 200, throw error.
-                     throw new Exception("Billdesk Transaction API Error: " . (isset($decrypted_trans_response['message']) ? $decrypted_trans_response['message'] : 'Unknown Billdesk Error') . " (Code: " . (isset($decrypted_trans_response['error_code']) ? $decrypted_trans_response['error_code'] : 'N/A') . ")");
+                     // If status is not 200/PENDING/ACTIVE, throw error.
+                     throw new Exception("Billdesk Transaction API Error: " . (isset($decrypted_trans_response['message']) ? $decrypted_trans_response['message'] : 'Unknown Billdesk Error') . " (Code: " . (isset($decrypted_trans_response['error_code']) ? $decrypted_trans_response['error_code'] : 'N/A') . ") Status: " . $decrypted_trans_response['status']);
                 }
 
                 // Step 4: Prepare Redirect
@@ -290,6 +290,15 @@ class Billdesk extends Student_Controller
                 if (isset($response['auth_status']) && $response['auth_status'] == '0300') {
                     // Payment successful
                     
+                    // Step 8: Verify Transaction via API
+                    $verification_response = $this->verify_transaction($response['orderid']);
+                    
+                    if (isset($verification_response['auth_status']) && $verification_response['auth_status'] == '0300') {
+                        $response = $verification_response; // Use the verified response
+                    } else {
+                        throw new Exception("Transaction verification failed: " . (isset($verification_response['message']) ? $verification_response['message'] : 'Unknown Error'));
+                    }
+
                     $params = $this->session->userdata('params');
                     $transaction_id = $response['transactionid']; // Assuming 'transactionid' is the key in BillDesk response
                     $bulk_fees = array();
@@ -407,6 +416,49 @@ class Billdesk extends Student_Controller
             // Invalid response
             $this->fail(['transaction_error_desc' => 'Invalid response from payment gateway']);
         }
+    }
+
+    private function verify_transaction($orderid) {
+        $verify_payload = [
+            'mercid' => $this->api_config->api_secret_key,
+            'orderid' => $orderid,
+        ];
+
+        log_message('error', '--- VERIFY PAYLOAD ---');
+        log_message('error', json_encode($verify_payload));
+
+        $verify_jwe_token = $this->billdesk_lib->create_jwe($verify_payload);
+        $verify_jws_token = $this->billdesk_lib->create_jws($verify_jwe_token);
+
+        $verify_headers = [
+            'Content-Type: application/jose',
+            'Accept: application/jose',
+            'BD-Traceid: ' . uniqid(),
+            'BD-Timestamp: ' . date('YmdHis'),
+        ];
+
+        $ch_verify = curl_init();
+        curl_setopt($ch_verify, CURLOPT_URL, "https://uat1.billdesk.com/u2/payments/ve1_2/transactions/get");
+        curl_setopt($ch_verify, CURLOPT_POST, 1);
+        curl_setopt($ch_verify, CURLOPT_POSTFIELDS, $verify_jws_token);
+        curl_setopt($ch_verify, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch_verify, CURLOPT_HTTPHEADER, $verify_headers);
+
+        $verify_response = curl_exec($ch_verify);
+        $verify_err = curl_error($ch_verify);
+        curl_close($ch_verify);
+
+        if ($verify_err) {
+            throw new Exception("cURL Error (Verify): " . $verify_err);
+        }
+
+        $verify_response_jwe = $this->billdesk_lib->verify_response($verify_response);
+        $decrypted_verify_response = $this->billdesk_lib->decrypt_response($verify_response_jwe);
+
+        log_message('error', '--- VERIFY RESPONSE (Base64 Encoded) ---');
+        log_message('error', 'DECODE THIS STRING TO SEE THE FULL VERIFY RESPONSE: ' . base64_encode(json_encode($decrypted_verify_response)));
+
+        return $decrypted_verify_response;
     }
 
     public function success($response) {
