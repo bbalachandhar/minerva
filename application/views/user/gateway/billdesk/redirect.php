@@ -24,10 +24,25 @@
                 }
             }
             ?>
-            <input name='submit' type='submit' value='Complete your Payment' />
+            <input name='btnSubmit' type='submit' value='Complete your Payment' id="submitBtn" style="display:none;" />
         </form>
         <script>
-            document.getElementById("sdklaunch").submit();
+            console.log("Attempting auto-redirect...");
+            try {
+                document.getElementById("sdklaunch").submit();
+            } catch (e) {
+                console.error("Auto-redirect failed, showing button.", e);
+                document.getElementById("submitBtn").style.display = 'block';
+            }
+
+            window.onload = function() {
+                document.getElementById("sdklaunch").submit();
+            };
+            
+            // Show button after 3 seconds if redirect hasn't happened
+            setTimeout(function() {
+                document.getElementById("submitBtn").style.display = 'block';
+            }, 3000);
         </script>
     </body>
 </html>
