@@ -142,8 +142,11 @@ class Billdesk extends Student_Controller
             log_message('error', '--- ECOM RESPONSE (Base64 Encoded) ---');
             log_message('error', 'DECODE THIS STRING TO SEE THE FULL RESPONSE: ' . base64_encode(json_encode($decrypted_ecom_response)));
 
-            if (isset($decrypted_ecom_response['status']) && $decrypted_ecom_response['status'] != 200) {
-                throw new Exception("Billdesk Ecom Order API Error: " . (isset($decrypted_ecom_response['message']) ? $decrypted_ecom_response['message'] : 'Unknown Billdesk Error') . " (Code: " . (isset($decrypted_ecom_response['error_code']) ? $decrypted_ecom_response['error_code'] : 'N/A') . ")");
+            // Check for success (status PENDING or 200, or presence of ecom_orderid)
+            if (isset($decrypted_ecom_response['error_type'])) {
+                 throw new Exception("Billdesk Ecom Order API Error: " . (isset($decrypted_ecom_response['message']) ? $decrypted_ecom_response['message'] : 'Unknown Billdesk Error') . " (Code: " . (isset($decrypted_ecom_response['error_code']) ? $decrypted_ecom_response['error_code'] : 'N/A') . ")");
+            } elseif (isset($decrypted_ecom_response['status']) && $decrypted_ecom_response['status'] != 200 && $decrypted_ecom_response['status'] != 'PENDING') {
+                throw new Exception("Billdesk Ecom Order API Error: Status " . $decrypted_ecom_response['status']);
             } else {
                 $ecom_orderid = $decrypted_ecom_response['ecom_orderid'];
 
