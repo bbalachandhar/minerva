@@ -29,7 +29,7 @@ echo $app_name[0]['name'];
                                 <div class="loginbg">
                                     <div class="form-top">
                                         <div class="form-top-left logowidth">
-                                            <img src="<?php echo base_url(); ?>uploads/school_content/admin_logo/<?php echo $this->setting_model->getAdminlogo();?>" />
+                                            <img src="<?php echo base_url(); ?>uploads/school_content/logo/<?php echo $this->setting_model->getPrintlogo();?>" />
                                         </div>
                                     </div>
                                     <div class="form-bottom">

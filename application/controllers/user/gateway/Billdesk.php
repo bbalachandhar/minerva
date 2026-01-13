@@ -155,6 +155,7 @@ class Billdesk extends Student_Controller
                     'mercid' => $this->api_config->api_secret_key,
                     'orderid' => $ecom_orderid,
                     'amount' => $formatted_amount,
+                    'order_date' => date('Y-m-d\TH:i:sP'),
                     'currency' => '356',
                     'itemcode' => 'DIRECT',
                     'ru' => base_url('user/gateway/billdesk/callback'),

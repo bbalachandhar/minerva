@@ -285,6 +285,12 @@ class Setting_model extends MY_Model {
         return $logo['admin_logo'];
     }
 
+    public function getPrintlogo() {
+        $query = $this->db->select('image')->get('sch_settings');
+        $logo = $query->row_array();
+        return $logo['image'];
+    }
+
     public function getAdminsmalllogo() {
         $query = $this->db->select('admin_small_logo')->get('sch_settings');
         $logo = $query->row_array();
