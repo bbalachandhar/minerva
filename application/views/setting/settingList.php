@@ -81,6 +81,7 @@
                                         </div>
                                     </div>
                                 </div><!--./row-->
+                                <input type="hidden" name="base_url" value="<?php echo $result->base_url; ?>">
                                 <div class="row">
                                     <div class="col-md-6">
                                         <div class="form-group row">

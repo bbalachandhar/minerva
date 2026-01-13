@@ -60,6 +60,7 @@ class Leaverequest extends Admin_Controller
             $potential_substitutes = $this->staff_model->getEmployeeByDepartment($staff_details['department'], $current_staff_id);
 
             // Fetch Recommender (HOD) details
+            $this->load->model('department_model');
             $department = $this->department_model->getDepartmentType($staff_details['department']);
             if ($department && $department['dept_head_id']) {
                 $recommender_details = $this->staff_model->get($department['dept_head_id']);
@@ -80,7 +81,6 @@ class Leaverequest extends Admin_Controller
         } else {
             $data['approver_info'] = $this->lang->line('not_assigned');
         }
-
 
         $this->load->view("layout/header", $data);
         $this->load->view("admin/staff/staffleaverequest", $data);
@@ -285,6 +285,13 @@ class Leaverequest extends Admin_Controller
             $approver = $this->staff_model->get($result->approver_id);
             $result->approver_name = $approver['name'];
             $result->approver_surname = $approver['surname'];
+        }
+
+        if ($result->recommender_status) {
+            $result->recommender_status_text = $this->lang->line(strtolower($result->recommender_status));
+        }
+        if ($result->approver_status) {
+            $result->approver_status_text = $this->lang->line(strtolower($result->approver_status));
         }
 
         echo json_encode($result);
@@ -611,11 +618,11 @@ class Leaverequest extends Admin_Controller
                                 }
                 
                                 $array = array('status' => 'success', 'error' => '', 'message' => $this->lang->line('success_message'));
-                                        } else {
-                                            log_message('error', 'Leave balance insufficient for staff leave request: ' . json_encode($msg));
-                                            $array = array('status' => 'fail', 'error' => $msg, 'message' => '');
-                                        }                
-                        }
+                                                    } else {
+                                                        $msg = array('applieddate' => $this->lang->line('selected_leave_days') . " > " . $this->lang->line('available_leaves'));
+                                                        log_message('error', 'Leave balance insufficient for staff leave request: ' . json_encode($msg));
+                                                        $array = array('status' => 'fail', 'error' => $msg, 'message' => '');
+                                                    }                        }
                         echo json_encode($array);
                     }
     public function handle_upload($str, $var)
@@ -872,6 +879,43 @@ class Leaverequest extends Admin_Controller
         $data["leave_request"] = $leave_requests_for_recommender;
         $data["status"] = $this->status; // Status array from payroll config
         $data['sch_setting_detail'] = $this->sch_setting_detail; // Pass sch_setting_detail to the view
+
+        $LeaveTypes            = $this->staff_model->getLeaveType();
+        $data["leavetype"]     = $LeaveTypes;
+        $staffRole             = $this->staff_model->getStaffRole();
+        $data["staffrole"]     = $staffRole;
+
+        $userdata              = $this->customlib->getUserData();
+        $data['staff_id'] = $userdata['id'];
+        $staff_details = $this->staff_model->get($userdata['id']);
+        $data['current_staff_details'] = $staff_details;
+
+        $potential_substitutes = [];
+        if ($staff_details && $staff_details['department']) {
+            $potential_substitutes = $this->staff_model->getEmployeeByDepartment($staff_details['department'], $current_user_id);
+        }
+        $data['potential_substitutes'] = $potential_substitutes;
+
+        if ($staff_details && $staff_details['department']) {
+            $this->load->model('department_model');
+            $department = $this->department_model->getDepartmentType($staff_details['department']);
+            if ($department && $department['dept_head_id']) {
+                $recommender_details = $this->staff_model->get($department['dept_head_id']);
+                $data['recommender_info'] = $recommender_details['name'] . ' ' . $recommender_details['surname'] . ' (' . $recommender_details['designation'] . ')';
+            } else {
+                $data['recommender_info'] = $this->lang->line('not_assigned');
+            }
+        } else {
+            $data['recommender_info'] = $this->lang->line('not_assigned');
+        }
+
+        $setting = $this->setting_model->getSetting();
+        if ($setting && isset($setting->leave_approver_id)) {
+            $approver_details = $this->staff_model->get($setting->leave_approver_id);
+            $data['approver_info'] = $approver_details['name'] . ' ' . $approver_details['surname'] . ' (' . $approver_details['designation'] . ')';
+        } else {
+            $data['approver_info'] = $this->lang->line('not_assigned');
+        }
 
         $this->load->view("layout/header", $data);
         $this->load->view("admin/staff/staffleaverequest", $data);
