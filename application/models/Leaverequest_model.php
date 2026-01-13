@@ -23,13 +23,14 @@ class Leaverequest_model extends MY_model
 
         $query = $this->db->select('staff.name,staff.surname,staff.employee_id,staff_leave_request.*,leave_types.type,
             recommender.name as recommender_name, recommender.surname as recommender_surname,
-            approver.name as approver_name, approver.surname as approver_surname')
+            approver.name as approver_name, approver.surname as approver_surname, department.department_name')
             ->join("staff", "staff.id = staff_leave_request.staff_id")
             ->join("leave_types", "leave_types.id = staff_leave_request.leave_type_id")
             ->join("staff_roles", "staff_roles.staff_id = staff.id")
             ->join("roles", "staff_roles.role_id = roles.id")
             ->join("staff as recommender", "recommender.id = staff_leave_request.recommender_id", "left")
             ->join("staff as approver", "approver.id = staff_leave_request.approver_id", "left")
+            ->join("department", "department.id = staff.department", "left")
             ->where("staff.is_active", "1")
             ->order_by("staff_leave_request.id", "desc")
             ->get("staff_leave_request");
@@ -243,6 +244,36 @@ class Leaverequest_model extends MY_model
         } else {
             return true;
         }
+    }
+
+    public function get_recommender_pending_leave_requests($recommender_id)
+    {
+        $query = $this->db->select('staff.name,staff.surname,staff.employee_id,staff_leave_request.*,leave_types.type,
+            recommender.name as recommender_name, recommender.surname as recommender_surname,
+            approver.name as approver_name, approver.surname as approver_surname, department.department_name')
+            ->join("staff", "staff.id = staff_leave_request.staff_id")
+            ->join("leave_types", "leave_types.id = staff_leave_request.leave_type_id")
+            ->join("staff_roles", "staff_roles.staff_id = staff.id")
+            ->join("roles", "staff_roles.role_id = roles.id")
+            ->join("staff as recommender", "recommender.id = staff_leave_request.recommender_id", "left")
+            ->join("staff as approver", "approver.id = staff_leave_request.approver_id", "left")
+            ->join("department", "department.id = staff.department", "left")
+            ->where("staff_leave_request.recommender_id", $recommender_id)
+            ->where("staff_leave_request.recommender_status", "pending")
+            ->where("staff.is_active", "1")
+            ->order_by("staff_leave_request.id", "desc")
+            ->get("staff_leave_request");
+
+        $result = $query->result_array();
+        foreach ($result as $key => $value) {
+            $applied_by = $this->staff_model->get($value['applied_by']);
+            if (!empty($applied_by['employee_id'])) {
+                $result[$key]['applied_by'] = $applied_by['name'] . ' ' . $applied_by['surname'] . ' (' . $applied_by['employee_id'] . ')';
+            } else {
+                $result[$key]['applied_by'] = '';
+            }
+        }
+        return $result;
     }
 
 }

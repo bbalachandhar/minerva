@@ -47,6 +47,8 @@ foreach ($leaverequestlist as $key => $value) {
                                                     <td><?php echo $value["leave_days"]; ?></td>
                                                     <td><?php echo date($this->customlib->getSchoolDateFormat(), strtotime($value["date"]));  ?></td>
                                                     <?php
+$label = ''; // Initialize label
+$satus1 = ''; // Initialize satus1
 $can_delete = 1;
     if ($value["status"] == "approve" || $value["status"] == "approved") {
         $can_delete = 0;
@@ -58,6 +60,9 @@ $can_delete = 1;
     } else if ($value["status"] == "disapproved" ) {
         $satus1 = "disapprove";
         $label = "class='label label-danger'";
+    } else if ($value["status"] == "recommended" ) {
+        $satus1 = "recommended";
+        $label = "class='label label-info'";
     }
     ?>
                                                     <td>
@@ -162,7 +167,7 @@ $i++;
             </div>
             <div class="modal-body">
                 <div class="row">
-                    <form role="form" id="addleave_form" method="post" enctype="multipart/form-data" action="">
+                    <form role="form" id="addleave_form" method="post" enctype="multipart/form-data" action="<?php echo site_url("admin/leaverequest/add_staff_leave") ?>">
                         <div class="form-group  col-xs-12 col-sm-12 col-md-12 col-lg-6">
                             <label>
                                 <?php echo $this->lang->line('apply_date'); ?></label><small class="req"> *</small>

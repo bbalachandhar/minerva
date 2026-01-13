@@ -499,17 +499,30 @@ class Leaverequest extends Admin_Controller
 
                 // Determine Recommender and Approver
                 $staff_details = $this->staff_model->get($staff_id);
+                echo "<h2>Staff Details:</h2>";
+                print_r($staff_details);
+                echo "<br>";
+
                 $recommender_id = null;
                 if ($staff_details && $staff_details['department']) {
                     $this->load->model('departmenthead_model');
                     $hod = $this->departmenthead_model->get_department_head_by_department_id($staff_details['department']);
+                    echo "<h2>HOD Details (Recommender):</h2>";
+                    print_r($hod);
+                    echo "<br>";
                     if ($hod) {
                         $recommender_id = $hod['staff_id'];
                     }
                 }
+                echo "<h2>Determined Recommender ID:</h2> " . $recommender_id . "<br>";
 
                 $setting = $this->setting_model->getSetting();
+                echo "<h2>School Settings:</h2>";
+                print_r($setting);
+                echo "<br>";
                 $approver_id = isset($setting->leave_approver_id) ? $setting->leave_approver_id : null;
+                echo "<h2>Determined Approver ID:</h2> " . $approver_id . "<br>";
+                die("Debug information for Approver Assignment.");
 
                 if (!empty($request_id)) {
                     $data = array(
@@ -598,14 +611,10 @@ class Leaverequest extends Admin_Controller
                                 }
                 
                                 $array = array('status' => 'success', 'error' => '', 'message' => $this->lang->line('success_message'));
-                            } else {
-                                $msg = array(
-                                    'applieddate' => $this->lang->line('selected_leave_days') . " > " . $this->lang->line('available_leaves'),
-                                );
-                                log_message('error', 'Leave balance insufficient for staff leave request: ' . json_encode($msg));
-                                $array = array('status' => 'fail', 'error' => $msg, 'message' => '');
-                            }
-                
+                                        } else {
+                                            log_message('error', 'Leave balance insufficient for staff leave request: ' . json_encode($msg));
+                                            $array = array('status' => 'fail', 'error' => $msg, 'message' => '');
+                                        }                
                         }
                         echo json_encode($array);
                     }
@@ -682,7 +691,7 @@ class Leaverequest extends Admin_Controller
       
                         $substitution_html .= '<table class="table table-bordered table-striped">';
       
-                        $substitution_html .= '<thead><tr><th>' . $this->lang->line('date') . '</th><th>' . $this->lang->line('class') . ' - ' . $this->lang->line('subject') . ' (' . $this->lang->line('time') . ')</th><th>' . $this->lang->line('select_substitute') . '</th></tr></thead>';
+                        $substitution_html .= '<thead><tr><th>' . $this->lang->line('date') . '</th><th>' . $this->lang->line('class') . ' - ' . $this->lang->line('subject') . ' (' . $period->time_from . ' - ' . $period->time_to . ')</th><th>' . $this->lang->line('select_substitute') . '</th></tr></thead>';
    
                         $substitution_html .= '<tbody>';
  
@@ -848,9 +857,24 @@ class Leaverequest extends Admin_Controller
     
     
             }
-    
-    
-    
+    public function recommender_leave_requests()
+    {
+        if (!$this->rbac->hasPrivilege('approve_leave_request', 'can_view') || $this->sch_setting_detail->institution_type != 'college') {
+            access_denied();
         }
-    
-    
+
+        $this->session->set_userdata('top_menu', 'HR');
+        $this->session->set_userdata('sub_menu', 'HR/staff/leaverequest');
+
+        $current_user_id = $this->customlib->getStaffID();
+        $leave_requests_for_recommender = $this->leaverequest_model->get_recommender_pending_leave_requests($current_user_id);
+        
+        $data["leave_request"] = $leave_requests_for_recommender;
+        $data["status"] = $this->status; // Status array from payroll config
+        $data['sch_setting_detail'] = $this->sch_setting_detail; // Pass sch_setting_detail to the view
+
+        $this->load->view("layout/header", $data);
+        $this->load->view("admin/staff/staffleaverequest", $data);
+        $this->load->view("layout/footer", $data);
+    }
+}

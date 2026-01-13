@@ -314,8 +314,13 @@ class Staff extends Admin_Controller
         $this->load->model('setting_model'); // Ensure setting_model is loaded
         $setting = $this->setting_model->getSetting();
         if ($setting && isset($setting->leave_approver_id)) {
-            $approver_details = $this->staff_model->get($setting->leave_approver_id);
-            $data['approver_info'] = $approver_details['name'] . ' ' . $approver_details['surname'] . ' (' . $approver_details['designation'] . ')';
+            $approver_details = $this->staff_model->get_staff_with_designation($setting->leave_approver_id);
+            if ($approver_details) {
+                $approver_surname = !empty($approver_details['surname']) ? ' ' . $approver_details['surname'] : '';
+                $data['approver_info'] = $approver_details['name'] . $approver_surname . ' (' . $approver_details['designation'] . ')';
+            } else {
+                $data['approver_info'] = $this->lang->line('not_assigned');
+            }
         } else {
             $data['approver_info'] = $this->lang->line('not_assigned');
         }

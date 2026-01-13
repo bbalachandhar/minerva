@@ -54,6 +54,8 @@ foreach ($leave_request as $key => $value) {
                                                     <td><?php echo $this->lang->line(strtolower($value['recommender_status'])); ?></td>
                                                     <td><?php echo $this->lang->line(strtolower($value['approver_status'])); ?></td>
                                                     <?php
+$label = ''; // Initialize label
+$status1 = ''; // Initialize status1
 if ($value["status"] == "approved") {
         $status1 = 'approve';
         $label = "class='label label-success'";
@@ -63,6 +65,9 @@ if ($value["status"] == "approved") {
     } else if ($value["status"] == "disapprove" || $value["status"] == "disapproved") {
         $status1 = 'disapprove';
         $label = "class='label label-danger'";
+    } else if ($value["status"] == "recommended") {
+        $status1 = 'recommended';
+        $label = "class='label label-info'";
     }
     ?>
                                                     <td><span data-toggle="popover" class="detail_popover" data-original-title="" title=""><small <?php echo $label ?>><?php echo $status[$status1]; ?></small></span>

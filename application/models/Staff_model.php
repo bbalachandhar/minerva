@@ -697,6 +697,7 @@ class Staff_model extends MY_Model
                 $tb_counter = "table_custom_" . $i;
                 array_push($field_k_array, '`table_custom_' . $i . '`.`field_value` as `' . $custom_fields_value->name . '`');
                 $join_array .= " LEFT JOIN `custom_field_values` as `" . $tb_counter . "` ON `staff`.`id` = `" . $tb_counter . "`.`belong_table_id` AND `" . $tb_counter . "`.`custom_field_id` = " . $custom_fields_value->id;
+
                 $i++;
             }
         }
@@ -710,7 +711,7 @@ class Staff_model extends MY_Model
 
         $field_var = count($field_k_array) > 0 ? "," . implode(',', $field_k_array) : "";
 
-        $query = "SELECT `staff`.*, `staff_designation`.`designation` as `designation`, `department`.`department_name` as `department`,roles.id as role_id,`roles`.`name` as user_type " . $field_var . "  FROM `staff` " . $join_array . " LEFT JOIN `staff_designation` ON `staff_designation`.`id` = `staff`.`designation` LEFT JOIN `staff_roles` ON `staff_roles`.`staff_id` = `staff`.`id` LEFT JOIN `roles` ON `staff_roles`.`role_id` = `roles`.`id` LEFT JOIN `department` ON `department`.`id` = `staff`.`department` WHERE  `staff`.`is_active` = '$active' and (CONCAT(`staff`.`name`,' ',`staff`.`surname`) LIKE '%".$this->db->escape_like_str($searchterm)."%' ESCAPE '!' OR `staff`.`surname` LIKE '%".$this->db->escape_like_str($searchterm)."%' ESCAPE '!' OR `staff`.`employee_id` LIKE '%".$this->db->escape_like_str($searchterm)."%' ESCAPE '!' OR `staff`.`local_address` LIKE '%".$this->db->escape_like_str($searchterm)."%' ESCAPE '!'  OR `staff`.`contact_no` LIKE '%".$this->db->escape_like_str($searchterm)."%' ESCAPE '!' OR `staff`.`email` LIKE '%".$this->db->escape_like_str($searchterm)."%' ESCAPE '!' OR `roles`.`name` LIKE '%".$this->db->escape_like_str($searchterm)."' ESCAPE '!') $condition ";
+        $query = "SELECT `staff`.*, `staff_designation`.`designation` as `designation`, `department`.`department_name` as `department`,`roles`.`name` as user_type " . $field_var . ",GROUP_CONCAT(leave_type_id,'@',alloted_leave) as leaves  FROM `staff` " . $join_array . " LEFT JOIN `staff_designation` ON `staff_designation`.`id` = `staff`.`designation` LEFT JOIN `staff_roles` ON `staff_roles`.`staff_id` = `staff`.`id` LEFT JOIN `roles` ON `staff_roles`.`role_id` = `roles`.`id` LEFT JOIN `department` ON `department`.`id` = `staff`.`department` left join staff_leave_details ON staff_leave_details.staff_id=staff.id WHERE 1  " . $condition .    $rolescondition . " group by staff.id";
 
         $query = $this->db->query($query);
         return $query->result_array();
@@ -852,33 +853,28 @@ class Staff_model extends MY_Model
         return false;
     }
 
-            public function getStaffbyrole($id)
+    public function getStaffbyrole($id)
+    {
+        $this->db->select('staff.*, staff_designation.designation as designation,department.department_name as department,roles.name as user_type');
+        $this->db->join("staff_designation", "staff_designation.id = staff.designation", "left");
+        $this->db->join("department", "department.id = staff.department", "left");
+        $this->db->join("staff_roles", "staff_roles.staff_id = staff.id", "left");
+        $this->db->join("roles", "roles.id = staff_roles.role_id", "left");
+        $this->db->where("staff_roles.role_id", $id);
+        $this->db->where("staff.is_active", "1");
+        $this->db->from('staff');
+        $this->db->group_by('staff.id'); // Add this line to ensure unique staff members
+        $query = $this->db->get();
+        return $query->result_array();
+    }
 
-            {
-
-                $this->db->select('staff.*, staff_designation.designation as designation,staff_roles.role_id, department.department_name as department,roles.name as user_type');
-
-                $this->db->join("staff_designation", "staff_designation.id = staff.designation", "left");
-
-                $this->db->join("department", "department.id = staff.department", "left");
-
-                $this->db->join("staff_roles", "staff_roles.staff_id = staff.id", "left");
-
-                $this->db->join("roles", "staff_roles.role_id = roles.id", "left");
-
-                $this->db->where("staff_roles.role_id", $id);
-
-                $this->db->where("staff.is_active", "1");
-
-                $this->db->from('staff');
-
-                $this->db->group_by('staff.id'); // Add this line to ensure unique staff members
-
-                $query = $this->db->get();
-
-                return $query->result_array();
-
-            }
+    public function get_staff_with_designation($id)
+    {
+        $this->db->select('staff.*,languages.language,languages.is_rtl,roles.name as user_type,roles.id as role_id, staff_designation.designation as designation')->from('staff')->join("staff_roles", "staff_roles.staff_id = staff.id", "left")->join("roles", "staff_roles.role_id = roles.id", "left")->join("languages", "languages.id = staff.lang_id", "left")->join("staff_designation", "staff_designation.id = staff.designation", "left");
+        $this->db->where('staff.id', $id);
+        $query = $this->db->get();
+        return $query->row_array();
+    }
 
     public function searchNameLike($searchterm)
     {
@@ -1011,7 +1007,7 @@ class Staff_model extends MY_Model
         $this->db->select('staff.id, staff.name');
         $this->db->from('staff');
         $this->db->join('staff_roles', 'staff_roles.staff_id = staff.id', 'left');
-        $this->db->join('roles', 'staff_roles.role_id = roles.id', 'left');
+        $this->db->join('roles', "staff_roles.role_id = roles.id", "left");
         $this->db->where('roles.id', 2); // Assuming role '2' is for teachers
         $this->db->where('staff.is_active', 1);
         $this->db->group_start();
@@ -1093,7 +1089,7 @@ class Staff_model extends MY_Model
         $this->db->select("CONCAT_WS(' ',staff.name,staff.surname) as name,staff.employee_id,roles.id as role_id,staff.id");
         $this->db->from('staff');
         $this->db->join("staff_roles", "staff_roles.staff_id = staff.id", "left");
-        $this->db->join("roles", "staff_roles.role_id = roles.id", "left");
+        $this->db->join("roles", "roles.role_id = roles.id", "left");
         $this->db->where('staff.is_active', 1);
         $query = $this->db->get();
         return $query->result_array();
