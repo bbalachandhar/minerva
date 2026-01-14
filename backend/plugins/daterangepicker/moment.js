@@ -2081,7 +2081,7 @@
         var data;
         if (key) {
             if (typeof(values) !== 'undefined') {
-                data = moment.defineLocale(key, values);
+                data = moment.updateLocale(key, values);
             }
             else {
                 data = moment.localeData(key);
@@ -2095,7 +2095,7 @@
         return moment._locale._abbr;
     };
 
-    moment.defineLocale = function (name, values) {
+    moment.updateLocale = function (name, values) {
         if (values !== null) {
             values.abbr = name;
             if (!locales[name]) {

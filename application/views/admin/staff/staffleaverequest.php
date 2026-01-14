@@ -51,8 +51,8 @@ foreach ($leave_request as $key => $value) {
 
                                                     <td><?php echo $value["leave_days"]; ?></td>
                                                     <td><?php echo date($this->customlib->getSchoolDateFormat(), strtotime($value["date"]));  ?></td>
-                                                    <td><?php echo $this->lang->line(strtolower($value['recommender_status'])); ?></td>
-                                                    <td><?php echo $this->lang->line(strtolower($value['approver_status'])); ?></td>
+                                                    <td><?php if(!empty($value['recommender_status'])){echo $this->lang->line(strtolower($value['recommender_status']));} ?></td>
+                                                    <td><?php if(!empty($value['approver_status'])){echo $this->lang->line(strtolower($value['approver_status']));} ?></td>
                                                     <?php
 $label = ''; // Initialize label
 $status1 = ''; // Initialize status1
@@ -457,11 +457,11 @@ if ($this->rbac->hasPrivilege('approve_leave_request', 'can_edit')) {
 
                 // Populate recommender and approver details
                 $('#recommender_name').html(result.recommender_name ? result.recommender_name + ' ' + result.recommender_surname : '');
-                $('#recommender_status').html(result.recommender_status ? '<?php echo $this->lang->line(''); ?>' + result.recommender_status.toLowerCase() : '');
+                $('#recommender_status').html(result.recommender_status_text ? result.recommender_status_text : '');
                 $('#recommender_remark').html(result.recommender_remark);
 
                 $('#approver_name').html(result.approver_name ? result.approver_name + ' ' + result.approver_surname : '');
-                $('#approver_status').html(result.approver_status ? '<?php echo $this->lang->line(''); ?>' + result.approver_status.toLowerCase() : '');
+                $('#approver_status').html(result.approver_status_text ? result.approver_status_text : '');
                 $('#approver_remark').html(result.approver_remark);
                 
                 // Conditional display of action row and dynamic labels
