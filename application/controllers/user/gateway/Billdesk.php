@@ -14,6 +14,10 @@ class Billdesk extends Student_Controller
         $this->api_config = $this->paymentsetting_model->getActiveMethod();
         $this->setting = $this->setting_model->get();
         $this->load->library('gateway_ins/billdesk_lib');
+        $this->load->library('mailsmsconf');
+        $this->load->model('studentfeemaster_model');
+        $this->load->model('studenttransportfee_model');
+        $this->load->model('feegrouptype_model');
     }
 
     public function index()
