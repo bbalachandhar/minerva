@@ -59,7 +59,7 @@ if (isset($error_message)) {
                         </div>
                         
                         <div class="col-lg-8 col-md-8 col-sm-12 nopadding-2">
-                                   <div class="d-flex align-items-center text-wrap flex-column justify-content-center bg-position-sm-left bg-position-lg-center" style="background: url('<?php echo base_url(); ?>uploads/school_content/login_image/<?php echo $school['admin_login_page_background']; ?>') no-repeat; background-size:cover">  
+                                   <div class="d-flex align-items-center text-wrap flex-column justify-content-center bg-position-sm-left bg-position-lg-center" style="background: url('<?php echo base_url(); ?>uploads/school_content/login_image/<?php echo $school['admin_login_page_background']; ?>') no-repeat; background-size:100% 100%">  
                                     <div class="<?php if ($notice){ ?> bg-shadow-remove <?php } ?>">
                                     <?php
                                         if ($notice) {
