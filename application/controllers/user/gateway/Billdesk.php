@@ -341,7 +341,7 @@ class Billdesk extends Student_Controller
                     // --- DEBUG LOGGING END ---
 
                     $send_to = $params['guardian_phone'];
-                    $response_bulk_deposit = $this->studentfeemaster_model->fee_deposit_bulk($bulk_fees, $params['fee_discount_group']);
+                    $response_bulk_deposit = $this->studentfeemaster_model->add_bulk_fee_deposit($bulk_fees, $params['fee_discount_group']);
 
                     // Send SMS/Email
                     $student_id = $this->customlib->getStudentSessionUserID();
