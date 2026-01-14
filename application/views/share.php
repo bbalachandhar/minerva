@@ -51,8 +51,8 @@
                             <div class="shadow_bg">
                                 <div>
                                     <div class="form-top">
-                                        <div class="form-top-left logowidth">
-                                            <img src="<?php echo base_url(); ?>uploads/school_content/admin_logo/<?php echo $this->setting_model->getAdminlogo();?>" class="logowidth">
+                                        <div class="form-top-left logowidth" style="text-align: center;">
+                                            <img src="<?php echo base_url(); ?>uploads/school_content/admin_logo/<?php echo $this->setting_model->getAdminlogo();?>" class="logowidth" style="height: auto; width: auto;">
                                         </div>
                                     </div>
 

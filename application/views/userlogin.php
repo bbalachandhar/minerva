@@ -40,8 +40,8 @@ if (empty($notice)) {
                             <div class="col-lg-4 col-md-4 col-sm-12 nopadding <?php echo $bgoffsetbgno; ?> <?php echo $offset; ?>">
                                 <div class="loginbg">
                                     <div class="form-top">
-                                        <div class="form-top-left logowidth">
-                                            <img src="<?php echo base_url(); ?>uploads/school_content/logo/<?php echo $this->setting_model->getPrintlogo();?>" />
+                                        <div class="form-top-left logowidth" style="text-align: center;">
+                                            <img src="<?php echo base_url(); ?>uploads/school_content/logo/<?php echo $this->setting_model->getPrintlogo();?>" style="height: auto; width: auto;" />
                                         </div>
                                     </div>
                                     <div class="form-bottom">

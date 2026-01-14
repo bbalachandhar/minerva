@@ -301,31 +301,44 @@ class Billdesk extends Student_Controller
                     }
 
                     $params = $this->session->userdata('params');
-                    $transaction_id = $response['transactionid']; // Assuming 'transactionid' is the key in BillDesk response
+                    
+                    // --- DEBUG LOGGING START ---
+                    log_message('error', 'Billdesk Callback - Session Params: ' . json_encode($params));
+                    // --- DEBUG LOGGING END ---
+
+                    $transaction_id = $response['transactionid']; 
                     $bulk_fees = array();
 
-                    foreach ($params['student_fees_master_array'] as $fee_key => $fee_value) {
-                        $json_array = array(
-                            'amount'          => $fee_value['amount_balance'],
-                            'date'            => date('Y-m-d'),
-                            'amount_discount' => $fee_value['applied_fee_discount'],
-                            'processing_charge_type' => $params['processing_charge_type'],
-                            'gateway_processing_charge' => $params['gateway_processing_charge'],
-                            'amount_fine'     => $fee_value['fine_balance'],
-                            'description'     => "Online fees deposit through BillDesk. TXN ID: " . $transaction_id,
-                            'received_by'     => '',
-                            'payment_mode'    => 'Billdesk',
-                        );
+                    if (!empty($params['student_fees_master_array'])) {
+                        foreach ($params['student_fees_master_array'] as $fee_key => $fee_value) {
+                            $json_array = array(
+                                'amount'          => $fee_value['amount_balance'],
+                                'date'            => date('Y-m-d'),
+                                'amount_discount' => $fee_value['applied_fee_discount'],
+                                'processing_charge_type' => $params['processing_charge_type'],
+                                'gateway_processing_charge' => $params['gateway_processing_charge'],
+                                'amount_fine'     => $fee_value['fine_balance'],
+                                'description'     => "Online fees deposit through BillDesk. TXN ID: " . $transaction_id,
+                                'received_by'     => '',
+                                'payment_mode'    => 'Billdesk',
+                            );
 
-                        $insert_fee_data = array(
-                            'fee_category' => $fee_value['fee_category'],
-                            'student_transport_fee_id' => $fee_value['student_transport_fee_id'],
-                            'student_fees_master_id' => $fee_value['student_fees_master_id'],
-                            'fee_groups_feetype_id'  => $fee_value['fee_groups_feetype_id'],
-                            'amount_detail'          => $json_array,
-                        );
-                        $bulk_fees[] = $insert_fee_data;
+                            $insert_fee_data = array(
+                                'fee_category' => $fee_value['fee_category'],
+                                'student_transport_fee_id' => $fee_value['student_transport_fee_id'],
+                                'student_fees_master_id' => $fee_value['student_fees_master_id'],
+                                'fee_groups_feetype_id'  => $fee_value['fee_groups_feetype_id'],
+                                'amount_detail'          => $json_array,
+                            );
+                            $bulk_fees[] = $insert_fee_data;
+                        }
+                    } else {
+                        log_message('error', 'Billdesk Callback Error: student_fees_master_array is empty or missing in session params.');
                     }
+
+                    // --- DEBUG LOGGING START ---
+                    log_message('error', 'Billdesk Callback - Bulk Fees Payload: ' . json_encode($bulk_fees));
+                    // --- DEBUG LOGGING END ---
 
                     $send_to = $params['guardian_phone'];
                     $response_bulk_deposit = $this->studentfeemaster_model->fee_deposit_bulk($bulk_fees, $params['fee_discount_group']);
