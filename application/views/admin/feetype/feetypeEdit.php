@@ -42,6 +42,10 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                     <span class="text-danger"><?php echo form_error('code'); ?></span>
                                 </div>
                                 <div class="form-group">
+                                    <label for="exampleInputEmail1">Sub-Merchant ID (BillDesk)</label>
+                                    <input id="sub_merchant_id" name="sub_merchant_id" type="text" class="form-control"  value="<?php echo set_value('sub_merchant_id', $feetype['sub_merchant_id']); ?>" />
+                                </div>
+                                <div class="form-group">
                                     <label for="exampleInputEmail1"><?php echo $this->lang->line('description'); ?></label>
                                     <textarea class="form-control" id="description" name="description" placeholder="" rows="3" placeholder=""><?php echo set_value('description'); ?><?php echo set_value('description', $feetype['description']) ?></textarea>
                                     <span class="text-danger"><?php echo form_error('description'); ?></span>

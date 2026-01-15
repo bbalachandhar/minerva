@@ -33,6 +33,7 @@
                     <?php } if ($this->rbac->hasPrivilege('online_fees_collection_report', 'can_view')) { ?>
                     
                         <li class="col-lg-4 col-md-4 col-sm-6 <?php echo set_SubSubmenu('Reports/finance/onlinefees_report'); ?>"><a href="<?php echo base_url(); ?>financereports/onlinefees_report"><i class="fa fa-file-text-o"></i> <?php echo $this->lang->line('online_fees_collection_report'); ?></a></li>
+                        <li class="col-lg-4 col-md-4 col-sm-6 <?php echo set_SubSubmenu('Reports/finance/online_fee_pending_report'); ?>"><a href="<?php echo base_url(); ?>financereports/online_fee_pending_report"><i class="fa fa-clock-o"></i> <?php echo $this->lang->line('online_fee_pending_report'); ?></a></li>
                         
                     <?php  }  if ($this->rbac->hasPrivilege('balance_fees_report_with_remark', 'can_view')) {  ?>
                     

@@ -34,6 +34,7 @@ class Feetype extends Admin_Controller
                 'type'        => $this->input->post('name'),
                 'code'        => $this->input->post('code'),
                 'description' => $this->input->post('description'),
+                'sub_merchant_id' => $this->input->post('sub_merchant_id'),
             );
             $this->feetype_model->add($data);
             $this->session->set_flashdata('msg', '<div class="alert alert-success text-left">' . $this->lang->line('success_message') . '</div>');
@@ -86,6 +87,7 @@ class Feetype extends Admin_Controller
                 'type'        => $this->input->post('name'),
                 'code'        => $this->input->post('code'),
                 'description' => $this->input->post('description'),
+                'sub_merchant_id' => $this->input->post('sub_merchant_id'),
             );
             $this->feetype_model->add($data);
             $this->session->set_flashdata('msg', '<div class="alert alert-success text-left">' . $this->lang->line('update_message') . '</div>');

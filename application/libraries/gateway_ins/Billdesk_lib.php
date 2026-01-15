@@ -198,4 +198,48 @@ class Billdesk_lib
 
         return json_decode($decrypted_jwe->getPayload(), true);
     }
+
+    public function verify_transaction($orderid) {
+        $verify_payload = [
+            'mercid' => $this->mercid,
+            'orderid' => $orderid,
+            'refund_details' => 'true'
+        ];
+
+        log_message('error', '--- VERIFY PAYLOAD ---');
+        log_message('error', json_encode($verify_payload));
+
+        $verify_jwe_token = $this->create_jwe($verify_payload);
+        $verify_jws_token = $this->create_jws($verify_jwe_token);
+
+        $verify_headers = [
+            'Content-Type: application/jose',
+            'Accept: application/jose',
+            'BD-Traceid: ' . uniqid(),
+            'BD-Timestamp: ' . date('YmdHis'),
+        ];
+
+        $ch_verify = curl_init();
+        curl_setopt($ch_verify, CURLOPT_URL, "https://uat1.billdesk.com/u2/payments/ve1_2/transactions/get");
+        curl_setopt($ch_verify, CURLOPT_POST, 1);
+        curl_setopt($ch_verify, CURLOPT_POSTFIELDS, $verify_jws_token);
+        curl_setopt($ch_verify, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch_verify, CURLOPT_HTTPHEADER, $verify_headers);
+
+        $verify_response = curl_exec($ch_verify);
+        $verify_err = curl_error($ch_verify);
+        curl_close($ch_verify);
+
+        if ($verify_err) {
+            throw new Exception("cURL Error (Verify): " . $verify_err);
+        }
+
+        $verify_response_jwe = $this->verify_response($verify_response);
+        $decrypted_verify_response = $this->decrypt_response($verify_response_jwe);
+
+        log_message('error', '--- VERIFY RESPONSE (Base64 Encoded) ---');
+        log_message('error', 'DECODE THIS STRING TO SEE THE FULL VERIFY RESPONSE: ' . base64_encode(json_encode($decrypted_verify_response)));
+
+        return $decrypted_verify_response;
+    }
 }

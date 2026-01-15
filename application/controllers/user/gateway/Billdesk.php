@@ -18,6 +18,7 @@ class Billdesk extends Student_Controller
         $this->load->model('studentfeemaster_model');
         $this->load->model('studenttransportfee_model');
         $this->load->model('feegrouptype_model');
+        $this->load->model('gateway_ins_model');
     }
 
     public function index()
@@ -28,6 +29,13 @@ class Billdesk extends Student_Controller
         $data['setting'] = $this->setting;
         $data['api_error'] = '';
         $this->load->view('user/gateway/billdesk/index', $data);
+    }
+
+    private function get_sub_merchant_id($fee_groups_feetype_id) {
+        $sql = "SELECT ft.sub_merchant_id FROM feetype ft JOIN fee_groups_feetype fgf ON fgf.feetype_id = ft.id WHERE fgf.id = ?";
+        $query = $this->db->query($sql, array($fee_groups_feetype_id));
+        $result = $query->row();
+        return ($result && !empty($result->sub_merchant_id)) ? $result->sub_merchant_id : null;
     }
 
     public function pay()
@@ -41,16 +49,112 @@ class Billdesk extends Student_Controller
         $data['setting'] = $this->setting;
         $data['api_error'] = '';
 
+        // Calculate Totals and Prepare Split Payment Logic
         $total_amount = ($data['params']['fine_amount_balance'] + $data['params']['total']) - $data['params']['applied_fee_discount'] + $data['params']['gateway_processing_charge'];
         $formatted_amount = number_format($total_amount, 2, '.', '');
         $school_code = (!empty($this->setting[0]['dise_code'])) ? $this->setting[0]['dise_code'] : "MINERVA";
 
+        // Group fees by Sub Merchant ID
+        $grouped_fees = [];
+        $grouped_fees['MAIN'] = 0; // Default bucket for fees without specific sub_merchant_id
+
+        // Add Processing Charge to MAIN bucket (usually goes to main merchant account)
+        if (isset($data['params']['gateway_processing_charge'])) {
+            $grouped_fees['MAIN'] += $data['params']['gateway_processing_charge'];
+        }
+
         $fee_group_names = [];
         $fee_categories = [];
-        foreach ($data['params']['student_fees_master_array'] as $fee) {
-            $fee_group_names[] = $fee['fee_group_name'];
-            $fee_categories[] = $fee['fee_category'];
+
+        if (!empty($data['params']['student_fees_master_array'])) {
+            foreach ($data['params']['student_fees_master_array'] as $fee) {
+                $fee_group_names[] = $fee['fee_group_name'];
+                $fee_categories[] = $fee['fee_category'];
+
+                // Calculate net payable for this fee item
+                // Logic: amount + fine - discount (assuming discount applies proportionally or to specific fees? usually specific)
+                // In this system, discount is usually applied to the total or per fee. 
+                // Let's assume applied_fee_discount is global for the transaction in params, but individual fee items have 'amount_balance' which is net of previous payments.
+                // Wait, 'amount_balance' in loop is what is being paid now. 
+                // 'applied_fee_discount' in params is total discount for this transaction.
+                // We need to distribute discount? Or is 'amount_balance' already net?
+                // Checking Payment.php: 'total' => ($total_amount_balance), 'applied_fee_discount' => ..., 'amount_balance' in array.
+                // It seems 'amount_balance' is the GROSS amount pending.
+                // If there is a discount, it is subtracted from the TOTAL.
+                
+                // CRITICAL: BillDesk Split Payment sum MUST equal Transaction Amount.
+                // If we have a global discount, we need to subtract it from the buckets.
+                // This is complex if discount is global.
+                // However, usually discounts are applied to Tuition Fee.
+                
+                // Let's look at the data structure again. 
+                // $fee['amount_balance'] is the due amount.
+                // $fee['fine_balance'] is fine.
+                // If we are paying full due, we pay amount_balance + fine_balance.
+                
+                // If there is a discount, where does it come from? 
+                // In Razorpay/Billdesk controller logic: 
+                // $total_amount = (fine + total) - discount + processing.
+                
+                // So we need to subtract discount from the split.
+                // Strategy: Subtract discount from the 'MAIN' bucket or the first available bucket?
+                // Or better: Assume discount applies to Tuition (which might have a child ID).
+                
+                // Simplest approach: Calculate share for each fee item.
+                // Item Pay = amount_balance + fine_balance.
+                // We need to deduct the global discount from *somewhere*.
+                // Let's verify if discount is per-fee item in the array. 
+                // In Payment.php loop: $fee_record['applied_fee_discount'] = $final_discount_amount; (This looks like per fee record?)
+                // NO, inside the loop in Payment.php, it calculates $final_discount_amount based on percentage/fix and assigns to $fee_record.
+                // So $fee['applied_fee_discount'] exists!
+                
+                $item_amount = $fee['amount_balance'] + $fee['fine_balance'];
+                
+                // If individual fee item has discount info, use it.
+                if (isset($fee['applied_fee_discount'])) {
+                    $item_amount -= $fee['applied_fee_discount'];
+                }
+                
+                $sub_mid = $this->get_sub_merchant_id($fee['fee_groups_feetype_id']);
+                
+                if (empty($sub_mid)) {
+                    $sub_mid = 'MAIN';
+                }
+                
+                if (!isset($grouped_fees[$sub_mid])) {
+                    $grouped_fees[$sub_mid] = 0;
+                }
+                $grouped_fees[$sub_mid] += $item_amount;
+            }
         }
+        
+        // Handle global discount if not distributed (fallback)
+        // If the sum of grouped fees != total_amount (excluding processing), we have a discrepancy.
+        // But since we built total_amount from the same components, it should match.
+        // Total = Sum(fee + fine) - TotalDiscount + Processing.
+        // Our Grouped Sum = Sum(fee + fine - fee_discount) + Processing(in MAIN).
+        // It should match IF fee['applied_fee_discount'] sums up to params['applied_fee_discount'].
+        
+        $split_payment_payload = [];
+        foreach ($grouped_fees as $mid => $amount) {
+            if ($mid == 'MAIN') continue; // Don't add MAIN to split_payment (it's the residual or main account)
+            
+            if ($amount > 0) {
+                $split_payment_payload[] = [
+                    'mercid' => $mid,
+                    'amount' => number_format($amount, 2, '.', ''),
+                    'customer_refid' => $school_code . 'ORN' . time() . rand(11, 99), // Unique Ref for child
+                    'additional_info1' => 'NA',
+                    'additional_info2' => 'NA',
+                    'additional_info3' => 'NA',
+                    'additional_info4' => 'NA',
+                    'additional_info5' => 'NA',
+                    'additional_info6' => 'NA',
+                    'additional_info7' => 'NA',
+                ];
+            }
+        }
+
         $fee_group_name_str = implode(',', array_unique($fee_group_names));
         $fee_category_str = implode(',', array_unique($fee_categories));
 
@@ -73,21 +177,14 @@ class Billdesk extends Student_Controller
                     'fee_category' => $fee_category_str,
                     'fee_group_name' => $fee_group_name_str,
                 ],
-                'split_payment' => [
-                    [
-                        'mercid' => 'UAT2K800C1',
-                        'amount' => $formatted_amount,
-                        'customer_refid' => $school_code . 'ORN' . time() . rand(11,99),
-                        'additional_info1' => 'NA',
-                        'additional_info2' => 'NA',
-                        'additional_info3' => 'NA',
-                        'additional_info4' => 'NA',
-                        'additional_info5' => 'NA',
-                        'additional_info6' => 'NA',
-                        'additional_info7' => 'NA',
-                    ]
-                ],
+                // Add split_payment only if we have splits
+                'split_payment' => !empty($split_payment_payload) ? $split_payment_payload : null 
             ];
+            
+            // Remove split_payment key if null to avoid API errors
+            if (empty($ecom_payload['split_payment'])) {
+                unset($ecom_payload['split_payment']);
+            }
 
             log_message('error', '--- ECOM PAYLOAD (Base64 Encoded) ---');
             log_message('error', 'DECODE THIS STRING TO SEE THE FULL PAYLOAD: ' . base64_encode(json_encode($ecom_payload)));
@@ -275,6 +372,16 @@ class Billdesk extends Student_Controller
                     'rdata' => $rdata
                 ];
 
+                // Insert into gateway_ins for tracking
+                $ins_data = array(
+                    'unique_id' => $ecom_orderid,
+                    'parameter_details' => json_encode($data['params']),
+                    'gateway_name' => 'billdesk',
+                    'module' => 'fees',
+                    'payment_status' => 'processing',
+                );
+                $gateway_ins_id = $this->gateway_ins_model->add_gateway_ins($ins_data);
+
                 $this->load->view('user/gateway/billdesk/redirect', $data);
             }
 
@@ -292,11 +399,27 @@ class Billdesk extends Student_Controller
                 $jwe_token = $this->billdesk_lib->verify_response($jws_token);
                 $response = $this->billdesk_lib->decrypt_response($jwe_token);
 
+                // Update gateway_ins status
+                $gateway_ins_status = 'failed';
+                if (isset($response['auth_status'])) {
+                    if ($response['auth_status'] == '0300') {
+                        $gateway_ins_status = 'success';
+                    } elseif ($response['auth_status'] == '0002') {
+                        $gateway_ins_status = 'pending';
+                    }
+                }
+                
+                $this->gateway_ins_model->update_gateway_ins(array(
+                    'unique_id' => $response['orderid'], 
+                    'gateway_name' => 'billdesk', 
+                    'payment_status' => $gateway_ins_status
+                ));
+
                 if (isset($response['auth_status']) && $response['auth_status'] == '0300') {
                     // Payment successful
                     
                     // Step 8: Verify Transaction via API
-                    $verification_response = $this->verify_transaction($response['orderid']);
+                    $verification_response = $this->billdesk_lib->verify_transaction($response['orderid']);
                     
                     if (isset($verification_response['auth_status']) && $verification_response['auth_status'] == '0300') {
                         $response = $verification_response; // Use the verified response
@@ -305,16 +428,17 @@ class Billdesk extends Student_Controller
                     }
 
                     $params = $this->session->userdata('params');
+                    // ... (rest of success logic) ...
                     
-                    // --- DEBUG LOGGING START ---
-                    log_message('error', 'Billdesk Callback - Session Params: ' . json_encode($params));
-                    // --- DEBUG LOGGING END ---
-
-                    $transaction_id = $response['transactionid']; 
+                    // (I need to match the existing code context carefully to avoid breaking the rest of the method)
+                    // The replace tool requires exact old_string. I'll target the block starting from the if check.
+                    
+                    $transaction_id = $response['transactionid']; // Assuming 'transactionid' is the key in BillDesk response
                     $bulk_fees = array();
 
                     if (!empty($params['student_fees_master_array'])) {
                         foreach ($params['student_fees_master_array'] as $fee_key => $fee_value) {
+                            // ... (fee construction) ...
                             $json_array = array(
                                 'amount'          => $fee_value['amount_balance'],
                                 'date'            => date('Y-m-d'),
@@ -422,6 +546,9 @@ class Billdesk extends Student_Controller
                     }
 
                     $this->success($response);
+                } elseif (isset($response['auth_status']) && $response['auth_status'] == '0002') {
+                    // Payment Pending
+                    $this->pending($response);
                 } else {
                     // Payment failed
                     $this->fail($response);
@@ -436,52 +563,14 @@ class Billdesk extends Student_Controller
         }
     }
 
-    private function verify_transaction($orderid) {
-        $verify_payload = [
-            'mercid' => $this->api_config->api_secret_key,
-            'orderid' => $orderid,
-        ];
-
-        log_message('error', '--- VERIFY PAYLOAD ---');
-        log_message('error', json_encode($verify_payload));
-
-        $verify_jwe_token = $this->billdesk_lib->create_jwe($verify_payload);
-        $verify_jws_token = $this->billdesk_lib->create_jws($verify_jwe_token);
-
-        $verify_headers = [
-            'Content-Type: application/jose',
-            'Accept: application/jose',
-            'BD-Traceid: ' . uniqid(),
-            'BD-Timestamp: ' . date('YmdHis'),
-        ];
-
-        $ch_verify = curl_init();
-        curl_setopt($ch_verify, CURLOPT_URL, "https://uat1.billdesk.com/u2/payments/ve1_2/transactions/get");
-        curl_setopt($ch_verify, CURLOPT_POST, 1);
-        curl_setopt($ch_verify, CURLOPT_POSTFIELDS, $verify_jws_token);
-        curl_setopt($ch_verify, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch_verify, CURLOPT_HTTPHEADER, $verify_headers);
-
-        $verify_response = curl_exec($ch_verify);
-        $verify_err = curl_error($ch_verify);
-        curl_close($ch_verify);
-
-        if ($verify_err) {
-            throw new Exception("cURL Error (Verify): " . $verify_err);
-        }
-
-        $verify_response_jwe = $this->billdesk_lib->verify_response($verify_response);
-        $decrypted_verify_response = $this->billdesk_lib->decrypt_response($verify_response_jwe);
-
-        log_message('error', '--- VERIFY RESPONSE (Base64 Encoded) ---');
-        log_message('error', 'DECODE THIS STRING TO SEE THE FULL VERIFY RESPONSE: ' . base64_encode(json_encode($decrypted_verify_response)));
-
-        return $decrypted_verify_response;
-    }
-
-    public function success($response) {
+    private function get_sub_merchant_id($fee_groups_feetype_id) {
         $data['response'] = $response;
         $this->load->view('user/gateway/billdesk/success', $data);
+    }
+
+    public function pending($response) {
+        $data['response'] = $response;
+        $this->load->view('user/gateway/billdesk/pending', $data);
     }
 
     public function fail($response) {

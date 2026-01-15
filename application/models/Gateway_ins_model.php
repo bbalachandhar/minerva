@@ -158,5 +158,18 @@ class Gateway_ins_model extends CI_Model
         $this->db->where('gateway_ins_id', $id);
         $this->db->delete('online_course_processing_payment');
     }
+
+    public function get_pending_transactions($gateway_name = 'billdesk') {
+        $this->db->select('*');
+        $this->db->from('gateway_ins');
+        $this->db->where('gateway_name', $gateway_name);
+        $this->db->group_start();
+        $this->db->where('payment_status', 'processing');
+        $this->db->or_where('payment_status', 'pending');
+        $this->db->group_end();
+        $this->db->order_by('id', 'desc');
+        $query = $this->db->get();
+        return $query->result_array();
+    }
         
 }
