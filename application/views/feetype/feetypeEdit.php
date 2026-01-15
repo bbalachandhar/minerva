@@ -53,17 +53,17 @@
                                 <button type="submit" class="btn btn-info pull-right"><?php echo $this->lang->line('save'); ?></button>
                             </div>
                         </form>
-                    </div>
-                </div>          
-                <div class="col-md-<?php
-                if ($this->rbac->hasPrivilege('fees_type', 'can_add') || $this->rbac->hasPrivilege('fees_type', 'can_edit')) {
-                    echo "8";
-                } else {
-                    echo "12";
-                }
-                ?>">
-                    <div class="nav-tabs-custom">
-                        <ul class="nav nav-tabs pull-right">
+                                    </div>
+                                </div>
+                                <?php } ?>
+                                <div class="col-md-<?php
+                                    if ($this->rbac->hasPrivilege('fees_type', 'can_add') || $this->rbac->hasPrivilege('fees_type', 'can_edit')) {
+                                        echo "8";
+                                    } else {
+                                        echo "12";
+                                    }
+                                    ?>">
+                                        <div class="nav-tabs-custom">                        <ul class="nav nav-tabs pull-right">
                             <?php
                             $count = 1;
                             $total = count($category_array);

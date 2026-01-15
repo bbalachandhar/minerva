@@ -44,7 +44,7 @@ function tln_tagprint($tagname, $attary, $tagtype) {
         $fulltag = '</' . $tagname . '>';
     } else {
         $fulltag = '<' . $tagname;
-        if (is_array($attary) && sizeof($attary)) {
+        if (is_array($attary) && count($attary) > 0) {
             $atts = array();
             foreach ($attary as $attname => $attvalue) {
                 array_push($atts, "$attname=$attvalue");
@@ -82,7 +82,7 @@ function tln_casenormalize(&$val) {
  */
 function tln_skipspace($body, $offset) {
     preg_match('/^(\s*)/s', substr($body, $offset), $matches);
-    if (sizeof($matches[1])) {
+    if (strlen($matches[1]) > 0) {
         $count = strlen($matches[1]);
         $offset += $count;
     }
@@ -343,7 +343,7 @@ function tln_getnxtag($body, $offset) {
                 }
             //intentional fall-through
             case '>':
-                $attary{$attname} = '"yes"';
+                $attary[$attname] = '"yes"';
                 return array($tagname, $attary, $tagtype, $lt, $pos);
                 break;
             default:
@@ -377,7 +377,7 @@ function tln_getnxtag($body, $offset) {
                         }
                         list($pos, $attval, $match) = $regary;
                         $pos++;
-                        $attary{$attname} = '\'' . $attval . '\'';
+                        $attary[$attname] = '\'' . $attval . '\'';
                     } elseif ($quot == '"') {
                         $regary = tln_findnxreg($body, $pos + 1, '\"');
                         if ($regary == false) {
@@ -385,7 +385,7 @@ function tln_getnxtag($body, $offset) {
                         }
                         list($pos, $attval, $match) = $regary;
                         $pos++;
-                        $attary{$attname} = '"' . $attval . '"';
+                        $attary[$attname] = '"' . $attval . '"';
                     } else {
                         /**
                          * These are hateful. Look for \s, or >.
@@ -399,13 +399,13 @@ function tln_getnxtag($body, $offset) {
                          * If it's ">" it will be caught at the top.
                          */
                         $attval = preg_replace('/\"/s', '&quot;', $attval);
-                        $attary{$attname} = '"' . $attval . '"';
+                        $attary[$attname] = '"' . $attval . '"';
                     }
                 } elseif (preg_match('|[\w/>]|', $char)) {
                     /**
                      * That was attribute type 4.
                      */
-                    $attary{$attname} = '"yes"';
+                    $attary[$attname] = '"yes"';
                 } else {
                     /**
                      * An illegal character. Find next '>' and return.
@@ -440,7 +440,7 @@ function tln_deent(&$attvalue, $regex, $hex = false) {
             if ($hex) {
                 $numval = hexdec($numval);
             }
-            $repl{$matches[0][$i]} = chr($numval);
+            $repl[$matches[0][$i]] = chr($numval);
         }
         $attvalue = strtr($attvalue, $repl);
         return true;
@@ -511,7 +511,7 @@ $tagname, $attary, $rm_attnames, $bad_attvals, $add_attr_to_tag, $trans_image_pa
             if (preg_match($matchtag, $tagname)) {
                 foreach ($matchattrs as $matchattr) {
                     if (preg_match($matchattr, $attname)) {
-                        unset($attary{$attname});
+                        unset($attary[$attname]);
                         continue;
                     }
                 }
@@ -524,7 +524,7 @@ $tagname, $attary, $rm_attnames, $bad_attvals, $add_attr_to_tag, $trans_image_pa
         tln_defang($attvalue);
         if ($attname == 'style' && $attvalue !== $oldattvalue) {
             $attvalue = "idiocy";
-            $attary{$attname} = $attvalue;
+            $attary[$attname] = $attvalue;
         }
         tln_unspace($attvalue);
 
@@ -546,7 +546,7 @@ $tagname, $attary, $rm_attnames, $bad_attvals, $add_attr_to_tag, $trans_image_pa
                         list($valmatch, $valrepl) = $valary;
                         $newvalue = preg_replace($valmatch, $valrepl, $attvalue);
                         if ($newvalue != $attvalue) {
-                            $attary{$attname} = $newvalue;
+                            $attary[$attname] = $newvalue;
                             $attvalue = $newvalue;
                         }
                     }
@@ -555,14 +555,14 @@ $tagname, $attary, $rm_attnames, $bad_attvals, $add_attr_to_tag, $trans_image_pa
         }
         if ($attname == 'style') {
             if (preg_match('/[\0-\37\200-\377]+/', $attvalue)) {
-                $attary{$attname} = '"disallowed character"';
+                $attary[$attname] = '"disallowed character"';
             }
             preg_match_all("/url\s*\((.+)\)/si", $attvalue, $aMatch);
             if (count($aMatch)) {
                 foreach ($aMatch[1] as $sMatch) {
                     $urlvalue = $sMatch;
                     tln_fixurl($attname, $urlvalue, $trans_image_path, $block_external_images);
-                    $attary{$attname} = str_replace($sMatch, $urlvalue, $attvalue);
+                    $attary[$attname] = str_replace($sMatch, $urlvalue, $attvalue);
                 }
             }
         }
@@ -652,7 +652,7 @@ function tln_fixstyle($body, $pos, $trans_image_path, $block_external_images) {
     $bSucces = false;
     $bEndTag = false;
     for ($i = $pos, $iCount = strlen($body); $i < $iCount; ++$i) {
-        $char = $body{$i};
+        $char = $body[$i];
         switch ($char) {
             case '<':
                 $sToken = $char;
@@ -683,7 +683,7 @@ function tln_fixstyle($body, $pos, $trans_image_path, $block_external_images) {
             case '!':
                 if ($sToken == '<') {
                     // possible comment
-                    if (isset($body{$i + 2}) && substr($body, $i, 3) == '!--') {
+                    if (isset($body[$i + 2]) && substr($body, $i, 3) == '!--') {
                         $i = strpos($body, '-->', $i + 3);
                         if ($i === false) { // no end comment
                             $i = strlen($body);
@@ -797,7 +797,7 @@ function tln_body2div($attary, $trans_image_path) {
             $styledef .= "color: $text; ";
         }
         if (strlen($styledef) > 0) {
-            $divattary{"style"} = "\"$styledef\"";
+            $divattary["style"] = "\"$styledef\"";
         }
     }
     return $divattary;
@@ -857,7 +857,7 @@ $body, $tag_list, $rm_tags_with_content, $self_closing_tags, $force_tag_closing,
                 }
                 $trusted .= tln_tagprint($tagname, $attary, $tagtype);
                 $trusted .= $free_content;
-                $trusted .= tln_tagprint($tagname, null, 2);
+                $trusted .= tln_tagprint($tagname, array(), 2);
             }
             continue;
         }
@@ -877,10 +877,10 @@ $body, $tag_list, $rm_tags_with_content, $self_closing_tags, $force_tag_closing,
                         if ($tagname == "body") {
                             $tagname = "div";
                         }
-                        if (isset($open_tags{$tagname}) &&
-                                $open_tags{$tagname} > 0
+                        if (isset($open_tags[$tagname]) &&
+                                $open_tags[$tagname] > 0
                         ) {
-                            $open_tags{$tagname} --;
+                            $open_tags[$tagname] --;
                         } else {
                             $tagname = false;
                         }
@@ -920,10 +920,10 @@ $body, $tag_list, $rm_tags_with_content, $self_closing_tags, $force_tag_closing,
                                 $attary = tln_body2div($attary, $trans_image_path);
                             }
                             if ($tagtype == 1) {
-                                if (isset($open_tags{$tagname})) {
-                                    $open_tags{$tagname} ++;
+                                if (isset($open_tags[$tagname])) {
+                                    $open_tags[$tagname] ++;
                                 } else {
-                                    $open_tags{$tagname} = 1;
+                                    $open_tags[$tagname] = 1;
                                 }
                             }
                             /**
@@ -1073,17 +1073,17 @@ function HTMLFilter($body, $trans_image_path, $block_external_images = false) {
 
     if ($block_external_images) {
         array_push(
-                $bad_attvals{'/.*/'}{'/^src|background/i'}[0], '/^([\'\"])\s*https*:.*([\'\"])/si'
+                $bad_attvals['/.*/']['/^src|background/i'][0], '/^([\'\"])\s*https*:.*([\'\"])/si'
         );
         array_push(
-                $bad_attvals{'/.*/'}{'/^src|background/i'}[1], "\\1$trans_image_path\\1"
+                $bad_attvals['/.*/']['/^src|background/i'][1], "\\1$trans_image_path\\1"
         );
         array_push(
-                $bad_attvals{'/.*/'}{'/^style/i'}[0], '/url\(([\'\"])\s*https*:.*([\'\"])\)/si'
+                $bad_attvals['/.*/']['/^style/i'][0], '/url\(([\'\"])\s*https*:.*([\'\"])\)/si'
         );
-        array_push(
-                $bad_attvals{'/.*/'}{'/^style/i'}[1], "url(\\1$trans_image_path\\1)"
-        );
+                array_push(
+                        $bad_attvals['/.*/']['/^style/i'][1], "url(\\1$trans_image_path\\1)"
+                );
     }
 
     $add_attr_to_tag = array(

@@ -2252,6 +2252,13 @@ class Staff extends Admin_Controller
         }
 
     
+    public function getEmployeeByRole()
+    {
+        $role = $this->input->post('role');
+        $data = $this->staff_model->getEmployeeByRoleID($role);
+        echo json_encode($data);
+    }
+
     public function username_check($employee_id)
     {
         $id = $this->input->post('editid'); // Correctly get ID from 'editid' hidden field

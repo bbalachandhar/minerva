@@ -19,7 +19,7 @@
                             <div class="form-group">
                                 <label for="last_sync_datetime" class="col-sm-4 control-label">Last Sync Datetime</label>
                                 <div class="col-sm-8">
-                                    <p class="form-control-static"><?php echo ($last_sync_datetime) ? date($this->customlib->get  SchoolDateFormat(true,true), strtotime($last_sync_datetime)) : 'Never'; ?></p>
+                                    <p class="form-control-static"><?php echo ($last_sync_datetime) ? date($this->customlib->getSchoolDateFormat(true,true), strtotime($last_sync_datetime)) : 'Never'; ?></p>
                                 </div>
                             </div>
                             <div class="form-group">

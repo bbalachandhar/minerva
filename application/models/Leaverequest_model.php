@@ -189,6 +189,9 @@ class Leaverequest_model extends MY_model
             if (!isset($data['approver_status'])) {
                 $data['approver_status'] = 'pending';
             }
+             if (!isset($data['admin_remark'])) {
+                $data['admin_remark'] = "";
+            }
             
             $this->db->insert("staff_leave_request", $data);
             $id        = $this->db->insert_id();

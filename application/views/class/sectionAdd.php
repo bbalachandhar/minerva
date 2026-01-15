@@ -16,7 +16,7 @@
 
                             <?php 
                                 if ($this->session->flashdata('msg')) {
-                                    echo $this->session->flashdata('msg') 
+                                    echo $this->session->flashdata('msg'); 
                                     $this->session->unset_userdata('msg');
                                 }
                             ?> 

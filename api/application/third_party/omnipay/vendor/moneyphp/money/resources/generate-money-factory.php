@@ -17,10 +17,9 @@ use InvalidArgumentException;
 
 /**
  * This is a generated file. Do not edit it manually!
- *
-PHPDOC
- * @psalm-immutable
- */
+  * PHPDOC_PLACEHOLDER
+  * @psalm-immutable
+  **/
 trait MoneyFactory
 {
     /**
@@ -70,7 +69,7 @@ PHP;
         $methodBuffer .= sprintf(" * @method static Money %s(numeric-string|int \$amount)\n", $code);
     }
 
-    $buffer = str_replace('PHPDOC', rtrim($methodBuffer), $buffer);
+    $buffer = str_replace('PHPDOC_PLACEHOLDER', rtrim($methodBuffer), $buffer);
 
     file_put_contents(__DIR__.'/../src/MoneyFactory.php', $buffer);
 })();
