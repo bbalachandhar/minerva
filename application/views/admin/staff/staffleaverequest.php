@@ -2,7 +2,7 @@
     <section class="content-header">
         <h1><i class="fa fa-sitemap"></i> <?php //echo $this->lang->line('human_resource'); ?>
             <?php
-if ($this->rbac->hasPrivilege('apply_leave', 'can_add') && $this->session->userdata('sub_menu') != 'admin/leaverequest/leaverequest') {
+if ($this->rbac->hasPrivilege('apply_leave', 'can_add') && $this->uri->segment(2) == 'staff') {
     ?>
                 <small class="pull-right"><a href="#addleave" onclick="addLeave()" role="button" class="btn btn-primary btn-sm checkbox-toggle pull-right edit_setting" data-loading-text="<i class='fa fa-circle-o-notch fa-spin'></i> <?php echo $this->lang->line('processing'); ?>"><?php echo $this->lang->line('add_leave_request'); ?></a></small>
             <?php }?></h1>
@@ -16,7 +16,7 @@ if ($this->rbac->hasPrivilege('apply_leave', 'can_add') && $this->session->userd
                 <div class="box box-primary">
                     <div class="box-header ptbnull">
                         <h3 class="box-title titlefix pt5"><?php echo $this->lang->line('approve_leave_request'); ?></h3> <?php
-if ($this->rbac->hasPrivilege('apply_leave', 'can_add') && $this->session->userdata('sub_menu') != 'admin/leaverequest/leaverequest') {
+if ($this->rbac->hasPrivilege('apply_leave', 'can_add') && $this->uri->segment(2) == 'staff') {
     ?>
                             <small class="pull-right"><a href="#addleave" onclick="addLeave()" role="button" class="btn btn-primary btn-sm checkbox-toggle pull-right edit_setting" data-loading-text="<i class='fa fa-circle-o-notch fa-spin'></i> <?php echo $this->lang->line('processing'); ?>"><?php echo $this->lang->line('add_leave_request'); ?></a></small>
                         <?php }?>
@@ -76,7 +76,7 @@ if ($value["status"] == "approved") {
                                                     <td class="pull-right no-print white-space-nowrap">
                                                         <a href="#leavedetails" onclick="getRecord('<?php echo $value["id"] ?>')" role="button" class="btn btn-default btn-xs" data-toggle="tooltip" title="<?php echo $this->lang->line('view'); ?>" ><i class="fa fa-reorder"></i></a>
 
-                                                        <?php if ($value["applied_by"] == $this->customlib->getAdminSessionUserName() || $this->customlib->getStaffID() == $value['recommender_id'] || $this->customlib->getStaffID() == $value['approver_id']) {
+                                                        <?php if ($value["applied_by"] == $this->customlib->getAdminSessionUserName() || $this->customlib->getStaffID() == $value['approver_id']) {
         ?>
                                                             <?php
 if ($this->rbac->hasPrivilege('approve_leave_request', 'can_edit')) {
@@ -342,22 +342,9 @@ if ($this->rbac->hasPrivilege('approve_leave_request', 'can_edit')) {
                             <input type="file" id="file" name="userfile" class="filestyle form-control">
                             <input type="hidden" id="filename" name="filename" >
                         </div>
-                        <?php if ($this->rbac->hasPrivilege('approve_leave_request', 'can_edit')) { ?>
                         <div class="form-group  col-xs-12 col-sm-12 col-md-12 col-lg-6">
-                            <label><?php echo $this->lang->line('status'); ?> </label>
-                            <br/>
-                            <label class="radio-inline">
-                                <input type="radio" value="<?php echo "pending" ?>" name="addstatus" checked><?php echo $status["pending"] ?>
-                            </label>
-                            <label class="radio-inline">
-                                <input type="radio" value="<?php echo "approved" ?>"  name="addstatus" ><?php echo $status["approve"] ?></label>
-                            <label class="radio-inline">
-                                <input type="radio" value="<?php echo "disapproved" ?>"  name="addstatus"><?php echo $status["disapprove"] ?></label>
-                            <span class="text-danger"><?php echo form_error('addstatus'); ?></span>
+                            <input type="hidden" name="addstatus" id="addstatus" value="pending">
                         </div>
-                        <?php } else { ?>
-                            <input type="hidden" name="addstatus" value="pending">
-                        <?php } ?>
                         <div class="clearfix"></div>
                         <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
                             <button type="submit" id="submitbtn" class="btn btn-primary submit_addLeave pull-right" data-loading-text="<i class='fa fa-circle-o-notch fa-spin'></i> <?php echo $this->lang->line('processing'); ?>"> <?php echo $this->lang->line('save'); ?></button>
@@ -490,7 +477,7 @@ if ($this->rbac->hasPrivilege('approve_leave_request', 'can_edit')) {
                 var statusRadioHtml = '';
                 var initialStatusValue = '';
 
-                if (is_recommender && result.approver_status == 'pending' && !(is_approver && (result.recommender_status == 'approved' || result.recommender_status == 'recommended'))) {
+                if (is_recommender && result.recommender_status == 'pending') {
                     $('#note_label').html('<?php echo $this->lang->line('recommender_remark'); ?>');
                     statusRadioHtml = `
                         <label class="radio-inline">
@@ -750,15 +737,7 @@ if ($this->rbac->hasPrivilege('approve_leave_request', 'can_edit')) {
 
                 $('input[name="leaverequestid"]').val(id);
                 $('textarea[name="reason"]').text(result.employee_remark);
-                $('textarea[name="remark"]').text(result.admin_remark);
-
-                if (result.status == 'approved') {
-                    $('input:radio[name=addstatus]')[1].checked = true;
-                } else if (result.status == 'pending') {
-                    $('input:radio[name=addstatus]')[0].checked = true;
-                } else if (result.status == 'disapprove') {
-                    $('input:radio[name=addstatus]')[2].checked = true;
-                }
+                $('#addstatus').val(result.status);
 
                 if (result.alternative_teacher_id) {
                     $('#alternative_teacher_id').val(result.alternative_teacher_id);
