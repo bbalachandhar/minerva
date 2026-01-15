@@ -2,7 +2,7 @@
     <section class="content-header">
         <h1><i class="fa fa-sitemap"></i> <?php //echo $this->lang->line('human_resource'); ?>
             <?php
-if ($this->rbac->hasPrivilege('approve_leave_request', 'can_add')) {
+if ($this->rbac->hasPrivilege('apply_leave', 'can_add')) {
     ?>
                 <small class="pull-right"><a href="#addleave" onclick="addLeave()" role="button" class="btn btn-primary btn-sm checkbox-toggle pull-right edit_setting" data-loading-text="<i class='fa fa-circle-o-notch fa-spin'></i> <?php echo $this->lang->line('processing'); ?>"><?php echo $this->lang->line('add_leave_request'); ?></a></small>
             <?php }?></h1>
@@ -16,7 +16,7 @@ if ($this->rbac->hasPrivilege('approve_leave_request', 'can_add')) {
                 <div class="box box-primary">
                     <div class="box-header ptbnull">
                         <h3 class="box-title titlefix pt5"><?php echo $this->lang->line('approve_leave_request'); ?></h3> <?php
-if ($this->rbac->hasPrivilege('approve_leave_request', 'can_add')) {
+if ($this->rbac->hasPrivilege('apply_leave', 'can_add')) {
     ?>
                             <small class="pull-right"><a href="#addleave" onclick="addLeave()" role="button" class="btn btn-primary btn-sm checkbox-toggle pull-right edit_setting" data-loading-text="<i class='fa fa-circle-o-notch fa-spin'></i> <?php echo $this->lang->line('processing'); ?>"><?php echo $this->lang->line('add_leave_request'); ?></a></small>
                         <?php }?>
@@ -226,9 +226,12 @@ if ($this->rbac->hasPrivilege('approve_leave_request', 'can_edit')) {
         <div class="modal-content">
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title"><?php echo $this->lang->line('add_details'); ?></h4>
+            </div>
             <div class="modal-body">
                 <div class="row">
                     <form role="form" id="addleave_form" method="post" enctype="multipart/form-data" action="">
+<?php if ($this->rbac->hasPrivilege('approve_leave_request', 'can_add')) { ?>
                         <div class="form-group  col-xs-12 col-sm-12 col-md-12 col-lg-6">
                             <label>
                                 <?php echo $this->lang->line('role'); ?></label><small class="req"> *</small>
@@ -248,6 +251,20 @@ if ($this->rbac->hasPrivilege('approve_leave_request', 'can_edit')) {
                             </select>
                             <span class="text-danger"><?php echo form_error('empname'); ?></span>
                         </div>
+<?php } else { 
+    $user_role = json_decode($this->customlib->getStaffRole());
+?>
+                        <div class="form-group  col-xs-12 col-sm-12 col-md-12 col-lg-6">
+                            <label><?php echo $this->lang->line('role'); ?></label>
+                            <input type="text" class="form-control" value="<?php echo $user_role->name; ?>" readonly>
+                            <input type="hidden" name="role" id="role" value="<?php echo $user_role->id; ?>">
+                        </div>
+                        <div class="form-group  col-xs-12 col-sm-12 col-md-12 col-lg-6">
+                            <label><?php echo $this->lang->line('name'); ?></label>
+                            <input type="text" class="form-control" value="<?php echo $current_staff_details['name'] . ' ' . $current_staff_details['surname'] . ' (' . $current_staff_details['employee_id'] . ')'; ?>" readonly>
+                            <input type="hidden" name="empname" id="empname" value="<?php echo $staff_id; ?>">
+                        </div>
+<?php } ?>
                         <div class="form-group  col-xs-12 col-sm-12 col-md-12 col-lg-6">
                             <label><?php echo $this->lang->line('apply_date'); ?></label><small class="req"> *</small>
                             <input type="text" id="applieddate" name="applieddate" value="<?php echo date($this->customlib->getSchoolDateFormat()) ?>" class="form-control date">
@@ -319,16 +336,13 @@ if ($this->rbac->hasPrivilege('approve_leave_request', 'can_edit')) {
                                                      <label><?php echo $this->lang->line('reason'); ?></label><br/>
                                                      <textarea name="reason" id="reason" style="resize: none;" rows="4" class="form-control"></textarea>
                                                      <input type="hidden" name="leaverequestid" id="leaverequestid">
-                                                 </div>                        <div class="form-group col-xs-12 col-sm-12 col-md-12 col-lg-6" id="reason">
-                            <label><?php echo $this->lang->line('note'); ?></label>
-                            <textarea class="form-control" style="resize: none;" rows="4" id="remark" name="remark" placeholder=""></textarea>
-                            <span class="text-danger"><?php echo form_error('remark'); ?></span>
-                        </div>
+                                                 </div>
                         <div class="form-group  col-xs-12 col-sm-12 col-md-12 col-lg-6">
                             <label><?php echo $this->lang->line('attach_document'); ?></label>
                             <input type="file" id="file" name="userfile" class="filestyle form-control">
                             <input type="hidden" id="filename" name="filename" >
                         </div>
+                        <?php if ($this->rbac->hasPrivilege('approve_leave_request', 'can_edit')) { ?>
                         <div class="form-group  col-xs-12 col-sm-12 col-md-12 col-lg-6">
                             <label><?php echo $this->lang->line('status'); ?> </label>
                             <br/>
@@ -341,6 +355,9 @@ if ($this->rbac->hasPrivilege('approve_leave_request', 'can_edit')) {
                                 <input type="radio" value="<?php echo "disapproved" ?>"  name="addstatus"><?php echo $status["disapprove"] ?></label>
                             <span class="text-danger"><?php echo form_error('addstatus'); ?></span>
                         </div>
+                        <?php } else { ?>
+                            <input type="hidden" name="addstatus" value="pending">
+                        <?php } ?>
                         <div class="clearfix"></div>
                         <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
                             <button type="submit" id="submitbtn" class="btn btn-primary submit_addLeave pull-right" data-loading-text="<i class='fa fa-circle-o-notch fa-spin'></i> <?php echo $this->lang->line('processing'); ?>"> <?php echo $this->lang->line('save'); ?></button>
@@ -387,6 +404,7 @@ if ($this->rbac->hasPrivilege('approve_leave_request', 'can_edit')) {
     }
 
     $(document).ready(function () {
+        getLeaveTypeDDL('<?php echo $staff_id ?>', '');
         $('.detail_popover').popover({
             placement: 'right',
             title: '',

@@ -275,7 +275,7 @@ class Staff extends Admin_Controller
             log_message('debug', 'leaverequest: staff_id is empty, set to: ' . $staff_id);
         }
         $data['staff_id'] = $staff_id; // Explicitly add staff_id to data array
-        $data['leaverequestlist'] = $this->leaverequest_model->staff_leave_request($staff_id); // Use the existing method
+        $data['leave_request'] = $this->leaverequest_model->staff_leave_request($staff_id); // Use the existing method
         
         // Fetch staff details, timetable, and potential substitutes
         $current_staff_id = $this->customlib->getStaffID(); // Use current logged-in staff ID
@@ -334,7 +334,7 @@ class Staff extends Admin_Controller
         $data['status'] = $this->status;
         
         $this->load->view('layout/header', $data);
-        $this->load->view('admin/staff/leaverequest', $data); // Assuming a view file named leaverequest.php
+        $this->load->view('admin/staff/staffleaverequest', $data); // Using the consolidated view
         $this->load->view('layout/footer', $data);
     }
 
