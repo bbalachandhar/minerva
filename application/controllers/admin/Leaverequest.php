@@ -381,6 +381,15 @@ class Leaverequest extends Admin_Controller
             $result->approver_status_text = $this->lang->line(strtolower($result->approver_status));
         }
 
+        if ($result->alternative_teacher_id) {
+            $alt_teacher = $this->staff_model->get($result->alternative_teacher_id);
+            if ($alt_teacher) {
+                $result->alternative_teacher_name = $alt_teacher['name'];
+                $result->alternative_teacher_surname = $alt_teacher['surname'];
+                $result->alternative_teacher_employee_id = $alt_teacher['employee_id'];
+            }
+        }
+
         echo json_encode($result);
     }
 

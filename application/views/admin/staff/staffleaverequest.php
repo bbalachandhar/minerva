@@ -163,6 +163,10 @@ $i++;
                                     <td><span id="recommender_name"></span></td>
                                 </tr>
                                 <tr>
+                                    <th><?php echo $this->lang->line('alternative_teacher'); ?></th>
+                                    <td colspan="3"><span id="alternative_teacher_name"></span></td>
+                                </tr>
+                                <tr>
                                     <th><?php echo $this->lang->line('recommender_status'); ?></th>
                                     <td><span id="recommender_status"></span></td>
                                     <th><?php echo $this->lang->line('recommender_remark'); ?></th>
@@ -455,6 +459,11 @@ if ($this->rbac->hasPrivilege('approve_leave_request', 'can_edit')) {
                 $('#leave_type').html(result.type);
                 $('#days').html(result.leave_days + ' Days');
                 $('#remark').html(result.employee_remark);
+                if (result.alternative_teacher_name) {
+                    $('#alternative_teacher_name').html(result.alternative_teacher_name + ' ' + result.alternative_teacher_surname + ' (' + result.alternative_teacher_employee_id + ')');
+                } else {
+                    $('#alternative_teacher_name').html('<?php echo $this->lang->line('not_assigned'); ?>');
+                }
                 $('#applied_date').html(result.date);
                 $('#appliedby').html(result.applied_by);
                 $("#detailremark").text(result.admin_remark);
