@@ -31,8 +31,40 @@ class Leaverequest extends Admin_Controller
 
         $this->session->set_userdata('top_menu', 'HR');
         $this->session->set_userdata('sub_menu', 'admin/leaverequest/leaverequest');
-        $leave_request         = $this->leaverequest_model->staff_leave_request();
-        $data["leave_request"] = $leave_request;
+        $all_leave_request = $this->leaverequest_model->staff_leave_request();
+        $filtered_leave_request = [];
+        $current_user_id = $this->customlib->getStaffID();
+        $role = json_decode($this->customlib->getStaffRole());
+
+        // Super Admin (Role 7) sees all
+        if ($role->id == 7) {
+            $filtered_leave_request = $all_leave_request;
+        } else {
+            foreach ($all_leave_request as $request) {
+                $show = false;
+                
+                // 1. Applier: Always see own
+                if ($request['staff_id'] == $current_user_id) {
+                    $show = true;
+                }
+                // 2. Recommender: See requests where they are recommender
+                elseif ($request['recommender_id'] == $current_user_id) {
+                    $show = true;
+                }
+                // 3. Approver: See requests where they are approver AND status is recommended/approved
+                elseif ($request['approver_id'] == $current_user_id) {
+                    // Strict requirement: "approver should only see only if a leave is recommended"
+                    if ($request['recommender_status'] == 'recommended' || $request['recommender_status'] == 'approved') {
+                        $show = true;
+                    }
+                }
+                
+                if ($show) {
+                    $filtered_leave_request[] = $request;
+                }
+            }
+        }
+        $data["leave_request"] = $filtered_leave_request;
         $LeaveTypes            = $this->staff_model->getLeaveType();
         $userdata              = $this->customlib->getUserData();
         $data['staff_id'] = $userdata['id'];
@@ -255,12 +287,16 @@ class Leaverequest extends Admin_Controller
 
     public function remove($id, $staff_id)
     {
-        $uploaddir = './uploads/staff_documents/' . $staff_id . '/';
-        $row       = $this->leaverequest_model->get_staff_leave($id);
-        if ($row['document_file'] != '') {
-            $this->media_storage->filedelete($row['document_file'], $uploaddir);
+        $row = $this->leaverequest_model->get_staff_leave($id);
+        if ($row['status'] == 'pending') {
+            $uploaddir = './uploads/staff_documents/' . $staff_id . '/';
+            if ($row['document_file'] != '') {
+                $this->media_storage->filedelete($row['document_file'], $uploaddir);
+            }
+            $this->leaverequest_model->leave_remove($id);
+        } else {
+            log_message('error', 'Attempt to delete non-pending leave request ID: ' . $id);
         }
-        $this->leaverequest_model->leave_remove($id);
     }
 
     public function leaveRecord()

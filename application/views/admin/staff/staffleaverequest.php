@@ -76,7 +76,7 @@ if ($value["status"] == "approved") {
                                                     <td class="pull-right no-print white-space-nowrap">
                                                         <a href="#leavedetails" onclick="getRecord('<?php echo $value["id"] ?>')" role="button" class="btn btn-default btn-xs" data-toggle="tooltip" title="<?php echo $this->lang->line('view'); ?>" ><i class="fa fa-reorder"></i></a>
 
-                                                        <?php if ($value["applied_by"] == $this->customlib->getAdminSessionUserName() || $this->customlib->getStaffID() == $value['approver_id']) {
+                                                        <?php if ($value["staff_id"] == $staff_id && $value['status'] == 'pending') {
         ?>
                                                             <?php
 if ($this->rbac->hasPrivilege('approve_leave_request', 'can_edit')) {
@@ -91,19 +91,18 @@ if ($this->rbac->hasPrivilege('approve_leave_request', 'can_edit')) {
                                                             </a>
                                                         <?php }
     ?>
-                                                        <?php if ($value["applied_by"] == $this->customlib->getAdminSessionUserName()) {?>
-
-                                                            <a onclick="getDelete('<?php echo $value["id"] ?>')"  class="btn btn-default btn-xs" data-toggle="tooltip" title="<?php echo $this->lang->line('delete'); ?>" ><i class="fa fa-remove"></i></a>
-
-                                                            <?php
-} else {
-
-        if ($this->rbac->hasPrivilege('approve_leave_request', 'can_delete')) {
-            ?>
-                                                                <a onclick="getDelete('<?php echo $value["id"] ?>','<?php echo $value["staff_id"] ?>')"  class="btn btn-default btn-xs" data-toggle="tooltip" title="<?php echo $this->lang->line('delete'); ?>" ><i class="fa fa-remove"></i></a>
-                                                            <?php }?>
-                                                        <?php }
-    ?>
+                                                        <?php 
+                                                        // Strict Rule: Delete is only allowed if status is 'pending'
+                                                        if ($value['status'] == 'pending') {
+                                                            if ($value["applied_by"] == $this->customlib->getAdminSessionUserName()) {?>
+                                                                <a onclick="getDelete('<?php echo $value["id"] ?>')"  class="btn btn-default btn-xs" data-toggle="tooltip" title="<?php echo $this->lang->line('delete'); ?>" ><i class="fa fa-remove"></i></a>
+                                                            <?php } else {
+                                                                if ($this->rbac->hasPrivilege('approve_leave_request', 'can_delete')) { ?>
+                                                                    <a onclick="getDelete('<?php echo $value["id"] ?>','<?php echo $value["staff_id"] ?>')"  class="btn btn-default btn-xs" data-toggle="tooltip" title="<?php echo $this->lang->line('delete'); ?>" ><i class="fa fa-remove"></i></a>
+                                                                <?php }
+                                                            }
+                                                        }
+                                                        ?>
                                                     </td>
                                                 </tr>
                                                 <?php
