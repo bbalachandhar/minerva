@@ -267,6 +267,38 @@ class Leaverequest extends Admin_Controller
     {
         $id                   = $this->input->post("id");
         $result               = $this->staff_model->getLeaveRecord($id);
+
+        // Self-Healing: If recommender_id is missing, try to fix it based on current staff department
+        if (empty($result->recommender_id)) {
+            $staff_details = $this->staff_model->get($result->staff_id);
+            if ($staff_details && $staff_details['department']) {
+                $this->load->model('department_model');
+                $department = $this->department_model->getDepartmentType($staff_details['department']);
+                $new_recommender_id = null;
+                
+                if ($department && !empty($department['dept_head_id'])) {
+                    $new_recommender_id = $department['dept_head_id'];
+                }
+                
+                // Fallback to Approver
+                if (empty($new_recommender_id) && !empty($result->approver_id)) {
+                    $new_recommender_id = $result->approver_id;
+                }
+
+                if (!empty($new_recommender_id)) {
+                    // Update the database
+                    $this->db->where('id', $id)->update('staff_leave_request', ['recommender_id' => $new_recommender_id]);
+                    // Update the result object so the UI works immediately
+                    $result->recommender_id = $new_recommender_id;
+                    $recommender = $this->staff_model->get($new_recommender_id); // Fetch new details for UI
+                    if($recommender){
+                         $result->recommender_name = $recommender['name'];
+                         $result->recommender_surname = $recommender['surname'];
+                    }
+                }
+            }
+        }
+
         $leave_from           = date("m/d/Y", strtotime($result->leave_from));
         $result->leavefrom    = date($this->customlib->getSchoolDateFormat(), $this->customlib->dateyyyymmddTodateformat($result->leave_from));
         $result->date         = date($this->customlib->getSchoolDateFormat(), $this->customlib->dateyyyymmddTodateformat($result->date));
@@ -385,15 +417,21 @@ class Leaverequest extends Admin_Controller
                         $staff_details = $this->staff_model->get($staff_id);
                         $recommender_id = null;
                         if ($staff_details && $staff_details['department']) {
-                            $this->load->model('departmenthead_model');
-                            $hod = $this->departmenthead_model->get_department_head_by_department_id($staff_details['department']);
-                            if ($hod) {
-                                $recommender_id = $hod['staff_id'];
+                            $this->load->model('department_model');
+                            $department = $this->department_model->getDepartmentType($staff_details['department']);
+                            if ($department && !empty($department['dept_head_id'])) {
+                                $recommender_id = $department['dept_head_id'];
                             }
                         }
     
                         $setting = $this->setting_model->getSetting();
                         $approver_id = isset($setting->leave_approver_id) ? $setting->leave_approver_id : null;
+
+                        // Fallback: If no recommender found (e.g. no Dept Head), use Approver as Recommender
+                        if (empty($recommender_id) && !empty($approver_id)) {
+                            $recommender_id = $approver_id;
+                            log_message('error', 'No Recommender (HOD) found. Falling back to Approver ID: ' . $approver_id);
+                        }
     
                     if (!empty($request_id)) {				 
     					 

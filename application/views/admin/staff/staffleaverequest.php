@@ -2,7 +2,7 @@
     <section class="content-header">
         <h1><i class="fa fa-sitemap"></i> <?php //echo $this->lang->line('human_resource'); ?>
             <?php
-if ($this->rbac->hasPrivilege('apply_leave', 'can_add')) {
+if ($this->rbac->hasPrivilege('apply_leave', 'can_add') && $this->session->userdata('sub_menu') != 'admin/leaverequest/leaverequest') {
     ?>
                 <small class="pull-right"><a href="#addleave" onclick="addLeave()" role="button" class="btn btn-primary btn-sm checkbox-toggle pull-right edit_setting" data-loading-text="<i class='fa fa-circle-o-notch fa-spin'></i> <?php echo $this->lang->line('processing'); ?>"><?php echo $this->lang->line('add_leave_request'); ?></a></small>
             <?php }?></h1>
@@ -16,7 +16,7 @@ if ($this->rbac->hasPrivilege('apply_leave', 'can_add')) {
                 <div class="box box-primary">
                     <div class="box-header ptbnull">
                         <h3 class="box-title titlefix pt5"><?php echo $this->lang->line('approve_leave_request'); ?></h3> <?php
-if ($this->rbac->hasPrivilege('apply_leave', 'can_add')) {
+if ($this->rbac->hasPrivilege('apply_leave', 'can_add') && $this->session->userdata('sub_menu') != 'admin/leaverequest/leaverequest') {
     ?>
                             <small class="pull-right"><a href="#addleave" onclick="addLeave()" role="button" class="btn btn-primary btn-sm checkbox-toggle pull-right edit_setting" data-loading-text="<i class='fa fa-circle-o-notch fa-spin'></i> <?php echo $this->lang->line('processing'); ?>"><?php echo $this->lang->line('add_leave_request'); ?></a></small>
                         <?php }?>
@@ -197,7 +197,7 @@ $i++;
                                         </td>
                                     <?php }
 ?>
-                                    <th><?php echo $this->lang->line('note'); ?></th>
+                                    <th id="note_label"><?php echo $this->lang->line('note'); ?></th>
                                     <td>
                                         <textarea class="form-control" style="resize: none;" rows="2" id="detailremark" name="detailremark" placeholder=""></textarea>
                                         <span class="text-danger"><?php echo form_error('address'); ?></span>
@@ -490,7 +490,8 @@ if ($this->rbac->hasPrivilege('approve_leave_request', 'can_edit')) {
                 var statusRadioHtml = '';
                 var initialStatusValue = '';
 
-                if (is_recommender && result.recommender_status == 'pending') {
+                if (is_recommender && result.approver_status == 'pending' && !(is_approver && (result.recommender_status == 'approved' || result.recommender_status == 'recommended'))) {
+                    $('#note_label').html('<?php echo $this->lang->line('recommender_remark'); ?>');
                     statusRadioHtml = `
                         <label class="radio-inline">
                             <input type="radio" value="pending" name="status" >${'<?php echo $this->lang->line('recommend_pending'); ?>'}
@@ -503,16 +504,17 @@ if ($this->rbac->hasPrivilege('approve_leave_request', 'can_edit')) {
                         </label>
                     `;
                     // Set initial selected status based on recommender_status
-                    if (result.recommender_status == 'approved') {
+                    if (result.recommender_status == 'approved' || result.recommender_status == 'recommended') {
                         initialStatusValue = 'approved';
-                    } else if (result.recommender_status == 'disapproved') {
+                    } else if (result.recommender_status == 'disapproved' || result.recommender_status == 'rejected') {
                         initialStatusValue = 'disapproved';
                     } else {
                         initialStatusValue = 'pending'; // Default for pending recommendation
                     }
                     $('#action_row').show();
                     $('#action_button_row').show();
-                } else if (is_approver && result.recommender_status == 'approved' && result.approver_status == 'pending') {
+                } else if (is_approver && (result.recommender_status == 'approved' || result.recommender_status == 'recommended') && result.approver_status == 'pending') {
+                    $('#note_label').html('<?php echo $this->lang->line('approver_remark'); ?>');
                     statusRadioHtml = `
                         <label class="radio-inline">
                             <input type="radio" value="pending" name="status" >${'<?php echo $this->lang->line('final_pending'); ?>'}
