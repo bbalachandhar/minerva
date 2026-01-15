@@ -219,7 +219,15 @@ class Leaverequest extends Admin_Controller
         $is_approver = ($leave_request['approver_id'] == $current_user_id);
 
         if ($is_recommender) {
-            $data['recommender_status'] = $status;
+            // Map form status to DB ENUM for recommender
+            if ($status == 'approved') {
+                $data['recommender_status'] = 'recommended';
+            } elseif ($status == 'disapproved') {
+                $data['recommender_status'] = 'rejected';
+            } else {
+                $data['recommender_status'] = $status;
+            }
+            
             $data['recommender_remark'] = $remark;
             $data['recommender_action_date'] = date('Y-m-d');
             
@@ -241,8 +249,14 @@ class Leaverequest extends Admin_Controller
                 }
             }
         } elseif ($is_approver) {
-            if ($leave_request['recommender_status'] == 'approved') {
-                $data['approver_status'] = $status;
+            if ($leave_request['recommender_status'] == 'approved' || $leave_request['recommender_status'] == 'recommended') {
+                // Map form status to DB ENUM for approver
+                if ($status == 'disapproved') {
+                    $data['approver_status'] = 'rejected';
+                } else {
+                    $data['approver_status'] = $status;
+                }
+                
                 $data['approver_remark'] = $remark;
                 $data['approver_action_date'] = date('Y-m-d');
                 $data['status'] = $status; // Final status
@@ -268,6 +282,11 @@ class Leaverequest extends Admin_Controller
         }
 
         if (!empty($data)) {
+            if ($leave_request['status'] == 'approved' || $leave_request['status'] == 'disapproved') {
+                $array = array('status' => 'fail', 'error' => '', 'message' => $this->lang->line('finalized_record_cannot_be_modified'));
+                echo json_encode($array);
+                return;
+            }
             $this->leaverequest_model->changeLeaveStatus($data, $leave_request_id);
 
             // Send notification to applicant on final decision

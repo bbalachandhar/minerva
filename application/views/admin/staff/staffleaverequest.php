@@ -62,7 +62,7 @@ if ($value["status"] == "approved") {
     } else if ($value["status"] == "pending") {
         $status1 = 'pending';
         $label = "class='label label-warning'";
-    } else if ($value["status"] == "disapprove" || $value["status"] == "disapproved") {
+    } else if ($value["status"] == "disapprove" || $value["status"] == "disapproved" || $value["status"] == "rejected") {
         $status1 = 'disapprove';
         $label = "class='label label-danger'";
     } else if ($value["status"] == "recommended") {
@@ -476,7 +476,7 @@ if ($this->rbac->hasPrivilege('approve_leave_request', 'can_edit')) {
                 var statusRadioHtml = '';
                 var initialStatusValue = '';
 
-                if (is_recommender && result.recommender_status == 'pending') {
+                if (is_recommender && result.approver_status == 'pending' && result.recommender_status != 'disapproved' && result.recommender_status != 'rejected' && !(is_approver && (result.recommender_status == 'approved' || result.recommender_status == 'recommended'))) {
                     $('#note_label').html('<?php echo $this->lang->line('recommender_remark'); ?>');
                     statusRadioHtml = `
                         <label class="radio-inline">
