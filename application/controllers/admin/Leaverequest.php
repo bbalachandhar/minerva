@@ -305,158 +305,164 @@ class Leaverequest extends Admin_Controller
         return $interval->format($differenceFormat) + 1;
     }
 
-    public function addLeave()
-    {
-        $role         = $this->input->post("role");
-        $empid        = $this->input->post("empname");
-        $applied_date = $this->input->post("applieddate");
-        $leavetype    = $this->input->post("leave_type");
-        $reason       = $this->input->post("reason");
-        $remark       = $this->input->post("remark");
-        $status       = $this->input->post("addstatus");
-        $request_id   = $this->input->post("leaverequestid");
-        $this->form_validation->set_rules('role', $this->lang->line('role'), 'trim|required|xss_clean');
-        $this->form_validation->set_rules('empname', $this->lang->line('name'), 'trim|required|xss_clean');
-        $this->form_validation->set_rules('applieddate', $this->lang->line('applied_date'), 'trim|required|xss_clean');
-        $this->form_validation->set_rules('leave_from_date', $this->lang->line('leave_from_date'), 'trim|required|xss_clean');
-        $this->form_validation->set_rules('leave_to_date', $this->lang->line('leave_to_date'), 'trim|required|xss_clean');
-        $this->form_validation->set_rules('leave_type', $this->lang->line('available_leave'), 'trim|required|xss_clean');
-        $this->form_validation->set_rules('leave_type', $this->lang->line('leave_type'), 'trim|required|xss_clean');
-        $this->form_validation->set_rules('userfile', $this->lang->line('file'), 'callback_handle_upload[userfile]');
-        $this->form_validation->set_rules('alternative_teacher_id', $this->lang->line('alternative_teacher'), 'trim|xss_clean');
-        $this->form_validation->set_rules('reason', $this->lang->line('reason'), 'trim|xss_clean'); // Added rule for cleaning, but not required
-
-        if ($this->form_validation->run() == false) {
-
-            $msg = array(
-                'role'            => form_error('role'),
-                'empname'         => form_error('empname'),
-                'applieddate'     => form_error('applieddate'),
-                'leavedates'      => form_error('leavedates'),
-                'leave_type'      => form_error('leave_type'),
-                'leave_from_date' => form_error('leave_from_date'),
-                'leave_to_date'   => form_error('leave_to_date'),
-                'userfile'        => form_error('userfile'),
-            );
-
-            $array = array('status' => 'fail', 'error' => $msg, 'message' => '');
-        } else {
-
-            $alternative_teacher_id = $this->input->post('alternative_teacher_id');
-            $leavefrom    = date("Y-m-d", $this->customlib->datetostrtotime($this->input->post('leave_from_date')));
-            $leaveto      = date("Y-m-d", $this->customlib->datetostrtotime($this->input->post('leave_to_date')));
-            $applied_by   = $this->customlib->getStaffID();
-            $leave_days   = $this->dateDifference($leavefrom, $leaveto);
-            $staff_id     = $empid;
-
-            $leave_type_details = $this->staff_model->getLeaveType($leavetype);
-            $is_lop_leave = false;
-            if ($leave_type_details && isset($leave_type_details['is_lop']) && $leave_type_details['is_lop'] == 1) {
-                $is_lop_leave = true;
-            }
-
-            $my_laeve     = $this->leaverequest_model->myallotedLeaveType($staff_id, $leavetype);
-            $total_remain = $my_laeve['alloted_leave'] - $my_laeve['total_applied'];
-            if ($is_lop_leave || $total_remain >= $leave_days) {
-
-                if (isset($_FILES["userfile"]) && !empty($_FILES['userfile']['name'])) {
-                    $uploaddir = './uploads/staff_documents/' . $staff_id . '/';
-                    if (!is_dir($uploaddir) && !mkdir($uploaddir)) {
-                        die("Error creating folder $uploaddir");
+        public function addLeave()
+        {
+            log_message('error', 'addLeave called');
+            $role         = $this->input->post("role");
+            $empid        = $this->input->post("empname");
+            $applied_date = $this->input->post("applieddate");
+            $leavetype    = $this->input->post("leave_type");
+            $reason       = $this->input->post("reason");
+            $remark       = $this->input->post("remark");
+            $status       = $this->input->post("addstatus");
+            $request_id   = $this->input->post("leaverequestid");
+            $this->form_validation->set_rules('role', $this->lang->line('role'), 'trim|required|xss_clean');
+            $this->form_validation->set_rules('empname', $this->lang->line('name'), 'trim|required|xss_clean');
+            $this->form_validation->set_rules('applieddate', $this->lang->line('applied_date'), 'trim|required|xss_clean');
+            $this->form_validation->set_rules('leave_from_date', $this->lang->line('leave_from_date'), 'trim|required|xss_clean');
+            $this->form_validation->set_rules('leave_to_date', $this->lang->line('leave_to_date'), 'trim|required|xss_clean');
+            $this->form_validation->set_rules('leave_type', $this->lang->line('available_leave'), 'trim|required|xss_clean');
+            $this->form_validation->set_rules('leave_type', $this->lang->line('leave_type'), 'trim|required|xss_clean');
+            $this->form_validation->set_rules('userfile', $this->lang->line('file'), 'callback_handle_upload[userfile]');
+            $this->form_validation->set_rules('alternative_teacher_id', $this->lang->line('alternative_teacher'), 'trim|xss_clean');
+            $this->form_validation->set_rules('reason', $this->lang->line('reason'), 'trim|xss_clean'); // Added rule for cleaning, but not required
+    
+            if ($this->form_validation->run() == false) {
+    
+                $msg = array(
+                    'role'            => form_error('role'),
+                    'empname'         => form_error('empname'),
+                    'applieddate'     => form_error('applieddate'),
+                    'leavedates'      => form_error('leavedates'),
+                    'leave_type'      => form_error('leave_type'),
+                    'leave_from_date' => form_error('leave_from_date'),
+                    'leave_to_date'   => form_error('leave_to_date'),
+                    'userfile'        => form_error('userfile'),
+                );
+                log_message('error', 'Validation failed in addLeave: ' . json_encode($msg));
+    
+                $array = array('status' => 'fail', 'error' => $msg, 'message' => '');
+            } else {
+                log_message('error', 'Validation succeeded in addLeave');
+    
+                $alternative_teacher_id = $this->input->post('alternative_teacher_id');
+                $leavefrom    = date("Y-m-d", $this->customlib->datetostrtotime($this->input->post('leave_from_date')));
+                $leaveto      = date("Y-m-d", $this->customlib->datetostrtotime($this->input->post('leave_to_date')));
+                $applied_by   = $this->customlib->getStaffID();
+                $leave_days   = $this->dateDifference($leavefrom, $leaveto);
+                $staff_id     = $empid;
+    
+                            $leave_type_details = $this->staff_model->getLeaveType($leavetype);
+                            $is_lop_leave = (isset($leave_type_details['is_lop']) && $leave_type_details['is_lop'] == 1);
+                            
+                            log_message('error', "Checking balance: Staff ID: $staff_id, Leave Type: $leavetype, Is LOP: " . ($is_lop_leave ? 'Yes' : 'No') . ", Leave Days Requested: $leave_days");
+                
+                            $my_laeve     = $this->leaverequest_model->myallotedLeaveType($staff_id, $leavetype);
+                            $alloted_leave = isset($my_laeve['alloted_leave']) ? $my_laeve['alloted_leave'] : 0;
+                            $total_applied = isset($my_laeve['total_applied']) ? $my_laeve['total_applied'] : 0;
+                            $total_remain = $alloted_leave - $total_applied;
+                            
+                            log_message('error', "Balance details: Allotted: $alloted_leave, Applied: $total_applied, Remaining: $total_remain");
+                
+                            if ($is_lop_leave || $total_remain >= $leave_days) {                    if (isset($_FILES["userfile"]) && !empty($_FILES['userfile']['name'])) {
+                        $uploaddir = './uploads/staff_documents/' . $staff_id . '/';
+                        if (!is_dir($uploaddir) && !mkdir($uploaddir)) {
+                            log_message('error', 'Failed to create upload directory: ' . $uploaddir);
+                            die("Error creating folder $uploaddir");
+                        }
+                        $document = $this->media_storage->fileupload("userfile", $uploaddir);
+                    } else {
+                        $document = '';
                     }
-                    $document = $this->media_storage->fileupload("userfile", $uploaddir);
-                } else {
-                    $document = '';
-                }
-				
-					if($status == 'approved'){
-						$approve_date = date('Y-m-d');
-					}else{
-						$approve_date = null;
-					}	
-					
-                    // Determine Recommender and Approver
-                    $staff_details = $this->staff_model->get($staff_id);
-                    $recommender_id = null;
-                    if ($staff_details && $staff_details['department']) {
-                        $this->load->model('departmenthead_model');
-                        $hod = $this->departmenthead_model->get_department_head_by_department_id($staff_details['department']);
-                        if ($hod) {
-                            $recommender_id = $hod['staff_id'];
+    				
+    					if($status == 'approved'){
+    						$approve_date = date('Y-m-d');
+    					}else{
+    						$approve_date = null;
+    					}	
+    					
+                        // Determine Recommender and Approver
+                        $staff_details = $this->staff_model->get($staff_id);
+                        $recommender_id = null;
+                        if ($staff_details && $staff_details['department']) {
+                            $this->load->model('departmenthead_model');
+                            $hod = $this->departmenthead_model->get_department_head_by_department_id($staff_details['department']);
+                            if ($hod) {
+                                $recommender_id = $hod['staff_id'];
+                            }
+                        }
+    
+                        $setting = $this->setting_model->getSetting();
+                        $approver_id = isset($setting->leave_approver_id) ? $setting->leave_approver_id : null;
+    
+                    if (!empty($request_id)) {				 
+    					 
+                        $data = array(
+                            'id'              => $request_id,
+                            'staff_id'        => $staff_id,
+                            'date'            => date('Y-m-d', $this->customlib->datetostrtotime($applied_date)),
+                            'leave_type_id'   => $leavetype,
+                            'leave_days'      => $leave_days,
+                            'leave_from'      => $leavefrom,
+                            'leave_to'        => $leaveto,
+                            'employee_remark' => $reason,
+                            'status'          => $status,
+                            'admin_remark'    => $remark,
+                            'applied_by'      => $applied_by,
+                            'document_file'   => $document,
+                            'approve_date'   => $approve_date,
+                            'recommender_id' => $recommender_id,
+                            'approver_id' => $approver_id,
+                            'recommender_status' => 'pending', // Initial status
+                            'alternative_teacher_id' => $alternative_teacher_id,
+                        );
+    					
+                    } else {
+    					 
+                        $data = array('staff_id' => $staff_id, 'date' => date("Y-m-d", $this->customlib->datetostrtotime($applied_date)), 'leave_days' => $leave_days, 'leave_type_id' => $leavetype, 'leave_from' => $leavefrom, 'leave_to' => $leaveto, 'employee_remark' => $reason, 'status' => $status, 'admin_remark' => $remark, 'applied_by' => $applied_by, 'document_file' => $document, 'approve_date' => $approve_date,
+                            'recommender_id' => $recommender_id,
+                            'approver_id' => $approver_id,
+                            'recommender_status' => 'pending', // Initial status
+                            'alternative_teacher_id' => $alternative_teacher_id,
+                        );
+                    }
+    
+                    log_message('error', 'Calling addLeaveRequest with data: ' . json_encode($data));
+                    $this->leaverequest_model->addLeaveRequest($data);
+                    $leave_request_id = !empty($request_id) ? $request_id : $this->db->insert_id();
+    
+                    // Process and save substitution data
+                    $substitutions_data = [];
+                    foreach ($this->input->post() as $key => $value) {
+                        if (strpos($key, 'substitute_') === 0 && !empty($value)) {
+                            $parts = explode('_', $key);
+                            $date_part = $parts[1];
+                            $time_from_part = $parts[2];
+                            $time_to_part = $parts[3];
+    
+                            $substitutions_data[] = [
+                                'substitute_staff_id' => $value,
+                                'date' => $date_part,
+                                'period' => $time_from_part . '-' . $time_to_part
+                            ];
                         }
                     }
-
-                    $setting = $this->setting_model->getSetting();
-                    $approver_id = isset($setting->leave_approver_id) ? $setting->leave_approver_id : null;
-
-                if (!empty($request_id)) {				 
-					 
-                    $data = array(
-                        'id'              => $request_id,
-                        'staff_id'        => $staff_id,
-                        'date'            => date('Y-m-d', $this->customlib->datetostrtotime($applied_date)),
-                        'leave_type_id'   => $leavetype,
-                        'leave_days'      => $leave_days,
-                        'leave_from'      => $leavefrom,
-                        'leave_to'        => $leaveto,
-                        'employee_remark' => $reason,
-                        'status'          => $status,
-                        'admin_remark'    => $remark,
-                        'applied_by'      => $applied_by,
-                        'document_file'   => $document,
-                        'approve_date'   => $approve_date,
-                        'recommender_id' => $recommender_id,
-                        'approver_id' => $approver_id,
-                        'recommender_status' => 'pending', // Initial status
-                        'alternative_teacher_id' => $alternative_teacher_id,
-                    );
-					
-                } else {
-					 
-                    $data = array('staff_id' => $staff_id, 'date' => date("Y-m-d", $this->customlib->datetostrtotime($applied_date)), 'leave_days' => $leave_days, 'leave_type_id' => $leavetype, 'leave_from' => $leavefrom, 'leave_to' => $leaveto, 'employee_remark' => $reason, 'status' => $status, 'admin_remark' => $remark, 'applied_by' => $applied_by, 'document_file' => $document, 'approve_date' => $approve_date,
-                        'recommender_id' => $recommender_id,
-                        'approver_id' => $approver_id,
-                        'recommender_status' => 'pending', // Initial status
-                        'alternative_teacher_id' => $alternative_teacher_id,
-                    );
-                }
-
-                $this->leaverequest_model->addLeaveRequest($data);
-                $leave_request_id = !empty($request_id) ? $request_id : $this->db->insert_id();
-
-                // Process and save substitution data
-                $substitutions_data = [];
-                foreach ($this->input->post() as $key => $value) {
-                    if (strpos($key, 'substitute_') === 0 && !empty($value)) {
-                        $parts = explode('_', $key);
-                        $date_part = $parts[1];
-                        $time_from_part = $parts[2];
-                        $time_to_part = $parts[3];
-
-                        $substitutions_data[] = [
-                            'substitute_staff_id' => $value,
-                            'date' => $date_part,
-                            'period' => $time_from_part . '-' . $time_to_part
-                        ];
+                    if (!empty($substitutions_data)) {
+                        $this->leaverequest_model->addLeaveSubstitutions($leave_request_id, $substitutions_data);
                     }
-                }
-                if (!empty($substitutions_data)) {
-                    $this->leaverequest_model->addLeaveSubstitutions($leave_request_id, $substitutions_data);
-                }
-
-                $array = array('status' => 'success', 'error' => '', 'message' => $this->lang->line('success_message'));
-            } else {
-                $msg = array(
-                    'applieddate' => $this->lang->line('selected_leave_days') . " > " . $this->lang->line('available_leaves'),
-                );
-                log_message('error', 'Leave balance insufficient for staff leave request: ' . json_encode($msg));
-                $array = array('status' => 'fail', 'error' => $msg, 'message' => '');
+    
+                                    $array = array('status' => 'success', 'error' => '', 'message' => $this->lang->line('success_message'));
+                                    log_message('error', 'Sending success response from addLeave');
+                                } else {
+                                    $msg = array(
+                                        'applieddate' => "Application Failed: You do not have enough leave balance for this request. Please check your available leaves or contact HR.",
+                                    );
+                                    log_message('error', 'Leave balance insufficient. Request denied. Staff ID: ' . $staff_id . ', Leave Type: ' . $leavetype);
+                                    $array = array('status' => 'fail', 'error' => $msg, 'message' => '');
+                                }    
             }
-
-        }
-                echo json_encode($array);
-            }
-        
+            echo json_encode($array);
+        }        
             public function handle_upload($str, $var)
             {
         $image_validate = $this->config->item('file_validate');
@@ -492,32 +498,26 @@ class Leaverequest extends Admin_Controller
         return true;
     }
             public function getTimetableAndSubstitutes()    
-    
             {
-    
                 $staff_id        = $this->input->post('staff_id');
-   
-                    $leave_from_date = $this->input->post('leave_from_date');
-     
+                $leave_from_date = $this->input->post('leave_from_date');
                 $leave_to_date   = $this->input->post('leave_to_date');
-        
+                
+                log_message('error', "getTimetableAndSubstitutes called: Staff: $staff_id, From: $leave_from_date, To: $leave_to_date");
+
+                // Convert dates to Y-m-d for database model compatibility
+                $leave_from_db = date("Y-m-d", $this->customlib->datetostrtotime($leave_from_date));
+                $leave_to_db   = date("Y-m-d", $this->customlib->datetostrtotime($leave_to_date));
+
                 $staff_details = $this->staff_model->get($staff_id);
-   
-    
                 $timetable_html = '';
-    
                 $substitution_html = '';
-    
-				$status = 'fail';
-  
+                $status = 'fail';
                 $message = $this->lang->line('no_timetable_found_for_this_period');
    
                 if ($staff_details) {
-    
                     $this->load->model('subjecttimetable_model');
-    
-                    $staff_timetable = $this->subjecttimetable_model->getStaffTimetable($staff_id, $leave_from_date, $leave_to_date);
-    
+                    $staff_timetable = $this->subjecttimetable_model->getStaffTimetable($staff_id, $leave_from_db, $leave_to_db);
                     $potential_substitutes = $this->staff_model->getEmployeeByDepartment($staff_details['department'], $staff_id);
 
     
