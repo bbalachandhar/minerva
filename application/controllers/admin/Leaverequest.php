@@ -406,12 +406,20 @@ class Leaverequest extends Admin_Controller
             log_message('error', 'addLeave called');
             $role         = $this->input->post("role");
             $empid        = $this->input->post("empname");
-            $applied_date = $this->input->post("applieddate");
             $leavetype    = $this->input->post("leave_type");
             $reason       = $this->input->post("reason");
             $remark       = $this->input->post("remark");
             $status       = $this->input->post("addstatus");
             $request_id   = $this->input->post("leaverequestid");
+            $applied_date = $this->input->post("applieddate"); // Revert to using post value
+            
+            $leavefrom = "";
+            $leaveto = "";
+            if ($this->input->post('leave_from_date') && $this->input->post('leave_to_date')) {
+                $leavefrom    = date("Y-m-d", $this->customlib->datetostrtotime($this->input->post('leave_from_date')));
+                $leaveto      = date("Y-m-d", $this->customlib->datetostrtotime($this->input->post('leave_to_date')));
+            }
+            
             $this->form_validation->set_rules('role', $this->lang->line('role'), 'trim|required|xss_clean');
             $this->form_validation->set_rules('empname', $this->lang->line('name'), 'trim|required|xss_clean');
             $this->form_validation->set_rules('applieddate', $this->lang->line('applied_date'), 'trim|required|xss_clean');
@@ -421,6 +429,9 @@ class Leaverequest extends Admin_Controller
             $this->form_validation->set_rules('leave_type', $this->lang->line('leave_type'), 'trim|required|xss_clean');
             $this->form_validation->set_rules('userfile', $this->lang->line('file'), 'callback_handle_upload[userfile]');
             $this->form_validation->set_rules('alternative_teacher_id', $this->lang->line('alternative_teacher'), 'trim|xss_clean');
+            if ($leavefrom != "" && $leaveto != "") {
+                $this->form_validation->set_rules('validate_substitutes_flag', 'Substitute Teachers', 'callback_validate_substitutes[' . $leavefrom . ',' . $leaveto . ']');
+            }
             $this->form_validation->set_rules('reason', $this->lang->line('reason'), 'trim|xss_clean'); // Added rule for cleaning, but not required
     
             if ($this->form_validation->run() == false) {
@@ -434,6 +445,8 @@ class Leaverequest extends Admin_Controller
                     'leave_from_date' => form_error('leave_from_date'),
                     'leave_to_date'   => form_error('leave_to_date'),
                     'userfile'        => form_error('userfile'),
+                    'alternative_teacher_id' => form_error('alternative_teacher_id'),
+                    'validate_substitutes_flag' => form_error('validate_substitutes_flag'),
                 );
                 log_message('error', 'Validation failed in addLeave: ' . json_encode($msg));
     
@@ -442,8 +455,6 @@ class Leaverequest extends Admin_Controller
                 log_message('error', 'Validation succeeded in addLeave');
     
                 $alternative_teacher_id = $this->input->post('alternative_teacher_id');
-                $leavefrom    = date("Y-m-d", $this->customlib->datetostrtotime($this->input->post('leave_from_date')));
-                $leaveto      = date("Y-m-d", $this->customlib->datetostrtotime($this->input->post('leave_to_date')));
                 $applied_by   = $this->customlib->getStaffID();
                 $leave_days   = $this->dateDifference($leavefrom, $leaveto);
                 $staff_id     = $empid;
@@ -530,10 +541,20 @@ class Leaverequest extends Admin_Controller
                     }
     
                     log_message('error', 'Calling addLeaveRequest with data: ' . json_encode($data));
-                    $this->leaverequest_model->addLeaveRequest($data);
-                    $leave_request_id = !empty($request_id) ? $request_id : $this->db->insert_id();
     
-                    // Process and save substitution data
+                    $result = $this->leaverequest_model->addLeaveRequest($data);
+    
+                    if ($result === false) {
+    
+                        $array = array('status' => 'fail', 'error' => array('message' => 'Leave already applied for the selected date range.'), 'message' => '');
+    
+                        echo json_encode($array);
+    
+                        return;
+    
+                    }
+    
+                    $leave_request_id = !empty($request_id) ? $request_id : $result;                    // Process and save substitution data
                     $substitutions_data = [];
                     foreach ($this->input->post() as $key => $value) {
                         if (strpos($key, 'substitute_') === 0 && !empty($value)) {
@@ -798,6 +819,33 @@ class Leaverequest extends Admin_Controller
     
     
             }
+
+    public function validate_substitutes($str, $params)
+    {
+        list($leave_from, $leave_to) = explode(',', $params);
+
+        $staff_id = $this->input->post('empname'); // Assuming empname is the staff_id
+
+        $this->load->model('subjecttimetable_model');
+        $staff_timetable = $this->subjecttimetable_model->getStaffTimetable($staff_id, $leave_from, $leave_to);
+
+        if (!empty($staff_timetable)) {
+            // There are scheduled classes, so substitutes are mandatory
+            foreach ($staff_timetable as $date => $daily_schedule) {
+                foreach ($daily_schedule as $period) {
+                    $field_name = 'substitute_' . $date . '_' . str_replace([' ', ':'], '_', $period->time_from) . '_' . str_replace([' ', ':'], '_', $period->time_to);
+                    $substitute_value = $this->input->post($field_name);
+
+                    if (empty($substitute_value)) {
+                        $this->form_validation->set_message('validate_substitutes', 'Substitute teacher is mandatory for all scheduled periods during the leave.');
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
     public function recommender_leave_requests()
     {
         if (!$this->rbac->hasPrivilege('approve_leave_request', 'can_view') || $this->sch_setting_detail->institution_type != 'college') {

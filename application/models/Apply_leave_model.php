@@ -143,6 +143,14 @@ class apply_leave_model extends MY_Model
         return $this->db->select('id')->from('student_session')->where($where)->get()->row_array();
     }
 
+    public function check_leave_exists($student_session_id, $from_date, $to_date)
+    {
+        $this->db->where('student_session_id', $student_session_id);
+        $this->db->where("((from_date <= '{$from_date}' AND to_date >= '{$from_date}') OR (from_date <= '{$to_date}' AND to_date >= '{$to_date}') OR (from_date >= '{$from_date}' AND to_date <= '{$to_date}'))");
+        $query = $this->db->get('student_applyleave');
+        return $query->num_rows() > 0;
+    }
+
     public function remove_leave($id)
     {
         $this->db->trans_start(); # Starting Transaction
