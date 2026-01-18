@@ -166,6 +166,22 @@ $i++;
                                     <th><?php echo $this->lang->line('alternative_teacher'); ?></th>
                                     <td colspan="3"><span id="alternative_teacher_name"></span></td>
                                 </tr>
+                                <tr id="substitutions_row" style="display:none;">
+                                    <td colspan="4">
+                                        <h4 class="box-title"><?php echo $this->lang->line('substitution_details'); ?></h4>
+                                        <table class="table table-striped table-bordered table-hover" id="substitutions_table">
+                                            <thead>
+                                                <tr>
+                                                    <th><?php echo $this->lang->line('date'); ?></th>
+                                                    <th><?php echo $this->lang->line('time'); ?></th>
+                                                    <th><?php echo $this->lang->line('substitute'); ?></th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                            </tbody>
+                                        </table>
+                                    </td>
+                                </tr>
                                 <tr>
                                     <th><?php echo $this->lang->line('recommender_status'); ?></th>
                                     <td><span id="recommender_status"></span></td>
@@ -464,6 +480,22 @@ if ($this->rbac->hasPrivilege('approve_leave_request', 'can_edit')) {
                 } else {
                     $('#alternative_teacher_name').html('<?php echo $this->lang->line('not_assigned'); ?>');
                 }
+
+                if (result.substitutions && result.substitutions.length > 0) {
+                    var subHtml = '';
+                    $.each(result.substitutions, function(i, sub) {
+                        subHtml += '<tr>';
+                        subHtml += '<td>' + sub.date + '</td>';
+                        subHtml += '<td>' + sub.period + '</td>';
+                        subHtml += '<td>' + (sub.name ? sub.name + ' ' + sub.surname + ' (' + sub.employee_id + ')' : '') + '</td>';
+                        subHtml += '</tr>';
+                    });
+                    $('#substitutions_table tbody').html(subHtml);
+                    $('#substitutions_row').show();
+                } else {
+                    $('#substitutions_row').hide();
+                }
+
                 $('#applied_date').html(result.date);
                 $('#appliedby').html(result.applied_by);
                 $("#detailremark").text(result.admin_remark);

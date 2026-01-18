@@ -390,6 +390,8 @@ class Leaverequest extends Admin_Controller
             }
         }
 
+        $result->substitutions = $this->leaverequest_model->getLeaveSubstitutions($id);
+
         echo json_encode($result);
     }
 
