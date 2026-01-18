@@ -1279,6 +1279,9 @@ $("#myfeeDiscountModal").on('shown.bs.modal', function (e) {
             var $this = $(this);
             var array_to_collect_fees = [];
             var select_count = 0;
+            console.log("Pay Selected Clicked"); // Debug Log
+            console.log("Base URL: " + base_url); // Debug Log
+
             $.each($("input[name='fee_checkbox']:checked"), function() {
                 var trans_fee_id = $(this).data('trans_fee_id');
                 var fee_category = $(this).data('fee_category');
@@ -1295,7 +1298,10 @@ $("#myfeeDiscountModal").on('shown.bs.modal', function (e) {
                 select_count++;
             });
 
+            console.log("Selected Count: " + select_count); // Debug Log
+
             if (select_count > 0) {
+                console.log("Sending AJAX to: " + base_url + "user/user/getcollectfee"); // Debug Log
                 $.ajax({
                     type: 'POST',
                     url: base_url + "user/user/getcollectfee",
@@ -1307,13 +1313,16 @@ $("#myfeeDiscountModal").on('shown.bs.modal', function (e) {
                         $this.button('loading');
                     },
                     success: function(data) {
+                        console.log("AJAX Success"); // Debug Log
                         $("#listCollectionModal .modal-body").html(data.view);
                         $("#listCollectionModal").modal('show');
                         $this.button('reset');
                     },
-                    error: function(xhr) { // if error occured
+                    error: function(xhr, status, error) { // if error occured
+                        console.error("AJAX Error: " + status + " - " + error); // Debug Log
+                        console.log(xhr.responseText); // Log response payload
                         alert("<?php echo $this->lang->line('error_occurred_please_try_again'); ?>");
-
+                        $this.button('reset'); // Ensure button resets on error
                     },
                     complete: function() {
                         $this.button('reset');
