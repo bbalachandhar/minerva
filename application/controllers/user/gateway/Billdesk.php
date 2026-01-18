@@ -64,6 +64,10 @@ class Billdesk extends Student_Controller
         $data['setting'] = $this->setting;
         $data['api_error'] = '';
 
+        log_message('error', 'Billdesk Pay Start: Checking for fallback sub-merchant ID.');
+        $fallback_check = $this->_get_fallback_sub_merchant_id();
+        log_message('error', 'Billdesk Fallback Check: Found sub-merchant ID: ' . ($fallback_check ? $fallback_check : 'None'));
+
         try {
             // Calculate Totals and Prepare Split Payment Logic
             $total_amount = ($data['params']['fine_amount_balance'] + $data['params']['total']) - $data['params']['applied_fee_discount'] + $data['params']['gateway_processing_charge'];
@@ -82,6 +86,11 @@ class Billdesk extends Student_Controller
             $fee_group_names = [];
             $fee_categories = [];
             
+            log_message('error', 'Billdesk Pay: Looping through student fees.');
+            if (empty($data['params']['student_fees_master_array'])) {
+                log_message('error', 'Billdesk Pay: student_fees_master_array is empty.');
+            }
+
             if (!empty($data['params']['student_fees_master_array'])) {
                 foreach ($data['params']['student_fees_master_array'] as $key => $fee) {
                     $fee_group_names[] = $fee['fee_group_name'];
@@ -93,8 +102,11 @@ class Billdesk extends Student_Controller
                         $item_amount -= $fee['applied_fee_discount'];
                     }
                     
-                    $sub_mid = $this->get_sub_merchant_id($fee['fee_groups_feetype_id']);
-                    
+                    $fee_groups_feetype_id = $fee['fee_groups_feetype_id'];
+                    log_message('error', 'Billdesk Fee Loop: Processing fee_groups_feetype_id = ' . $fee_groups_feetype_id);
+                    $sub_mid = $this->get_sub_merchant_id($fee_groups_feetype_id);
+                    log_message('error', 'Billdesk Fee Loop: Found sub_mid = ' . ($sub_mid ? $sub_mid : 'NULL'));
+
                     if ($sub_mid) {
                         // Each fee type with a sub_merchant_id gets its own split payment entry.
                         $split_payment_payload[] = [
