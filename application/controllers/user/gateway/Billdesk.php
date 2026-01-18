@@ -38,6 +38,21 @@ class Billdesk extends Student_Controller
         return ($result && !empty($result->sub_merchant_id)) ? $result->sub_merchant_id : null;
     }
 
+    private function _get_fallback_sub_merchant_id() {
+        $query = $this->db->select('sub_merchant_id')
+                        ->from('feetype')
+                        ->where('sub_merchant_id IS NOT NULL')
+                        ->where('sub_merchant_id !=', '')
+                        ->limit(1)
+                        ->get();
+        
+        if ($query->num_rows() > 0) {
+            return $query->row()->sub_merchant_id;
+        }
+        
+        return null; 
+    }
+
     public function pay()
     {
         if (!empty($this->school_details->timezone)) {
@@ -49,88 +64,97 @@ class Billdesk extends Student_Controller
         $data['setting'] = $this->setting;
         $data['api_error'] = '';
 
-        // Calculate Totals and Prepare Split Payment Logic
-        $total_amount = ($data['params']['fine_amount_balance'] + $data['params']['total']) - $data['params']['applied_fee_discount'] + $data['params']['gateway_processing_charge'];
-        $formatted_amount = number_format($total_amount, 2, '.', '');
-        $school_code = (!empty($this->setting[0]['dise_code'])) ? $this->setting[0]['dise_code'] : "MINERVA";
-
-        // Group fees by Sub Merchant ID
-        $grouped_fees = [];
-        $grouped_fees['MAIN'] = 0; // Default bucket for fees without specific sub_merchant_id
-
-        // Add Processing Charge to MAIN bucket
-        if (isset($data['params']['gateway_processing_charge'])) {
-            $grouped_fees['MAIN'] += $data['params']['gateway_processing_charge'];
-        }
-
-        $fee_group_names = [];
-        $fee_categories = [];
-        $first_valid_child_id = null;
-
-        if (!empty($data['params']['student_fees_master_array'])) {
-            foreach ($data['params']['student_fees_master_array'] as $fee) {
-                $fee_group_names[] = $fee['fee_group_name'];
-                $fee_categories[] = $fee['fee_category'];
-
-                $item_amount = $fee['amount_balance'] + $fee['fine_balance'];
-                
-                if (isset($fee['applied_fee_discount'])) {
-                    $item_amount -= $fee['applied_fee_discount'];
-                }
-                
-                $sub_mid = $this->get_sub_merchant_id($fee['fee_groups_feetype_id']);
-                
-                if ($sub_mid) {
-                    if (!$first_valid_child_id) {
-                        $first_valid_child_id = $sub_mid;
-                    }
-                } else {
-                    $sub_mid = 'MAIN';
-                }
-                
-                if (!isset($grouped_fees[$sub_mid])) {
-                    $grouped_fees[$sub_mid] = 0;
-                }
-                $grouped_fees[$sub_mid] += $item_amount;
-            }
-        }
-        
-        // Handle Unmapped/Processing Fees
-        // Assign MAIN bucket to the first valid child ID found, or fallback to a default
-        $target_child_id = $first_valid_child_id ? $first_valid_child_id : 'UAT2K800C1';
-        
-        if (isset($grouped_fees['MAIN']) && $grouped_fees['MAIN'] > 0) {
-            if (!isset($grouped_fees[$target_child_id])) {
-                $grouped_fees[$target_child_id] = 0;
-            }
-            $grouped_fees[$target_child_id] += $grouped_fees['MAIN'];
-            unset($grouped_fees['MAIN']);
-        }
-        
-        $split_payment_payload = [];
-        foreach ($grouped_fees as $mid => $amount) {
-            if ($mid == 'MAIN') continue; 
-            
-            if ($amount > 0) {
-                $split_payment_payload[] = [
-                    'mercid' => $mid,
-                    'amount' => number_format($amount, 2, '.', ''),
-                    'customer_refid' => $school_code . 'ORN' . time() . rand(11, 99), 
-                    'additional_info1' => 'NA',
-                    'additional_info2' => 'NA',
-                    'additional_info3' => 'NA',
-                    'additional_info4' => 'NA',
-                    'additional_info5' => 'NA',
-                    'additional_info6' => 'NA',
-                    'additional_info7' => 'NA',
-                ];
-            }
-        }
-
-        $fee_group_name_str = implode(',', array_unique($fee_group_names));
-        $fee_category_str = implode(',', array_unique($fee_categories));
-
         try {
+            // Calculate Totals and Prepare Split Payment Logic
+            $total_amount = ($data['params']['fine_amount_balance'] + $data['params']['total']) - $data['params']['applied_fee_discount'] + $data['params']['gateway_processing_charge'];
+            $formatted_amount = number_format($total_amount, 2, '.', '');
+            $school_code = (!empty($this->setting[0]['dise_code'])) ? $this->setting[0]['dise_code'] : "MINERVA";
+
+            // New, correct split payment logic
+            $split_payment_payload = [];
+            $unmapped_amount = 0;
+
+            // Start with gateway processing charge in unmapped
+            if (isset($data['params']['gateway_processing_charge']) && $data['params']['gateway_processing_charge'] > 0) {
+                $unmapped_amount += $data['params']['gateway_processing_charge'];
+            }
+
+            $fee_group_names = [];
+            $fee_categories = [];
+            
+            if (!empty($data['params']['student_fees_master_array'])) {
+                foreach ($data['params']['student_fees_master_array'] as $key => $fee) {
+                    $fee_group_names[] = $fee['fee_group_name'];
+                    $fee_categories[] = $fee['fee_category'];
+
+                    $item_amount = $fee['amount_balance'] + $fee['fine_balance'];
+                    
+                    if (isset($fee['applied_fee_discount'])) {
+                        $item_amount -= $fee['applied_fee_discount'];
+                    }
+                    
+                    $sub_mid = $this->get_sub_merchant_id($fee['fee_groups_feetype_id']);
+                    
+                    if ($sub_mid) {
+                        // Each fee type with a sub_merchant_id gets its own split payment entry.
+                        $split_payment_payload[] = [
+                            'mercid' => $sub_mid,
+                            'amount' => number_format($item_amount, 2, '.', ''),
+                            'customer_refid' => $school_code . 'ORN' . uniqid(), // Unique ref id
+                            'additional_info1' => 'NA',
+                            'additional_info2' => 'NA',
+                            'additional_info3' => 'NA',
+                            'additional_info4' => 'NA',
+                            'additional_info5' => 'NA',
+                            'additional_info6' => 'NA',
+                            'additional_info7' => 'NA',
+                        ];
+                    } else {
+                        // This fee does not have a sub_merchant_id, so add it to the unmapped amount.
+                        $unmapped_amount += $item_amount;
+                    }
+                }
+            }
+            
+            // Now, handle the total unmapped amount.
+            if ($unmapped_amount > 0) {
+                if (!empty($split_payment_payload)) {
+                    // If we have existing splits, add the unmapped amount to the first one.
+                    // This is to ensure the total split amount matches the transaction amount.
+                    $split_payment_payload[0]['amount'] = number_format(
+                        floatval($split_payment_payload[0]['amount']) + $unmapped_amount, 
+                        2, 
+                        '.', 
+                        ''
+                    );
+                } else {
+                    // If there are NO fees with sub_merchant_ids, create a single split
+                    // for the entire amount using a fallback child merchant ID.
+                    $fallback_child_id = $this->_get_fallback_sub_merchant_id();
+
+                    if (!$fallback_child_id) {
+                        // This is a critical configuration error. No sub-merchants are defined at all.
+                        throw new Exception("Billdesk payment processing failed: No sub-merchant IDs are configured in the feetype table.");
+                    }
+                    
+                    $split_payment_payload[] = [
+                        'mercid' => $fallback_child_id,
+                        'amount' => number_format($unmapped_amount, 2, '.', ''),
+                        'customer_refid' => $school_code . 'ORN' . uniqid(),
+                        'additional_info1' => 'NA',
+                        'additional_info2' => 'NA',
+                        'additional_info3' => 'NA',
+                        'additional_info4' => 'NA',
+                        'additional_info5' => 'NA',
+                        'additional_info6' => 'NA',
+                        'additional_info7' => 'NA',
+                    ];
+                }
+            }
+
+            $fee_group_name_str = implode(',', array_unique($fee_group_names));
+            $fee_category_str = implode(',', array_unique($fee_categories));
+
             // Step 2: Ecom Order
             $ecom_payload = [
                 'mercid' => $this->api_config->api_secret_key,
