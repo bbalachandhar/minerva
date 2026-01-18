@@ -137,7 +137,9 @@ class Billdesk extends Student_Controller
         
         $split_payment_payload = [];
         foreach ($grouped_fees as $mid => $amount) {
-            if ($mid == 'MAIN') continue; // Don't add MAIN to split_payment (it's the residual or main account)
+            if ($mid == 'MAIN') {
+                $mid = $this->api_config->api_secret_key; // Use Main Merchant ID for unassigned/processing fees
+            }
             
             if ($amount > 0) {
                 $split_payment_payload[] = [
