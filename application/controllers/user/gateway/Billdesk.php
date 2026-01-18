@@ -58,66 +58,33 @@ class Billdesk extends Student_Controller
         $grouped_fees = [];
         $grouped_fees['MAIN'] = 0; // Default bucket for fees without specific sub_merchant_id
 
-        // Add Processing Charge to MAIN bucket (usually goes to main merchant account)
+        // Add Processing Charge to MAIN bucket
         if (isset($data['params']['gateway_processing_charge'])) {
             $grouped_fees['MAIN'] += $data['params']['gateway_processing_charge'];
         }
 
         $fee_group_names = [];
         $fee_categories = [];
+        $first_valid_child_id = null;
 
         if (!empty($data['params']['student_fees_master_array'])) {
             foreach ($data['params']['student_fees_master_array'] as $fee) {
                 $fee_group_names[] = $fee['fee_group_name'];
                 $fee_categories[] = $fee['fee_category'];
 
-                // Calculate net payable for this fee item
-                // Logic: amount + fine - discount (assuming discount applies proportionally or to specific fees? usually specific)
-                // In this system, discount is usually applied to the total or per fee. 
-                // Let's assume applied_fee_discount is global for the transaction in params, but individual fee items have 'amount_balance' which is net of previous payments.
-                // Wait, 'amount_balance' in loop is what is being paid now. 
-                // 'applied_fee_discount' in params is total discount for this transaction.
-                // We need to distribute discount? Or is 'amount_balance' already net?
-                // Checking Payment.php: 'total' => ($total_amount_balance), 'applied_fee_discount' => ..., 'amount_balance' in array.
-                // It seems 'amount_balance' is the GROSS amount pending.
-                // If there is a discount, it is subtracted from the TOTAL.
-                
-                // CRITICAL: BillDesk Split Payment sum MUST equal Transaction Amount.
-                // If we have a global discount, we need to subtract it from the buckets.
-                // This is complex if discount is global.
-                // However, usually discounts are applied to Tuition Fee.
-                
-                // Let's look at the data structure again. 
-                // $fee['amount_balance'] is the due amount.
-                // $fee['fine_balance'] is fine.
-                // If we are paying full due, we pay amount_balance + fine_balance.
-                
-                // If there is a discount, where does it come from? 
-                // In Razorpay/Billdesk controller logic: 
-                // $total_amount = (fine + total) - discount + processing.
-                
-                // So we need to subtract discount from the split.
-                // Strategy: Subtract discount from the 'MAIN' bucket or the first available bucket?
-                // Or better: Assume discount applies to Tuition (which might have a child ID).
-                
-                // Simplest approach: Calculate share for each fee item.
-                // Item Pay = amount_balance + fine_balance.
-                // We need to deduct the global discount from *somewhere*.
-                // Let's verify if discount is per-fee item in the array. 
-                // In Payment.php loop: $fee_record['applied_fee_discount'] = $final_discount_amount; (This looks like per fee record?)
-                // NO, inside the loop in Payment.php, it calculates $final_discount_amount based on percentage/fix and assigns to $fee_record.
-                // So $fee['applied_fee_discount'] exists!
-                
                 $item_amount = $fee['amount_balance'] + $fee['fine_balance'];
                 
-                // If individual fee item has discount info, use it.
                 if (isset($fee['applied_fee_discount'])) {
                     $item_amount -= $fee['applied_fee_discount'];
                 }
                 
                 $sub_mid = $this->get_sub_merchant_id($fee['fee_groups_feetype_id']);
                 
-                if (empty($sub_mid)) {
+                if ($sub_mid) {
+                    if (!$first_valid_child_id) {
+                        $first_valid_child_id = $sub_mid;
+                    }
+                } else {
                     $sub_mid = 'MAIN';
                 }
                 
@@ -128,24 +95,27 @@ class Billdesk extends Student_Controller
             }
         }
         
-        // Handle global discount if not distributed (fallback)
-        // If the sum of grouped fees != total_amount (excluding processing), we have a discrepancy.
-        // But since we built total_amount from the same components, it should match.
-        // Total = Sum(fee + fine) - TotalDiscount + Processing.
-        // Our Grouped Sum = Sum(fee + fine - fee_discount) + Processing(in MAIN).
-        // It should match IF fee['applied_fee_discount'] sums up to params['applied_fee_discount'].
+        // Handle Unmapped/Processing Fees
+        // Assign MAIN bucket to the first valid child ID found, or fallback to a default
+        $target_child_id = $first_valid_child_id ? $first_valid_child_id : 'UAT2K800C1';
+        
+        if (isset($grouped_fees['MAIN']) && $grouped_fees['MAIN'] > 0) {
+            if (!isset($grouped_fees[$target_child_id])) {
+                $grouped_fees[$target_child_id] = 0;
+            }
+            $grouped_fees[$target_child_id] += $grouped_fees['MAIN'];
+            unset($grouped_fees['MAIN']);
+        }
         
         $split_payment_payload = [];
         foreach ($grouped_fees as $mid => $amount) {
-            if ($mid == 'MAIN') {
-                $mid = $this->api_config->api_secret_key; // Use Main Merchant ID for unassigned/processing fees
-            }
+            if ($mid == 'MAIN') continue; 
             
             if ($amount > 0) {
                 $split_payment_payload[] = [
                     'mercid' => $mid,
                     'amount' => number_format($amount, 2, '.', ''),
-                    'customer_refid' => $school_code . 'ORN' . time() . rand(11, 99), // Unique Ref for child
+                    'customer_refid' => $school_code . 'ORN' . time() . rand(11, 99), 
                     'additional_info1' => 'NA',
                     'additional_info2' => 'NA',
                     'additional_info3' => 'NA',
