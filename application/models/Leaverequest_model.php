@@ -249,6 +249,15 @@ class Leaverequest_model extends MY_model
         }
     }
 
+    public function getLeaveSubstitutions($leave_request_id)
+    {
+        $this->db->select('leave_substitutions.*, staff.name, staff.surname, staff.employee_id');
+        $this->db->from('leave_substitutions');
+        $this->db->join('staff', 'staff.id = leave_substitutions.substitute_staff_id', 'left');
+        $this->db->where('leave_request_id', $leave_request_id);
+        return $this->db->get()->result_array();
+    }
+
     public function get_recommender_pending_leave_requests($recommender_id)
     {
         $query = $this->db->select('staff.name,staff.surname,staff.employee_id,staff_leave_request.*,leave_types.type,
