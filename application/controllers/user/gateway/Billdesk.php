@@ -564,6 +564,13 @@ class Billdesk extends Student_Controller
     }
 
     private function get_sub_merchant_id($fee_groups_feetype_id) {
+        $sql = "SELECT ft.sub_merchant_id FROM feetype ft JOIN fee_groups_feetype fgf ON fgf.feetype_id = ft.id WHERE fgf.id = ?";
+        $query = $this->db->query($sql, array($fee_groups_feetype_id));
+        $result = $query->row();
+        return ($result && !empty($result->sub_merchant_id)) ? $result->sub_merchant_id : null;
+    }
+
+    public function success($response) {
         $data['response'] = $response;
         $this->load->view('user/gateway/billdesk/success', $data);
     }
