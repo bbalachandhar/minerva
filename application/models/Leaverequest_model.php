@@ -157,8 +157,25 @@ class Leaverequest_model extends MY_model
         }
     }
 
+    public function check_if_leave_exists($staff_id, $leave_from, $leave_to)
+    {
+        $this->db->where('staff_id', $staff_id);
+        $this->db->where("((leave_from <= '{$leave_from}' AND leave_to >= '{$leave_from}') OR (leave_from <= '{$leave_to}' AND leave_to >= '{$leave_to}') OR (leave_from >= '{$leave_from}' AND leave_to <= '{$leave_to}'))");
+        $query = $this->db->get('staff_leave_request');
+        return $query->num_rows() > 0;
+    }
+
     public function addLeaveRequest($data)
     {
+        if (isset($data['id'])) {
+            // This is an update, no need to check for existing leave
+        } else {
+            $leave_exists = $this->check_if_leave_exists($data['staff_id'], $data['leave_from'], $data['leave_to']);
+            if ($leave_exists) {
+                return false;
+            }
+        }
+
         $this->db->trans_start(); # Starting Transaction
         $this->db->trans_strict(false); # See Note 01. If you wish can remove as well
         //=======================Code Start===========================
@@ -179,7 +196,7 @@ class Leaverequest_model extends MY_model
                 $this->db->trans_rollback();
                 return false;
             } else {
-                //return $return_value;
+                return true;
             }
         } else {
             // Set initial status for new leave requests
@@ -209,7 +226,7 @@ class Leaverequest_model extends MY_model
                 $this->db->trans_rollback();
                 return false;
             } else {
-                //return $return_value;
+                return $id;
             }
         }
     }

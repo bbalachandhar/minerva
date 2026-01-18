@@ -57,6 +57,17 @@ class Apply_leave extends Student_Controller
 
             $array = array('status' => 'fail', 'error' => $msg, 'message' => '');
         } else {
+            $student_session_id = $this->session->userdata['current_class']['student_session_id'];
+            $from_date = $this->customlib->dateFormatToYYYYMMDD($this->input->post('from_date'));
+            $to_date = $this->customlib->dateFormatToYYYYMMDD($this->input->post('to_date'));
+
+            $leave_exists = $this->apply_leave_model->check_leave_exists($student_session_id, $from_date, $to_date);
+
+            if ($leave_exists) {
+                $array = array('status' => 'fail', 'error' => array('message' => 'Leave already applied for the selected date range.'), 'message' => '');
+                echo json_encode($array);
+                return;
+            }
             $upload_file = array();
 
             $data = array(
