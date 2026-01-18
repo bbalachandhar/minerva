@@ -1401,6 +1401,7 @@ $("#myfeeDiscountModal").on('shown.bs.modal', function (e) {
         return true;
     }
 
+    $(document).ready(function () {
         $('.detail_popover').popover({
             placement: 'right',
             title: '',
