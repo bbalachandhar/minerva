@@ -101,6 +101,46 @@
                                     <a href="#app_logo" role="button" class="btn btn-primary btn-sm upload_app_logo" style="display: none" data-toggle="tooltip" title="<?php echo $this->lang->line('edit_app_logo'); ?>" data-loading-text="<i class='fa fa-circle-o-notch fa-spin'></i> <?php echo $this->lang->line('processing'); ?>"><i class="fa fa-picture-o"></i> <?php echo $this->lang->line('edit_app_logo'); ?></a>
                                 </div>
                             </div>
+                            <div class="col-lg-3 col-md-6 col-sm-6">
+                                <div class="card-body-logo">
+                                    <h4>Admission Left Logo</h4> 
+                                    <div class="text-center">    
+                                        <?php
+                                        if (!isset($result->admission_logo_left) || $result->admission_logo_left == "") {
+                                            ?>
+                                            <div class="card-body-logo-img"><img src="<?php echo $this->media_storage->getImageURL('uploads/school_content/logo/images.png'); ?>" class="" alt="" style="max-width:100px;"></div>
+                                            <?php
+                                        } else {
+                                            ?>
+                                            <div class="card-body-logo-img"><img src="<?php echo $this->media_storage->getImageURL('uploads/logos/'.$result->admission_logo_left); ?>" class="" alt="" style="max-width:100px;"></div>
+                                            <?php
+                                        }
+                                        ?>
+                                        <p class="bolds ptt10">(120 px X 120 px)</p>
+                                    </div>
+                                    <a href="#schsetting" role="button" class="btn btn-primary btn-sm upload_admission_left_logo" data-logo_type="admission_logo_left">Update</a>    
+                                </div>
+                            </div>
+                            <div class="col-lg-3 col-md-6 col-sm-6">
+                                <div class="card-body-logo">
+                                    <h4>Admission Right Logo</h4> 
+                                    <div class="text-center">    
+                                        <?php
+                                        if (!isset($result->admission_logo_right) || $result->admission_logo_right == "") {
+                                            ?>
+                                            <div class="card-body-logo-img"><img src="<?php echo $this->media_storage->getImageURL('uploads/school_content/logo/images.png'); ?>" class="" alt="" style="max-width:100px;"></div>
+                                            <?php
+                                        } else {
+                                            ?>
+                                            <div class="card-body-logo-img"><img src="<?php echo $this->media_storage->getImageURL('uploads/logos/'.$result->admission_logo_right); ?>" class="" alt="" style="max-width:100px;"></div>
+                                            <?php
+                                        }
+                                        ?>
+                                        <p class="bolds ptt10">(400 px X 120 px)</p>
+                                    </div>
+                                    <a href="#schsetting" role="button" class="btn btn-primary btn-sm upload_admission_right_logo" data-logo_type="admission_logo_right">Update</a>    
+                                </div>
+                            </div>
                         </div>
                     </div>    
                 </div>    
@@ -118,7 +158,7 @@
             </div>
             <div class="modal-body upload_logo_body">
                 <!-- ==== -->
-                <form class="box_upload boxupload has-advanced-upload" method="post" action="<?php echo site_url('schsettings/ajax_editlogo') ?>" enctype="multipart/form-data">
+                <form class="box_upload boxupload has-advanced-upload" method="post" action="<?php echo site_url('schsettings/ajax_editadmin_adminlogo') ?>" enctype="multipart/form-data">
                     <input value="<?php echo $result->id ?>" type="hidden" name="id" id="id_logo_admin"/>
                     <input type="file" name="file" id="file_admin">
                     <!-- Drag and Drop container-->
@@ -144,7 +184,7 @@
             </div>
             <div class="modal-body upload_logo_body">
                 <!-- ==== -->
-                <form class="box_upload boxupload has-advanced-upload" method="post" action="<?php echo site_url('schsettings/ajax_editlogo') ?>" enctype="multipart/form-data">
+                <form class="box_upload boxupload has-advanced-upload" method="post" action="<?php echo site_url('schsettings/ajax_applogo') ?>" enctype="multipart/form-data">
                     <input value="<?php echo $result->id ?>" type="hidden" name="id" id="id_app_logo"/>
                     <input type="file" name="file" id="file_applogo">
                     <!-- Drag and Drop container-->
@@ -170,7 +210,7 @@
             </div>
             <div class="modal-body upload_logo_body">
                 <!-- ==== -->
-                <form class="box_upload boxupload has-advanced-upload" method="post" action="<?php echo site_url('schsettings/ajax_editlogo') ?>" enctype="multipart/form-data">
+                <form class="box_upload boxupload has-advanced-upload" method="post" action="<?php echo site_url('schsettings/ajax_editadmin_smalllogo') ?>" enctype="multipart/form-data">
                     <input value="<?php echo $result->id ?>" type="hidden" name="id" id="id_logo_small"/>
                     <input type="file" name="file" id="file_small">
                     <!-- Drag and Drop container-->
@@ -209,6 +249,48 @@
                 </form>
             </div>
 
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modal-upload_admission_left_logo" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title" id="myModalLabel">Edit Admission Left Logo</h4>
+            </div>
+            <div class="modal-body upload_logo_body">
+                <form class="box_upload boxupload has-advanced-upload" method="post" action="<?php echo site_url('schsettings/ajax_edit_admission_left_logo') ?>" enctype="multipart/form-data">
+                    <input value="<?php echo $result->id ?>" type="hidden" name="id" id="id_admission_left_logo"/>
+                    <input type="file" name="file" id="file_admission_left_logo">
+                    <div class="box__input upload-admission_left_logo_area"  id="uploadfile_admission_left_logo">
+                        <i class="fa fa-download box__icon"></i>
+                        <label><strong><?php echo $this->lang->line('choose_a_file_or_drag_it_here'); ?></strong></label>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modal-upload_admission_right_logo" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title" id="myModalLabel">Edit Admission Right Logo</h4>
+            </div>
+            <div class="modal-body upload_logo_body">
+                <form class="box_upload boxupload has-advanced-upload" method="post" action="<?php echo site_url('schsettings/ajax_edit_admission_right_logo') ?>" enctype="multipart/form-data">
+                    <input value="<?php echo $result->id ?>" type="hidden" name="id" id="id_admission_right_logo"/>
+                    <input type="file" name="file" id="file_admission_right_logo">
+                    <div class="box__input upload-admission_right_logo_area"  id="uploadfile_admission_right_logo">
+                        <i class="fa fa-download box__icon"></i>
+                        <label><strong><?php echo $this->lang->line('choose_a_file_or_drag_it_here'); ?></strong></label>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 </div>
@@ -283,7 +365,7 @@
     $('.upload_admin_small_logo').on('click', function (e) {
         e.preventDefault();
         var $this = $(this);
-        logo_type = $this.data('logo_type');
+        logo_type = 'admin_small_logo';
 
         $this.button('loading');
         $('#modal-upload_admin_small_logo').modal({
@@ -295,6 +377,55 @@
 // set focus when modal is opened
     $('#modal-upload_admin_small_logo').on('shown.bs.modal', function () {
         $('.upload_admin_small_logo').button('reset');
+    });
+
+    $('.upload_app_logo').on('click', function (e) {
+        e.preventDefault();
+        var $this = $(this);
+        logo_type = $this.data('logo_type');
+
+        $this.button('loading');
+        $('#modal-upload_app_logo').modal({
+            show: true,
+            backdrop: 'static',
+            keyboard: false
+        });
+    });
+// set focus when modal is opened
+    $('#modal-upload_app_logo').on('shown.bs.modal', function () {
+        $('.upload_app_logo').button('reset');
+    });
+
+    $('.upload_admission_left_logo').on('click', function (e) {
+        e.preventDefault();
+        var $this = $(this);
+        logo_type = $this.data('logo_type');
+
+        $this.button('loading');
+        $('#modal-upload_admission_left_logo').modal({
+            show: true,
+            backdrop: 'static',
+            keyboard: false
+        });
+    });
+    $('#modal-upload_admission_left_logo').on('shown.bs.modal', function () {
+        $('.upload_admission_left_logo').button('reset');
+    });
+
+    $('.upload_admission_right_logo').on('click', function (e) {
+        e.preventDefault();
+        var $this = $(this);
+        logo_type = $this.data('logo_type');
+
+        $this.button('loading');
+        $('#modal-upload_admission_right_logo').modal({
+            show: true,
+            backdrop: 'static',
+            keyboard: false
+        });
+    });
+    $('#modal-upload_admission_right_logo').on('shown.bs.modal', function () {
+        $('.upload_admission_right_logo').button('reset');
     });
 
     $(".edit_setting").on('click', function (e) {
@@ -332,14 +463,14 @@
         $('.upload-area').on('dragenter', function (e) {
             e.stopPropagation();
             e.preventDefault();
-            $("h1").text("Drop");
+
         });
 
         // Drag over
         $('.upload-area').on('dragover', function (e) {
             e.stopPropagation();
             e.preventDefault();
-            $("h1").text("Drop");
+
         });
 
         // Drop
@@ -347,7 +478,7 @@
             e.stopPropagation();
             e.preventDefault();
 
-            $("h1").text("Upload");
+
 
             var file = e.originalEvent.dataTransfer.files;
             var fd = new FormData();
@@ -420,14 +551,14 @@
         $('.upload-small_area').on('dragenter', function (e) {
             e.stopPropagation();
             e.preventDefault();
-            $("h1").text("Drop");
+
         });
 
         // Drag over
         $('.upload-small_area').on('dragover', function (e) {
             e.stopPropagation();
             e.preventDefault();
-            $("h1").text("Drop");
+
         });
 
         // Drop
@@ -435,7 +566,7 @@
             e.stopPropagation();
             e.preventDefault();
 
-            $("h1").text("Upload");
+
 
             var file = e.originalEvent.dataTransfer.files;
             var fd = new FormData();
@@ -509,14 +640,14 @@
         $('.upload-admin_area').on('dragenter', function (e) {
             e.stopPropagation();
             e.preventDefault();
-            $("h1").text("Drop");
+
         });
 
         // Drag over
         $('.upload-admin_area').on('dragover', function (e) {
             e.stopPropagation();
             e.preventDefault();
-            $("h1").text("Drop");
+
         });
 
         // Drop
@@ -524,16 +655,16 @@
             e.stopPropagation();
             e.preventDefault();
 
-            $("h1").text("Upload");
+
 
             var file = e.originalEvent.dataTransfer.files;
             var fd = new FormData();
 
             fd.append('file', file[0]);
-            fd.append("id", $('#id_logo_small').val());
+            fd.append("id", $('#id_logo_admin').val());
             fd.append("logo_type", logo_type);
 
-            uploadadminlData(fd);
+            uploadadminData(fd);
         });
 
         // Open file selector on div click
@@ -548,7 +679,7 @@
             var files = $('#file_admin')[0].files[0];
 
             fd.append('file', files);
-            fd.append("id", $('#id_logo_small').val());
+            fd.append("id", $('#id_logo_admin').val());
             fd.append("logo_type", logo_type);
             uploadadminData(fd);
         });
@@ -619,14 +750,14 @@
         $('.upload-app_logo_area').on('dragenter', function (e) {
             e.stopPropagation();
             e.preventDefault();
-            $("h1").text("Drop");
+
         });
 
         // Drag over
         $('.upload-app_logo_area').on('dragover', function (e) {
             e.stopPropagation();
             e.preventDefault();
-            $("h1").text("Drop");
+
         });
 
         // Drop
@@ -634,7 +765,7 @@
             e.stopPropagation();
             e.preventDefault();
 
-            $("h1").text("Upload");
+
 
             var file = e.originalEvent.dataTransfer.files;
             var fd = new FormData();
@@ -700,6 +831,191 @@
             }
 
 
+        });
+    }
+
+    // New Admission Left Logo upload
+    $('.upload_admission_left_logo').on('click', function (e) {
+        e.preventDefault();
+        var $this = $(this);
+        logo_type = $this.data('logo_type');
+
+        $this.button('loading');
+        $('#modal-upload_admission_left_logo').modal({
+            show: true,
+            backdrop: 'static',
+            keyboard: false
+        });
+    });
+    $('#modal-upload_admission_left_logo').on('shown.bs.modal', function () {
+        $('.upload_admission_left_logo').button('reset');
+    });
+
+    // New Admission Right Logo upload
+    $('.upload_admission_right_logo').on('click', function (e) {
+        e.preventDefault();
+        var $this = $(this);
+        logo_type = $this.data('logo_type');
+
+        $this.button('loading');
+        $('#modal-upload_admission_right_logo').modal({
+            show: true,
+            backdrop: 'static',
+            keyboard: false
+        });
+    });
+    $('#modal-upload_admission_right_logo').on('shown.bs.modal', function () {
+        $('.upload_admission_right_logo').button('reset');
+    });
+
+
+    $(function () {
+        // Drag enter
+        $('.upload-admission_left_logo_area').on('dragenter', function (e) {
+            e.stopPropagation();
+            e.preventDefault();
+        });
+
+        // Drag over
+        $('.upload-admission_left_logo_area').on('dragover', function (e) {
+            e.stopPropagation();
+            e.preventDefault();
+        });
+
+        // Drop
+        $('.upload-admission_left_logo_area').on('drop', function (e) {
+            e.stopPropagation();
+            e.preventDefault();
+
+            var file = e.originalEvent.dataTransfer.files;
+            var fd = new FormData();
+
+            fd.append('file', file[0]);
+            fd.append("id", $('#id_admission_left_logo').val());
+            fd.append("logo_type", 'admission_logo_left');
+            
+            uploadAdmissionLeftLogoData(fd);
+        });
+
+        // Open file selector on div click
+        $("#uploadfile_admission_left_logo").click(function () {
+            $("#file_admission_left_logo").click();
+        });
+
+        // file selected
+        $("#file_admission_left_logo").change(function () {
+            var fd = new FormData();
+
+            var files = $('#file_admission_left_logo')[0].files[0];
+
+            fd.append('file', files);
+            fd.append("id", $('#id_admission_left_logo').val());
+            fd.append("logo_type", 'admission_logo_left');
+            uploadAdmissionLeftLogoData(fd);
+        });
+    });
+
+    function uploadAdmissionLeftLogoData(formdata) {
+        $.ajax({
+            url: '<?php echo site_url('schsettings/ajax_edit_admission_left_logo') ?>',
+            type: 'post',
+            data: formdata,
+            contentType: false,
+            processData: false,
+            dataType: 'json',
+            cache: false,
+
+            beforeSend: function () {
+                $('#modal-upload_admission_left_logo').addClass('modal_loading');
+            },
+            success: function (response) {
+                if (response.success) {
+                    successMsg(response.message);
+                    window.location.reload(true);
+                } else {
+                    errorMsg(response.error.file);
+                }
+            },
+            error: function (xhr) { // if error occured
+            },
+            complete: function () {
+                $('#modal-upload_admission_left_logo').removeClass('modal_loading');
+            }
+        });
+    }
+
+    $(function () {
+        // Drag enter
+        $('.upload-admission_right_logo_area').on('dragenter', function (e) {
+            e.stopPropagation();
+            e.preventDefault();
+        });
+
+        // Drag over
+        $('.upload-admission_right_logo_area').on('dragover', function (e) {
+            e.stopPropagation();
+            e.preventDefault();
+        });
+
+        // Drop
+        $('.upload-admission_right_logo_area').on('drop', function (e) {
+            e.stopPropagation();
+            e.preventDefault();
+
+            var file = e.originalEvent.dataTransfer.files;
+            var fd = new FormData();
+
+            fd.append('file', file[0]);
+            fd.append("id", $('#id_admission_right_logo').val());
+            fd.append("logo_type", 'admission_logo_right');
+
+            uploadAdmissionRightLogoData(fd);
+        });
+
+        // Open file selector on div click
+        $("#uploadfile_admission_right_logo").click(function () {
+            $("#file_admission_right_logo").click();
+        });
+
+        // file selected
+        $("#file_admission_right_logo").change(function () {
+            var fd = new FormData();
+
+            var files = $('#file_admission_right_logo')[0].files[0];
+
+            fd.append('file', files);
+            fd.append("id", $('#id_admission_right_logo').val());
+            fd.append("logo_type", 'admission_logo_right');
+            uploadAdmissionRightLogoData(fd);
+        });
+    });
+
+    function uploadAdmissionRightLogoData(formdata) {
+        $.ajax({
+            url: '<?php echo site_url('schsettings/ajax_edit_admission_right_logo') ?>',
+            type: 'post',
+            data: formdata,
+            contentType: false,
+            processData: false,
+            dataType: 'json',
+            cache: false,
+
+            beforeSend: function () {
+                $('#modal-upload_admission_right_logo').addClass('modal_loading');
+            },
+            success: function (response) {
+                if (response.success) {
+                    successMsg(response.message);
+                    window.location.reload(true);
+                } else {
+                    errorMsg(response.error.file);
+                }
+            },
+            error: function (xhr) { // if error occured
+            },
+            complete: function () {
+                $('#modal-upload_admission_right_logo').removeClass('modal_loading');
+            }
         });
     }
 </script>

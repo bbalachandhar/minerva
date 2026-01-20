@@ -308,6 +308,20 @@ class Schsettings extends Admin_Controller
                 'base_url'        => $this->input->post('base_url'),
                 'leave_approver_id' => $this->input->post('leave_approver_id'),
             );
+            
+            if (isset($_FILES["admission_logo_left"]) && !empty($_FILES['admission_logo_left']['name'])) {
+                $upload_result = $this->media_storage->fileupload("admission_logo_left", "./uploads/logos/");
+                if ($upload_result['status']) {
+                    $data['admission_logo_left'] = $upload_result['message'];
+                }
+            }
+
+            if (isset($_FILES["admission_logo_right"]) && !empty($_FILES['admission_logo_right']['name'])) {
+                $upload_result = $this->media_storage->fileupload("admission_logo_right", "./uploads/logos/");
+                if ($upload_result['status']) {
+                    $data['admission_logo_right'] = $upload_result['message'];
+                }
+            }
 
             $this->setting_model->add($data);
 
@@ -362,6 +376,110 @@ class Schsettings extends Admin_Controller
 
             $this->setting_model->add($data_record);
             $array = array('success' => true, 'error' => '', 'message' => $this->lang->line('update_message'));
+            echo json_encode($array);
+        }
+    }
+    
+    public function ajax_edit_admission_left_logo()
+    {
+        log_message('debug', 'ajax_edit_admission_left_logo: Method called.');
+        log_message('debug', 'ajax_edit_admission_left_logo: POST data: ' . print_r($_POST, true));
+        log_message('debug', 'ajax_edit_admission_left_logo: FILES data: ' . print_r($_FILES, true));
+
+        $this->form_validation->set_rules('id', $this->lang->line('id'), 'trim|required|xss_clean');
+        $this->form_validation->set_rules('file', $this->lang->line('image'), 'callback_handle_upload');
+        if ($this->form_validation->run() == false) {
+            $data = array(
+                'file' => form_error('file'),
+            );
+            $array = array('success' => false, 'error' => $data);
+            log_message('debug', 'ajax_edit_admission_left_logo: Form validation failed: ' . json_encode($array));
+            echo json_encode($array);
+        } else {
+            log_message('debug', 'ajax_edit_admission_left_logo: Form validation passed.');
+            $id = $this->input->post('id');
+            $setting = $this->setting_model->getSetting();
+            $old_logo = isset($setting->admission_logo_left) ? $setting->admission_logo_left : '';
+
+            if (isset($_FILES["file"]) && $_FILES['file']['name'] != '' && (!empty($_FILES['file']['name']))) {
+                log_message('debug', 'ajax_edit_admission_left_logo: File upload initiated.');
+                $upload_result = $this->media_storage->fileupload("file", "./uploads/logos/");
+                if ($upload_result['status'] === false) {
+                    $array = array('success' => false, 'error' => array('file' => $upload_result['message']));
+                    log_message('debug', 'ajax_edit_admission_left_logo: File upload failed: ' . json_encode($array));
+                    echo json_encode($array);
+                    return;
+                }
+                $img_name = $upload_result['message'];
+                log_message('debug', 'ajax_edit_admission_left_logo: File upload successful. New image name: ' . $img_name);
+            } else {
+                $img_name = $old_logo;
+                log_message('debug', 'ajax_edit_admission_left_logo: No new file uploaded. Using old logo: ' . $img_name);
+            }
+
+            if (isset($_FILES["file"]) && $_FILES['file']['name'] != '' && (!empty($_FILES['file']['name']))) {
+                if ($old_logo != '') {
+                    log_message('debug', 'ajax_edit_admission_left_logo: Deleting old logo: ' . $old_logo);
+                    $this->media_storage->filedelete($old_logo, "uploads/logos");
+                }
+            }
+            $data_record = array('id' => $id, 'admission_logo_left' => $img_name);
+            log_message('debug', 'ajax_edit_admission_left_logo: Updating database with: ' . print_r($data_record, true));
+            $this->setting_model->add($data_record);
+            $array = array('success' => true, 'error' => '', 'message' => $this->lang->line('success_message'));
+            log_message('debug', 'ajax_edit_admission_left_logo: Process completed successfully.');
+            echo json_encode($array);
+        }
+    }
+
+    public function ajax_edit_admission_right_logo()
+    {
+        log_message('debug', 'ajax_edit_admission_right_logo: Method called.');
+        log_message('debug', 'ajax_edit_admission_right_logo: POST data: ' . print_r($_POST, true));
+        log_message('debug', 'ajax_edit_admission_right_logo: FILES data: ' . print_r($_FILES, true));
+
+        $this->form_validation->set_rules('id', $this->lang->line('id'), 'trim|required|xss_clean');
+        $this->form_validation->set_rules('file', $this->lang->line('image'), 'callback_handle_upload');
+        if ($this->form_validation->run() == false) {
+            $data = array(
+                'file' => form_error('file'),
+            );
+            $array = array('success' => false, 'error' => $data);
+            log_message('debug', 'ajax_edit_admission_right_logo: Form validation failed: ' . json_encode($array));
+            echo json_encode($array);
+        } else {
+            log_message('debug', 'ajax_edit_admission_right_logo: Form validation passed.');
+            $id = $this->input->post('id');
+            $setting = $this->setting_model->getSetting();
+            $old_logo = isset($setting->admission_logo_right) ? $setting->admission_logo_right : '';
+
+            if (isset($_FILES["file"]) && $_FILES['file']['name'] != '' && (!empty($_FILES['file']['name']))) {
+                log_message('debug', 'ajax_edit_admission_right_logo: File upload initiated.');
+                $upload_result = $this->media_storage->fileupload("file", "./uploads/logos/");
+                if ($upload_result['status'] === false) {
+                    $array = array('success' => false, 'error' => array('file' => $upload_result['message']));
+                    log_message('debug', 'ajax_edit_admission_right_logo: File upload failed: ' . json_encode($array));
+                    echo json_encode($array);
+                    return;
+                }
+                $img_name = $upload_result['message'];
+                log_message('debug', 'ajax_edit_admission_right_logo: File upload successful. New image name: ' . $img_name);
+            } else {
+                $img_name = $old_logo;
+                log_message('debug', 'ajax_edit_admission_right_logo: No new file uploaded. Using old logo: ' . $img_name);
+            }
+
+            if (isset($_FILES["file"]) && $_FILES['file']['name'] != '' && (!empty($_FILES['file']['name']))) {
+                if ($old_logo != '') {
+                    log_message('debug', 'ajax_edit_admission_right_logo: Deleting old logo: ' . $old_logo);
+                    $this->media_storage->filedelete($old_logo, "uploads/logos");
+                }
+            }
+            $data_record = array('id' => $id, 'admission_logo_right' => $img_name);
+            log_message('debug', 'ajax_edit_admission_right_logo: Updating database with: ' . print_r($data_record, true));
+            $this->setting_model->add($data_record);
+            $array = array('success' => true, 'error' => '', 'message' => $this->lang->line('success_message'));
+            log_message('debug', 'ajax_edit_admission_right_logo: Process completed successfully.');
             echo json_encode($array);
         }
     }
@@ -913,7 +1031,7 @@ class Schsettings extends Admin_Controller
         $data['result']       = $setting;
         $this->load->view('layout/header', $data);
         $this->load->view('setting/maintenance', $data);
-        $this->load->view('layout/footer', $data);
+        $this->load->view('layout/footer');
     }
 
     public function saveattendancetype()

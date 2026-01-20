@@ -20,7 +20,7 @@ class PublicAdmissionForm extends CI_Controller
         $this->load->model('language_model');
         $this->load->model('setting_model');
         $this->sch_setting_detail = $this->setting_model->getSetting(); // Load school settings
-        $this->load->model(array('frontcms_setting_model', 'complaint_Model', 'Visitors_model', 'onlinestudent_model', 'filetype_model', 'customfield_model', 'examgroupstudent_model', 'examgroup_model', 'grade_model', 'marksdivision_model', 'currency_model', 'section_model','holiday_model', 'class_model', 'category_model', 'student_model'));
+        $this->load->model(array('frontcms_setting_model', 'complaint_Model', 'Visitors_model', 'onlinestudent_model', 'filetype_model', 'customfield_model', 'examgroupstudent_model', 'examgroup_model', 'grade_model', 'marksdivision_model', 'currency_model', 'section_model','holiday_model', 'class_model', 'category_model', 'student_model', 'Online_admission_ug_details_model', 'Online_admission_pg_details_model', 'Online_admission_lateral_details_model', 'Online_admission_references_model', 'Online_admission_nata_details_model'));
         $this->load->model('examstudent_model');
         $this->load->config('form-builder');
         $this->load->config('app-config');
@@ -236,301 +236,304 @@ class PublicAdmissionForm extends CI_Controller
         // Ensure $school_setting is available. Front_Controller::__construct() sets $this->school_details.
         $this->data['school_setting'] = $this->sch_setting_detail;
         
-        // Handle form validation
-        if ($this->form_validation->run() == false) {
-            // Render the main form content (pages/admission) into a variable
-            $this->data['content'] = $this->load->view('themes/' . $theme . '/pages/admission', $this->data, true);
-            
-            // Now load the custom template, passing all collected data
-            $this->load->view('themes/' . $theme . '/pages/public_admission_template', $this->data);
-        } else {
-            $document_validate  = true;
-            $custom_field_post  = $this->input->post("custom_fields[students]");
-            $custom_value_array = array();
-            if (!empty($custom_field_post)) {
-
-                foreach ($custom_field_post as $key => $value) {
-                    $check_field_type = $this->input->post("custom_fields[students][" . $key . "]");
-                    $field_value      = is_array($check_field_type) ? implode(",", $check_field_type) : $check_field_type;
-                    $array_custom     = array(
-                        'belong_table_id' => 0,
-                        'custom_field_id' => $key,
-                        'field_value'     => $field_value,
-                    );
-                    $custom_value_array[] = $array_custom;
-                }
-            }
-
-            if ($document_validate) {
-
-                $class_id   = $this->input->post('class_id');
-                $section_id = $this->input->post('section_id');
-
-                $data_db = array( // Renamed to avoid conflict with $data property
-                    'firstname'        => $this->input->post('firstname'),
-                    'class_section_id' => $this->input->post('section_id'),
-                    'dob'              => date('Y-m-d', $this->customlib->datetostrtotime($this->input->post('dob'))),
-                    'gender'           => $this->input->post('gender'),
-                );
-                // for inserting system fields
-
-                if ($this->customlib->getfieldstatus('if_guardian_is')) {
-                    $data_db['guardian_is'] = $this->input->post('guardian_is');
-
-                    $data_db['guardian_name']     = $this->input->post('guardian_name');
-                    $data_db['guardian_relation'] = $this->input->post('guardian_relation');
-                    $data_db['guardian_phone']    = $this->input->post('guardian_phone');
-
-                    if ($this->customlib->getfieldstatus('guardian_occupation')) {
-                        $data_db['guardian_occupation'] = $this->input->post('guardian_occupation');
-                    }
-                    if ($this->customlib->getfieldstatus('guardian_email')) {
-                        $data_db['guardian_email'] = $this->input->post('guardian_email');
-                    }
-                    if ($this->customlib->getfieldstatus('guardian_address')) {
-                        $data_db['guardian_address'] = $this->input->post('guardian_address');
-                    }
-                }
-
-                $middlename       = $this->input->post('middlename');
-                $lastname         = $this->input->post('lastname');
-                $mobileno         = $this->input->post('mobileno');
-                $email            = $this->input->post('email');
-                $category_id      = $this->input->post('category_id');
-                $religion         = $this->input->post('religion');
-                $cast             = $this->input->post('cast');
-                $house            = empty2null($this->input->post('house'));
-                $blood_group      = $this->input->post('blood_group');
-                $height           = $this->input->post('height');
-                $weight           = $this->input->post('weight');
-                $measurement_date = $this->input->post('measure_date');
-
-                $father_name       = $this->input->post('father_name');
-                $father_phone      = $this->input->post('father_phone');
-                $father_occupation = $this->input->post('father_occupation');
-
-                $mother_name       = $this->input->post('mother_name');
-                $mother_phone      = $this->input->post('mother_phone');
-                $mother_occupation = $this->input->post('mother_occupation');
-                $previous_school   = $this->input->post('previous_school');
-                $note              = $this->input->post('note');
-
-                $current_address   = $this->input->post('current_address');
-                $permanent_address = $this->input->post('permanent_address');
-
-                $bank_account_no = $this->input->post('bank_account_no');
-                $bank_name       = $this->input->post('bank_name');
-                $ifsc_code       = $this->input->post('ifsc_code');
-                $adhar_no        = $this->input->post('adhar_no');
-                $samagra_id      = $this->input->post('samagra_id');
-                $rte             = $this->input->post('rte');
-
-                if (isset($middlename)) {
-                    $data_db['middlename'] = $this->input->post('middlename');
-                }
-                if (isset($lastname)) {
-                    $data_db['lastname'] = $this->input->post('lastname');
-                }
-                if (isset($mobileno)) {
-                    $data_db['mobileno'] = $this->input->post('mobileno');
-                }
-                if (isset($email)) {
-                    $data_db['email'] = $this->input->post('email');
-                }  
-                if ($category_id) {
-                    $data_db['category_id'] = $this->input->post('category_id');
-                }else{
-                    $data_db['category_id'] = NULL;
-                }
-                if (isset($religion)) {
-                    $data_db['religion'] = $this->input->post('religion');
-                }
-                if (isset($cast)) {
-                    $data_db['cast'] = $this->input->post('cast');
-                }
-                if (isset($house)) {
-                    $data_db['school_house_id'] = $this->input->post('house');
-                }
-                if (isset($blood_group)) {
-                    $data_db['blood_group'] = $this->input->post('blood_group');
-                }
-                if (isset($height)) {
-                    $data_db['height'] = $this->input->post('height');
-                }
-                if (isset($weight)) {
-                    $data_db['weight'] = $this->input->post('weight');
-                }
-                if (isset($weight)) {
-                    $data_db['weight'] = $this->input->post('weight');
-                }
-                if (!empty($measurement_date)) {
-                    $data_db['measurement_date'] = date('Y-m-d', $this->customlib->datetostrtotime($this->input->post('measure_date')));
-                }
-                if (isset($father_name)) {
-                    $data_db['father_name'] = $this->input->post('father_name');
-                }
-                if (isset($father_phone)) {
-                    $data_db['father_phone'] = $this->input->post('father_phone');
-                }
-                if (isset($father_occupation)) {
-                    $data_db['father_occupation'] = $this->input->post('father_occupation');
-                }
-                if (isset($mother_name)) {
-                    $data_db['mother_name'] = $this->input->post('mother_name');
-                }
-                if (isset($mother_phone)) {
-                    $data_db['mother_phone'] = $this->input->post('mother_phone');
-                }
-                if (isset($mother_occupation)) {
-                    $data_db['mother_occupation'] = $this->input->post('mother_occupation');
-                }
-                if ($current_address) {
-                    $data_db['current_address'] = $this->input->post('current_address');
-                }
-                if ($permanent_address) {
-                    $data_db['permanent_address'] = $this->input->post('permanent_address');
-                }
-                if (isset($bank_account_no)) {
-                    $data_db['bank_account_no'] = $this->input->post('bank_account_no');
-                }
-                if (isset($bank_name)) {
-                    $data_db['bank_name'] = $this->input->post('bank_name');
-                }
-                if (isset($ifsc_code)) {
-                    $data_db['ifsc_code'] = $this->input->post('ifsc_code');
-                }
-                if (isset($adhar_no)) {
-                    $data_db['adhar_no'] = $this->input->post('adhar_no');
-                }
-                if (isset($samagra_id)) {
-                    $data_db['samagra_id'] = $this->input->post('samagra_id');
-                }
-                if (isset($note)) {
-                    $data_db['note'] = $this->input->post('note');
-                }
-                if (isset($previous_school)) {
-                    $data_db['previous_school'] = $this->input->post('previous_school');
-                }
-                if (isset($rte)) {
-                    $data_db['rte'] = $this->input->post('rte');
-                }
-
-                do {
-                    $reference_no   = mt_rand(100000, 999999);
-                    $refence_status = $this->onlinestudent_model->checkreferenceno($reference_no);
-                } while ($refence_status);
-
-                $data_db['reference_no'] = $reference_no;
-
-                if (isset($_FILES["document"]) && !empty($_FILES['document']['name'])) {
-                    $upload_result = $this->media_storage->fileupload("document", "./uploads/student_documents/online_admission_doc/");
-                    if ($upload_result['status'] === false) {
-                        $this->session->set_flashdata('error', $upload_result['message']);
-                        redirect('public_admission');
-                    }
-                    $img_name         = $upload_result['message'];
-                    
-                    $data_db['document'] = $img_name;
-                }
-
-                if (isset($_FILES["file"]) && !empty($_FILES['file']['name'])) {
-                    $upload_result = $this->media_storage->fileupload("file", "./uploads/student_images/online_admission_image/");
-                    if ($upload_result['status'] === false) {
-                        $this->session->set_flashdata('error', $upload_result['message']);
-                        redirect('public_admission');
-                    }
-                    $img_name      = $upload_result['message'];
-                    $data_db['image'] = 'uploads/student_images/online_admission_image/' . $img_name;
-                }
-
-                if (isset($_FILES["father_pic"]) && !empty($_FILES['father_pic']['name'])) {
-                    $upload_result = $this->media_storage->fileupload("father_pic", "./uploads/student_images/online_admission_image/");
-                    if ($upload_result['status'] === false) {
-                        $this->session->set_flashdata('error', $upload_result['message']);
-                        redirect('public_admission');
-                    }
-                    $img_name           = $upload_result['message'];
-                    $data_db['father_pic'] = 'uploads/student_images/online_admission_image/' .$img_name;
-                }
-
-                if (isset($_FILES["mother_pic"]) && !empty($_FILES['mother_pic']['name'])) {
-                    $upload_result = $this->media_storage->fileupload("mother_pic", "./uploads/student_images/online_admission_image/");
-                    if ($upload_result['status'] === false) {
-                        $this->session->set_flashdata('error', $upload_result['message']);
-                        redirect('public_admission');
-                    }
-                    $img_name           = $upload_result['message'];
-                    $data_db['mother_pic'] = 'uploads/student_images/online_admission_image/' .$img_name;
-                }
-
-                                    if (isset($_FILES["guardian_pic"]) && !empty($_FILES['guardian_pic']['name'])) {
-
-                                        $upload_result = $this->media_storage->fileupload("guardian_pic", "./uploads/student_images/online_admission_image/");
-
-                                        if ($upload_result['status'] === false) {
-
-                                            $this->session->set_flashdata('error', $upload_result['message']);
-
-                                            redirect('public_admission');
-
-                                        }
-
-                                        $img_name             = $upload_result['message'];
-
-                                        $data_db['guardian_pic'] = 'uploads/student_images/online_admission_image/' .$img_name;
-
-                                    }
-                $data_db['hostel_room_id']      = null;
-                
-                
-                $insert_id = $this->onlinestudent_model->add($data_db); // Renamed to avoid conflict with $data property
-                if (!empty($custom_value_array)) {
-                    $this->customfield_model->onlineadmissioninsertRecord($custom_value_array, $insert_id);
-                }
-
-                $this->data['class_id']            = $class_id;
-                $this->data['section_id']          = $section_id;
-                $this->data['roll_no']             = $this->input->post('roll_no');
-                $this->data['mobileno']            = $this->input->post('mobileno');
-                $this->data['email']               = $this->input->post('email');
-                $this->data['firstname']           = $this->input->post('firstname');
-                $this->data['lastname']            = $this->input->post('lastname');
-                $this->data['mobileno']            = $this->input->post('mobileno');
-                $this->data['class_section_id']    = $this->input->post('section_id');
-                $this->data['guardian_is']         = $this->input->post('guardian_is');
-                $this->data['dob']                 = date('Y-m-d', $this->customlib->datetostrtotime($this->input->post('dob')));
-                $this->data['ifsc_code']           = $this->input->post('ifsc_code');
-                $this->data['bank_account_no']     = $this->input->post('bank_account_no');
-                $this->data['bank_name']           = $this->input->post('bank_name');
-                $this->data['current_address']     = $this->input->post('current_address');
-                $this->data['permanent_address']   = $this->input->post('permanent_address');
-                $this->data['father_name']         = $this->input->post('father_name');
-                $this->data['father_phone']        = $this->input->post('father_phone');
-                $this->data['father_occupation']   = $this->input->post('father_occupation');
-                $this->data['mother_name']         = $this->input->post('mother_name');
-                $this->data['mother_phone']        = $this->input->post('mother_phone');
-                $this->data['mother_occupation']   = $this->input->post('mother_occupation');
-                $this->data['guardian_occupation'] = $this->input->post('guardian_occupation');
-                $this->data['guardian_email']      = $this->input->post('guardian_email');
-                $this->data['gender']              = $this->input->post('gender');
-                $this->data['guardian_name']       = $this->input->post('guardian_name');
-                $this->data['guardian_relation']   = $this->input->post('guardian_relation');
-                $this->data['guardian_phone']      = $this->input->post('guardian_phone');
-                $this->data['guardian_address']    = $this->input->post('guardian_address');
-                $this->data['note']                = $this->input->post('note');
-                $this->data['previous_school']     = $this->input->post('previous_school');
-                $this->data['house']               = $this->input->post('house');
-                $this->data['blood_group']         = $this->input->post('blood_group');
-                $this->data['measure_date']         = $this->input->post('measure_date');
-                
-                $this->data['admission_id']        = $insert_id;
-                $this->session->set_userdata('validlogin', $reference_no);
-                $this->session->set_flashdata('msg', '<div class="alert alert-success">' . ' ' . $this->lang->line('thanks_for_registration_please_note_your_reference_number') . ' ' . $reference_no . ' ' . $this->lang->line('for_further_communication') . '</div>');
-                                    redirect('public_admission/online_admission_review/' . $reference_no);
-                                }
+                // Handle form validation
+                if ($this->sch_setting_detail->institution_type == 'school') {
+                    if ($this->form_validation->run() == false) {
+                        // Render the main form content (pages/admission) into a variable
+                        $this->data['content'] = $this->load->view('themes/' . $theme . '/pages/admission', $this->data, true);
+                        
+                        // Now load the custom template, passing all collected data
+                        $this->load->view('themes/' . $theme . '/pages/public_admission_template', $this->data);
+                    } else {
+                        $document_validate  = true;
+                        $custom_field_post  = $this->input->post("custom_fields[students]");
+                        $custom_value_array = array();
+                        if (!empty($custom_field_post)) {
+        
+                            foreach ($custom_field_post as $key => $value) {
+                                $check_field_type = $this->input->post("custom_fields[students][" . $key . "]");
+                                $field_value      = is_array($check_field_type) ? implode(",", $check_field_type) : $check_field_type;
+                                $array_custom     = array(
+                                    'belong_table_id' => 0,
+                                    'custom_field_id' => $key,
+                                    'field_value'     => $field_value,
+                                );
+                                $custom_value_array[] = $array_custom;
                             }
                         }
-                     // This closes the public function index()
+        
+                        if ($document_validate) {
+        
+                            $class_id   = $this->input->post('class_id');
+                            $section_id = $this->input->post('section_id');
+        
+                            $data_db = array( // Renamed to avoid conflict with $data property
+                                'firstname'        => $this->input->post('firstname'),
+                                'class_section_id' => $this->input->post('section_id'),
+                                'dob'              => date('Y-m-d', $this->customlib->datetostrtotime($this->input->post('dob'))),
+                                'gender'           => $this->input->post('gender'),
+                            );
+                            // for inserting system fields
+        
+                            if ($this->customlib->getfieldstatus('if_guardian_is')) {
+                                $data_db['guardian_is'] = $this->input->post('guardian_is');
+        
+                                $data_db['guardian_name']     = $this->input->post('guardian_name');
+                                $data_db['guardian_relation'] = $this->input->post('guardian_relation');
+                                $data_db['guardian_phone']    = $this->input->post('guardian_phone');
+        
+                                if ($this->customlib->getfieldstatus('guardian_occupation')) {
+                                    $data_db['guardian_occupation'] = $this->input->post('guardian_occupation');
+                                }
+                                if ($this->customlib->getfieldstatus('guardian_email')) {
+                                    $data_db['guardian_email'] = $this->input->post('guardian_email');
+                                }
+                                if ($this->customlib->getfieldstatus('guardian_address')) {
+                                    $data_db['guardian_address'] = $this->input->post('guardian_address');
+                                }
+                            }
+        
+                            $middlename       = $this->input->post('middlename');
+                            $lastname         = $this->input->post('lastname');
+                            $mobileno         = $this->input->post('mobileno');
+                            $email            = $this->input->post('email');
+                            $category_id      = $this->input->post('category_id');
+                            $religion         = $this->input->post('religion');
+                            $cast             = $this->input->post('cast');
+                            $house            = empty2null($this->input->post('house'));
+                            $blood_group      = $this->input->post('blood_group');
+                            $height           = $this->input->post('height');
+                            $weight           = $this->input->post('weight');
+                            $measurement_date = $this->input->post('measure_date');
+        
+                            $father_name       = $this->input->post('father_name');
+                            $father_phone      = $this->input->post('father_phone');
+                            $father_occupation = $this->input->post('father_occupation');
+        
+                            $mother_name       = $this->input->post('mother_name');
+                            $mother_phone      = $this->input->post('mother_phone');
+                            $mother_occupation = $this->input->post('mother_occupation');
+                            $previous_school   = $this->input->post('previous_school');
+                            $note              = $this->input->post('note');
+        
+                            $current_address   = $this->input->post('current_address');
+                            $permanent_address = $this->input->post('permanent_address');
+        
+                            $bank_account_no = $this->input->post('bank_account_no');
+                            $bank_name       = $this->input->post('bank_name');
+                            $ifsc_code       = $this->input->post('ifsc_code');
+                            $adhar_no        = $this->input->post('adhar_no');
+                            $samagra_id      = $this->input->post('samagra_id');
+                            $rte             = $this->input->post('rte');
+        
+                            if (isset($middlename)) {
+                                $data_db['middlename'] = $this->input->post('middlename');
+                            }
+                            if (isset($lastname)) {
+                                $data_db['lastname'] = $this->input->post('lastname');
+                            }
+                            if (isset($mobileno)) {
+                                $data_db['mobileno'] = $this->input->post('mobileno');
+                            }
+                            if (isset($email)) {
+                                $data_db['email'] = $this->input->post('email');
+                            }  
+                            if ($category_id) {
+                                $data_db['category_id'] = $this->input->post('category_id');
+                            }else{
+                                $data_db['category_id'] = NULL;
+                            }
+                            if (isset($religion)) {
+                                $data_db['religion'] = $this->input->post('religion');
+                            }
+                            if (isset($cast)) {
+                                $data_db['cast'] = $this->input->post('cast');
+                            }
+                            if (isset($house)) {
+                                $data_db['school_house_id'] = $this->input->post('house');
+                            }
+                            if (isset($blood_group)) {
+                                $data_db['blood_group'] = $this->input->post('blood_group');
+                            }
+                            if (isset($height)) {
+                                $data_db['height'] = $this->input->post('height');
+                            }
+                            if (isset($weight)) {
+                                $data_db['weight'] = $this->input->post('weight');
+                            }
+                            if (isset($weight)) {
+                                $data_db['weight'] = $this->input->post('weight');
+                            }
+                            if (!empty($measurement_date)) {
+                                $data_db['measurement_date'] = date('Y-m-d', $this->customlib->datetostrtotime($this->input->post('measure_date')));
+                            }
+                            if (isset($father_name)) {
+                                $data_db['father_name'] = $this->input->post('father_name');
+                            }
+                            if (isset($father_phone)) {
+                                $data_db['father_phone'] = $this->input->post('father_phone');
+                            }
+                            if (isset($father_occupation)) {
+                                $data_db['father_occupation'] = $this->input->post('father_occupation');
+                            }
+                            if (isset($mother_name)) {
+                                $data_db['mother_name'] = $this->input->post('mother_name');
+                            }
+                            if (isset($mother_phone)) {
+                                $data_db['mother_phone'] = $this->input->post('mother_phone');
+                            }
+                            if (isset($mother_occupation)) {
+                                $data_db['mother_occupation'] = $this->input->post('mother_occupation');
+                            }
+                            if ($current_address) {
+                                $data_db['current_address'] = $this->input->post('current_address');
+                            }
+                            if ($permanent_address) {
+                                $data_db['permanent_address'] = $this->input->post('permanent_address');
+                            }
+                            if (isset($bank_account_no)) {
+                                $data_db['bank_account_no'] = $this->input->post('bank_account_no');
+                            }
+                            if (isset($bank_name)) {
+                                $data_db['bank_name'] = $this->input->post('bank_name');
+                            }
+                            if (isset($ifsc_code)) {
+                                $data_db['ifsc_code'] = $this->input->post('ifsc_code');
+                            }
+                            if (isset($adhar_no)) {
+                                $data_db['adhar_no'] = $this->input->post('adhar_no');
+                            }
+                            if (isset($samagra_id)) {
+                                $data_db['samagra_id'] = $this->input->post('samagra_id');
+                            }
+                            if (isset($note)) {
+                                $data_db['note'] = $this->input->post('note');
+                            }
+                            if (isset($previous_school)) {
+                                $data_db['previous_school'] = $this->input->post('previous_school');
+                            }
+                            if (isset($rte)) {
+                                $data_db['rte'] = $this->input->post('rte');
+                            }
+        
+                            do {
+                                $reference_no   = mt_rand(100000, 999999);
+                                $refence_status = $this->onlinestudent_model->checkreferenceno($reference_no);
+                            } while ($refence_status);
+        
+                            $data_db['reference_no'] = $reference_no;
+        
+                            if (isset($_FILES["document"]) && !empty($_FILES['document']['name'])) {
+                                $upload_result = $this->media_storage->fileupload("document", "./uploads/student_documents/online_admission_doc/");
+                                if ($upload_result['status'] === false) {
+                                    $this->session->set_flashdata('error', $upload_result['message']);
+                                    redirect('public_admission');
+                                }
+                                $img_name         = $upload_result['message'];
+                                
+                                $data_db['document'] = $img_name;
+                            }
+        
+                            if (isset($_FILES["file"]) && !empty($_FILES['file']['name'])) {
+                                $upload_result = $this->media_storage->fileupload("file", "./uploads/student_images/online_admission_image/");
+                                if ($upload_result['status'] === false) {
+                                    $this->session->set_flashdata('error', $upload_result['message']);
+                                    redirect('public_admission');
+                                }
+                                $img_name      = $upload_result['message'];
+                                $data_db['image'] = 'uploads/student_images/online_admission_image/' . $img_name;
+                            }
+        
+                            if (isset($_FILES["father_pic"]) && !empty($_FILES['father_pic']['name'])) {
+                                $upload_result = $this->media_storage->fileupload("father_pic", "./uploads/student_images/online_admission_image/");
+                                if ($upload_result['status'] === false) {
+                                    $this->session->set_flashdata('error', $upload_result['message']);
+                                    redirect('public_admission');
+                                }
+                                $img_name           = $upload_result['message'];
+                                $data_db['father_pic'] = 'uploads/student_images/online_admission_image/' .$img_name;
+                            }
+        
+                            if (isset($_FILES["mother_pic"]) && !empty($_FILES['mother_pic']['name'])) {
+                                $upload_result = $this->media_storage->fileupload("mother_pic", "./uploads/student_images/online_admission_image/");
+                                if ($upload_result['status'] === false) {
+                                    $this->session->set_flashdata('error', $upload_result['message']);
+                                    redirect('public_admission');
+                                }
+                                $img_name           = $upload_result['message'];
+                                $data_db['mother_pic'] = 'uploads/student_images/online_admission_image/' .$img_name;
+                            }
+        
+                                                if (isset($_FILES["guardian_pic"]) && !empty($_FILES['guardian_pic']['name'])) {
+        
+                                                    $upload_result = $this->media_storage->fileupload("guardian_pic", "./uploads/student_images/online_admission_image/");
+        
+                                                    if ($upload_result['status'] === false) {
+        
+                                                        $this->session->set_flashdata('error', $upload_result['message']);
+        
+                                                        redirect('public_admission');
+        
+                                                    }
+        
+                                                    $img_name             = $upload_result['message'];
+        
+                                                    $data_db['guardian_pic'] = 'uploads/student_images/online_admission_image/' .$img_name;
+        
+                                                }
+                            $data_db['hostel_room_id']      = null;
+                            
+                            
+                            $insert_id = $this->onlinestudent_model->add($data_db); // Renamed to avoid conflict with $data property
+                            if (!empty($custom_value_array)) {
+                                $this->customfield_model->onlineadmissioninsertRecord($custom_value_array, $insert_id);
+                            }
+        
+                            $this->data['class_id']            = $class_id;
+                            $this->data['section_id']          = $section_id;
+                            $this->data['roll_no']             = $this->input->post('roll_no');
+                            $this->data['mobileno']            = $this->input->post('mobileno');
+                            $this->data['email']               = $this->input->post('email');
+                            $this->data['firstname']           = $this->input->post('firstname');
+                            $this->data['lastname']            = $this->input->post('lastname');
+                            $this->data['mobileno']            = $this->input->post('mobileno');
+                            $this->data['class_section_id']    = $this->input->post('section_id');
+                            $this->data['guardian_is']         = $this->input->post('guardian_is');
+                            $this->data['dob']                 = date('Y-m-d', $this->customlib->datetostrtotime($this->input->post('dob')));
+                            $this->data['ifsc_code']           = $this->input->post('ifsc_code');
+                            $this->data['bank_account_no']     = $this->input->post('bank_account_no');
+                            $this->data['bank_name']           = $this->input->post('bank_name');
+                            $this->data['current_address']     = $this->input->post('current_address');
+                            $this->data['permanent_address']   = $this->input->post('permanent_address');
+                            $this->data['father_name']         = $this->input->post('father_name');
+                            $this->data['father_phone']        = $this->input->post('father_phone');
+                            $this->data['father_occupation']   = $this->input->post('father_occupation');
+                            $this->data['mother_name']         = $this->input->post('mother_name');
+                            $this->data['mother_phone']        = $this->input->post('mother_phone');
+                            $this->data['mother_occupation']   = $this->input->post('mother_occupation');
+                            $this->data['guardian_occupation'] = $this->input->post('guardian_occupation');
+                            $this->data['guardian_email']      = $this->input->post('guardian_email');
+                            $this->data['gender']              = $this->input->post('gender');
+                            $this->data['guardian_name']       = $this->input->post('guardian_name');
+                            $this->data['guardian_relation']   = $this->input->post('guardian_relation');
+                            $this->data['guardian_phone']      = $this->input->post('guardian_phone');
+                            $this->data['guardian_address']    = $this->input->post('guardian_address');
+                            $this->data['note']                = $this->input->post('note');
+                            $this->data['previous_school']     = $this->input->post('previous_school');
+                            $this->data['house']               = $this->input->post('house');
+                            $this->data['blood_group']         = $this->input->post('blood_group');
+                            $this->data['measure_date']         = $this->input->post('measure_date');
+                            
+                            $this->data['admission_id']        = $insert_id;
+                            $this->session->set_userdata('validlogin', $reference_no);
+                            $this->session->set_flashdata('msg', '<div class="alert alert-success">' . ' ' . $this->lang->line('thanks_for_registration_please_note_your_reference_number') . ' ' . $reference_no . ' ' . $this->lang->line('for_further_communication') . '</div>');
+                                                redirect('public_admission/online_admission_review/' . $reference_no);
+                        }
+                    }
+                } else {
+                    $this->load->view('public_admission/college_admission', $this->data);
+                }
+    }
                 
                     public function download($id)
                     {
@@ -1267,5 +1270,265 @@ class PublicAdmissionForm extends CI_Controller
 
         echo json_encode(['status' => 1, 'message' => $this->lang->line('currency_changed_successfully')]);
 
+    }
+
+    public function add_college_admission()
+    {
+        $this->form_validation->set_rules('user_name', 'Name', 'trim|required|xss_clean');
+        $this->form_validation->set_rules('father_name', 'Father\'s Name', 'trim|required|xss_clean');
+        $this->form_validation->set_rules('father_mobile', 'Father\'s Mobile Number', 'trim|required|min_length[10]|max_length[10]|xss_clean');
+        $this->form_validation->set_rules('father_occupation', 'Father\'s Occupation', 'trim|required|xss_clean');
+        $this->form_validation->set_rules('mother_name', 'Mother\'s Name', 'trim|required|xss_clean');
+        $this->form_validation->set_rules('mother_mobile', 'Mother\'s Mobile Number', 'trim|required|min_length[10]|max_length[10]|xss_clean');
+        $this->form_validation->set_rules('mother_occupation', 'Mother\'s Occupation', 'trim|required|xss_clean');
+        $this->form_validation->set_rules('gender', 'Gender', 'trim|required|xss_clean');
+        $this->form_validation->set_rules('student_email', 'Email ID', 'trim|required|valid_email|xss_clean');
+        $this->form_validation->set_rules('student_mobile', 'Student\'s Mobile Number', 'trim|required|min_length[10]|max_length[10]|xss_clean');
+        $this->form_validation->set_rules('dob', 'D.O.B', 'trim|required|xss_clean');
+        $this->form_validation->set_rules('aadhaar', 'Aadhaar Number', 'trim|required|min_length[12]|max_length[12]|xss_clean');
+        $this->form_validation->set_rules('comm_addr', 'Address for Communication', 'trim|required|xss_clean');
+        $this->form_validation->set_rules('perm_addr', 'Permanent Address', 'trim|required|xss_clean');
+        $this->form_validation->set_rules('user_image', 'Photo', 'callback_image_handle_upload[user_image]');
+
+        $courseLevel = $this->input->post('courseLevel');
+
+        if ($courseLevel == 'ug') {
+            $this->form_validation->set_rules('ug_course', 'UG Course', 'trim|required|xss_clean');
+            $this->form_validation->set_rules('school_name', 'Name of the school of X std', 'trim|required|xss_clean');
+            $this->form_validation->set_rules('tenth_passing', 'Year of passing of X std', 'trim|required|min_length[4]|max_length[4]|xss_clean');
+            $this->form_validation->set_rules('maths_marks', 'Maths Marks', 'trim|required|numeric|xss_clean');
+            $this->form_validation->set_rules('total_maths', 'Total Maths Marks', 'trim|required|numeric|xss_clean');
+            $this->form_validation->set_rules('physics_marks', 'Physics & Chemistry Marks', 'trim|required|numeric|xss_clean');
+            $this->form_validation->set_rules('total_physics', 'Total Physics & Chemistry Marks', 'trim|required|numeric|xss_clean');
+            if ($this->input->post('ug_course') == 1) { // B.Arch course ID
+                $this->form_validation->set_rules('nata_score', 'NATA Score', 'trim|required|xss_clean');
+                $this->form_validation->set_rules('application_number', 'NATA Application Form', 'trim|required|xss_clean');
+                $this->form_validation->set_rules('nata_year', 'NATA Year', 'trim|required|xss_clean');
+            }
+        } elseif ($courseLevel == 'lateral') {
+            $this->form_validation->set_rules('lateral_course', 'Lateral Entry Course', 'trim|required|xss_clean');
+            $this->form_validation->set_rules('lateral_school_name', 'Name of the school of X std', 'trim|required|xss_clean');
+            $this->form_validation->set_rules('lateral_tenth_passing', 'Year of passing of X std', 'trim|required|min_length[4]|max_length[4]|xss_clean');
+            for ($i = 1; $i <= 6; $i++) {
+                $this->form_validation->set_rules('presub' . $i, 'Pre-Final Semester Subject ' . $i, 'trim|xss_clean');
+                $this->form_validation->set_rules('premark' . $i, 'Pre-Final Semester Marks ' . $i, 'trim|numeric|xss_clean');
+                $this->form_validation->set_rules('preout' . $i, 'Pre-Final Semester Total Marks ' . $i, 'trim|numeric|xss_clean');
+                $this->form_validation->set_rules('finalsub' . $i, 'Final Semester Subject ' . $i, 'trim|xss_clean');
+                $this->form_validation->set_rules('finalmark' . $i, 'Final Semester Marks ' . $i, 'trim|numeric|xss_clean');
+                $this->form_validation->set_rules('finalout' . $i, 'Final Semester Total Marks ' . $i, 'trim|numeric|xss_clean');
+            }
+        } elseif ($courseLevel == 'pg') {
+            $this->form_validation->set_rules('pg_course', 'PG Course', 'trim|required|xss_clean');
+            $this->form_validation->set_rules('exam_passed', 'Qualifying Exam passed', 'trim|required|xss_clean');
+            $this->form_validation->set_rules('branch', 'Branch', 'trim|required|xss_clean');
+            $this->form_validation->set_rules('yop', 'Year of Passing', 'trim|required|xss_clean');
+            $this->form_validation->set_rules('noc', 'Name of the College', 'trim|required|xss_clean');
+            $this->form_validation->set_rules('nou', 'Name of the University', 'trim|required|xss_clean');
+            $this->form_validation->set_rules('pg_app_num', 'TANCET / PGETA Exam Application Number', 'trim|required|xss_clean');
+            $this->form_validation->set_rules('exam_year', 'TANCET / PGETA Examination Year', 'trim|required|min_length[4]|max_length[4]|xss_clean');
+            $this->form_validation->set_rules('exam_score', 'TANCET / PGETA Exam Score', 'trim|required|numeric|xss_clean');
+            if (!empty($_FILES['bonafide']['name'])) {
+                $this->form_validation->set_rules('bonafide', 'Bonafide Certificate', 'callback_document_handle_upload[bonafide]');
+            }
+        }
+
+        if ($this->form_validation->run() == false) {
+            $msg = array(
+                'user_name' => form_error('user_name'),
+                'father_name' => form_error('father_name'),
+                'father_mobile' => form_error('father_mobile'),
+                'father_occupation' => form_error('father_occupation'),
+                'mother_name' => form_error('mother_name'),
+                'mother_mobile' => form_error('mother_mobile'),
+                'mother_occupation' => form_error('mother_occupation'),
+                'gender' => form_error('gender'),
+                'student_email' => form_error('student_email'),
+                'student_mobile' => form_error('student_mobile'),
+                'dob' => form_error('dob'),
+                'aadhaar' => form_error('aadhaar'),
+                'comm_addr' => form_error('comm_addr'),
+                'perm_addr' => form_error('perm_addr'),
+                'user_image' => form_error('user_image'),
+                'ug_course' => form_error('ug_course'),
+                'school_name' => form_error('school_name'),
+                'tenth_passing' => form_error('tenth_passing'),
+                'maths_marks' => form_error('maths_marks'),
+                'total_maths' => form_error('total_maths'),
+                'physics_marks' => form_error('physics_marks'),
+                'total_physics' => form_error('total_physics'),
+                'nata_score' => form_error('nata_score'),
+                'application_number' => form_error('application_number'),
+                'nata_year' => form_error('nata_year'),
+                'lateral_course' => form_error('lateral_course'),
+                'lateral_school_name' => form_error('lateral_school_name'),
+                'lateral_tenth_passing' => form_error('lateral_tenth_passing'),
+                'pg_course' => form_error('pg_course'),
+                'exam_passed' => form_error('exam_passed'),
+                'branch' => form_error('branch'),
+                'yop' => form_error('yop'),
+                'noc' => form_error('noc'),
+                'nou' => form_error('nou'),
+                'pg_app_num' => form_error('pg_app_num'),
+                'exam_year' => form_error('exam_year'),
+                'exam_score' => form_error('exam_score'),
+                'bonafide' => form_error('bonafide'),
+            );
+            foreach ($msg as $key => $value) {
+                if (empty($value)) {
+                    unset($msg[$key]);
+                }
+            }
+            $array = array('status' => 'fail', 'error' => $msg);
+            echo json_encode($array);
+        } else {
+            $data = $this->input->post();
+            $photo_name = '';
+            if (isset($_FILES["user_image"]) && !empty($_FILES['user_image']['name'])) {
+                $upload_result = $this->media_storage->fileupload("user_image", "./uploads/student_images/online_admission_image/");
+                if ($upload_result['status']) {
+                    $photo_name = 'uploads/student_images/online_admission_image/' . $upload_result['message'];
+                }
+            }
+
+            do {
+                $reference_no   = mt_rand(100000, 999999);
+                $refence_status = $this->onlinestudent_model->checkreferenceno($reference_no);
+            } while ($refence_status);
+
+            $insert_data_online_admission = array(
+                'reference_no' => $reference_no,
+                'firstname' => $data['user_name'],
+                'mobileno' => $data['student_mobile'],
+                'email' => $data['student_email'],
+                'dob' => date('Y-m-d', strtotime($data['dob'])),
+                'gender' => $data['gender'],
+                'father_name' => $data['father_name'],
+                'father_phone' => $data['father_mobile'],
+                'father_occupation' => $data['father_occupation'],
+                'mother_name' => $data['mother_name'],
+                'mother_phone' => $data['mother_mobile'],
+                'mother_occupation' => $data['mother_occupation'],
+                'current_address' => $data['comm_addr'],
+                'permanent_address' => $data['perm_addr'],
+                'adhar_no' => $data['aadhaar'],
+                'image' => $photo_name,
+                'form_status' => 0, // 0 for pending, 1 for submitted
+                'paid_status' => 0, // 0 for unpaid, 1 for paid
+            );
+
+            $online_admission_id = $this->onlinestudent_model->add($insert_data_online_admission);
+
+            // Save reference details
+            if (!empty($data['referral_name'])) {
+                $insert_ref_data = array(
+                    'online_admission_id' => $online_admission_id,
+                    'referrer_name' => $data['referral_name'],
+                    'relationship' => $data['relationship'],
+                    'phone_no' => $data['phone_no'],
+                );
+                $this->Online_admission_references_model->add($insert_ref_data);
+            }
+
+            if ($courseLevel == 'ug') {
+                $insert_ug_data = array(
+                    'online_admission_id' => $online_admission_id,
+                    'ug_course_id' => $data['ug_course'],
+                    'school_name_x' => $data['school_name'],
+                    'passing_year_x' => $data['tenth_passing'],
+                    'maths_marks' => $data['maths_marks'],
+                    'total_maths' => $data['total_maths'],
+                    'physics_marks' => $data['physics_marks'],
+                    'total_physics' => $data['total_physics'],
+                );
+                $this->Online_admission_ug_details_model->add($insert_ug_data);
+
+                if ($data['ug_course'] == 1) { // B.Arch course ID
+                    $insert_nata_data = array(
+                        'online_admission_id' => $online_admission_id,
+                        'nata_score' => $data['nata_score'],
+                        'application_number' => $data['application_number'],
+                        'nata_year' => $data['nata_year'],
+                    );
+                    $this->Online_admission_nata_details_model->add($insert_nata_data);
+                }
+            } elseif ($courseLevel == 'lateral') {
+                $pre_sem_subjects = array();
+                for ($i = 1; $i <= 6; $i++) {
+                    $pre_sem_subjects[] = array(
+                        'subject' => $data['presub' . $i],
+                        'marks' => $data['premark' . $i],
+                        'total_marks' => $data['preout' . $i],
+                    );
+                }
+                $final_sem_subjects = array();
+                for ($i = 1; $i <= 6; $i++) {
+                    $final_sem_subjects[] = array(
+                        'subject' => $data['finalsub' . $i],
+                        'marks' => $data['finalmark' . $i],
+                        'total_marks' => $data['finalout' . $i],
+                    );
+                }
+
+                $insert_lateral_data = array(
+                    'online_admission_id' => $online_admission_id,
+                    'lateral_course_id' => $data['lateral_course'],
+                    'school_name_x' => $data['lateral_school_name'],
+                    'passing_year_x' => $data['lateral_tenth_passing'],
+                    'pre_final_sem_subjects' => json_encode($pre_sem_subjects),
+                    'final_sem_subjects' => json_encode($final_sem_subjects),
+                );
+                $this->Online_admission_lateral_details_model->add($insert_lateral_data);
+            } elseif ($courseLevel == 'pg') {
+                $bonafide_cert_path = '';
+                if (isset($_FILES["bonafide"]) && !empty($_FILES['bonafide']['name'])) {
+                    $upload_result = $this->media_storage->fileupload("bonafide", "./uploads/bonafide_certificates/");
+                    if ($upload_result['status']) {
+                        $bonafide_cert_path = 'uploads/bonafide_certificates/' . $upload_result['message'];
+                    }
+                }
+                
+                $insert_pg_data = array(
+                    'online_admission_id' => $online_admission_id,
+                    'pg_course_id' => $data['pg_course'],
+                    'qualifying_exam' => $data['exam_passed'],
+                    'branch' => $data['branch'],
+                    'year_of_passing' => $data['yop'],
+                    'college_name' => $data['noc'],
+                    'university_name' => $data['nou'],
+                    'tancet_pgeta_app_no' => $data['pg_app_num'],
+                    'tancet_pgeta_year' => $data['exam_year'],
+                    'tancet_pgeta_score' => $data['exam_score'],
+                    'is_alumni' => isset($data['alumni_check']) ? 1 : 0, // Assuming a checkbox with name alumni_check
+                    'bonafide_cert_path' => $bonafide_cert_path,
+                    'is_sports_person' => $data['sports'] == 'Yes' ? 1 : 0,
+                    'sports_level' => $data['sports'] == 'Yes' ? $data['sports_level'] : NULL,
+                    'is_ex_service' => $data['exservice'] == 'Yes' ? 1 : 0,
+                    'is_differently_abled' => $data['differently_abled'] == 'Yes' ? 1 : 0,
+                    'disability_type' => $data['differently_abled'] == 'Yes' ? $data['disability_type'] : NULL,
+                );
+                $this->Online_admission_pg_details_model->add($insert_pg_data);
+            }
+            
+            $this->session->set_flashdata('msg', '<div class="alert alert-success">' . $this->lang->line('thanks_for_registration_please_note_your_reference_number') . ' ' . $reference_no . ' ' . $this->lang->line('for_further_communication') . '</div>');
+            redirect('publicadmissionform');
+        }
+    }
+
+    public function check_admissions_data()
+    {
+        $result = false;
+        if ($this->input->post('email_id')) {
+            $result = $this->onlinestudent_model->check_admissions_data_exists('email', $this->input->post('email_id'));
+        } elseif ($this->input->post('mobile_no')) {
+            $result = $this->onlinestudent_model->check_admissions_data_exists('mobileno', $this->input->post('mobile_no'));
+        } elseif ($this->input->post('aadhaar_no')) {
+            $result = $this->onlinestudent_model->check_admissions_data_exists('adhar_no', $this->input->post('aadhaar_no'));
+        }
+
+        if ($result) {
+            echo json_encode(array('total' => 0));
+        } else {
+            echo json_encode(array('total' => 1));
+        }
     }
 }

@@ -582,4 +582,16 @@ class Onlinestudent_model extends MY_Model
             return 0;
         }
     }
+
+    public function check_admissions_data_exists($key, $value)
+    {
+        $this->db->where($key, $value);
+        $query = $this->db->get('online_admissions');
+        $student_query = $this->db->query("select * from students where ".$key."='" . $value . "' ");
+        if ($query->num_rows() > 0 || $student_query->num_rows() > 0) {
+            return true;
+        } else {
+            return false;
+        }
+    }
 }
