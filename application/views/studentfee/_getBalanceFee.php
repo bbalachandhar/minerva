@@ -27,6 +27,7 @@
          <input type="hidden" class="form-control" id="fee_groups_feetype_id" value="<?php echo $fee_groups_feetype_id ?>" readonly="readonly" />
          <input type="hidden" class="form-control" id="transport_fees_id" value="<?php echo $transport_fees_id ?>" readonly="readonly" />
          <input type="hidden" class="form-control" id="fee_category" value="<?php echo $fee_category ?>" readonly="readonly" />
+         <input type="hidden" id="amount_discount_from_advance" value="0">
 
          <div class="form-group">
              <label for="inputEmail3" class="col-sm-3 col-lg-3 col-md-3 col-xs-2 control-label"><?php echo $this->lang->line('fees'); ?> (<?php echo $currency_symbol; ?>)</label>
@@ -243,48 +244,60 @@ $(document).ready(function () {
     var original_amount_input_val = parseFloat($('#amount').val()); // Initial value of paying amount field
 
     function applyAdvanceLogic() {
-        let amount_to_pay = 0;
-        let discount_to_apply = 0;
-        let current_balance_to_cover = fee_balance_val;
+        let currentPayingAmount = parseFloat($('#amount').val()) || 0;
+        let currentDiscountAmount = parseFloat($('#amount_discount').val()) || 0;
+        let originalFeeBalance = parseFloat(fee_balance_val) || 0; // The fee balance without any group discounts or advances
 
         let use_paid_advance_checked = $('input[name="use_paid_advance"]:checked').val() === 'yes';
         let use_discount_advance_checked = $('input[name="use_discount_advance"]:checked').val() === 'yes';
+        
+        // Reset advance discount field
+        $('#amount_discount_from_advance').val('0');
+        let paymentModeChangedToAdvance = false;
 
-        // Reset fields before applying logic
-        $('#amount').val('0.00');
-        $('#amount_discount').val('0.00');
-        $('input[name="payment_mode_fee"][value="Cash"]').prop('checked', true); // Default to Cash
-
-        // If no advance is used, revert to original amount input value (full fee balance)
+        // If no advance is used, reset to original amount input value (full fee balance)
+        // and default payment mode to Cash.
         if (!use_paid_advance_checked && !use_discount_advance_checked) {
-            $('#amount').val(original_amount_input_val.toFixed(2));
-            return;
+            let hasGrpDiscountChecked = $('.grp_discount:checked').length > 0;
+            if (!hasGrpDiscountChecked) {
+                $('#amount').val(original_amount_input_val.toFixed(2));
+                $('#amount_discount').val('0.00');
+            }
+            $('input[name="payment_mode_fee"][value="Cash"]').prop('checked', true);
+            $('input[name="payment_mode_fee"]').not('[value="Cash"]').prop('checked', false);
+            return; // Exit if no advances are to be applied
         }
 
         // --- Apply Paid Advance ---
         if (use_paid_advance_checked && paid_advance_balance_val > 0) {
-            let paid_advance_can_be_used = Math.min(paid_advance_balance_val, current_balance_to_cover);
-            amount_to_pay = paid_advance_can_be_used;
-            current_balance_to_cover -= paid_advance_can_be_used;
+            let actualAmountToReduce = Math.min(paid_advance_balance_val, currentPayingAmount);
+            currentPayingAmount -= actualAmountToReduce;
+            paymentModeChangedToAdvance = true;
         }
 
         // --- Apply Discount Advance ---
-        if (use_discount_advance_checked && discount_advance_balance_val > 0 && current_balance_to_cover > 0) {
-            let discount_advance_can_be_used = Math.min(discount_advance_balance_val, current_balance_to_cover);
-            discount_to_apply = discount_advance_can_be_used;
-            current_balance_to_cover -= discount_advance_can_be_used;
+        if (use_discount_advance_checked && discount_advance_balance_val > 0) {
+            let advance_discount_to_apply = Math.min(discount_advance_balance_val, currentPayingAmount);
+            $('#amount_discount_from_advance').val(advance_discount_to_apply.toFixed(2));
+            currentDiscountAmount += advance_discount_to_apply;
+            currentPayingAmount -= advance_discount_to_apply; 
+            paymentModeChangedToAdvance = true;
         }
         
+        // Ensure paying amount doesn't go below zero
+        currentPayingAmount = Math.max(0, currentPayingAmount);
+
         // Update the input fields
-        $('#amount').val(amount_to_pay.toFixed(2));
-        $('#amount_discount').val(discount_to_apply.toFixed(2));
+        $('#amount').val(currentPayingAmount.toFixed(2));
+        $('#amount_discount').val(currentDiscountAmount.toFixed(2));
 
         // Ensure that if any advance is used, "Advance" payment mode is selected and others are deselected
-        if (use_paid_advance_checked || use_discount_advance_checked) {
+        if (paymentModeChangedToAdvance) {
             $('input[name="payment_mode_fee"][value="Advance"]').prop('checked', true);
             $('input[name="payment_mode_fee"]').not('[value="Advance"]').prop('checked', false);
         } else {
              $('input[name="payment_mode_fee"][value="Cash"]').prop('checked', true); // Default to Cash if no advance used
+             $('input[name="payment_mode_fee"]').not('[value="Cash"]').prop('checked', false);
         }
     }
 

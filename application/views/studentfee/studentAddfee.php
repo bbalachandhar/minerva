@@ -920,6 +920,7 @@ echo $currency_symbol . amountFormat(($total_balance_amount - $alot_fee_discount
         var student_session_id = $('#std_id').val();
         var amount = $('#amount').val();
         var amount_discount = $('#amount_discount').val();
+        var amount_discount_advance = $('#amount_discount_from_advance').val();
         var amount_fine = $('#amount_fine').val();
         var description = $('#description').val();
         var parent_app_key = $('#parent_app_key').val();
@@ -941,7 +942,7 @@ echo $currency_symbol . amountFormat(($total_balance_amount - $alot_fee_discount
         $.ajax({
             url: '<?php echo site_url("studentfee/addstudentfee") ?>',
             type: 'post',
-            data: {action: action, student_session_id: student_session_id, date: date, type: feetype, amount: amount, amount_discount: amount_discount, amount_fine: amount_fine, description: description, student_fees_master_id: student_fees_master_id, fee_groups_feetype_id: fee_groups_feetype_id,fee_category:fee_category, transport_fees_id:transport_fees_id, payment_mode: payment_mode, guardian_phone: guardian_phone, guardian_email: guardian_email, student_fees_discount_id: student_fees_discount_id, parent_app_key: parent_app_key,discounts: selectedDiscounts, use_paid_advance: use_paid_advance, use_discount_advance: use_discount_advance},
+            data: {action: action, student_session_id: student_session_id, date: date, type: feetype, amount: amount, amount_discount: amount_discount, amount_discount_advance: amount_discount_advance, amount_fine: amount_fine, description: description, student_fees_master_id: student_fees_master_id, fee_groups_feetype_id: fee_groups_feetype_id,fee_category:fee_category, transport_fees_id:transport_fees_id, payment_mode: payment_mode, guardian_phone: guardian_phone, guardian_email: guardian_email, student_fees_discount_id: student_fees_discount_id, parent_app_key: parent_app_key,discounts: selectedDiscounts, use_paid_advance: use_paid_advance, use_discount_advance: use_discount_advance},
             dataType: 'json',
             success: function (response) {
                 console.log('AJAX success callback executed');
@@ -1542,7 +1543,10 @@ $(document).ready(function() {
         $('#amount_discount').val(calculated_discount_amount.toFixed(2));
 
         if (hasDiscountChecked) {
-            $('#amount').val('0.00');
+            var currentFine = parseFloat($('#myFeesModal #amount_fine').val()) || 0;
+            // Calculate paying amount: original fee - calculated discount + current fine
+            var payingAmount = (originalAmountStored - calculated_discount_amount + currentFine);
+            $('#amount').val(Math.max(0, payingAmount).toFixed(2)); // Ensure paying amount doesn't go below 0
         } else {
             // If no discounts are checked, revert to the stored original amount
             // plus any fine that might be currently entered.

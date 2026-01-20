@@ -1149,6 +1149,7 @@ class Studentfee extends Admin_Controller
             $discounts = $this->input->post('discounts');
             $use_paid_advance = $this->input->post('use_paid_advance');
             $use_discount_advance = $this->input->post('use_discount_advance');
+            $amount_discount_advance = $this->input->post('amount_discount_advance') ? $this->input->post('amount_discount_advance') : 0;
 
             if(!isset($discounts)){
                 $discounts=[];
@@ -1268,10 +1269,13 @@ class Studentfee extends Admin_Controller
 
             if ($use_paid_advance == 'yes' || $use_discount_advance == 'yes') {
                 log_message('error', 'use_advance is yes, deducting from advance.');
+                
+                $total_advance_to_deduct = $this->input->post('amount') + $amount_discount_advance;
+
                 $advance_fee_ids = $this->studentfeemaster_model->get_or_create_advance_fee_ids($student_session_id);
                 $json_array_advance = [
                     'amount'          => 0, // Amount is 0 for adjustment
-                    'amount_discount' => -(convertCurrencyFormatToBaseAmount($this->input->post('amount'))), // Negative of the amount used
+                    'amount_discount' => -(convertCurrencyFormatToBaseAmount($total_advance_to_deduct)), // Negative of the total advance amount used
                     'amount_fine'     => 0,
                     'date'            => date('Y-m-d', $this->customlib->datetostrtotime($this->input->post('date'))),
                     'description'     => 'Advance amount used for fee payment',
