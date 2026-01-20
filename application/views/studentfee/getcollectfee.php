@@ -245,15 +245,29 @@ foreach ($feearray as $fee_key => $fee_value) {
                 </div>
             </div>
         </div>
+        <input type="hidden" id="amount_discount_from_advance" name="amount_discount_from_advance" value="0">
         <div class="col-lg-12">
             <div class="form-group">
-                <label for="inputPassword3" class="col-sm-3 control-label">Use Total Advance</label>
+                <label for="inputPassword3" class="col-sm-3 control-label">Use Paid Advance</label>
                 <div class="col-sm-9">
                     <label class="radio-inline">
-                        <input type="radio" name="use_advance" value="yes" <?php if(($paid_advance_balance + $discount_advance_balance) <= 0) echo 'disabled'; ?>>Yes
+                        <input type="radio" name="use_paid_advance" value="yes" <?php if($paid_advance_balance <= 0) echo 'disabled'; ?>>Yes
                     </label>
                     <label class="radio-inline">
-                        <input type="radio" name="use_advance" value="no" checked="checked">No
+                        <input type="radio" name="use_paid_advance" value="no" checked="checked">No
+                    </label>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-12">
+            <div class="form-group">
+                <label for="inputPassword3" class="col-sm-3 control-label">Use Discount Advance</label>
+                <div class="col-sm-9">
+                    <label class="radio-inline">
+                        <input type="radio" name="use_discount_advance" value="yes" <?php if($discount_advance_balance <= 0) echo 'disabled'; ?>>Yes
+                    </label>
+                    <label class="radio-inline">
+                        <input type="radio" name="use_discount_advance" value="no" checked="checked">No
                     </label>
                 </div>
             </div>
@@ -510,57 +524,96 @@ if($fine_amount_status){
  ?>
 <script>
 $(document).ready(function(){
-    var originalAmountStored = <?php echo ($total_amount + $total_fine); ?>;
-    var total_advance_balance = <?php echo $paid_advance_balance + $discount_advance_balance; ?>;
+    var paid_advance_balance_val = <?php echo $paid_advance_balance; ?>;
+    var discount_advance_balance_val = <?php echo $discount_advance_balance; ?>;
+    var total_amount_due = <?php echo ($total_amount + $total_fine); ?>; // Total amount for all selected fees
 
-    function calculatePayingAmount() {
-        var hasDiscountChecked = $('.grp_discount:checked').length > 0;
+    // This function will be called on initial load and when radio buttons change.
+    function applyAdvanceLogic() {
+        let currentPayingAmount = total_amount_due; // Start with total amount due
+        let currentDiscountAmount = 0; // Start with 0 discount
+
+        let use_paid_advance_checked = $('input[name="use_paid_advance"]:checked').val() === 'yes';
+        let use_discount_advance_checked = $('input[name="use_discount_advance"]:checked').val() === 'yes';
         
-        var calculated_discount_amount = 0;
+        // Reset advance discount field
+        $('#amount_discount_from_advance').val('0');
+        let paymentModeChangedToAdvance = false;
+
+        // --- Apply Group Discounts first (existing logic adapted) ---
+        var calculated_group_discount_amount = 0;
         $('.grp_discount:checked').each(function() {
             var type = $(this).data('type');
             var disamount = parseFloat($(this).data('disamount'));
             var percentage = parseFloat($(this).data('percentage'));
             if(type === 'fix'){
-                calculated_discount_amount += disamount;
+                calculated_group_discount_amount += disamount;
             } else { // percentage
-                calculated_discount_amount += (originalAmountStored * percentage) / 100;
+                calculated_group_discount_amount += (total_amount_due * percentage) / 100;
             }
         });
-        $('#amount_discount').val(calculated_discount_amount.toFixed(2));
+        currentDiscountAmount += calculated_group_discount_amount;
+        currentPayingAmount -= calculated_group_discount_amount;
 
-        if (hasDiscountChecked) {
-            $('#amount').val('0.00');
+
+        // If no advance is used, revert to original amount due
+        if (!use_paid_advance_checked && !use_discount_advance_checked) {
+            // Apply fine
+            let currentFine = parseFloat($('#amount_fine').val()) || 0;
+            currentPayingAmount += currentFine; // Add fine back if not covered by advance
+
+            $('#amount').val(Math.max(0, currentPayingAmount).toFixed(2));
+            $('#amount_discount').val(currentDiscountAmount.toFixed(2));
+            $('input[name="payment_mode_fee"][value="Cash"]').prop('checked', true);
+            $('input[name="payment_mode_fee"]').not('[value="Cash"]').prop('checked', false);
+            return; // Exit if no advances are to be applied
+        }
+
+        // --- Apply Paid Advance ---
+        if (use_paid_advance_checked && paid_advance_balance_val > 0) {
+            let actualAmountToReduce = Math.min(paid_advance_balance_val, currentPayingAmount);
+            currentPayingAmount -= actualAmountToReduce;
+            paymentModeChangedToAdvance = true;
+        }
+
+        // --- Apply Discount Advance ---
+        if (use_discount_advance_checked && discount_advance_balance_val > 0) {
+            let advance_discount_to_apply = Math.min(discount_advance_balance_val, currentPayingAmount);
+            $('#amount_discount_from_advance').val(advance_discount_to_apply.toFixed(2));
+            currentDiscountAmount += advance_discount_to_apply;
+            currentPayingAmount -= advance_discount_to_apply; 
+            paymentModeChangedToAdvance = true;
+        }
+        
+        // Ensure paying amount doesn't go below zero
+        currentPayingAmount = Math.max(0, currentPayingAmount);
+
+        // Apply fine if not covered by advances
+        let currentFine = parseFloat($('#amount_fine').val()) || 0;
+        currentPayingAmount += currentFine;
+
+
+        // Update the input fields
+        $('#amount').val(currentPayingAmount.toFixed(2));
+        $('#amount_discount').val(currentDiscountAmount.toFixed(2));
+
+        // Ensure that if any advance is used, "Advance" payment mode is selected and others are deselected
+        if (paymentModeChangedToAdvance) {
+            $('input[name="payment_mode_fee"][value="Advance"]').prop('checked', true);
+            $('input[name="payment_mode_fee"]').not('[value="Advance"]').prop('checked', false);
         } else {
-            var currentFine = parseFloat($('#amount_fine').val()) || 0;
-            var amount_to_pay = originalAmountStored + currentFine;
-            
-            if ($('input[name="use_advance"]:checked').val() === 'yes') {
-                 amount_to_pay = Math.min(total_advance_balance, amount_to_pay);
-            }
-
-            $('#amount').val(amount_to_pay.toFixed(2));
-            $('#amount_discount').val('0.00'); // No discount, so discount amount is 0
+             $('input[name="payment_mode_fee"][value="Cash"]').prop('checked', true); // Default to Cash if no advance used
+             $('input[name="payment_mode_fee"]').not('[value="Cash"]').prop('checked', false);
         }
     }
 
-    $('input[name="use_advance"]').change(function(){
-        if ($(this).is(':checked') && $(this).val() === 'yes') {
-            $('.grp_discount').prop('checked', false);
-        }
-        calculatePayingAmount();
-    });
+    // Event listeners for the new radio buttons
+    $('input[name="use_paid_advance"]').on('change', applyAdvanceLogic);
+    $('input[name="use_discount_advance"]').on('change', applyAdvanceLogic);
+    $('.grp_discount').on('change', applyAdvanceLogic); // Also trigger on group discount change
+    $('#amount_fine').on('change keyup', applyAdvanceLogic); // And on fine change
 
-    $('.grp_discount').change(function(){
-        $('input[name="use_advance"][value="no"]').prop('checked', true);
-        calculatePayingAmount();
-    });
-
-    $('#amount_fine').on('change keyup', function() {
-        calculatePayingAmount();
-    });
-
-    // Initial calculation on load
-    calculatePayingAmount();
+    // Initial call to set the state based on default selections
+    applyAdvanceLogic();
 });
 </script>
