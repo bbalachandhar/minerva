@@ -43,36 +43,9 @@ class Enquiry extends CI_Controller
         $this->form_validation->set_rules('email', 'Email', 'trim|valid_email|xss_clean');
         $this->form_validation->set_rules('source', 'Source', 'trim|required|xss_clean');
         $this->form_validation->set_rules('class', 'Class', 'trim|required|xss_clean');
-        $this->form_validation->set_rules('captcha', 'Captcha', 'trim|required|callback_check_captcha');
-
+        $this->form_validation->set_rules('reference_name', 'Reference Name', 'trim|xss_clean');
+        $this->form_validation->set_rules('reference_contact', 'Reference Contact', 'trim|xss_clean');
         if ($this->form_validation->run() == FALSE) {
-            // CAPTCHA configuration
-            $config = array(
-                'img_path'      => './backend/captcha_images/',
-                'img_url'       => base_url() . 'backend/captcha_images/',
-                'img_width'     => '150',
-                'img_height'    => 30,
-                'expiration'    => 7200,
-                'word_length'   => 6,
-                'font_size'     => 16,
-                'pool'          => '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ',
-                'colors'        => array(
-                    'background' => array(255, 255, 255),
-                    'border'     => array(255, 255, 255),
-                    'text'       => array(0, 0, 0),
-                    'grid'       => array(255, 40, 40)
-                )
-            );
-            $captcha = create_captcha($config);
-            if ($captcha === FALSE) {
-                log_message('error', 'CAPTCHA generation failed in Enquiry controller. Check captcha_images directory permissions.');
-                $data['captcha_image'] = '<div class="text-danger">CAPTCHA generation failed. Please ensure the captcha_images directory exists and is writable.</div>'; 
-                $this->session->set_flashdata('error_message', 'CAPTCHA generation failed. Please try again later.');
-            } else {
-                $this->session->set_userdata('captcha_code', $captcha['word']);
-                $data['captcha_image'] = $captcha['image'];
-            }
-
             // Load dropdown data
             $data['class_list'] = $this->class_model->get();
             $data['sourcelist'] = $this->enquiry_model->getComplaintSource();
@@ -80,7 +53,6 @@ class Enquiry extends CI_Controller
             
             $data['main_content'] = 'enquiry/index';
             $this->load->view('enquiry/enquiry_template', $data);
-
         } else {
             // Save the enquiry
             $enquiry = array(
@@ -88,6 +60,8 @@ class Enquiry extends CI_Controller
                 'contact'        => $this->input->post('contact'),
                 'address'        => $this->input->post('address'),
                 'reference'      => $this->input->post('reference'),
+                'reference_name' => $this->input->post('reference_name'),
+                'reference_contact' => $this->input->post('reference_contact'),
                 'date'           => date('Y-m-d'),
                 'description'    => $this->input->post('description'),
                 'follow_up_date' => date('Y-m-d'),
@@ -112,45 +86,8 @@ class Enquiry extends CI_Controller
         $this->load->view('enquiry/enquiry_template', $data);
     }
 
-    public function check_captcha($str)
-    {
-        if ($str == $this->session->userdata('captcha_code')) {
-            return TRUE;
-        } else {
-            $this->form_validation->set_message('check_captcha', 'Incorrect captcha code.');
-            return FALSE;
-        }
-    }
 
-    public function refresh_captcha()
-    {
-        $this->load->helper('captcha');
-        $config = array(
-            'img_path'      => './backend/captcha_images/',
-            'img_url'       => base_url() . 'backend/captcha_images/',
-            'img_width'     => '150',
-            'img_height'    => 30,
-            'expiration'    => 7200,
-            'word_length'   => 6,
-            'font_size'     => 16,
-            'pool'          => '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ',
-            'colors'        => array(
-                'background' => array(255, 255, 255),
-                'border'     => array(255, 255, 255),
-                'text'       => array(0, 0, 0),
-                'grid'       => array(255, 40, 40)
-            )
-        );
-        $captcha = create_captcha($config);
-        if ($captcha === FALSE) {
-            // Log the error and output a user-friendly message or a placeholder.
-            log_message('error', 'CAPTCHA generation failed in refresh_captcha. Check captcha_images directory permissions.');
-            // Optionally, you could output a placeholder image or an error message.
-            // For now, we will just not output anything to prevent a broken image.
-        } else {
-            $this->session->set_userdata('captcha_code', $captcha['word']);
-            echo $captcha['image'];
-        }
-    }
+
+
 }
 ?>

@@ -71,6 +71,20 @@ if (validation_errors()) {
             </div>
         </div>
     </div>
+    <div class="row">
+        <div class="col-md-6">
+            <div class="form-group">
+                <label for="reference_name">Reference Name</label>
+                <input type="text" class="form-control" name="reference_name" value="<?php echo set_value('reference_name'); ?>">
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="form-group">
+                <label for="reference_contact">Contact Mobile Number</label>
+                <input type="text" class="form-control" name="reference_contact" value="<?php echo set_value('reference_contact'); ?>">
+            </div>
+        </div>
+    </div>
     <div class="form-group">
         <label for="description">Description</label>
         <textarea class="form-control" name="description"><?php echo set_value('description'); ?></textarea>
@@ -79,32 +93,8 @@ if (validation_errors()) {
         <label for="note">Note</label>
         <textarea class="form-control" name="note"><?php echo set_value('note'); ?></textarea>
     </div>
-    <div class="row">
-        <div class="col-md-6">
-            <div class="form-group">
-                <label>Captcha <span class="text-danger">*</span></label>
-                <div style="display: flex; align-items: center;">
-                    <p id="captcha_image_container" style="margin-right: 10px; margin-bottom: 0;"><?php echo $captcha_image; ?></p>
-                    <button type="button" id="refresh_captcha_button" class="btn btn-default btn-sm" style="margin-right: 10px;">Refresh</button>
-                    <input type="text" name="captcha" class="form-control" autocomplete="off" style="width: 150px;">
-                </div>
-            </div>
-        </div>
-    </div>
+
     <button type="submit" class="btn btn-primary">Submit Enquiry</button>
 </form>
 
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script>
-$(document).ready(function(){
-    $('#refresh_captcha_button').click(function(){
-        $.ajax({
-            url: '<?php echo site_url('enquiry/refresh_captcha'); ?>',
-            type: 'GET',
-            success: function(res){
-                $('#captcha_image_container').html(res);
-            }
-        });
-    });
-});
-</script>
+
