@@ -267,6 +267,7 @@ class Schsettings extends Admin_Controller
         $this->form_validation->set_rules('sch_start_week', $this->lang->line('start_day_of_week'), 'trim|required|xss_clean');
         $this->form_validation->set_rules('institution_type', 'Institution Type', 'trim|required|xss_clean');
         $this->form_validation->set_rules('transport_fee_type', 'Transport Fee Type', 'trim|required|xss_clean');
+        $this->form_validation->set_rules('sch_website', 'Website', 'trim|xss_clean');
 
 
         if ($this->form_validation->run() == false) {
@@ -306,6 +307,7 @@ class Schsettings extends Admin_Controller
                 'currency_format' => $this->input->post('currency_format'),
                 'currency_place'  => $this->input->post('currency_place'),
                 'base_url'        => $this->input->post('base_url'),
+                'website'        => $this->input->post('sch_website'),
                 'leave_approver_id' => $this->input->post('leave_approver_id'),
             );
             

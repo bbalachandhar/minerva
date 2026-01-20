@@ -183,12 +183,9 @@
                     <img src="<?php echo base_url('uploads/logos/' . $sch_setting->admission_logo_left); ?>" alt="College Logo" class="logo-left">
                 </div>
                 <div class="col-md-7">
-                    <h2 class="mb-1">MEENAKSHI <br>COLLEGE OF ENGINEERING</h2>
-                    <p class="mb-0"><strong>(K.K. NAGAR, CHENNAI)</strong></p>
-                    <p class="mb-0">(Approved by AICTE, New Delhi & Affiliated to Anna University, Chennai</p>
-                    <p class="mb-0">ISO 9001:2015 Certified Institution | NAAC Accreditation 'A' Grade)</p>
-                    <p class="mb-0">No-12, Vembuliamman Koil Street, West K.K Nagar, Chennai - 600078</p>
-                    <p>Ph: 044-23641400, 23642741 | Email: admission@mce.edu.in | Website: mce.edu.in</p>
+                    <h2 class="mb-1"><?php echo $sch_setting->name; ?></h2>
+                    <p class="mb-0"><?php echo $sch_setting->address; ?></p>
+                    <p>Ph: <?php echo $sch_setting->phone; ?> | Email: <?php echo $sch_setting->email; ?> | Website: <?php echo isset($sch_setting->website) ? $sch_setting->website : ''; ?></p>
                 </div>
                 <div class="col-md-3">
                     <img src="<?php echo base_url('uploads/logos/' . $sch_setting->admission_logo_right); ?>" alt="College Logo" class="logo-right">

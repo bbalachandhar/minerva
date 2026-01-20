@@ -810,13 +810,51 @@ class Welcome extends Front_Controller
             $setting_data                              = $this->setting_model->get();
             $this->data['setting_data'] = $setting_data;
             $this->data['currencies'] = $currencies;
+
+            // Fetch general_purpose header image
+            $header_footer = $this->setting_model->get_printheader();
+            $this->data['general_purpose_header_image'] = '';
+            if ($header_footer) {
+                foreach($header_footer as $head_foot){
+                    if($head_foot['print_type'] == 'general_purpose'){
+                        $this->data['general_purpose_header_image'] = $head_foot['header_image'];
+                        break;
+                    }
+                }
+            }
+            
+            $this->load->model('Online_admission_ug_details_model');
+            $this->load->model('Online_admission_pg_details_model');
+            $this->load->model('Online_admission_lateral_details_model');
+            $this->load->model('Online_admission_references_model');
+            $this->load->model('Online_admission_nata_details_model');
+
+            $this->data['ug_details'] = $this->Online_admission_ug_details_model->get_by_online_admission_id($id);
+            $this->data['pg_details'] = $this->Online_admission_pg_details_model->get_by_online_admission_id($id);
+            $this->data['lateral_details'] = $this->Online_admission_lateral_details_model->get_by_online_admission_id($id);
+            $this->data['nata_details'] = $this->Online_admission_nata_details_model->get_by_online_admission_id($id);
+            $this->data['reference_details'] = $this->Online_admission_references_model->get_by_online_admission_id($id);
+
+            if($this->data['ug_details']){
+                $this->data['course_level'] = 'ug';
+            } elseif($this->data['pg_details']){
+                $this->data['course_level'] = 'pg';
+            } elseif($this->data['lateral_details']){
+                $this->data['course_level'] = 'lateral';
+            } else {
+                $this->data['course_level'] = '';
+            }
             
             if ($this->module_lib->hasModule('online_course')) {
                 $this->load->model('course_model');
                 $this->data['course_setting'] = $this->course_model->getOnlineCourseSettings();
             }
         
+        if ($this->sch_setting_detail->institution_type == 'school') {
             $this->load_theme('pages/online_admission_review', $this->config->item('front_layout'));
+        } else {
+            $this->load->view('public_admission/college_admission_review', $this->data);
+        }
  
         } else {
             $this->show_404();

@@ -100,6 +100,15 @@
                                             </div>
                                         </div>
                                     </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group row">
+                                            <label class="col-sm-4"><?php echo $this->lang->line('website'); ?></label>
+                                            <div class="col-sm-8">
+                                                <input type="text" class="form-control" id="website" name="sch_website" value="<?php echo isset($result->website) ? $result->website : ''; ?>">
+                                                <span class="text-danger"><?php echo form_error('sch_website'); ?></span>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div><!--./row-->
                                 <div class="row">
                                     <div class="col-md-12">
