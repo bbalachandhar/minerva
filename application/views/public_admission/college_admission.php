@@ -199,15 +199,15 @@
                     <h5 class="text-center mb-4">APPLICATION FORM FOR ADMISSION</h5>
                     <div class="d-flex justify-content-center mb-4">
                         <div class="form-check mx-3">
-                            <input class="form-check-input" type="radio" name="courseLevel" id="ugRadio" value="ug" checked>
+                            <input class="form-check-input" type="radio" name="courseLevel" id="ugRadio" value="ug" checked tabindex="1">
                             <label class="form-check-label" for="ugRadio">Undergraduate (UG)</label>
                         </div>
                         <div class="form-check mx-3">
-                            <input class="form-check-input" type="radio" name="courseLevel" id="lateralRadio" value="lateral">
+                            <input class="form-check-input" type="radio" name="courseLevel" id="lateralRadio" value="lateral" tabindex="2">
                             <label class="form-check-label" for="lateralRadio">Lateral Entry</label>
                         </div>
                         <div class="form-check mx-3">
-                            <input class="form-check-input" type="radio" name="courseLevel" id="pgRadio" value="pg">
+                            <input class="form-check-input" type="radio" name="courseLevel" id="pgRadio" value="pg" tabindex="3">
                             <label class="form-check-label" for="pgRadio">Postgraduate (PG)</label>
                         </div>
                     </div>
@@ -220,12 +220,12 @@
                             <div class="Upload_pic">
                                 <label class="form-label">Upload Your Photo (Passport Size) *:</label>
                                 <div id="image-upload-area" class="border rounded d-flex flex-column align-items-center justify-content-center p-3 bg-light"style="height: 200px; cursor: pointer;">
-                                    <input type="file" id="imageUpload" name="user_image" class="d-none" accept="image/*" required>
+                                    <input type="file" id="imageUpload" name="user_image" class="d-none" accept="image/*" required tabindex="4">
                                     <img id="previewImage" src="" alt="Preview" class="d-none border"
                                     style="width: 35mm; height: 45mm; object-fit: cover; border-radius: 5px;">
                                     <i id="uploadIcon" class="bi bi-cloud-upload-fill text-primary" style="font-size: 30px;"></i>
                                     <p id="uploadText" class="mb-0 text-muted">Drag & Drop or Click to Upload</p>
-                                    <small id="uploadNote" class="text-muted">Max size: 2MB (JPG, PNG)</small>
+                                    <small id="uploadNote" class="text-muted">Max size: 300KB</small>
                                 </div>
                             </div>
                         </div>
@@ -237,43 +237,43 @@
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label class="form-label">Name (In block letters with initial at the end)*</label>
-                                <input type="text" class="form-control" name="user_name" id="user_name" onkeydown="return allowAlphabets(event)" placeholder="Enter your full name" required>
+                                <input type="text" class="form-control" name="user_name" id="user_name" onkeydown="return allowAlphabets(event)" placeholder="Enter your full name" required tabindex="5">
                             </div>
                         </div>
                         <div class="mb-3 col-md-6">
                             <label class="form-label">Father's Name*</label>
-                            <input type="text" class="form-control" placeholder="Enter your Father's Name" name="father_name" onkeydown="return allowAlphabets(event)" id="father_name" required>
+                            <input type="text" class="form-control" placeholder="Enter your Father's Name" name="father_name" onkeydown="return allowAlphabets(event)" id="father_name" required tabindex="6">
                         </div>
                     </div>
                     <div class="row">
                         <div class="mb-3 col-md-6">
                             <label class="form-label">Father's Mobile Number*</label>
-                            <input type="text" class="form-control" type="text" minlength="10" maxlength="10" placeholder="Enter your Father's Mobile Number"  onchange="validateMobile(this)" name="father_mobile" id="father_mobile"  onKeyPress="return checkIt(event);" required>
+                            <input type="text" class="form-control" type="text" minlength="10" maxlength="10" placeholder="Enter your Father's Mobile Number"  onchange="validateMobile(this)" name="father_mobile" id="father_mobile"  onKeyPress="return checkIt(event);" required tabindex="7">
                         </div>
                         <div class="mb-3 col-md-6">
                             <label class="form-label">Father's Occupation*</label>
-                            <input type="text" class="form-control" onkeydown="return allowAlphabets(event)" placeholder="Enter your Father's Occupation"   name="father_occupation" id="father_occupation" required>
+                            <input type="text" class="form-control" onkeydown="return allowAlphabets(event)" placeholder="Enter your Father's Occupation"   name="father_occupation" id="father_occupation" required tabindex="8">
                         </div>
                     </div>
                     <div class="row">
                         <div class="mb-3 col-md-6">
                             <label class="form-label">Mother's Name</label>
-                            <input type="text" class="form-control" onkeydown="return allowAlphabets(event)" placeholder="Enter your Mother's Name" name="mother_name" id="mother_name" required>
+                            <input type="text" class="form-control" onkeydown="return allowAlphabets(event)" placeholder="Enter your Mother's Name" name="mother_name" id="mother_name" required tabindex="9">
                         </div>
                         <div class="mb-3 col-md-6">
                             <label class="form-label">Mother's Mobile Number*</label>
-                            <input type="text" class="form-control" placeholder="Enter your Mother's Mobile Number" name="mother_mobile" id="mother_mobile"  onchange="validateMobile(this)" required minlength="10" maxlength="10" onKeyPress="return checkIt(event);">
+                            <input type="text" class="form-control" placeholder="Enter your Mother's Mobile Number" name="mother_mobile" id="mother_mobile"  onchange="validateMobile(this)" required minlength="10" maxlength="10" onKeyPress="return checkIt(event);" tabindex="10">
                         </div>
                     </div>
                     <div class="row">
                         <div class="mb-3 col-md-6">
                             <label class="form-label">Mother's Occupation*</label>
-                            <input type="text" class="form-control" onkeydown="return allowAlphabets(event)" placeholder="Enter your Mother's Occupation" name="mother_occupation" id="mother_occupation" required>
+                            <input type="text" class="form-control" onkeydown="return allowAlphabets(event)" placeholder="Enter your Mother's Occupation" name="mother_occupation" id="mother_occupation" required tabindex="11">
                         </div>
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label class="form-label" for="gender">Gender*</label>
-                                <select class="form-select" id="gender" name="gender" required>
+                                <select class="form-select" id="gender" name="gender" required tabindex="12">
                                     <option value="">Select Gender</option>
                                     <option value="male">Male</option>
                                     <option value="female">Female</option>
@@ -285,34 +285,34 @@
                     <div class="row">
                         <div class="mb-3 col-md-6">
                             <label class="form-label">Email ID*</label>
-                            <input type="email" class="form-control" placeholder="Enter your Email"  id="student_email" name="student_email" required>
+                            <input type="email" class="form-control" placeholder="Enter your Email"  id="student_email" name="student_email" required tabindex="13">
                         </div>
                         <div class="mb-3 col-md-6">
                             <label class="form-label">Student's Mobile Number*</label>
-                            <input type="text" step="any" class="form-control" placeholder="Enter Student's Mobile Number" id="student_mobile" onchange="validateMobile(this)" onKeyPress="return checkIt(event);" name="student_mobile" required minlength="10" maxlength="10">
+                            <input type="text" step="any" class="form-control" placeholder="Enter Student's Mobile Number" id="student_mobile" onchange="validateMobile(this)" onKeyPress="return checkIt(event);" name="student_mobile" required minlength="10" maxlength="10" tabindex="14">
                         </div>
                     </div>
                     <div class="row">
                         <div class="mb-3 col-md-6">
                             <label class="form-label">D.O.B*</label>
-                            <input class="form-control" type="date" placeholder="Enter your D.O.B"  id="dob" name="dob" required>
+                            <input class="form-control" type="date" placeholder="Enter your D.O.B"  id="dob" name="dob" required tabindex="15">
                         </div>
                         <div class="mb-3 col-md-6">
                             <label class="form-label">Aadhaar Number*</label>
-                            <input type="text" step="any" class="form-control" placeholder="Enter your Aadhar Number" id="aadhaar" name="aadhaar" required minlength="12" maxlength="12" onKeyPress="return checkIt(event);">
+                            <input type="text" step="any" class="form-control" placeholder="Enter your Aadhar Number" id="aadhaar" name="aadhaar" required minlength="12" maxlength="12" onKeyPress="return checkIt(event);" tabindex="16">
                         </div>
                     </div>
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label class="form-label">Address for Communication*</label>
-                                <textarea class="form-control" placeholder="Enter your Communication Address"  name="comm_addr" id="comm_addr" required></textarea>
+                                <textarea class="form-control" placeholder="Enter your Communication Address"  name="comm_addr" id="comm_addr" required tabindex="17"></textarea>
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label class="form-label">Permanent Address*</label>
-                                <textarea class="form-control" placeholder="Enter your Permanent Address" name="perm_addr" id="perm_addr" required></textarea>
+                                <textarea class="form-control" placeholder="Enter your Permanent Address" name="perm_addr" id="perm_addr" required tabindex="18"></textarea>
                             </div>
                         </div>
                     </div>
@@ -330,9 +330,9 @@
                             </thead>
                             <tbody>
                                 <tr>
-                                    <td><input type="text" class="form-control" name="referral_name" id="referral_name" onkeydown="return allowAlphabets(event)"></td>
-                                    <td><input type="text" class="form-control" name="relationship" id="relationship" onkeydown="return allowAlphabets(event)"></td>
-                                    <td><input type="text" class="form-control" name="phone_no" id="phone_no" minlength="10" maxlength="10"  onKeyPress="return checkIt(event);"></td>
+                                    <td><input type="text" class="form-control" name="referral_name" id="referral_name" onkeydown="return allowAlphabets(event)" tabindex="19"></td>
+                                    <td><input type="text" class="form-control" name="relationship" id="relationship" onkeydown="return allowAlphabets(event)" tabindex="20"></td>
+                                    <td><input type="text" class="form-control" name="phone_no" id="phone_no" minlength="10" maxlength="10"  onKeyPress="return checkIt(event);" tabindex="21"></td>
                                 </tr>
                             </tbody>
                         </table>
@@ -343,7 +343,7 @@
                     <div id="ugDetails">
                         <div class="section-card">
                             <h5 class="mb-3">Courses Offered*</h5>
-                            <select class="form-control" name="ug_course" id="ug_course">
+                            <select class="form-control" name="ug_course" id="ug_course" tabindex="22">
                                 <option value="">Select a Course</option>
                                                                     <option value="1">B.Arch - Bachelor of Architecture</option>
                                                                     <option value="2">B.E. CIVIL - Civil Engineering</option>
@@ -361,11 +361,11 @@
                         <div class="section-card">
                             <div class="mb-3">
                                 <label class="form-label">Name of the school of X std*</label>
-                                <input type="text" class="form-control" placeholder="Enter your year"  name="school_name" id="school_name" onkeydown="return allowAlphabets(event)">
+                                <input type="text" class="form-control" placeholder="Enter your year"  name="school_name" id="school_name" onkeydown="return allowAlphabets(event)" tabindex="23">
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Year of passing of X std*</label>
-                                <input  type="text" class="form-control" placeholder="Enter your year" name="tenth_passing" id="tenth_passing" minlength="4" maxlength="4" onKeyPress="return checkIt(event);">
+                                <input  type="text" class="form-control" placeholder="Enter your year" name="tenth_passing" id="tenth_passing" minlength="4" maxlength="4" onKeyPress="return checkIt(event);" tabindex="24">
                             </div>
                         </div>
                         <div class="section-card">
@@ -383,14 +383,14 @@
                                     <tbody>
                                         <tr>
                                             <td>Maths (M)</td>
-                                            <td><input type="number" step="any" min="0" max="100" value="0" class="form-control text-center" name="maths_marks" id="maths_marks"></td>
-                                            <td><input type="number" step="any" min="0" max="100" value="0" class="form-control text-center" name="total_maths" id="total_maths"></td>
+                                            <td><input type="number" step="any" min="0" max="100" value="0" class="form-control text-center" name="maths_marks" id="maths_marks" tabindex="25"></td>
+                                            <td><input type="number" step="any" min="0" max="100" value="0" class="form-control text-center" name="total_maths" id="total_maths" tabindex="26"></td>
                                             <td><input type="number" step="any" min="0" max="100" value="0" class="form-control text-center" name="maths_perc" id="maths_perc" readonly></td>
                                         </tr>
                                         <tr>
                                             <td>Physics (P) & Chemistry (C) put together</td>
-                                            <td><input type="number" step="any" min="0" max="100" value="0" class="form-control text-center" name="physics_marks" id="physics_marks"></td>
-                                            <td><input type="number" step="any" min="0" max="100" value="0" class="form-control text-center" name="total_physics" id="total_physics"></td>
+                                            <td><input type="number" step="any" min="0" max="100" value="0" class="form-control text-center" name="physics_marks" id="physics_marks" tabindex="27"></td>
+                                            <td><input type="number" step="any" min="0" max="100" value="0" class="form-control text-center" name="total_physics" id="total_physics" tabindex="28"></td>
                                             <td><input type="number" step="any" min="0" max="100" value="0" class="form-control text-center" name="physics_perc" id="physics_perc" readonly></td>
                                         </tr>
                                         <tr>
@@ -408,7 +408,7 @@
                     <div id="lateralDetails" style="display:none">
                         <div class="section-card">
                             <h5 class="mb-3">Courses Offered*</h5>
-                            <select class="form-control" name="lateral_course" id="lateral_course">
+                            <select class="form-control" name="lateral_course" id="lateral_course" tabindex="22">
                                 <option value="">Select a Course</option>
                                                                     <option value="2">B.E. CIVIL - Civil Engineering</option>
                                                                     <option value="3">B.E. CSE - Computer Science Engineering</option>
@@ -424,11 +424,11 @@
                         <div class="section-card">
                             <div class="mb-3">
                                 <label class="form-label">Name of the school of X std*</label>
-                                <input type="text" class="form-control" placeholder="Enter your year"  name="lateral_school_name" id="lateral_school_name" onkeydown="return allowAlphabets(event)">
+                                <input type="text" class="form-control" placeholder="Enter your year"  name="lateral_school_name" id="lateral_school_name" onkeydown="return allowAlphabets(event)" tabindex="23">
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Year of passing of X std*</label>
-                                <input  type="text" class="form-control" placeholder="Enter your year" name="lateral_tenth_passing" id="lateral_tenth_passing" minlength="4" maxlength="4" onKeyPress="return checkIt(event);">
+                                <input  type="text" class="form-control" placeholder="Enter your year" name="lateral_tenth_passing" id="lateral_tenth_passing" minlength="4" maxlength="4" onKeyPress="return checkIt(event);" tabindex="24">
                             </div>
                         </div>
                         <div class="section-card mt-4">
@@ -441,32 +441,32 @@
                                             <tbody>
                                                 <tr>
                                                     <td>
-                                                        1. <input type="text" name="presub1" id="presub1" class="form-control d-inline w-25" placeholder="Subject"> : <input type="number" step="any" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="premark1" id="premark1"> out of <input type="number" step="any"  class="form-control d-inline w-25" max="100" min="0" name="preout1" id="preout1" value="0" placeholder="Total Marks" >
+                                                        1. <input type="text" name="presub1" id="presub1" class="form-control d-inline w-25" placeholder="Subject" tabindex="25"> : <input type="number" step="any" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="premark1" id="premark1" tabindex="26"> out of <input type="number" step="any"  class="form-control d-inline w-25" max="100" min="0" name="preout1" id="preout1" value="0" placeholder="Total Marks" tabindex="27">
                                                     </td>
                                                 </tr>
                                                 <tr>
                                                     <td>
-                                                        2. <input type="text" name="presub2" id="presub2" class="form-control d-inline w-25" placeholder="Subject"> : <input type="number" step="any" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="premark2" id="premark2"> out of <input type="number" step="any" class="form-control d-inline w-25" max="100" min="0" name="preout2" id="preout2" value="0" placeholder="Total Marks">
+                                                        2. <input type="text" name="presub2" id="presub2" class="form-control d-inline w-25" placeholder="Subject" tabindex="28"> : <input type="number" step="any" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="premark2" id="premark2" tabindex="29"> out of <input type="number" step="any" class="form-control d-inline w-25" max="100" min="0" name="preout2" id="preout2" value="0" placeholder="Total Marks" tabindex="30">
                                                     </td>
                                                 </tr>
                                                 <tr>
                                                     <td>
-                                                        3. <input type="text" name="presub3" id="presub3" class="form-control d-inline w-25" placeholder="Subject"> : <input type="number" step="any" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="premark3" id="premark3"> out of <input type="number" step="any" class="form-control d-inline w-25" max="100" min="0" name="preout3" id="preout3" value="0" placeholder="Total Marks" >
+                                                        3. <input type="text" name="presub3" id="presub3" class="form-control d-inline w-25" placeholder="Subject" tabindex="31"> : <input type="number" step="any" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="premark3" id="premark3" tabindex="32"> out of <input type="number" step="any" class="form-control d-inline w-25" max="100" min="0" name="preout3" id="preout3" value="0" placeholder="Total Marks" tabindex="33">
                                                     </td>
                                                 </tr>
                                                 <tr>
                                                     <td>
-                                                        4. <input type="text" name="presub4" id="presub4" class="form-control d-inline w-25" placeholder="Subject"> : <input type="number" step="any" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="premark4" id="premark4"> out of <input type="number" step="any" class="form-control d-inline w-25" max="100" min="0" name="preout4" id="preout4" value="0" placeholder="Total Marks" >
+                                                        4. <input type="text" name="presub4" id="presub4" class="form-control d-inline w-25" placeholder="Subject" tabindex="34"> : <input type="number" step="any" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="premark4" id="premark4" tabindex="35"> out of <input type="number" step="any" class="form-control d-inline w-25" max="100" min="0" name="preout4" id="preout4" value="0" placeholder="Total Marks" tabindex="36">
                                                     </td>
                                                 </tr>
                                                 <tr>
                                                     <td>
-                                                        5. <input type="text" name="presub5" id="presub5" class="form-control d-inline w-25" placeholder="Subject"> : <input type="number" step="any" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="premark5" id="premark5"> out of <input type="number" step="any" class="form-control d-inline w-25" max="100" min="0" name="preout5" id="preout5" value="0" placeholder="Total Marks" >
+                                                        5. <input type="text" name="presub5" id="presub5" class="form-control d-inline w-25" placeholder="Subject" tabindex="37"> : <input type="number" step="any" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="premark5" id="premark5" tabindex="38"> out of <input type="number" step="any" class="form-control d-inline w-25" max="100" min="0" name="preout5" id="preout5" value="0" placeholder="Total Marks" tabindex="39">
                                                     </td>
                                                 </tr>
                                                 <tr>
                                                     <td>
-                                                        6. <input type="text" name="presub6" id="presub6" class="form-control d-inline w-25" placeholder="Subject"> : <input type="number" step="any" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="premark6" id="premark6"> out of <input type="number" step="any" class="form-control d-inline w-25" max="100" min="0" name="preout6" id="preout6" value="0" placeholder="Total Marks" >
+                                                        6. <input type="text" name="presub6" id="presub6" class="form-control d-inline w-25" placeholder="Subject" tabindex="40"> : <input type="number" step="any" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="premark6" id="premark6" tabindex="41"> out of <input type="number" step="any" class="form-control d-inline w-25" max="100" min="0" name="preout6" id="preout6" value="0" placeholder="Total Marks" tabindex="42">
                                                     </td>
                                                 </tr>
                                                 <tr>
@@ -484,32 +484,32 @@
                                             <tbody>
                                                 <tr>
                                                     <td>
-                                                        1. <input type="text" name="finalsub1" id="finalsub1" class="form-control d-inline w-25" placeholder="Subject"> : <input type="number" step="any" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="finalmark1" id="finalmark1"> out of <input type="number" step="any" class="form-control d-inline w-25" max="100" min="0" name="finalout1" id="finalout1" value="0" placeholder="Total Marks" >
+                                                        1. <input type="text" name="finalsub1" id="finalsub1" class="form-control d-inline w-25" placeholder="Subject" tabindex="43"> : <input type="number" step="any" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="finalmark1" id="finalmark1" tabindex="44"> out of <input type="number" step="any" class="form-control d-inline w-25" max="100" min="0" name="finalout1" id="finalout1" value="0" placeholder="Total Marks" tabindex="45">
                                                     </td>
                                                 </tr>
                                                 <tr>
                                                     <td>
-                                                        2. <input type="text" name="finalsub2" id="finalsub2" class="form-control d-inline w-25" placeholder="Subject"> : <input type="number" step="any" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="finalmark2" id="finalmark2"> out of <input type="number" step="any" class="form-control d-inline w-25" max="100" min="0" name="finalout2" id="finalout2" value="0" placeholder="Total Marks" >
+                                                        2. <input type="text" name="finalsub2" id="finalsub2" class="form-control d-inline w-25" placeholder="Subject" tabindex="46"> : <input type="number" step="any" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="finalmark2" id="finalmark2" tabindex="47"> out of <input type="number" step="any" class="form-control d-inline w-25" max="100" min="0" name="finalout2" id="finalout2" value="0" placeholder="Total Marks" tabindex="48">
                                                     </td>
                                                 </tr>
                                                 <tr>
                                                     <td>
-                                                        3. <input type="text" name="finalsub3" id="finalsub3" class="form-control d-inline w-25" placeholder="Subject"> : <input type="number" step="any" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="finalmark3" id="finalmark3"> out of <input type="number" step="any" class="form-control d-inline w-25" max="100" min="0" name="finalout3" id="finalout3" value="0" placeholder="Total Marks" >
+                                                        3. <input type="text" name="finalsub3" id="finalsub3" class="form-control d-inline w-25" placeholder="Subject" tabindex="49"> : <input type="number" step="any" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="finalmark3" id="finalmark3" tabindex="50"> out of <input type="number" step="any" class="form-control d-inline w-25" max="100" min="0" name="finalout3" id="finalout3" value="0" placeholder="Total Marks" tabindex="51">
                                                     </td>
                                                 </tr>
                                                 <tr>
                                                     <td>
-                                                        4. <input type="text" name="finalsub4" id="finalsub4" class="form-control d-inline w-25" placeholder="Subject"> : <input type="number" step="any" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="finalmark4" id="finalmark4"> out of <input type="number" step="any" class="form-control d-inline w-25" max="100" min="0" name="finalout4" id="finalout4" value="0" placeholder="Total Marks" >
+                                                        4. <input type="text" name="finalsub4" id="finalsub4" class="form-control d-inline w-25" placeholder="Subject" tabindex="52"> : <input type="number" step="any" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="finalmark4" id="finalmark4" tabindex="53"> out of <input type="number" step="any" class="form-control d-inline w-25" max="100" min="0" name="finalout4" id="finalout4" value="0" placeholder="Total Marks" tabindex="54">
                                                     </td>
                                                 </tr>
                                                 <tr>
                                                     <td>
-                                                        5. <input type="text" name="finalsub5" id="finalsub5" class="form-control d-inline w-25" placeholder="Subject"> : <input type="number" step="any" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="finalmark5" id="finalmark5"> out of <input type="number" step="any" class="form-control d-inline w-25" max="100" min="0" name="finalout5" id="finalout5" value="0" placeholder="Total Marks" >
+                                                        5. <input type="text" name="finalsub5" id="finalsub5" class="form-control d-inline w-25" placeholder="Subject" tabindex="55"> : <input type="number" step="any" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="finalmark5" id="finalmark5" tabindex="56"> out of <input type="number" step="any" class="form-control d-inline w-25" max="100" min="0" name="finalout5" id="finalout5" value="0" placeholder="Total Marks" tabindex="57">
                                                     </td>
                                                 </tr>
                                                 <tr>
                                                     <td>
-                                                        6. <input type="text" name="finalsub6" id="finalsub6" class="form-control d-inline w-25" placeholder="Subject"> : <input type="number" step="any" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="finalmark6" id="finalmark6"> out of <input type="number" step="any" class="form-control d-inline w-25" max="100" min="0" name="finalout6" id="finalout6" value="0" placeholder="Total Marks" >
+                                                        6. <input type="text" name="finalsub6" id="finalsub6" class="form-control d-inline w-25" placeholder="Subject" tabindex="58"> : <input type="number" step="any" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="finalmark6" id="finalmark6" tabindex="59"> out of <input type="number" step="any" class="form-control d-inline w-25" max="100" min="0" name="finalout6" id="finalout6" value="0" placeholder="Total Marks" tabindex="60">
                                                     </td>
                                                 </tr>
                                                 <tr>
@@ -529,15 +529,15 @@
                             <h5 class="mb-2">NATA (for B.Arch only)</h5>
                             <div class="mb-3">
                                 <label class="form-label">Score</label>
-                                <input class="form-control" placeholder="Enter Score" name="nata_score" id="nata_score">
+                                <input class="form-control" placeholder="Enter Score" name="nata_score" id="nata_score" tabindex="29">
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Application Form</label>
-                                <input class="form-control" placeholder="Enter Application Form" name="application_number" id="application_number">
+                                <input class="form-control" placeholder="Enter Application Form" name="application_number" id="application_number" tabindex="30">
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Year</label>
-                                <input class="form-control" placeholder="Enter Year" name="nata_year" id="nata_year">
+                                <input class="form-control" placeholder="Enter Year" name="nata_year" id="nata_year" tabindex="31">
                             </div>
                         </div>
                     </div>
@@ -545,7 +545,7 @@
                     <div id="pgDetails" style="display: none;">
                         <div class="section-card">
                             <h5 class="mb-3">Courses Offered</h5>
-                            <select class="form-control" name="pg_course" id="pg_course">
+                            <select class="form-control" name="pg_course" id="pg_course" tabindex="22">
                                 <option value="">Select a Course</option>
                                                                     <option value="12">M. Arch. - Master of Architecture</option>
                                                                     <option value="13">M.B.A - Master of Business Administration</option>
@@ -560,41 +560,41 @@
                             <div class="row">
                                 <div class="mb-3 col-md-6">
                                     <label class="form-label">Qualifying Exam passed</label>
-                                    <input class="form-control" type="text" placeholder="Enter your exam passed" name="exam_passed" id="exam_passed">
+                                    <input class="form-control" type="text" placeholder="Enter your exam passed" name="exam_passed" id="exam_passed" tabindex="23">
                                 </div>
                                 <div class="mb-3 col-md-6">
                                     <label class="form-label">Branch</label>
-                                    <input type="text" class="form-control" placeholder="Enter your Branch" name="branch" id="branch">
+                                    <input type="text" class="form-control" placeholder="Enter your Branch" name="branch" id="branch" tabindex="24">
                                 </div>
                             </div>
                             <div class="row">
                                 <div class="mb-3 col-md-6">
                                     <label class="form-label">Year of Passing</label>
-                                    <input type="text" class="form-control" placeholder="Enter your Year" onKeyPress="return checkIt(event);" name="yop" id="yop">
+                                    <input type="text" class="form-control" placeholder="Enter your Year" onKeyPress="return checkIt(event);" name="yop" id="yop" tabindex="25">
                                 </div>
                                 <div class="mb-3 col-md-6">
                                     <label class="form-label">Name of the College</label>
-                                    <input type="text" class="form-control" minlength="4" maxlength="4" placeholder="Enter your College" name="noc" id="noc">
+                                    <input type="text" class="form-control" minlength="4" maxlength="4" placeholder="Enter your College" name="noc" id="noc" tabindex="26">
                                 </div>
                             </div>
                             <div class="row">
                                 <div class="mb-3 col-md-6">
                                     <label class="form-label">Name of the University</label>
-                                    <input type="texts" step="any" class="form-control" placeholder="Enter your University" name="nou" id="nou">
+                                    <input type="texts" step="any" class="form-control" placeholder="Enter your University" name="nou" id="nou" tabindex="27">
                                 </div>
                                 <div class="mb-3 col-md-6">
                                     <label class="form-label">TANCET / PGETA Exam Application Number</label>
-                                    <input type="text" step="any" class="form-control" placeholder="Enter your Application Number" name="pg_app_num" id="pg_app_num">
+                                    <input type="text" step="any" class="form-control" placeholder="Enter your Application Number" name="pg_app_num" id="pg_app_num" tabindex="28">
                                 </div>
                             </div>
                             <div class="row">
                                 <div class="mb-3 col-md-6">
                                     <label class="form-label">TANCET / PGETA Examination Year</label>
-                                    <input type="text" step="any" class="form-control" minlength="4" maxlength="4" onKeyPress="return checkIt(event);" placeholder="Enter your examination year" name="exam_year" id="exam_year">
+                                    <input type="text" step="any" class="form-control" minlength="4" maxlength="4" onKeyPress="return checkIt(event);" placeholder="Enter your examination year" name="exam_year" id="exam_year" tabindex="29">
                                 </div>
                                 <div class="mb-3 col-md-6">
                                     <label class="form-label">TANCET / PGETA Exam Score</label>
-                                    <input type="number" step="any" class="form-control" placeholder="Enter your Score" name="exam_score" id="exam_score">
+                                    <input type="number" step="any" class="form-control" placeholder="Enter your Score" name="exam_score" id="exam_score" tabindex="30">
                                 </div>
                             </div>
                         </div>
@@ -602,18 +602,18 @@
                             <h5 class="mb-3">Additional Information</h5>
                             <div class="mb-4">
                                 <label class="form-label">UG Alumni of Meenakshi Group of Institutions</label>
-                                <input type="file" class="form-control" name="bonafide" id="bonafide">
+                                <input type="file" class="form-control" name="bonafide" id="bonafide" tabindex="31">
                                 <small class="text-muted">Attach Bonafide Certificate</small>
                             </div>
                             <div class="row">
                                 <div class="mb-4">
                                     <label class="form-label">Eminent Sports Person</label><br>
-                                    <input type="radio" name="sports" id="sports" value="Yes"> Yes
-                                    <input type="radio" name="sports" id="sports" value="No" checked> No
+                                    <input type="radio" name="sports" id="sports" value="Yes" tabindex="32"> Yes
+                                    <input type="radio" name="sports" id="sports" value="No" checked tabindex="33"> No
                                     <br>
                                     <div id="level">
                                         <label class="form-label mt-4">Level</label>
-                                        <select class="form-control" name="sports_level" id="sports_level">
+                                        <select class="form-control" name="sports_level" id="sports_level" tabindex="34">
                                             <option value="">Select Level</option>
                                             <option value="District">District Level</option>
                                             <option value="State">State Level</option>
@@ -622,23 +622,23 @@
                                 </div>
                                 <div class="mb-4">
                                     <label class="form-label">Ward of Ex-Service Men</label><br>
-                                    <input type="radio" name="exservice" value="Yes"> Yes
-                                    <input type="radio" name="exservice" value="No" checked> No
+                                    <input type="radio" name="exservice" value="Yes" tabindex="35"> Yes
+                                    <input type="radio" name="exservice" value="No" checked tabindex="36"> No
                                 </div>
                             </div>
                             <div class="mb-4">
                                 <label class="form-label">Differently Abled Person</label><br>
-                                <input type="radio" name="differently_abled" value="Yes" onclick="showDisabilityType(true)"> Yes
-                                <input type="radio" name="differently_abled" value="No" onclick="showDisabilityType(false)" checked> No
+                                <input type="radio" name="differently_abled" value="Yes" onclick="showDisabilityType(true)" tabindex="37"> Yes
+                                <input type="radio" name="differently_abled" value="No" onclick="showDisabilityType(false)" checked tabindex="38"> No
                             </div>
                             <div class="mb-3" id="disabilityType" style="display: none;">
                                 <label class="form-label">If Yes, Differently Abled Type</label>
-                                <input type="text" class="form-control" placeholder="Enter type of disability" name="disability_type" id="disability_type">
+                                <input type="text" class="form-control" placeholder="Enter type of disability" name="disability_type" id="disability_type" tabindex="39">
                             </div>
                         </div>
                     </div>
                 </div>
-                <button class="btn btn-submit mt-3" type="Submit" name="submit">Submit Application</button>
+                <button class="btn btn-submit mt-3" type="Submit" name="submit" tabindex="61">Submit Application</button>
             </form>
         </div>
     </div>

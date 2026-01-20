@@ -726,9 +726,14 @@ class Welcome extends Front_Controller
             $category                       = $this->category_model->get();
             $this->data['categorylist']     = $category;
             $result                         = $this->onlinestudent_model->get($id);
-            $classresult                    = $this->onlinestudent_model->getclassbyclasssectionid($result['class_section_id']);
-            $class_id                       = $classresult['class_id'];
-            $class_name                     = $classresult['class'];
+            $classresult = $this->onlinestudent_model->getclassbyclasssectionid($result['class_section_id']);
+            if ($classresult) {
+                $class_id   = $classresult['class_id'];
+                $class_name = $classresult['class'];
+            } else {
+                $class_id   = "";
+                $class_name = "";
+            }
             $this->data['class_name']       = $class_name;
             $this->data['class_section_id'] = $result['section_id'];
             $this->data['firstname']        = $result['firstname'];
@@ -867,9 +872,14 @@ class Welcome extends Front_Controller
             $houses                       = $this->student_model->gethouselist();
             $this->data['houses']         = $houses;
             $result                       = $this->onlinestudent_model->get($id);
-            $classresult                  = $this->onlinestudent_model->getclassbyclasssectionid($result['class_section_id']);
-            $class_section_id             = $classresult['class_id'];
-            $class                        = $classresult['class'];
+            $classresult = $this->onlinestudent_model->getclassbyclasssectionid($result['class_section_id']);
+            if($classresult){
+                $class_section_id             = $classresult['class_id'];
+                $class                        = $classresult['class'];
+            }else{
+                $class_section_id = "";
+                $class = "";
+            }
             $custom_fields                = $this->customfield_model->getByBelong('students');
             //-------------------------------------
             $this->data['class_id'] = $class_section_id;

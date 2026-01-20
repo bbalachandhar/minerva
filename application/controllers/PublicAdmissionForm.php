@@ -568,9 +568,11 @@ class PublicAdmissionForm extends CI_Controller
                 return false;
             }
 
-            if ($file_size > $result->file_size) {
-                $this->form_validation->set_message('image_handle_upload', $this->lang->line('file_size_shoud_be_less_than') . number_format($result->file_size / 1048576, 2) . " MB");
-                return false;
+                    $configured_max_size = (isset($result->image_size) && $result->image_size > 0) ? $result->image_size : (300 * 1024); // Use 300KB if not configured or 0
+                    $effective_max_size = min($configured_max_size, (300 * 1024)); // Ensure it's not greater than 300KB
+            
+                    if ($file_size > $effective_max_size) {
+                        $this->form_validation->set_message('image_handle_upload', $this->lang->line('file_size_shoud_be_less_than') . number_format($effective_max_size / 1024, 0) . " KB");                return false;
             }
             return true;
         }
@@ -658,9 +660,14 @@ class PublicAdmissionForm extends CI_Controller
                 $category                       = $this->category_model->get();
                 $this->data['categorylist']     = $category;
                 $result                         = $this->onlinestudent_model->get($id);
-                $classresult                    = $this->onlinestudent_model->getclassbyclasssectionid($result['class_section_id']);
-                $class_id                       = $classresult['class_id'];
-                $class_name                     = $classresult['class'];
+                $classresult = $this->onlinestudent_model->getclassbyclasssectionid($result['class_section_id']);
+                if ($classresult) {
+                    $class_id   = $classresult['class_id'];
+                    $class_name = $classresult['class'];
+                } else {
+                    $class_id   = "";
+                    $class_name = "";
+                }
                 $this->data['class_name']       = $class_name;
                 $this->data['class_section_id'] = $result['section_id'];
                 $this->data['firstname']        = $result['firstname'];
@@ -899,10 +906,15 @@ class PublicAdmissionForm extends CI_Controller
             $this->data["bloodgroup"]     = $this->blood_group;
             $houses                       = $this->student_model->gethouselist();
             $this->data['houses']         = $houses;
-            $result                       = $this->onlinestudent_model->get($id);
-            $classresult                  = $this->onlinestudent_model->getclassbyclasssectionid($result['class_section_id']);
-            $class_section_id             = $classresult['class_id'];
-            $class                        = $classresult['class'];
+            $result = $this->onlinestudent_model->get($id);
+            $classresult = $this->onlinestudent_model->getclassbyclasssectionid($result['class_section_id']);
+            if($classresult){
+                $class_section_id             = $classresult['class_id'];
+                $class                        = $classresult['class'];
+            }else{
+                $class_section_id = "";
+                $class = "";
+            }
             $custom_fields                = $this->customfield_model->getByBelong('students');
             //-------------------------------------
             $this->data['class_id'] = $class_section_id;

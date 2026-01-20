@@ -57,7 +57,7 @@ if ($this->session->flashdata('msg')) {
         <div class="col-md-3">
             <div class="form-group">
                 <label><?php echo $this->lang->line('class'); ?></label><small class="req"> *</small>
-                <select  id="class_id" name="class_id" class="form-control"  >
+                <select  id="class_id" name="class_id" class="form-control" tabindex="1">
                     <option value=""><?php echo $this->lang->line('select'); ?></option>
                     <?php
 foreach ($classlist as $class) {
@@ -76,7 +76,7 @@ foreach ($classlist as $class) {
         <div class="col-md-3 displaynone">
             <div class="form-group">
                 <label><?php echo $this->lang->line('section'); ?></label><small class="req"> *</small>
-                <select  id="section_id" name="section_id" class="form-control" >
+                <select  id="section_id" name="section_id" class="form-control" tabindex="2">
                     <option value=""><?php echo $this->lang->line('select'); ?></option>
                 </select>
                 <span class="text-danger"><?php echo form_error('section_id'); ?></span>
@@ -85,7 +85,7 @@ foreach ($classlist as $class) {
         <div class="col-md-3">
             <div class="form-group">
                 <label><?php echo $this->lang->line('first_name'); ?></label><small class="req"> *</small>
-                <input id="firstname" name="firstname" placeholder="" type="text" class="form-control"  value="<?php echo set_value('firstname'); ?>" autocomplete="off" />
+                <input id="firstname" name="firstname" placeholder="" type="text" class="form-control"  value="<?php echo set_value('firstname'); ?>" autocomplete="off" tabindex="3" />
                 <span class="text-danger"><?php echo form_error('firstname'); ?></span>
             </div>
         </div>
@@ -93,7 +93,7 @@ foreach ($classlist as $class) {
          <div class="col-md-3">
             <div class="form-group">
                 <label><?php echo $this->lang->line('middle_name'); ?></label>
-                  <input id="middlename" name="middlename" placeholder="" type="text" class="form-control"  value="<?php echo set_value('middlename'); ?>" autocomplete="off" />
+                  <input id="middlename" name="middlename" placeholder="" type="text" class="form-control"  value="<?php echo set_value('middlename'); ?>" autocomplete="off" tabindex="4" />
             </div>
         </div>
         <?php }?>
@@ -101,7 +101,7 @@ foreach ($classlist as $class) {
          <div class="col-md-3">
             <div class="form-group">
                 <label><?php echo $this->lang->line('last_name'); ?></label>
-                <input id="lastname" name="lastname" placeholder="" type="text" class="form-control"  value="<?php echo set_value('lastname'); ?>" autocomplete="off" />
+                <input id="lastname" name="lastname" placeholder="" type="text" class="form-control"  value="<?php echo set_value('lastname'); ?>" autocomplete="off" tabindex="5" />
                 <span class="text-danger"><?php echo form_error('lastname'); ?></span>
             </div>
         </div>
@@ -111,7 +111,7 @@ foreach ($classlist as $class) {
         <div class="col-md-3">
             <div class="form-group">
                 <label><?php echo $this->lang->line('gender'); ?></label><small class="req"> *</small>
-                <select class="form-control" name="gender">
+                <select class="form-control" name="gender" tabindex="6">
                     <option value=""><?php echo $this->lang->line('select'); ?></option>
                     <?php
 foreach ($genderList as $key => $value) {
@@ -130,7 +130,7 @@ foreach ($genderList as $key => $value) {
         <div class="col-md-3">
             <div class="form-group">
                 <label><?php echo $this->lang->line('date_of_birth'); ?></label><small class="req"> *</small>
-                <input  type="text" class="form-control date2"  value="<?php echo set_value('dob'); ?>" id="dob" name="dob" readonly="readonly"/>
+                <input  type="text" class="form-control date2"  value="<?php echo set_value('dob'); ?>" id="dob" name="dob" readonly="readonly" tabindex="7"/>
                 <span class="text-danger"><?php echo form_error('dob'); ?></span>
             </div>
         </div>
@@ -138,7 +138,7 @@ foreach ($genderList as $key => $value) {
         <div class="col-md-3">
             <div class="form-group">
                 <label><?php echo $this->lang->line('mobile_number'); ?></label>
-                <input  type="text" class="form-control"  value="<?php echo set_value('mobileno'); ?>" id="mobileno" name="mobileno" autocomplete="off"/>
+                <input  type="text" class="form-control"  value="<?php echo set_value('mobileno'); ?>" id="mobileno" name="mobileno" autocomplete="off" tabindex="8"/>
                 <span class="text-danger"><?php echo form_error('mobileno'); ?></span>
             </div>
         </div>
@@ -147,7 +147,7 @@ foreach ($genderList as $key => $value) {
         <div class="col-md-3">
             <div class="form-group">
                 <label><?php echo $this->lang->line('email'); ?></label><small class="req"> *</small>
-                <input  type="text" class="form-control"  value="<?php echo set_value('email'); ?>" id="email" name="email" autocomplete="off"/>
+                <input  type="text" class="form-control"  value="<?php echo set_value('email'); ?>" id="email" name="email" autocomplete="off" tabindex="9"/>
                 <span class="text-danger"><?php echo form_error('email'); ?></span>
             </div>
         </div>
@@ -159,7 +159,7 @@ foreach ($genderList as $key => $value) {
         <div class="col-md-3">
             <div class="form-group">
                <label><?php echo $this->lang->line('category'); ?></label>
-                    <select  id="category_id" name="category_id" class="form-control" >
+                    <select  id="category_id" name="category_id" class="form-control" tabindex="10">
                         <option value=""><?php echo $this->lang->line('select'); ?></option>
                             <?php foreach ($categorylist as $category) {?>
                          <option value="<?php echo $category['id'] ?>" <?php
@@ -179,7 +179,7 @@ if (set_value('category_id') == $category['id']) {
             <div class="col-md-3">
                 <div class="form-group">
                     <label><?php echo $this->lang->line('religion'); ?></label>
-                    <input id="religion" name="religion" placeholder="" type="text" class="form-control"  value="<?php echo set_value('religion'); ?>" autocomplete="off" />
+                    <input id="religion" name="religion" placeholder="" type="text" class="form-control"  value="<?php echo set_value('religion'); ?>" autocomplete="off" tabindex="11" />
                     <span class="text-danger"><?php echo form_error('religion'); ?></span>
                 </div>
             </div>
@@ -187,7 +187,7 @@ if (set_value('category_id') == $category['id']) {
                 <div class="col-md-3">
                     <div class="form-group">
                         <label><?php echo $this->lang->line('caste'); ?></label>
-                        <input id="cast" name="cast" placeholder="" type="text" class="form-control" autocomplete="off"  value="<?php echo set_value('cast'); ?>" />
+                        <input id="cast" name="cast" placeholder="" type="text" class="form-control" autocomplete="off"  value="<?php echo set_value('cast'); ?>" tabindex="12" />
                         <span class="text-danger"><?php echo form_error('cast'); ?></span>
                     </div>
                 </div>
@@ -197,7 +197,7 @@ if (set_value('category_id') == $category['id']) {
             <div class="col-md-3 col-xs-12">
                 <div class="form-group">
                     <label><?php echo $this->lang->line('house') ?></label>
-                    <select class="form-control" rows="3" placeholder="" name="house">
+                    <select class="form-control" rows="3" placeholder="" name="house" tabindex="13">
                         <option value=""><?php echo $this->lang->line('select') ?></option>
                         <?php foreach ($houses as $hkey => $hvalue) {
         ?>
@@ -220,7 +220,7 @@ if (set_value('category_id') == $category['id']) {
                 <label><?php echo $this->lang->line('blood_group'); ?></label>
                     <?php
 ?>
-                <select class="form-control" rows="3" placeholder="" name="blood_group">
+                <select class="form-control" rows="3" placeholder="" name="blood_group" tabindex="14">
                     <option value=""><?php echo $this->lang->line('select') ?></option>
                     <?php foreach ($bloodgroup as $bgkey => $bgvalue) {
         ?>
@@ -237,7 +237,7 @@ if (set_value('category_id') == $category['id']) {
                 <div class="form-group">
                    <label><?php echo $this->lang->line('height'); ?></label>
                  <?php ?>
-                <input type="text" name="height" class="form-control" value="<?php echo set_value('height'); ?>" autocomplete="off">
+                <input type="text" name="height" class="form-control" value="<?php echo set_value('height'); ?>" autocomplete="off" tabindex="15">
                 <span class="text-danger"><?php echo form_error('height'); ?></span>
                </div>
              </div>
@@ -245,7 +245,7 @@ if (set_value('category_id') == $category['id']) {
             <div class="col-md-3 col-xs-12">
                  <div class="form-group">
                       <label><?php echo $this->lang->line('weight'); ?></label>
-                    <input type="text" name="weight" class="form-control" value="<?php echo set_value('weight'); ?>" autocomplete="off" >
+                    <input type="text" name="weight" class="form-control" value="<?php echo set_value('weight'); ?>" autocomplete="off" tabindex="16">
                     <span class="text-danger"><?php echo form_error('weight'); ?></span>
                </div>
             </div>
@@ -255,7 +255,7 @@ if (set_value('category_id') == $category['id']) {
                 <div class="form-group">
                   <label><?php echo $this->lang->line('measurement_date'); ?></label>
 
-                <input type="text" id="measure_date" value="<?php echo set_value('measure_date'); ?>"  name="measure_date" class="form-control date2" autocomplete="off" readonly="" >
+                <input type="text" id="measure_date" value="<?php echo set_value('measure_date'); ?>"  name="measure_date" class="form-control date2" autocomplete="off" readonly="" tabindex="17">
                 <span class="text-danger"><?php echo form_error('measure_date'); ?></span>
             </div>
         </div>
@@ -266,7 +266,7 @@ if (set_value('category_id') == $category['id']) {
                 <div class="col-md-3">
                     <div class="form-group">
                         <label><?php echo $this->lang->line('student_photo'); ?></label>
-                        <div><input class="filestyle form-control" type='file' name='file' id="file" size='20' />
+                        <div><input class="filestyle form-control" type='file' name='file' id="file" size='20' tabindex="18" />
                         </div>
                         <span class="text-danger"><?php echo form_error('file'); ?></span></div>
                 </div>
@@ -287,7 +287,7 @@ echo display_onlineadmission_custom_fields('students');
         <div class="col-md-3">
             <div class="form-group">
                 <label><?php echo $this->lang->line('father_name'); ?></label>
-                <input id="father_name" name="father_name" placeholder="" type="text" class="form-control" autocomplete="off"  value="<?php echo set_value('father_name'); ?>" />
+                <input id="father_name" name="father_name" placeholder="" type="text" class="form-control" autocomplete="off"  value="<?php echo set_value('father_name'); ?>" tabindex="19" />
                 <span class="text-danger"><?php echo form_error('father_name'); ?></span>
             </div>
         </div>
@@ -296,7 +296,7 @@ echo display_onlineadmission_custom_fields('students');
         <div class="col-md-3">
             <div class="form-group">
                 <label><?php echo $this->lang->line('father_phone'); ?></label>
-                <input id="father_phone" name="father_phone" placeholder="" type="text" class="form-control" autocomplete="off"  value="<?php echo set_value('father_phone'); ?>" />
+                <input id="father_phone" name="father_phone" placeholder="" type="text" class="form-control" autocomplete="off"  value="<?php echo set_value('father_phone'); ?>" tabindex="20" />
                 <span class="text-danger"><?php echo form_error('father_phone'); ?></span>
             </div>
         </div>
@@ -305,7 +305,7 @@ echo display_onlineadmission_custom_fields('students');
         <div class="col-md-3">
             <div class="form-group">
                 <label><?php echo $this->lang->line('father_occupation'); ?></label>
-                <input id="father_occupation" name="father_occupation" placeholder="" type="text" class="form-control"  value="<?php echo set_value('father_occupation'); ?> " autocomplete="off" />
+                <input id="father_occupation" name="father_occupation" placeholder="" type="text" class="form-control"  value="<?php echo set_value('father_occupation'); ?> " autocomplete="off" tabindex="21" />
                 <span class="text-danger"><?php echo form_error('father_occupation'); ?></span>
             </div>
         </div>
@@ -314,7 +314,7 @@ echo display_onlineadmission_custom_fields('students');
             <div class="col-md-3">
                 <div class="form-group">
                     <label><?php echo $this->lang->line('father_photo'); ?></label>
-                    <div><input class="filestyle form-control" type='file' name='father_pic' id="file" size='20' />
+                    <div><input class="filestyle form-control" type='file' name='father_pic' id="file" size='20' tabindex="22" />
                     </div>
                     <span class="text-danger"><?php echo form_error('father_pic'); ?></span></div>
             </div>
@@ -325,7 +325,7 @@ echo display_onlineadmission_custom_fields('students');
         <div class="col-md-3">
             <div class="form-group">
                 <label><?php echo $this->lang->line('mother_name'); ?></label>
-                <input id="mother_name" name="mother_name" placeholder="" type="text" class="form-control"  value="<?php echo set_value('mother_name'); ?>" autocomplete="off"/>
+                <input id="mother_name" name="mother_name" placeholder="" type="text" class="form-control"  value="<?php echo set_value('mother_name'); ?>" autocomplete="off" tabindex="23"/>
                 <span class="text-danger"><?php echo form_error('mother_name'); ?></span>
             </div>
         </div>
@@ -334,7 +334,7 @@ echo display_onlineadmission_custom_fields('students');
         <div class="col-md-3">
             <div class="form-group">
                 <label><?php echo $this->lang->line('mother_phone'); ?></label>
-                <input id="mother_phone" name="mother_phone" placeholder="" type="text" class="form-control"  value="<?php echo set_value('mother_phone'); ?>" autocomplete="off"/>
+                <input id="mother_phone" name="mother_phone" placeholder="" type="text" class="form-control"  value="<?php echo set_value('mother_phone'); ?>" autocomplete="off" tabindex="24"/>
                 <span class="text-danger"><?php echo form_error('mother_phone'); ?></span>
             </div>
         </div>
@@ -343,7 +343,7 @@ echo display_onlineadmission_custom_fields('students');
         <div class="col-md-3">
             <div class="form-group">
                 <label><?php echo $this->lang->line('mother_occupation'); ?></label>
-                <input id="mother_occupation" name="mother_occupation" placeholder="" type="text" class="form-control"  value="<?php echo set_value('mother_occupation'); ?>" autocomplete="off"/>
+                <input id="mother_occupation" name="mother_occupation" placeholder="" type="text" class="form-control"  value="<?php echo set_value('mother_occupation'); ?>" autocomplete="off" tabindex="25"/>
                 <span class="text-danger"><?php echo form_error('mother_occupation'); ?></span>
             </div>
         </div>
@@ -352,7 +352,7 @@ echo display_onlineadmission_custom_fields('students');
             <div class="col-md-3">
                 <div class="form-group">
                     <label><?php echo $this->lang->line('mother_photo'); ?></label>
-                    <div><input class="filestyle form-control" type='file' name='mother_pic' id="file" size='20' />
+                    <div><input class="filestyle form-control" type='file' name='mother_pic' id="file" size='20' tabindex="26" />
                     </div>
                     <span class="text-danger"><?php echo form_error('mother_pic'); ?></span></div>
             </div>
@@ -370,17 +370,17 @@ echo display_onlineadmission_custom_fields('students');
             <label class="radio-inline">
                 <input type="radio" name="guardian_is" <?php
 echo set_value('guardian_is') == "father" ? "checked" : "";
-    ?>   value="father"> <?php echo $this->lang->line('father'); ?>
+    ?>   value="father" tabindex="27"> <?php echo $this->lang->line('father'); ?>
             </label>
             <label class="radio-inline">
                 <input type="radio" name="guardian_is" <?php
 echo set_value('guardian_is') == "mother" ? "checked" : "";
-    ?>   value="mother"> <?php echo $this->lang->line('mother'); ?>
+    ?>   value="mother" tabindex="28"> <?php echo $this->lang->line('mother'); ?>
             </label>
             <label class="radio-inline">
                 <input type="radio" name="guardian_is" <?php
 echo set_value('guardian_is') == "other" ? "checked" : "";
-    ?>   value="other"> <?php echo $this->lang->line('other'); ?>
+    ?>   value="other" tabindex="29"> <?php echo $this->lang->line('other'); ?>
             </label>
             <span class="text-danger"><?php echo form_error('guardian_is'); ?></span>
         </div>
@@ -388,7 +388,7 @@ echo set_value('guardian_is') == "other" ? "checked" : "";
         <div class="col-md-3">
             <div class="form-group">
                 <label><?php echo $this->lang->line('guardian_name'); ?></label><small class="req"> *</small>
-                <input id="guardian_name" name="guardian_name" placeholder="" type="text" class="form-control"  value="<?php echo set_value('guardian_name'); ?>" autocomplete="off" />
+                <input id="guardian_name" name="guardian_name" placeholder="" type="text" class="form-control"  value="<?php echo set_value('guardian_name'); ?>" autocomplete="off" tabindex="30" />
                 <span class="text-danger"><?php echo form_error('guardian_name'); ?></span>
             </div>
         </div>
@@ -397,7 +397,7 @@ echo set_value('guardian_is') == "other" ? "checked" : "";
         <div class="col-md-3">
             <div class="form-group">
                 <label><?php echo $this->lang->line('guardian_relation'); ?></label><small class="req"> *</small>
-                <input id="guardian_relation" name="guardian_relation" placeholder="" type="text" class="form-control"  value="<?php echo set_value('guardian_relation'); ?>" autocomplete="off"/>
+                <input id="guardian_relation" name="guardian_relation" placeholder="" type="text" class="form-control"  value="<?php echo set_value('guardian_relation'); ?>" autocomplete="off" tabindex="31"/>
                 <span class="text-danger"><?php echo form_error('guardian_relation'); ?></span>
             </div>
         </div>
@@ -406,7 +406,7 @@ echo set_value('guardian_is') == "other" ? "checked" : "";
         <div class="col-md-3">
             <div class="form-group">
                 <label><?php echo $this->lang->line('guardian_email'); ?></label>
-                <input id="guardian_email" name="guardian_email" placeholder="" type="text" class="form-control"  value="<?php echo set_value('guardian_email'); ?>" autocomplete="off"/>
+                <input id="guardian_email" name="guardian_email" placeholder="" type="text" class="form-control"  value="<?php echo set_value('guardian_email'); ?>" autocomplete="off" tabindex="32"/>
                 <span class="text-danger"><?php echo form_error('guardian_email'); ?></span>
             </div>
         </div>
@@ -415,7 +415,7 @@ echo set_value('guardian_is') == "other" ? "checked" : "";
           <div class="col-md-3">
             <div class="form-group">
                 <label><?php echo $this->lang->line('guardian_photo'); ?></label>
-                <div><input class="filestyle form-control" type='file' name='guardian_pic' id="file" size='20' />
+                <div><input class="filestyle form-control" type='file' name='guardian_pic' id="file" size='20' tabindex="33" />
                 </div>
                 <span class="text-danger"><?php echo form_error('guardian_pic'); ?></span></div>
         </div>
@@ -426,7 +426,7 @@ echo set_value('guardian_is') == "other" ? "checked" : "";
         <div class="col-md-3">
             <div class="form-group">
                 <label><?php echo $this->lang->line('guardian_phone'); ?></label>
-                <input id="guardian_phone" name="guardian_phone" placeholder="" type="text" class="form-control"  value="<?php echo set_value('guardian_phone'); ?>" autocomplete="off"/>
+                <input id="guardian_phone" name="guardian_phone" placeholder="" type="text" class="form-control"  value="<?php echo set_value('guardian_phone'); ?>" autocomplete="off" tabindex="34"/>
                 <span class="text-danger"><?php echo form_error('guardian_phone'); ?></span>
             </div>
         </div>
@@ -435,7 +435,7 @@ echo set_value('guardian_is') == "other" ? "checked" : "";
         <div class="col-md-3">
             <div class="form-group">
                 <label><?php echo $this->lang->line('guardian_occupation'); ?></label>
-                <input id="guardian_occupation" name="guardian_occupation" placeholder="" type="text" class="form-control"  value="<?php echo set_value('guardian_occupation'); ?>" autocomplete="off" />
+                <input id="guardian_occupation" name="guardian_occupation" placeholder="" type="text" class="form-control"  value="<?php echo set_value('guardian_occupation'); ?>" autocomplete="off" tabindex="35" />
                 <span class="text-danger"><?php echo form_error('guardian_occupation'); ?></span>
             </div>
         </div>
@@ -444,7 +444,7 @@ echo set_value('guardian_is') == "other" ? "checked" : "";
         <div class="col-md-6">
             <div class="form-group">
                 <label><?php echo $this->lang->line('guardian_address'); ?></label>
-                <textarea id="guardian_address" name="guardian_address" placeholder="" class="form-control" rows="1" autocomplete="off"><?php echo set_value('guardian_address'); ?></textarea>
+                <textarea id="guardian_address" name="guardian_address" placeholder="" class="form-control" rows="1" autocomplete="off" tabindex="36"><?php echo set_value('guardian_address'); ?></textarea>
                 <span class="text-danger"><?php echo form_error('guardian_address'); ?></span>
             </div>
         </div>
@@ -460,14 +460,14 @@ echo set_value('guardian_is') == "other" ? "checked" : "";
                 <div class="col-md-6">
                  <?php if ($this->customlib->getfieldstatus('guardian_address')) {?>
                     <div class="checkbox">
-                        <label> <input type="checkbox" id="autofill_current_address" onclick="return auto_fill_guardian_address();" autocomplete="off">
+                        <label> <input type="checkbox" id="autofill_current_address" onclick="return auto_fill_guardian_address();" autocomplete="off" tabindex="37">
                         <?php echo $this->lang->line('if_guardian_address_is_current_address'); ?>
                          </label>
                     </div>
                     <?php } else {echo "<div class='checkbox'><label>&nbsp;</label></div>";}?>
                     <div class="form-group">
                         <label><?php echo $this->lang->line('current_address'); ?></label>
-                        <textarea id="current_address" name="current_address" placeholder="" rows="1" class="form-control" autocomplete="off"><?php echo set_value('current_address'); ?></textarea>
+                        <textarea id="current_address" name="current_address" placeholder="" rows="1" class="form-control" autocomplete="off" tabindex="38"><?php echo set_value('current_address'); ?></textarea>
                         <span class="text-danger"><?php echo form_error('current_address'); ?></span>
                     </div>
                 </div>
@@ -475,13 +475,13 @@ echo set_value('guardian_is') == "other" ? "checked" : "";
                     <div class="col-md-6">
                          <?php if ($this->customlib->getfieldstatus('current_address')) {?>
                         <div class="checkbox">
-                            <label> <input type="checkbox" id="autofill_address"onclick="return auto_fill_address();">
+                            <label> <input type="checkbox" id="autofill_address"onclick="return auto_fill_address();" tabindex="39">
                                 <?php echo $this->lang->line('if_permanent_address_is_current_address'); ?>  </label>
                          </div>
                          <?php } else {echo "<div class='checkbox'><label>&nbsp;</label></div>";}?>
                       <div class="form-group">
                             <label><?php echo $this->lang->line('permanent_address'); ?></label>
-                            <textarea id="permanent_address" name="permanent_address" rows="1" placeholder="" class="form-control" autocomplete="off"></textarea>
+                            <textarea id="permanent_address" name="permanent_address" rows="1" placeholder="" class="form-control" autocomplete="off" tabindex="40"></textarea>
                             <span class="text-danger"><?php echo form_error('permanent_address'); ?></span>
                         </div>
                 </div>
@@ -498,7 +498,7 @@ echo set_value('guardian_is') == "other" ? "checked" : "";
                 <div class="col-md-4">
                     <div class="form-group">
                         <label><?php echo $this->lang->line('bank_account_number'); ?></label>
-                        <input id="bank_account_no" name="bank_account_no" placeholder="" type="text" class="form-control"  value="<?php echo set_value('bank_account_no'); ?>" autocomplete="off" />
+                        <input id="bank_account_no" name="bank_account_no" placeholder="" type="text" class="form-control"  value="<?php echo set_value('bank_account_no'); ?>" autocomplete="off" tabindex="41" />
                         <span class="text-danger"><?php echo form_error('bank_account_no'); ?></span>
                     </div>
                 </div>
@@ -506,7 +506,7 @@ echo set_value('guardian_is') == "other" ? "checked" : "";
                 <div class="col-md-4">
                     <div class="form-group">
                         <label><?php echo $this->lang->line('bank_name'); ?></label>
-                        <input id="bank_name" name="bank_name" placeholder="" type="text" class="form-control"  value="<?php echo set_value('bank_name'); ?>" autocomplete="off" />
+                        <input id="bank_name" name="bank_name" placeholder="" type="text" class="form-control"  value="<?php echo set_value('bank_name'); ?>" autocomplete="off" tabindex="42" />
                         <span class="text-danger"><?php echo form_error('bank_name'); ?></span>
                     </div>
                 </div>
@@ -515,7 +515,7 @@ echo set_value('guardian_is') == "other" ? "checked" : "";
                 <div class="col-md-4">
                     <div class="form-group">
                         <label><?php echo $this->lang->line('ifsc_code'); ?></label>
-                        <input id="ifsc_code" name="ifsc_code" placeholder="" type="text" class="form-control"  value="<?php echo set_value('ifsc_code'); ?>" autocomplete="off" />
+                        <input id="ifsc_code" name="ifsc_code" placeholder="" type="text" class="form-control"  value="<?php echo set_value('ifsc_code'); ?>" autocomplete="off" tabindex="43" />
                         <span class="text-danger"><?php echo form_error('ifsc_code'); ?></span>
                     </div>
                 </div>
@@ -526,7 +526,7 @@ echo set_value('guardian_is') == "other" ? "checked" : "";
               <div class="col-md-4">
                 <div class="form-group">
                  <label>  <?php echo $this->lang->line('national_identification_number'); ?>  </label>
-                  <input id="adhar_no" name="adhar_no" placeholder="" type="text" class="form-control"  value="<?php echo set_value('adhar_no'); ?>"  autocomplete="off"/>
+                  <input id="adhar_no" name="adhar_no" placeholder="" type="text" class="form-control"  value="<?php echo set_value('adhar_no'); ?>"  autocomplete="off" tabindex="44"/>
                   <span class="text-danger"><?php echo form_error('adhar_no'); ?></span>
                  </div>
                </div>
@@ -534,7 +534,7 @@ echo set_value('guardian_is') == "other" ? "checked" : "";
              <div class="col-md-4">
                  <div class="form-group">
                     <label> <?php echo $this->lang->line('local_identification_number'); ?>     </label>
-                     <input id="samagra_id" name="samagra_id" placeholder="" type="text" class="form-control"  value="<?php echo set_value('samagra_id'); ?>" autocomplete="off" />
+                     <input id="samagra_id" name="samagra_id" placeholder="" type="text" class="form-control"  value="<?php echo set_value('samagra_id'); ?>" autocomplete="off" tabindex="45" />
                          <span class="text-danger"><?php echo form_error('samagra_id'); ?></span>
                  </div>
               </div>
@@ -545,10 +545,10 @@ echo set_value('guardian_is') == "other" ? "checked" : "";
                          <div class="radio" style="margin-top: 2px;">
                           <label><input class="radio-inline" type="radio" name="rte" value="Yes"  <?php
 echo set_value('rte') == "yes" ? "checked" : "";
-        ?>  ><?php echo $this->lang->line('yes'); ?></label>
+        ?> tabindex="46" ><?php echo $this->lang->line('yes'); ?></label>
                             <label><input class="radio-inline" checked="checked" type="radio" name="rte" value="No" <?php
 echo set_value('rte') == "no" ? "checked" : "";
-        ?>  ><?php echo $this->lang->line('no'); ?></label>
+        ?> tabindex="47" ><?php echo $this->lang->line('no'); ?></label>
                                 </div>
                     <span class="text-danger"><?php echo form_error('rte'); ?></span>
                 </div>
@@ -559,7 +559,7 @@ echo set_value('rte') == "no" ? "checked" : "";
                 <div class="col-md-6">
                     <div class="form-group">
                         <label><?php echo $this->lang->line('previous_school_details'); ?></label>
-                        <textarea class="form-control" rows="1" placeholder="" name="previous_school" autocomplete="off"><?php echo set_value('previous_school'); ?></textarea>
+                        <textarea class="form-control" rows="1" placeholder="" name="previous_school" autocomplete="off" tabindex="48"><?php echo set_value('previous_school'); ?></textarea>
                         <span class="text-danger"><?php echo form_error('previous_school'); ?></span>
                     </div>
                 </div>
@@ -568,7 +568,7 @@ echo set_value('rte') == "no" ? "checked" : "";
                     <div class="col-md-6">
                         <div class="form-group">
                             <label><?php echo $this->lang->line('note'); ?></label>
-                            <textarea class="form-control" rows="1" placeholder="" name="note" autocomplete="off"><?php echo set_value('note'); ?></textarea>
+                            <textarea class="form-control" rows="1" placeholder="" name="note" autocomplete="off" tabindex="49"><?php echo set_value('note'); ?></textarea>
                             <span class="text-danger"><?php echo form_error('note'); ?></span>
                         </div>
                     </div>
@@ -583,7 +583,7 @@ echo set_value('rte') == "no" ? "checked" : "";
             <div class="col-md-6">
               <div class="form-group">
                 <label> <?php echo $this->lang->line('documents'); ?> </label> (<small><?php echo $this->lang->line('if_upload_multiple_document'); ?></small>)
-                <input id="document" name="document"  type="file" class="form-control filestyle" value="<?php echo set_value('document'); ?>" />
+                <input id="document" name="document"  type="file" class="form-control filestyle" value="<?php echo set_value('document'); ?>" tabindex="50" />
                 <span class="text-danger"><?php echo form_error('document'); ?></span>
             </div>
           </div>
@@ -597,14 +597,14 @@ echo set_value('rte') == "no" ? "checked" : "";
                         <div class="d-flex align-items-center">
                             <span id="captcha_image"><?php echo $this->captchalib->generate_captcha()['image']; ?></span>
                             <span class="fa fa-refresh capture-icon" title='Refresh Catpcha' onclick="refreshCaptcha()"></span>
-                            <input type="text" name="captcha" placeholder="<?php echo $this->lang->line('captcha'); ?>" class=" form-control width-auto" id="captcha"  autocomplete="off">
+                            <input type="text" name="captcha" placeholder="<?php echo $this->lang->line('captcha'); ?>" class=" form-control width-auto" id="captcha"  autocomplete="off" tabindex="51">
                         </div>
                     </div>
                     <?php }?>
 
                 <div class="col-lg-2 col-md-2 col-sm-5">
                     <div class="form-group <?php if ($is_captcha) {echo 'btnMD';}?> ">
-                       <button type="submit" class="onlineformbtn mt10"><?php echo $this->lang->line('submit'); ?></button>
+                       <button type="submit" class="onlineformbtn mt10" tabindex="52"><?php echo $this->lang->line('submit'); ?></button>
                     </div>
                 </div>
                 <div class="col-md-7">
