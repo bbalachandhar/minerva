@@ -142,8 +142,15 @@ class Enquiry extends CI_Controller
             )
         );
         $captcha = create_captcha($config);
-        $this->session->set_userdata('captcha_code', $captcha['word']);
-        echo $captcha['image'];
+        if ($captcha === FALSE) {
+            // Log the error and output a user-friendly message or a placeholder.
+            log_message('error', 'CAPTCHA generation failed in refresh_captcha. Check captcha_images directory permissions.');
+            // Optionally, you could output a placeholder image or an error message.
+            // For now, we will just not output anything to prevent a broken image.
+        } else {
+            $this->session->set_userdata('captcha_code', $captcha['word']);
+            echo $captcha['image'];
+        }
     }
 }
 ?>
