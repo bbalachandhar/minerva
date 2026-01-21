@@ -336,7 +336,7 @@
                     </div>
                 </div>
                 <div class="">
-                    <h5 class="mb-3 mt-5 text-center">Courses Offered</h5>
+
                     <div id="ugDetails">
                         <div class="section-card">
                             <h5 class="mb-3">Courses Offered*</h5>
