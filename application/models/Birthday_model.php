@@ -31,6 +31,7 @@ class Birthday_model extends MY_Model
         $this->db->join('sections', 'sections.id = student_session.section_id');
         $this->db->join('categories', 'students.category_id = categories.id', 'left');
         $this->db->join('users', 'users.user_id = students.id', 'left');
+        $this->db->where('users.role', 'student'); // Ensure user role is student
         $this->db->where('students.is_active', 'yes');
         $month_day_from = date('m-d', strtotime($date_from_formatted));
         $month_day_to   = date('m-d', strtotime($date_to_formatted));
@@ -92,7 +93,7 @@ class Birthday_model extends MY_Model
         log_message('debug', 'DataTables Result: ' . json_encode($data));
         return [
             "draw" => (int)$this->input->post('draw'),
-            "recordsTotal" => $total_rows,
+            "recordsTotal" => $filtered_rows,
             "recordsFiltered" => $filtered_rows,
             "data" => $data
         ];
