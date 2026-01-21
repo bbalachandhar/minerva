@@ -1311,10 +1311,10 @@ class PublicAdmissionForm extends CI_Controller
             $this->form_validation->set_rules('ug_course', 'UG Course', 'trim|required|xss_clean');
             $this->form_validation->set_rules('school_name', 'Name of the school of X std', 'trim|required|xss_clean');
             $this->form_validation->set_rules('tenth_passing', 'Year of passing of X std', 'trim|required|min_length[4]|max_length[4]|xss_clean');
-            $this->form_validation->set_rules('maths_marks', 'Maths Marks', 'trim|required|numeric|xss_clean');
-            $this->form_validation->set_rules('total_maths', 'Total Maths Marks', 'trim|required|numeric|xss_clean');
-            $this->form_validation->set_rules('physics_marks', 'Physics & Chemistry Marks', 'trim|required|numeric|xss_clean');
-            $this->form_validation->set_rules('total_physics', 'Total Physics & Chemistry Marks', 'trim|required|numeric|xss_clean');
+            $this->form_validation->set_rules('maths_marks', 'Maths Marks', 'trim|required|numeric|less_than_equal_to[total_maths]|xss_clean');
+            $this->form_validation->set_rules('total_maths', 'Total Maths Marks', 'trim|required|numeric|less_than_equal_to[100]|xss_clean');
+            $this->form_validation->set_rules('physics_marks', 'Physics & Chemistry Marks', 'trim|required|numeric|less_than_equal_to[total_physics]|xss_clean');
+            $this->form_validation->set_rules('total_physics', 'Total Physics & Chemistry Marks', 'trim|required|numeric|less_than_equal_to[100]|xss_clean');
             if ($this->input->post('ug_course') == 1) { // B.Arch course ID
                 $this->form_validation->set_rules('nata_score', 'NATA Score', 'trim|required|xss_clean');
                 $this->form_validation->set_rules('application_number', 'NATA Application Form', 'trim|required|xss_clean');
@@ -1326,11 +1326,11 @@ class PublicAdmissionForm extends CI_Controller
             $this->form_validation->set_rules('lateral_tenth_passing', 'Year of passing of X std', 'trim|required|min_length[4]|max_length[4]|xss_clean');
             for ($i = 1; $i <= 6; $i++) {
                 $this->form_validation->set_rules('presub' . $i, 'Pre-Final Semester Subject ' . $i, 'trim|xss_clean');
-                $this->form_validation->set_rules('premark' . $i, 'Pre-Final Semester Marks ' . $i, 'trim|numeric|xss_clean');
-                $this->form_validation->set_rules('preout' . $i, 'Pre-Final Semester Total Marks ' . $i, 'trim|numeric|xss_clean');
+                $this->form_validation->set_rules('premark' . $i, 'Pre-Final Semester Marks ' . $i, 'trim|numeric|less_than_equal_to[preout' . $i . ']|xss_clean');
+                $this->form_validation->set_rules('preout' . $i, 'Pre-Final Semester Total Marks ' . $i, 'trim|numeric|less_than_equal_to[100]|xss_clean');
                 $this->form_validation->set_rules('finalsub' . $i, 'Final Semester Subject ' . $i, 'trim|xss_clean');
-                $this->form_validation->set_rules('finalmark' . $i, 'Final Semester Marks ' . $i, 'trim|numeric|xss_clean');
-                $this->form_validation->set_rules('finalout' . $i, 'Final Semester Total Marks ' . $i, 'trim|numeric|xss_clean');
+                $this->form_validation->set_rules('finalmark' . $i, 'Final Semester Marks ' . $i, 'trim|numeric|less_than_equal_to[finalout' . $i . ']|xss_clean');
+                $this->form_validation->set_rules('finalout' . $i, 'Final Semester Total Marks ' . $i, 'trim|numeric|less_than_equal_to[100]|xss_clean');
             }
         } elseif ($courseLevel == 'pg') {
             $this->form_validation->set_rules('pg_course', 'PG Course', 'trim|required|xss_clean');

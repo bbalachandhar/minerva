@@ -380,21 +380,21 @@
                                     <tbody>
                                         <tr>
                                             <td>Maths (M)</td>
-                                            <td><input type="number" step="any" min="0" max="100" value="0" class="form-control text-center" name="maths_marks" id="maths_marks" tabindex="25"></td>
-                                            <td><input type="number" step="any" min="0" max="100" value="0" class="form-control text-center" name="total_maths" id="total_maths" tabindex="26"></td>
-                                            <td><input type="number" step="any" min="0" max="100" value="0" class="form-control text-center" name="maths_perc" id="maths_perc" readonly></td>
+                                            <td><input type="number" step="1" min="0" max="100" value="0" class="form-control text-center" name="maths_marks" id="maths_marks" onKeyPress="return checkIt(event);" tabindex="25"></td>
+                                            <td><input type="number" step="1" min="0" max="100" value="0" class="form-control text-center" name="total_maths" id="total_maths" onKeyPress="return checkIt(event);" tabindex="26"></td>
+                                            <td><input type="number" step="1" min="0" max="100" value="0" class="form-control text-center" name="maths_perc" id="maths_perc" readonly></td>
                                         </tr>
                                         <tr>
                                             <td>Physics (P) & Chemistry (C) put together</td>
-                                            <td><input type="number" step="any" min="0" max="100" value="0" class="form-control text-center" name="physics_marks" id="physics_marks" tabindex="27"></td>
-                                            <td><input type="number" step="any" min="0" max="100" value="0" class="form-control text-center" name="total_physics" id="total_physics" tabindex="28"></td>
-                                            <td><input type="number" step="any" min="0" max="100" value="0" class="form-control text-center" name="physics_perc" id="physics_perc" readonly></td>
+                                            <td><input type="number" step="1" min="0" max="100" value="0" class="form-control text-center" name="physics_marks" id="physics_marks" onKeyPress="return checkIt(event);" tabindex="27"></td>
+                                            <td><input type="number" step="1" min="0" max="100" value="0" class="form-control text-center" name="total_physics" id="total_physics" onKeyPress="return checkIt(event);" tabindex="28"></td>
+                                            <td><input type="number" step="1" min="0" max="100" value="0" class="form-control text-center" name="physics_perc" id="physics_perc" readonly></td>
                                         </tr>
                                         <tr>
                                             <td>Total</td>
-                                            <td><input type="number" step="any" min="0" max="100" value="0" class="form-control text-center" name="obtain_marks" id="obtain_marks" readonly></td>
-                                            <td><input type="number" step="any" min="0" max="100" value="0" class="form-control text-center" name="total_marks" id="total_marks" readonly></td>
-                                            <td><input type="number" step="any" min="0" max="100" value="0" class="form-control text-center" name="total_perc" id="total_perc" readonly></td>
+                                            <td><input type="number" step="1" min="0" max="100" value="0" class="form-control text-center" name="obtain_marks" id="obtain_marks" readonly></td>
+                                            <td><input type="number" step="1" min="0" max="100" value="0" class="form-control text-center" name="total_marks" id="total_marks" readonly></td>
+                                            <td><input type="number" step="1" min="0" max="100" value="0" class="form-control text-center" name="total_perc" id="total_perc" readonly></td>
                                         </tr>
                                     </tbody>
                                 </table>
@@ -439,36 +439,36 @@
                                             <tbody>
                                                 <tr>
                                                     <td>
-                                                        1. <input type="text" name="presub1" id="presub1" class="form-control d-inline w-25" placeholder="Subject" tabindex="25"> : <input type="number" step="any" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="premark1" id="premark1" tabindex="26"> out of <input type="number" step="any"  class="form-control d-inline w-25" max="100" min="0" name="preout1" id="preout1" value="0" placeholder="Total Marks" tabindex="27">
+                                                        1. <input type="text" name="presub1" id="presub1" class="form-control d-inline w-25" placeholder="Subject" tabindex="25"> : <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="premark1" id="premark1" onKeyPress="return checkIt(event);" tabindex="26"> out of <input type="number" step="1"  class="form-control d-inline w-25" max="100" min="0" name="preout1" id="preout1" value="0" onKeyPress="return checkIt(event);" tabindex="27">
                                                     </td>
                                                 </tr>
                                                 <tr>
                                                     <td>
-                                                        2. <input type="text" name="presub2" id="presub2" class="form-control d-inline w-25" placeholder="Subject" tabindex="28"> : <input type="number" step="any" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="premark2" id="premark2" tabindex="29"> out of <input type="number" step="any" class="form-control d-inline w-25" max="100" min="0" name="preout2" id="preout2" value="0" placeholder="Total Marks" tabindex="30">
+                                                        2. <input type="text" name="presub2" id="presub2" class="form-control d-inline w-25" placeholder="Subject" tabindex="28"> : <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="premark2" id="premark2" onKeyPress="return checkIt(event);" tabindex="29"> out of <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" name="preout2" id="preout2" value="0" onKeyPress="return checkIt(event);" tabindex="30">
                                                     </td>
                                                 </tr>
                                                 <tr>
                                                     <td>
-                                                        3. <input type="text" name="presub3" id="presub3" class="form-control d-inline w-25" placeholder="Subject" tabindex="31"> : <input type="number" step="any" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="premark3" id="premark3" tabindex="32"> out of <input type="number" step="any" class="form-control d-inline w-25" max="100" min="0" name="preout3" id="preout3" value="0" placeholder="Total Marks" tabindex="33">
+                                                        3. <input type="text" name="presub3" id="presub3" class="form-control d-inline w-25" placeholder="Subject" tabindex="31"> : <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="premark3" id="premark3" onKeyPress="return checkIt(event);" tabindex="32"> out of <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" name="preout3" id="preout3" value="0" onKeyPress="return checkIt(event);" tabindex="33">
                                                     </td>
                                                 </tr>
                                                 <tr>
                                                     <td>
-                                                        4. <input type="text" name="presub4" id="presub4" class="form-control d-inline w-25" placeholder="Subject" tabindex="34"> : <input type="number" step="any" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="premark4" id="premark4" tabindex="35"> out of <input type="number" step="any" class="form-control d-inline w-25" max="100" min="0" name="preout4" id="preout4" value="0" placeholder="Total Marks" tabindex="36">
+                                                        4. <input type="text" name="presub4" id="presub4" class="form-control d-inline w-25" placeholder="Subject" tabindex="34"> : <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="premark4" id="premark4" onKeyPress="return checkIt(event);" tabindex="35"> out of <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" name="preout4" id="preout4" value="0" onKeyPress="return checkIt(event);" tabindex="36">
                                                     </td>
                                                 </tr>
                                                 <tr>
                                                     <td>
-                                                        5. <input type="text" name="presub5" id="presub5" class="form-control d-inline w-25" placeholder="Subject" tabindex="37"> : <input type="number" step="any" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="premark5" id="premark5" tabindex="38"> out of <input type="number" step="any" class="form-control d-inline w-25" max="100" min="0" name="preout5" id="preout5" value="0" placeholder="Total Marks" tabindex="39">
+                                                        5. <input type="text" name="presub5" id="presub5" class="form-control d-inline w-25" placeholder="Subject" tabindex="37"> : <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="premark5" id="premark5" onKeyPress="return checkIt(event);" tabindex="38"> out of <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" name="preout5" id="preout5" value="0" onKeyPress="return checkIt(event);" tabindex="39">
                                                     </td>
                                                 </tr>
                                                 <tr>
                                                     <td>
-                                                        6. <input type="text" name="presub6" id="presub6" class="form-control d-inline w-25" placeholder="Subject" tabindex="40"> : <input type="number" step="any" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="premark6" id="premark6" tabindex="41"> out of <input type="number" step="any" class="form-control d-inline w-25" max="100" min="0" name="preout6" id="preout6" value="0" placeholder="Total Marks" tabindex="42">
+                                                        6. <input type="text" name="presub6" id="presub6" class="form-control d-inline w-25" placeholder="Subject" tabindex="40"> : <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="premark6" id="premark6" onKeyPress="return checkIt(event);" tabindex="41"> out of <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" name="preout6" id="preout6" value="0" onKeyPress="return checkIt(event);" tabindex="42">
                                                     </td>
                                                 </tr>
                                                 <tr>
-                                                    <td class="text-end fw-bold" colspan="2">Total : <input type="number" step="any" class="form-control d-inline w-25" name="pretotal" id="pretotal" value="0" readonly> out of <input type="number" step="any" class="form-control d-inline w-25" name="pretotal1" id="pretotal1" readonly value="0">
+                                                    <td class="text-end fw-bold" colspan="2">Total : <input type="number" step="1" class="form-control d-inline w-25" name="pretotal" id="pretotal" value="0" onKeyPress="return checkIt(event);" readonly> out of <input type="number" step="1" class="form-control d-inline w-25" name="pretotal1" id="pretotal1" readonly onKeyPress="return checkIt(event);" value="0">
                                                     </td>
                                                 </tr>
                                             </tbody>
@@ -482,36 +482,36 @@
                                             <tbody>
                                                 <tr>
                                                     <td>
-                                                        1. <input type="text" name="finalsub1" id="finalsub1" class="form-control d-inline w-25" placeholder="Subject" tabindex="43"> : <input type="number" step="any" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="finalmark1" id="finalmark1" tabindex="44"> out of <input type="number" step="any" class="form-control d-inline w-25" max="100" min="0" name="finalout1" id="finalout1" value="0" placeholder="Total Marks" tabindex="45">
+                                                        1. <input type="text" name="finalsub1" id="finalsub1" class="form-control d-inline w-25" placeholder="Subject" tabindex="43"> : <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="finalmark1" id="finalmark1" onKeyPress="return checkIt(event);" tabindex="44"> out of <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" name="finalout1" id="finalout1" value="0" onKeyPress="return checkIt(event);" tabindex="45">
                                                     </td>
                                                 </tr>
                                                 <tr>
                                                     <td>
-                                                        2. <input type="text" name="finalsub2" id="finalsub2" class="form-control d-inline w-25" placeholder="Subject" tabindex="46"> : <input type="number" step="any" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="finalmark2" id="finalmark2" tabindex="47"> out of <input type="number" step="any" class="form-control d-inline w-25" max="100" min="0" name="finalout2" id="finalout2" value="0" placeholder="Total Marks" tabindex="48">
+                                                        2. <input type="text" name="finalsub2" id="finalsub2" class="form-control d-inline w-25" placeholder="Subject" tabindex="46"> : <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="finalmark2" id="finalmark2" onKeyPress="return checkIt(event);" tabindex="47"> out of <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" name="finalout2" id="finalout2" value="0" onKeyPress="return checkIt(event);" tabindex="48">
                                                     </td>
                                                 </tr>
                                                 <tr>
                                                     <td>
-                                                        3. <input type="text" name="finalsub3" id="finalsub3" class="form-control d-inline w-25" placeholder="Subject" tabindex="49"> : <input type="number" step="any" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="finalmark3" id="finalmark3" tabindex="50"> out of <input type="number" step="any" class="form-control d-inline w-25" max="100" min="0" name="finalout3" id="finalout3" value="0" placeholder="Total Marks" tabindex="51">
+                                                        3. <input type="text" name="finalsub3" id="finalsub3" class="form-control d-inline w-25" placeholder="Subject" tabindex="49"> : <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="finalmark3" id="finalmark3" onKeyPress="return checkIt(event);" tabindex="50"> out of <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" name="finalout3" id="finalout3" value="0" onKeyPress="return checkIt(event);" tabindex="51">
                                                     </td>
                                                 </tr>
                                                 <tr>
                                                     <td>
-                                                        4. <input type="text" name="finalsub4" id="finalsub4" class="form-control d-inline w-25" placeholder="Subject" tabindex="52"> : <input type="number" step="any" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="finalmark4" id="finalmark4" tabindex="53"> out of <input type="number" step="any" class="form-control d-inline w-25" max="100" min="0" name="finalout4" id="finalout4" value="0" placeholder="Total Marks" tabindex="54">
+                                                        4. <input type="text" name="finalsub4" id="finalsub4" class="form-control d-inline w-25" placeholder="Subject" tabindex="52"> : <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="finalmark4" id="finalmark4" onKeyPress="return checkIt(event);" tabindex="53"> out of <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" name="finalout4" id="finalout4" value="0" onKeyPress="return checkIt(event);" tabindex="54">
                                                     </td>
                                                 </tr>
                                                 <tr>
                                                     <td>
-                                                        5. <input type="text" name="finalsub5" id="finalsub5" class="form-control d-inline w-25" placeholder="Subject" tabindex="55"> : <input type="number" step="any" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="finalmark5" id="finalmark5" tabindex="56"> out of <input type="number" step="any" class="form-control d-inline w-25" max="100" min="0" name="finalout5" id="finalout5" value="0" placeholder="Total Marks" tabindex="57">
+                                                        5. <input type="text" name="finalsub5" id="finalsub5" class="form-control d-inline w-25" placeholder="Subject" tabindex="55"> : <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="finalmark5" id="finalmark5" onKeyPress="return checkIt(event);" tabindex="56"> out of <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" name="finalout5" id="finalout5" value="0" onKeyPress="return checkIt(event);" tabindex="57">
                                                     </td>
                                                 </tr>
                                                 <tr>
                                                     <td>
-                                                        6. <input type="text" name="finalsub6" id="finalsub6" class="form-control d-inline w-25" placeholder="Subject" tabindex="58"> : <input type="number" step="any" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="finalmark6" id="finalmark6" tabindex="59"> out of <input type="number" step="any" class="form-control d-inline w-25" max="100" min="0" name="finalout6" id="finalout6" value="0" placeholder="Total Marks" tabindex="60">
+                                                        6. <input type="text" name="finalsub6" id="finalsub6" class="form-control d-inline w-25" placeholder="Subject" tabindex="58"> : <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="finalmark6" id="finalmark6" onKeyPress="return checkIt(event);" tabindex="59"> out of <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" name="finalout6" id="finalout6" value="0" onKeyPress="return checkIt(event);" tabindex="60">
                                                     </td>
                                                 </tr>
                                                 <tr>
-                                                    <td class="text-end fw-bold" colspan="2">Total : <input type="number" step="any" class="form-control d-inline w-25" name="finaltotal" id="finaltotal" value="0" readonly> out of <input type="number" step="any" class="form-control d-inline w-25" name="finaltotal1" id="finaltotal1" readonly value="0">
+                                                    <td class="text-end fw-bold" colspan="2">Total : <input type="number" step="1" class="form-control d-inline w-25" name="finaltotal" id="finaltotal" value="0" readonly onKeyPress="return checkIt(event);"> out of <input type="number" step="1" class="form-control d-inline w-25" name="finaltotal1" id="finaltotal1" readonly onKeyPress="return checkIt(event);" value="0">
                                                     </td>
                                                 </tr>
                                             </tbody>
@@ -940,8 +940,32 @@
 <script type="text/javascript">
     $(document).ready(function() {
         function calculatePercentage(marksId, totalId, percId) {
-            let marks = parseFloat($(marksId).val()) || 0;
-            let total = parseFloat($(totalId).val()) || 1;
+            let marks = parseFloat($(marksId).val());
+            let total = parseFloat($(totalId).val());
+
+            // Validate total marks
+            if (total > 100) {
+                alert("Maximum Marks cannot exceed 100.");
+                $(totalId).val(100);
+                total = 100;
+            }
+            if (total < 0) {
+                alert("Maximum Marks cannot be negative.");
+                $(totalId).val(0);
+                total = 0;
+            }
+
+            // Validate marks obtained
+            if (marks > total) {
+                alert("Marks Obtained cannot exceed Maximum Marks.");
+                $(marksId).val(total);
+                marks = total;
+            }
+            if (marks < 0) {
+                alert("Marks Obtained cannot be negative.");
+                $(marksId).val(0);
+                marks = 0;
+            }
 
             if (total === 0) {
                 $(percId).val("0.00");
@@ -970,12 +994,39 @@
         });
     });
     $(document).ready(function() {
-        function calculateTotal() {
+        function calculateTotalPreSem() {
             let totalMarksObtained = 0;
             let totalMaxMarks = 0;
             for (let i = 1; i <= 6; i++) {
-                let marks = parseFloat($("#premark" + i).val()) || 0;
-                let total = parseFloat($("#preout" + i).val()) || 0;
+                let markId = "#premark" + i;
+                let outId = "#preout" + i;
+                let marks = parseFloat($(markId).val());
+                let total = parseFloat($(outId).val());
+
+                // Validate total marks (preoutX)
+                if (total > 100) {
+                    alert("Pre-Final Semester Maximum Marks cannot exceed 100.");
+                    $(outId).val(100);
+                    total = 100;
+                }
+                if (total < 0) {
+                    alert("Pre-Final Semester Maximum Marks cannot be negative.");
+                    $(outId).val(0);
+                    total = 0;
+                }
+                
+                // Validate marks obtained (premarkX)
+                if (marks > total) {
+                    alert("Pre-Final Semester Marks Obtained cannot exceed Maximum Marks.");
+                    $(markId).val(total);
+                    marks = total;
+                }
+                if (marks < 0) {
+                    alert("Pre-Final Semester Marks Obtained cannot be negative.");
+                    $(markId).val(0);
+                    marks = 0;
+                }
+
                 totalMarksObtained += marks;
                 totalMaxMarks += total;
             }
@@ -983,16 +1034,42 @@
             $("#pretotal1").val(totalMaxMarks);
         }
         $("input[id^='premark'], input[id^='preout']").on("input", function() {
-            calculateTotal();
+            calculateTotalPreSem();
         });
     });
     $(document).ready(function() {
-        function calculateFinalTotal() {
+        function calculateFinalTotalSem() {
             let totalMarksObtained = 0;
             let totalMaxMarks = 0;
             for (let i = 1; i <= 6; i++) {
-                let marks = parseFloat($("#finalmark" + i).val()) || 0;
-                let total = parseFloat($("#finalout" + i).val()) || 0;
+                let markId = "#finalmark" + i;
+                let outId = "#finalout" + i;
+                let marks = parseFloat($(markId).val());
+                let total = parseFloat($(outId).val());
+
+                // Validate total marks (finaloutX)
+                if (total > 100) {
+                    alert("Final Semester Maximum Marks cannot exceed 100.");
+                    $(outId).val(100);
+                    total = 100;
+                }
+                if (total < 0) {
+                    alert("Final Semester Maximum Marks cannot be negative.");
+                    $(outId).val(0);
+                    total = 0;
+                }
+
+                // Validate marks obtained (finalmarkX)
+                if (marks > total) {
+                    alert("Final Semester Marks Obtained cannot exceed Maximum Marks.");
+                    $(markId).val(total);
+                    marks = total;
+                }
+                if (marks < 0) {
+                    alert("Final Semester Marks Obtained cannot be negative.");
+                    $(markId).val(0);
+                    marks = 0;
+                }
 
                 totalMarksObtained += marks;
                 totalMaxMarks += total;
@@ -1001,7 +1078,7 @@
             $("#finaltotal1").val(totalMaxMarks);
         }
         $("input[id^='finalmark'], input[id^='finalout']").on("input", function() {
-            calculateFinalTotal();
+            calculateFinalTotalSem();
         });
     });
 </script>
