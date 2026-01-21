@@ -212,7 +212,7 @@
                         <div class="col-md-12 cus_form">
                             <div class="">
                                 <label class="form-label">Academic Year:</label>
-                                <input type="text" class="form-control" name="academic_year" id="academic_year" value="2025-2026" readonly>
+                                <input type="text" class="form-control" name="academic_year" id="academic_year" value="2026-2027" readonly>
                             </div>
                             <div class="Upload_pic">
                                 <label class="form-label">Upload Your Photo (Passport Size) *:</label>
@@ -340,21 +340,21 @@
                     <div id="ugDetails">
                         <div class="section-card">
                             <h5 class="mb-3">Courses Offered*</h5>
-                            <select class="form-control" name="ug_course" id="ug_course" tabindex="22">
-                                <option value="">Select a Course</option>
-                                                                    <option value="1">B.Arch - Bachelor of Architecture</option>
-                                                                    <option value="2">B.E. CIVIL - Civil Engineering</option>
-                                                                    <option value="3">B.E. CSE - Computer Science Engineering</option>
-                                                                    <option value="4">B.E. CSE(AIML) - CSE(Artificial Intelligence & Machine Learning)</option>
-                                                                    <option value="5">B.E. EEE - Electrical and Electronics Engineering</option>
-                                                                    <option value="6">B.E. ECE - Electronics and Communication Engineering</option>
-                                                                    <option value="7">B.E. EIE - Electronics and Instrumentation Engineering</option>
-                                                                    <option value="8">B.E. MECH - Mechanical Engineering</option>
-                                                                    <option value="9">B.TECH. AIDS - Artificial Intelligence and Data Science</option>
-                                                                    <option value="10">B.TECH. CSBS - Computer Science and Business System</option>
-                                                                    <option value="11">B.TECH. IT - Information Technology </option>
-                                                            </select>
-                        </div>
+                                                        <select class="form-control" name="ug_course" id="ug_course" tabindex="22">
+                                                            <option value="">Select a Course</option>
+                                                                                                <option value="1">B.Arch - Bachelor of Architecture</option>
+                                                                                                <option value="2">B.E. CIVIL - Civil Engineering</option>
+                                                                                                <option value="3">B.E. CSE - Computer Science Engineering</option>
+                                                                                                <option value="4">B.E. CSE(AIML) - CSE(Artificial Intelligence & Machine Learning)</option>
+                                                                                                <option value="5">B.E. EEE - Electrical and Electronics Engineering</option>
+                                                                                                <option value="6">B.E. ECE - Electronics and Communication Engineering</option>
+                                                                                                <option value="7">B.E. EIE - Electronics and Instrumentation Engineering</option>
+                                                                                                <option value="8">B.E. MECH - Mechanical Engineering</option>
+                                                                                                <option value="9">B.TECH. AIDS - Artificial Intelligence and Data Science</option>
+                                                                                                <option value="10">B.TECH. CSBS - Computer Science and Business System</option>
+                                                                                                <option value="11">B.TECH. IT - Information Technology </option>
+                                                                                                <option value="12">B.E. Cybersecurity and Bachelor of Design (B.Des)</option>
+                                                        </select>                        </div>
                         <div class="section-card">
                             <div class="mb-3">
                                 <label class="form-label">Name of the school of X std*</label>
@@ -416,6 +416,7 @@
                                                                     <option value="8">B.E. MECH - Mechanical Engineering</option>
                                                                     <option value="9">B.TECH. AIDS - Artificial Intelligence and Data Science</option>
                                                                     <option value="11">B.TECH. IT - Information Technology </option>
+                                                                    <option value="12">B.E. Cybersecurity and Bachelor of Design (B.Des)</option>
                                                             </select>
                         </div>
                         <div class="section-card">
