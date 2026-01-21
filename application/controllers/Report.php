@@ -959,6 +959,34 @@ class Report extends Admin_Controller
         $this->load->view('layout/footer', $data);
     }
 
+    public function staffprofilecompleteness() {
+        $this->session->set_userdata('top_menu', 'Reports');
+        $this->session->set_userdata('sub_menu', 'Reports/human_resource');
+        $this->session->set_userdata('subsub_menu', 'Reports/human_resource/staffprofilecompleteness');
+        $data['title'] = 'Staff Profile Completeness Report';
+
+        $this->load->model('staff_model');
+        $this->load->model('department_model');
+
+        $data['departmentlist'] = $this->department_model->getDepartmentType();
+        $data['department_id'] = $department_id = $this->input->post('department_id');
+
+        if (isset($department_id) && $department_id != '') {
+            $stafflist = $this->staff_model->getEmployeeByDepartment($department_id);
+        } else {
+            $stafflist = $this->staff_model->getAll(); // Using existing getAll method
+        }
+        
+        foreach ($stafflist as &$staff) {
+            $staff['completion_percentage'] = $this->staff_model->calculateProfileCompletion($staff);
+        }
+        $data['stafflist'] = $stafflist;
+
+        $this->load->view('layout/header', $data);
+        $this->load->view('reports/staffprofilecompleteness/index', $data);
+        $this->load->view('layout/footer', $data);
+    }
+
     public function lesson_plan()
     {
         $this->session->set_userdata('top_menu', 'Reports');

@@ -8,8 +8,10 @@
                 <ul class="reportlists">
                     <?php if ($this->rbac->hasPrivilege('staff_report', 'can_view')) { ?>
                         <li class="col-lg-4 col-md-4 col-sm-6 <?php echo set_SubSubmenu('Reports/human_resource/staff_report'); ?>"><a href="<?php echo base_url(); ?>report/staff_report"><i class="fa fa-file-text-o"></i> <?php echo $this->lang->line('staff_report'); ?></a></li>
-                        <?php
-                    }
+                    <?php } ?>
+                    <?php if ($this->rbac->hasPrivilege('staff_profile_completeness_report', 'can_view')) { ?>
+                        <li class="col-lg-4 col-md-4 col-sm-6 <?php echo set_SubSubmenu('Reports/human_resource/staffprofilecompleteness'); ?>"><a href="<?php echo base_url(); ?>report/staffprofilecompleteness"><i class="fa fa-file-text-o"></i> Staff Profile Completeness Report</a></li>
+                    <?php }
                     if (($this->rbac->hasPrivilege('payroll_report', 'can_view'))) {
                         ?>
                         <li class="col-lg-4 col-md-4 col-sm-6 <?php echo set_SubSubmenu('Reports/attendance/attendance_report'); ?>">
