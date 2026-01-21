@@ -82,11 +82,10 @@
                                                     <th><?php echo $this->lang->line('admission_no'); ?></th>
                                                     <th><?php echo $this->lang->line('student_name'); ?></th>
                                                     <th><?php echo $this->lang->line('class'); ?></th>
-                                                    <th><?php echo $this->lang->line('section'); ?></th>
-                                                    <th><?php echo $this->lang->line('gender'); ?></th>
-                                                    <th><?php echo $this->lang->line('father_name'); ?></th>
-                                                    <th class="text-right no-print"><?php echo $this->lang->line('action'); ?></th>
-                                                </tr>
+            <th><?php echo $this->lang->line('gender'); ?></th>
+            <th><?php echo $this->lang->line('father_name'); ?></th>
+            <th class="text-right no-print"><?php echo $this->lang->line('action'); ?></th>
+        </tr>
                                             </thead>
                                             <tbody>
                                                 <?php foreach ($student_list as $student) { ?>
@@ -96,13 +95,14 @@
                                                         <td><?php echo $student['class']; ?></td>
                                                         <td><?php echo $student['section']; ?></td>
                                                         <td><?php echo $student['gender']; ?></td>
-                                                        <td><?php echo $student['father_name']; ?></td>
-                                                        <td class="mailbox-date pull-right no-print">
-                                                            <button type="button" class="btn btn-default btn-xs collect_fee_btn" data-student_id="<?php echo $student['id']; ?>" data-session_id="<?php echo $session_id; ?>" data-toggle="tooltip" title="<?php echo $this->lang->line('collect_fee'); ?>">
-                                                                <i class="fa fa-money"></i>
-                                                            </button>
-                                                        </td>
-                                                    </tr>
+                <td><?php echo $student['father_name']; ?></td>
+                <td class="mailbox-date pull-right no-print">
+                    <button type="button" class="btn btn-default btn-xs collect_fee_btn" data-student_id="<?php echo $student['id']; ?>" data-session_id="<?php echo $session_id; ?>"
+                        data-toggle="tooltip" title="<?php echo $this->lang->line('collect_fee'); ?>">
+                        <i class="fa fa-money"></i>
+                    </button>
+                </td>
+            </tr>
                                                 <?php } ?>
                                             </tbody>
                                         </table>

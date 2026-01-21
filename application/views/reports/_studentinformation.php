@@ -61,6 +61,7 @@
 						<li class="col-lg-4 col-md-4 col-sm-6 <?php echo set_SubSubmenu('Reports/online_admission'); ?>"><a href="<?php echo base_url(); ?>report/online_admission_report"><i class="fa fa-file-text-o"></i> <?php echo $this->lang->line('online_admission_report'); ?></a></li>
 						
 					<?php  } ?>
+                    <li class="col-lg-4 col-md-4 col-sm-6 <?php echo set_SubSubmenu('Reports/student_information/student_profile_completeness'); ?>"><a href="<?php echo base_url(); ?>admin/studentprofilecompleteness"><i class="fa fa-file-text-o"></i> Student Profile Completeness </a></li>
                 </ul>
             </div>
         </div> 
