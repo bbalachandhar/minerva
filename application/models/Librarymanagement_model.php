@@ -104,8 +104,11 @@ class Librarymanagement_model extends MY_Model
 
     public function check_data_exists($data)
     {
-        $this->db->where('library_card_no', $data['library_card_no']);
-        $query = $this->db->get('libarary_members');
+        $this->db->from('libarary_members');
+        foreach ($data as $key => $value) {
+            $this->db->where($key, $value);
+        }
+        $query = $this->db->get();
         if ($query->num_rows() > 0) {
             return $query->row();
         } else {

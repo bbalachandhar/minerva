@@ -13,6 +13,7 @@ class Member extends Admin_Controller
         $this->load->library('media_storage');
         $this->sch_setting_detail = $this->setting_model->getSetting();
         $this->load->model('book_model');
+        $this->load->model('staff_model');
     }
 
     public function index()
@@ -307,6 +308,124 @@ class Member extends Admin_Controller
             $array = array('status' => 'success', 'row_affected'=>$row_affected, 'error' => '', 'message' => $this->lang->line('success_message'));
             echo json_encode($array);
         }
+    }
+
+    public function bulk_add()
+    {
+        $students = $this->input->post('students');
+        $added_count = 0;
+        $skipped_count = 0;
+        $errors = array();
+
+        if (!empty($students)) {
+            foreach ($students as $student) {
+                $library_card_no = $student['admission_no'];
+                $student_id = $student['student_id'];
+
+                // Check if the student is already a member
+                $data_exists = array('member_id' => $student_id, 'member_type' => 'student');
+                if ($this->librarymanagement_model->check_data_exists($data_exists)) {
+                    $skipped_count++;
+                    continue;
+                }
+
+                // Check if the library card number already exists
+                $data_card_exists = array('library_card_no' => $library_card_no);
+                if ($this->librarymanagement_model->check_data_exists($data_card_exists)) {
+                    $errors[] = "Library card number '" . $library_card_no . "' already exists for another member.";
+                    continue;
+                }
+
+                $data = array(
+                    'member_type'     => 'student',
+                    'member_id'       => $student_id,
+                    'library_card_no' => $library_card_no,
+                );
+
+                $inserted_id = $this->librarymanagement_model->add($data);
+                if ($inserted_id) {
+                    $added_count++;
+                }
+            }
+        }
+
+        if (empty($errors)) {
+            $message = $this->lang->line('success_message');
+            if ($added_count > 0) {
+                $message = $added_count . " members added successfully.";
+            }
+            if ($skipped_count > 0) {
+                $message .= " " . $skipped_count . " members were already added.";
+            }
+            $array = array('status' => 'success', 'error' => '', 'message' => $message);
+        } else {
+            $array = array('status' => 'fail', 'error' => implode("<br>", $errors));
+        }
+
+        echo json_encode($array);
+    }
+
+    public function bulk_add_teacher()
+    {
+        $staff_list = $this->input->post('staff');
+        $added_count = 0;
+        $skipped_count = 0;
+        $errors = array();
+
+        if (!empty($staff_list)) {
+            foreach ($staff_list as $staff) {
+                $staff_id = $staff['staff_id'];
+                
+                $staff_details = $this->staff_model->get($staff_id);
+
+                if (!$staff_details || empty($staff_details['employee_id'])) {
+                    $errors[] = "Staff with ID " . $staff_id . " not found or has no employee ID.";
+                    continue;
+                }
+
+                $library_card_no = $staff_details['employee_id'];
+
+                // Check if the staff is already a member
+                $data_exists = array('member_id' => $staff_id, 'member_type' => 'teacher');
+                if ($this->librarymanagement_model->check_data_exists($data_exists)) {
+                    $skipped_count++;
+                    continue;
+                }
+
+                // Check if the library card number already exists
+                $data_card_exists = array('library_card_no' => $library_card_no);
+                if ($this->librarymanagement_model->check_data_exists($data_card_exists)) {
+                    $errors[] = "Library card number '" . $library_card_no . "' already exists for another member.";
+                    continue;
+                }
+
+                $data = array(
+                    'member_type'     => 'teacher',
+                    'member_id'       => $staff_id,
+                    'library_card_no' => $library_card_no,
+                );
+
+                $inserted_id = $this->librarymanagement_model->add($data);
+                if ($inserted_id) {
+                    $added_count++;
+                }
+            }
+        }
+
+        if (empty($errors)) {
+            $message = $this->lang->line('success_message');
+            if ($added_count > 0) {
+                $message = $added_count . " members added successfully.";
+            }
+            if ($skipped_count > 0) {
+                $message .= " " . $skipped_count . " members were already added.";
+            }
+            $array = array('status' => 'success', 'error' => '', 'message' => $message);
+        } else {
+            $array = array('status' => 'fail', 'error' => implode("<br>", $errors));
+        }
+
+        echo json_encode($array);
     }
 
 }

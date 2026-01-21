@@ -67,7 +67,7 @@ if (isset($resultlist)) {
                             <div class="box-header ptbnull">
                                 <h3 class="box-title titlefix"><?php echo $this->lang->line('student_members_list'); ?></h3>
                                 <div class="box-tools pull-right">
-
+                                    <button type="button" class="btn btn-primary btn-sm" id="bulk_add_members_button"><i class="fa fa-plus"></i> <?php echo $this->lang->line('add_all_as_members'); ?></button>
                                 </div>
                             </div>
                             <div class="box-body">
@@ -309,5 +309,49 @@ $count++;
         });
 
         e.preventDefault(); // avoid to execute the actual submit of the form.
+    });
+
+    $(document).on('click', '#bulk_add_members_button', function(e) {
+        e.preventDefault();
+
+        if (confirm('Are you sure you want to add all listed students as library members?')) {
+            var students = [];
+            $('table.example tbody tr').each(function() {
+                var row = $(this);
+                if (!row.hasClass('success')) {
+                    var student_id = row.find('button.add-student').data('stdid');
+                    var admission_no = row.find('td:nth-child(3)').text().trim();
+                    if(student_id && admission_no) {
+                        students.push({
+                            student_id: student_id,
+                            admission_no: admission_no
+                        });
+                    }
+                }
+            });
+
+            if (students.length > 0) {
+                $.ajax({
+                    type: "POST",
+                    url: '<?php echo site_url('admin/member/bulk_add') ?>',
+                    data: {
+                        'students': students
+                    },
+                    dataType: 'JSON',
+                    success: function(response) {
+                        if (response.status == "success") {
+                            successMsg(response.message);
+                            window.setTimeout(function() {
+                                location.reload()
+                            }, 3000);
+                        } else {
+                            errorMsg(response.error);
+                        }
+                    }
+                });
+            } else {
+                infoMsg('All students are already members.');
+            }
+        }
     });
 </script>

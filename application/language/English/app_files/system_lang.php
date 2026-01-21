@@ -72,6 +72,7 @@ $lang['add_marks_grade'] = "Add Marks Grade";
 $lang['add_marksheet'] = "Add Marksheet";	
 $lang['add_media'] = "Add Media";	
 $lang['add_member'] = "Add Member";	
+$lang['add_all_as_members'] = "Add All as Members";	
 $lang['add_menu'] = "Add Menu";	
 $lang['add_menu_item'] = "Add Menu Item";	
 $lang['add_more'] = "Add More";	

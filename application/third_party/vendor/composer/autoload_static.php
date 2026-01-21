@@ -127,6 +127,11 @@ class ComposerStaticInitbc22bf9bb9f042ae952049ac4146ff7f
         array (
             'phpseclib3\\' => 11,
         ),
+        'c' =>
+        array (
+            'chillerlan\\Settings\\' => 20,
+            'chillerlan\\QRCode\\' => 18,
+        ),
         'S' =>
         array (
             'Symfony\\Polyfill\\Php83\\' => 23,
@@ -234,6 +239,14 @@ class ComposerStaticInitbc22bf9bb9f042ae952049ac4146ff7f
         'phpseclib3\\' =>
         array (
             0 => __DIR__ . '/..' . '/phpseclib/phpseclib/phpseclib',
+        ),
+        'chillerlan\\Settings\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/chillerlan/php-settings-container/src',
+        ),
+        'chillerlan\\QRCode\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/chillerlan/php-qrcode/src',
         ),
         'Symfony\\Polyfill\\Php83\\' =>
         array (

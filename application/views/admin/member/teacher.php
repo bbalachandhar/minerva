@@ -18,7 +18,7 @@
                     <div class="box-header ptbnull">
                         <h3 class="box-title titlefix"><?php echo $this->lang->line('staff_member_list'); ?></h3>
                         <div class="box-tools pull-right">
-
+<button type="button" class="btn btn-primary btn-sm" id="bulk_add_staff_members_button"><i class="fa fa-plus"></i> <?php echo $this->lang->line('add_all_as_members'); ?></button>
                         </div>
                     </div>
                     <div class="box-body">
@@ -223,5 +223,51 @@ $(document).ready(function(){
   $(".buttons-print").click(function(){
      alert("hlo");
   });
+});
+
+$(document).on('click', '#bulk_add_staff_members_button', function(e) {
+    e.preventDefault();
+
+    if (confirm('Are you sure you want to add all listed staff as library members?')) {
+        var staff_members = [];
+        $('table.example tbody tr').each(function() {
+            var row = $(this);
+            if (!row.hasClass('success')) {
+                var staff_primary_id = row.find('button.add-teacher').data('stdid');
+                var name_text = row.find('td:nth-child(3)').text().trim();
+                var employee_id = name_text.match(/\(([^)]+)\)/);
+
+                if (staff_primary_id && employee_id && employee_id[1]) {
+                    staff_members.push({
+                        staff_id: staff_primary_id,
+                        employee_id: employee_id[1]
+                    });
+                }
+            }
+        });
+
+        if (staff_members.length > 0) {
+            $.ajax({
+                type: "POST",
+                url: '<?php echo site_url('admin/member/bulk_add_teacher') ?>',
+                data: {
+                    'staff': staff_members
+                },
+                dataType: 'JSON',
+                success: function(response) {
+                    if (response.status == "success") {
+                        successMsg(response.message);
+                        window.setTimeout(function() {
+                            location.reload()
+                        }, 3000);
+                    } else {
+                        errorMsg(response.error);
+                    }
+                }
+            });
+        } else {
+            infoMsg('All staff are already members.');
+        }
+    }
 });
 </script>

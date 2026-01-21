@@ -16,7 +16,8 @@
            "omnipay/paypal": "^3.0@dev",
            "omnipay/stripe": "^3.1@dev",
            "sonata-project/google-authenticator": "^2.2",
-           "web-token/jwt-framework": "^2.2"
+           "web-token/jwt-framework": "^2.2",
+           "chillerlan/php-qrcode": "^4.3"
     },
     "config": {
         "allow-plugins": {
