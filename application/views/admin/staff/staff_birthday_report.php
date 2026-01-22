@@ -15,14 +15,14 @@
                                 <div class="col-sm-6 col-md-4">
                                     <div class="form-group">
                                         <label><?php echo $this->lang->line('date_from'); ?></label><small class="req"> *</small>
-                                        <input type="text" name="date_from" class="form-control date" id="date_from" value="<?php echo set_value('date_from', date($this->customlib->getSchoolDateFormat())); ?>" readonly="readonly">
+                                        <input type="text" name="date_from" class="form-control date" id="date_from" value="<?php echo $date_from; ?>" readonly="readonly">
                                     </div>
                                 </div>
                                 <div class="col-sm-6 col-md-4">
                                     <div class="form-group">
                                         <label><?php echo $this->lang->line('date_to'); ?></label><small class="req"> *</small>
                                         <div class="input-group">
-                                            <input type="text" name="date_to" class="form-control date" id="date_to" value="<?php echo set_value('date_to', date($this->customlib->getSchoolDateFormat())); ?>" readonly="readonly" autocomplete="off">
+                                            <input type="text" name="date_to" class="form-control date" id="date_to" value="<?php echo $date_to; ?>" readonly="readonly" autocomplete="off">
                                             <span class="input-group-btn" style="margin-left: 5px;">
                                                 <button type="submit" name="search" value="search_filter" class="btn btn-primary btn-sm"><i class="fa fa-search"></i> <?php echo $this->lang->line('search'); ?></button>
                                             </span>
@@ -94,7 +94,13 @@ $(document).ready(function() {
 
     $('#search_form').on('submit', function(e) {
         e.preventDefault();
-        table.ajax.reload();
+        var dateFrom = $('#date_from').val();
+        var dateTo = $('#date_to').val();
+        table.ajax.reload(function() {
+            // Explicitly set the values again
+            $('#date_from').val(dateFrom);
+            $('#date_to').val(dateTo);
+        }, false);
     });
 });
 </script>

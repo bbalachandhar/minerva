@@ -48,7 +48,7 @@ class Staffbirthday_model extends MY_Model
             $this->db->or_like('staff.name', $search_value);
             $this->db->or_like('staff.email', $search_value);
             $this->db->or_like('staff_designation.designation', $search_value);
-            $this->db->or_like('department.department', $search_value);
+            $this->db->or_like('department.department_name', $search_value);
             $this->db->or_like('roles.name', $search_value);
             $this->db->group_end();
         }

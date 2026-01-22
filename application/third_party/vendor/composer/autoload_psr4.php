@@ -53,6 +53,7 @@ return array(
     'Jose\\Component\\Encryption\\Algorithm\\' => array($vendorDir . '/web-token/jwt-framework/src/EncryptionAlgorithm/Experimental'),
     'Jose\\Component\\Core\\Util\\Ecc\\' => array($vendorDir . '/web-token/jwt-framework/src/Ecc'),
     'Jose\\' => array($vendorDir . '/web-token/jwt-framework/src'),
+    'JmesPath\\' => array($vendorDir . '/mtdowling/jmespath.php/src'),
     'Http\\Promise\\' => array($vendorDir . '/php-http/promise/src'),
     'Http\\Message\\' => array($vendorDir . '/php-http/message-factory/src', $vendorDir . '/php-http/message/src'),
     'Http\\Discovery\\' => array($vendorDir . '/php-http/discovery/src'),
@@ -70,5 +71,6 @@ return array(
     'DeepCopy\\' => array($vendorDir . '/myclabs/deep-copy/src/DeepCopy'),
     'Clue\\StreamFilter\\' => array($vendorDir . '/clue/stream-filter/src'),
     'Brick\\Math\\' => array($vendorDir . '/brick/math/src'),
+    'Aws\\' => array($vendorDir . '/aws/aws-sdk-php/src'),
     'AESKW\\' => array($vendorDir . '/spomky-labs/aes-key-wrap/src'),
 );

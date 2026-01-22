@@ -85,6 +85,7 @@ $route['admin/librarypositionshelf/(:any)'] = 'admin/librarypositionshelf/$1';
         $route['admin/hall/book'] = 'admin/hall/book';
         $route['admin/hall/approval_configuration'] = 'admin/hall/approval_configuration';
 
+$route['admin/resetpassword/(:any)'] = 'site/admin_resetpassword/$1';
         $route['404_override'] = '';
 
         $route['naac/configuration'] = 'admin/naac/configuration';

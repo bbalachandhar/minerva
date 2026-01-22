@@ -17,7 +17,8 @@
            "omnipay/stripe": "^3.1@dev",
            "sonata-project/google-authenticator": "^2.2",
            "web-token/jwt-framework": "^2.2",
-           "chillerlan/php-qrcode": "^4.3"
+           "chillerlan/php-qrcode": "^4.3",
+           "aws/aws-sdk-php": "^3.0"
     },
     "config": {
         "allow-plugins": {
