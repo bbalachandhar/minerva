@@ -208,6 +208,7 @@ class Billdesk_lib
 
         log_message('error', '--- VERIFY PAYLOAD ---');
         log_message('error', json_encode($verify_payload));
+        log_message('error', 'BILLDESK_UAT_DATA: 8. JSON Request for Retrieve Transaction API: ' . json_encode($verify_payload, JSON_PRETTY_PRINT));
 
         $verify_jwe_token = $this->create_jwe($verify_payload);
         $verify_jws_token = $this->create_jws($verify_jwe_token);
@@ -218,6 +219,7 @@ class Billdesk_lib
             'BD-Traceid: ' . uniqid(),
             'BD-Timestamp: ' . date('YmdHis'),
         ];
+        log_message('error', 'BILLDESK_UAT_DATA: 8. Original encrypted & signed Retrieve Transaction API request string, BD-TraceID & BD-Timestamp: Request String=' . $verify_jws_token . ' | Headers=' . json_encode($verify_headers));
 
         $ch_verify = curl_init();
         curl_setopt($ch_verify, CURLOPT_URL, "https://uat1.billdesk.com/u2/payments/ve1_2/transactions/get");
@@ -239,6 +241,8 @@ class Billdesk_lib
 
         log_message('error', '--- VERIFY RESPONSE (Base64 Encoded) ---');
         log_message('error', 'DECODE THIS STRING TO SEE THE FULL VERIFY RESPONSE: ' . base64_encode(json_encode($decrypted_verify_response)));
+        log_message('error', 'BILLDESK_UAT_DATA: 9. Original encoded Retrieve Transaction API response string: ' . $verify_response);
+        log_message('error', 'BILLDESK_UAT_DATA: 9. Original decoded Retrieve Transaction API response string: ' . json_encode($decrypted_verify_response, JSON_PRETTY_PRINT));
 
         return $decrypted_verify_response;
     }

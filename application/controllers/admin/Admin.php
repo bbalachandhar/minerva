@@ -12,6 +12,7 @@ class Admin extends Admin_Controller
         parent::__construct();
         $this->load->model("classteacher_model");
         $this->load->model("Staff_model");
+        $this->load->model("Student_model"); // Added Student_model
         $this->load->library('Enc_lib');
         $this->sch_setting_detail = $this->setting_model->getSetting();
     }
@@ -394,14 +395,18 @@ class Admin extends Admin_Controller
 
         $Attendence                   = $this->stuattendence_model->getTodayDayAttendance($total_students);
         $data['attendence_data']      = $Attendence;
-        $Staffattendence              = $this->Staff_model->getTodayDayAttendance();
-        $data['Staffattendence_data'] = $Staffattendence;
-        $getTotalStaff                = $this->Staff_model->getTotalStaff();
-        $data['getTotalStaff_data']   = $getTotalStaff;
-        if ($getTotalStaff > 0) {$percentTotalStaff_data = ($Staffattendence * 100) / ($getTotalStaff);} else { $percentTotalStaff_data = '0';}
-        $data['percentTotalStaff_data'] = $percentTotalStaff_data;
+        $data['staff_attendance_details'] = $this->Staff_model->getTodayStaffAttendanceDetails();
+        $staff_attendance_details = $data['staff_attendance_details'];
+        if ($staff_attendance_details['total_staff'] > 0) {
+            $data['percentTotalStaff_data'] = ($staff_attendance_details['total_present'] * 100) / $staff_attendance_details['total_staff'];
+        } else {
+            $data['percentTotalStaff_data'] = 0;
+        }
         $data['sch_setting']            = $this->sch_setting_detail;
 
+        $today_date = date('Y-m-d');
+        $data['student_birthdays'] = $this->Student_model->getBirthDayStudents($today_date, false, false);
+        $data['staff_birthdays'] = $this->Staff_model->getBirthDayStaff($today_date, 1, false, false);
 		// new features code added
         // $input_session   = $this->setting_model->getCurrentSessionName();
         // list($a, $b)  = explode('-', $input_session);

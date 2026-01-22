@@ -166,13 +166,13 @@ class Billdesk extends Student_Controller
                 'currency' => '356',
                 'itemcode' => 'DIRECT',
                 'additional_info' => [
-                    'student_name' => $data['params']['name'],
-                    'invoice' => "NA",
-                    'contact_no' => $data['params']['guardian_phone'],
-                    'email' => $data['params']['email'],
-                    'amount' => $formatted_amount,
-                    'fee_category' => $fee_category_str,
-                    'fee_group_name' => $fee_group_name_str,
+                    'additional_info1' => $data['params']['name'],
+                    'additional_info2' => "NA",
+                    'additional_info3' => $data['params']['guardian_phone'],
+                    'additional_info4' => $data['params']['email'],
+                    'additional_info5' => $formatted_amount,
+                    'additional_info6' => $fee_category_str,
+                    'additional_info7' => $fee_group_name_str,
                 ],
                 // Add split_payment only if we have splits
                 'split_payment' => !empty($split_payment_payload) ? $split_payment_payload : null 
@@ -184,6 +184,7 @@ class Billdesk extends Student_Controller
             }
 
             // Log the entire ECOM PAYLOAD in readable JSON format
+            log_message('error', 'BILLDESK_UAT_DATA: 1. JSON Request for ecom order: ' . json_encode($ecom_payload, JSON_PRETTY_PRINT));
             log_message('error', 'Billdesk Payload: Entire ECOM PAYLOAD (Readable): ' . json_encode($ecom_payload, JSON_PRETTY_PRINT));
             
             log_message('error', '--- ECOM PAYLOAD (Base64 Encoded) ---');
@@ -210,6 +211,8 @@ class Billdesk extends Student_Controller
                 'BD-Traceid: ' . uniqid(),
                 'BD-Timestamp: ' . date('YmdHis'),
             ];
+
+            log_message('error', 'BILLDESK_UAT_DATA: 2. Original encrypted & signed ecom Order API request strings, BD-TraceID & BD-Timestamp: Request String=' . $ecom_jws_token . ' | Headers=' . json_encode($ecom_headers));
 
             $ch_ecom = curl_init();
             curl_setopt($ch_ecom, CURLOPT_URL, "https://uat1.billdesk.com/u2/payments/ve1_2/ecomorders/create");
@@ -242,6 +245,8 @@ class Billdesk extends Student_Controller
             }
             log_message('error', '--- ECOM RESPONSE (Base64 Encoded) ---');
             log_message('error', 'DECODE THIS STRING TO SEE THE FULL RESPONSE: ' . base64_encode(json_encode($decrypted_ecom_response)));
+            log_message('error', 'BILLDESK_UAT_DATA: 3. Original ecom order encoded response string: ' . $ecom_response);
+            log_message('error', 'BILLDESK_UAT_DATA: 3. Original ecom order decoded response string: ' . json_encode($decrypted_ecom_response, JSON_PRETTY_PRINT));
 
             // Check for success (status PENDING or 200, or presence of ecom_orderid)
             if (isset($decrypted_ecom_response['error_type'])) {
@@ -269,6 +274,7 @@ class Billdesk extends Student_Controller
                 
                 log_message('error', '--- TRANSACTION PAYLOAD (Base64 Encoded) ---');
                 log_message('error', 'DECODE THIS STRING TO SEE THE FULL TRANSACTION PAYLOAD: ' . base64_encode(json_encode($trans_payload)));
+                log_message('error', 'BILLDESK_UAT_DATA: 4. JSON Request for create order: ' . json_encode($trans_payload, JSON_PRETTY_PRINT));
 
                 try {
                     $trans_jwe_token = $this->billdesk_lib->create_jwe($trans_payload);
@@ -288,6 +294,7 @@ class Billdesk extends Student_Controller
                     'BD-Traceid: ' . uniqid(),
                     'BD-Timestamp: ' . date('YmdHis'),
                 ];
+                log_message('error', 'BILLDESK_UAT_DATA: 5. Original encrypted & signed Create Order API request strings, BD-TraceID & BD-Timestamp: Request String=' . $trans_jws_token . ' | Headers=' . json_encode($trans_headers));
 
                 $ch_trans = curl_init();
                 curl_setopt($ch_trans, CURLOPT_URL, "https://uat1.billdesk.com/u2/payments/ve1_2/orders/create");
@@ -321,6 +328,8 @@ class Billdesk extends Student_Controller
 
                 log_message('error', '--- TRANSACTION RESPONSE (Base64 Encoded) ---');
                 log_message('error', 'DECODE THIS STRING TO SEE THE FULL TRANSACTION RESPONSE: ' . base64_encode(json_encode($decrypted_trans_response)));
+                log_message('error', 'BILLDESK_UAT_DATA: 6. Original encoded Create Order API response string: ' . $trans_response);
+                log_message('error', 'BILLDESK_UAT_DATA: 6. Original decoded Create Order API response string: ' . json_encode($decrypted_trans_response, JSON_PRETTY_PRINT));
 
                 if (isset($decrypted_trans_response['status']) && $decrypted_trans_response['status'] != 200 && $decrypted_trans_response['status'] != 'PENDING' && $decrypted_trans_response['status'] != 'ACTIVE') {
                      // Check if it's just a pending status which might be okay, but usually 'status' in response means HTTP status code equivalent or API status. 
@@ -398,6 +407,9 @@ class Billdesk extends Student_Controller
                 $jws_token = $_POST['transaction_response'];
                 $jwe_token = $this->billdesk_lib->verify_response($jws_token);
                 $response = $this->billdesk_lib->decrypt_response($jwe_token);
+
+                log_message('error', 'BILLDESK_UAT_DATA: 7. Original encoded payment response string: ' . $_POST['transaction_response']);
+                log_message('error', 'BILLDESK_UAT_DATA: 7. Original decoded payment response string: ' . json_encode($response, JSON_PRETTY_PRINT));
 
                 // Update gateway_ins status
                 $gateway_ins_status = 'failed';

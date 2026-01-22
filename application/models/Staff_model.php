@@ -64,6 +64,57 @@ class Staff_model extends MY_Model
         return count($q);
     }
 
+    public function getTodayStaffAttendanceDetails()
+    {
+        $today_date = date('Y-m-d');
+        $total_staff = $this->getTotalStaff(); // Assuming getTotalStaff() returns the total count of staff
+
+        $this->db->select('staff_attendance_type_id, count(*) as count');
+        $this->db->from('staff_attendance');
+        $this->db->where('date', $today_date);
+        $this->db->group_by('staff_attendance_type_id');
+        $query = $this->db->get();
+        $attendance_data = $query->result_array();
+
+        $present = 0;
+        $late = 0;
+        $absent = 0;
+        $half_day = 0;
+
+        foreach ($attendance_data as $row) {
+            if ($row['staff_attendance_type_id'] == 1) { // Present
+                $present = $row['count'];
+            } elseif ($row['staff_attendance_type_id'] == 2) { // Late
+                $late = $row['count'];
+            } elseif ($row['staff_attendance_type_id'] == 3) { // Absent
+                $absent = $row['count'];
+            } elseif ($row['staff_attendance_type_id'] == 4) { // Half Day
+                $half_day = $row['count'];
+            }
+        }
+
+        $total_attended = $present + $late + $half_day;
+
+        $present_percent = ($total_staff > 0) ? ($present / $total_staff) * 100 : 0;
+        $late_percent = ($total_staff > 0) ? ($late / $total_staff) * 100 : 0;
+        $absent_percent = ($total_staff > 0) ? ($absent / $total_staff) * 100 : 0;
+        $half_day_percent = ($total_staff > 0) ? ($half_day / $total_staff) * 100 : 0;
+
+        return [
+            'total_present' => $present,
+            'present' => round($present_percent),
+            'total_late' => $late,
+            'late' => round($late_percent),
+            'total_absent' => $absent,
+            'absent' => round($absent_percent),
+            'total_half_day' => $half_day,
+            'half_day' => round($half_day_percent),
+            'total_staff' => $total_staff,
+            'total_attended' => $total_attended,
+            'attended_percent' => ($total_staff > 0) ? ($total_attended / $total_staff) * 100 : 0
+        ];
+    }
+
     public function getTotalStaff()
     {
         $this->db->select('staff.id');
