@@ -615,5 +615,13 @@ $(document).ready(function(){
 
     // Initial call to set the state based on default selections
     applyAdvanceLogic();
+
+    $('#amount').on('change keyup', function() {
+        // If user types in amount, disable advances and group discounts
+        $('input[name="use_paid_advance"][value="no"]').prop('checked', true);
+        $('input[name="use_discount_advance"][value="no"]').prop('checked', true);
+        $('#amount_discount').val('0.00');
+        $('.grp_discount').prop('checked', false);
+    });
 });
 </script>

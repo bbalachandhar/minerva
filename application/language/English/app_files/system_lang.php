@@ -2996,3 +2996,4 @@ $lang['billdesk_encryption_password_label'] = "Encryption Password";
 $lang['billdesk_signing_password_label'] = "Signing Password";
 $lang['recommender_leave_requests'] = "Recommender Leave Requests";
 $lang['recommended'] = "Recommended";
+$lang['staff_birthday_report'] = "Staff Birthday Report";

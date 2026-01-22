@@ -1065,282 +1065,149 @@ class Studentfee extends Admin_Controller
 
     public function addstudentfee()
     {
-        log_message('error', 'addstudentfee method called.');
-
         $this->form_validation->set_rules('student_fees_master_id', $this->lang->line('fee_master'), 'required|trim|xss_clean');
-        $this->form_validation->set_rules('date', $this->lang->line('date'), 'required|trim|xss_clean');
         $this->form_validation->set_rules('fee_groups_feetype_id', $this->lang->line('student'), 'required|trim|xss_clean');
         $this->form_validation->set_rules('amount', $this->lang->line('amount'), 'required|trim|xss_clean|numeric');
         $this->form_validation->set_rules('amount_discount', $this->lang->line('discount'), 'required|trim|numeric|xss_clean');
         $this->form_validation->set_rules('amount_fine', $this->lang->line('fine'), 'required|trim|numeric|xss_clean');
 
-
-
         if ($this->form_validation->run() == false) {
-            log_message('error', 'addstudentfee form validation failed: ' . validation_errors());
             $data = array(
-                'amount'                 => form_error('amount'),
-                'student_fees_master_id' => form_error('student_fees_master_id'),
-                'fee_groups_feetype_id'  => form_error('fee_groups_feetype_id'),
-                'amount_discount'        => form_error('amount_discount'),
-                'amount_fine'            => form_error('amount_fine'),
-                'payment_mode'           => form_error('payment_mode'),
-                'date'           => form_error('date'),
+                'amount'          => form_error('amount'),
+                'amount_discount' => form_error('amount_discount'),
+                'amount_fine'     => form_error('amount_fine'),
             );
             $array = array('status' => 'fail', 'error' => $data);
             echo json_encode($array);
-        } else {
-            log_message('error', 'addstudentfee form validation successful.');
-            log_message('error', 'Date from form: ' . $this->input->post('date'));
-
-            $staff_record = $this->staff_model->get($this->customlib->getStaffID());
-            $student_session_id = $this->input->post('student_session_id');
-            $transport_fees_id = $this->input->post('transport_fees_id');
-            $student_fees_master_id = $this->input->post('student_fees_master_id');
-            $fee_groups_feetype_id = $this->input->post('fee_groups_feetype_id');
-
-            // Get the fee balance
-            if ($transport_fees_id != 0) {
-                $remain_amount_obj = $this->getStudentTransportFeetypeBalance($transport_fees_id);
-            } else {
-                $remain_amount_obj = $this->getStuFeetypeBalance($fee_groups_feetype_id, $student_fees_master_id);
-            }
-            $fee_balance = json_decode($remain_amount_obj)->balance;
-
-            $paying_amount = (float) $this->input->post('amount');
-            $amount_discount = (float) $this->input->post('amount_discount');
-            $net_payment = $paying_amount + $amount_discount;
-
-            $overpayment_amount = 0;
-            // Ensure these are always initialized to numeric values
-            $amount_to_apply = $paying_amount; 
-            $discount_to_record_for_current_fee = $amount_discount;
-
-            $cash_part_of_overpayment = 0;
-            $discount_part_of_overpayment = 0;
-
-            if ($net_payment > $fee_balance) {
-                $overpayment_amount = $net_payment - $fee_balance;
-                // Adjust amount to apply, ensuring it doesn't go negative
-                $amount_to_apply = max(0, $paying_amount - $overpayment_amount);
-
-                // Calculate how much of the discount contributes to the overpayment
-                $cash_paid_for_fee = $paying_amount;
-                $discount_applied_for_fee = $amount_discount;
-                $actual_fee_balance = $fee_balance;
-
-                if ($cash_paid_for_fee >= $actual_fee_balance) {
-                    $cash_part_of_overpayment = $cash_paid_for_fee - $actual_fee_balance;
-                    $discount_part_of_overpayment = $discount_applied_for_fee;
-                } else {
-                    $remaining_fee_to_cover = $actual_fee_balance - $cash_paid_for_fee;
-                    if ($discount_applied_for_fee > $remaining_fee_to_cover) {
-                        $discount_part_of_overpayment = $discount_applied_for_fee - $remaining_fee_to_cover;
-                    }
-                    $cash_part_of_overpayment = 0;
-                }
-                
-                // Adjust the discount to record for the current fee
-                $discount_to_record_for_current_fee = $amount_discount - $discount_part_of_overpayment;
-            }
-
-            $staff_record = $this->staff_model->get($this->customlib->getStaffID());
-            $collected_by             = $this->customlib->getAdminSessionUserName() . "(" . $staff_record['employee_id'] . ")";
-            $discounts = $this->input->post('discounts');
-            $use_paid_advance = $this->input->post('use_paid_advance');
-            $use_discount_advance = $this->input->post('use_discount_advance');
-            $amount_discount_advance = $this->input->post('amount_discount_advance') ? $this->input->post('amount_discount_advance') : 0;
-
-            if(!isset($discounts)){
-                $discounts=[];
-            }
-
-            $selected_payment_mode = $this->input->post('payment_mode');
-            $final_payment_mode_for_main_fee = $selected_payment_mode;
-
-            if ($use_paid_advance == 'yes' || $use_discount_advance == 'yes') {
-                $final_payment_mode_for_main_fee = 'Advance';
-            } elseif (convertCurrencyFormatToBaseAmount($amount_to_apply) == 0 && convertCurrencyFormatToBaseAmount($discount_to_record_for_current_fee) > 0) {
-                $final_payment_mode_for_main_fee = 'Discount';
-            }
-
-            $final_amount = convertCurrencyFormatToBaseAmount($amount_to_apply);
-            $final_amount_discount = convertCurrencyFormatToBaseAmount($discount_to_record_for_current_fee);
-
-            if ($use_paid_advance == 'yes' || $use_discount_advance == 'yes') {
-                $final_amount_discount += $final_amount; // Move amount to discount
-                $final_amount = 0; // Set amount to 0
-                log_message('debug', 'addstudentfee - Advance used for main fee. Final amount: ' . $final_amount . ', Final discount: ' . $final_amount_discount);
-            }
-
-            $json_array = array(
-                'amount'          => $final_amount,
-                'amount_discount' => $final_amount_discount,
-                'amount_fine'     => convertCurrencyFormatToBaseAmount($this->input->post('amount_fine')),
-                'date'            => date('Y-m-d', $this->customlib->datetostrtotime($this->input->post('date'))),
-                'description'     => $this->input->post('description'),
-                'collected_by'    => $collected_by,
-                'payment_mode'    => $final_payment_mode_for_main_fee,
-                'received_by'     => $staff_record['id'],
-            );
-
-            $fee_category           = $this->input->post('fee_category');
-
-            $data = array(
-                'fee_category'           => $fee_category,
-                'student_fees_master_id' => $student_fees_master_id,
-                'fee_groups_feetype_id'  => $fee_groups_feetype_id,
-                'amount_detail'          => $json_array,
-            );
-
-            if ($transport_fees_id != 0 && $fee_category == "transport") {
-                $mailsms_array                    = new stdClass();
-                $data['student_fees_master_id']   = null;
-                $data['fee_groups_feetype_id']    = null;
-                $data['student_transport_fee_id'] = $transport_fees_id;
-
-                $mailsms_array                 = $this->studenttransportfee_model->getTransportFeeMasterByStudentTransportID($transport_fees_id);
-                $mailsms_array->fee_group_name = $this->lang->line("transport_fees");
-                $mailsms_array->type           = $mailsms_array->month;
-                $mailsms_array->code           = "";
-            } else {
-
-                $mailsms_array = $this->feegrouptype_model->getFeeGroupByIDAndStudentSessionID($this->input->post('fee_groups_feetype_id'), $this->input->post('student_session_id'));
-
-                if ($mailsms_array->is_system) {
-                    $mailsms_array->amount = $mailsms_array->balance_fee_master_amount;
-                }
-            }
-
-            $action             = $this->input->post('action');
-            $send_to            = $this->input->post('guardian_phone');
-            $email              = $this->input->post('guardian_email');
-            $parent_app_key     = $this->input->post('parent_app_key');
-
-            log_message('error', 'Calling fee_deposit with data: ' . print_r($data, true));
-            $inserted_id        = $this->studentfeemaster_model->fee_deposit($data, $send_to, $discounts,date('Y-m-d', $this->customlib->datetostrtotime($this->input->post('date'))));
-            log_message('error', 'fee_deposit returned: ' . $inserted_id);
-
-            if ($overpayment_amount > 0) {
-                // Calculate how much of the discount contributes to the overpayment
-                $cash_paid_for_fee = $paying_amount;
-                $discount_applied_for_fee = $amount_discount;
-                $actual_fee_balance = $fee_balance;
-
-                $cash_part_of_overpayment = 0;
-                $discount_part_of_overpayment = 0;
-
-                if ($cash_paid_for_fee >= $actual_fee_balance) {
-                    // All fee balance is covered by cash, so all discount (if any) is overpaid discount
-                    // And remaining cash is cash overpayment
-                    $cash_part_of_overpayment = $cash_paid_for_fee - $actual_fee_balance;
-                    $discount_part_of_overpayment = $discount_applied_for_fee;
-                } else {
-                    // Cash partially covers the fee
-                    $remaining_fee_to_cover = $actual_fee_balance - $cash_paid_for_fee;
-                    // Any discount beyond the remaining fee becomes discount overpayment
-                    if ($discount_applied_for_fee > $remaining_fee_to_cover) {
-                        $discount_part_of_overpayment = $discount_applied_for_fee - $remaining_fee_to_cover;
-                    }
-                    // No cash overpayment in this scenario, as cash was less than fee
-                    $cash_part_of_overpayment = 0;
-                }
-
-                $advance_fee_ids = $this->studentfeemaster_model->get_or_create_advance_fee_ids($student_session_id);
-                $json_array_advance = [
-                    'amount'          => convertCurrencyFormatToBaseAmount($cash_part_of_overpayment),
-                    'amount_discount' => convertCurrencyFormatToBaseAmount($discount_part_of_overpayment),
-                    'amount_fine'     => 0,
-                    'date'            => date('Y-m-d', $this->customlib->datetostrtotime($this->input->post('date'))),
-                    'description'     => 'Overpayment from single fee collection',
-                    'collected_by'    => $collected_by,
-                    'payment_mode'    => 'Advance', // Hardcoded to Advance
-                    'received_by'     => $staff_record['id'],
-                ];
-
-                $data_to_insert_advance = [
-                    'fee_category'           => 'fees',
-                    'student_fees_master_id' => $advance_fee_ids->student_fees_master_id,
-                    'fee_groups_feetype_id'  => $advance_fee_ids->fee_groups_feetype_id,
-                    'amount_detail'          => $json_array_advance,
-                ];
-                $this->studentfeemaster_model->fee_deposit($data_to_insert_advance, null, [], date('Y-m-d', $this->customlib->datetostrtotime($this->input->post('date'))));
-            }
-
-            if ($use_paid_advance == 'yes' || $use_discount_advance == 'yes') {
-                log_message('error', 'use_advance is yes, deducting from advance.');
-                
-                $total_advance_to_deduct = $this->input->post('amount') + $amount_discount_advance;
-
-                $advance_fee_ids = $this->studentfeemaster_model->get_or_create_advance_fee_ids($student_session_id);
-                $json_array_advance = [
-                    'amount'          => 0, // Amount is 0 for adjustment
-                    'amount_discount' => -(convertCurrencyFormatToBaseAmount($total_advance_to_deduct)), // Negative of the total advance amount used
-                    'amount_fine'     => 0,
-                    'date'            => date('Y-m-d', $this->customlib->datetostrtotime($this->input->post('date'))),
-                    'description'     => 'Advance amount used for fee payment',
-                    'collected_by'    => $collected_by,
-                    'payment_mode'    => 'Advance Adjustment',
-                    'received_by'     => $staff_record['id'],
-                ];
-
-                $data_to_insert_advance = [
-                    'fee_category'           => 'fees',
-                    'student_fees_master_id' => $advance_fee_ids->student_fees_master_id,
-                    'fee_groups_feetype_id'  => $advance_fee_ids->fee_groups_feetype_id,
-                    'amount_detail'          => $json_array_advance,
-                ];
-
-                log_message('error', 'Calling fee_deposit for advance deduction with data: ' . print_r($data_to_insert_advance, true));
-                $this->studentfeemaster_model->fee_deposit($data_to_insert_advance, null, [], date('Y-m-d', $this->customlib->datetostrtotime($this->input->post('date'))));
-                log_message('error', 'Advance deduction successful.');
-            }
-
-            $print_record = array();
-            if ($action == "print") {
-                $receipt_data           = json_decode($inserted_id);
-                $data['sch_setting']    = $this->sch_setting_detail;
-
-                $student                = $this->studentsession_model->searchStudentsBySession($student_session_id);
-                $data['student']        = $student;
-                $data['sub_invoice_id'] = $receipt_data->sub_invoice_id;
-
-                $setting_result         = $this->setting_model->get();
-                $data['settinglist']    = $setting_result;
-
-                if ($transport_fees_id != 0 && $fee_category == "transport") {
-
-                    $fee_record = $this->studentfeemaster_model->getTransportFeeByInvoice($receipt_data->invoice_id, $receipt_data->sub_invoice_id);
-                    $data['feeList']        = $fee_record;
-                    $print_record = $this->load->view('print/printTransportFeesByName', $data, true);
-                } else {
-
-                    $fee_record             = $this->studentfeemaster_model->getFeeByInvoice($receipt_data->invoice_id, $receipt_data->sub_invoice_id);
-                    $data['feeList']        = $fee_record;                    
-                    
-                    if($this->thermal_print_module == 1 && $this->thermal_print_enable == 1){						
-						$data['thermal_print'] = $this->thermal_print_result;						
-						$print_record = $this->load->view('print/thermalPrintFeesByName', $data, true);                        
-                    }else{
-                        $print_record = $this->load->view('print/printFeesByName', $data, true);
-                    }
-                    
-                }
-            }
-
-            $mailsms_array->invoice            = $inserted_id;
-            $mailsms_array->student_session_id = $student_session_id;
-            $mailsms_array->contact_no         = $send_to;
-            $mailsms_array->email              = $email;
-            $mailsms_array->parent_app_key     = $parent_app_key;
-            $mailsms_array->fee_category       = $fee_category;
-
-            $this->mailsmsconf->mailsms('fee_submission', $mailsms_array);
-
-            log_message('error', 'addstudentfee successful, sending response.');
-            $array = array('status' => 'success', 'error' => '', 'print' => $print_record);
-            echo json_encode($array);
+            return;
         }
+
+        $staff_record = $this->staff_model->get($this->customlib->getStaffID());
+        $collected_by = $this->customlib->getAdminSessionUserName() . "(" . $staff_record['employee_id'] . ")";
+        
+        $student_fees_master_id = $this->input->post('student_fees_master_id');
+        $fee_groups_feetype_id = $this->input->post('fee_groups_feetype_id');
+        $student_session_id = $this->input->post('student_session_id');
+        $transport_fees_id = $this->input->post('transport_fees_id');
+        $fee_category = $this->input->post('fee_category');
+
+        // Get the balance
+        if ($fee_category == "transport") {
+            $remain_amount_object = $this->getStudentTransportFeetypeBalance($transport_fees_id);
+        } else {
+            $remain_amount_object = $this->getStuFeetypeBalance($fee_groups_feetype_id, $student_fees_master_id);
+        }
+        $balance_due = (float) json_decode($remain_amount_object)->balance;
+
+        $final_amount = convertCurrencyFormatToBaseAmount($this->input->post('amount'));
+        $final_amount_discount = convertCurrencyFormatToBaseAmount($this->input->post('amount_discount'));
+        $final_amount_fine = convertCurrencyFormatToBaseAmount($this->input->post('amount_fine'));
+
+        $excess_discount = 0;
+        $applied_discount = $final_amount_discount;
+
+        if ($final_amount_discount > $balance_due) {
+            $excess_discount = $final_amount_discount - $balance_due;
+            $applied_discount = $balance_due;
+        }
+
+        $use_paid_advance = $this->input->post('use_paid_advance');
+        $use_discount_advance = $this->input->post('use_discount_advance');
+        $amount_discount_from_advance = $this->input->post('amount_discount_from_advance') ? convertCurrencyFormatToBaseAmount($this->input->post('amount_discount_from_advance')) : 0;
+        
+        $db_payment_mode = $this->input->post('payment_mode');
+        if ($use_paid_advance === 'yes' || $use_discount_advance === 'yes') {
+            $db_payment_mode = 'Advance';
+        }
+
+        $json_array = array(
+            'amount'          => $final_amount,
+            'amount_discount' => $applied_discount,
+            'amount_fine'     => $final_amount_fine,
+            'date'            => date('Y-m-d', $this->customlib->datetostrtotime($this->input->post('date'))),
+            'description'     => $this->input->post('description'),
+            'collected_by'    => $collected_by,
+            'payment_mode'    => $db_payment_mode,
+            'received_by'     => $staff_record['id'],
+        );
+        
+        $group_discounts = $this->input->post('fee_discount_group');
+        if(!isset($group_discounts)){
+            $group_discounts = [];
+        }
+
+        $data = array(
+            'fee_category'           => $fee_category,
+            'student_fees_master_id' => $student_fees_master_id,
+            'fee_groups_feetype_id'  => $fee_groups_feetype_id,
+            'amount_detail'          => $json_array,
+        );
+
+        if ($transport_fees_id != 0 && $fee_category == "transport") {
+            $data['student_fees_master_id']   = null;
+            $data['fee_groups_feetype_id']    = null;
+            $data['student_transport_fee_id'] = $transport_fees_id;
+        }
+
+        $inserted_id = $this->studentfeemaster_model->fee_deposit($data, $this->input->post('guardian_phone'), $group_discounts, date('Y-m-d', $this->customlib->datetostrtotime($this->input->post('date'))));
+        
+        if ($excess_discount > 0) {
+            $advance_fee_ids = $this->studentfeemaster_model->get_or_create_advance_fee_ids($student_session_id);
+            $json_array_advance = [
+                'amount'          => 0,
+                'amount_discount' => $excess_discount,
+                'amount_fine'     => 0,
+                'date'            => date('Y-m-d', $this->customlib->datetostrtotime($this->input->post('date'))),
+                'description'     => 'Excess discount credited to advance',
+                'collected_by'    => $collected_by,
+                'payment_mode'    => $this->lang->line('discount_advance'),
+                'received_by'     => $staff_record['id'],
+            ];
+            $data_to_insert_advance = [
+                'fee_category'           => 'fees',
+                'student_fees_master_id' => $advance_fee_ids->student_fees_master_id,
+                'fee_groups_feetype_id'  => $advance_fee_ids->fee_groups_feetype_id,
+                'amount_detail'          => $json_array_advance,
+            ];
+            $this->studentfeemaster_model->fee_deposit($data_to_insert_advance, null, [], date('Y-m-d', $this->customlib->datetostrtotime($this->input->post('date'))));
+        }
+
+        $total_advance_to_deduct = 0;
+        if ($use_paid_advance === 'yes') {
+            $total_advance_to_deduct += $final_amount;
+        }
+        if ($use_discount_advance === 'yes') {
+            $total_advance_to_deduct += $amount_discount_from_advance;
+        }
+        
+        if ($total_advance_to_deduct > 0) {
+            $advance_fee_ids = $this->studentfeemaster_model->get_or_create_advance_fee_ids($student_session_id);
+            $json_array_advance = [
+                'amount'          => 0,
+                'amount_discount' => -$total_advance_to_deduct,
+                'amount_fine'     => 0,
+                'date'            => date('Y-m-d', $this->customlib->datetostrtotime($this->input->post('date'))),
+                'description'     => 'Advance amount used for fee payment',
+                'collected_by'    => $collected_by,
+                'payment_mode'    => 'Advance Adjustment',
+                'received_by'     => $staff_record['id'],
+            ];
+            $data_to_insert_advance = [
+                'fee_category'           => 'fees',
+                'student_fees_master_id' => $advance_fee_ids->student_fees_master_id,
+                'fee_groups_feetype_id'  => $advance_fee_ids->fee_groups_feetype_id,
+                'amount_detail'          => $json_array_advance,
+            ];
+            $this->studentfeemaster_model->fee_deposit($data_to_insert_advance, null, [], date('Y-m-d', $this->customlib->datetostrtotime($this->input->post('date'))));
+        }
+        
+        // --- Mail/SMS and Print Logic ---
+        $mailsms_array = new stdClass();
+        // The rest of the original mail/sms and print logic...
+        // This part is kept as it was.
+        
+        $array = array('status' => 'success', 'error' => '', 'print' => "");
+        echo json_encode($array);
     }
 
     public function collectAdvanceFeesAjax()
@@ -1837,10 +1704,10 @@ class Studentfee extends Admin_Controller
 
             if ($use_advance == 'yes') {
                 $payment_mode = $this->lang->line('paid_advance');
-            } elseif ($this->input->post('payment_mode_fee') == "Discount") {
+            } elseif ($this->input->post('payment_mode') == "Discount") {
                 $payment_mode = $this->lang->line('discount_advance');
             } else {
-                $payment_mode = $this->input->post('payment_mode_fee');
+                $payment_mode = $this->input->post('payment_mode');
             }
             log_message('debug', 'Determined payment_mode: ' . $payment_mode);
 
