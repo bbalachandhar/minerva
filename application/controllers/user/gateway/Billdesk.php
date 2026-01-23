@@ -212,7 +212,8 @@ class Billdesk extends Student_Controller
                 'BD-Timestamp: ' . date('YmdHis'),
             ];
 
-            log_message('error', 'BILLDESK_UAT_DATA: 2. Original encrypted & signed ecom Order API request strings, BD-TraceID & BD-Timestamp: Request String=' . $ecom_jws_token . ' | Headers=' . json_encode($ecom_headers));
+            log_message('error', 'BILLDESK_UAT_DATA: 2. Original encrypted & signed ecom Order API request strings, BD-TraceID & BD-Timestamp: Request String=' . $ecom_jws_token);
+            log_message('error', 'BILLDESK_UAT_DATA: 2. Ecom Order Request Headers: ' . json_encode($ecom_headers));
 
             $ch_ecom = curl_init();
             curl_setopt($ch_ecom, CURLOPT_URL, "https://uat1.billdesk.com/u2/payments/ve1_2/ecomorders/create");
@@ -225,6 +226,15 @@ class Billdesk extends Student_Controller
             log_message('error', 'Billdesk Ecom Order Request Headers: ' . print_r($ecom_headers, true));
 
             $ecom_response = curl_exec($ch_ecom);
+            $ecom_response_headers_sent = curl_getinfo($ch_ecom, CURLINFO_HEADER_OUT); // Headers sent
+            $ecom_response_http_code = curl_getinfo($ch_ecom, CURLINFO_HTTP_CODE); // HTTP status code
+            $ecom_response_headers_recv = '';
+            if (curl_getinfo($ch_ecom, CURLINFO_HEADER_SIZE) > 0) { // Check if headers were included in response
+                $ecom_response_headers_recv = substr($ecom_response, 0, curl_getinfo($ch_ecom, CURLINFO_HEADER_SIZE)); // Received headers
+            }
+            log_message('error', 'BILLDESK_UAT_DATA: 3. Ecom Order Request Headers Sent via cURL: ' . $ecom_response_headers_sent);
+            log_message('error', 'BILLDESK_UAT_DATA: 3. Ecom Order HTTP Response Code: ' . $ecom_response_http_code);
+            log_message('error', 'BILLDESK_UAT_DATA: 3. Ecom Order Response Headers Received via cURL: ' . $ecom_response_headers_recv);
             $ecom_err = curl_error($ch_ecom);
             curl_close($ch_ecom);
 
@@ -294,7 +304,8 @@ class Billdesk extends Student_Controller
                     'BD-Traceid: ' . uniqid(),
                     'BD-Timestamp: ' . date('YmdHis'),
                 ];
-                log_message('error', 'BILLDESK_UAT_DATA: 5. Original encrypted & signed Create Order API request strings, BD-TraceID & BD-Timestamp: Request String=' . $trans_jws_token . ' | Headers=' . json_encode($trans_headers));
+                log_message('error', 'BILLDESK_UAT_DATA: 5. Original encrypted & signed Create Order API request strings, BD-TraceID & BD-Timestamp: Request String=' . $trans_jws_token);
+                log_message('error', 'BILLDESK_UAT_DATA: 5. Create Order Request Headers: ' . json_encode($trans_headers));
 
                 $ch_trans = curl_init();
                 curl_setopt($ch_trans, CURLOPT_URL, "https://uat1.billdesk.com/u2/payments/ve1_2/orders/create");
@@ -307,6 +318,15 @@ class Billdesk extends Student_Controller
                 log_message('error', 'Billdesk Transaction Request Headers: ' . print_r($trans_headers, true));
 
                 $trans_response = curl_exec($ch_trans);
+                $trans_response_headers_sent = curl_getinfo($ch_trans, CURLINFO_HEADER_OUT); // Headers sent
+                $trans_response_http_code = curl_getinfo($ch_trans, CURLINFO_HTTP_CODE); // HTTP status code
+                $trans_response_headers_recv = '';
+                if (curl_getinfo($ch_trans, CURLINFO_HEADER_SIZE) > 0) { // Check if headers were included in response
+                    $trans_response_headers_recv = substr($trans_response, 0, curl_getinfo($ch_trans, CURLINFO_HEADER_SIZE)); // Received headers
+                }
+                log_message('error', 'BILLDESK_UAT_DATA: 6. Create Order Request Headers Sent via cURL: ' . $trans_response_headers_sent);
+                log_message('error', 'BILLDESK_UAT_DATA: 6. Create Order HTTP Response Code: ' . $trans_response_http_code);
+                log_message('error', 'BILLDESK_UAT_DATA: 6. Create Order Response Headers Received via cURL: ' . $trans_response_headers_recv);
                 $trans_err = curl_error($ch_trans);
                 curl_close($ch_trans);
 

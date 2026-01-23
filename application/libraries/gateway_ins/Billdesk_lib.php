@@ -219,7 +219,8 @@ class Billdesk_lib
             'BD-Traceid: ' . uniqid(),
             'BD-Timestamp: ' . date('YmdHis'),
         ];
-        log_message('error', 'BILLDESK_UAT_DATA: 8. Original encrypted & signed Retrieve Transaction API request string, BD-TraceID & BD-Timestamp: Request String=' . $verify_jws_token . ' | Headers=' . json_encode($verify_headers));
+        log_message('error', 'BILLDESK_UAT_DATA: 8. Original encrypted & signed Retrieve Transaction API request string, BD-TraceID & BD-Timestamp: Request String=' . $verify_jws_token);
+        log_message('error', 'BILLDESK_UAT_DATA: 8. Retrieve Transaction Request Headers: ' . json_encode($verify_headers));
 
         $ch_verify = curl_init();
         curl_setopt($ch_verify, CURLOPT_URL, "https://uat1.billdesk.com/u2/payments/ve1_2/transactions/get");
@@ -229,6 +230,15 @@ class Billdesk_lib
         curl_setopt($ch_verify, CURLOPT_HTTPHEADER, $verify_headers);
 
         $verify_response = curl_exec($ch_verify);
+        $verify_response_headers_sent = curl_getinfo($ch_verify, CURLINFO_HEADER_OUT); // Headers sent
+        $verify_response_http_code = curl_getinfo($ch_verify, CURLINFO_HTTP_CODE); // HTTP status code
+        $verify_response_headers_recv = '';
+        if (curl_getinfo($ch_verify, CURLINFO_HEADER_SIZE) > 0) { // Check if headers were included in response
+            $verify_response_headers_recv = substr($verify_response, 0, curl_getinfo($ch_verify, CURLINFO_HEADER_SIZE)); // Received headers
+        }
+        log_message('error', 'BILLDESK_UAT_DATA: 9. Retrieve Transaction Request Headers Sent via cURL: ' . $verify_response_headers_sent);
+        log_message('error', 'BILLDESK_UAT_DATA: 9. Retrieve Transaction HTTP Response Code: ' . $verify_response_http_code);
+        log_message('error', 'BILLDESK_UAT_DATA: 9. Retrieve Transaction Response Headers Received via cURL: ' . $verify_response_headers_recv);
         $verify_err = curl_error($ch_verify);
         curl_close($ch_verify);
 
