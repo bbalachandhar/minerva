@@ -67,14 +67,21 @@
                         <div class="col-xs-6">
                             <address>
                                 <strong><?php echo $this->lang->line('receipt_no'); ?>:</strong> <?php echo $collection['receipt_no']; ?><br>
-                                <strong><?php echo $this->lang->line('student_name'); ?>:</strong> <?php echo $this->customlib->getFullName($collection['firstname'],'', $collection['lastname'], $sch_setting->middlename, $sch_setting->lastname); ?><br>
-                                <strong><?php echo $this->lang->line('admission_no'); ?>:</strong> <?php echo $collection['admission_no']; ?><br>
+                                <?php if (!empty($collection['student_id'])) { ?>
+                                    <strong><?php echo $this->lang->line('student_name'); ?>:</strong> <?php echo $this->customlib->getFullName($collection['firstname'],'', $collection['lastname'], $sch_setting->middlename, $sch_setting->lastname); ?><br>
+                                    <strong><?php echo $this->lang->line('admission_no'); ?>:</strong> <?php echo $collection['admission_no']; ?><br>
+                                <?php } else { ?>
+                                    <strong><?php echo $this->lang->line('name'); ?>:</strong> <?php echo $collection['non_student_name']; ?><br>
+                                    <strong><?php echo $this->lang->line('type'); ?>:</strong> <?php echo $this->lang->line('non_student'); ?><br>
+                                <?php } ?>
                             </address>
                         </div>
                         <div class="col-xs-6 text-right">
                             <address>
                                 <strong><?php echo $this->lang->line('date'); ?>:</strong> <?php echo date($this->customlib->getSchoolDateFormat(), strtotime($collection['date_collected'])); ?><br>
-                                <strong><?php echo $this->lang->line('class'); ?>:</strong> <?php echo $collection['class_name'] . ' (' . $collection['section'] . ')'; ?><br>
+                                <?php if (!empty($collection['student_id'])) { ?>
+                                    <strong><?php echo $this->lang->line('class'); ?>:</strong> <?php echo $collection['class_name'] . ' (' . $collection['section'] . ')'; ?><br>
+                                <?php } ?>
                             </address>
                         </div>
                     </div>

@@ -129,6 +129,47 @@ class Collect_incidental_fee extends Admin_Controller {
         echo json_encode(array('student_detail' => $student_detail, 'outstanding_assignments' => $outstanding_assignments));
     }
 
+    public function collectNonStudentFee() {
+        if (!$this->rbac->hasPrivilege('collect_incidental_fee', 'can_add')) {
+            echo json_encode(array('status' => 'error', 'message' => $this->lang->line('access_denied')));
+            exit();
+        }
+
+        $this->form_validation->set_rules('non_student_name', $this->lang->line('name'), 'required|trim|xss_clean');
+        $this->form_validation->set_rules('fee_type_id', $this->lang->line('fee_type'), 'required|trim|xss_clean');
+        $this->form_validation->set_rules('amount_collected', $this->lang->line('amount_collected'), 'required|numeric|trim|xss_clean');
+        // Notes is optional, so no rule needed unless specific validation is required
+
+        if ($this->form_validation->run() == FALSE) {
+            echo json_encode(array('status' => 'error', 'message' => validation_errors()));
+        } else {
+            $session_id = $this->setting_model->getCurrentSession();
+            $collected_by = $this->customlib->getStaffID();
+            $receipt_no = $this->incidental_fee_collection_model->get_receipt_no();
+
+            $insert_data = array(
+                'student_id'                   => NULL, // Explicitly NULL for non-students
+                'non_student_name'             => $this->input->post('non_student_name'),
+                'incidental_fee_type_id'       => $this->input->post('fee_type_id'),
+                'incidental_fee_assignment_id' => NULL, // No assignment for non-students
+                'session_id'                   => $session_id,
+                'amount_collected'             => $this->input->post('amount_collected'),
+                'collected_by'                 => $collected_by,
+                'receipt_no'                   => $receipt_no,
+                'notes'                        => $this->input->post('notes'),
+                'date_collected'               => date('Y-m-d H:i:s'),
+            );
+
+            $collection_id = $this->incidental_fee_collection_model->add($insert_data);
+
+            if ($collection_id) {
+                echo json_encode(array('status' => 'success', 'message' => $this->lang->line('fee_collected_successfully'), 'collection_id' => $collection_id));
+            } else {
+                echo json_encode(array('status' => 'error', 'message' => $this->lang->line('error_collecting_fee')));
+            }
+        }
+    }
+
     public function receipt($collection_id) {
         if (!$this->rbac->hasPrivilege('collect_incidental_fee', 'can_view')) {
             access_denied();

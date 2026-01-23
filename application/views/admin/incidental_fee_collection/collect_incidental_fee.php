@@ -13,6 +13,9 @@
                     <div class="box-header with-border">
                         <h3 class="box-title"><?php echo $this->lang->line('collect_incidental_fee'); ?></h3>
                         <div class="box-tools pull-right">
+                            <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#nonStudentFeeCollectionModal">
+                                <i class="fa fa-user-plus"></i> <?php echo $this->lang->line('collect_fee_from_others'); ?>
+                            </button>
                             <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#classWiseCollectionModal">
                                 <i class="fa fa-users"></i> <?php echo $this->lang->line('collect_class_wise'); ?>
                             </button>
@@ -82,6 +85,7 @@
                                                     <th><?php echo $this->lang->line('admission_no'); ?></th>
                                                     <th><?php echo $this->lang->line('student_name'); ?></th>
                                                     <th><?php echo $this->lang->line('class'); ?></th>
+                                                    <th><?php echo $this->lang->line('section'); ?></th>
             <th><?php echo $this->lang->line('gender'); ?></th>
             <th><?php echo $this->lang->line('father_name'); ?></th>
             <th class="text-right no-print"><?php echo $this->lang->line('action'); ?></th>
@@ -224,6 +228,94 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-default" data-dismiss="modal"><?php echo $this->lang->line('close'); ?></button>
                     <button type="submit" class="btn btn-primary" id="save_class_wise_fees_btn" style="display:none;"><?php echo $this->lang->line('save'); ?></button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Non-Student Fee Collection Modal -->
+<div class="modal fade" id="nonStudentFeeCollectionModal" tabindex="-1" role="dialog" aria-labelledby="nonStudentFeeCollectionModalLabel">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title" id="nonStudentFeeCollectionModalLabel"><?php echo $this->lang->line('collect_fee_from_others'); ?></h4>
+            </div>
+            <form action="<?php echo site_url('admin/collect_incidental_fee/collectNonStudentFee') ?>" method="post" accept-charset="utf-8" id="form_add_non_student_incidental_fee">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="non_student_name"><?php echo $this->lang->line('non_student_name'); ?></label>
+                        <input id="non_student_name" name="non_student_name" type="text" class="form-control" />
+                        <span class="text-danger"></span>
+                    </div>
+                    <div class="form-group">
+                        <label for="fee_type_id_non_student"><?php echo $this->lang->line('fee_type'); ?></label>
+                        <select id="fee_type_id_non_student" name="fee_type_id" class="form-control" >
+                            <option value=""><?php echo $this->lang->line('select'); ?></option>
+                            <?php foreach ($fee_types as $fee_type) { ?>
+                                <option value="<?php echo $fee_type['id'] ?>"><?php echo $fee_type['title'] ?></option>
+                            <?php } ?>
+                        </select>
+                        <span class="text-danger"></span>
+                    </div>
+                    <div class="form-group">
+                        <label for="amount_collected_non_student"><?php echo $this->lang->line('amount_collected'); ?></label>
+                        <input id="amount_collected_non_student" name="amount_collected" type="number" step="0.01" class="form-control" />
+                        <span class="text-danger"></span>
+                    </div>
+                    <div class="form-group">
+                        <label for="notes_non_student"><?php echo $this->lang->line('notes'); ?></label>
+                        <textarea id="notes_non_student" name="notes" class="form-control"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal"><?php echo $this->lang->line('close'); ?></button>
+                    <button type="submit" class="btn btn-primary"><?php echo $this->lang->line('collect_fee'); ?></button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Non-Student Fee Collection Modal -->
+<div class="modal fade" id="nonStudentFeeCollectionModal" tabindex="-1" role="dialog" aria-labelledby="nonStudentFeeCollectionModalLabel">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title" id="nonStudentFeeCollectionModalLabel"><?php echo $this->lang->line('collect_fee_from_others'); ?></h4>
+            </div>
+            <form action="<?php echo site_url('admin/collect_incidental_fee/collectNonStudentFee') ?>" method="post" accept-charset="utf-8" id="form_add_non_student_incidental_fee">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="non_student_name"><?php echo $this->lang->line('non_student_name'); ?></label>
+                        <input id="non_student_name" name="non_student_name" type="text" class="form-control" />
+                        <span class="text-danger"></span>
+                    </div>
+                    <div class="form-group">
+                        <label for="fee_type_id_non_student"><?php echo $this->lang->line('fee_type'); ?></label>
+                        <select id="fee_type_id_non_student" name="fee_type_id" class="form-control" >
+                            <option value=""><?php echo $this->lang->line('select'); ?></option>
+                            <?php foreach ($fee_types as $fee_type) { ?>
+                                <option value="<?php echo $fee_type['id'] ?>"><?php echo $fee_type['title'] ?></option>
+                            <?php } ?>
+                        </select>
+                        <span class="text-danger"></span>
+                    </div>
+                    <div class="form-group">
+                        <label for="amount_collected_non_student"><?php echo $this->lang->line('amount_collected'); ?></label>
+                        <input id="amount_collected_non_student" name="amount_collected" type="number" step="0.01" class="form-control" />
+                        <span class="text-danger"></span>
+                    </div>
+                    <div class="form-group">
+                        <label for="notes_non_student"><?php echo $this->lang->line('notes'); ?></label>
+                        <textarea id="notes_non_student" name="notes" class="form-control"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal"><?php echo $this->lang->line('close'); ?></button>
+                    <button type="submit" class="btn btn-primary"><?php echo $this->lang->line('collect_fee'); ?></button>
                 </div>
             </form>
         </div>
@@ -512,6 +604,71 @@
                     $('#save_class_wise_fees_btn').button('reset');
                 }
             });
+        });
+    });
+
+    // Non-Student Fee Collection Modal - Form submission
+    $('#form_add_non_student_incidental_fee').on('submit', function (e) {
+        e.preventDefault();
+        var form = $(this);
+        var url = baseurl + 'admin/collect_incidental_fee/collectNonStudentFee';
+        var data = form.serialize();
+
+        $.ajax({
+            url: url,
+            type: "POST",
+            data: data,
+            dataType: 'json',
+            beforeSend: function() {
+                // You might want to show a loading indicator here
+            },
+            success: function (response) {
+                if (response.status === 'success') {
+                    successMsg(response.message);
+                    $('#nonStudentFeeCollectionModal').modal('hide');
+                    window.open(baseurl + 'admin/collect_incidental_fee/receipt/' + response.collection_id, '_blank');
+                } else {
+                    errorMsg(response.message);
+                }
+            },
+            error: function (xhr, status, error) {
+                errorMsg("An error occurred: " + error);
+            },
+            complete: function() {
+                // You might want to hide a loading indicator here
+            }
+        });
+    });
+    // Non-Student Fee Collection Modal - Form submission
+    $('#form_add_non_student_incidental_fee').on('submit', function (e) {
+        e.preventDefault();
+        var form = $(this);
+        var url = baseurl + 'admin/collect_incidental_fee/collectNonStudentFee';
+        var data = form.serialize();
+
+        $.ajax({
+            url: url,
+            type: "POST",
+            data: data,
+            dataType: 'json',
+            beforeSend: function() {
+                // You might want to show a loading indicator here
+            },
+            success: function (response) {
+                if (response.status === 'success') {
+                    successMsg(response.message);
+                    $('#nonStudentFeeCollectionModal').modal('hide');
+                    window.open(baseurl + 'admin/collect_incidental_fee/receipt/' + response.collection_id, '_blank');
+                } else {
+                    errorMsg(response.message);
+                }
+            },
+            error: function (xhr, status, error) {
+                errorMsg("An error occurred: " + error);
+            },
+            complete: function() {
+                // You might want to hide a loading indicator here
+            }
         });
     });
 </script>
