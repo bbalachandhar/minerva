@@ -22,6 +22,7 @@ $config['mailsms'] = array(
     'online_examination_publish_exam'   => 'online_examination_publish_exam',
     'online_examination_publish_result' => 'online_examination_publish_result',
     'online_admission_form_submission'  => 'online_admission_form_submission',
+    'enquiry_form_submission'           => 'enquiry_form_submission',
     'online_admission_fees_submission'  => 'online_admission_fees_submission',
     'online_admission_fees_processing'  => 'online_admission_fees_processing',
     'student_login_credential'          => 'student_login_credential',

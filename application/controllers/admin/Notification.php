@@ -57,6 +57,43 @@ class Notification extends Admin_Controller
         $data                     = array();
         $data['title']            = 'Email Config List';
         $notificationlist         = $this->notificationsetting_model->get();
+        
+        // Check if 'enquiry_form_submission' notification setting exists, if not, add it
+        $enquiry_notification_exists = false;
+        foreach ($notificationlist as $notification_item) {
+            if ($notification_item->type === 'enquiry_form_submission') {
+                $enquiry_notification_exists = true;
+                break;
+            }
+        }
+
+        if (!$enquiry_notification_exists) {
+            // Determine a suitable notification_order
+            $max_order = 0;
+            foreach ($notificationlist as $notification_item) {
+                if ($notification_item->notification_order > $max_order) {
+                    $max_order = $notification_item->notification_order;
+                }
+            }
+            $new_order = $max_order + 1;
+
+            $enquiry_notification_data = array(
+                'type'                => 'enquiry_form_submission',
+                'is_mail'             => 1, // Enabled by default for email
+                'is_sms'              => 0, // Disabled by default for SMS
+                'is_notification'     => 0, // Disabled by default for internal notifications
+                'template'            => 'Dear {{name}} your enquiry has been submitted successfully on {{date}}. Your Reference number is {{reference_no}}. Please remember your reference number for further process.',
+                'subject'             => 'Enquiry Form Submission',
+                'notification_order'  => $new_order,
+                'is_student_recipient' => 0, // Not applicable for enquiry form
+                'is_guardian_recipient' => 0, // Not applicable for enquiry form
+                'is_staff_recipient'  => 0, // Not applicable for enquiry form
+            );
+            $this->notificationsetting_model->add($enquiry_notification_data);
+            // Re-fetch the list to include the newly added setting
+            $notificationlist         = $this->notificationsetting_model->get();
+        }
+
         $data['notificationlist'] = $notificationlist;
         $this->form_validation->set_rules('email_type', $this->lang->line('email_type'), 'required');
         if ($this->input->server('REQUEST_METHOD') == "POST") {

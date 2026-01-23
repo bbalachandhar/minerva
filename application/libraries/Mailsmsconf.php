@@ -254,6 +254,12 @@ $sender_details['parent_app_key']=$recipient_data['parent_app_key'];
                 $sender_details['app_key']=$recipient_data['app_key'];
                 $this->sendOnlineadmissionFees($chk_mail_sms, $sender_details, $chk_mail_sms['template'], $chk_mail_sms['subject'], $chk_mail_sms['template_id']);
 
+            } elseif ($send_for == "enquiry_form_submission") {
+                if ($chk_mail_sms['mail'] && $chk_mail_sms['template'] != "") {
+                    // Assuming 'email' is always present in $sender_details for enquiry
+                    $this->CI->mailgateway->sentEnquiryMail($sender_details, $chk_mail_sms['template'], $chk_mail_sms['subject'], $sender_details['email']);
+                }
+                // SMS and Notification logic can be added here if needed, similar to other sections
             } elseif ($send_for == "student_login_credential") {
 
                 if ($chk_mail_sms['mail'] && $chk_mail_sms['template'] != "") {

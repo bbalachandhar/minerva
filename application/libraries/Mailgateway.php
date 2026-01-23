@@ -591,4 +591,11 @@ class Mailgateway
     }
     //send staff attandance absent
 
+    public function sentEnquiryMail($sender_details, $template, $subject, $send_to)
+    {
+        $msg = $this->getContent($sender_details, $template);
+        if (!empty($this->_CI->mail_config) && $send_to != "") {
+            $this->_CI->mailer->send_mail($send_to, $subject, $msg);
+        }
+    }
 }

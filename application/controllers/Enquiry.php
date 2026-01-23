@@ -15,7 +15,14 @@ class Enquiry extends CI_Controller
         $this->load->model("setting_model");
         $this->load->model("class_model");
         $this->load->model("staff_model");
+        $this->load->model("language_model");
+        $this->load->model("notificationsetting_model");
+        $this->load->library('customlib'); // Load customlib library
+        $this->load->library('mailsmsconf');
         $this->load->helper('url');
+
+        // Initialize sch_setting_detail as it's used by Mailsmsconf
+        $this->sch_setting_detail = $this->setting_model->getSetting();
     }
 
     public function index()
@@ -75,6 +82,22 @@ class Enquiry extends CI_Controller
             );
             $this->enquiry_model->add($enquiry);
             
+            // Send email notification
+            $sender_details = array(
+                'name'           => $enquiry['name'], // Changed from 'firstname' to 'name'
+                'lastname'       => 'Enquiry', // Using a generic placeholder for lastname
+                'email'          => $enquiry['email'],
+                'date'           => $enquiry['date'],
+                'reference_no'   => 'ENQ-' . time(), // Added for reference number
+                'contact'        => $enquiry['contact'],
+                'source'         => $enquiry['source'],
+                'class'          => $enquiry['class_id'],
+                'reference'      => $enquiry['reference'],
+                'reference_name' => $enquiry['reference_name'],
+                'reference_contact' => $enquiry['reference_contact']
+            );
+            $this->mailsmsconf->mailsms('enquiry_form_submission', $sender_details);
+
             $this->session->set_flashdata('success_message', 'Your enquiry has been submitted successfully. We will get back to you shortly.');
             redirect('enquiry/success');
         }

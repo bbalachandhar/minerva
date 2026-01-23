@@ -1446,6 +1446,7 @@ $lang['online_admission_form_fees'] = "Online Admission Form Fees";
 $lang['online_admission_form_fields'] = "Online Admission Form Fields";	
 $lang['online_admission_form_setting'] = "Online Admission Form Setting";	
 $lang['online_admission_form_submission'] = "Online Admission Form Submission";	
+$lang['enquiry_form_submission'] = "Enquiry Form Submission";	
 $lang['online_admission_instructions'] = "Online Admission Instructions";
 $lang['online_fee_pending_report'] = "Online Fee Pending Report";	
 $lang['online_admission_payment_option'] = "Online Admission Payment Option";	
