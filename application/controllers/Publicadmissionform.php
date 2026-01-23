@@ -23,7 +23,7 @@ class PublicAdmissionForm extends CI_Controller
         $this->load->model('language_model');
         $this->load->model('setting_model');
         $this->sch_setting_detail = $this->setting_model->getSetting(); // Load school settings
-        $this->load->model(array('frontcms_setting_model', 'complaint_Model', 'Visitors_model', 'onlinestudent_model', 'filetype_model', 'customfield_model', 'examgroupstudent_model', 'examgroup_model', 'grade_model', 'marksdivision_model', 'currency_model', 'section_model','holiday_model', 'class_model', 'category_model', 'student_model', 'Online_admission_ug_details_model', 'Online_admission_pg_details_model', 'Online_admission_lateral_details_model', 'Online_admission_references_model', 'Online_admission_nata_details_model'));
+        $this->load->model(array('frontcms_setting_model', 'complaint_Model', 'Visitors_model', 'onlinestudent_model', 'filetype_model', 'customfield_model', 'examgroupstudent_model', 'examgroup_model', 'grade_model', 'marksdivision_model', 'currency_model', 'section_model','holiday_model', 'class_model', 'category_model', 'student_model', 'Online_admission_ug_details_model', 'Online_admission_pg_details_model', 'Online_admission_lateral_details_model', 'Online_admission_references_model', 'Online_admission_nata_details_model', 'notificationsetting_model'));
         $this->load->model('examstudent_model');
         $this->load->config('form-builder');
         $this->load->config('app-config');
@@ -556,10 +556,13 @@ class PublicAdmissionForm extends CI_Controller
 
             $allowed_extension = array_map('trim', array_map('strtolower', explode(',', $result->image_extension)));
             $allowed_mime_type = array_map('trim', array_map('strtolower', explode(',', $result->image_mime)));
+            
             $ext               = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
 
             $finfo = finfo_open(FILEINFO_MIME_TYPE);
             $mtype = finfo_file($finfo, $_FILES[$var]['tmp_name']);
+
+            error_log("Debug image_handle_upload: file_name=" . $file_name . ", file_type=" . $file_type . ", ext=" . $ext . ", mtype=" . $mtype . ", allowed_extension=" . implode(',', $allowed_extension) . ", allowed_mime_type=" . implode(',', $allowed_mime_type));
 
             if (!in_array($mtype, $allowed_mime_type)) {
                 $this->form_validation->set_message('image_handle_upload', $this->lang->line('file_type_not_allowed'));
@@ -571,11 +574,13 @@ class PublicAdmissionForm extends CI_Controller
                 return false;
             }
 
-                    $configured_max_size = (isset($result->image_size) && $result->image_size > 0) ? $result->image_size : (300 * 1024); // Use 300KB if not configured or 0
-                    $effective_max_size = min($configured_max_size, (300 * 1024)); // Ensure it's not greater than 300KB
+            // The effective_max_size for image is 300KB
+            $configured_max_size = (isset($result->image_size) && $result->image_size > 0) ? $result->image_size : (300 * 1024); // Use 300KB if not configured or 0
+            $effective_max_size = min($configured_max_size, (300 * 1024)); // Ensure it's not greater than 300KB
             
-                    if ($file_size > $effective_max_size) {
-                        $this->form_validation->set_message('image_handle_upload', $this->lang->line('file_size_shoud_be_less_than') . number_format($effective_max_size / 1024, 0) . " KB");                return false;
+            if ($file_size > $effective_max_size) {
+                $this->form_validation->set_message('image_handle_upload', $this->lang->line('file_size_shoud_be_less_than') . number_format($effective_max_size / 1024, 0) . " KB");
+                return false;
             }
             return true;
         }
@@ -1523,6 +1528,18 @@ class PublicAdmissionForm extends CI_Controller
                 );
                 $this->Online_admission_pg_details_model->add($insert_pg_data);
             }
+            $sender_details = array(
+                'firstname' => $data['user_name'],
+                'lastname' => $data['father_name'],
+                'email' => $data['student_email'],
+                'date' => date('Y-m-d'),
+                'reference_no' => $reference_no,
+                'mobileno' => $data['student_mobile'],
+                'guardian_email' => '',
+                'guardian_phone' => $data['father_mobile']
+            );
+
+            $this->mailsmsconf->mailsms('online_admission_form_submission', $sender_details);
             
             $this->session->set_flashdata('msg', '<div class="alert alert-success">' . $this->lang->line('thanks_for_registration_please_note_your_reference_number') . ' ' . $reference_no . ' ' . $this->lang->line('for_further_communication') . '</div>');
             redirect('publicadmissionform');

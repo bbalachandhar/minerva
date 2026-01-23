@@ -216,8 +216,8 @@
                             </div>
                             <div class="Upload_pic">
                                 <label class="form-label">Upload Your Photo (Passport Size) *:</label>
-                                <div id="image-upload-area" class="border rounded d-flex flex-column align-items-center justify-content-center p-3 bg-light"style="height: 200px; cursor: pointer;">
-                                    <input type="file" id="imageUpload" name="user_image" class="d-none" accept="image/*" required tabindex="4">
+                                <div id="image-upload-area" class="border rounded d-flex flex-column align-items-center justify-content-center p-3 bg-light"style="height: 200px; cursor: pointer; position: relative; overflow: hidden;">
+                                    <input type="file" id="imageUpload" name="user_image" accept="image/*" required style="opacity: 0; position: absolute; top: 0; left: 0; width: 100%; height: 100%; cursor: pointer;">
                                     <img id="previewImage" src="" alt="Preview" class="d-none border"
                                     style="width: 35mm; height: 45mm; object-fit: cover; border-radius: 5px;">
                                     <i id="uploadIcon" class="bi bi-cloud-upload-fill text-primary" style="font-size: 30px;"></i>
@@ -641,7 +641,6 @@
         </div>
     </div>
 </body>
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
@@ -699,33 +698,7 @@
         }
     });
 </script>
-<script>
-    document.getElementById("image-upload-area").addEventListener("click", function () {
-        document.getElementById("imageUpload").click();
-    });
-    document.getElementById("imageUpload").addEventListener("change", function (event) {
-        const file = event.target.files[0];
-        if (file) {
-            if (file.size > 2 * 1024 * 1024) {
-                alert("File size exceeds 2MB limit.");
-                return;
-            }
-            const reader = new FileReader();
-            reader.onload = function (e) {
-                const previewImage = document.getElementById("previewImage");
-                const uploadIcon = document.getElementById("uploadIcon");
-                const uploadText = document.getElementById("uploadText");
-                const uploadNote = document.getElementById("uploadNote");
-                previewImage.src = e.target.result;
-                previewImage.classList.remove("d-none");
-                uploadIcon.style.display = "none"; 
-                uploadText.style.display = "none"; 
-                uploadNote.style.display = "none"; 
-            };
-            reader.readAsDataURL(file);
-        }
-    });
-</script>
+
 <script>
     // Initialize with UG selected by default
     document.addEventListener("DOMContentLoaded", function() {
@@ -850,33 +823,33 @@
 </script>
 <script>
     $(document).ready(function () {
-        $("#image-upload-area").click(function () {
-            $("#imageUpload").click();
-        });
+
         $("#imageUpload").change(function (event) {
             let file = event.target.files[0];
             if (file) {
                 let fileType = file.type;
-                let fileSize = file.size;
+                let fileSize = file.size; // in bytes
+                const maxFileSize = 300 * 1024; // 300KB
+
                 let validTypes = ["image/jpeg", "image/png"];
                 if (!validTypes.includes(fileType)) {
                     alert("Only JPG and PNG images are allowed.");
-                $("#imageUpload").val(""); // Reset input
-                return;
+                    $("#imageUpload").val(""); // Reset input
+                    return;
+                }
+                if (fileSize > maxFileSize) {
+                    alert("File size must be less than 300KB.");
+                    $("#imageUpload").val(""); // Reset input
+                    return;
+                }
+                let reader = new FileReader();
+                reader.onload = function (e) {
+                    $("#previewImage").attr("src", e.target.result).removeClass("d-none");
+                    $("#uploadIcon, #uploadText, #uploadNote").addClass("d-none");
+                };
+                reader.readAsDataURL(file);
             }
-            if (fileSize > 2 * 1024 * 1024) { // 2MB limit
-                alert("File size must be less than 2MB.");
-                $("#imageUpload").val(""); // Reset input
-                return;
-            }
-            let reader = new FileReader();
-            reader.onload = function (e) {
-                $("#previewImage").attr("src", e.target.result).removeClass("d-none");
-                $("#uploadIcon, #uploadText, #uploadNote").addClass("d-none");
-            };
-            reader.readAsDataURL(file);
-        }
-    });
+        });
     });
 </script>
 <script>

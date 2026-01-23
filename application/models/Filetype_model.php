@@ -21,10 +21,10 @@ class Filetype_model extends MY_Model
         
         if (is_null($result)) {
             $default_filetype = new stdClass();
-            $default_filetype->image_extension = '';
-            $default_filetype->file_extension = '';
-            $default_filetype->image_mime = '';
-            $default_filetype->file_mime = '';
+            $default_filetype->image_extension = 'jpg,jpeg,png,gif';
+            $default_filetype->file_extension = 'pdf,doc,docx,xls,xlsx,csv,txt';
+            $default_filetype->image_mime = 'image/jpeg,image/png,image/gif';
+            $default_filetype->file_mime = 'application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv,text/plain';
             $default_filetype->file_size = 0;
             $default_filetype->image_size = 0;
             return $default_filetype;
