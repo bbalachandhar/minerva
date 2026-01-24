@@ -216,7 +216,8 @@ foreach ($notifications as $notice_key => $notice_value) {
                     <h5 class="pro-border">Students Today's Birthday - <?php echo count($student_birthdays); ?></h5>
                     <div class="birthday-ticker-container">
                         <div class="birthday-ticker-clipper">
-                                                            <div class="birthday-ticker-content" style="animation-duration: 50s;">                        <?php if (!empty($student_birthdays)) { ?>
+                        <div class="birthday-ticker-content" style="animation-duration: 50s;">                        
+                          <?php if (!empty($student_birthdays)) {?>
                             <div class="mediarow">
                                 <div class="row">
                                     <?php foreach (array_merge($student_birthdays, $student_birthdays) as $student) { ?>
@@ -248,6 +249,7 @@ foreach ($notifications as $notice_key => $notice_value) {
                         </div>
                     </div>
                 </div>
+            </div>
             </div>
             <div class="col-md-3 col-sm-6 mb10">
                 <div class="topprograssstart flex-card">
@@ -301,7 +303,6 @@ foreach ($notifications as $notice_key => $notice_value) {
                         </div> <!-- Close birthday-ticker-clipper -->
                         </div>
                     </div>
-                </div>
             </div>
             <?php
             if ($this->module_lib->hasActive('student_attendance')) {
