@@ -251,52 +251,57 @@ foreach ($notifications as $notice_key => $notice_value) {
             </div>
             <div class="col-md-3 col-sm-6 mb10">
                 <div class="topprograssstart flex-card">
-                    <h5 class="pro-border">Staff Today's Birthday - <?php echo count($staff_birthdays); ?></h5>
+                    <h5 class="pro-border">Current Week Staff Birthdays - <?php echo count($staff_birthdays); ?></h5>
                     <div class="birthday-ticker-container">
+                         <?php 
+                            $staff_birthday_count = count($staff_birthdays);
+                            $staff_scroll_duration = ($staff_birthday_count > 0) ? $staff_birthday_count * 2 : 50;
+                        ?>
                         <div class="birthday-ticker-clipper">
-                                                            <div class="birthday-ticker-content" style="animation-duration: 50s;">                        <?php if (!empty($staff_birthdays)) { ?>
-                            <div class="mediarow">
-                                <div class="row">
-                                    <?php foreach (array_merge($staff_birthdays, $staff_birthdays) as $staff) { ?>
-                                        <div class="col-lg-12 col-md-12 col-sm-12 img_div_modal">
-                                            <div class="staffinfo-box">
-                                                <div class="staffleft-box">
-                                                    <?php
-                                                        if (!empty($staff["image"])) {
-                                                            $image = "uploads/staff_images/" . $staff["image"];
-                                                        } else {
-                                                             if ($staff['gender'] == 'Male') {
-                                                                $image = "uploads/staff_images/default_male.jpg";
-                                                            } else {
-                                                                $image = "uploads/staff_images/default_female.jpg";
-                                                            }
-                                                        }
-                                                    ?>
-                                                    <img src="<?php echo base_url() . $image ?>" alt="User Image">
-                                                    <div class="birthday-date">
-                                                        <?php echo date('d M', strtotime($staff['dob'])); ?>
+                            <div class="birthday-ticker-content" style="animation-duration: 50s;">
+                                <?php if (!empty($staff_birthdays)) { ?>
+                                     <div class="mediarow">
+                                        <div class="row">
+                                            <?php foreach (array_merge($staff_birthdays, $staff_birthdays) as $staff) { ?>
+                                                <div class="col-lg-12 col-md-12 col-sm-12 img_div_modal">
+                                                    <div class="staffinfo-box">
+                                                        <div class="staffleft-box">
+                                                            <?php
+                                                                if (!empty($staff["image"])) {
+                                                                    $image = "uploads/staff_images/" . $staff["image"];
+                                                                } else {
+                                                                     if ($staff['gender'] == 'Male') {
+                                                                        $image = "uploads/staff_images/default_male.jpg";
+                                                                    } else {
+                                                                        $image = "uploads/staff_images/default_female.jpg";
+                                                                    }
+                                                                }
+                                                            ?>
+                                                            <img src="<?php echo base_url() . $image ?>" alt="User Image">
+                                                            <div class="birthday-date">
+                                                                <?php echo date('d M', strtotime($staff['dob'])); ?>
+                                                            </div>
+                                                        </div>
+                                                        <div class="staffleft-content">
+                                                            <h5><span><?php echo $staff["name"] . " " . $staff["surname"]; ?></span></h5>
+                                                            <p><font><?php echo $staff["employee_id"] ?></font></p>
+                                                            <p><font><?php echo $staff["contact_no"] ?></font></p>
+                                                            <p><font><?php echo $staff["department"]; ?></font></p>
+                                                            <p class="staffsub" ><span data-toggle="tooltip" title="<?php echo $this->lang->line('role'); ?>"><?php echo $staff["role"] ?></span> <span data-toggle="tooltip" title="<?php echo 'Designation'; ?>"> <?php echo $staff["designation"] ?></span></p>
+                                                        </div>
                                                     </div>
                                                 </div>
-                                                <div class="staffleft-content">
-                                                    <h5><span><?php echo $staff["name"] . " " . $staff["surname"]; ?></span></h5>
-                                                    <p><font><?php echo $staff["employee_id"] ?></font></p>
-                                                    <p><font><?php echo $staff["contact_no"] ?></font></p>
-                                                    <p><font><?php echo $staff["department"]; ?></font></p>
-                                                    <p class="staffsub" ><span data-toggle="tooltip" title="<?php echo $this->lang->line('role'); ?>"><?php echo $staff["role"] ?></span> <span data-toggle="tooltip" title="<?php echo 'Designation'; ?>"> <?php echo $staff["designation"] ?></span></p>
-                                                </div>
-                                            </div>
+                                            <?php } ?>
                                         </div>
-                                    <?php } ?>
-                                </div>
-                            </div>
-                        <?php } else { ?>
-                            <p class="text-center"><?php echo $this->lang->line('no_record_found'); ?></p>
-                        <?php } ?>
+                                    </div>
+                                <?php } else { ?>
+                                    <p class="text-center"><?php echo $this->lang->line('no_record_found'); ?></p>
+                                <?php } ?>
+                            </div> <!-- Close birthday-ticker-content -->
+                        </div> <!-- Close birthday-ticker-clipper -->
                         </div>
                     </div>
                 </div>
-            </div>
-
             </div>
             <?php
             if ($this->module_lib->hasActive('student_attendance')) {
