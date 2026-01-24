@@ -46,9 +46,12 @@ class Gateway_ins_model extends CI_Model
 
     public function update_gateway_ins($gateway_ins)
     {
-        $this->db->where('id', $gateway_ins['id']);
-        $this->db->update('gateway_ins', $gateway_ins);
-        return $gateway_ins['id'];
+        if (isset($gateway_ins['id'])) {
+            $this->db->where('id', $gateway_ins['id']);
+            $this->db->update('gateway_ins', $gateway_ins);
+            return $gateway_ins['id'];
+        }
+        return false;
     }
 
     public function get_gateway_details($type)

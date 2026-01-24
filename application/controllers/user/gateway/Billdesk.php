@@ -474,7 +474,7 @@ class Billdesk extends Student_Controller
                             $json_array = array(
                                 'amount'          => $fee_value['amount_balance'],
                                 'date'            => date('Y-m-d'),
-                                'amount_discount' => $fee_value['applied_fee_discount'],
+                                'amount_discount' => $fee_value['applied_fee_discount'] ?? null,
                                 'processing_charge_type' => $params['processing_charge_type'],
                                 'gateway_processing_charge' => $params['gateway_processing_charge'],
                                 'amount_fine'     => $fee_value['fine_balance'],
@@ -501,7 +501,7 @@ class Billdesk extends Student_Controller
                     // --- DEBUG LOGGING END ---
 
                     $send_to = $params['guardian_phone'];
-                    $response_bulk_deposit = $this->studentfeemaster_model->add_bulk_fee_deposit($bulk_fees, $params['fee_discount_group']);
+                    $response_bulk_deposit = $this->studentfeemaster_model->add_bulk_fee_deposit($bulk_fees, $params['fee_discount_group'] ?? null);
 
                     // Send SMS/Email
                     $student_id = $this->customlib->getStudentSessionUserID();
