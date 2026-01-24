@@ -3,9 +3,105 @@
     .borderwhite{border-top-color: #fff !important;}
     .box-header>.box-tools {display: none;}
     .sidebar-collapse #barChart{height: 100% !important;}
-    .sidebar-collapse #lineChart{height: 100% !important;}
+    .sidebar-collapse #lineChart{height: 100% !!!!important;}
     .tooltip-inner {max-width: 135px;}
-</style>
+
+            /* Original birthday ticker styles */
+            .birthday-ticker-container {
+                position: relative;
+                height: 82%; /* Will take 82% of parent's fixed height */
+            }
+
+            .birthday-ticker-content {
+                animation: ticker-scroll 50s linear infinite; /* Restore original animation */
+                height: 200%; /* Crucial for -50% translateY animation */
+            }
+            .birthday-ticker-clipper {
+                overflow: hidden;
+                overflow-y: hidden;
+                max-height: 100%;
+                height: 100%;
+                position: relative; /* Ensure it's a positioning context */
+            }
+            .birthday-ticker-content ul {
+                padding: 0;
+                margin: 0;
+            }
+            .birthday-ticker-content li {
+                list-style: none;
+                /* white-space: nowrap; uncomment if text should not wrap */
+            }
+
+            @keyframes ticker-scroll {
+                0% {
+                    transform: translateY(0%);
+                }
+                100% {
+                    transform: translateY(-50%); /* Scroll one full set of duplicated content */
+                }
+            }
+            
+            /* Equal Height Row styles (these were mostly fine but ensuring consistency) */
+            .equal-height-row {
+              display: -webkit-box;
+              display: -ms-flexbox;
+              display: flex;
+              -ms-flex-wrap: nowrap !important;
+                  flex-wrap: wrap;
+            }
+            .equal-height-row > [class*='col-'] {
+              display: -webkit-box;
+              display: -ms-flexbox;
+              display: flex;
+              -webkit-box-orient: vertical;
+              -webkit-box-direction: normal;
+                  -ms-flex-direction: column;
+                      flex-direction: column;
+            }
+            .equal-height-row > [class*='col-'] > .topprograssstart {
+                /* Revert flex-grow property for static height */
+                -webkit-box-flex: 0; 
+                -ms-flex: 0 0 auto !important; 
+                flex: 0 0 auto !important;
+                height: 275px; /* Fixed height based on user request */
+                display: block; /* Override flex display if applied earlier */
+            }
+            
+            /* Staff/Student card specific styles */
+            .staffleft-box {
+                position: relative;
+            }
+
+            .birthday-date {
+                position: absolute;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                background-color: rgba(255, 255, 255, 0.8);
+                color: #000;
+                text-align: center;
+                padding: 2px;
+                font-size: 12px;
+                font-weight: bold;
+                z-index: 10; /* Bring to front */
+            }
+            
+            /* General flex card styles (reverting these to avoid dynamic height) */
+            .topprograssstart.flex-card {
+                /* Removed display: flex, flex-direction: column, height: 100% to revert to static block behavior */
+                display: block; /* Ensure it behaves as a block element */
+                height: 100%; /* Keep 100% to fill parent, but parent col-* will now have fixed height */
+            }
+
+            .topprograssstart.flex-card h5.pro-border {
+                /* Removed flex-shrink: 0; */
+            }
+
+            .topprograssstart.flex-card .birthday-ticker-container {
+                /* Removed flex-grow: 1; */
+                height: 82%; /* Will take 100% of parent's fixed height */
+            }
+        </style>
 <div class="content-wrapper">
     <section class="content">
         <div class="">
@@ -45,50 +141,335 @@ foreach ($notifications as $notice_key => $notice_value) {
 }
 ?>
         </div>
+        <style type="text/css">
+            @media (min-width: 1200px) { /* Apply only on large screens */
+                .widget-five-col {
+                    display: flex;
+                    flex-wrap: wrap;
+                    justify-content: space-around; /* Distribute space evenly around items */
+                }
+                .widget-five-col > div {
+                    flex: 0 0 19%; /* Make each item take approximately 1/5th width */
+                    max-width: 19%;
+                    padding: 0 5px; /* Add some padding between items */
+                    margin-bottom: 10px; /* Maintain vertical spacing */
+                }
+                .widget-five-col > div.col-lg-4, /* Reset default Bootstrap column padding */
+                .widget-five-col > div.col-md-6,
+                .widget-five-col > div.col-sm-6 {
+                    padding-left: 0 !important;
+                    padding-right: 0 !important;
+                }
+            }
+            .equal-height-row {
+              display: -webkit-box;
+              display: -ms-flexbox;
+              display: flex;
+              -ms-flex-wrap: wrap;
+                  flex-wrap: wrap;
+            }
+            .equal-height-row > [class*='col-'] {
+              display: -webkit-box;
+              display: -ms-flexbox;
+              display: flex;
+              -webkit-box-orient: vertical;
+              -webkit-box-direction: normal;
+                  -ms-flex-direction: column;
+                      flex-direction: column;
+            }
+            .equal-height-row > [class*='col-'] > .topprograssstart {
+                -webkit-box-flex: 1;
+                -ms-flex: 1 0 auto !important;
+                flex: 1 0 auto !important;
+            }
+            .staffleft-box {
+                position: relative;
+            }
+
+            .birthday-date {
+                position: absolute;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                background-color: rgba(255, 255, 255, 0.8);
+                color: #000;
+                text-align: center;
+                padding: 2px;
+                font-size: 12px;
+                font-weight: bold;
+                z-index: 10; /* Bring to front */
+            }
+            .topprograssstart.flex-card {
+                display: flex;
+                flex-direction: column;
+                height: 100%;
+            }
+
+            .topprograssstart.flex-card .birthday-ticker-container {
+                flex-grow: 1;
+                min-height: 150px; /* A sensible minimum height */
+            }
+        </style>
+        <div class="row equal-height-row">
+            <div class="col-md-3 col-sm-6 mb10">
+                <div class="topprograssstart flex-card">
+                    <h5 class="pro-border">Students Today's Birthday - <?php echo count($student_birthdays); ?></h5>
+                    <div class="birthday-ticker-container">
+                        <div class="birthday-ticker-clipper">
+                                                            <div class="birthday-ticker-content" style="animation-duration: 50s;">                        <?php if (!empty($student_birthdays)) { ?>
+                            <div class="mediarow">
+                                <div class="row">
+                                    <?php foreach (array_merge($student_birthdays, $student_birthdays) as $student) { ?>
+                                        <div class="col-lg-12 col-md-12 col-sm-12 img_div_modal">
+                                            <div class="staffinfo-box">
+                                                <div class="staffleft-box">
+                                                    <?php
+                                                        if (!empty($student["image"])) {
+                                                            $image = "uploads/student_images/" . $student["image"];
+                                                        } else {
+                                                            $image = "uploads/student_images/no_image.png";
+                                                        }
+                                                    ?>
+                                                    <img src="<?php echo base_url() . $image ?>" alt="User Image">
+                                                </div>
+                                                <div class="staffleft-content">
+                                                    <h5><span><?php echo $student["firstname"] . " " . $student["lastname"]; ?></span></h5>
+                                                    <p><font><?php echo $student["class"] . " (" . $student["section"] . ")" ?></font></p>
+                                                    <p><font><?php echo $student["mobileno"] ?></font></p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    <?php } ?>
+                                </div>
+                            </div>
+                        <?php } else { ?>
+                            <p class="text-center"><?php echo $this->lang->line('no_record_found'); ?></p>
+                        <?php } ?>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6 mb10">
+                <div class="topprograssstart flex-card">
+                    <h5 class="pro-border">Current Week Staff Birthdays - <?php echo count($staff_birthdays); ?></h5>
+                    <div class="birthday-ticker-container">
+                         <?php 
+                            $staff_birthday_count = count($staff_birthdays);
+                            $staff_scroll_duration = ($staff_birthday_count > 0) ? $staff_birthday_count * 2 : 50;
+                        ?>
+                        <div class="birthday-ticker-clipper">
+                            <div class="birthday-ticker-content" style="animation-duration: 50s;">
+                                <?php if (!empty($staff_birthdays)) { ?>
+                                     <div class="mediarow">
+                                        <div class="row">
+                                            <?php foreach (array_merge($staff_birthdays, $staff_birthdays) as $staff) { ?>
+                                                <div class="col-lg-12 col-md-12 col-sm-12 img_div_modal">
+                                                    <div class="staffinfo-box">
+                                                        <div class="staffleft-box">
+                                                            <?php
+                                                                if (!empty($staff["image"])) {
+                                                                    $image = "uploads/staff_images/" . $staff["image"];
+                                                                } else {
+                                                                     if ($staff['gender'] == 'Male') {
+                                                                        $image = "uploads/staff_images/default_male.jpg";
+                                                                    } else {
+                                                                        $image = "uploads/staff_images/default_female.jpg";
+                                                                    }
+                                                                }
+                                                            ?>
+                                                            <img src="<?php echo base_url() . $image ?>" alt="User Image">
+                                                            <div class="birthday-date">
+                                                                <?php echo date('d M', strtotime($staff['dob'])); ?>
+                                                            </div>
+                                                        </div>
+                                                        <div class="staffleft-content">
+                                                            <h5><span><?php echo $staff["name"] . " " . $staff["surname"]; ?></span></h5>
+                                                            <p><font><?php echo $staff["employee_id"] ?></font></p>
+                                                            <p><font><?php echo $staff["contact_no"] ?></font></p>
+                                                            <p><font><?php echo $staff["department"]; ?></font></p>
+                                                            <p class="staffsub" ><span data-toggle="tooltip" title="<?php echo $this->lang->line('role'); ?>"><?php echo $staff["role"] ?></span> <span data-toggle="tooltip" title="<?php echo 'Designation'; ?>"> <?php echo $staff["designation"] ?></span></p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            <?php } ?>
+                                        </div>
+                                    </div>
+                                <?php } else { ?>
+                                    <p class="text-center"><?php echo $this->lang->line('no_record_found'); ?></p>
+                                <?php } ?>
+                            </div> <!-- Close birthday-ticker-content -->
+                        </div> <!-- Close birthday-ticker-clipper -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <?php
+            if ($this->module_lib->hasActive('student_attendance')) {
+                if ($this->rbac->hasPrivilege('today_attendance_widegts', 'can_view')) {
+                    ?>
+                                <div class="col-md-2 col-sm-6 mb10">
+                                    <div class="topprograssstart flex-card">
+                                        <h5 class="pro-border"> <?php echo $this->lang->line('student_today_attendance'); ?></h5>
+                                        <p class="text-uppercase mt10 clearfix"><?php echo $attendence_data['total_present']; ?> <?php echo $this->lang->line('present'); ?><span class="pull-right"><?php echo $attendence_data['present']; ?></span>
+                                        </p>
+                                        <div class="progress-group">
+                                            <div class="progress progress-minibar">
+                                                <div class="progress-bar" style="width: <?php echo $attendence_data['present']; ?>"></div>
+                                            </div>
+                                        </div>
+                                        <p class="text-uppercase mt10 clearfix"><?php echo $attendence_data['total_late']; ?> <?php echo $this->lang->line('late') ?><span class="pull-right"><?php echo $attendence_data['late']; ?></span>
+                                        </p>
+                                        <div class="progress-group">
+                                            <div class="progress progress-minibar">
+                                                <div class="progress-bar" style="width: <?php echo $attendence_data['late']; ?>"></div>
+                                            </div>
+                                        </div>
+                                        <p class="text-uppercase mt10 clearfix"><?php echo $attendence_data['total_absent']; ?> <?php echo $this->lang->line('absent'); ?><span class="pull-right"><?php echo $attendence_data['absent']; ?></span>
+                                        </p>
+                                        <div class="progress-group">
+                                            <div class="progress progress-minibar">
+                                                <div class="progress-bar" style="width: <?php echo $attendence_data['absent']; ?>"></div>
+                                            </div>
+                                        </div>
+                                        <p class="text-uppercase mt10 clearfix"><?php echo $attendence_data['total_half_day']; ?> <?php echo $this->lang->line('half_day'); ?><span class="pull-right"><?php echo $attendence_data['half_day']; ?></span>
+                                        </p>
+                                        <div class="progress-group">
+                                            <div class="progress progress-minibar">
+                                                <div class="progress-bar" style="width: <?php echo $attendence_data['half_day']; ?>"></div>
+                                            </div>
+                                        </div>
+                                    </div><!--./topprograssstart-->
+                                </div><!--./col-md-2-->
+                                <?php
+            }
+            }
+            if ($this->rbac->hasPrivilege('staff_today_attendance', 'can_view')) {
+            ?>
+                                <div class="col-md-2 col-sm-6 mb10">
+                                    <div class="topprograssstart flex-card">
+                                        <h5 class="pro-border"> Staff Today Attendance</h5>
+                                        <p class="text-uppercase mt10 clearfix"><?php echo $staff_attendance_details['total_present']; ?> Present<span class="pull-right"><?php echo $staff_attendance_details['present']; ?>%</span>
+                                        </p>
+                                        <div class="progress-group">
+                                            <div class="progress progress-minibar">
+                                                <div class="progress-bar" style="width: <?php echo $staff_attendance_details['present']; ?>%"></div>
+                                            </div>
+                                        </div>
+                                        <p class="text-uppercase mt10 clearfix"><?php echo $staff_attendance_details['total_late']; ?> Late<span class="pull-right"><?php echo $staff_attendance_details['late']; ?>%</span>
+                                        </p>
+                                        <div class="progress-group">
+                                            <div class="progress progress-minibar">
+                                                <div class="progress-bar" style="width: <?php echo $staff_attendance_details['late']; ?>%"></div>
+                                            </div>
+                                        </div>
+                                        <p class="text-uppercase mt10 clearfix"><?php echo $staff_attendance_details['total_absent']; ?> Absent<span class="pull-right"><?php echo $staff_attendance_details['absent']; ?>%</span>
+                                        </p>
+                                        <div class="progress-group">
+                                            <div class="progress progress-minibar">
+                                                <div class="progress-bar" style="width: <?php echo $staff_attendance_details['absent']; ?>%"></div>
+                                            </div>
+                                        </div>
+                                        <p class="text-uppercase mt10 clearfix"><?php echo $staff_attendance_details['total_half_day']; ?> Half Day<span class="pull-right"><?php echo $staff_attendance_details['half_day']; ?>%</span>
+                                        </p>
+                                        <div class="progress-group">
+                                            <div class="progress progress-minibar">
+                                                <div class="progress-bar" style="width: <?php echo $staff_attendance_details['half_day']; ?>%"></div>
+                                            </div>
+                                        </div>
+                                    </div><!--./topprograssstart-->
+                                </div><!--./col-md-2-->
+            <?php
+            }
+            if ($this->module_lib->hasActive('front_office')) {
+                if ($this->rbac->hasPrivilege('enquiry_overview_widegts', 'can_view')) {
+                    ?>
+                                <div class="col-md-2 col-sm-6 mb10">
+                                    <div class="topprograssstart flex-card">
+                                        <h5 class="pro-border"><?php echo $this->lang->line('enquiry_overview'); ?></h5>
+                                        <p class="text-uppercase mt10 clearfix"><?php echo $enquiry_overview['active']; ?> <?php echo $this->lang->line('active') ?><span class="pull-right"><?php echo round($enquiry_overview['active_progress'], 2); ?>%</span>
+                                        </p>
+                                        <div class="progress-group">
+                                            <div class="progress progress-minibar">
+                                                <div class="progress-bar progress-bar-red" style="width: <?php echo $enquiry_overview['active_progress']; ?>%"></div>
+                                            </div>
+                                        </div>
+                                        <p class="text-uppercase mt10 clearfix"><?php echo $enquiry_overview['won']; ?> <?php echo $this->lang->line('won') ?><span class="pull-right"><?php echo round($enquiry_overview['won_progress'], 2); ?>%</span>
+                                        </p>
+                                        <div class="progress-group">
+                                            <div class="progress progress-minibar">
+                                                <div class="progress-bar progress-bar-yellow" style="width: <?php echo $enquiry_overview['won_progress']; ?>%"></div>
+                                            </div>
+                                        </div>
+                                        <p class="text-uppercase mt10 clearfix"><?php echo $enquiry_overview['passive']; ?> <?php echo $this->lang->line('passive') ?><span class="pull-right"><?php echo round($enquiry_overview['passive_progress'], 2); ?>%</span>
+                                        </p>
+                                        <div class="progress-group">
+                                            <div class="progress progress-minibar">
+                                                <div class="progress-bar progress-bar-yellow" style="width: <?php echo $enquiry_overview['passive_progress']; ?>%"></div>
+                                            </div>
+                                        </div>
+                                        <p class="text-uppercase mt10 clearfix"><?php echo $enquiry_overview['lost']; ?> <?php echo $this->lang->line('lost') ?><span class="pull-right"><?php echo round($enquiry_overview['lost_progress'], 2); ?>%</span>
+                                        </p>
+                                        <div class="progress-group">
+                                            <div class="progress progress-minibar">
+                                                <div class="progress-bar progress-bar-yellow" style="width: <?php echo $enquiry_overview['lost_progress']; ?>%"></div>
+                                            </div>
+                                        </div>
+                                        <p class="text-uppercase mt10 clearfix"><?php echo $enquiry_overview['dead']; ?> <?php echo $this->lang->line('dead') ?><span class="pull-right"><?php echo round($enquiry_overview['dead_progress'], 2); ?>%</span>
+                                        </p>
+                                        <div class="progress-group">
+                                            <div class="progress progress-minibar">
+                                                <div class="progress-bar progress-bar-yellow" style="width: <?php echo $enquiry_overview['dead_progress']; ?>%"></div>
+                                            </div>
+                                        </div>
+                                    </div><!--./topprograssstart-->
+                                </div><!--./col-md-2-->
+                    <?php
+            }
+            }
+            ?>
+        </div>
         <div class="row">
             <?php
 if ($this->module_lib->hasActive('fees_collection')) {
     if ($this->rbac->hasPrivilege('fees_awaiting_payment_widegts', 'can_view')) {
         ?>
-                    <div class="<?php echo $std_graphclass; ?>">
-                        <div class="topprograssstart">
-                            <p class="mt5 clearfix font14"><i class="fa fa-money ftlayer"></i><?php echo $this->lang->line('fees_awaiting_payment'); ?><span class="pull-right"><?php echo $total_paid; ?>/<?php echo $total_fees ?></span>
-                            </p>
-                            <div class="progress-group">
-                                <div class="progress progress-minibar">
-                                    <div class="progress-bar progress-bar-aqua" style="width: <?php echo $fessprogressbar; ?>%"></div>
-                                </div>
-                            </div>
-                        </div><!--./topprograssstart-->
-                    </div><!--./col-md-3-->
-                    <?php
-}
-}
-?>
-
-
-<?php 
-    if ($this->rbac->hasPrivilege('staff_approved_leave_widegts', 'can_view')) {
-        ?>
-                    <div class="<?php echo $std_graphclass; ?>">
-                        <div class="topprograssstart shadow">
-                            <p class="mt5 font14"><i class="fa fa-ioxhost ftlayer"></i><?php echo $this->lang->line('staff_approved_leave'); ?><span class="pull-right"><?php echo ($getStaffApproveMonthlyLeave) + 0; ?>/<?php echo ($getStaffMonthlyLeave); ?></span>
-                            </p>
-                            <div class="progress-group">
-                                <div class="progress progress-minibar">
-                                    <div class="progress-bar progress-bar-lris-blue" style="width: <?php echo $staffapprovemonthlyleave; ?>%"></div>
-                                </div>
-                            </div>
-                        </div><!--./topprograssstart-->
-                    </div><!--./col-md-3-->
-                    <?php
-}
- ?>
+                                        <div class="col-md-3 col-sm-6">
+                                            <div class="topprograssstart">
+                                                <p class="mt5 clearfix font14"><i class="fa fa-money ftlayer"></i><?php echo $this->lang->line('fees_awaiting_payment'); ?><span class="pull-right"><?php echo $total_paid; ?>/<?php echo $total_fees ?></span>
+                                                </p>
+                                                <div class="progress-group">
+                                                    <div class="progress progress-minibar">
+                                                        <div class="progress-bar progress-bar-aqua" style="width: <?php echo $fessprogressbar; ?>%"></div>
+                                                    </div>
+                                                </div>
+                                            </div><!--./topprograssstart-->
+                                                                                </div><!--./widget-item-->                    <?php
+                                        }
+                                        }
+                                        ?>
+                                        
+                                        <?php 
+                                            if ($this->rbac->hasPrivilege('staff_approved_leave_widegts', 'can_view')) {
+                                                ?>
+                                                            <div class="col-md-3 col-sm-6">
+                                                                <div class="topprograssstart shadow">
+                                                                    <p class="mt5 font14"><i class="fa fa-ioxhost ftlayer"></i><?php echo $this->lang->line('staff_approved_leave'); ?><span class="pull-right"><?php echo ($getStaffApproveMonthlyLeave) + 0; ?>/<?php echo ($getStaffMonthlyLeave); ?></span>
+                                                                    </p>
+                                                                    <div class="progress-group">
+                                                                        <div class="progress progress-minibar">
+                                                                            <div class="progress-bar progress-bar-lris-blue" style="width: <?php echo $staffapprovemonthlyleave; ?>%"></div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div><!--./topprograssstart-->
+                                                            </div><!--./widget-item-->
+                                                            <?php
+                                        }
+                                         ?>
  
-<?php 
+<?php
     if ($this->rbac->hasPrivilege('student_approved_leave_widegts', 'can_view')) {
         ?>
-                    <div class="<?php echo $std_graphclass; ?>">
+                    <div class="col-md-3 col-sm-6">
                         <div class="topprograssstart shadow">
                             <p class="mt5 font14"><i class="fa fa-ioxhost ftlayer"></i><?php echo $this->lang->line('student_approved_leave'); ?><span class="pull-right"><?php echo ($getStudentApproveMonthlyLeave) + 0; ?>/<?php echo ($getStudentMonthlyLeave); ?></span>
                             </p>
@@ -98,17 +479,16 @@ if ($this->module_lib->hasActive('fees_collection')) {
                                 </div>
                             </div>
                         </div><!--./topprograssstart-->
-                    </div><!--./col-md-3-->
+                    </div><!--./widget-item-->
                     <?php
 }
   ?>
-
 
             <?php
 if ($this->module_lib->hasActive('front_office')) {
     if ($this->rbac->hasPrivilege('conveted_leads_widegts', 'can_view')) {
         ?>
-                    <div class="<?php echo $std_graphclass; ?>">
+                    <div class="col-md-3 col-sm-6">
                         <div class="topprograssstart">
                             <p class="mt5 clearfix font14"><i class="fa fa-ioxhost ftlayer"></i><?php echo $this->lang->line('converted_leads'); ?><span class="pull-right"><?php echo $total_complete + 0; ?>/<?php echo $total_enquiry; ?></span>
                             </p>
@@ -118,92 +498,10 @@ if ($this->module_lib->hasActive('front_office')) {
                                 </div>
                             </div>
                         </div><!--./topprograssstart-->
-                    </div><!--./col-md-3-->
+                    </div><!--./widget-item-->
                     <?php
 }
 } ?>
-	
-	<?php
-if ($this->rbac->hasPrivilege('staff_present_today_widegts', 'can_view')) {
-    ?>
-                <div class="<?php echo $std_graphclass; ?>">
-                    <div class="topprograssstart">
-                        <p class="mt5 clearfix font14"><i class="fa fa-calendar-check-o ftlayer"></i><?php echo $this->lang->line('staff_present_today'); ?><span class="pull-right"><?php echo $staff_attendance_details['total_attended'] + 0; ?>/<?php echo $staff_attendance_details['total_staff']; ?></span>
-                        </p>
-                        <div class="progress-group">
-                            <div class="progress progress-minibar">
-                                <div class="progress-bar progress-bar-green" style="width: <?php echo $staff_attendance_details['attended_percent']; ?>%"></div>
-                            </div>
-                        </div>
-                    </div><!--./topprograssstart-->
-                </div><!--./col-md-3-->
-                <?php
-} ?>
-
-<?php
-if ($this->module_lib->hasActive('student_attendance') && $sch_setting->attendence_type == 0) {
-    if ($this->rbac->hasPrivilege('student_present_today_widegts', 'can_view')) {
-        ?>
-                    <div class="<?php echo $std_graphclass; ?>">
-                        <div class="topprograssstart">
-                            <p class="mt5 clearfix font14"><i class="fa fa-calendar-check-o ftlayer"></i><?php echo $this->lang->line('student_present_today'); ?><span class="pull-right"> <?php echo 0 + $attendence_data['total_half_day'] + $attendence_data['total_late'] + $attendence_data['total_present']; ?>/<?php echo $total_students; ?></span>
-                            </p>
-                            <div class="progress-group">
-                                <div class="progress progress-minibar">
-                                    <div class="progress-bar progress-bar-yellow" style="width: <?php if ($total_students > 0) {echo (0 + $attendence_data['total_half_day'] + $attendence_data['total_late'] + $attendence_data['total_present'] / $total_students * 100);}?>%"></div>
-                                </div>
-                            </div>
-                        </div><!--./topprograssstart-->
-                    </div><!--./col-md-3-->
-                <?php }
-}
-?>
-
- 
-  
-<!-- added new features -->
-
-        </div><!--./row-->
-        <div class="row">
-            <div class="col-md-6 col-sm-12 mb10">
-                <div class="topprograssstart flex-card">
-                    <h5 class="pro-border"> Students Today's Birthday</h5>
-                    <div style="max-height: 200px; overflow-y: auto;">
-                        <?php if (!empty($student_birthdays)) { ?>
-                            <ul class="list-group list-group-unbordered">
-                                <?php foreach ($student_birthdays as $student) { ?>
-                                    <li class="list-group-item">
-                                        <b><?php echo $student['firstname'] . " " . $student['lastname']; ?></b> 
-                                        <a class="pull-right"></a>
-                                    </li>
-                                <?php } ?>
-                            </ul>
-                        <?php } else { ?>
-                            <p class="text-center"><?php echo $this->lang->line('no_record_found'); ?></p>
-                        <?php } ?>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-6 col-sm-12 mb10">
-                <div class="topprograssstart flex-card">
-                    <h5 class="pro-border"> Staff Today's Birthday</h5>
-                    <div style="max-height: 200px; overflow-y: auto;">
-                        <?php if (!empty($staff_birthdays)) { ?>
-                            <ul class="list-group list-group-unbordered">
-                                <?php foreach ($staff_birthdays as $staff) { ?>
-                                    <li class="list-group-item">
-                                        <b><?php echo $staff['name'] . " " . $staff['surname']; ?></b> 
-                                        <a class="pull-right"></a>
-                                    </li>
-                                <?php } ?>
-                            </ul>
-                        <?php } else { ?>
-                            <p class="text-center"><?php echo $this->lang->line('no_record_found'); ?></p>
-                        <?php } ?>
-                    </div>
-                </div>
-            </div>
-        </div>
         <div class="row">
             <?php
 $bar_chart = true;
@@ -1100,5 +1398,8 @@ if ($this->rbac->hasPrivilege('fees_collection_and_expense_yearly_chart', 'can_v
                 }
         });
         });
+
+        // Force flex-wrap: nowrap for equal-height-row elements
+        $('.equal-height-row').css('flex-wrap', 'nowrap');
     });
 </script>

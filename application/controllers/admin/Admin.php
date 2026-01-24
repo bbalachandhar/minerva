@@ -406,7 +406,22 @@ class Admin extends Admin_Controller
 
         $today_date = date('Y-m-d');
         $data['student_birthdays'] = $this->Student_model->getBirthDayStudents($today_date, false, false);
-        $data['staff_birthdays'] = $this->Staff_model->getBirthDayStaff($today_date, 1, false, false);
+        
+        $staff_birthdays = array();
+        $today_day_no = date('N');
+        $monday = date('Y-m-d', strtotime('last monday'));
+        $sunday = date('Y-m-d', strtotime('next sunday'));
+
+        $current_date = $monday;
+        while (strtotime($current_date) <= strtotime($sunday)) {
+            $daily_birthdays = $this->Staff_model->getBirthDayStaff($current_date, 1, false, false);
+            if (!empty($daily_birthdays)) {
+                $staff_birthdays = array_merge($staff_birthdays, $daily_birthdays);
+            }
+            $current_date = date('Y-m-d', strtotime('+1 day', strtotime($current_date)));
+        }
+
+        $data['staff_birthdays'] = $staff_birthdays;
 		// new features code added
         // $input_session   = $this->setting_model->getCurrentSessionName();
         // list($a, $b)  = explode('-', $input_session);

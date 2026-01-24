@@ -38,6 +38,12 @@
 }
 ?> value="Practical"><?php echo $this->lang->line('practical'); ?>
                             </label>
+                            <label class="radio-inline">
+                                <input type="radio" name="type" <?php if (set_value('type') == "Integrated") {
+    echo "checked";
+}
+?> value="Integrated"><?php echo $this->lang->line('integrated'); ?>
+                            </label>
                             <div class="form-group">
                                 <label for="exampleInputEmail1"><?php echo $this->lang->line('subject_code'); ?></label>
                                 <input id="category" name="code" placeholder="" type="text" class="form-control"  value="<?php echo set_value('code'); ?>" />
