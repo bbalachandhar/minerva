@@ -271,10 +271,8 @@ class Billdesk extends OnlineAdmission_Controller
             // Log raw gateway response to gateway_ins_response table
             $gateway_ins_response_data = [
                 'gateway_ins_id' => $gateway_ins_id,
-                'gateway_name' => 'billdesk',
-                'response_data' => json_encode($response), // Store the full decrypted response
-                'status_code' => isset($response['auth_status']) ? $response['auth_status'] : null,
-                'transaction_id' => isset($response['transactionid']) ? $response['transactionid'] : null,
+                'posted_data' => json_encode($_POST), // Assuming $_POST contains the raw data from gateway
+                'response' => json_encode($response), // Use 'response' column for the decrypted response
                 'created_at' => date('Y-m-d H:i:s')
             ];
             $this->gateway_ins_model->add_gateway_ins_response($gateway_ins_response_data);
