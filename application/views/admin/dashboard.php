@@ -13,10 +13,9 @@
             }
 
             .birthday-ticker-content {
-                animation: ticker-scroll 50s linear infinite; /* Restore original animation */
-                height: 200%; /* Crucial for -50% translateY animation */
-            }
-            .birthday-ticker-clipper {
+                animation: ticker-scroll var(--ticker-duration, 20s) linear infinite; /* Use CSS variable for duration */
+                /* height: 200%; -- Removed for dynamic height calculation */
+            }            .birthday-ticker-clipper {
                 overflow: hidden;
                 overflow-y: hidden;
                 max-height: 100%;
@@ -31,13 +30,16 @@
                 list-style: none;
                 /* white-space: nowrap; uncomment if text should not wrap */
             }
+            .mediarow {
+                overflow: hidden;
+            }
 
             @keyframes ticker-scroll {
                 0% {
-                    transform: translateY(0%);
+                    transform: translateY(0);
                 }
                 100% {
-                    transform: translateY(-50%); /* Scroll one full set of duplicated content */
+                    transform: translateY(var(--ticker-translate-y, -50%)); /* Dynamic translation with fallback */
                 }
             }
             
@@ -1282,5 +1284,56 @@ if ($this->rbac->hasPrivilege('fees_collection_and_expense_yearly_chart', 'can_v
 
         // Force flex-wrap: nowrap for equal-height-row elements
         $('.equal-height-row').css('flex-wrap', 'nowrap');
+    });
+</script>
+<script type="text/javascript">
+    $(document).ready(function() {
+        // Function to update ticker animation properties
+        function updateTickerAnimation() {
+            $('.birthday-ticker-content').each(function() {
+                var $tickerContent = $(this);
+                
+                // Temporarily pause animation and reset transform to measure true scrollHeight
+                // Also set height to auto temporarily to get natural scrollHeight
+                $tickerContent.css({
+                    'animation-play-state': 'paused',
+                    'transform': 'translateY(0)',
+                    'height': 'auto' // Allow content to determine height for measurement
+                });
+
+                // Calculate the height of one full set of unique items
+                // The content is duplicated, so scrollHeight contains two sets of data
+                var totalContentHeight = $tickerContent[0].scrollHeight;
+                var singleCycleHeight = totalContentHeight / 2;
+                console.log('Ticker Element:', $tickerContent);
+                console.log('Total Content Height:', totalContentHeight);
+                console.log('Single Cycle Height:', singleCycleHeight);
+
+                // Set the CSS variables for translation and duration
+                $tickerContent.css({
+                    '--ticker-translate-y': -singleCycleHeight + 'px',
+                    '--ticker-duration': '20s' // Enforce 20s duration dynamically
+                });
+
+                // Set explicit height to prevent reflow during animation
+                // This ensures the 200% logic works as intended from the CSS perspective
+                $tickerContent.css('height', totalContentHeight + 'px'); 
+
+                // Resume animation
+                $tickerContent.css('animation-play-state', 'running');
+            });
+        }
+
+        // Run on document ready
+        updateTickerAnimation();
+
+        // Run on window resize, with a debounce for performance
+        var resizeTimer;
+        $(window).on('resize', function() {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(function() {
+                updateTickerAnimation();
+            }, 250); // Debounce to prevent excessive calls
+        });
     });
 </script>

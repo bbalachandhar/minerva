@@ -71,6 +71,8 @@ class Checkout extends OnlineAdmission_Controller
                 redirect(base_url("onlineadmission/payhere"));
             }elseif ($this->pay_method->payment_type == "onepay") {
                 redirect(base_url("onlineadmission/onepay"));
+            }elseif ($this->pay_method->payment_type == "billdesk") {
+                redirect(base_url("onlineadmission/billdesk"));
             }
         }
     }

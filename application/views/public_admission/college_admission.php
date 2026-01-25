@@ -212,12 +212,12 @@
                         <div class="col-md-12 cus_form">
                             <div class="">
                                 <label class="form-label">Academic Year:</label>
-                                <input type="text" class="form-control" name="academic_year" id="academic_year" value="2026-2027" readonly>
+                                <input type="text" class="form-control" name="academic_year" id="academic_year" value="2026-2027" readonly tabindex="-1">
                             </div>
                             <div class="Upload_pic">
                                 <label class="form-label">Upload Your Photo (Passport Size) *:</label>
                                 <div id="image-upload-area" class="border rounded d-flex flex-column align-items-center justify-content-center p-3 bg-light"style="height: 200px; cursor: pointer; position: relative; overflow: hidden;">
-                                    <input type="file" id="imageUpload" name="user_image" accept="image/*" required style="opacity: 0; position: absolute; top: 0; left: 0; width: 100%; height: 100%; cursor: pointer;">
+                                    <input type="file" id="imageUpload" name="user_image" accept="image/*" required tabindex="4" style="opacity: 0; position: absolute; top: 0; left: 0; width: 100%; height: 100%; cursor: pointer;">
                                     <img id="previewImage" src="" alt="Preview" class="d-none border"
                                     style="width: 35mm; height: 45mm; object-fit: cover; border-radius: 5px;">
                                     <i id="uploadIcon" class="bi bi-cloud-upload-fill text-primary" style="font-size: 30px;"></i>
@@ -245,7 +245,7 @@
                     <div class="row">
                         <div class="mb-3 col-md-6">
                             <label class="form-label">Father's Mobile Number*</label>
-                            <input type="text" class="form-control" type="text" minlength="10" maxlength="10" placeholder="Enter your Father's Mobile Number"  onchange="validateMobile(this)" name="father_mobile" id="father_mobile"  onKeyPress="return checkIt(event);" required tabindex="7">
+                            <input type="text" class="form-control" minlength="10" maxlength="10" placeholder="Enter your Father's Mobile Number"  onchange="validateMobile(this)" name="father_mobile" id="father_mobile"  onKeyPress="return checkIt(event);" required tabindex="7">
                         </div>
                         <div class="mb-3 col-md-6">
                             <label class="form-label">Father's Occupation*</label>
@@ -292,7 +292,7 @@
                     <div class="row">
                         <div class="mb-3 col-md-6">
                             <label class="form-label">D.O.B*</label>
-                            <input class="form-control" type="date" placeholder="Enter your D.O.B"  id="dob" name="dob" required tabindex="15">
+                            <input type="date" class="form-control" placeholder="Enter your D.O.B"  id="dob" name="dob" required tabindex="15">
                         </div>
                         <div class="mb-3 col-md-6">
                             <label class="form-label">Aadhaar Number*</label>
@@ -372,29 +372,29 @@
                                     <thead class="table-dark">
                                         <tr>
                                             <th>Subject</th>
-                                            <th>Marks Obtained</th>
                                             <th>Maximum Marks</th>
+                                            <th>Marks Obtained</th>
                                             <th>Percentage</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         <tr>
                                             <td>Maths (M)</td>
-                                            <td><input type="number" step="1" min="0" max="100" value="0" class="form-control text-center" name="maths_marks" id="maths_marks" onKeyPress="return checkIt(event);" tabindex="25"></td>
-                                            <td><input type="number" step="1" min="0" max="100" value="0" class="form-control text-center" name="total_maths" id="total_maths" onKeyPress="return checkIt(event);" tabindex="26"></td>
-                                            <td><input type="number" step="1" min="0" max="100" value="0" class="form-control text-center" name="maths_perc" id="maths_perc" readonly></td>
+                                            <td><input type="number" step="1" min="0" max="100" value="0" class="form-control text-center" name="total_maths" id="total_maths" onKeyPress="return checkIt(event);" tabindex="25"></td>
+                                            <td><input type="number" step="1" min="0" max="100" value="0" class="form-control text-center" name="maths_marks" id="maths_marks" onKeyPress="return checkIt(event);" tabindex="26"></td>
+                                            <td><input type="number" step="1" min="0" max="100" value="0" class="form-control text-center" name="maths_perc" id="maths_perc" readonly tabindex="-1"></td>
                                         </tr>
                                         <tr>
                                             <td>Physics (P) & Chemistry (C) put together</td>
-                                            <td><input type="number" step="1" min="0" max="100" value="0" class="form-control text-center" name="physics_marks" id="physics_marks" onKeyPress="return checkIt(event);" tabindex="27"></td>
-                                            <td><input type="number" step="1" min="0" max="100" value="0" class="form-control text-center" name="total_physics" id="total_physics" onKeyPress="return checkIt(event);" tabindex="28"></td>
-                                            <td><input type="number" step="1" min="0" max="100" value="0" class="form-control text-center" name="physics_perc" id="physics_perc" readonly></td>
+                                            <td><input type="number" step="1" min="0" max="100" value="0" class="form-control text-center" name="total_physics" id="total_physics" onKeyPress="return checkIt(event);" tabindex="27"></td>
+                                            <td><input type="number" step="1" min="0" max="100" value="0" class="form-control text-center" name="physics_marks" id="physics_marks" onKeyPress="return checkIt(event);" tabindex="28"></td>
+                                            <td><input type="number" step="1" min="0" max="100" value="0" class="form-control text-center" name="physics_perc" id="physics_perc" readonly tabindex="-1"></td>
                                         </tr>
                                         <tr>
                                             <td>Total</td>
-                                            <td><input type="number" step="1" min="0" max="100" value="0" class="form-control text-center" name="obtain_marks" id="obtain_marks" readonly></td>
-                                            <td><input type="number" step="1" min="0" max="100" value="0" class="form-control text-center" name="total_marks" id="total_marks" readonly></td>
-                                            <td><input type="number" step="1" min="0" max="100" value="0" class="form-control text-center" name="total_perc" id="total_perc" readonly></td>
+                                            <td><input type="number" step="1" min="0" max="100" value="0" class="form-control text-center" name="total_marks" id="total_marks" readonly tabindex="-1"></td>
+                                            <td><input type="number" step="1" min="0" max="100" value="0" class="form-control text-center" name="obtain_marks" id="obtain_marks" readonly tabindex="-1"></td>
+                                            <td><input type="number" step="1" min="0" max="100" value="0" class="form-control text-center" name="total_perc" id="total_perc" readonly tabindex="-1"></td>
                                         </tr>
                                     </tbody>
                                 </table>
@@ -405,7 +405,7 @@
                     <div id="lateralDetails" style="display:none">
                         <div class="section-card">
                             <h5 class="mb-3">Courses Offered*</h5>
-                            <select class="form-control" name="lateral_course" id="lateral_course" tabindex="22">
+                            <select class="form-control" name="lateral_course" id="lateral_course" tabindex="29">
                                 <option value="">Select a Course</option>
                                                                     <option value="2">B.E. CIVIL - Civil Engineering</option>
                                                                     <option value="3">B.E. CSE - Computer Science Engineering</option>
@@ -422,11 +422,11 @@
                         <div class="section-card">
                             <div class="mb-3">
                                 <label class="form-label">Name of the school of X std*</label>
-                                <input type="text" class="form-control" placeholder="Enter your year"  name="lateral_school_name" id="lateral_school_name" onkeydown="return allowAlphabets(event)" tabindex="23">
+                                <input type="text" class="form-control" placeholder="Enter your year"  name="lateral_school_name" id="lateral_school_name" onkeydown="return allowAlphabets(event)" tabindex="30">
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Year of passing of X std*</label>
-                                <input  type="text" class="form-control" placeholder="Enter your year" name="lateral_tenth_passing" id="lateral_tenth_passing" minlength="4" maxlength="4" onKeyPress="return checkIt(event);" tabindex="24">
+                                <input  type="text" class="form-control" placeholder="Enter your year" name="lateral_tenth_passing" id="lateral_tenth_passing" minlength="4" maxlength="4" onKeyPress="return checkIt(event);" tabindex="31">
                             </div>
                         </div>
                         <div class="section-card mt-4">
@@ -439,36 +439,36 @@
                                             <tbody>
                                                 <tr>
                                                     <td>
-                                                        1. <input type="text" name="presub1" id="presub1" class="form-control d-inline w-25" placeholder="Subject" tabindex="25"> : <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="premark1" id="premark1" onKeyPress="return checkIt(event);" tabindex="26"> out of <input type="number" step="1"  class="form-control d-inline w-25" max="100" min="0" name="preout1" id="preout1" value="0" onKeyPress="return checkIt(event);" tabindex="27">
+                                                        1. <input type="text" name="presub1" id="presub1" class="form-control d-inline w-25" placeholder="Subject" tabindex="32"> : <input type="number" step="1"  class="form-control d-inline w-25" max="100" min="0" name="preout1" id="preout1" value="0" onKeyPress="return checkIt(event);" tabindex="33"> out of <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="premark1" id="premark1" onKeyPress="return checkIt(event);" tabindex="34">
                                                     </td>
                                                 </tr>
                                                 <tr>
                                                     <td>
-                                                        2. <input type="text" name="presub2" id="presub2" class="form-control d-inline w-25" placeholder="Subject" tabindex="28"> : <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="premark2" id="premark2" onKeyPress="return checkIt(event);" tabindex="29"> out of <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" name="preout2" id="preout2" value="0" onKeyPress="return checkIt(event);" tabindex="30">
+                                                        2. <input type="text" name="presub2" id="presub2" class="form-control d-inline w-25" placeholder="Subject" tabindex="35"> : <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" name="preout2" id="preout2" value="0" onKeyPress="return checkIt(event);" tabindex="36"> out of <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="premark2" id="premark2" onKeyPress="return checkIt(event);" tabindex="37">
                                                     </td>
                                                 </tr>
                                                 <tr>
                                                     <td>
-                                                        3. <input type="text" name="presub3" id="presub3" class="form-control d-inline w-25" placeholder="Subject" tabindex="31"> : <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="premark3" id="premark3" onKeyPress="return checkIt(event);" tabindex="32"> out of <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" name="preout3" id="preout3" value="0" onKeyPress="return checkIt(event);" tabindex="33">
+                                                        3. <input type="text" name="presub3" id="presub3" class="form-control d-inline w-25" placeholder="Subject" tabindex="38"> : <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" name="preout3" id="preout3" value="0" onKeyPress="return checkIt(event);" tabindex="39"> out of <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="premark3" id="premark3" onKeyPress="return checkIt(event);" tabindex="40">
                                                     </td>
                                                 </tr>
                                                 <tr>
                                                     <td>
-                                                        4. <input type="text" name="presub4" id="presub4" class="form-control d-inline w-25" placeholder="Subject" tabindex="34"> : <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="premark4" id="premark4" onKeyPress="return checkIt(event);" tabindex="35"> out of <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" name="preout4" id="preout4" value="0" onKeyPress="return checkIt(event);" tabindex="36">
+                                                        4. <input type="text" name="presub4" id="presub4" class="form-control d-inline w-25" placeholder="Subject" tabindex="41"> : <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" name="preout4" id="preout4" value="0" onKeyPress="return checkIt(event);" tabindex="42"> out of <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="premark4" id="premark4" onKeyPress="return checkIt(event);" tabindex="43">
                                                     </td>
                                                 </tr>
                                                 <tr>
                                                     <td>
-                                                        5. <input type="text" name="presub5" id="presub5" class="form-control d-inline w-25" placeholder="Subject" tabindex="37"> : <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="premark5" id="premark5" onKeyPress="return checkIt(event);" tabindex="38"> out of <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" name="preout5" id="preout5" value="0" onKeyPress="return checkIt(event);" tabindex="39">
+                                                        5. <input type="text" name="presub5" id="presub5" class="form-control d-inline w-25" placeholder="Subject" tabindex="44"> : <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" name="preout5" id="preout5" value="0" onKeyPress="return checkIt(event);" tabindex="45"> out of <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="premark5" id="premark5" onKeyPress="return checkIt(event);" tabindex="46">
                                                     </td>
                                                 </tr>
                                                 <tr>
                                                     <td>
-                                                        6. <input type="text" name="presub6" id="presub6" class="form-control d-inline w-25" placeholder="Subject" tabindex="40"> : <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="premark6" id="premark6" onKeyPress="return checkIt(event);" tabindex="41"> out of <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" name="preout6" id="preout6" value="0" onKeyPress="return checkIt(event);" tabindex="42">
+                                                        6. <input type="text" name="presub6" id="presub6" class="form-control d-inline w-25" placeholder="Subject" tabindex="47"> : <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" name="preout6" id="preout6" value="0" onKeyPress="return checkIt(event);" tabindex="48"> out of <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="premark6" id="premark6" onKeyPress="return checkIt(event);" tabindex="49">
                                                     </td>
                                                 </tr>
                                                 <tr>
-                                                    <td class="text-end fw-bold" colspan="2">Total : <input type="number" step="1" class="form-control d-inline w-25" name="pretotal" id="pretotal" value="0" onKeyPress="return checkIt(event);" readonly> out of <input type="number" step="1" class="form-control d-inline w-25" name="pretotal1" id="pretotal1" readonly onKeyPress="return checkIt(event);" value="0">
+                                                    <td class="text-end fw-bold" colspan="2">Total : <input type="number" step="1" class="form-control d-inline w-25" name="pretotal" id="pretotal" value="0" onKeyPress="return checkIt(event);" readonly tabindex="-1"> out of <input type="number" step="1" class="form-control d-inline w-25" name="pretotal1" id="pretotal1" readonly onKeyPress="return checkIt(event);" value="0" tabindex="-1">
                                                     </td>
                                                 </tr>
                                             </tbody>
@@ -482,36 +482,36 @@
                                             <tbody>
                                                 <tr>
                                                     <td>
-                                                        1. <input type="text" name="finalsub1" id="finalsub1" class="form-control d-inline w-25" placeholder="Subject" tabindex="43"> : <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="finalmark1" id="finalmark1" onKeyPress="return checkIt(event);" tabindex="44"> out of <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" name="finalout1" id="finalout1" value="0" onKeyPress="return checkIt(event);" tabindex="45">
+                                                        1. <input type="text" name="finalsub1" id="finalsub1" class="form-control d-inline w-25" placeholder="Subject" tabindex="50"> : <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" name="finalout1" id="finalout1" value="0" onKeyPress="return checkIt(event);" tabindex="51"> out of <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="finalmark1" id="finalmark1" onKeyPress="return checkIt(event);" tabindex="52">
                                                     </td>
                                                 </tr>
                                                 <tr>
                                                     <td>
-                                                        2. <input type="text" name="finalsub2" id="finalsub2" class="form-control d-inline w-25" placeholder="Subject" tabindex="46"> : <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="finalmark2" id="finalmark2" onKeyPress="return checkIt(event);" tabindex="47"> out of <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" name="finalout2" id="finalout2" value="0" onKeyPress="return checkIt(event);" tabindex="48">
+                                                        2. <input type="text" name="finalsub2" id="finalsub2" class="form-control d-inline w-25" placeholder="Subject" tabindex="53"> : <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" name="finalout2" id="finalout2" value="0" onKeyPress="return checkIt(event);" tabindex="54"> out of <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="finalmark2" id="finalmark2" onKeyPress="return checkIt(event);" tabindex="55">
                                                     </td>
                                                 </tr>
                                                 <tr>
                                                     <td>
-                                                        3. <input type="text" name="finalsub3" id="finalsub3" class="form-control d-inline w-25" placeholder="Subject" tabindex="49"> : <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="finalmark3" id="finalmark3" onKeyPress="return checkIt(event);" tabindex="50"> out of <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" name="finalout3" id="finalout3" value="0" onKeyPress="return checkIt(event);" tabindex="51">
+                                                        3. <input type="text" name="finalsub3" id="finalsub3" class="form-control d-inline w-25" placeholder="Subject" tabindex="56"> : <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" name="finalout3" id="finalout3" value="0" onKeyPress="return checkIt(event);" tabindex="57"> out of <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="finalmark3" id="finalmark3" onKeyPress="return checkIt(event);" tabindex="58">
                                                     </td>
                                                 </tr>
                                                 <tr>
                                                     <td>
-                                                        4. <input type="text" name="finalsub4" id="finalsub4" class="form-control d-inline w-25" placeholder="Subject" tabindex="52"> : <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="finalmark4" id="finalmark4" onKeyPress="return checkIt(event);" tabindex="53"> out of <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" name="finalout4" id="finalout4" value="0" onKeyPress="return checkIt(event);" tabindex="54">
+                                                        4. <input type="text" name="finalsub4" id="finalsub4" class="form-control d-inline w-25" placeholder="Subject" tabindex="59"> : <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" name="finalout4" id="finalout4" value="0" onKeyPress="return checkIt(event);" tabindex="60"> out of <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="finalmark4" id="finalmark4" onKeyPress="return checkIt(event);" tabindex="61">
                                                     </td>
                                                 </tr>
                                                 <tr>
                                                     <td>
-                                                        5. <input type="text" name="finalsub5" id="finalsub5" class="form-control d-inline w-25" placeholder="Subject" tabindex="55"> : <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="finalmark5" id="finalmark5" onKeyPress="return checkIt(event);" tabindex="56"> out of <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" name="finalout5" id="finalout5" value="0" onKeyPress="return checkIt(event);" tabindex="57">
+                                                        5. <input type="text" name="finalsub5" id="finalsub5" class="form-control d-inline w-25" placeholder="Subject" tabindex="62"> : <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" name="finalout5" id="finalout5" value="0" onKeyPress="return checkIt(event);" tabindex="63"> out of <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="finalmark5" id="finalmark5" onKeyPress="return checkIt(event);" tabindex="64">
                                                     </td>
                                                 </tr>
                                                 <tr>
                                                     <td>
-                                                        6. <input type="text" name="finalsub6" id="finalsub6" class="form-control d-inline w-25" placeholder="Subject" tabindex="58"> : <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="finalmark6" id="finalmark6" onKeyPress="return checkIt(event);" tabindex="59"> out of <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" name="finalout6" id="finalout6" value="0" onKeyPress="return checkIt(event);" tabindex="60">
+                                                        6. <input type="text" name="finalsub6" id="finalsub6" class="form-control d-inline w-25" placeholder="Subject" tabindex="65"> : <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" name="finalout6" id="finalout6" value="0" onKeyPress="return checkIt(event);" tabindex="66"> out of <input type="number" step="1" class="form-control d-inline w-25" max="100" min="0" placeholder="Marks"  value="0" name="finalmark6" id="finalmark6" onKeyPress="return checkIt(event);" tabindex="67">
                                                     </td>
                                                 </tr>
                                                 <tr>
-                                                    <td class="text-end fw-bold" colspan="2">Total : <input type="number" step="1" class="form-control d-inline w-25" name="finaltotal" id="finaltotal" value="0" readonly onKeyPress="return checkIt(event);"> out of <input type="number" step="1" class="form-control d-inline w-25" name="finaltotal1" id="finaltotal1" readonly onKeyPress="return checkIt(event);" value="0">
+                                                    <td class="text-end fw-bold" colspan="2">Total : <input type="number" step="1" class="form-control d-inline w-25" name="finaltotal" id="finaltotal" value="0" readonly onKeyPress="return checkIt(event);" tabindex="-1"> out of <input type="number" step="1" class="form-control d-inline w-25" name="finaltotal1" id="finaltotal1" readonly onKeyPress="return checkIt(event);" value="0" tabindex="-1">
                                                     </td>
                                                 </tr>
                                             </tbody>
@@ -527,15 +527,15 @@
                             <h5 class="mb-2">NATA (for B.Arch only)</h5>
                             <div class="mb-3">
                                 <label class="form-label">Score</label>
-                                <input class="form-control" placeholder="Enter Score" name="nata_score" id="nata_score" tabindex="29">
+                                <input class="form-control" placeholder="Enter Score" name="nata_score" id="nata_score" tabindex="68">
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Application Form</label>
-                                <input class="form-control" placeholder="Enter Application Form" name="application_number" id="application_number" tabindex="30">
+                                <input class="form-control" placeholder="Enter Application Form" name="application_number" id="application_number" tabindex="69">
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Year</label>
-                                <input class="form-control" placeholder="Enter Year" name="nata_year" id="nata_year" tabindex="31">
+                                <input class="form-control" placeholder="Enter Year" name="nata_year" id="nata_year" tabindex="70">
                             </div>
                         </div>
                     </div>
@@ -543,7 +543,7 @@
                     <div id="pgDetails" style="display: none;">
                         <div class="section-card">
                             <h5 class="mb-3">Courses Offered</h5>
-                            <select class="form-control" name="pg_course" id="pg_course" tabindex="22">
+                            <select class="form-control" name="pg_course" id="pg_course" tabindex="71">
                                 <option value="">Select a Course</option>
                                                                     <option value="12">M. Arch. - Master of Architecture</option>
                                                                     <option value="13">M.B.A - Master of Business Administration</option>
@@ -558,41 +558,41 @@
                             <div class="row">
                                 <div class="mb-3 col-md-6">
                                     <label class="form-label">Qualifying Exam passed</label>
-                                    <input class="form-control" type="text" placeholder="Enter your exam passed" name="exam_passed" id="exam_passed" tabindex="23">
+                                    <input class="form-control" type="text" placeholder="Enter your exam passed" name="exam_passed" id="exam_passed" tabindex="72">
                                 </div>
                                 <div class="mb-3 col-md-6">
                                     <label class="form-label">Branch</label>
-                                    <input type="text" class="form-control" placeholder="Enter your Branch" name="branch" id="branch" tabindex="24">
+                                    <input type="text" class="form-control" placeholder="Enter your Branch" name="branch" id="branch" tabindex="73">
                                 </div>
                             </div>
                             <div class="row">
                                 <div class="mb-3 col-md-6">
                                     <label class="form-label">Year of Passing</label>
-                                    <input type="text" class="form-control" placeholder="Enter your Year" onKeyPress="return checkIt(event);" name="yop" id="yop" tabindex="25">
+                                    <input type="text" class="form-control" placeholder="Enter your Year" onKeyPress="return checkIt(event);" name="yop" id="yop" tabindex="74">
                                 </div>
                                 <div class="mb-3 col-md-6">
                                     <label class="form-label">Name of the College</label>
-                                    <input type="text" class="form-control" minlength="4" maxlength="4" placeholder="Enter your College" name="noc" id="noc" tabindex="26">
+                                    <input type="text" class="form-control" minlength="4" maxlength="4" placeholder="Enter your College" name="noc" id="noc" tabindex="75">
                                 </div>
                             </div>
                             <div class="row">
                                 <div class="mb-3 col-md-6">
                                     <label class="form-label">Name of the University</label>
-                                    <input type="texts" step="any" class="form-control" placeholder="Enter your University" name="nou" id="nou" tabindex="27">
+                                    <input type="texts" step="any" class="form-control" placeholder="Enter your University" name="nou" id="nou" tabindex="76">
                                 </div>
                                 <div class="mb-3 col-md-6">
                                     <label class="form-label">TANCET / PGETA Exam Application Number</label>
-                                    <input type="text" step="any" class="form-control" placeholder="Enter your Application Number" name="pg_app_num" id="pg_app_num" tabindex="28">
+                                    <input type="text" step="any" class="form-control" placeholder="Enter your Application Number" name="pg_app_num" id="pg_app_num" tabindex="77">
                                 </div>
                             </div>
                             <div class="row">
                                 <div class="mb-3 col-md-6">
                                     <label class="form-label">TANCET / PGETA Examination Year</label>
-                                    <input type="text" step="any" class="form-control" minlength="4" maxlength="4" onKeyPress="return checkIt(event);" placeholder="Enter your examination year" name="exam_year" id="exam_year" tabindex="29">
+                                    <input type="text" step="any" class="form-control" minlength="4" maxlength="4" onKeyPress="return checkIt(event);" placeholder="Enter your examination year" name="exam_year" id="exam_year" tabindex="78">
                                 </div>
                                 <div class="mb-3 col-md-6">
                                     <label class="form-label">TANCET / PGETA Exam Score</label>
-                                    <input type="number" step="any" class="form-control" placeholder="Enter your Score" name="exam_score" id="exam_score" tabindex="30">
+                                    <input type="number" step="any" class="form-control" placeholder="Enter your Score" name="exam_score" id="exam_score" tabindex="79">
                                 </div>
                             </div>
                         </div>
@@ -600,18 +600,18 @@
                             <h5 class="mb-3">Additional Information</h5>
                             <div class="mb-4">
                                 <label class="form-label">UG Alumni of Meenakshi Group of Institutions</label>
-                                <input type="file" class="form-control" name="bonafide" id="bonafide" tabindex="31">
+                                <input type="file" class="form-control" name="bonafide" id="bonafide" tabindex="80">
                                 <small class="text-muted">Attach Bonafide Certificate</small>
                             </div>
                             <div class="row">
                                 <div class="mb-4">
                                     <label class="form-label">Eminent Sports Person</label><br>
-                                    <input type="radio" name="sports" id="sports" value="Yes" tabindex="32"> Yes
-                                    <input type="radio" name="sports" id="sports" value="No" checked tabindex="33"> No
+                                    <input type="radio" name="sports" id="sports" value="Yes" tabindex="81"> Yes
+                                    <input type="radio" name="sports" id="sports" value="No" checked tabindex="82"> No
                                     <br>
                                     <div id="level">
                                         <label class="form-label mt-4">Level</label>
-                                        <select class="form-control" name="sports_level" id="sports_level" tabindex="34">
+                                        <select class="form-control" name="sports_level" id="sports_level" tabindex="83">
                                             <option value="">Select Level</option>
                                             <option value="District">District Level</option>
                                             <option value="State">State Level</option>
@@ -620,23 +620,23 @@
                                 </div>
                                 <div class="mb-4">
                                     <label class="form-label">Ward of Ex-Service Men</label><br>
-                                    <input type="radio" name="exservice" value="Yes" tabindex="35"> Yes
-                                    <input type="radio" name="exservice" value="No" checked tabindex="36"> No
+                                    <input type="radio" name="exservice" value="Yes" tabindex="84"> Yes
+                                    <input type="radio" name="exservice" value="No" checked tabindex="85"> No
                                 </div>
                             </div>
                             <div class="mb-4">
                                 <label class="form-label">Differently Abled Person</label><br>
-                                <input type="radio" name="differently_abled" value="Yes" onclick="showDisabilityType(true)" tabindex="37"> Yes
-                                <input type="radio" name="differently_abled" value="No" onclick="showDisabilityType(false)" checked tabindex="38"> No
+                                <input type="radio" name="differently_abled" value="Yes" onclick="showDisabilityType(true)" tabindex="86"> Yes
+                                <input type="radio" name="differently_abled" value="No" onclick="showDisabilityType(false)" checked tabindex="87"> No
                             </div>
                             <div class="mb-3" id="disabilityType" style="display: none;">
                                 <label class="form-label">If Yes, Differently Abled Type</label>
-                                <input type="text" class="form-control" placeholder="Enter type of disability" name="disability_type" id="disability_type" tabindex="39">
+                                <input type="text" class="form-control" placeholder="Enter type of disability" name="disability_type" id="disability_type" tabindex="88">
                             </div>
                         </div>
                     </div>
                 </div>
-                <button class="btn btn-submit mt-3" type="Submit" name="submit" tabindex="61">Submit Application</button>
+                <button class="btn btn-submit mt-3" type="Submit" name="submit" tabindex="89">Submit Application</button>
             </form>
         </div>
     </div>
@@ -758,7 +758,12 @@
         $("#lateral_school_name").prop("required", lateralRequired);
         $("#lateral_tenth_passing").prop("required", lateralRequired);
         for (let i = 1; i <= 6; i++) {
-            $(`#presub${i}, #premark${i}, #preout${i}, #finalsub${i}, #finalmark${i}, #finalout${i}`).prop("required", lateralRequired);
+            $(`#presub${i}`).prop("required", lateralRequired);
+            $(`#preout${i}`).prop("required", lateralRequired);
+            $(`#premark${i}`).prop("required", lateralRequired);
+            $(`#finalsub${i}`).prop("required", lateralRequired);
+            $(`#finalout${i}`).prop("required", lateralRequired);
+            $(`#finalmark${i}`).prop("required", lateralRequired);
         }
         
         // PG fields
@@ -856,6 +861,10 @@
     function checkIt(evt) {
         evt = (evt) ? evt : window.event
         var charCode = (evt.which) ? evt.which : evt.keyCode
+        // Allow tab key (charCode 9)
+        if (charCode == 9) {
+            return true;
+        }
         if (charCode > 31 && (charCode < 48 || charCode > 57)) {
             status = "This field accepts numbers only."
             return false
@@ -865,18 +874,21 @@
     }
 </script>
 <script>
-    function allowAlphabets(evt) {
-        evt = evt || window.event;
-        var charCode = evt.which || evt.keyCode;
-        if ((charCode >= 65 && charCode <= 90) || 
-            (charCode >= 97 && charCode <= 122) || 
-            charCode == 8 || 
-            charCode == 32) {
-            return true;
-    }   
-    return false;
-}
-</script>
+        function allowAlphabets(evt) {
+            evt = evt || window.event;
+            var charCode = evt.which || evt.keyCode;
+            // Allow tab key (charCode 9)
+            if (charCode == 9) {
+                return true;
+            }
+            if ((charCode >= 65 && charCode <= 90) || 
+                (charCode >= 97 && charCode <= 122) || 
+                charCode == 8 || 
+                charCode == 32) {
+                return true;
+            }   
+            return false;
+        }</script>
 <script type="text/javascript">
    function validateMobile(input) {
     var mobileNumber = input.value.trim();

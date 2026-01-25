@@ -51,6 +51,7 @@ class Onlineadmission extends Admin_Controller
                         'online_admission_amount'      => convertCurrencyFormatToBaseAmount($this->input->post('online_admission_amount')),
                         'online_admission_instruction' => $this->input->post('online_admission_instruction'),
                         'online_admission_conditions'  => $this->input->post('online_admission_conditions'),
+                        'onlineform_sub_merchant_id'   => $this->input->post('onlineform_sub_merchant_id'),
                         'id'                           => 1,
                     );
 
@@ -90,6 +91,7 @@ class Onlineadmission extends Admin_Controller
                     'online_admission_payment'     => 'no',
                     'online_admission_instruction' => $this->input->post('online_admission_instruction'),
                     'online_admission_conditions'  => $this->input->post('online_admission_conditions'),
+                    'onlineform_sub_merchant_id'   => $this->input->post('onlineform_sub_merchant_id'),
                     'id'                           => 1,
                 );
 
