@@ -454,17 +454,18 @@ class Billdesk extends Student_Controller
                     $gateway_ins_id = $gateway_ins_record['id'];
                 }
 
-                // Log raw gateway response to gateway_ins_response table
-                $gateway_ins_response_data = [
-                    'gateway_ins_id' => $gateway_ins_id, 
-                    'gateway_name' => 'billdesk',
-                    'response_data' => json_encode($response), // Store the full decrypted response
-                    'status_code' => isset($response['auth_status']) ? $response['auth_status'] : null,
-                    'transaction_id' => isset($response['transactionid']) ? $response['transactionid'] : null,
-                    'created_at' => date('Y-m-d H:i:s')
-                ];
-                $this->gateway_ins_model->add_gateway_ins_response($gateway_ins_response_data);
-
+                                // Log raw gateway response to gateway_ins_response table
+                                $gateway_ins_response_data = [
+                                    'gateway_ins_id' => $gateway_ins_id, 
+                                    'gateway_name' => 'billdesk',
+                                    'response_data' => json_encode($response), // Store the full decrypted response
+                                    'status_code' => isset($response['auth_status']) ? $response['auth_status'] : null,
+                                    'transaction_id' => isset($response['transactionid']) ? $response['transactionid'] : null,
+                                    'created_at' => date('Y-m-d H:i:s')
+                                ];
+                                log_message('error', 'BILLDESK_DEBUG: Data for gateway_ins_response_data: ' . json_encode($gateway_ins_response_data));
+                                $add_response_result = $this->gateway_ins_model->add_gateway_ins_response($gateway_ins_response_data);
+                                log_message('error', 'BILLDESK_DEBUG: Result of add_gateway_ins_response (insert_id): ' . ($add_response_result ? $add_response_result : 'FALSE/0'));
                 // Now update the gateway_ins status with the determined status
                 // Using the unique_id and gateway_name, which update_gateway_ins now supports
                 $this->gateway_ins_model->update_gateway_ins(array(
