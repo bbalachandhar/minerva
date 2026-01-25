@@ -261,6 +261,24 @@ class Billdesk extends OnlineAdmission_Controller
             // Log for debugging
             log_message('debug', 'Billdesk Online Admission Callback Response: ' . json_encode($response, JSON_PRETTY_PRINT));
 
+            // Retrieve gateway_ins_id for linking response
+            $gateway_ins_record = $this->gateway_ins_model->get_gateway_ins($response['orderid'], 'billdesk');
+            $gateway_ins_id = null;
+            if (!empty($gateway_ins_record)) {
+                $gateway_ins_id = $gateway_ins_record['id'];
+            }
+
+            // Log raw gateway response to gateway_ins_response table
+            $gateway_ins_response_data = [
+                'gateway_ins_id' => $gateway_ins_id,
+                'gateway_name' => 'billdesk',
+                'response_data' => json_encode($response), // Store the full decrypted response
+                'status_code' => isset($response['auth_status']) ? $response['auth_status'] : null,
+                'transaction_id' => isset($response['transactionid']) ? $response['transactionid'] : null,
+                'created_at' => date('Y-m-d H:i:s')
+            ];
+            $this->gateway_ins_model->add_gateway_ins_response($gateway_ins_response_data);
+
             // Update gateway_ins status
             $gateway_ins_status = 'failed';
             if (isset($response['auth_status'])) {
