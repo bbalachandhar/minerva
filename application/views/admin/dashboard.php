@@ -216,7 +216,7 @@ foreach ($notifications as $notice_key => $notice_value) {
                     <h5 class="pro-border">Students Today's Birthday - <?php echo count($student_birthdays); ?></h5>
                     <div class="birthday-ticker-container">
                         <div class="birthday-ticker-clipper">
-                        <div class="birthday-ticker-content" style="animation-duration: 50s;">                        
+                        <div class="birthday-ticker-content" style="animation-duration: 20s;">                        
                           <?php if (!empty($student_birthdays)) {?>
                             <div class="mediarow">
                                 <div class="row">
@@ -260,7 +260,7 @@ foreach ($notifications as $notice_key => $notice_value) {
                             $staff_scroll_duration = ($staff_birthday_count > 0) ? $staff_birthday_count * 2 : 50;
                         ?>
                         <div class="birthday-ticker-clipper">
-                            <div class="birthday-ticker-content" style="animation-duration: 50s;">
+                            <div class="birthday-ticker-content" style="animation-duration: 20s;">
                                 <?php if (!empty($staff_birthdays)) { ?>
                                      <div class="mediarow">
                                         <div class="row">
