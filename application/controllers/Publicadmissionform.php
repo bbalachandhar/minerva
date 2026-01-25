@@ -36,6 +36,9 @@ class PublicAdmissionForm extends CI_Controller
         $this->load->helper('customfield');
         $this->load->helper('custom');
         $this->load->library(array('enc_lib', 'cart', 'auth'));
+        $this->load->library('gateway_ins/billdesk_lib'); // Load BillDesk Library
+        $this->load->model('gateway_ins_model'); // For tracking gateway transactions
+        $this->load->model('paymentsetting_model'); // For getting active payment gateway settings
 
         // Initialize front_setting as it's used in Public_admission controller
         $this->front_setting = $this->frontcms_setting_model->get();
@@ -1539,28 +1542,153 @@ class PublicAdmissionForm extends CI_Controller
                 'guardian_phone' => $data['father_mobile']
             );
 
-            $this->mailsmsconf->mailsms('online_admission_form_submission', $sender_details);
-            
-            $this->session->set_flashdata('msg', '<div class="alert alert-success">' . $this->lang->line('thanks_for_registration_please_note_your_reference_number') . ' ' . $reference_no . ' ' . $this->lang->line('for_further_communication') . '</div>');
-            redirect('publicadmissionform');
+            $payment_option = $this->input->post('payment_option');
+
+            // If payment is not required OR payment_option is 'pay_later'
+            if ($this->sch_setting_detail->online_admission_payment != 1 || $this->sch_setting_detail->online_admission_amount <= 0 || $payment_option == 'pay_later') {
+                $paid_status_value = ($payment_option == 'pay_later') ? 2 : 0; // 2 for 'offline' (Pay Later), 0 for no payment required/unpaid
+
+                // Update online_admissions table with the chosen paid_status
+                $update_data = array(
+                    'id' => $online_admission_id,
+                    'paid_status' => $paid_status_value,
+                );
+                $this->onlinestudent_model->edit($update_data); // Use the edit method to update status
+
+                $this->mailsmsconf->mailsms('online_admission_form_submission', $sender_details);
+                
+                $this->session->set_flashdata('msg', '<div class="alert alert-success">' . $this->lang->line('thanks_for_registration_please_note_your_reference_number') . ' ' . $reference_no . ' ' . $this->lang->line('for_further_communication') . '</div>');
+                redirect('publicadmissionform/pay_later_confirmation'); // Redirect to Pay Later specific confirmation page
+
+            } else { // Payment is required AND payment_option is 'pay_online'
+                $total_admission_amount = $this->sch_setting_detail->online_admission_amount; // The base admission fee
+
+                // Calculate processing charges
+                $processing_charge = 0; // Default
+                if (isset($this->sch_setting_detail->online_admission_processing_charge_type) && isset($this->sch_setting_detail->online_admission_processing_charge) && $this->sch_setting_detail->online_admission_processing_charge > 0) {
+                    $processing_charge_config_type = $this->sch_setting_detail->online_admission_processing_charge_type;
+                    $processing_charge_config_value = $this->sch_setting_detail->online_admission_processing_charge;
+                    
+                    if ($processing_charge_config_type == 'percentage') {
+                        $processing_charge = ($total_admission_amount * $processing_charge_config_value) / 100;
+                    } elseif ($processing_charge_config_type == 'fixed') {
+                        $processing_charge = $processing_charge_config_value;
+                    }
+                }
+                
+                $final_amount_to_pay = $total_admission_amount + $processing_charge;
+
+                // Prepare parameters for the intermediate payment confirmation page
+                $payment_params = array(
+                    'online_admission_id' => $online_admission_id,
+                    'reference_no' => $reference_no,
+                    'total' => $final_amount_to_pay, // Final amount including any processing fees
+                    'admission_amount' => $total_admission_amount,
+                    'processing_charge' => $processing_charge,
+                    'name' => $data['user_name'],
+                    'guardian_phone' => $data['father_mobile'],
+                    'email' => $data['student_email'],
+                    'item_type' => 'online_admission_fee', // Custom identifier for callback
+                    'sch_setting_detail' => $this->sch_setting_detail,
+                );
+
+                // Store all payment details in session for `confirm_payment` and `initiate_gateway_payment`
+                $this->session->set_userdata('online_admission_payment_params', $payment_params);
+                $this->session->set_userdata('online_admission_id', $online_admission_id); // Store ID separately for clarity
+
+                // Set paid_status to 'pending' (0) for online payment
+                $update_data = array(
+                    'id' => $online_admission_id,
+                    'paid_status' => 0, // 0 for pending online payment
+                );
+                $this->onlinestudent_model->edit($update_data);
+
+                // Redirect to the intermediate confirmation page
+                redirect('publicadmissionform/confirm_payment');
+            }
         }
     }
 
     public function check_admissions_data()
     {
-        $result = false;
-        if ($this->input->post('email_id')) {
-            $result = $this->onlinestudent_model->check_admissions_data_exists('email', $this->input->post('email_id'));
+        if ($this->input->post('email_id') && $this->input->post('academic_year')) {
+            $email = $this->input->post('email_id');
+            $academic_year = $this->input->post('academic_year');
+            $count = $this->onlinestudent_model->count_submissions_by_email_and_year($email, $academic_year);
+            echo json_encode(array('count' => $count)); // Return the count
         } elseif ($this->input->post('mobile_no')) {
             $result = $this->onlinestudent_model->check_admissions_data_exists('mobileno', $this->input->post('mobile_no'));
+            echo json_encode(array('total' => ($result ? 0 : 1))); // Keep original total=0 for exists, total=1 for not exists
         } elseif ($this->input->post('aadhaar_no')) {
             $result = $this->onlinestudent_model->check_admissions_data_exists('adhar_no', $this->input->post('aadhaar_no'));
+            echo json_encode(array('total' => ($result ? 0 : 1))); // Keep original total=0 for exists, total=1 for not exists
+        } else {
+            echo json_encode(array('count' => 0)); // Default or error case
+        }
+    }
+
+    public function confirm_payment()
+    {
+        $payment_params = $this->session->userdata('online_admission_payment_params');
+        $online_admission_id = $this->session->userdata('online_admission_id');
+
+        // Check if session data exists
+        if (empty($payment_params) || empty($online_admission_id)) {
+            $this->session->set_flashdata('error', $this->lang->line('payment_details_not_found'));
+            redirect('publicadmissionform'); // Redirect back to form or an error page
         }
 
-        if ($result) {
-            echo json_encode(array('total' => 0));
-        } else {
-            echo json_encode(array('total' => 1));
+        $data['online_admission_id'] = $online_admission_id;
+        $data['total_amount_to_pay_currency'] = $this->customlib->currencyFormat($payment_params['total']);
+        // Add other params to data if needed for the view to display more details
+
+        $this->load->view('public_admission/payment_confirmation', $data);
+    }
+
+    public function initiate_gateway_payment()
+    {
+        $online_admission_id = $this->input->post('online_admission_id'); // From hidden field in form
+        $payment_params = $this->session->userdata('online_admission_payment_params');
+
+        // Validate session data and POST ID match
+        if (empty($payment_params) || empty($online_admission_id) || $payment_params['online_admission_id'] != $online_admission_id) {
+            $this->session->set_flashdata('error', $this->lang->line('payment_details_not_found'));
+            redirect('publicadmissionform');
         }
+
+        // Re-check payment settings (security measure against session manipulation)
+        if ($this->sch_setting_detail->online_admission_payment != 1 || $this->sch_setting_detail->online_admission_amount <= 0) {
+            $this->session->set_flashdata('error', $this->lang->line('online_admission_payment_not_enabled_or_amount_zero'));
+            redirect('publicadmissionform');
+        }
+        
+        // Get active payment gateway settings
+        $api_config = $this->paymentsetting_model->getActiveMethod();
+
+        if (empty($api_config) || $api_config->payment_type != 'billdesk') {
+            $this->session->set_flashdata('error', $this->lang->line('billdesk_gateway_not_configured_or_active'));
+            redirect('publicadmissionform');
+        }
+
+        // All checks passed, proceed to insert gateway_ins and redirect
+        // The $payment_params already contain all necessary data
+        // For gateway_ins, we need a unique_id (online_admission_id) and other details
+        $ins_data = array(
+            'unique_id' => $online_admission_id, 
+            'parameter_details' => json_encode($payment_params),
+            'gateway_name' => 'billdesk',
+            'module' => 'online_admission',
+            'payment_status' => 'processing',
+            'date' => date('Y-m-d H:i:s'),
+        );
+        $gateway_ins_id = $this->gateway_ins_model->add_gateway_ins($ins_data);
+
+        // Update payment_params with gateway_ins_id for callback linkage and store in 'params' for gateway controller
+        $payment_params['gateway_ins_id'] = $gateway_ins_id;
+        $this->session->set_userdata('params', $payment_params);
+        $this->session->set_userdata('reference', $online_admission_id); // Used by onlineadmission/billdesk/callback
+
+        // Redirect to the onlineadmission BillDesk payment initiation page
+        redirect('onlineadmission/billdesk/index');
     }
 }

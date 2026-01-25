@@ -594,4 +594,18 @@ class Onlinestudent_model extends MY_Model
             return false;
         }
     }
+
+    public function count_submissions_by_email_and_year($email, $academic_year)
+    {
+        // Example: Academic year "2026-2027" means from 2026-08-01 to 2027-07-31
+        list($start_year, $end_year) = explode('-', $academic_year);
+        $start_date = $start_year . '-08-01'; // Assuming August 1st start
+        $end_date = $end_year . '-07-31';   // Assuming July 31st end
+
+        $this->db->where('email', $email);
+        $this->db->where('created_at >=', $start_date);
+        $this->db->where('created_at <=', $end_date);
+        $this->db->from('online_admissions');
+        return $this->db->count_all_results();
+    }
 }

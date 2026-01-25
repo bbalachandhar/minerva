@@ -118,6 +118,7 @@
             border-radius: 8px;
             width: 100%;
             transition: 0.3s;
+            border: 2px solid #5d78ff; /* Added blue border */
         }
         .btn-submit:hover {
             background: #d0d2d8;
@@ -191,7 +192,7 @@
                     <img src="<?php echo base_url('uploads/logos/' . $sch_setting->admission_logo_right); ?>" alt="College Logo" class="logo-right">
                 </div>
             </div>
-            <form action="<?php echo site_url('publicadmissionform/add_college_admission'); ?>" method="POST" enctype="multipart/form-data">
+            <form action="<?php echo site_url('publicadmissionform/add_college_admission'); ?>" method="POST" enctype="multipart/form-data" id="admission_form">
                 <div class="section-card">
                     <h5 class="text-center mb-4">APPLICATION FORM FOR ADMISSION</h5>
                     <div class="d-flex justify-content-center mb-4">
@@ -224,6 +225,7 @@
                                     <p id="uploadText" class="mb-0 text-muted">Drag & Drop or Click to Upload</p>
                                     <small id="uploadNote" class="text-muted">Max size: 300KB</small>
                                 </div>
+                                <span id="image_upload_error" class="text-danger"></span>
                             </div>
                         </div>
                     </div>
@@ -283,20 +285,24 @@
                         <div class="mb-3 col-md-6">
                             <label class="form-label">Email ID*</label>
                             <input type="email" class="form-control" placeholder="Enter your Email"  id="student_email" name="student_email" required tabindex="13">
+                            <span id="email_error" class="text-danger"></span>
                         </div>
                         <div class="mb-3 col-md-6">
                             <label class="form-label">Student's Mobile Number*</label>
                             <input type="text" step="any" class="form-control" placeholder="Enter Student's Mobile Number" id="student_mobile" onchange="validateMobile(this)" onKeyPress="return checkIt(event);" name="student_mobile" required minlength="10" maxlength="10" tabindex="14">
+                            <span id="mobile_error" class="text-danger"></span>
                         </div>
                     </div>
                     <div class="row">
                         <div class="mb-3 col-md-6">
                             <label class="form-label">D.O.B*</label>
                             <input type="date" class="form-control" placeholder="Enter your D.O.B"  id="dob" name="dob" required tabindex="15">
+                            <span id="dob_error" class="text-danger"></span>
                         </div>
                         <div class="mb-3 col-md-6">
                             <label class="form-label">Aadhaar Number*</label>
                             <input type="text" step="any" class="form-control" placeholder="Enter your Aadhar Number" id="aadhaar" name="aadhaar" required minlength="12" maxlength="12" onKeyPress="return checkIt(event);" tabindex="16">
+                            <span id="aadhaar_error" class="text-danger"></span>
                         </div>
                     </div>
                     <div class="row">
@@ -636,8 +642,25 @@
                         </div>
                     </div>
                 </div>
-                <button class="btn btn-submit mt-3" type="Submit" name="submit" tabindex="89">Submit Application</button>
+                <input type="hidden" name="payment_option" id="payment_option" value="">
+                <button class="btn btn-submit mt-3" type="button" id="submit_application_btn" name="submit" tabindex="89">Submit Application</button>
             </form>
+        </div>
+    </div>
+    <!-- Payment Option Modal -->
+    <div class="modal fade" id="paymentOptionModal" tabindex="-1" aria-labelledby="paymentOptionModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="paymentOptionModalLabel">Complete Your Application</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <p>How would you like to proceed with the application fee?</p>
+                    <button type="button" class="btn btn-primary btn-lg mt-3" id="payOnlineBtn">Pay Fee Online</button>
+                    <button type="button" class="btn btn-secondary btn-lg mt-3" id="payLaterBtn">Pay Later</button>
+                </div>
+            </div>
         </div>
     </div>
 </body>
@@ -1069,27 +1092,92 @@
 </script>
 <script>
     $(document).ready(function() {
+        // Clear all previous inline errors when form is reset or page loaded
+        $('#email_error').text('');
+        $('#image_upload_error').text('');
+        $('#mobile_error').text('');
+        $('#dob_error').text('');
+        $('#aadhaar_error').text('');
+
+
+        // Handler for the submit application button
+        $('#submit_application_btn').on('click', function(e) {
+            e.preventDefault(); // Prevent default form submission initially
+
+            // Clear previous photo error
+            $('#image_upload_error').text('');
+
+            // Client-side photo validation
+            if (!$('#imageUpload').val()) {
+                $('#image_upload_error').text('Please upload your photo.');
+                return; // Stop here if photo is missing
+            }
+
+            // Perform browser's native form validation for required fields
+            const form = document.getElementById('admission_form');
+            if (!form.checkValidity()) {
+                // If form is not valid, trigger native validation messages
+                form.reportValidity();
+                return; // Stop here if form is not valid
+            }
+
+            // If all client-side validations pass, show the payment option modal
+            var paymentOptionModal = new bootstrap.Modal(document.getElementById('paymentOptionModal'));
+            paymentOptionModal.show();
+        });
+
+        // Pay Online button handler
+        $('#payOnlineBtn').on('click', function() {
+            $('#payment_option').val('pay_online');
+            // Hide the modal
+            var paymentOptionModal = bootstrap.Modal.getInstance(document.getElementById('paymentOptionModal'));
+            paymentOptionModal.hide();
+            // Submit the form
+            $('#admission_form').submit();
+        });
+
+        // Pay Later button handler
+        $('#payLaterBtn').on('click', function() {
+            $('#payment_option').val('pay_later');
+            // Hide the modal
+            var paymentOptionModal = bootstrap.Modal.getInstance(document.getElementById('paymentOptionModal'));
+            paymentOptionModal.hide();
+            // Submit the form
+            $('#admission_form').submit();
+        });
+
+
+        // Existing handlers
         $('#student_email').on('change', function() {
             var email = $(this).val();
+            var academic_year = $('#academic_year').val(); // Get academic year
             const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+            // Clear any previous error messages
+            $('#email_error').text('');
+
             if (regex.test(email) && email!='') {
                 $.ajax({
                     type: 'POST',
                     url: "<?php echo site_url('publicadmissionform/check_admissions_data'); ?>",
                     data: {
                         email_id: email,
+                        academic_year: academic_year // Pass academic year
                     },
                     dataType: "text",
                     success: function(result) {
                         var res = JSON.parse(result);
-                        if (res.total != 1) {
-                            alert('Email-ID already exists!');
-                            $('#student_email').val("");
+                        if (res.count > 0) { // If any submission exists for this email
+                            $('#email_error').text('Email-ID already submitted applications, please use another mail id for new form submission!');
+                            $('#student_email').val(""); // Clear the email field
+                        } else {
+                            // Email is new, clear any error message
+                            $('#email_error').text('');
                         }
                     }
                 });
             }else{
-                alert('Invalid Email-ID');
+                $('#email_error').text('Invalid Email-ID'); // Display invalid email format error
                 $('#student_email').val("");
             }
         });
@@ -1098,6 +1186,9 @@
         $('#student_mobile').on('change', function() {
             var mobile = $(this).val();
             const regex = /^[0-9]{10}$/;
+            // Clear previous error
+            $('#mobile_error').text('');
+
             if (regex.test(mobile) && mobile!='') {
                 $.ajax({
                     type: 'POST',
@@ -1108,14 +1199,16 @@
                     dataType: "text",
                     success: function(result) {
                         var res = JSON.parse(result);
-                        if (res.total != 1) {
-                            alert('Mobile Number already exists!');
+                        if (res.total != 1) { // Assuming total=0 means exists
+                            $('#mobile_error').text('Mobile Number already exists!'); // Display inline
                             $('#student_mobile').val("");
+                        } else {
+                            $('#mobile_error').text('');
                         }
                     }
                 });
             }else{
-                alert('Invalid Mobile Number');
+                $('#mobile_error').text('Invalid Mobile Number'); // Display inline
                 $('#student_mobile').val("");
             }
         });
@@ -1126,9 +1219,14 @@
             const today = new Date();
             const minAgeDate = new Date();
             minAgeDate.setFullYear(today.getFullYear() - 17);
+            // Clear previous error
+            $('#dob_error').text('');
+
             if (dob >= minAgeDate) {
-                alert('Invalid Date of Birth')
+                $('#dob_error').text('Invalid Date of Birth (must be 17 years or older)'); // Display inline
                 $(this).val('');
+            } else {
+                $('#dob_error').text('');
             }
         });
     });
@@ -1136,6 +1234,9 @@
         $('#aadhaar').on('change', function() {
             var aadhaar = $(this).val();
             const regex = /^[0-9]{12}$/;
+            // Clear previous error
+            $('#aadhaar_error').text('');
+
             if (regex.test(aadhaar) && aadhaar!='') {
                 $.ajax({
                     type: 'POST',
@@ -1146,14 +1247,16 @@
                     dataType: "text",
                     success: function(result) {
                         var res = JSON.parse(result);
-                        if (res.total != 1) {
-                            alert('Aadhaar Number already exists!');
+                        if (res.total != 1) { // Assuming total=0 means exists
+                            $('#aadhaar_error').text('Aadhaar Number already exists!'); // Display inline
                             $('#aadhaar').val("");
+                        } else {
+                            $('#aadhaar_error').text('');
                         }
                     }
                 });
             }else{
-                alert('Invalid Aadhaar Number');
+                $('#aadhaar_error').text('Invalid Aadhaar Number (must be 12 digits)'); // Display inline
                 $('#aadhaar').val("");
             }
         });
