@@ -296,9 +296,7 @@ if (isset($title)) {
 }
 ?>";
 
-    if (pagetitle == "Dashboard") {
-        viewtitle = 'agendaWeek';
-    }
+
 
     $calendar.fullCalendar({
         viewRender: function (view, element) {
