@@ -59,6 +59,15 @@ echo $this->session->flashdata('msg');
                                                </div>
                                             </div>
                                         </div>
+                                        <div id="onlineform_sub_merchant_id_clm">
+                                            <label class="col-lg-3 col-md-4 col-sm-5 col-sm-5 control-label"><?php echo $this->lang->line('online_form_sub_merchant_id'); ?></label>
+                                            <div class="col-sm-2">
+                                                <div class="form-group">
+                                                    <input type="text" name="onlineform_sub_merchant_id" id="onlineform_sub_merchant_id" class="form-control" value="<?php echo set_value('onlineform_sub_merchant_id', $result->onlineform_sub_merchant_id); ?>" >
+                                                    <span class="text-danger"><?php echo form_error('onlineform_sub_merchant_id'); ?></span>
+                                               </div>
+                                            </div>
+                                        </div>
                                         <div class="col-sm-12">
                                             <div class="form-group row">
                                                 <label class="col-lg-3 col-md-4 col-sm-5 col-sm-5"><?php echo $this->lang->line('upload_admission_application_form'); ?></label>
@@ -355,8 +364,10 @@ function findSelected($inserted_fields, $find)
        if(this.checked){
             $("#online_admission_amount").removeAttr('readonly','false');
             $("#amountclm").css('display','block');
+            $("#onlineform_sub_merchant_id_clm").css('display','block');
        }else{
             $("#amountclm").css('display','none');
+            $("#onlineform_sub_merchant_id_clm").css('display','none');
             $("#online_admission_amount").attr('readonly','true');
        }
     });

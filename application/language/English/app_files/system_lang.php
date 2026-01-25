@@ -1450,6 +1450,7 @@ $lang['enquiry_form_submission'] = "Enquiry Form Submission";
 $lang['online_admission_instructions'] = "Online Admission Instructions";
 $lang['online_fee_pending_report'] = "Online Fee Pending Report";	
 $lang['online_admission_payment_option'] = "Online Admission Payment Option";	
+$lang['online_form_sub_merchant_id'] = "Online Form Sub-Merchant ID";	
 $lang['online_admission_receipt'] = "Online Admission Receipt";	
 $lang['online_admission_report'] = "Online Admission Report";	
 $lang['online_admission_terms_conditions'] = "Online Admission Terms & Conditions";	
