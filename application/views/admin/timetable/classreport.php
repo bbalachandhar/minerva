@@ -1,4 +1,14 @@
 <div class="content-wrapper">
+    <style>
+        .card-bordered {
+            border: 1px solid #ddd; /* A light grey border */
+            box-shadow: 0 2px 2px rgba(0,0,0,0.05); /* Subtle shadow for depth */
+        }
+        .card-body-fixed-height {
+            height: 165px; /* Fixed height */
+            overflow-y: auto; /* Add scroll if content exceeds height */
+        }
+    </style>
     <!-- Content Header (Page header) -->
     <section class="content-header">
         <h1>
@@ -82,8 +92,11 @@
                                                                         <tr>
                                                                             <?php
                             foreach ($timetable as $tm_key => $tm_value) {
+                                if (strtolower($tm_key) === 'sunday') {
+                                    continue;
+                                }
                                         ?>
-                                                                                <th class="text"><?php echo $this->lang->line(strtolower($tm_key)); ?></th>
+                                                                                <th class="text text-center"><?php echo $this->lang->line(strtolower($tm_key)); ?></th>
                                                                                 <?php
                             }
                                     ?>
@@ -93,6 +106,9 @@
                                                                         <tr>
                                                                             <?php
                             foreach ($timetable as $tm_key => $tm_value) {
+                                if (strtolower($tm_key) === 'sunday') {
+                                    continue;
+                                }
                                         ?>
                                                                                 <td class="text" width="14%">
                             
@@ -106,26 +122,18 @@
                             } else {
                                             foreach ($timetable[$tm_key] as $tm_k => $tm_kue) {
                                                 ?>
-                                                                                            <div class="attachment-block attachment-block-normal clearfix">
-                            
-                                                                                                <div class="relative attachment-left-space"><i class="fa fa-book"></i> <?php echo $this->lang->line('subject') ?>: <?php
-                            echo $tm_kue->subject_name;
-                                                if ($tm_kue->code != '') {
-                                                    echo " (" . $tm_kue->code . ")";
-                                                }
-                                                ?>
-                            
+                                                                                            <div class="card card-sm card-bordered" style="margin-bottom: 10px;">
+                                                                                                <div class="card-body card-body-fixed-height">
+                                                                                                    <h5 class="card-title"><i class="fa fa-book"></i> <?php
+                                                                                                        echo $tm_kue->subject_name;
+                                                                                                        if ($tm_kue->code != '') {
+                                                                                                            echo " (" . $tm_kue->code . ")";
+                                                                                                        }
+                                                                                                        ?></h5>
+                                                                                                    <p class="card-text"><i class="fa fa-clock-o"></i> <?php echo $tm_kue->time_from ?> - <strong class=""><?php echo $tm_kue->time_to; ?></strong></p>
+                                                                                                    <p class="card-text"><i class="fa fa-user"></i> <?php echo $tm_kue->name . " " . $tm_kue->surname . " (" . $tm_kue->employee_id . ")"; ?></p>
+                                                                                                    <p class="card-text"><i class="fa fa-building"></i> <?php echo $this->lang->line('room_no'); ?>: <?php echo $tm_kue->room_no; ?></p>
                                                                                                 </div>
-                            
-                                                                                                <div class="relative attachment-left-space"><i class="fa fa-clock-o"></i> <?php echo $tm_kue->time_from ?>
-                                                                                                <b class="text text-center">-</b>
-                                                                                                <strong class=""><?php echo $tm_kue->time_to; ?></strong>
-                                                                                                </div>
-                            
-                                                                                                <div class="relative attachment-left-space"><i class="fa fa-user"></i> <?php echo $tm_kue->name . " " . $tm_kue->surname . " (" . $tm_kue->employee_id . ")"; ?>
-                                                                                                </div>
-                                                                                                <div class="relative attachment-left-space"><i class="fa fa-building"></i> <?php echo $this->lang->line('room_no'); ?>: <?php echo $tm_kue->room_no; ?></div>
-                            
                                                                                             </div>
                                                                                             <?php
                             }

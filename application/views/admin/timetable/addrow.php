@@ -47,7 +47,7 @@
 
                                 <td>
                                     <input type="hidden" name="total_row[]" value="<?php echo $counter; ?>">
-                                    <input type="hidden" name="prev_id_<?php echo $counter; ?>" value="<?php echo $prev_rec_value->id; ?>">
+                                    <input type="hidden" name="prev_id_<?php echo $counter; ?>" value="0">
                                     <select class="form-control subject" id="subject_id_<?php echo $counter; ?>" name="subject_<?php echo $counter; ?>">
 
                                         <option value=""><?php echo$this->lang->line('select') ?></option>
@@ -192,11 +192,33 @@
 
 <script type="text/javascript">
     var form_id = "<?php echo $day ?>";
+
+    function hasTimeOverlap(timeSlots) {
+        if (timeSlots.length <= 1) {
+            return false;
+        }
+
+        // Sort by start time
+        timeSlots.sort(function(a, b) {
+            return a.start.valueOf() - b.start.valueOf();
+        });
+
+        for (var i = 1; i < timeSlots.length; i++) {
+            if (timeSlots[i].start.isBefore(timeSlots[i - 1].end)) {
+                // Overlap found
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     $(function () {
 
 
         $('form#form_' + form_id).on('submit', function (event) {
             
+            event.preventDefault();
 
             // adding rules for inputs with class 'comment'
             $('select[id^="subject_id_"]').each(function () {
@@ -246,12 +268,47 @@
                     }
                 });
             });
-
-            // prevent default submit action         
-            event.preventDefault();
-
-            // test if form is valid 
+             // test if form is valid 
             if ($('form#form_' + form_id).validate().form()) {
+
+                // TIME OVERLAP VALIDATION
+                var timeSlots = [];
+                var overlapFound = false;
+
+                $('form#form_' + form_id + ' tbody tr').each(function() {
+                    var fromStr = $(this).find('.time_from').val();
+                    var toStr = $(this).find('.time_to').val();
+
+                    if (fromStr && toStr) {
+                        var fromTime = moment(fromStr, 'hh:mm A');
+                        var toTime = moment(toStr, 'hh:mm A');
+
+                        if (!fromTime.isValid() || !toTime.isValid()) {
+                            // Assuming validation rules will catch empty/invalid formats.
+                            // If not, you can add an error message here.
+                            return true; // continue to next iteration
+                        }
+
+                        if (fromTime.isSameOrAfter(toTime)) {
+                            errorMsg('Invalid time range: "Time From" must be before "Time To" in one of the rows.');
+                            overlapFound = true; 
+                            return false; 
+                        }
+
+                        timeSlots.push({ start: fromTime, end: toTime });
+                    }
+                });
+
+                if (overlapFound) {
+                    return; 
+                }
+
+                if (hasTimeOverlap(timeSlots)) {
+                    errorMsg('Time overlap detected. Please check the timetable entries.');
+                    return;
+                }
+                // END TIME OVERLAP VALIDATION
+
                 var target = $('.nav-tabs .active a').attr("href");
                 var target_id = $('.nav-tabs .active a').attr("id");
                 var ajax_data = $('.nav-tabs .active a').data();
@@ -317,3 +374,25 @@
     });
 
 </script>
+<?php if (empty($prev_record)) { ?>
+<script type="text/javascript">
+    $(document).ready(function() {
+        var fixedTimeSchedule = [
+            { from: "09:30 AM", to: "10:20 AM" },
+            { from: "10:20 AM", to: "11:10 AM" },
+            { from: "11:25 AM", to: "12:15 PM" },
+            { from: "12:15 PM", to: "01:05 PM" },
+            { from: "01:45 PM", to: "02:35 PM" },
+            { from: "02:35 PM", to: "03:25 PM" },
+            { from: "03:25 PM", to: "04:15 PM" }
+        ];
+
+        var initial_row_index = <?php echo $total_count - 1; ?>; 
+        if (fixedTimeSchedule.length > initial_row_index) {
+            var scheduleEntry = fixedTimeSchedule[initial_row_index];
+            $('#time_from_<?php echo $total_count; ?>').val(scheduleEntry.from);
+            $('#time_to_<?php echo $total_count; ?>').val(scheduleEntry.to);
+        }
+    });
+</script>
+<?php } ?>

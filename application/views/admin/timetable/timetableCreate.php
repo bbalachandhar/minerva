@@ -372,19 +372,31 @@ $count++;
             });
         });
         
-        var tot_count = 0; // This variable seems to be used later in addrow function, ensure it's initialized correctly if needed globally.
+        var tot_count = 0; 
+        var fixedTimeSchedule = [
+            { from: "09:30 AM", to: "10:20 AM" },
+            { from: "10:20 AM", to: "11:10 AM" },
+            { from: "11:25 AM", to: "12:15 PM" },
+            { from: "12:15 PM", to: "01:05 PM" },
+            { from: "01:45 PM", to: "02:35 PM" },
+            { from: "02:35 PM", to: "03:25 PM" },
+            { from: "03:25 PM", to: "04:15 PM" }
+        ];// This variable seems to be used later in addrow function, ensure it's initialized correctly if needed globally.
 
         // This part was wrapped in $(document).ready function previously, 
         // now it is outside but still called on document ready by virtue of being in the main ready function
         $(document).on('click', '.addrow', function () {                       
             var newRow = $("<tr>");
             var cols = "";
+            var scheduleIndex = tot_count % fixedTimeSchedule.length;
+            var timeFromValue = fixedTimeSchedule[scheduleIndex].from;
+            var timeToValue = fixedTimeSchedule[scheduleIndex].to;
             cols += '<td class="relative"><input type="hidden" name="total_row[]" value="' + tot_count + '"><input type="hidden" name="prev_id_' + tot_count + '" value="0"><select class="form-control subject" id="subject_id_' + tot_count + '" name="subject_' + tot_count + '">' + $("#subject_dropdown").text() + '</select></td>';
             cols += '<td class="relative"><select class="form-control staff" id="staff_id_' + tot_count + '" name="staff_' + tot_count + '">' + $("#staff_dropdown").text() + '</select></span></td>';
 
-            cols += '<td><div class="input-group"><input type="text" name="time_from_' + tot_count + '" class="form-control time_from time" id="time_from_' + tot_count + '"  aria-invalid="false"><div class="input-group-addon"><i class="fa fa-clock-o"></i></div></div></span></td>';
+            cols += '<td><div class="input-group"><input type="text" name="time_from_' + tot_count + '" class="form-control time_from time" id="time_from_' + tot_count + '" value="' + timeFromValue + '" aria-invalid="false"><div class="input-group-addon"><i class="fa fa-clock-o"></i></div></div></span></td>';
 
-            cols += '<td><div class="input-group"><input type="text" name="time_to_' + tot_count + '" class="form-control time_to time" id="time_to_' + tot_count + '"  aria-invalid="false"><div class="input-group-addon"><i class="fa fa-clock-o"></i></div></div></span></td>';
+            cols += '<td><div class="input-group"><input type="text" name="time_to_' + tot_count + '" class="form-control time_to time" id="time_to_' + tot_count + '" value="' + timeToValue + '" aria-invalid="false"><div class="input-group-addon"><i class="fa fa-clock-o"></i></div></div></span></td>';
 
             cols += '<td><input type="text" class="form-control room_no" name="room_no_' + tot_count + '" id="room_no_' + tot_count + '"/> </td>';
             cols += '<td class="text-right"><button type="button" class="ibtnDel btn btn-danger btn-sm btn-danger"><i class="fa fa-trash"></i></button></td>';
