@@ -1,7 +1,9 @@
-<?php 
+<?php
 $admin_session   = $this->session->userdata('admin');
 $currency_symbol = $admin_session['currency_symbol'];
 ?>
+
+
 <script src="<?php echo base_url(); ?>backend/plugins/ckeditor/ckeditor.js"></script>
 <script src="<?php echo base_url(); ?>backend/js/ckeditor_config.js"></script>
 <div class="content-wrapper">
@@ -59,27 +61,28 @@ echo $this->session->flashdata('msg');
                                                </div>
                                             </div>
                                         </div>
-                                        <div id="processingChargeTypeClm">
-                                            <label class="col-lg-3 col-md-4 col-sm-5 control-label"><?php echo $this->lang->line('processing_charge_type'); ?></label>
-                                            <div class="col-sm-2">
-                                                <div class="form-group">
-                                                    <select name="online_admission_processing_charge_type" id="online_admission_processing_charge_type" class="form-control">
-                                                        <option value="fixed" <?php echo set_select('online_admission_processing_charge_type', 'fixed', (set_value('online_admission_processing_charge_type', $result->online_admission_processing_charge_type) == 'fixed') ? true : false); ?>><?php echo $this->lang->line('fixed_amount'); ?></option>
-                                                        <option value="percentage" <?php echo set_select('online_admission_processing_charge_type', 'percentage', (set_value('online_admission_processing_charge_type', $result->online_admission_processing_charge_type) == 'percentage') ? true : false); ?>><?php echo $this->lang->line('percentage'); ?></option>
-                                                    </select>
-                                                    <span class="text-danger"><?php echo form_error('online_admission_processing_charge_type'); ?></span>
-                                               </div>
-                                            </div>
-                                        </div>
-                                        <div id="processingChargeAmountClm">
-                                            <label class="col-lg-3 col-md-4 col-sm-5 control-label"><?php echo $this->lang->line('processing_charge'); ?></label>
-                                            <div class="col-sm-2">
-                                                <div class="form-group">
-                                                    <input type="text" name="online_admission_processing_charge" id="online_admission_processing_charge" class="form-control" value="<?php echo set_value('online_admission_processing_charge', $result->online_admission_processing_charge); ?>" onkeypress="return IsNumeric(event);" >
-                                                    <span class="text-danger"><?php echo form_error('online_admission_processing_charge'); ?></span>
-                                               </div>
-                                            </div>
-                                        </div>
+                                                                                <div id="processingChargeTypeClm">
+                                                                                    <label class="col-lg-3 col-md-4 col-sm-5 control-label"><?php echo $this->lang->line('processing_charge_type'); ?></label>
+                                                                                    <div class="col-sm-2">
+                                                                                        <div class="form-group">
+
+                                                                                            <select name="online_admission_processing_charge_type" id="online_admission_processing_charge_type" class="form-control">
+                                                                                                <option value="fixed" <?php echo set_select('online_admission_processing_charge_type', 'fixed', (isset($result->online_admission_processing_charge_type) && $result->online_admission_processing_charge_type == 'fixed')); ?>><?php echo $this->lang->line('fixed_amount'); ?></option>
+                                                                                                <option value="percentage" <?php echo set_select('online_admission_processing_charge_type', 'percentage', (isset($result->online_admission_processing_charge_type) && $result->online_admission_processing_charge_type == 'percentage')); ?>><?php echo $this->lang->line('percentage'); ?></option>
+                                                                                            </select>
+                                                                                            <span class="text-danger"><?php echo form_error('online_admission_processing_charge_type'); ?></span>
+                                                                                       </div>
+                                                                                    </div>
+                                                                                </div>
+                                                                                <div id="processingChargeAmountClm">
+                                                                                    <label id="processing_charge_label" class="col-lg-3 col-md-4 col-sm-5 control-label"><?php echo $this->lang->line('processing_charge'); ?></label>
+                                                                                    <div class="col-sm-2">
+                                                                                        <div class="form-group">
+                                                                                            <input type="text" name="online_admission_processing_charge" id="online_admission_processing_charge" class="form-control" value="<?php echo set_value('online_admission_processing_charge', isset($result->online_admission_processing_charge) ? $result->online_admission_processing_charge : ''); ?>" onkeypress="return IsNumeric(event);" >
+                                                                                            <span class="text-danger"><?php echo form_error('online_admission_processing_charge'); ?></span>
+                                                                                       </div>
+                                                                                    </div>
+                                                                                </div>
                                         <div id="onlineform_sub_merchant_id_clm">
                                             <label class="col-lg-3 col-md-4 col-sm-5 col-sm-5 control-label"><?php echo $this->lang->line('online_form_sub_merchant_id'); ?></label>
                                             <div class="col-sm-2">
@@ -407,6 +410,33 @@ function findSelected($inserted_fields, $find)
        }
     });
 })(jQuery);
+</script>
+
+<script>
+    $(document).ready(function() {
+        // Dynamic label for processing charge
+        function updateProcessingChargeLabel() {
+            var chargeType = $('#online_admission_processing_charge_type').val();
+            var labelBaseText = '<?php echo $this->lang->line('processing_charge'); ?>';
+            var currencySymbol = '<?php echo $currency_symbol; ?>';
+            var labelSuffix = '';
+
+            if (chargeType === 'percentage') {
+                labelSuffix = ' (%)';
+            } else {
+                labelSuffix = ' (' + currencySymbol + ')';
+            }
+            $('#processing_charge_label').text(labelBaseText + labelSuffix);
+        }
+
+        // Call on load
+        updateProcessingChargeLabel();
+
+        // Call on change
+        $('#online_admission_processing_charge_type').on('change', function() {
+            updateProcessingChargeLabel();
+        });
+    });
 </script>
 
 <script>

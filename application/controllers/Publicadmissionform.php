@@ -1545,7 +1545,7 @@ class PublicAdmissionForm extends CI_Controller
             $payment_option = $this->input->post('payment_option');
 
             // If payment is not required OR payment_option is 'pay_later'
-            if ($this->sch_setting_detail->online_admission_payment != 1 || $this->sch_setting_detail->online_admission_amount <= 0 || $payment_option == 'pay_later') {
+            if ($this->sch_setting_detail->online_admission_payment != 'yes' || $this->sch_setting_detail->online_admission_amount <= 0 || $payment_option == 'pay_later') {
                 $paid_status_value = ($payment_option == 'pay_later') ? 2 : 0; // 2 for 'offline' (Pay Later), 0 for no payment required/unpaid
 
                 // Update online_admissions table with the chosen paid_status
@@ -1639,8 +1639,10 @@ class PublicAdmissionForm extends CI_Controller
         }
 
         $data['online_admission_id'] = $online_admission_id;
-        $data['total_amount_to_pay_currency'] = $this->customlib->currencyFormat($payment_params['total']);
-        // Add other params to data if needed for the view to display more details
+        $data['total_amount_to_pay_currency'] = $this->customlib->getSchoolCurrencyWithPlace($payment_params['total']);
+        $data['admission_amount'] = $this->customlib->getSchoolCurrencyWithPlace($payment_params['admission_amount']);
+        $data['processing_charge'] = $this->customlib->getSchoolCurrencyWithPlace($payment_params['processing_charge']);
+        $data['total_amount'] = $payment_params['total'];
 
         $this->load->view('public_admission/payment_confirmation', $data);
     }
@@ -1657,7 +1659,7 @@ class PublicAdmissionForm extends CI_Controller
         }
 
         // Re-check payment settings (security measure against session manipulation)
-        if ($this->sch_setting_detail->online_admission_payment != 1 || $this->sch_setting_detail->online_admission_amount <= 0) {
+        if ($this->sch_setting_detail->online_admission_payment != 'yes' || $this->sch_setting_detail->online_admission_amount <= 0) {
             $this->session->set_flashdata('error', $this->lang->line('online_admission_payment_not_enabled_or_amount_zero'));
             redirect('publicadmissionform');
         }
@@ -1679,7 +1681,7 @@ class PublicAdmissionForm extends CI_Controller
             'gateway_name' => 'billdesk',
             'module' => 'online_admission',
             'payment_status' => 'processing',
-            'date' => date('Y-m-d H:i:s'),
+            'created_at' => date('Y-m-d H:i:s'),
         );
         $gateway_ins_id = $this->gateway_ins_model->add_gateway_ins($ins_data);
 
@@ -1846,7 +1848,7 @@ class PublicAdmissionForm extends CI_Controller
             $sender_details = ['firstname' => $data['user_name'], 'lastname' => $data['father_name'], 'email' => $data['student_email'], 'date' => date('Y-m-d'), 'reference_no' => $reference_no, 'mobileno' => $data['student_mobile'], 'guardian_email' => '', 'guardian_phone' => $data['father_mobile']];
             $payment_option = $this->input->post('payment_option');
 
-            if ($this->sch_setting_detail->online_admission_payment != 1 || $this->sch_setting_detail->online_admission_amount <= 0 || $payment_option == 'pay_later') {
+            if ($this->sch_setting_detail->online_admission_payment != 'yes' || $this->sch_setting_detail->online_admission_amount <= 0 || $payment_option == 'pay_later') {
                 $this->onlinestudent_model->edit(['id' => $online_admission_id, 'paid_status' => ($payment_option == 'pay_later') ? 2 : 0]);
                 $this->mailsmsconf->mailsms('online_admission_form_submission', $sender_details);
                 echo json_encode(['status' => 'success', 'redirect_url' => site_url('publicadmissionform/pay_later_confirmation/' . $reference_no)]);

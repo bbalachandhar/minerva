@@ -29,7 +29,14 @@ class Onlineadmission extends Admin_Controller
         $this->session->set_userdata('sub_menu', 'System Settings/onlineadmissionsetting');
         $data                       = array();
         $data['result']             = $this->setting_model->getSetting();
-        $data['fields']             = get_onlineadmission_editable_fields();
+
+        // Ensure processing charge properties are always defined in $data['result']
+        if (!isset($data['result']->online_admission_processing_charge_type)) {
+            $data['result']->online_admission_processing_charge_type = ''; // Default to empty string or a sensible default like 'fixed'
+        }
+        if (!isset($data['result']->online_admission_processing_charge)) {
+            $data['result']->online_admission_processing_charge = ''; // Default to empty string or '0.00'
+        }
         $data['inserted_fields']    = $this->onlinestudent_model->getformfields();
         $data['sch_setting_detail'] = $this->sch_setting_detail;
         $data['custom_fields']      = $this->onlinestudent_model->getcustomfields();
@@ -81,12 +88,10 @@ class Onlineadmission extends Admin_Controller
                     
                     $this->session->set_flashdata('msg', '<div class="alert alert-success text-center">'. $this->lang->line('record_updated_successfully') . '</div>');
                     redirect('admin/onlineadmission/admissionsetting');
-                } else {
-
-                    $this->load->view("layout/header");
-                    $this->load->view("admin/onlineadmission/onlineadmission_setting", $data);
-                    $this->load->view("layout/footer");
-                }
+                                } else {
+                                    $this->load->view("layout/header");                            $this->load->view("admin/onlineadmission/onlineadmission_setting", $data);
+                            $this->load->view("layout/footer");
+                        }
 
             } else {
 
@@ -122,6 +127,7 @@ class Onlineadmission extends Admin_Controller
             }
 
         } else {
+            // DEBUG: Dump the result object to check its contents
             $this->load->view("layout/header");
             $this->load->view("admin/onlineadmission/onlineadmission_setting", $data);
             $this->load->view("layout/footer");

@@ -20,14 +20,27 @@
         .confirmation-card h2 { color: #253976; margin-bottom: 25px; }
         .confirmation-card p { font-size: 1.1em; line-height: 1.6; color: #555; margin-bottom: 15px; }
         .confirmation-card .amount-display {
-            font-size: 2em;
+            font-size: 1.1em; /* Reduced base font size for the container */
             color: #28a745;
             font-weight: bold;
             margin: 20px 0;
             padding: 10px;
             border: 1px dashed #28a745;
             border-radius: 8px;
-            display: inline-block;
+            text-align: right; /* Align entire block right */
+        }
+        .confirmation-card .amount-display p {
+            font-size: 0.9em; /* Smaller font for individual lines */
+            margin: 0; /* Remove default paragraph margins */
+            padding: 2px 0;
+            color: #555; /* Revert to default text color for individual lines */
+            font-weight: normal; /* Revert to normal weight for individual lines */
+            display: flex; /* Use flexbox for spacing between label and value */
+            justify-content: space-between; /* Push label left, value right */
+        }
+        .confirmation-card .amount-display strong {
+            font-size: 1.1em; /* Keep total slightly larger */
+            color: #253976; /* Make total amount stand out */
         }
         .btn-proceed, .btn-cancel {
             padding: 12px 25px;
@@ -49,7 +62,11 @@
         <p><?php echo $this->lang->line('please_proceed_to_payment_to_complete_your_application'); ?>.</p>
         
         <div class="amount-display">
-            <?php echo $total_amount_to_pay_currency; ?>
+            <p><?php echo $this->lang->line('application_fee'); ?>: <?php echo $admission_amount; ?></p>
+            <?php if (!empty($processing_charge) && $processing_charge != $this->customlib->getSchoolCurrencyWithPlace(0)) { ?>
+            <p><?php echo $this->lang->line('transaction_charges'); ?>: <?php echo $processing_charge; ?></p>
+            <?php } ?>
+            <p><strong><?php echo $this->lang->line('total_amount_to_pay'); ?>: <?php echo $total_amount_to_pay_currency; ?></strong></p>
         </div>
 
         <form action="<?php echo site_url('publicadmissionform/initiate_gateway_payment'); ?>" method="POST">
