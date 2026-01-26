@@ -23,20 +23,24 @@ class Billdesk extends OnlineAdmission_Controller
     {
         $data = array();
         $online_admission_id = $this->session->userdata('reference'); // Get admission_id from session
-        
+        echo '<pre>Debug: Checking online_admission_id...</pre>';
         if (empty($online_admission_id)) {
             $this->session->set_flashdata('error', 'Online Admission ID not found in session.');
             redirect(base_url('onlineadmission/checkout/paymentfailed'));
         }
 
         $online_data = $this->onlinestudent_model->get($online_admission_id);
-
+        echo '<pre>Debug: Checking online_data...</pre>';
         if (empty($online_data)) {
             $this->session->set_flashdata('error', 'Online Admission data not found.');
             redirect(base_url('onlineadmission/checkout/paymentfailed'));
         }
 
         // Check if BillDesk settings are available
+        echo '<pre>Debug: Checking BillDesk settings...</pre>';
+        echo '<pre>Debug: api_config:';
+        var_dump($this->api_config);
+        echo '</pre>';
         if (empty($this->api_config->api_secret_key)) {
             $this->session->set_flashdata('error', 'Billdesk settings not available.');
             redirect(base_url("onlineadmission/checkout/paymentfailed/" . $online_data['reference_no']));
@@ -232,6 +236,7 @@ class Billdesk extends OnlineAdmission_Controller
             }
 
         } catch (Exception $e) {
+            echo '<pre>BILLDESK API ERROR: ' . $e->getMessage() . '</pre>'; // Temporary debug output
             $data['api_error'] = $e->getMessage();
             $this->session->set_flashdata('error', $e->getMessage());
             redirect(base_url("onlineadmission/checkout/paymentfailed/" . $online_data['reference_no']));
