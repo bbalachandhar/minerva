@@ -59,6 +59,27 @@ echo $this->session->flashdata('msg');
                                                </div>
                                             </div>
                                         </div>
+                                        <div id="processingChargeTypeClm">
+                                            <label class="col-lg-3 col-md-4 col-sm-5 control-label"><?php echo $this->lang->line('processing_charge_type'); ?></label>
+                                            <div class="col-sm-2">
+                                                <div class="form-group">
+                                                    <select name="online_admission_processing_charge_type" id="online_admission_processing_charge_type" class="form-control">
+                                                        <option value="fixed" <?php echo set_select('online_admission_processing_charge_type', 'fixed', (set_value('online_admission_processing_charge_type', $result->online_admission_processing_charge_type) == 'fixed') ? true : false); ?>><?php echo $this->lang->line('fixed_amount'); ?></option>
+                                                        <option value="percentage" <?php echo set_select('online_admission_processing_charge_type', 'percentage', (set_value('online_admission_processing_charge_type', $result->online_admission_processing_charge_type) == 'percentage') ? true : false); ?>><?php echo $this->lang->line('percentage'); ?></option>
+                                                    </select>
+                                                    <span class="text-danger"><?php echo form_error('online_admission_processing_charge_type'); ?></span>
+                                               </div>
+                                            </div>
+                                        </div>
+                                        <div id="processingChargeAmountClm">
+                                            <label class="col-lg-3 col-md-4 col-sm-5 control-label"><?php echo $this->lang->line('processing_charge'); ?></label>
+                                            <div class="col-sm-2">
+                                                <div class="form-group">
+                                                    <input type="text" name="online_admission_processing_charge" id="online_admission_processing_charge" class="form-control" value="<?php echo set_value('online_admission_processing_charge', $result->online_admission_processing_charge); ?>" onkeypress="return IsNumeric(event);" >
+                                                    <span class="text-danger"><?php echo form_error('online_admission_processing_charge'); ?></span>
+                                               </div>
+                                            </div>
+                                        </div>
                                         <div id="onlineform_sub_merchant_id_clm">
                                             <label class="col-lg-3 col-md-4 col-sm-5 col-sm-5 control-label"><?php echo $this->lang->line('online_form_sub_merchant_id'); ?></label>
                                             <div class="col-sm-2">
@@ -250,17 +271,27 @@ function findSelected($inserted_fields, $find)
 
         }
 
-        if ( $('#chk_yes').prop('checked')==true){
+                if ( $('#chk_yes').prop('checked')==true){
 
-           $("#amountclm").css('display','block');
-           $("#online_admission_amount").removeAttr('readonly');
+                   $("#amountclm").css('display','block');
 
-        }else{
+                   $("#online_admission_amount").removeAttr('readonly');
 
-            $("#amountclm").css('display','none');
-            $("#online_admission_amount").attr('readonly','true');
+                   $("#processingChargeTypeClm").css('display','block');
 
-        }
+                   $("#processingChargeAmountClm").css('display','block');
+
+                }else{
+
+                    $("#amountclm").css('display','none');
+
+                    $("#online_admission_amount").attr('readonly','true');
+
+                    $("#processingChargeTypeClm").css('display','none');
+
+                    $("#processingChargeAmountClm").css('display','none');
+
+                }
     });
     })(jQuery);
 
@@ -365,10 +396,14 @@ function findSelected($inserted_fields, $find)
             $("#online_admission_amount").removeAttr('readonly','false');
             $("#amountclm").css('display','block');
             $("#onlineform_sub_merchant_id_clm").css('display','block');
+            $("#processingChargeTypeClm").css('display','block');
+            $("#processingChargeAmountClm").css('display','block');
        }else{
             $("#amountclm").css('display','none');
             $("#onlineform_sub_merchant_id_clm").css('display','none');
             $("#online_admission_amount").attr('readonly','true');
+            $("#processingChargeTypeClm").css('display','none');
+            $("#processingChargeAmountClm").css('display','none');
        }
     });
 })(jQuery);

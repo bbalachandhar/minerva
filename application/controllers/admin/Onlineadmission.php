@@ -43,6 +43,8 @@ class Onlineadmission extends Admin_Controller
                 $this->form_validation->set_rules('online_admission_amount', $this->lang->line('amount'), array('required', 'xss_clean', array('check_exists', array($this->onlinestudent_model, 'validate_paymentamount')),
                 )
                 );
+                $this->form_validation->set_rules('online_admission_processing_charge_type', $this->lang->line('processing_charge_type'), 'trim|required|xss_clean');
+                $this->form_validation->set_rules('online_admission_processing_charge', $this->lang->line('processing_charge'), 'trim|required|numeric|xss_clean');
 
                 if ($this->form_validation->run() == true) {
                     $data = array(
@@ -51,6 +53,8 @@ class Onlineadmission extends Admin_Controller
                         'online_admission_amount'      => convertCurrencyFormatToBaseAmount($this->input->post('online_admission_amount')),
                         'online_admission_instruction' => $this->input->post('online_admission_instruction'),
                         'online_admission_conditions'  => $this->input->post('online_admission_conditions'),
+                        'online_admission_processing_charge_type' => $this->input->post('online_admission_processing_charge_type'),
+                        'online_admission_processing_charge' => $this->input->post('online_admission_processing_charge'),
                         'onlineform_sub_merchant_id'   => $this->input->post('onlineform_sub_merchant_id'),
                         'id'                           => 1,
                     );

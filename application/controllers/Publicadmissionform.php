@@ -1558,7 +1558,7 @@ class PublicAdmissionForm extends CI_Controller
                 $this->mailsmsconf->mailsms('online_admission_form_submission', $sender_details);
                 
                 $this->session->set_flashdata('msg', '<div class="alert alert-success">' . $this->lang->line('thanks_for_registration_please_note_your_reference_number') . ' ' . $reference_no . ' ' . $this->lang->line('for_further_communication') . '</div>');
-                redirect('publicadmissionform/pay_later_confirmation'); // Redirect to Pay Later specific confirmation page
+                redirect('publicadmissionform/pay_later_confirmation/' . $reference_no); // Redirect to Pay Later specific confirmation page
 
             } else { // Payment is required AND payment_option is 'pay_online'
                 $total_admission_amount = $this->sch_setting_detail->online_admission_amount; // The base admission fee
@@ -1690,5 +1690,183 @@ class PublicAdmissionForm extends CI_Controller
 
         // Redirect to the onlineadmission BillDesk payment initiation page
         redirect('onlineadmission/billdesk/index');
+    }
+
+    public function pay_later_confirmation($reference_no = null)
+    {
+        if (empty($reference_no)) {
+            $this->session->set_flashdata('error', $this->lang->line('invalid_reference_number'));
+            redirect('publicadmissionform');
+        }
+        $data['reference_no'] = $reference_no;
+        $this->load->view('public_admission/pay_later_confirmation', $data);
+
+    }
+
+    public function ajax_add_college_admission()
+    {
+        $this->form_validation->set_rules('user_name', 'Name', 'trim|required|xss_clean');
+        $this->form_validation->set_rules('father_name', 'Father\'s Name', 'trim|required|xss_clean');
+        $this->form_validation->set_rules('father_mobile', 'Father\'s Mobile Number', 'trim|required|min_length[10]|max_length[10]|xss_clean');
+        $this->form_validation->set_rules('father_occupation', 'Father\'s Occupation', 'trim|required|xss_clean');
+        $this->form_validation->set_rules('mother_name', 'Mother\'s Name', 'trim|required|xss_clean');
+        $this->form_validation->set_rules('mother_mobile', 'Mother\'s Mobile Number', 'trim|required|min_length[10]|max_length[10]|xss_clean');
+        $this->form_validation->set_rules('mother_occupation', 'Mother\'s Occupation', 'trim|required|xss_clean');
+        $this->form_validation->set_rules('gender', 'Gender', 'trim|required|xss_clean');
+        $this->form_validation->set_rules('student_email', 'Email ID', 'trim|required|valid_email|xss_clean');
+        $this->form_validation->set_rules('student_mobile', 'Student\'s Mobile Number', 'trim|required|min_length[10]|max_length[10]|xss_clean');
+        $this->form_validation->set_rules('dob', 'D.O.B', 'trim|required|xss_clean');
+        $this->form_validation->set_rules('aadhaar', 'Aadhaar Number', 'trim|required|min_length[12]|max_length[12]|xss_clean');
+        $this->form_validation->set_rules('comm_addr', 'Address for Communication', 'trim|required|xss_clean');
+        $this->form_validation->set_rules('perm_addr', 'Permanent Address', 'trim|required|xss_clean');
+
+        if (empty($_FILES['user_image']['name'])) {
+            $this->form_validation->set_rules('user_image', 'Photo', 'required');
+        } else {
+            $this->form_validation->set_rules('user_image', 'Photo', 'callback_image_handle_upload[user_image]');
+        }
+
+        $courseLevel = $this->input->post('courseLevel');
+
+        if ($courseLevel == 'ug') {
+            $this->form_validation->set_rules('ug_course', 'UG Course', 'trim|required|xss_clean');
+            $this->form_validation->set_rules('school_name', 'Name of the school of X std', 'trim|required|xss_clean');
+            $this->form_validation->set_rules('tenth_passing', 'Year of passing of X std', 'trim|required|min_length[4]|max_length[4]|xss_clean');
+            $this->form_validation->set_rules('maths_marks', 'Maths Marks', 'trim|required|numeric|xss_clean');
+            $this->form_validation->set_rules('total_maths', 'Total Maths Marks', 'trim|required|numeric|xss_clean');
+            $this->form_validation->set_rules('physics_marks', 'Physics & Chemistry Marks', 'trim|required|numeric|xss_clean');
+            $this->form_validation->set_rules('total_physics', 'Total Physics & Chemistry Marks', 'trim|required|numeric|xss_clean');
+            if ($this->input->post('ug_course') == 1) { // B.Arch course ID
+                $this->form_validation->set_rules('nata_score', 'NATA Score', 'trim|required|xss_clean');
+                $this->form_validation->set_rules('application_number', 'NATA Application Form', 'trim|required|xss_clean');
+                $this->form_validation->set_rules('nata_year', 'NATA Year', 'trim|required|xss_clean');
+            }
+        } elseif ($courseLevel == 'lateral') {
+            $this->form_validation->set_rules('lateral_course', 'Lateral Entry Course', 'trim|required|xss_clean');
+            $this->form_validation->set_rules('lateral_school_name', 'Name of the school of X std', 'trim|required|xss_clean');
+            $this->form_validation->set_rules('lateral_tenth_passing', 'Year of passing of X std', 'trim|required|min_length[4]|max_length[4]|xss_clean');
+            for ($i = 1; $i <= 6; $i++) {
+                $this->form_validation->set_rules('presub' . $i, 'Pre-Final Semester Subject ' . $i, 'trim|xss_clean');
+                $this->form_validation->set_rules('premark' . $i, 'Pre-Final Semester Marks ' . $i, 'trim|numeric|xss_clean');
+                $this->form_validation->set_rules('preout' . $i, 'Pre-Final Semester Total Marks ' . $i, 'trim|numeric|xss_clean');
+                $this->form_validation->set_rules('finalsub' . $i, 'Final Semester Subject ' . $i, 'trim|xss_clean');
+                $this->form_validation->set_rules('finalmark' . $i, 'Final Semester Marks ' . $i, 'trim|numeric|xss_clean');
+                $this->form_validation->set_rules('finalout' . $i, 'Final Semester Total Marks ' . $i, 'trim|numeric|xss_clean');
+            }
+        } elseif ($courseLevel == 'pg') {
+            $this->form_validation->set_rules('pg_course', 'PG Course', 'trim|required|xss_clean');
+            $this->form_validation->set_rules('exam_passed', 'Qualifying Exam passed', 'trim|required|xss_clean');
+            $this->form_validation->set_rules('branch', 'Branch', 'trim|required|xss_clean');
+            $this->form_validation->set_rules('yop', 'Year of Passing', 'trim|required|xss_clean');
+            $this->form_validation->set_rules('noc', 'Name of the College', 'trim|required|xss_clean');
+            $this->form_validation->set_rules('nou', 'Name of the University', 'trim|required|xss_clean');
+            $this->form_validation->set_rules('pg_app_num', 'TANCET / PGETA Exam Application Number', 'trim|required|xss_clean');
+            $this->form_validation->set_rules('exam_year', 'TANCET / PGETA Examination Year', 'trim|required|min_length[4]|max_length[4]|xss_clean');
+            $this->form_validation->set_rules('exam_score', 'TANCET / PGETA Exam Score', 'trim|required|numeric|xss_clean');
+            if (!empty($_FILES['bonafide']['name'])) {
+                $this->form_validation->set_rules('bonafide', 'Bonafide Certificate', 'callback_document_handle_upload[bonafide]');
+            }
+        }
+
+        if ($this->form_validation->run() == false) {
+            $errors = $this->form_validation->error_array();
+            $array = array('status' => 'fail', 'error' => $errors);
+            echo json_encode($array);
+        } else {
+            $data = $this->input->post();
+            $photo_name = '';
+            if (isset($_FILES["user_image"]) && !empty($_FILES['user_image']['name'])) {
+                $upload_result = $this->media_storage->fileupload("user_image", "./uploads/student_images/online_admission_image/");
+                if ($upload_result['status']) {
+                    $photo_name = 'uploads/student_images/online_admission_image/' . $upload_result['message'];
+                }
+            }
+
+            do {
+                $reference_no   = mt_rand(100000, 999999);
+                $refence_status = $this->onlinestudent_model->checkreferenceno($reference_no);
+            } while ($refence_status);
+
+            $insert_data_online_admission = array(
+                'reference_no' => $reference_no,
+                'firstname' => $data['user_name'],
+                'mobileno' => $data['student_mobile'],
+                'email' => $data['student_email'],
+                'dob' => date('Y-m-d', strtotime($data['dob'])),
+                'gender' => $data['gender'],
+                'father_name' => $data['father_name'],
+                'father_phone' => $data['father_mobile'],
+                'father_occupation' => $data['father_occupation'],
+                'mother_name' => $data['mother_name'],
+                'mother_phone' => $data['mother_mobile'],
+                'mother_occupation' => $data['mother_occupation'],
+                'current_address' => $data['comm_addr'],
+                'permanent_address' => $data['perm_addr'],
+                'adhar_no' => $data['aadhaar'],
+                'image' => $photo_name,
+                'form_status' => 0,
+                'paid_status' => 0,
+            );
+
+            $online_admission_id = $this->onlinestudent_model->add($insert_data_online_admission);
+
+            if (!empty($data['referral_name'])) {
+                $insert_ref_data = array(
+                    'online_admission_id' => $online_admission_id,
+                    'referrer_name' => $data['referral_name'],
+                    'relationship' => $data['relationship'],
+                    'phone_no' => $data['phone_no'],
+                );
+                $this->Online_admission_references_model->add($insert_ref_data);
+            }
+
+            if ($courseLevel == 'ug') {
+                $this->Online_admission_ug_details_model->add([
+                    'online_admission_id' => $online_admission_id,
+                    'ug_course_id' => $data['ug_course'],
+                    'school_name_x' => $data['school_name'],
+                    'passing_year_x' => $data['tenth_passing'],
+                    'maths_marks' => $data['maths_marks'], 'total_maths' => $data['total_maths'],
+                    'physics_marks' => $data['physics_marks'], 'total_physics' => $data['total_physics'],
+                ]);
+                if ($data['ug_course'] == 1) { // B.Arch course ID
+                    $this->Online_admission_nata_details_model->add([
+                        'online_admission_id' => $online_admission_id,
+                        'nata_score' => $data['nata_score'],
+                        'application_number' => $data['application_number'],
+                        'nata_year' => $data['nata_year'],
+                    ]);
+                }
+            } elseif ($courseLevel == 'lateral') {
+                // Lateral entry logic here
+            } elseif ($courseLevel == 'pg') {
+                // PG logic here
+            }
+            
+            $sender_details = ['firstname' => $data['user_name'], 'lastname' => $data['father_name'], 'email' => $data['student_email'], 'date' => date('Y-m-d'), 'reference_no' => $reference_no, 'mobileno' => $data['student_mobile'], 'guardian_email' => '', 'guardian_phone' => $data['father_mobile']];
+            $payment_option = $this->input->post('payment_option');
+
+            if ($this->sch_setting_detail->online_admission_payment != 1 || $this->sch_setting_detail->online_admission_amount <= 0 || $payment_option == 'pay_later') {
+                $this->onlinestudent_model->edit(['id' => $online_admission_id, 'paid_status' => ($payment_option == 'pay_later') ? 2 : 0]);
+                $this->mailsmsconf->mailsms('online_admission_form_submission', $sender_details);
+                echo json_encode(['status' => 'success', 'redirect_url' => site_url('publicadmissionform/pay_later_confirmation/' . $reference_no)]);
+            } else {
+                $total_admission_amount = $this->sch_setting_detail->online_admission_amount;
+                $processing_charge = 0;
+                if (isset($this->sch_setting_detail->online_admission_processing_charge_type) && $this->sch_setting_detail->online_admission_processing_charge > 0) {
+                    if ($this->sch_setting_detail->online_admission_processing_charge_type == 'percentage') {
+                        $processing_charge = ($total_admission_amount * $this->sch_setting_detail->online_admission_processing_charge) / 100;
+                    } else {
+                        $processing_charge = $this->sch_setting_detail->online_admission_processing_charge;
+                    }
+                }
+                $final_amount_to_pay = $total_admission_amount + $processing_charge;
+                $payment_params = ['online_admission_id' => $online_admission_id, 'reference_no' => $reference_no, 'total' => $final_amount_to_pay, 'admission_amount' => $total_admission_amount, 'processing_charge' => $processing_charge, 'name' => $data['user_name'], 'guardian_phone' => $data['father_mobile'], 'email' => $data['student_email'], 'item_type' => 'online_admission_fee', 'sch_setting_detail' => $this->sch_setting_detail];
+                $this->session->set_userdata('online_admission_payment_params', $payment_params);
+                $this->session->set_userdata('online_admission_id', $online_admission_id);
+                $this->onlinestudent_model->edit(['id' => $online_admission_id, 'paid_status' => 0]);
+                echo json_encode(['status' => 'success', 'redirect_url' => site_url('publicadmissionform/confirm_payment')]);
+            }
+        }
     }
 }

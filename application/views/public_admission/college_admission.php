@@ -1091,175 +1091,142 @@
     });
 </script>
 <script>
-    $(document).ready(function() {
-        // Clear all previous inline errors when form is reset or page loaded
+$(document).ready(function() {
+    // Function to clear all previous error messages
+    function clearErrors() {
+        $('.form-error').remove(); // Remove dynamically added error spans
+        $('#email_error, #image_upload_error, #mobile_error, #dob_error, #aadhaar_error').text('');
+    }
+
+    // Function to display errors from the server
+    function displayErrors(errors) {
+        clearErrors();
+        $.each(errors, function(key, value) {
+            if (value) {
+                const field = $('[name="' + key + '"]');
+                let errorSpan = '<span class="text-danger form-error">' + value + '</span>';
+                
+                if (key === 'user_image') {
+                    $('#image-upload-area').after(errorSpan);
+                } else if (field.length > 0) {
+                    field.last().after(errorSpan); // Place error after the field
+                }
+            }
+        });
+    }
+
+    // Handler for the main submit button, which now just opens the modal
+    $('#submit_application_btn').on('click', function(e) {
+        e.preventDefault();
+        console.log('Submit Application button clicked.');
+
+        const form = document.getElementById('admission_form');
+        if (!form.checkValidity()) {
+            form.reportValidity();
+            return;
+        }
+
+        console.log('Client-side validation passed. Showing payment modal.');
+        var paymentOptionModal = new bootstrap.Modal(document.getElementById('paymentOptionModal'));
+        paymentOptionModal.show();
+    });
+
+    // Function to handle form submission via AJAX
+    function submitForm(paymentOption) {
+        console.log('Submitting form with payment option:', paymentOption);
+        $('#payment_option').val(paymentOption);
+        
+        var paymentOptionModal = bootstrap.Modal.getInstance(document.getElementById('paymentOptionModal'));
+        paymentOptionModal.hide();
+
+        var formData = new FormData(document.getElementById('admission_form'));
+        const submitBtn = $('#submit_application_btn');
+        submitBtn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Submitting...');
+        
+        clearErrors();
+
+        $.ajax({
+            url: '<?php echo site_url('publicadmissionform/ajax_add_college_admission'); ?>',
+            type: 'POST',
+            data: formData,
+            dataType: 'json',
+            contentType: false,
+            processData: false,
+            success: function(response) {
+                if (response.status === 'success') {
+                    console.log('AJAX success:', response);
+                    window.location.href = response.redirect_url;
+                } else if (response.status === 'fail') {
+                    console.log('Validation errors:', response.error);
+                    displayErrors(response.error);
+                    alert('Please correct the errors shown on the form and try again.');
+                } else {
+                    alert('An unknown error occurred. Please try again.');
+                }
+            },
+            error: function(jqXHR, textStatus, errorThrown) {
+                console.error('AJAX Error:', textStatus, errorThrown, jqXHR.responseText);
+                alert('A server error occurred. Please check the developer console for more details and try again.');
+            },
+            complete: function() {
+                submitBtn.prop('disabled', false).text('Submit Application');
+            }
+        });
+    }
+
+    // Handlers for modal buttons
+    $('#payOnlineBtn').on('click', function() { submitForm('pay_online'); });
+    $('#payLaterBtn').on('click', function() { submitForm('pay_later'); });
+    
+    // --- Existing client-side validation handlers for instant feedback ---
+    $('#student_email').on('change', function() {
+        var email = $(this).val(), academic_year = $('#academic_year').val();
         $('#email_error').text('');
-        $('#image_upload_error').text('');
+        if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            $.post("<?php echo site_url('publicadmissionform/check_admissions_data'); ?>", { email_id: email, academic_year: academic_year }, function(result) {
+                if (JSON.parse(result).count > 0) {
+                    $('#email_error').text('Email already submitted for this academic year.');
+                    $('#student_email').val("");
+                }
+            });
+        } else if (email) { $('#email_error').text('Invalid email format.'); }
+    });
+
+    $('#student_mobile').on('change', function() {
+        var mobile = $(this).val();
         $('#mobile_error').text('');
-        $('#dob_error').text('');
+        if (/^[0-9]{10}$/.test(mobile)) {
+            $.post("<?php echo site_url('publicadmissionform/check_admissions_data'); ?>", { mobile_no: mobile }, function(result) {
+                if (JSON.parse(result).total != 1) {
+                    $('#mobile_error').text('Mobile number already exists.');
+                    $('#student_mobile').val("");
+                }
+            });
+        } else if (mobile) { $('#mobile_error').text('Must be 10 digits.'); }
+    });
+
+    $('#aadhaar').on('change', function() {
+        var aadhaar = $(this).val();
         $('#aadhaar_error').text('');
-
-
-        // Handler for the submit application button
-        $('#submit_application_btn').on('click', function(e) {
-            e.preventDefault(); // Prevent default form submission initially
-
-            // Clear previous photo error
-            $('#image_upload_error').text('');
-
-            // Client-side photo validation
-            if (!$('#imageUpload').val()) {
-                $('#image_upload_error').text('Please upload your photo.');
-                return; // Stop here if photo is missing
-            }
-
-            // Perform browser's native form validation for required fields
-            const form = document.getElementById('admission_form');
-            if (!form.checkValidity()) {
-                // If form is not valid, trigger native validation messages
-                form.reportValidity();
-                return; // Stop here if form is not valid
-            }
-
-            // If all client-side validations pass, show the payment option modal
-            var paymentOptionModal = new bootstrap.Modal(document.getElementById('paymentOptionModal'));
-            paymentOptionModal.show();
-        });
-
-        // Pay Online button handler
-        $('#payOnlineBtn').on('click', function() {
-            $('#payment_option').val('pay_online');
-            // Hide the modal
-            var paymentOptionModal = bootstrap.Modal.getInstance(document.getElementById('paymentOptionModal'));
-            paymentOptionModal.hide();
-            // Submit the form
-            $('#admission_form').submit();
-        });
-
-        // Pay Later button handler
-        $('#payLaterBtn').on('click', function() {
-            $('#payment_option').val('pay_later');
-            // Hide the modal
-            var paymentOptionModal = bootstrap.Modal.getInstance(document.getElementById('paymentOptionModal'));
-            paymentOptionModal.hide();
-            // Submit the form
-            $('#admission_form').submit();
-        });
-
-
-        // Existing handlers
-        $('#student_email').on('change', function() {
-            var email = $(this).val();
-            var academic_year = $('#academic_year').val(); // Get academic year
-            const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-            // Clear any previous error messages
-            $('#email_error').text('');
-
-            if (regex.test(email) && email!='') {
-                $.ajax({
-                    type: 'POST',
-                    url: "<?php echo site_url('publicadmissionform/check_admissions_data'); ?>",
-                    data: {
-                        email_id: email,
-                        academic_year: academic_year // Pass academic year
-                    },
-                    dataType: "text",
-                    success: function(result) {
-                        var res = JSON.parse(result);
-                        if (res.count > 0) { // If any submission exists for this email
-                            $('#email_error').text('Email-ID already submitted applications, please use another mail id for new form submission!');
-                            $('#student_email').val(""); // Clear the email field
-                        } else {
-                            // Email is new, clear any error message
-                            $('#email_error').text('');
-                        }
-                    }
-                });
-            }else{
-                $('#email_error').text('Invalid Email-ID'); // Display invalid email format error
-                $('#student_email').val("");
-            }
-        });
+        if (/^[0-9]{12}$/.test(aadhaar)) {
+            $.post("<?php echo site_url('publicadmissionform/check_admissions_data'); ?>", { aadhaar_no: aadhaar }, function(result) {
+                if (JSON.parse(result).total != 1) {
+                    $('#aadhaar_error').text('Aadhaar number already exists.');
+                    $('#aadhaar').val("");
+                }
+            });
+        } else if (aadhaar) { $('#aadhaar_error').text('Must be 12 digits.'); }
     });
-    $(document).ready(function() {
-        $('#student_mobile').on('change', function() {
-            var mobile = $(this).val();
-            const regex = /^[0-9]{10}$/;
-            // Clear previous error
-            $('#mobile_error').text('');
 
-            if (regex.test(mobile) && mobile!='') {
-                $.ajax({
-                    type: 'POST',
-                    url: "<?php echo site_url('publicadmissionform/check_admissions_data'); ?>",
-                    data: {
-                        mobile_no: mobile,
-                    },
-                    dataType: "text",
-                    success: function(result) {
-                        var res = JSON.parse(result);
-                        if (res.total != 1) { // Assuming total=0 means exists
-                            $('#mobile_error').text('Mobile Number already exists!'); // Display inline
-                            $('#student_mobile').val("");
-                        } else {
-                            $('#mobile_error').text('');
-                        }
-                    }
-                });
-            }else{
-                $('#mobile_error').text('Invalid Mobile Number'); // Display inline
-                $('#student_mobile').val("");
-            }
-        });
+    $('#dob').on('change', function() {
+        const dob = new Date($(this).val()), today = new Date();
+        const minAgeDate = new Date(today.getFullYear() - 17, today.getMonth(), today.getDate());
+        $('#dob_error').text('');
+        if (dob > minAgeDate) {
+            $('#dob_error').text('Applicant must be at least 17 years old.');
+            $(this).val('');
+        }
     });
-    $(document).ready(function() {
-        $('#dob').on('change', function() {
-            const dob = new Date($(this).val());
-            const today = new Date();
-            const minAgeDate = new Date();
-            minAgeDate.setFullYear(today.getFullYear() - 17);
-            // Clear previous error
-            $('#dob_error').text('');
-
-            if (dob >= minAgeDate) {
-                $('#dob_error').text('Invalid Date of Birth (must be 17 years or older)'); // Display inline
-                $(this).val('');
-            } else {
-                $('#dob_error').text('');
-            }
-        });
-    });
-    $(document).ready(function() {
-        $('#aadhaar').on('change', function() {
-            var aadhaar = $(this).val();
-            const regex = /^[0-9]{12}$/;
-            // Clear previous error
-            $('#aadhaar_error').text('');
-
-            if (regex.test(aadhaar) && aadhaar!='') {
-                $.ajax({
-                    type: 'POST',
-                    url: "<?php echo site_url('publicadmissionform/check_admissions_data'); ?>",
-                    data: {
-                        aadhaar_no: aadhaar,
-                    },
-                    dataType: "text",
-                    success: function(result) {
-                        var res = JSON.parse(result);
-                        if (res.total != 1) { // Assuming total=0 means exists
-                            $('#aadhaar_error').text('Aadhaar Number already exists!'); // Display inline
-                            $('#aadhaar').val("");
-                        } else {
-                            $('#aadhaar_error').text('');
-                        }
-                    }
-                });
-            }else{
-                $('#aadhaar_error').text('Invalid Aadhaar Number (must be 12 digits)'); // Display inline
-                $('#aadhaar').val("");
-            }
-        });
-    });
+});
 </script>
 </html>
