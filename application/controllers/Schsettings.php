@@ -1417,6 +1417,42 @@ class Schsettings extends Admin_Controller
         $this->load->view('layout/header');
         $this->load->view('setting/hiddenforms');
         $this->load->view('layout/footer');
-    }
-    
-}
+        }
+    		
+            public function timetablesettings()
+            {
+                $this->session->set_userdata('top_menu', 'System Settings');
+                $this->session->set_userdata('sub_menu', 'schsettings/index');
+                $this->session->set_userdata('subsub_menu', 'schsettings/timetablesettings');
+        
+                $setting              = $this->setting_model->getSetting();
+                if (is_null($setting)) {
+                    $setting = new stdClass();
+                    $setting->base_url = '';
+                    $setting->folder_path = '';
+                }
+                $setting->base_url    = ($setting->base_url == "") ? base_url() : $setting->base_url;
+                $setting->folder_path = FCPATH;
+                $data['result']       = $setting;
+                $this->load->view('layout/header', $data);
+                $this->load->view('setting/timetablesettings', $data);
+                $this->load->view('layout/footer', $data);
+            }
+            
+            public function savetimetablesettings()
+            {
+                $is_dynamic_timetable = $this->input->post('is_dynamic_timetable');
+                if ($is_dynamic_timetable == NULL) {
+                    $is_dynamic_timetable = 0;
+                }
+        
+                $data = array(
+                    'id'                   => $this->input->post('sch_id'),
+                    'is_dynamic_timetable' => $is_dynamic_timetable,
+                );
+        
+                $this->setting_model->add($data);
+                $array = array('status' => 'success', 'error' => '', 'message' => $this->lang->line('success_message'));
+                echo json_encode($array);
+            }
+        }

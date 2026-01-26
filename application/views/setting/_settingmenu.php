@@ -40,6 +40,9 @@
             <li class="<?php echo set_SubSubmenu('schsettings/hiddenforms'); ?>">
                 <a class="<?php echo set_SubSubmenu('schsettings/hiddenforms'); ?>" href="<?php echo site_url('schsettings/hiddenforms') ?>">Hidden Form URLs</a>
             </li>
+            <li class="<?php echo set_SubSubmenu('schsettings/timetablesettings'); ?>">
+                <a class="<?php echo set_SubSubmenu('schsettings/timetablesettings'); ?>" href="<?php echo site_url('schsettings/timetablesettings') ?>">Timetable Settings</a>
+            </li>
             
         </ul>
     </div>
