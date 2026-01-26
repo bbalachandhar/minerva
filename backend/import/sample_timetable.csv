@@ -1,7 +1,6 @@
-day,subject_code,time_from,time_to,room_no
-Monday,ENG001,9:00,10:00,101
-Tuesday,MTH001,10:00,11:00,102
-Wednesday,SCI001,11:00,12:00,103
-Thursday,HST001,1:00,2:00,104
-Friday,GEO001,2:00,3:00,105
-Saturday,ART001,3:00,4:00,106
+day,subject_code,period_name,room_no
+Monday,ENG101,Period 1,101
+Tuesday,MATH101,Period 2,102
+Wednesday,SCI101,Period 3,103
+Thursday,HIST101,Period 4,104
+Friday,ART101,Period 5,105

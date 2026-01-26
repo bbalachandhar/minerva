@@ -101,6 +101,13 @@ foreach ($side_list_value->submenus as $submenu_key => $submenu_value) {
 }
 
                     }
+if ($side_list_value->lang_key == 'academics') {
+    ?>
+    <li class="<?php echo set_Submenu('academics/periods'); ?>">
+        <a href="<?php echo site_url('admin/periods'); ?>"><i class="fa fa-angle-double-right"></i><?php echo $this->lang->line('manage_periods'); ?></a>
+    </li>
+    <?php
+}
 
                     ?>
                         </ul>

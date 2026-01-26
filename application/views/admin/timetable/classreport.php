@@ -78,75 +78,105 @@
                                                 </form>
                             
                                                 <?php
-                            if (isset($timetable)) {
+                            if (isset($timetable_by_period_day)) {
                                 ?>
                                                     <div class="box-header ptbnull"></div>
                                                     <div class="box-body">
                                                         <?php
-                            if (!empty($timetable)) {
+                            if (!empty($timetable_by_period_day)) {
                                     ?>
-                               <button type="submit" title="<?php echo $this->lang->line('print'); ?>" class="btn btn-primary btn-xs pull-right  print_timetable"  data-class_id="<?php echo set_value('class_id'); ?>" data-section_id="<?php echo set_value('section_id'); ?>" id="load" data-loading-text="<i class='fa fa-spinner fa-spin'></i> <?php echo $this->lang->line('please_wait'); ?>"><i class="fa fa-print"></i></button>
-                                                            <div class="table-responsive">    
-                                                                <table class="table table-stripped">
-                                                                    <thead>
-                                                                        <tr>
-                                                                            <?php
-                            foreach ($timetable as $tm_key => $tm_value) {
-                                if (strtolower($tm_key) === 'sunday') {
-                                    continue;
-                                }
-                                        ?>
-                                                                                <th class="text text-center"><?php echo $this->lang->line(strtolower($tm_key)); ?></th>
-                                                                                <?php
-                            }
-                                    ?>
-                                                                        </tr>
-                                                                    </thead>
-                                                                    <tbody>
-                                                                        <tr>
-                                                                            <?php
-                            foreach ($timetable as $tm_key => $tm_value) {
-                                if (strtolower($tm_key) === 'sunday') {
-                                    continue;
-                                }
-                                        ?>
-                                                                                <td class="text" width="14%">
-                            
-                                                                                    <?php
-                            if (!$timetable[$tm_key]) {
-                                            ?>
-                                                                                        <div class="attachment-block block-b-noraml clearfix">
-                                                                                            <b class="text text-danger"><i class="fa fa-times-circle text-danger"></i> <?php echo $this->lang->line('not_scheduled'); ?></b><br>
-                                                                                        </div>
-                                                                                        <?php
-                            } else {
-                                            foreach ($timetable[$tm_key] as $tm_k => $tm_kue) {
-                                                ?>
-                                                                                            <div class="card card-sm card-bordered" style="margin-bottom: 10px;">
-                                                                                                <div class="card-body card-body-fixed-height">
-                                                                                                    <h5 class="card-title"><i class="fa fa-book"></i> <?php
-                                                                                                        echo $tm_kue->subject_name;
-                                                                                                        if ($tm_kue->code != '') {
-                                                                                                            echo " (" . $tm_kue->code . ")";
-                                                                                                        }
-                                                                                                        ?></h5>
-                                                                                                    <p class="card-text"><i class="fa fa-clock-o"></i> <?php echo $tm_kue->time_from ?> - <strong class=""><?php echo $tm_kue->time_to; ?></strong></p>
-                                                                                                    <p class="card-text"><i class="fa fa-user"></i> <?php echo $tm_kue->name . " " . $tm_kue->surname . " (" . $tm_kue->employee_id . ")"; ?></p>
-                                                                                                    <p class="card-text"><i class="fa fa-building"></i> <?php echo $this->lang->line('room_no'); ?>: <?php echo $tm_kue->room_no; ?></p>
-                                                                                                </div>
-                                                                                            </div>
-                                                                                            <?php
-                            }
-                                        }
-                                        ?>
-                                                                                </td>
-                                                                                <?php
-                            }
-                                    ?>
-                                                                        </tr>
-                                                                    </tbody>
-                                                                </table>
-                                                            </div>  
+                                                               <div class="table-responsive">    
+                                                                   <table class="table table-stripped">
+                                                                       <thead>
+                                                                           <tr>
+                                                                               <th class="text text-center"><?php echo $this->lang->line('period'); ?></th>
+                                                                               <?php
+                                                                               $days = $this->customlib->getDaysname();
+                                                                               foreach ($days as $day_key => $day_value) {
+                                                                                   if (strtolower($day_key) === 'sunday') {
+                                                                                       continue;
+                                                                                   }
+                                                                                   ?>
+                                                                                   <th class="text text-center"><?php echo $this->lang->line(strtolower($day_key)); ?></th>
+                                                                                   <?php
+                                                                               }
+                                                                               ?>
+                                                                           </tr>
+                                                                       </thead>
+                                                                       <tbody style="border-bottom: 2px solid black;">
+                                                                           <?php
+                                                                           foreach ($periods as $period) {
+                                                                               ?>
+                                                                               <tr>
+                                                                                                                                       <td class="text text-center" style="vertical-align: middle;">
+                                                                                                                                           <?php echo substr($period->time_from, 0, 5); ?><br/>
+                                                                                                                                           <?php echo substr($period->time_to, 0, 5); ?>
+                                                                                                                                       </td>                                                                                   <?php
+                                                                                   foreach ($days as $day_key => $day_value) {
+                                                                                       if (strtolower($day_key) === 'sunday') {
+                                                                                           continue;
+                                                                                       }
+                                                                                       ?>
+                                                                                       <td class="text" width="14%">
+                                                                                           <?php
+                                                                                           $entry = $timetable_by_period_day[$period->id][$day_key];
+                                                                                           if (!empty($entry)) {
+                                                                                               // Handle multiple entries for the same period and day
+                                                                                               if (is_array($entry)) {
+                                                                                                   foreach ($entry as $single_entry) {
+                                                                                                       ?>
+                                                                                                       <div class="card card-sm card-bordered" style="margin-bottom: 10px;">
+                                                                                                           <div class="card-body card-body-fixed-height">
+                                                                                                               <h5 class="card-title"><i class="fa fa-book"></i> <?php
+                                                                                                                   echo $single_entry->subject_name;
+                                                                                                                   if ($single_entry->code != '') {
+                                                                                                                       echo " (" . $single_entry->code . ")";
+                                                                                                                   }
+                                                                                                                   ?></h5>
+                                                                                                               <p class="card-text"><i class="fa fa-user"></i> <?php echo $single_entry->name . " " . $single_entry->surname . " (" . $single_entry->employee_id . ")"; ?></p>
+
+                                                                                                           </div>
+                                                                                                       </div>
+                                                                                                       <?php
+                                                                                                   }
+                                                                                               } else {
+                                                                                                   // Single entry
+                                                                                                   ?>
+                                                                                                   <div class="card card-sm card-bordered" style="margin-bottom: 10px;">
+                                                                                                       <div class="card-body card-body-fixed-height">
+                                                                                                           <h5 class="card-title"><i class="fa fa-book"></i> <?php
+                                                                                                               echo $entry->subject_name;
+                                                                                                               if ($entry->code != '') {
+                                                                                                                   echo " (" . $entry->code . ")";
+                                                                                                               }
+                                                                                                               ?></h5>
+                                                                                                           <p class="card-text"><i class="fa fa-user"></i> <?php echo $entry->name . " " . $entry->surname . " (" . $entry->employee_id . ")"; ?></p>
+
+                                                                                                           <p class="card-text"><i class="fa fa-building"></i> <?php echo $this->lang->line('room_no'); ?>: <?php echo $entry->room_no; ?></p>
+                                                                                                       </div>
+                                                                                                   </div>
+                                                                                                   <?php
+                                                                                               }
+                                                                                           } else {
+                                                                                               ?>
+                                                                                               <div class="attachment-block block-b-noraml clearfix">
+                                                                                                   <b class="text text-danger"><i class="fa fa-times-circle text-danger"></i> <?php echo $this->lang->line('not_scheduled'); ?></b><br>
+                                                                                               </div>
+                                                                                               <?php
+                                                                                           }
+                                                                                           ?>
+                                                                                       </td>
+                                                                                       <?php
+                                                                                   }
+                                                                                   ?>
+                                                                               </tr>
+                                                                               <?php
+                                                                           }
+                                                                           ?>
+                                                                       </tbody>
+                                                                   </table>
+                                                               </div>  
+                                 
                                                             <?php
                             }
                                 ?>

@@ -11,6 +11,7 @@ class Timetable extends Admin_Controller
         parent::__construct();
         $this->load->model("staff_model");
         $this->load->model("classteacher_model");
+        $this->load->model("period_model");
     }
 
     public function bulk()
@@ -54,9 +55,17 @@ class Timetable extends Admin_Controller
                         log_message('debug', 'Timetable bulk upload - Processing row ' . $line_number . ': ' . print_r($row, true));
 
                         // Basic validation for required CSV columns
-                        if (empty($row['day']) || empty($row['subject_code']) || empty($row['time_from']) || empty($row['time_to']) || empty($row['room_no'])) {
+                        if (empty($row['day']) || empty($row['subject_code']) || empty($row['period_name']) || empty($row['room_no'])) {
                             $error_messages[] = $this->lang->line('missing_required_fields') . ' in row ' . $line_number;
                             log_message('error', 'Timetable bulk upload - Missing required fields in row ' . $line_number . ': ' . print_r($row, true));
+                            continue;
+                        }
+
+                        $period = $this->period_model->get_by_name($row['period_name']);
+
+                        if (!$period) {
+                            $error_messages[] = $this->lang->line('period') . ' ' . $row['period_name'] . ' not found in row ' . $line_number;
+                            log_message('error', 'Timetable bulk upload - Period not found: ' . $row['period_name'] . ' in row ' . $line_number);
                             continue;
                         }
 
@@ -109,10 +118,7 @@ class Timetable extends Admin_Controller
                             'subject_group_id'         => $subject_group_id,
                             'subject_group_subject_id' => $subject_group_subject->id,
                             'staff_id'                 => $staff['id'],
-                            'time_from'                => $row['time_from'],
-                            'time_to'                  => $row['time_to'],
-                            'start_time'               => $this->customlib->timeFormat($row['time_from'], true),
-                            'end_time'                 => $this->customlib->timeFormat($row['time_to'], true),
+                            'period_id'                => $period->id,
                             'room_no'                  => $row['room_no'],
                             'session_id'               => $session,
                         );
@@ -310,6 +316,7 @@ class Timetable extends Admin_Controller
         $staff                   = $this->staff_model->getStaffbyrole(2);
         $data['staff']           = $staff;
         $data['subject']         = array();
+        $data['periods']         = $this->period_model->get();
         $this->form_validation->set_rules('class_id', $this->lang->line('class'), 'trim|required|xss_clean');
         $this->form_validation->set_rules('section_id', $this->lang->line('section'), 'trim|required|xss_clean');
         $this->form_validation->set_rules('subject_group_id', $this->lang->line('subject_group'), 'trim|required|xss_clean');
@@ -360,9 +367,11 @@ class Timetable extends Admin_Controller
         $exam                    = $this->exam_model->get();
         $class                   = $this->class_model->get('', $classteacher = 'yes');
         $this->load->model('department_model');
+        $this->load->model('period_model'); // Load the period model
         $data['departmentlist'] = $this->department_model->getDepartmentType();
         $data['examlist']        = $exam;
         $data['classlist']       = $class;
+        $data['periods']         = $this->period_model->get(); // Fetch all periods
         $userdata                = $this->customlib->getUserData();
         $staff                   = $this->staff_model->getStaffbyrole(2);
         $data['staff']           = $staff;
@@ -384,7 +393,29 @@ class Timetable extends Admin_Controller
                     $days_record[$day_key] = $this->subjecttimetable_model->getSubjectByClassandSectionDay($class_id, $section_id, $day_key);
                 }
 
-                $data['timetable'] = $days_record;
+                $data['raw_timetable'] = $days_record; // Keep raw timetable for debugging if needed
+
+                $timetable_by_period_day = [];
+                foreach ($data['periods'] as $period) {
+                    foreach ($days as $day_key => $day_value) {
+                        $timetable_by_period_day[$period->id][$day_key] = null; // Initialize with null
+                    }
+                }
+
+                foreach ($days_record as $day_key => $entries_for_day) {
+                    foreach ($entries_for_day as $entry) {
+                        if (isset($timetable_by_period_day[$entry->period_id][$day_key])) {
+                            // If multiple entries for same period and day, append them
+                            if (!is_array($timetable_by_period_day[$entry->period_id][$day_key])) {
+                                $timetable_by_period_day[$entry->period_id][$day_key] = [$timetable_by_period_day[$entry->period_id][$day_key]];
+                            }
+                            $timetable_by_period_day[$entry->period_id][$day_key][] = $entry;
+                        } else {
+                            $timetable_by_period_day[$entry->period_id][$day_key] = $entry;
+                        }
+                    }
+                }
+                $data['timetable_by_period_day'] = $timetable_by_period_day;
             }
         }
 
@@ -433,6 +464,7 @@ class Timetable extends Admin_Controller
 
         $staff         = $this->staff_model->getStaffbyrole(2);
         $data['staff'] = $staff;
+        $data['periods'] = $this->period_model->get();
         if (empty($prev_record)) {
             $data['prev_record'] = array();
         } else {
@@ -463,8 +495,7 @@ class Timetable extends Admin_Controller
             foreach ($this->input->post('total_row') as $key => $value) {
                 $this->form_validation->set_rules('subject_' . $value, 'Subject', 'trim|required');
                 $this->form_validation->set_rules('staff_' . $value, 'Staff', 'trim|required');
-                $this->form_validation->set_rules('time_from_' . $value, 'Time From', 'trim|required');
-                $this->form_validation->set_rules('time_to_' . $value, 'Time To', 'trim|required');
+                $this->form_validation->set_rules('period_' . $value, 'Period', 'trim|required');
                 $this->form_validation->set_rules('room_no_' . $value, 'Room No', 'trim|required');
             }
         }
@@ -481,8 +512,7 @@ class Timetable extends Admin_Controller
                 foreach ($this->input->post('total_row') as $key => $value) {
                     $json['subject_' . $value]   = form_error('subject_' . $value, '<li>', '</li>');
                     $json['staff_' . $value]     = form_error('staff_' . $value, '<li>', '</li>');
-                    $json['time_from_' . $value] = form_error('time_from_' . $value, '<li>', '</li>');
-                    $json['time_to_' . $value]   = form_error('time_to_' . $value, '<li>', '</li>');
+                    $json['period_' . $value] = form_error('period_' . $value, '<li>', '</li>');
                     $json['room_no_' . $value]   = form_error('room_no_' . $value, '<li>', '</li>');
                 }
             }
@@ -517,10 +547,7 @@ class Timetable extends Admin_Controller
                             'subject_group_id'         => $subject_group_id,
                             'subject_group_subject_id' => $this->input->post('subject_' . $total_value),
                             'staff_id'                 => $this->input->post('staff_' . $total_value),
-                            'time_from'                => $this->input->post('time_from_' . $total_value),
-                            'time_to'                  => $this->input->post('time_to_' . $total_value),
-                            'start_time'               => $this->customlib->timeFormat($this->input->post('time_from_' . $total_value), true),
-                            'end_time'                 => $this->customlib->timeFormat($this->input->post('time_to_' . $total_value), true),
+                            'period_id'                => $this->input->post('period_' . $total_value),
                             'room_no'                  => $this->input->post('room_no_' . $total_value),
                             'session_id'               => $session,
                         );
@@ -534,10 +561,7 @@ class Timetable extends Admin_Controller
                             'subject_group_id'         => $subject_group_id,
                             'subject_group_subject_id' => $this->input->post('subject_' . $total_value),
                             'staff_id'                 => $this->input->post('staff_' . $total_value),
-                            'time_from'                => $this->input->post('time_from_' . $total_value),
-                            'time_to'                  => $this->input->post('time_to_' . $total_value),
-                            'start_time'               => $this->customlib->timeFormat($this->input->post('time_from_' . $total_value), true),
-                            'end_time'                 => $this->customlib->timeFormat($this->input->post('time_to_' . $total_value), true),
+                            'period_id'                => $this->input->post('period_' . $total_value),
                             'room_no'                  => $this->input->post('room_no_' . $total_value),
                             'session_id'               => $session,
                         );

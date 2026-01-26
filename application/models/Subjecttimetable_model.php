@@ -73,7 +73,7 @@ class Subjecttimetable_model extends MY_Model
         $this->db->where('subject_timetable.day', $day);
         $this->db->where('subject_timetable.subject_group_id', $subject_group_id);
         $this->db->where('staff.is_active', 1);
-        $this->db->order_by('subject_timetable.start_time', 'asc');
+        $this->db->order_by('subject_timetable.period_id', 'asc');
         $query = $this->db->get();
         return $query->result();
     }
@@ -102,9 +102,10 @@ class Subjecttimetable_model extends MY_Model
                 }
             }
         }
-        $subject_condition = $subject_condition . " and staff.is_active=1 order by subject_timetable.start_time asc";
+        $subject_condition = $subject_condition . " and staff.is_active=1 order by timetable_periods.time_from asc";
 
-        $sql = "SELECT `subject_group_subjects`.`subject_id`,subjects.name as `subject_name`,subjects.code,subjects.type,staff.name,staff.surname,staff.employee_id,`subject_timetable`.* FROM `subject_timetable` JOIN `subject_group_subjects` ON `subject_timetable`.`subject_group_subject_id` = `subject_group_subjects`.`id`inner JOIN subjects on subject_group_subjects.subject_id = subjects.id INNER JOIN staff on staff.id=subject_timetable.staff_id   WHERE `subject_timetable`.`class_id` = " . $class_id . " AND `subject_timetable`.`section_id` = " . $section_id . " AND `subject_timetable`.`day` = " . $this->db->escape($day) . " AND `subject_timetable`.`session_id` = " . $this->current_session . "" . $subject_condition;
+        $sql = "SELECT `subject_group_subjects`.`subject_id`,subjects.name as `subject_name`,subjects.code,subjects.type,staff.name,staff.surname,staff.employee_id,`subject_timetable`.*, `timetable_periods`.`time_from`, `timetable_periods`.`time_to` FROM `subject_timetable` JOIN `subject_group_subjects` ON `subject_timetable`.`subject_group_subject_id` = `subject_group_subjects`.`id` JOIN `subjects` on `subject_group_subjects`.`subject_id` = `subjects`.`id` JOIN `staff` on `staff`.`id`=`subject_timetable`.`staff_id` JOIN `timetable_periods` ON `subject_timetable`.`period_id` = `timetable_periods`.`id` WHERE `subject_timetable`.`class_id` = " . $class_id . " AND `subject_timetable`.`section_id` = " . $section_id . " AND `subject_timetable`.`day` = " . $this->db->escape($day) . " AND `subject_timetable`.`session_id` = " . $this->current_session . "" . $subject_condition;
+
 
         $query = $this->db->query($sql);
 

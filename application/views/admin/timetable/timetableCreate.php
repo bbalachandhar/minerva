@@ -106,71 +106,6 @@ if (set_value('department_id') == $department['id']) {
                     <?php
 if (isset($getDaysnameList)) {
     ?>
-                <div class="box-header with-border">
-                    <h3 class="box-title"><i class="fa fa-search"></i> <?php echo $this->lang->line('select_parameter_to_generate_time_table_quickly'); ?></h3>
-                       
-                </div>
-                <div class="box-header ptbnull">                       
-                <form action="#" method="POST" id="universal_from">           
-         
-        <div class="row">
-            <div class="col-sm-4 col-lg-2 col-md-2">
-                <div class="form-group">
-                    <label for="form_name"><?php echo $this->lang->line('period_start_time'); ?><small class="req"> *</small></label>
-                   
-                    <div class="input-group">
-                                        <input type="text" name="start_time" class="form-control time" id="start_time" value="">
-                                        <div class="input-group-addon">
-                                            <span class="fa fa-clock-o"></span>
-                                        </div>
-                                    </div>
-
-                    <div class="text text-danger"></div>
-                </div>
-            </div>
-            <div class="col-sm-4 col-lg-2 col-md-3">
-                <div class="form-group">
-                    <label for="form_email"><?php echo $this->lang->line('duration_minute'); ?><small class="req"> *</small></label>                     
-                    <div class="input-group">
-                                        <input type="number" name="duration" class="form-control" id="duration" value="">
-                                        <div class="input-group-addon">
-                                            <span class="fa fa-hourglass-start"></span>
-                                        </div>
-                                    </div>
-                    <div class="text text-danger"></div>
-                </div>
-            </div>
-            <div class="col-sm-3 col-lg-2 col-md-2">
-                <div class="form-group">
-                    <label for="form_phone"><?php echo $this->lang->line('interval_minute'); ?><small class="req"> *</small></label>
-                   <div class="input-group">
-                                        <input type="number" name="interval" class="form-control" id="interval" value="0">
-                                        <div class="input-group-addon">
-                                            <span class="fa fa-hourglass-start"></span>
-                                        </div>
-                                    </div>
-                    <div class="text text-danger"></div>
-                </div>
-            </div>
-                 <div class="col-sm-8 col-lg-2 col-md-2">
-                <div class="form-group">
-                    <label for="form_phone"><?php echo $this->lang->line('room_no'); ?></label>
-<input type="text" name="rroom_no" class="form-control" id="froom_no">
-                  
-                    <div class="help-block with-errors"></div>
-                </div>
-            </div>
-              <div class="col-sm-2">
-                <div class="form-group">
-                    <label for="form_phone" class="displayblock opacity d-sm-none">&nbsp;</label>
-                    <input type="submit" class="btn btn-primary btn-sm btn-send smallbtn28" value="<?php echo $this->lang->line('apply'); ?>">
-                    <div class="help-block with-errors"></div>
-                </div>
-            </div>
-        </div>
-   </form>   
-
-                        </div>
                         <div class="nav-tabs-custom">
                             <ul class="nav nav-tabs" id="myTabs">
                                 <?php
@@ -213,6 +148,26 @@ $count++;
 ?>
                 </section>
             </div>
+
+<!-- Modal -->
+<div class="modal fade" id="confirm-navigation-modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title" id="myModalLabel"><?php echo $this->lang->line('confirm_navigation'); ?></h4>
+            </div>
+            <div class="modal-body">
+                <?php echo $this->lang->line('unsaved_changes_alert'); ?>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal"><?php echo $this->lang->line('cancel'); ?></button>
+                <button type="button" class="btn btn-warning" id="discard-changes-btn"><?php echo $this->lang->line('discard'); ?></button>
+                <button type="button" class="btn btn-primary" id="save-changes-btn"><?php echo $this->lang->line('save'); ?></button>
+            </div>
+        </div>
+    </div>
+</div>
             
 <script type="text/javascript">
     $(document).ready(function () {
@@ -222,11 +177,10 @@ $count++;
         var prev_section_id = '<?php echo set_value('section_id') ?>';
         var prev_subject_group_id = '<?php echo set_value('subject_group_id') ?>';
 
-        // Function to get classes by department and pre-select
         function getClassesByDepartment(department_id, selected_class_id) {
-            $('#class_id').html('<option value=""><?php echo $this->lang->line('select'); ?></option>'); // Reset class dropdown
-            $('#section_id').html('<option value=""><?php echo $this->lang->line('select'); ?></option>'); // Reset section dropdown
-            $('#subject_group_id').html('<option value=""><?php echo $this->lang->line('select'); ?></option>'); // Reset subject group dropdown
+            $('#class_id').html('<option value=""><?php echo $this->lang->line('select'); ?></option>'); 
+            $('#section_id').html('<option value=""><?php echo $this->lang->line('select'); ?></option>'); 
+            $('#subject_group_id').html('<option value=""><?php echo $this->lang->line('select'); ?></option>'); 
 
             if (department_id !== "") {
                 $.ajax({
@@ -235,7 +189,7 @@ $count++;
                     data: {'department_id': department_id},
                     dataType: "json",
                     success: function (data) {
-                        var div_data = ''; // Start with empty string
+                        var div_data = ''; 
                         $.each(data, function (i, obj) {
                             var sel = "";
                             if (selected_class_id && selected_class_id == obj.id) {
@@ -245,7 +199,6 @@ $count++;
                         });
                         $('#class_id').append(div_data);
 
-                        // If a class was previously selected, trigger section load
                         if (selected_class_id) {
                             getSectionByClass(selected_class_id, prev_section_id);
                         }
@@ -254,10 +207,9 @@ $count++;
             }
         }
 
-        // Function to get sections by class and pre-select
         function getSectionByClass(class_id, selected_section_id) {
-            $('#section_id').html('<option value=""><?php echo $this->lang->line('select'); ?></option>'); // Reset section dropdown
-            $('#subject_group_id').html('<option value=""><?php echo $this->lang->line('select'); ?></option>'); // Reset subject group dropdown
+            $('#section_id').html('<option value=""><?php echo $this->lang->line('select'); ?></option>');
+            $('#subject_group_id').html('<option value=""><?php echo $this->lang->line('select'); ?></option>');
 
             if (class_id !== "") {
                 $.ajax({
@@ -266,7 +218,7 @@ $count++;
                     data: {'class_id': class_id},
                     dataType: "json",
                     success: function (data) {
-                        var div_data = ''; // Start with empty string
+                        var div_data = '';
                         $.each(data, function (i, obj) {
                             var sel = "";
                             if (selected_section_id && selected_section_id == obj.section_id) {
@@ -276,7 +228,6 @@ $count++;
                         });
                         $('#section_id').append(div_data);
 
-                        // If a section was previously selected, trigger subject group load
                         if (selected_section_id) {
                             getGroupByClassandSection(class_id, selected_section_id, prev_subject_group_id);
                         }
@@ -285,9 +236,8 @@ $count++;
             }
         }
 
-        // Function to get subject groups by class and section and pre-select
         function getGroupByClassandSection(class_id, section_id, selected_subject_group_id) {
-            $('#subject_group_id').html('<option value=""><?php echo $this->lang->line('select'); ?></option>'); // Reset subject group dropdown
+            $('#subject_group_id').html('<option value=""><?php echo $this->lang->line('select'); ?></option>'); 
 
             if (class_id !== "" && section_id !== "") {
                 $.ajax({
@@ -296,7 +246,7 @@ $count++;
                     data: {'class_id': class_id, 'section_id': section_id},
                     dataType: "json",
                     success: function (data) {
-                        var div_data = ''; // Start with empty string
+                        var div_data = '';
                         $.each(data, function (i, obj) {
                             var sel = "";
                             if (selected_subject_group_id && selected_subject_group_id == obj.subject_group_id) {
@@ -310,46 +260,37 @@ $count++;
             }
         }
 
-        // --- Event Listeners ---
-
-        // Department change event
         $(document).on('change', '#department_id', function (e) {
             var department_id = $(this).val();
-            getClassesByDepartment(department_id, null); // Don't pre-select class, it's a new selection
+            getClassesByDepartment(department_id, null);
         });
 
-        // Class change event
         $(document).on('change', '#class_id', function (e) {
             var class_id = $(this).val();
-            getSectionByClass(class_id, null); // Don't pre-select section, it's a new selection
+            getSectionByClass(class_id, null);
         });
 
-        // Section change event
         $(document).on('change', '#section_id', function (e) {
             var section_id = $(this).val();
             var class_id = $('#class_id').val();
-            getGroupByClassandSection(class_id, section_id, null); // Don't pre-select subject group, it's a new selection
+            getGroupByClassandSection(class_id, section_id, null);
         });
 
-        // --- Initial Load Logic ---
-        // On page load, if a department was previously selected, trigger the cascade
         if (prev_department_id !== "") {
             getClassesByDepartment(prev_department_id, prev_class_id);
         }
 
-        // After initial dropdown population, if all relevant prev values are set,
-        // trigger getGroupdata for the first tab to load its content.
         if (prev_class_id !== "" && prev_section_id !== "" && prev_subject_group_id !== "") {
             var active_tab_anchor = $('#myTabs a:first');
             var target = active_tab_anchor.attr("href");
             var target_id = active_tab_anchor.attr("id");
             var ajax_data = {
-                'day': active_tab_anchor.data('day'), // Assuming data-day is set correctly on the tab anchor
+                'day': active_tab_anchor.data('day'),
                 'c': prev_class_id,
                 's': prev_section_id,
                 'group': prev_subject_group_id
             };
-            active_tab_anchor.tab('show'); // Activate the tab
+            active_tab_anchor.tab('show'); 
             getGroupdata(target, target_id, ajax_data);
         }
 
@@ -360,158 +301,61 @@ $count++;
             getGroupdata(target, target_id, ajax_data);
         });
 
-        // Additional existing JavaScript
+        let nextTab = null;
+        let previousTab = null;
+        let onSaveCallback = null;
+
+        $('a[data-toggle="tab"]').on('show.bs.tab', function(e) {
+            previousTab = e.relatedTarget;
+            let previousTabPane = $(previousTab).attr('href');
+
+            if (previousTabPane && $(previousTabPane).data('isDirty')) {
+                e.preventDefault();
+                nextTab = e.target;
+                $('#confirm-navigation-modal').modal('show');
+            }
+        });
+
+        $('#discard-changes-btn').on('click', function() {
+            if (previousTab) {
+                let previousTabPane = $(previousTab).attr('href');
+                $(previousTabPane).data('isDirty', false);
+            }
+            $('#confirm-navigation-modal').modal('hide');
+            if (nextTab) {
+                $(nextTab).tab('show');
+            }
+        });
+
+        $('#save-changes-btn').on('click', function() {
+            onSaveCallback = function() {
+                if (previousTab) {
+                    let previousTabPane = $(previousTab).attr('href');
+                    $(previousTabPane).data('isDirty', false);
+                }
+                $('#confirm-navigation-modal').modal('hide');
+                if (nextTab) {
+                    $(nextTab).tab('show');
+                }
+                // Reset callback
+                onSaveCallback = null;
+            };
+
+            // Get form of the previous tab and submit it
+            if (previousTab) {
+                let previousTabPane = $(previousTab).attr('href');
+                $(previousTabPane).find('form').submit();
+            }
+        });
+
         $(document).on('submit','.create_time_table',function(e){
             document.getElementById("insertbtn").disabled = true;
         });   
         
-        $(document).on('focus', '.time', function () {
-            var $this = $(this);
-            $this.datetimepicker({
-                format: 'hh:mm A'
-            });
-        });
-        
-        var tot_count = 0; 
-        var fixedTimeSchedule = [
-            { from: "09:30 AM", to: "10:20 AM" },
-            { from: "10:20 AM", to: "11:10 AM" },
-            { from: "11:25 AM", to: "12:15 PM" },
-            { from: "12:15 PM", to: "01:05 PM" },
-            { from: "01:45 PM", to: "02:35 PM" },
-            { from: "02:35 PM", to: "03:25 PM" },
-            { from: "03:25 PM", to: "04:15 PM" }
-        ];// This variable seems to be used later in addrow function, ensure it's initialized correctly if needed globally.
-
-        // This part was wrapped in $(document).ready function previously, 
-        // now it is outside but still called on document ready by virtue of being in the main ready function
-        $(document).on('click', '.addrow', function () {                       
-            var newRow = $("<tr>");
-            var cols = "";
-            var scheduleIndex = tot_count % fixedTimeSchedule.length;
-            var timeFromValue = fixedTimeSchedule[scheduleIndex].from;
-            var timeToValue = fixedTimeSchedule[scheduleIndex].to;
-            cols += '<td class="relative"><input type="hidden" name="total_row[]" value="' + tot_count + '"><input type="hidden" name="prev_id_' + tot_count + '" value="0"><select class="form-control subject" id="subject_id_' + tot_count + '" name="subject_' + tot_count + '">' + $("#subject_dropdown").text() + '</select></td>';
-            cols += '<td class="relative"><select class="form-control staff" id="staff_id_' + tot_count + '" name="staff_' + tot_count + '">' + $("#staff_dropdown").text() + '</select></span></td>';
-
-            cols += '<td><div class="input-group"><input type="text" name="time_from_' + tot_count + '" class="form-control time_from time" id="time_from_' + tot_count + '" value="' + timeFromValue + '" aria-invalid="false"><div class="input-group-addon"><i class="fa fa-clock-o"></i></div></div></span></td>';
-
-            cols += '<td><div class="input-group"><input type="text" name="time_to_' + tot_count + '" class="form-control time_to time" id="time_to_' + tot_count + '" value="' + timeToValue + '" aria-invalid="false"><div class="input-group-addon"><i class="fa fa-clock-o"></i></div></div></span></td>';
-
-            cols += '<td><input type="text" class="form-control room_no" name="room_no_' + tot_count + '" id="room_no_' + tot_count + '"/> </td>';
-            cols += '<td class="text-right"><button type="button" class="ibtnDel btn btn-danger btn-sm btn-danger"><i class="fa fa-trash"></i></button></td>';
-            newRow.append(cols);
-
-            $("table.order-list").append(newRow);
-
-
-            $('.staff', newRow).select2({
-                dropdownAutoWidth: true,
-                width: '100%'
-            });
-
-            $('.subject', newRow).select2({
-                dropdownAutoWidth: true,
-                width: '100%'
-            });
-            tot_count++;
-        });
-
-        $(document).on("click", ".ibtnDel", function (event) {
-            if($(this).closest('tr').prev('input').val()){
-                if (confirm('<?php echo $this->lang->line("are_you_sure_you_want_to_delete"); ?>')) {
-                    $(this).closest("tr").remove();
-                    // counter -= 1 // counter is not defined in this scope
-                }
-                return false;
-            }else{
-                $(this).closest("tr").remove();
-                // counter -= 1 // counter is not defined in this scope
-            }
-        });
-
-        $(document).on('click', '.submit_subject_group', function () {
-            var form_id = $(this).closest("form").attr('id');
-            var target = $('.nav-tabs .active a').attr("href"); // activated tab
-            var target_id = $('.nav-tabs .active a').attr("id"); // activated tab
-            var ajax_data = $('.nav-tabs .active a').data(); // activated tab
-            // Further logic if any
-        });
-        
-        // This part of the code was also a separate $(document).ready block.
-        // It is now integrated into the main $(document).ready block.
-        $("#universal_from").validate({    
-            rules: {
-                start_time: {
-                    required: true
-                },
-                duration: {
-                    required: true
-                },
-                interval: {
-                    required: true
-                }
-            },
-            // Specify validation error messages
-            messages: {
-                start_time: "<?php echo $this->lang->line('required');?>",
-                duration: "<?php echo $this->lang->line('required');?>",
-                interval: "<?php echo $this->lang->line('required');?>",
-            },
-            errorClass: 'text-danger',
-            validClass: 'valid',
-            errorPlacement: function(error, element) {
-                $("#errorText").empty();
-                if(error[0].htmlFor == 'start_time') {
-                    error.appendTo($(element).parents('div.form-group'));
-                }
-                if(error[0].htmlFor == 'duration') {
-                    error.appendTo($(element).parents('div.form-group'));
-                }
-                if(error[0].htmlFor == 'interval') {
-                    error.appendTo($(element).parents('div.form-group'));
-                }
-            },
-            submitHandler: function(form) {
-                let start_time= $('#start_time',form).val();
-                let duration= $('#duration',form).val();
-                let interval= $('#interval',form).val();
-                let froom_no= $('#froom_no',form).val();
-                var interest = $('div.tab-pane.active').find('table#tab_logic');
-                $('tbody  > tr',interest).each(function() {
-                    var new_time = moment(start_time, "hh:mm A")
-                                    .add(duration, 'minutes')
-                                    .format('hh:mm A');
-
-                    var t_form = $(this).find(".time_from").val(start_time);    
-                    var t_to = $(this).find(".time_to").val(new_time);    
-                    var r_no = $(this).find(".room_no").val(froom_no);    
-
-                    start_time=moment(new_time, "hh:mm A")
-                                    .add(interval, 'minutes')
-                                    .format('hh:mm A');
-                });
-            }
-        });
     });
 
-    // Existing functions that are outside $(document).ready need to stay outside
-    // or be carefully integrated if they rely on global variables defined within ready.
-    // For now, keeping them outside for minimal disruption.
-    // However, the original functions getSectionByClass and getGroupByClassandSection 
-    // are duplicated. The version inside the main $(document).ready is now gone, 
-    // and the functions declared globally are used.
-    // Also, the 'tot_count' variable is now global within the main ready block.
-    // The 'counter' variable in ibtnDel was not declared, removing its usage.
-    
-    // The original getSectionByClass and getGroupByClassandSection from the global scope are now integrated above.
-    // The $('a[data-toggle="tab"]').on('shown.bs.tab', function (e) { ... }); block was also global.
-    // It is now also integrated into the main $(document).ready block.
-
-    // This is the function 'getGroupdata' which was previously global.
-    // It remains global as it is called by the tab event listener.
     function getGroupdata(target, target_id, ajax_data) {
-        var base_url = '<?php echo base_url() ?>'; // Ensure base_url is accessible
+        var base_url = '<?php echo base_url() ?>'; 
         $.ajax({
             type: 'POST',
             url: base_url + "admin/timetable/getBydategroupclasssection",
@@ -522,52 +366,21 @@ $count++;
             },
             success: function (data) {
                 $(target).html(data.html);
-
-                $('.staff', target).select2({
-                    dropdownAutoWidth: true,
-                    width: '100%'
+                // Initialize dirty flag for the new tab content
+                $(target).data('isDirty', false);
+                
+                // Attach change listener to set dirty flag
+                $(target).find('select, input').on('change', function() {
+                    $(target).data('isDirty', true);
                 });
-                $('.subject', target).select2({
-                    dropdownAutoWidth: true,
-                    width: '100%'
-                });
-                // Assuming tot_count was meant to be global or passed correctly
-                // tot_count = data.total_count + 1; 
-            },
-            error: function (xhr) { // if error occured
 
+                $('.staff', target).select2({dropdownAutoWidth: true, width: '100%'});
+                $('.subject', target).select2({dropdownAutoWidth: true, width: '100%'});
+                $('.period', target).select2({dropdownAutoWidth: true, width: '100%'});
             },
             complete: function () {
                 $(target).removeClass('show');
             }
         });
     }
-
-</script>
-
-<script type="text/template" id="staff_dropdown">
-    <option value=""><?php echo $this->lang->line('select') ?></option>
-    <?php
-foreach ($staff as $staff_key => $staff_value) {
-    ?>
-        <option value="<?php echo $staff_value['id']; ?>"><?php echo $staff_value['name'] . " " . $staff_value['surname'] . " (" . $staff_value['employee_id'] . ")"; ?></option>
-        <?php
-}
-?>
-</script>
-
-<script type="text/template" id="subject_dropdown">
-    <option value=""><?php echo $this->lang->line('select') ?></option>
-    <?php
-foreach ($subject as $subject_key => $subject_value) {
-    if ($subject_value->code !== '') {
-        $sub_name = $subject_value->name . " (" . $subject_value->code . ")";
-    } else {
-        $sub_name = $subject_value->name;
-    }
-    ?>
-        <option value="<?php echo $subject_value->id; ?>" ><?php echo $sub_name; ?></option>
-        <?php
-}
-?>
 </script>
