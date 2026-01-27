@@ -634,10 +634,10 @@ class Billdesk extends Student_Controller
                     $this->mailsmsconf->mailsms('fee_submission', $obj_mail);
                 } // ADDED THIS CLOSING BRACE
         
-                $this->session->set_flashdata('success', $this->lang->line('payment_success_message'));
-                $this->load->helper('url');
-                redirect('user/user/getfees');
-            }
+                        log_message('error', 'BILLDESK_DEBUG: _processStudentFeeCallback - Session Userdata before redirect: ' . json_encode($this->session->userdata()));
+                        $this->session->set_flashdata('success', $this->lang->line('payment_success_message'));
+                        $this->load->helper('url');
+                        redirect('user/user/getfees');            }
     private function _processOnlineAdmissionCallback($response, $gateway_ins_id, $original_params)
     {
         // This method contains the online admission processing logic
@@ -685,6 +685,7 @@ class Billdesk extends Student_Controller
         // For the sake of redirecting to the *correct* set of success/pending/fail pages,
         // I will use a simple redirect to the onlineadmission/billdesk controller's success/pending/fail methods.
         
+        log_message('error', 'BILLDESK_DEBUG: _processOnlineAdmissionCallback - Session Userdata before redirect: ' . json_encode($this->session->userdata()));
         $this->load->helper('url'); // Ensure URL helper is loaded for redirect
         redirect('onlineadmission/billdesk/success/' . urlencode(json_encode($response)));
     }
