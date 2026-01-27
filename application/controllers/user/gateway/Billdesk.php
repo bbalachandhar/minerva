@@ -630,13 +630,13 @@ class Billdesk extends Student_Controller
             $obj_mail['fee_category'] = $fee_category;
             $obj_mail['send_type'] = 'group';
 
-                    $this->mailsmsconf->mailsms('fee_submission', $obj_mail);
-                } // ADDED THIS CLOSING BRACE
-        
-                $this->session->set_flashdata('success', $this->lang->line('payment_success_message'));
-                $this->load->helper('url');
-                redirect('user/user/getfees');
-            }
+        $this->mailsmsconf->mailsms('fee_submission', $obj_mail);
+
+        $this->session->set_flashdata('success', $this->lang->line('payment_success_message'));
+        $this->load->helper('url');
+        redirect('user/user/getfees');
+    }
+
     private function _processOnlineAdmissionCallback($response, $gateway_ins_id, $original_params)
     {
         // This method contains the online admission processing logic
