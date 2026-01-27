@@ -493,10 +493,11 @@ class Billdesk extends Student_Controller
                 if ($module === 'fees') {
                     if (isset($response['auth_status']) && $response['auth_status'] == '0300') {
                         $this->_processStudentFeeCallback($response, $gateway_ins_id, $original_params);
+                        $this->success($response); // Redirect to student fee success view
                     } elseif (isset($response['auth_status']) && $response['auth_status'] == '0002') {
-                        $this->pending($response);
+                        $this->pending($response); // Redirect to student fee pending view
                     } else {
-                        $this->fail($response);
+                        $this->fail($response); // Redirect to student fee fail view
                     }
                 } elseif ($module === 'online_admission') {
                     if (isset($response['auth_status']) && $response['auth_status'] == '0300') {
@@ -630,11 +631,10 @@ class Billdesk extends Student_Controller
             $obj_mail['fee_category'] = $fee_category;
             $obj_mail['send_type'] = 'group';
 
-        $this->mailsmsconf->mailsms('fee_submission', $obj_mail);
+            $this->mailsmsconf->mailsms('fee_submission', $obj_mail);
+        }
 
-        $this->session->set_flashdata('success', $this->lang->line('payment_success_message'));
-        $this->load->helper('url');
-        redirect('user/user/getfees');
+        $this->success($response);
     }
 
     private function _processOnlineAdmissionCallback($response, $gateway_ins_id, $original_params)
