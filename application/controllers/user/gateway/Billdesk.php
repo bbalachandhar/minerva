@@ -175,7 +175,7 @@ class Billdesk extends Student_Controller
                 $formatted_amount = number_format($total_amount, 2, '.', '');
                 
                 // Corrected access for onlineform_sub_merchant_id using $this->setting[0]
-                $onlineform_sub_merchant_id = $this->setting[0]['onlineform_sub_merchant_id'];
+                $onlineform_sub_merchant_id = $data['params']['sch_setting_detail']->onlineform_sub_merchant_id;
                 if (empty($onlineform_sub_merchant_id)) {
                      throw new Exception("Billdesk payment processing failed: Online form sub-merchant ID is not configured in settings.");
                 }
