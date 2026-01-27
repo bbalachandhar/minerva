@@ -638,16 +638,11 @@ class Customlib
 
     public function getSchoolCurrencyWithPlace($amount = 0)
     {
-        // Get general school settings
-        $school_setting = $this->CI->setting_model->get();
-
-        // Initialize with default values from school settings
-        $currency_symbol = $school_setting[0]['currency_symbol'];
-        $currency_place  = $school_setting[0]['currency_place'];
-
         $admin = $this->CI->session->userdata('admin');
 
+        $currency_symbol = "";
         if ($admin) {
+
             $currency_symbol = $admin['currency_symbol'];
             $currency_place  = $admin['currency_place'];
         } else if ($this->CI->session->userdata('student')) {

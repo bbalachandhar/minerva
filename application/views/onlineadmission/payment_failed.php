@@ -20,11 +20,6 @@
               <div class="successpayment-icon"><i class="fa fa-close"></i></div>
              </div>
                 <h1><?php echo $this->lang->line('payment_failed')?></h1>
-                <?php if ($this->session->flashdata('error')) { ?>
-                    <div class="alert alert-danger" style="margin-top: 20px;">
-                        <?php echo $this->session->flashdata('error'); ?>
-                    </div>
-                <?php } ?>
                 <p><?php echo $this->lang->line('your_transaction_has_failed_due_to_some_technical_error')?></p>
                 <p><?php echo $this->lang->line('please_try_again'); ?></p>
                 <a href="<?php echo base_url("welcome/online_admission_review/".$reference_no); ?>" class="btn btn-info btn-lg mt30"><?php echo $this->lang->line("try_again"); ?></a>
