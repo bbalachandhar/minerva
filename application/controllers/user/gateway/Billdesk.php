@@ -15,7 +15,7 @@ class Billdesk extends Student_Controller
         $this->auth_bypass_methods[] = 'pay';      // Bypass authentication for the pay method as well
         parent::__construct();
         $this->api_config = $this->paymentsetting_model->getActiveMethod();
-        $this->setting = $this->setting_model->get();
+        $this->setting = $this->setting_model->get(); // This returns an array of associative arrays
         $this->load->library('gateway_ins/billdesk_lib');
         $this->load->library('mailsmsconf');
         $this->load->model('studentfeemaster_model');
@@ -23,6 +23,8 @@ class Billdesk extends Student_Controller
         $this->load->model('feegrouptype_model');
         $this->load->model('gateway_ins_model');
         $this->load->model('onlinestudent_model'); // Load onlinestudent_model for online admission details
+        // Note: student_model might be needed for callback, ensure it's loaded if not already.
+        $this->load->model('student_model');
     }
 
     public function index()
@@ -62,152 +64,185 @@ class Billdesk extends Student_Controller
         if (!empty($this->school_details->timezone)) {
             date_default_timezone_set($this->school_details->timezone);
         }
-        $this->session->set_userdata('top_menu', 'Library');
-        $this->session->set_userdata('sub_menu', 'book/index');
+        // Menu settings should be conditional or removed for online_admission
+        // For now, these are default for 'fees' module and unset for 'online_admission_fee'
         $data['params'] = $this->session->userdata('params');
         $data['setting'] = $this->setting;
         $data['api_error'] = '';
 
+        if (empty($data['params'])) {
+            $this->session->set_flashdata('error', 'Payment parameters not found in session.');
+            redirect($_SERVER['HTTP_REFERER'] ?? base_url());
+        }
+
+        $module = $data['params']['item_type'] ?? 'fees'; // Determine module early
+        log_message('error', 'BILLDESK_DEBUG_PAY: Initiating payment for module: ' . $module);
+        log_message('error', 'BILLDESK_DEBUG_PAY: Session params: ' . json_encode($data['params']));
+        log_message('error', 'BILLDESK_DEBUG_PAY: Settings (first element): ' . json_encode($this->setting[0])); // Log first element as it's an array
+
         try {
-            // Calculate Totals and Prepare Split Payment Logic
-            $total_amount = ($data['params']['fine_amount_balance'] + $data['params']['total']) - $data['params']['applied_fee_discount'] + $data['params']['gateway_processing_charge'];
-            $formatted_amount = number_format($total_amount, 2, '.', '');
+            $total_amount = 0;
+            $formatted_amount = '';
+            // Corrected access for school_code using $this->setting[0]['dise_code']
             $school_code = (!empty($this->setting[0]['dise_code'])) ? $this->setting[0]['dise_code'] : "MINERVA";
-
-            // New, correct split payment logic
+            $ecom_order_ref_no = '';
+            $ecom_additional_info = [];
             $split_payment_payload = [];
-            $unmapped_amount = 0;
+            $gateway_module = $module; // This will be used in gateway_ins insert
 
-            // Start with gateway processing charge in unmapped
-            if (isset($data['params']['gateway_processing_charge']) && $data['params']['gateway_processing_charge'] > 0) {
-                $unmapped_amount += $data['params']['gateway_processing_charge'];
-            }
+            if ($module == 'fees') {
+                $total_amount = ($data['params']['fine_amount_balance'] + $data['params']['total']) - $data['params']['applied_fee_discount'] + $data['params']['gateway_processing_charge'];
+                $formatted_amount = number_format($total_amount, 2, '.', '');
+                
+                $fee_group_names = [];
+                $fee_categories = [];
+                $unmapped_amount = 0;
 
-            $fee_group_names = [];
-            $fee_categories = [];
-            
-            if (!empty($data['params']['student_fees_master_array'])) {
-                foreach ($data['params']['student_fees_master_array'] as $key => $fee) {
-                    $fee_group_names[] = $fee['fee_group_name'];
-                    $fee_categories[] = $fee['fee_category'];
+                if (isset($data['params']['gateway_processing_charge']) && $data['params']['gateway_processing_charge'] > 0) {
+                    $unmapped_amount += $data['params']['gateway_processing_charge'];
+                }
 
-                    $item_amount = $fee['amount_balance'] + $fee['fine_balance'];
-                    
-                    if (isset($fee['applied_fee_discount'])) {
-                        $item_amount -= $fee['applied_fee_discount'];
+                if (!empty($data['params']['student_fees_master_array'])) {
+                    foreach ($data['params']['student_fees_master_array'] as $key => $fee) {
+                        $fee_group_names[] = $fee['fee_group_name'];
+                        $fee_categories[] = $fee['fee_category'];
+                        $item_amount = $fee['amount_balance'] + $fee['fine_balance'];
+                        if (isset($fee['applied_fee_discount'])) {
+                            $item_amount -= $fee['applied_fee_discount'];
+                        }
+                        $fee_groups_feetype_id = $fee['fee_groups_feetype_id'];
+                        $sub_mid = $this->get_sub_merchant_id($fee_groups_feetype_id);
+
+                        if ($sub_mid) {
+                            $split_payment_payload[] = [
+                                'mercid' => $sub_mid,
+                                'amount' => number_format($item_amount, 2, '.', ''),
+                                'customer_refid' => $school_code . 'ORN' . uniqid(),
+                                'additional_info1' => 'NA', 'additional_info2' => 'NA', 'additional_info3' => 'NA',
+                                'additional_info4' => 'NA', 'additional_info5' => 'NA', 'additional_info6' => 'NA',
+                                'additional_info7' => 'NA',
+                            ];
+                        } else {
+                            $unmapped_amount += $item_amount;
+                        }
                     }
-                    
-                    $fee_groups_feetype_id = $fee['fee_groups_feetype_id'];
-                    $sub_mid = $this->get_sub_merchant_id($fee_groups_feetype_id);
-
-                    if ($sub_mid) {
-                        // Each fee type with a sub_merchant_id gets its own split payment entry.
+                }
+                if ($unmapped_amount > 0) {
+                    if (!empty($split_payment_payload)) {
+                        $split_payment_payload[0]['amount'] = number_format(floatval($split_payment_payload[0]['amount']) + $unmapped_amount, 2, '.', '');
+                    } else {
+                        $fallback_child_id = $this->_get_fallback_sub_merchant_id();
+                        if (!$fallback_child_id) {
+                            throw new Exception("Billdesk payment processing failed: No sub-merchant IDs are configured in the feetype table.");
+                        }
                         $split_payment_payload[] = [
-                            'mercid' => $sub_mid,
-                            'amount' => number_format($item_amount, 2, '.', ''),
-                            'customer_refid' => $school_code . 'ORN' . uniqid(), // Unique ref id
-                            'additional_info1' => 'NA',
-                            'additional_info2' => 'NA',
-                            'additional_info3' => 'NA',
-                            'additional_info4' => 'NA',
-                            'additional_info5' => 'NA',
-                            'additional_info6' => 'NA',
+                            'mercid' => $fallback_child_id,
+                            'amount' => number_format($unmapped_amount, 2, '.', ''),
+                            'customer_refid' => $school_code . 'ORN' . uniqid(),
+                            'additional_info1' => 'NA', 'additional_info2' => 'NA', 'additional_info3' => 'NA',
+                            'additional_info4' => 'NA', 'additional_info5' => 'NA', 'additional_info6' => 'NA',
                             'additional_info7' => 'NA',
                         ];
-                    } else {
-                        // This fee does not have a sub_merchant_id, so add it to the unmapped amount.
-                        $unmapped_amount += $item_amount;
                     }
                 }
-            }
-            
-            // Now, handle the total unmapped amount.
-            if ($unmapped_amount > 0) {
-                if (!empty($split_payment_payload)) {
-                    // If we have existing splits, add the unmapped amount to the first one.
-                    // This is to ensure the total split amount matches the transaction amount.
-                    $split_payment_payload[0]['amount'] = number_format(
-                        floatval($split_payment_payload[0]['amount']) + $unmapped_amount, 
-                        2, 
-                        '.', 
-                        ''
-                    );
-                } else {
-                    // If there are NO fees with sub_merchant_ids, create a single split
-                    // for the entire amount using a fallback child merchant ID.
-                    $fallback_child_id = $this->_get_fallback_sub_merchant_id();
-
-                    if (!$fallback_child_id) {
-                        // This is a critical configuration error. No sub-merchants are defined at all.
-                        throw new Exception("Billdesk payment processing failed: No sub-merchant IDs are configured in the feetype table.");
-                    }
-                    
-                    $split_payment_payload[] = [
-                        'mercid' => $fallback_child_id,
-                        'amount' => number_format($unmapped_amount, 2, '.', ''),
-                        'customer_refid' => $school_code . 'ORN' . uniqid(),
-                        'additional_info1' => 'NA',
-                        'additional_info2' => 'NA',
-                        'additional_info3' => 'NA',
-                        'additional_info4' => 'NA',
-                        'additional_info5' => 'NA',
-                        'additional_info6' => 'NA',
-                        'additional_info7' => 'NA',
-                    ];
-                }
-            }
-
-            $fee_group_name_str = implode(',', array_unique($fee_group_names));
-            $fee_category_str = implode(',', array_unique($fee_categories));
-
-            // Step 2: Ecom Order
-            $ecom_payload = [
-                'mercid' => $this->api_config->api_secret_key,
-                'amount' => $formatted_amount,
-                'order_ref_no' => time() . rand(1111, 9999),
-                'ecom_order_date' => date('Y-m-d\TH:i:sP'),
-                'ru' => base_url('user/gateway/billdesk/callback'),
-                'currency' => '356',
-                'itemcode' => 'DIRECT',
-                'additional_info' => [
+                $ecom_order_ref_no = time() . rand(1111, 9999);
+                $ecom_additional_info = [
                     'additional_info1' => $data['params']['name'],
                     'additional_info2' => "NA",
                     'additional_info3' => $data['params']['guardian_phone'],
                     'additional_info4' => $data['params']['email'],
                     'additional_info5' => $formatted_amount,
-                    'additional_info6' => $fee_category_str,
-                    'additional_info7' => $fee_group_name_str,
-                ],
-                // Add split_payment only if we have splits
+                    'additional_info6' => implode(',', array_unique($fee_categories)),
+                    'additional_info7' => implode(',', array_unique($fee_group_names)),
+                ];
+                
+                $this->session->set_userdata('top_menu', 'Library'); // Original menu settings for student flow
+                $this->session->set_userdata('sub_menu', 'book/index'); // Original menu settings for student flow
+
+            } elseif ($module == 'online_admission_fee') {
+                $online_admission_id = $data['params']['online_admission_id'];
+                $online_student_details = $this->onlinestudent_model->get($online_admission_id);
+
+                if (empty($online_student_details)) {
+                    throw new Exception("Online admission student details not found for ID: " . $online_admission_id);
+                }
+                log_message('error', 'BILLDESK_DEBUG_PAY: Online Student Details: ' . json_encode($online_student_details));
+
+                $total_admission_amount = $data['params']['admission_amount'];
+                $processing_charge = $data['params']['processing_charge'];
+                $total_amount = $data['params']['total']; // Final amount including processing fees
+
+                $formatted_amount = number_format($total_amount, 2, '.', '');
+                
+                // Corrected access for onlineform_sub_merchant_id using $this->setting[0]
+                $onlineform_sub_merchant_id = $this->setting[0]['onlineform_sub_merchant_id'];
+                if (empty($onlineform_sub_merchant_id)) {
+                     throw new Exception("Billdesk payment processing failed: Online form sub-merchant ID is not configured in settings.");
+                }
+
+                $split_payment_payload[] = [
+                    'mercid' => $onlineform_sub_merchant_id,
+                    'amount' => $formatted_amount,
+                    'customer_refid' => $school_code . 'ORN' . $data['params']['reference_no'],
+                    'additional_info1' => 'NA', 'additional_info2' => 'NA', 'additional_info3' => 'NA',
+                    'additional_info4' => 'NA', 'additional_info5' => 'NA', 'additional_info6' => 'NA',
+                    'additional_info7' => 'NA',
+                ];
+
+                $ecom_order_ref_no = $data['params']['reference_no'] . time() . rand(11, 99);
+                
+                // Determine course name if possible, otherwise use ID
+                $course_applied = 'N/A';
+                if (!empty($online_student_details['ug_course_id'])) {
+                    // You would typically fetch the actual course name from a course model here
+                    // For now, using the ID or a placeholder.
+                    $course_applied = "UG Course ID: " . $online_student_details['ug_course_id'];
+                } elseif (!empty($online_student_details['pg_course_id'])) {
+                    $course_applied = "PG Course ID: " . $online_student_details['pg_course_id'];
+                } elseif (!empty($online_student_details['lateral_course_id'])) {
+                    $course_applied = "Lateral Course ID: " . $online_student_details['lateral_course_id'];
+                }
+                
+                $ecom_additional_info = [
+                    'additional_info1' => $online_student_details['firstname'] . ' ' . $online_student_details['lastname'], // Student Name
+                    'additional_info2' => $online_student_details['email'], // Email ID
+                    'additional_info3' => $online_student_details['mobileno'], // Student Mobile No
+                    'additional_info4' => $online_student_details['adhar_no'], // Aadhar No
+                    'additional_info5' => $online_student_details['father_name'], // Father Name
+                    'additional_info6' => $online_student_details['mother_name'], // Mother Name
+                    'additional_info7' => $course_applied, // Course Applied
+                ];
+                $gateway_module = 'online_admission'; // Set module for gateway_ins
+
+                // For online admission, menu settings are not relevant, can unset or let it be
+                $this->session->unset_userdata('top_menu');
+                $this->session->unset_userdata('sub_menu');
+
+            } else {
+                throw new Exception("Unknown payment module: " . $module);
+            }
+
+            // Step 2: Ecom Order
+            $ecom_payload = [
+                'mercid' => $this->api_config->api_secret_key,
+                'amount' => $formatted_amount,
+                'order_ref_no' => $ecom_order_ref_no,
+                'ecom_order_date' => date('Y-m-d\TH:i:sP'),
+                'ru' => base_url('user/gateway/billdesk/callback'),
+                'currency' => '356',
+                'itemcode' => 'DIRECT',
+                'additional_info' => $ecom_additional_info,
                 'split_payment' => !empty($split_payment_payload) ? $split_payment_payload : null 
             ];
             
-            // Remove split_payment key if null to avoid API errors
             if (empty($ecom_payload['split_payment'])) {
                 unset($ecom_payload['split_payment']);
             }
 
-            // Log the entire ECOM PAYLOAD in readable JSON format
-            log_message('error', 'BILLDESK_UAT_DATA: 1. JSON Request for ecom order: ' . json_encode($ecom_payload, JSON_PRETTY_PRINT));
-            log_message('error', 'Billdesk Payload: Entire ECOM PAYLOAD (Readable): ' . json_encode($ecom_payload, JSON_PRETTY_PRINT));
+            log_message('error', 'BILLDESK_UAT_DATA: Pay - Ecom Payload (' . $module . '): ' . json_encode($ecom_payload, JSON_PRETTY_PRINT));
             
-            log_message('error', '--- ECOM PAYLOAD (Base64 Encoded) ---');
-            log_message('error', 'DECODE THIS STRING TO SEE THE FULL PAYLOAD: ' . base64_encode(json_encode($ecom_payload)));
-
-            try {
-                $ecom_jwe_token = $this->billdesk_lib->create_jwe($ecom_payload);
-            } catch (Exception $e) {
-                throw new Exception("Error creating JWE for Ecom Order: " . $e->getMessage());
-            }
-            log_message('error', 'Billdesk Ecom Order Encrypted Request (JWE Token): ' . $ecom_jwe_token);
-
-            try {
-                $ecom_jws_token = $this->billdesk_lib->create_jws($ecom_jwe_token);
-            } catch (Exception $e) {
-                throw new Exception("Error creating JWS for Ecom Order: " . $e->getMessage());
-            }
-
-            log_message('error', 'Billdesk Ecom Order Signed Request (JWS Token): ' . $ecom_jws_token);
+            $ecom_jwe_token = $this->billdesk_lib->create_jwe($ecom_payload);
+            $ecom_jws_token = $this->billdesk_lib->create_jws($ecom_jwe_token);
 
             $ecom_headers = [
                 'Content-Type: application/jose',
@@ -351,7 +386,7 @@ class Billdesk extends Student_Controller
                 }
 
                 log_message('error', '--- TRANSACTION RESPONSE (Base64 Encoded) ---');
-                log_message('error', 'DECODE THIS STRING TO SEE THE FULL TRANSACTION RESPONSE: ' . base64_encode(json_encode($decrypted_trans_response)));
+                log_message('error', 'DECODE THIS STRING TO SEE THE FULL TRANSACTION PAYLOAD: ' . base64_encode(json_encode($decrypted_trans_response)));
                 log_message('error', 'BILLDESK_UAT_DATA: 6. Original encoded Create Order API response string: ' . $trans_response);
                 log_message('error', 'BILLDESK_UAT_DATA: 6. Original decoded Create Order API response string: ' . json_encode($decrypted_trans_response, JSON_PRETTY_PRINT));
 
@@ -410,8 +445,9 @@ class Billdesk extends Student_Controller
                     'unique_id' => $ecom_orderid,
                     'parameter_details' => json_encode($data['params']),
                     'gateway_name' => 'billdesk',
-                    'module' => 'fees',
+                    'module' => $gateway_module, // Use the determined gateway_module
                     'payment_status' => 'processing',
+                    'created_at' => date('Y-m-d H:i:s'),
                 );
                 $gateway_ins_id = $this->gateway_ins_model->add_gateway_ins($ins_data);
 
@@ -424,8 +460,14 @@ class Billdesk extends Student_Controller
             }
 
         } catch (Exception $e) {
-            $data['api_error'] = $e->getMessage();
-            $this->load->view('user/gateway/billdesk/error', $data);
+            log_message('error', 'BILLDESK_PAY_EXCEPTION: ' . $e->getMessage());
+            $this->session->set_flashdata('error', 'Payment initiation failed: ' . $e->getMessage());
+            // Redirect to a generic error page, or based on module type
+            if ($module == 'online_admission_fee') {
+                redirect(base_url("publicadmissionform/confirm_payment")); // Go back to confirmation page
+            } else {
+                redirect($_SERVER['HTTP_REFERER'] ?? base_url());
+            }
         }
     }
 
@@ -475,7 +517,10 @@ class Billdesk extends Student_Controller
                     'payment_status' => $gateway_ins_status
                 ));
 
-                // --- Original logic continues from here based on status ---
+                // Determine module from the gateway_ins_record's parameter_details
+                $params_from_gateway_ins = json_decode($gateway_ins_record['parameter_details'], true);
+                $module = $params_from_gateway_ins['item_type'] ?? 'fees';
+
                 if (isset($response['auth_status']) && $response['auth_status'] == '0300') {
                     // Payment successful
                     
@@ -485,158 +530,194 @@ class Billdesk extends Student_Controller
                     if (isset($verification_response['auth_status']) && $verification_response['auth_status'] == '0300') {
                         $response = $verification_response; // Use the verified response
                     } else {
-                        // Log the verification failure, but don't re-set gateway_ins_status to failed
-                        // if it was already success based on initial callback.
                         log_message('error', "Billdesk Transaction Verification Failed: " . (isset($verification_response['message']) ? $verification_response['message'] : 'Unknown Error'));
-                        // Potentially redirect to a warning page or re-verify later.
-                        // For now, let's proceed with the original response if verification fails to avoid double payment issues.
                     }
 
-                    $params = $this->session->userdata('params');
-                    // ... (rest of success logic) ...
-                    
-                    $transaction_id = $response['transactionid']; // Assuming 'transactionid' is the key in BillDesk response
-                    $bulk_fees = array();
+                    if ($module == 'fees') {
+                        $transaction_id = $response['transactionid'];
+                        $bulk_fees = array();
 
-                    if (!empty($params['student_fees_master_array'])) {
-                        foreach ($params['student_fees_master_array'] as $fee_key => $fee_value) {
-                            // ... (fee construction) ...
-                            $json_array = array(
-                                'amount'          => $fee_value['amount_balance'],
-                                'date'            => date('Y-m-d'),
-                                'amount_discount' => $fee_value['applied_fee_discount'] ?? null,
-                                'processing_charge_type' => $params['processing_charge_type'],
-                                'gateway_processing_charge' => $params['gateway_processing_charge'],
-                                'amount_fine'     => $fee_value['fine_balance'],
-                                'description'     => "Online fees deposit through BillDesk. TXN ID: " . $transaction_id,
-                                'received_by'     => '',
-                                'payment_mode'    => 'Billdesk',
-                            );
+                        if (!empty($params_from_gateway_ins['student_fees_master_array'])) {
+                            foreach ($params_from_gateway_ins['student_fees_master_array'] as $fee_key => $fee_value) {
+                            
+                                $json_array = array(
+                                    'amount'          => $fee_value['amount_balance'],
+                                    'date'            => date('Y-m-d'),
+                                    'amount_discount' => $fee_value['applied_fee_discount'] ?? null,
+                                    'processing_charge_type' => $params_from_gateway_ins['processing_charge_type'],
+                                    'gateway_processing_charge' => $params_from_gateway_ins['gateway_processing_charge'],
+                                    'amount_fine'     => $fee_value['fine_balance'],
+                                    'description'     => "Online fees deposit through BillDesk. TXN ID: " . $transaction_id,
+                                    'received_by'     => '',
+                                    'payment_mode'    => 'Billdesk',
+                                );
 
-                            $insert_fee_data = array(
-                                'fee_category' => $fee_value['fee_category'],
-                                'student_transport_fee_id' => $fee_value['student_transport_fee_id'],
-                                'student_fees_master_id' => $fee_value['student_fees_master_id'],
-                                'fee_groups_feetype_id'  => $fee_value['fee_groups_feetype_id'],
-                                'amount_detail'          => $json_array,
-                            );
-                            $bulk_fees[] = $insert_fee_data;
+                                $insert_fee_data = array(
+                                    'fee_category' => $fee_value['fee_category'],
+                                    'student_transport_fee_id' => $fee_value['student_transport_fee_id'],
+                                    'student_fees_master_id' => $fee_value['student_fees_master_id'],
+                                    'fee_groups_feetype_id'  => $fee_value['fee_groups_feetype_id'],
+                                    'amount_detail'          => $json_array,
+                                );
+                                $bulk_fees[] = $insert_fee_data;
+                            }
+                        } else {
+                            log_message('error', 'Billdesk Callback Error: student_fees_master_array is empty or missing in session params.');
                         }
-                    } else {
-                        log_message('error', 'Billdesk Callback Error: student_fees_master_array is empty or missing in session params.');
-                    }
 
-                    // --- DEBUG LOGGING START ---
-                    log_message('error', 'Billdesk Callback - Bulk Fees Payload: ' . json_encode($bulk_fees));
-                    // --- DEBUG LOGGING END ---
+                        log_message('error', 'Billdesk Callback - Bulk Fees Payload: ' . json_encode($bulk_fees));
+                        $send_to = $params_from_gateway_ins['guardian_phone'];
+                        $response_bulk_deposit = $this->studentfeemaster_model->add_bulk_fee_deposit($bulk_fees, $params_from_gateway_ins['fee_discount_group'] ?? null);
 
-                    $send_to = $params['guardian_phone'];
-                    $response_bulk_deposit = $this->studentfeemaster_model->add_bulk_fee_deposit($bulk_fees, $params['fee_discount_group'] ?? null);
+                        // Send SMS/Email
+                        $student_id = $this->customlib->getStudentSessionUserID();
+                        $student_current_class = $this->customlib->getStudentCurrentClsSection();
+                        $student_session_id = $student_current_class->student_session_id;
+                        $student = $this->student_model->getStudentByClassSectionID($student_current_class->class_id, $student_current_class->section_id, $student_id);
 
-                    // Send SMS/Email
-                    $student_id = $this->customlib->getStudentSessionUserID();
-                    $student_current_class = $this->customlib->getStudentCurrentClsSection();
-                    $student_session_id = $student_current_class->student_session_id;
-                    $student = $this->student_model->getStudentByClassSectionID($student_current_class->class_id, $student_current_class->section_id, $student_id);
+                        if ($response_bulk_deposit && is_array($response_bulk_deposit)) {
+                            $invoice = [];
+                            $amount = [];
+                            $fine_type = [];
+                            $due_date = [];
+                            $fine_percentage = [];
+                            $fine_amount = [];
+                            $fee_group_name = [];
+                            $type = [];
+                            $code = [];
+                            $fee_category = '';
 
-                    if ($response_bulk_deposit && is_array($response_bulk_deposit)) {
-                        $invoice = [];
-                        $amount = [];
-                        $fine_type = [];
-                        $due_date = [];
-                        $fine_percentage = [];
-                        $fine_amount = [];
-                        $fee_group_name = [];
-                        $type = [];
-                        $code = [];
-                        $fee_category = '';
+                            foreach ($response_bulk_deposit as $response_key => $response_value) {
+                                $fee_category = $response_value['fee_category'];
+                                $invoice[] = array(
+                                    'invoice_id'     => $response_value['invoice_id'],
+                                    'sub_invoice_id' => $response_value['sub_invoice_id'],
+                                    'fee_category' => $fee_category,
+                                );
 
-                        foreach ($response_bulk_deposit as $response_key => $response_value) {
-                            $fee_category = $response_value['fee_category'];
-                            $invoice[] = array(
-                                'invoice_id'     => $response_value['invoice_id'],
-                                'sub_invoice_id' => $response_value['sub_invoice_id'],
-                                'fee_category' => $fee_category,
-                            );
-
-                            if ($response_value['student_transport_fee_id'] != 0 && $response_value['fee_category'] == "transport") {
-                                $mailsms_array = $this->studenttransportfee_model->getTransportFeeMasterByStudentTransportID($response_value['student_transport_fee_id']);
-                                $fee_group_name[] = $this->lang->line("transport_fees");
-                                $type[] = $mailsms_array->month;
-                                $code[] = "-";
-                                $fine_type[] = $mailsms_array->fine_type;
-                                $due_date[] = $mailsms_array->due_date;
-                                $fine_percentage[] = $mailsms_array->fine_percentage;
-                                $fine_amount[] = $mailsms_array->fine_amount;
-                                $amount[] = $mailsms_array->amount;
-                            } else {
-                                $mailsms_array = $this->feegrouptype_model->getFeeGroupByIDAndStudentSessionID($response_value['fee_groups_feetype_id'], $student_session_id);
-                                $fee_group_name[] = $mailsms_array->fee_group_name;
-                                $type[] = $mailsms_array->type;
-                                $code[] = $mailsms_array->code;
-                                $fine_type[] = $mailsms_array->fine_type;
-                                $due_date[] = $mailsms_array->due_date;
-                                $fine_percentage[] = $mailsms_array->fine_percentage;
-                                $fine_amount[] = $mailsms_array->fine_amount;
-                                if ($mailsms_array->is_system) {
-                                    $amount[] = $mailsms_array->balance_fee_master_amount;
-                                } else {
+                                if ($response_value['student_transport_fee_id'] != 0 && $response_value['fee_category'] == "transport") {
+                                    $mailsms_array = $this->studenttransportfee_model->getTransportFeeMasterByStudentTransportID($response_value['student_transport_fee_id']);
+                                    $fee_group_name[] = $this->lang->line("transport_fees");
+                                    $type[] = $mailsms_array->month;
+                                    $code[] = "-";
+                                    $fine_type[] = $mailsms_array->fine_type;
+                                    $due_date[] = $mailsms_array->due_date;
+                                    $fine_percentage[] = $mailsms_array->fine_percentage;
+                                    $fine_amount[] = $mailsms_array->fine_amount;
                                     $amount[] = $mailsms_array->amount;
+                                } else {
+                                    $mailsms_array = $this->feegrouptype_model->getFeeGroupByIDAndStudentSessionID($response_value['fee_groups_feetype_id'], $student_session_id);
+                                    $fee_group_name[] = $mailsms_array->fee_group_name;
+                                    $type[] = $mailsms_array->type;
+                                    $code[] = $mailsms_array->code;
+                                    $fine_type[] = $mailsms_array->fine_type;
+                                    $due_date[] = $mailsms_array->due_date;
+                                    $fine_percentage[] = $mailsms_array->fine_percentage;
+                                    $fine_amount[] = $mailsms_array->fine_amount;
+                                    if ($mailsms_array->is_system) {
+                                        $amount[] = $mailsms_array->balance_fee_master_amount;
+                                    } else {
+                                        $amount[] = $mailsms_array->amount;
+                                    }
                                 }
                             }
+
+                            $obj_mail = [];
+                            $obj_mail['student_id'] = $student_id;
+                            $obj_mail['student_session_id'] = $student_session_id;
+                            $obj_mail['invoice'] = $invoice;
+                            $obj_mail['contact_no'] = $student['guardian_phone'];
+                            $obj_mail['email'] = $student['email'];
+                            $obj_mail['parent_app_key'] = $student['parent_app_key'];
+                            $obj_mail['amount'] = "(" . implode(',', $amount) . ")";
+                            $obj_mail['fine_type'] = "(" . implode(',', $fine_type) . ")";
+                            $obj_mail['due_date'] = "(" . implode(',', $due_date) . ")";
+                            $obj_mail['fine_percentage'] = "(" . implode(',', $fine_percentage) . ")";
+                            $obj_mail['fine_amount'] = "(" . implode(',', $fine_amount) . ")";
+                            $obj_mail['fee_group_name'] = "(" . implode(',', $fee_group_name) . ")";
+                            $obj_mail['type'] = "(" . implode(',', $type) . ")";
+                            $obj_mail['code'] = "(" . implode(',', $code) . ")";
+                            $obj_mail['fee_category'] = $fee_category;
+                            $obj_mail['send_type'] = 'group';
+
+                            $this->mailsmsconf->mailsms('fee_submission', $obj_mail);
                         }
 
-                        $obj_mail = [];
-                        $obj_mail['student_id'] = $student_id;
-                        $obj_mail['student_session_id'] = $student_session_id;
-                        $obj_mail['invoice'] = $invoice;
-                        $obj_mail['contact_no'] = $student['guardian_phone'];
-                        $obj_mail['email'] = $student['email'];
-                        $obj_mail['parent_app_key'] = $student['parent_app_key'];
-                        $obj_mail['amount'] = "(" . implode(',', $amount) . ")";
-                        $obj_mail['fine_type'] = "(" . implode(',', $fine_type) . ")";
-                        $obj_mail['due_date'] = "(" . implode(',', $due_date) . ")";
-                        $obj_mail['fine_percentage'] = "(" . implode(',', $fine_percentage) . ")";
-                        $obj_mail['fine_amount'] = "(" . implode(',', $fine_amount) . ")";
-                        $obj_mail['fee_group_name'] = "(" . implode(',', $fee_group_name) . ")";
-                        $obj_mail['type'] = "(" . implode(',', $type) . ")";
-                        $obj_mail['code'] = "(" . implode(',', $code) . ")";
-                        $obj_mail['fee_category'] = $fee_category;
-                        $obj_mail['send_type'] = 'group';
+                        $this->success($response);
+                    } elseif ($module == 'online_admission_fee') {
+                        $online_admission_id = $params_from_gateway_ins['online_admission_id'];
+                        $transaction_id = $response['transactionid'];
 
-                        $this->mailsmsconf->mailsms('fee_submission', $obj_mail);
+                        $payment_data = [
+                            'online_admission_id' => $online_admission_id,
+                            'transaction_id' => $transaction_id,
+                            'paid_amount' => $response['amount'], // Amount from BillDesk response
+                            'payment_mode' => 'Billdesk',
+                            'payment_type' => 'online_admission',
+                            'date' => date('Y-m-d H:i:s'),
+                            'gateway_name' => 'billdesk',
+                            'paid_status' => 1 // Successfully paid
+                        ];
+
+                        $this->onlinestudent_model->paymentSuccess($payment_data);
+
+                        // Send SMS/Email (optional, if required for online admissions)
+                        // $this->mailsmsconf->mailsms('online_admission_payment_success', $online_data);
+
+                        $online_student_details = $this->onlinestudent_model->get($online_admission_id);
+                        $this->session->set_flashdata('msg', '<div class="alert alert-success">Payment successful! Your online admission has been processed.</div>');
+                        redirect(base_url("onlineadmission/checkout/successinvoice/" . $online_student_details['reference_no']));
                     }
 
-                    $this->success($response);
                 } elseif (isset($response['auth_status']) && $response['auth_status'] == '0002') {
                     // Payment Pending
-                    $this->pending($response);
+                    // Determine module based on params for redirection
+                    if ($module == 'online_admission_fee') {
+                        $online_student_details = $this->onlinestudent_model->get($params_from_gateway_ins['online_admission_id']);
+                        $this->session->set_flashdata('msg', '<div class="alert alert-warning">Payment is pending. Please check with your bank.</div>');
+                        redirect(base_url("onlineadmission/checkout/processinginvoice/" . $online_student_details['reference_no']));
+                    } else {
+                        $this->pending($response);
+                    }
+
                 } else {
                     // Payment failed
-                    $this->fail($response);
+                    // Determine module based on params for redirection
+                    if ($module == 'online_admission_fee') {
+                        $online_student_details = $this->onlinestudent_model->get($params_from_gateway_ins['online_admission_id']);
+                        $this->session->set_flashdata('msg', '<div class="alert alert-danger">Payment failed. Please try again.</div>');
+                        redirect(base_url("onlineadmission/checkout/paymentfailed/" . $online_student_details['reference_no']));
+                    } else {
+                        $this->fail($response);
+                    }
                 }
             } catch (Exception $e) {
                 // Invalid response
-                $this->fail(['transaction_error_desc' => $e->getMessage()]);
+                log_message('error', 'Billdesk Callback Exception: ' . $e->getMessage());
+                $params_from_gateway_ins = json_decode($gateway_ins_record['parameter_details'], true);
+                $module = $params_from_gateway_ins['item_type'] ?? 'fees';
+
+                $this->session->set_flashdata('error', 'Payment processing error: ' . $e->getMessage());
+                if ($module == 'online_admission_fee') {
+                    $online_student_details = $this->onlinestudent_model->get($params_from_gateway_ins['online_admission_id']);
+                    redirect(base_url("onlineadmission/checkout/paymentfailed/" . $online_student_details['reference_no']));
+                } else {
+                    $this->fail(['transaction_error_desc' => $e->getMessage()]);
+                }
             }
         } else {
             // Invalid response
-            $this->fail(['transaction_error_desc' => 'Invalid response from payment gateway']);
+            log_message('error', 'Billdesk Callback Error: Empty transaction_response POST data.');
+            $this->session->set_flashdata('error', 'Invalid response from payment gateway.');
+            // Try to figure out module from session and redirect appropriately
+            $params_from_gateway_ins = json_decode($gateway_ins_record['parameter_details'], true);
+            $module = $params_from_gateway_ins['item_type'] ?? 'fees';
+            if ($module == 'online_admission_fee') {
+                $online_student_details = $this->onlinestudent_model->get($params_from_gateway_ins['online_admission_id']);
+                redirect(base_url("onlineadmission/checkout/paymentfailed/" . $online_student_details['reference_no']));
+            } else {
+                $this->fail(['transaction_error_desc' => 'Invalid response from payment gateway']);
+            }
         }
-    }
-
-    public function success($response) {
-        $data['response'] = $response;
-        $this->load->view('user/gateway/billdesk/success', $data);
-    }
-
-    public function pending($response) {
-        $data['response'] = $response;
-        $this->load->view('user/gateway/billdesk/pending', $data);
-    }
-
-    public function fail($response) {
-        $data['response'] = $response;
-        $this->load->view('user/gateway/billdesk/fail', $data);
     }
 }
