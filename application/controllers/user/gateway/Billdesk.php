@@ -21,7 +21,6 @@ class Billdesk extends Student_Controller
         $this->load->model('gateway_ins_model');
         $this->load->model('student_model');
         $this->load->model('onlinestudent_model'); // NEW: For online admission updates
-        $this->school_details = $this->setting_model->getSchoolDetail(); // Initialize school_details
     }
 
     public function index()
@@ -564,7 +563,7 @@ class Billdesk extends Student_Controller
         // Send SMS/Email
         $student_id = $original_params['student_id'];
         $student_session_id = $original_params['student_session_id']; // Use original_params for student_session_id
-        $student = $this->student_model->getByStudentSession($student_session_id); // Fetch student details using student_session_id
+        $student = $this->student_model->getStudentBySessionID($student_session_id); // Fetch student details using student_session_id
 
         if ($response_bulk_deposit && is_array($response_bulk_deposit)) {
             $invoice = [];
