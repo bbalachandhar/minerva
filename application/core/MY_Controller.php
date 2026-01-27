@@ -86,10 +86,10 @@ class Admin_Controller extends MY_Controller
 
 class Student_Controller extends MY_Controller
 {
+    protected $auth_bypass_methods = []; // New property for methods that should bypass authentication
 
     public function __construct()
     {
-
         parent::__construct();
         $this->school_details = $this->setting_model->getSchoolDetail();
         if ($this->school_details->maintenance_mode) {
@@ -100,7 +100,13 @@ class Student_Controller extends MY_Controller
         $this->load->library('studentmodule_lib');
         $this->load->library('cart');
         $this->config->load('app-config');
-        $this->auth->is_logged_in_user('student');
+        
+        $current_method = $this->router->fetch_method();
+        // Check if the current method should bypass authentication
+        if (!in_array($current_method, $this->auth_bypass_methods)) {
+            $this->auth->is_logged_in_user('student');
+        }
+        
         $is_lock_panel = check_lock_enabled();
 
         if ($is_lock_panel) {
