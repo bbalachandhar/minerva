@@ -22,6 +22,7 @@ class Billdesk extends Student_Controller
         $this->load->model('studenttransportfee_model');
         $this->load->model('feegrouptype_model');
         $this->load->model('gateway_ins_model');
+        $this->load->model('onlinestudent_model'); // Load onlinestudent_model for online admission details
     }
 
     public function index()
