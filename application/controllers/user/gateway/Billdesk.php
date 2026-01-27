@@ -19,6 +19,8 @@ class Billdesk extends Student_Controller
         $this->load->model('studenttransportfee_model');
         $this->load->model('feegrouptype_model');
         $this->load->model('gateway_ins_model');
+        $this->load->model('student_model');
+        $this->load->model('onlinestudent_model'); // NEW: For online admission updates
     }
 
     public function index()
@@ -446,179 +448,243 @@ class Billdesk extends Student_Controller
                     }
                 }
 
-                // Retrieve the gateway_ins record using unique_id and gateway_name
-                // This is crucial to get the 'id' of the gateway_ins record for gateway_ins_response linkage
+                // Retrieve the gateway_ins record using unique_id (orderid)
                 $gateway_ins_record = $this->gateway_ins_model->get_gateway_ins($response['orderid'], 'billdesk');
                 $gateway_ins_id = null;
+                $module = 'unknown'; // Default to unknown module
+
                 if (!empty($gateway_ins_record)) {
                     $gateway_ins_id = $gateway_ins_record['id'];
+                    $module = $gateway_ins_record['module'];
+                    $original_params = json_decode($gateway_ins_record['parameter_details'], true); // Get original params
+                } else {
+                    throw new Exception("Gateway Ins record not found for Order ID: " . $response['orderid']);
                 }
 
-                                                // Log raw gateway response to gateway_ins_response table
-                                                $gateway_ins_response_data = [
-                                                    'gateway_ins_id' => $gateway_ins_id,
-                                                    'posted_data' => json_encode($_POST), // Assuming $_POST contains the raw data from gateway
-                                                    'response' => json_encode($response), // Use 'response' column for the decrypted response
-                                                    'created_at' => date('Y-m-d H:i:s')
-                                                ];                                log_message('error', 'BILLDESK_DEBUG: Data for gateway_ins_response_data: ' . json_encode($gateway_ins_response_data));
-                                $add_response_result = $this->gateway_ins_model->add_gateway_ins_response($gateway_ins_response_data);
-                                log_message('error', 'BILLDESK_DEBUG: Result of add_gateway_ins_response (insert_id): ' . ($add_response_result ? $add_response_result : 'FALSE/0'));
-                // Now update the gateway_ins status with the determined status
-                // Using the unique_id and gateway_name, which update_gateway_ins now supports
+                // Log raw gateway response to gateway_ins_response table
+                $gateway_ins_response_data = [
+                    'gateway_ins_id' => $gateway_ins_id,
+                    'posted_data' => json_encode($_POST),
+                    'response' => json_encode($response),
+                    'created_at' => date('Y-m-d H:i:s')
+                ];
+                $this->gateway_ins_model->add_gateway_ins_response($gateway_ins_response_data);
+                
+                // Now update the gateway_ins status
                 $this->gateway_ins_model->update_gateway_ins(array(
                     'unique_id' => $response['orderid'], 
                     'gateway_name' => 'billdesk', 
+                    'module' => $module, 
                     'payment_status' => $gateway_ins_status
                 ));
 
-                // --- Original logic continues from here based on status ---
-                if (isset($response['auth_status']) && $response['auth_status'] == '0300') {
-                    // Payment successful
-                    
-                    // Step 8: Verify Transaction via API
+                // Verify Transaction via API for success/pending statuses
+                if (in_array($gateway_ins_status, ['success', 'pending'])) {
                     $verification_response = $this->billdesk_lib->verify_transaction($response['orderid']);
-                    
                     if (isset($verification_response['auth_status']) && $verification_response['auth_status'] == '0300') {
                         $response = $verification_response; // Use the verified response
                     } else {
-                        // Log the verification failure, but don't re-set gateway_ins_status to failed
-                        // if it was already success based on initial callback.
-                        log_message('error', "Billdesk Transaction Verification Failed: " . (isset($verification_response['message']) ? $verification_response['message'] : 'Unknown Error'));
-                        // Potentially redirect to a warning page or re-verify later.
-                        // For now, let's proceed with the original response if verification fails to avoid double payment issues.
+                        log_message('error', "Billdesk Transaction Verification Failed for Order ID " . $response['orderid'] . ": " . (isset($verification_response['message']) ? $verification_response['message'] : 'Unknown Error'));
                     }
-
-                    $params = $this->session->userdata('params');
-                    // ... (rest of success logic) ...
-                    
-                    $transaction_id = $response['transactionid']; // Assuming 'transactionid' is the key in BillDesk response
-                    $bulk_fees = array();
-
-                    if (!empty($params['student_fees_master_array'])) {
-                        foreach ($params['student_fees_master_array'] as $fee_key => $fee_value) {
-                            // ... (fee construction) ...
-                            $json_array = array(
-                                'amount'          => $fee_value['amount_balance'],
-                                'date'            => date('Y-m-d'),
-                                'amount_discount' => $fee_value['applied_fee_discount'] ?? null,
-                                'processing_charge_type' => $params['processing_charge_type'],
-                                'gateway_processing_charge' => $params['gateway_processing_charge'],
-                                'amount_fine'     => $fee_value['fine_balance'],
-                                'description'     => "Online fees deposit through BillDesk. TXN ID: " . $transaction_id,
-                                'received_by'     => '',
-                                'payment_mode'    => 'Billdesk',
-                            );
-
-                            $insert_fee_data = array(
-                                'fee_category' => $fee_value['fee_category'],
-                                'student_transport_fee_id' => $fee_value['student_transport_fee_id'],
-                                'student_fees_master_id' => $fee_value['student_fees_master_id'],
-                                'fee_groups_feetype_id'  => $fee_value['fee_groups_feetype_id'],
-                                'amount_detail'          => $json_array,
-                            );
-                            $bulk_fees[] = $insert_fee_data;
-                        }
-                    } else {
-                        log_message('error', 'Billdesk Callback Error: student_fees_master_array is empty or missing in session params.');
-                    }
-
-                    // --- DEBUG LOGGING START ---
-                    log_message('error', 'Billdesk Callback - Bulk Fees Payload: ' . json_encode($bulk_fees));
-                    // --- DEBUG LOGGING END ---
-
-                    $send_to = $params['guardian_phone'];
-                    $response_bulk_deposit = $this->studentfeemaster_model->add_bulk_fee_deposit($bulk_fees, $params['fee_discount_group'] ?? null);
-
-                    // Send SMS/Email
-                    $student_id = $this->customlib->getStudentSessionUserID();
-                    $student_current_class = $this->customlib->getStudentCurrentClsSection();
-                    $student_session_id = $student_current_class->student_session_id;
-                    $student = $this->student_model->getStudentByClassSectionID($student_current_class->class_id, $student_current_class->section_id, $student_id);
-
-                    if ($response_bulk_deposit && is_array($response_bulk_deposit)) {
-                        $invoice = [];
-                        $amount = [];
-                        $fine_type = [];
-                        $due_date = [];
-                        $fine_percentage = [];
-                        $fine_amount = [];
-                        $fee_group_name = [];
-                        $type = [];
-                        $code = [];
-                        $fee_category = '';
-
-                        foreach ($response_bulk_deposit as $response_key => $response_value) {
-                            $fee_category = $response_value['fee_category'];
-                            $invoice[] = array(
-                                'invoice_id'     => $response_value['invoice_id'],
-                                'sub_invoice_id' => $response_value['sub_invoice_id'],
-                                'fee_category' => $fee_category,
-                            );
-
-                            if ($response_value['student_transport_fee_id'] != 0 && $response_value['fee_category'] == "transport") {
-                                $mailsms_array = $this->studenttransportfee_model->getTransportFeeMasterByStudentTransportID($response_value['student_transport_fee_id']);
-                                $fee_group_name[] = $this->lang->line("transport_fees");
-                                $type[] = $mailsms_array->month;
-                                $code[] = "-";
-                                $fine_type[] = $mailsms_array->fine_type;
-                                $due_date[] = $mailsms_array->due_date;
-                                $fine_percentage[] = $mailsms_array->fine_percentage;
-                                $fine_amount[] = $mailsms_array->fine_amount;
-                                $amount[] = $mailsms_array->amount;
-                            } else {
-                                $mailsms_array = $this->feegrouptype_model->getFeeGroupByIDAndStudentSessionID($response_value['fee_groups_feetype_id'], $student_session_id);
-                                $fee_group_name[] = $mailsms_array->fee_group_name;
-                                $type[] = $mailsms_array->type;
-                                $code[] = $mailsms_array->code;
-                                $fine_type[] = $mailsms_array->fine_type;
-                                $due_date[] = $mailsms_array->due_date;
-                                $fine_percentage[] = $mailsms_array->fine_percentage;
-                                $fine_amount[] = $mailsms_array->fine_amount;
-                                if ($mailsms_array->is_system) {
-                                    $amount[] = $mailsms_array->balance_fee_master_amount;
-                                } else {
-                                    $amount[] = $mailsms_array->amount;
-                                }
-                            }
-                        }
-
-                        $obj_mail = [];
-                        $obj_mail['student_id'] = $student_id;
-                        $obj_mail['student_session_id'] = $student_session_id;
-                        $obj_mail['invoice'] = $invoice;
-                        $obj_mail['contact_no'] = $student['guardian_phone'];
-                        $obj_mail['email'] = $student['email'];
-                        $obj_mail['parent_app_key'] = $student['parent_app_key'];
-                        $obj_mail['amount'] = "(" . implode(',', $amount) . ")";
-                        $obj_mail['fine_type'] = "(" . implode(',', $fine_type) . ")";
-                        $obj_mail['due_date'] = "(" . implode(',', $due_date) . ")";
-                        $obj_mail['fine_percentage'] = "(" . implode(',', $fine_percentage) . ")";
-                        $obj_mail['fine_amount'] = "(" . implode(',', $fine_amount) . ")";
-                        $obj_mail['fee_group_name'] = "(" . implode(',', $fee_group_name) . ")";
-                        $obj_mail['type'] = "(" . implode(',', $type) . ")";
-                        $obj_mail['code'] = "(" . implode(',', $code) . ")";
-                        $obj_mail['fee_category'] = $fee_category;
-                        $obj_mail['send_type'] = 'group';
-
-                        $this->mailsmsconf->mailsms('fee_submission', $obj_mail);
-                    }
-
-                    $this->success($response);
-                } elseif (isset($response['auth_status']) && $response['auth_status'] == '0002') {
-                    // Payment Pending
-                    $this->pending($response);
-                } else {
-                    // Payment failed
-                    $this->fail($response);
                 }
+
+                // Dispatch based on module
+                if ($module === 'fees') {
+                    if (isset($response['auth_status']) && $response['auth_status'] == '0300') {
+                        $this->_processStudentFeeCallback($response, $gateway_ins_id, $original_params);
+                        $this->success($response); // Redirect to student fee success view
+                    } elseif (isset($response['auth_status']) && $response['auth_status'] == '0002') {
+                        $this->pending($response); // Redirect to student fee pending view
+                    } else {
+                        $this->fail($response); // Redirect to student fee fail view
+                    }
+                } elseif ($module === 'online_admission') {
+                    if (isset($response['auth_status']) && $response['auth_status'] == '0300') {
+                        $this->_processOnlineAdmissionCallback($response, $gateway_ins_id, $original_params);
+                        // _processOnlineAdmissionCallback already handles redirection to its own success view
+                    } elseif (isset($response['auth_status']) && $response['auth_status'] == '0002') {
+                         $this->load->helper('url');
+                         redirect('onlineadmission/billdesk/pending/' . urlencode(json_encode($response)));
+                    } else {
+                        $this->load->helper('url');
+                        redirect('onlineadmission/billdesk/fail/' . urlencode(json_encode($response)));
+                    }
+                } else {
+                    throw new Exception("Unknown module type found in gateway_ins record for Order ID: " . $response['orderid']);
+                }
+
             } catch (Exception $e) {
-                // Invalid response
+                log_message('error', 'Billdesk Consolidated Callback Error: ' . $e->getMessage());
+                // Fallback to a generic fail page if module cannot be determined or error occurs early
                 $this->fail(['transaction_error_desc' => $e->getMessage()]);
             }
         } else {
-            // Invalid response
+            log_message('error', 'Billdesk Consolidated Callback Error: No transaction_response received in POST.');
             $this->fail(['transaction_error_desc' => 'Invalid response from payment gateway']);
         }
+    }
+
+    private function _processStudentFeeCallback($response, $gateway_ins_id, $original_params)
+    {
+        // This method contains the original student fee processing logic from callback()
+        $transaction_id = $response['transactionid']; // Assuming 'transactionid' is the key in BillDesk response
+        $bulk_fees = array();
+
+        if (!empty($original_params['student_fees_master_array'])) {
+            foreach ($original_params['student_fees_master_array'] as $fee_key => $fee_value) {
+                $json_array = array(
+                    'amount'          => $fee_value['amount_balance'],
+                    'date'            => date('Y-m-d'),
+                    'amount_discount' => $fee_value['applied_fee_discount'] ?? null,
+                    'processing_charge_type' => $original_params['processing_charge_type'],
+                    'gateway_processing_charge' => $original_params['gateway_processing_charge'],
+                    'amount_fine'     => $fee_value['fine_balance'],
+                    'description'     => "Online fees deposit through BillDesk. TXN ID: " . $transaction_id,
+                    'received_by'     => '',
+                    'payment_mode'    => 'Billdesk',
+                );
+
+                $insert_fee_data = array(
+                    'fee_category' => $fee_value['fee_category'],
+                    'student_transport_fee_id' => $fee_value['student_transport_fee_id'],
+                    'student_fees_master_id' => $fee_value['student_fees_master_id'],
+                    'fee_groups_feetype_id'  => $fee_value['fee_groups_feetype_id'],
+                    'amount_detail'          => $json_array,
+                );
+                $bulk_fees[] = $insert_fee_data;
+            }
+        } else {
+            log_message('error', 'Billdesk Student Fee Callback Error: student_fees_master_array is empty or missing in session params.');
+        }
+
+        $send_to = $original_params['guardian_phone'];
+        $response_bulk_deposit = $this->studentfeemaster_model->add_bulk_fee_deposit($bulk_fees, $original_params['fee_discount_group'] ?? null);
+
+        // Send SMS/Email
+        $student_id = $original_params['student_id'];
+        $student_session_id = $original_params['student_session_id']; // Use original_params for student_session_id
+        $student = $this->student_model->getStudentBySessionID($student_session_id); // Fetch student details using student_session_id
+
+        if ($response_bulk_deposit && is_array($response_bulk_deposit)) {
+            $invoice = [];
+            $amount = [];
+            $fine_type = [];
+            $due_date = [];
+            $fine_percentage = [];
+            $fine_amount = [];
+            $fee_group_name = [];
+            $type = [];
+            $code = [];
+            $fee_category = '';
+
+            foreach ($response_bulk_deposit as $response_key => $response_value) {
+                $fee_category = $response_value['fee_category'];
+                $invoice[] = array(
+                    'invoice_id'     => $response_value['invoice_id'],
+                    'sub_invoice_id' => $response_value['sub_invoice_id'],
+                    'fee_category' => $fee_category,
+                );
+
+                if ($response_value['student_transport_fee_id'] != 0 && $response_value['fee_category'] == "transport") {
+                    $mailsms_array = $this->studenttransportfee_model->getTransportFeeMasterByStudentTransportID($response_value['student_transport_fee_id']);
+                    $fee_group_name[] = $this->lang->line("transport_fees");
+                    $type[] = $mailsms_array->month;
+                    $code[] = "-";
+                    $fine_type[] = $mailsms_array->fine_type;
+                    $due_date[] = $mailsms_array->due_date;
+                    $fine_percentage[] = $mailsms_array->fine_percentage;
+                    $fine_amount[] = $mailsms_array->fine_amount;
+                    $amount[] = $mailsms_array->amount;
+                } else {
+                    $mailsms_array = $this->feegrouptype_model->getFeeGroupByIDAndStudentSessionID($response_value['fee_groups_feetype_id'], $student_session_id);
+                    $fee_group_name[] = $mailsms_array->fee_group_name;
+                    $type[] = $mailsms_array->type;
+                    $code[] = $mailsms_array->code;
+                    $fine_type[] = $mailsms_array->fine_type;
+                    $due_date[] = $mailsms_array->due_date;
+                    $fine_percentage[] = $mailsms_array->fine_percentage;
+                    $fine_amount[] = $mailsms_array->fine_amount;
+                    if ($mailsms_array->is_system) {
+                        $amount[] = $mailsms_array->balance_fee_master_amount;
+                    } else {
+                        $amount[] = $mailsms_array->amount;
+                    }
+                }
+            }
+
+            $obj_mail = [];
+            $obj_mail['student_id'] = $student_id;
+            $obj_mail['student_session_id'] = $student_session_id;
+            $obj_mail['invoice'] = $invoice;
+            $obj_mail['contact_no'] = $student['guardian_phone'];
+            $obj_mail['email'] = $student['email'];
+            $obj_mail['parent_app_key'] = $student['parent_app_key'];
+            $obj_mail['amount'] = "(" . implode(',', $amount) . ")";
+            $obj_mail['fine_type'] = "(" . implode(',', $fine_type) . ")";
+            $obj_mail['due_date'] = "(" . implode(',', $due_date) . ")";
+            $obj_mail['fine_percentage'] = "(" . implode(',', $fine_percentage) . ")";
+            $obj_mail['fine_amount'] = "(" . implode(',', $fine_amount) . ")";
+            $obj_mail['fee_group_name'] = "(" . implode(',', $fee_group_name) . ")";
+            $obj_mail['type'] = "(" . implode(',', $type) . ")";
+            $obj_mail['code'] = "(" . implode(',', $code) . ")";
+            $obj_mail['fee_category'] = $fee_category;
+            $obj_mail['send_type'] = 'group';
+
+            $this->mailsmsconf->mailsms('fee_submission', $obj_mail);
+        }
+
+        $this->success($response);
+    }
+
+    private function _processOnlineAdmissionCallback($response, $gateway_ins_id, $original_params)
+    {
+        // This method contains the online admission processing logic
+        $transaction_id = $response['transactionid'];
+
+        if (empty($original_params)) {
+             throw new Exception("Payment parameters not found for online admission callback.");
+        }
+
+        // Update onlinestudent record paid_status
+        $update_online_admission_data = array(
+            'id' => $original_params['online_admission_id'],
+            'paid_status' => 1, // 1 for paid
+            'transaction_id' => $transaction_id,
+            'paid_amount' => $response['amount'],
+            'payment_mode' => 'Billdesk'
+        );
+        $this->onlinestudent_model->edit($update_online_admission_data);
+
+        // Send SMS/Email (adapted for online admission)
+        $online_admission_data = $this->onlinestudent_model->get($original_params['online_admission_id']);
+
+        $sender_details = array(
+            'firstname' => $online_admission_data['firstname'],
+            'lastname' => $online_admission_data['lastname'],
+            'email' => $online_admission_data['email'],
+            'date' => date('Y-m-d'),
+            'reference_no' => $online_admission_data['reference_no'],
+            'mobileno' => $online_admission_data['mobileno'],
+            'guardian_email' => $online_admission_data['guardian_email'], // Assuming guardian_email is stored
+            'guardian_phone' => $online_admission_data['guardian_phone'], // Assuming guardian_phone is stored
+        );
+        $this->mailsmsconf->mailsms('online_admission_fee_submission', $sender_details); // Use a dedicated template if available
+
+        // Redirect to the dedicated online admission success view
+        // Need to load the PublicAdmissionForm controller to access its success methods, or duplicate them.
+        // For strict separation, PublicAdmissionForm's methods (success, pending, fail) are better.
+        // Or, we can redefine simple success/pending/fail methods here in user/gateway/Billdesk.php
+        // and pass a 'module' param to the view for dynamic links.
+
+        // To maintain the redirect structure of the onlineadmission/Billdesk controller I previously created,
+        // we need to instantiate that controller and call its success/pending/fail methods.
+        // However, this is generally bad practice in CodeIgniter (avoid direct controller instantiation).
+        // A better approach is to have common views or to pass enough data to the current view.
+        // For the sake of redirecting to the *correct* set of success/pending/fail pages,
+        // I will use a simple redirect to the onlineadmission/billdesk controller's success/pending/fail methods.
+        
+        $this->load->helper('url'); // Ensure URL helper is loaded for redirect
+        redirect('onlineadmission/billdesk/success/' . urlencode(json_encode($response)));
     }
 
     public function success($response) {
