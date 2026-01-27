@@ -1652,26 +1652,37 @@ class PublicAdmissionForm extends CI_Controller
         $online_admission_id = $this->input->post('online_admission_id'); // From hidden field in form
         $payment_params = $this->session->userdata('online_admission_payment_params');
 
+        log_message('error', 'BILLDESK_DEBUG_INIT_GATEWAY: --- initiate_gateway_payment START ---');
+        log_message('error', 'BILLDESK_DEBUG_INIT_GATEWAY: online_admission_id POST: ' . $online_admission_id);
+        log_message('error', 'BILLDESK_DEBUG_INIT_GATEWAY: payment_params SESSION: ' . json_encode($payment_params));
+        log_message('error', 'BILLDESK_DEBUG_INIT_GATEWAY: sch_setting_detail->online_admission_payment: ' . $this->sch_setting_detail->online_admission_payment);
+        log_message('error', 'BILLDESK_DEBUG_INIT_GATEWAY: sch_setting_detail->online_admission_amount: ' . $this->sch_setting_detail->online_admission_amount);
+
         // Validate session data and POST ID match
-        if (empty($payment_params) || empty($online_admission_id) || $payment_params['online_admission_id'] != $online_admission_id) {
+        if (empty($payment_params) || empty($online_admission_id) || (isset($payment_params['online_admission_id']) && $payment_params['online_admission_id'] != $online_admission_id)) { // Added isset check for robustness
+            log_message('error', 'BILLDESK_DEBUG_INIT_GATEWAY: Failed condition: payment_params/online_admission_id mismatch.');
             $this->session->set_flashdata('error', $this->lang->line('payment_details_not_found'));
             redirect('publicadmissionform');
         }
 
         // Re-check payment settings (security measure against session manipulation)
         if ($this->sch_setting_detail->online_admission_payment != 'yes' || $this->sch_setting_detail->online_admission_amount <= 0) {
+            log_message('error', 'BILLDESK_DEBUG_INIT_GATEWAY: Failed condition: Online admission payment not enabled or amount <= 0.');
             $this->session->set_flashdata('error', $this->lang->line('online_admission_payment_not_enabled_or_amount_zero'));
             redirect('publicadmissionform');
         }
         
         // Get active payment gateway settings
         $api_config = $this->paymentsetting_model->getActiveMethod();
+        log_message('error', 'BILLDESK_DEBUG_INIT_GATEWAY: API Config: ' . json_encode($api_config));
 
         if (empty($api_config) || $api_config->payment_type != 'billdesk') {
+            log_message('error', 'BILLDESK_DEBUG_INIT_GATEWAY: Failed condition: Billdesk gateway not configured or active. API Type: ' . (isset($api_config->payment_type) ? $api_config->payment_type : 'N/A'));
             $this->session->set_flashdata('error', $this->lang->line('billdesk_gateway_not_configured_or_active'));
             redirect('publicadmissionform');
         }
 
+        log_message('error', 'BILLDESK_DEBUG_INIT_GATEWAY: All conditions passed. Redirecting to Billdesk. --- END ---');
         // All checks passed, proceed to insert gateway_ins and redirect
         // The $payment_params already contain all necessary data
         // For gateway_ins, we need a unique_id (online_admission_id) and other details
@@ -1691,9 +1702,8 @@ class PublicAdmissionForm extends CI_Controller
         $this->session->set_userdata('reference', $online_admission_id); // Used by onlineadmission/billdesk/callback
 
         // Redirect to the onlineadmission BillDesk payment initiation page
-        redirect('onlineadmission/billdesk/index');
+        redirect('user/gateway/billdesk/index');
     }
-
     public function pay_later_confirmation($reference_no = null)
     {
         if (empty($reference_no)) {
