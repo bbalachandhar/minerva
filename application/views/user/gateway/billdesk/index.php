@@ -50,53 +50,82 @@
                             <div class="invtext"><?php echo $this->lang->line('fees_payment_details');?></div>
                             <div class="padd2 paddtzero">
                                 <table class="table2" width="100%">
-                                    <tr>
-                                        <th><?php echo $this->lang->line('description'); ?></th>
-                                        <th class="text-right"><?php echo $this->lang->line('amount')?></th>
-                                    </tr>
-                                    <?php
-                                    foreach ($params['student_fees_master_array'] as $fees_key => $fees_value) {
-                                        ?>
+                                    <?php if (isset($params['item_type']) && $params['item_type'] == 'online_admission_fee') { ?>
                                         <tr>
-                                           <td>
-                                                <span class="title"><?php if ($fees_value['is_system']) {
-                echo $this->lang->line($fees_value['fee_group_name']);
-            } else {
-                echo $fees_value['fee_group_name'] ;
-            }?> </span>
-                                                <span class="product-description">
-                                                    <?php  if ($fees_value['is_system']) {
-                echo $this->lang->line($fees_value['fee_type_code']);
-            } else {
-                echo $fees_value['fee_type_code'];
-            } ?></span>
-                                            </td>
-                                            <td class="text-right"><?php echo $setting[0]['currency_symbol'] . amountFormat((float) $fees_value['amount_balance'], 2, '.', ''); ?></td>
+                                            <th><?php echo $this->lang->line('description'); ?></th>
+                                            <th class="text-right"><?php echo $this->lang->line('amount')?></th>
                                         </tr>
-                                        <tr class="border_bottom">
-                                            <td> 
-                                                <span class="text-fine"><?php echo $this->lang->line('fine'); ?></span></td>
-                                            <td class="text-right"><?php echo $setting[0]['currency_symbol'] . amountFormat((float) $fees_value['fine_balance'], 2, '.', ''); ?></td>
-                                        </tr>
-										<tr class="border_bottom">
+                                        <tr>
                                             <td>
-                                                <span class="text-text-success"><?php echo $this->lang->line('discount'); ?></span>
+                                                <span class="title"><?php echo $this->lang->line('online_admission_fee'); ?></span>
                                             </td>
-                                            <td class="text-right"><?php echo $setting[0]['currency_symbol'] . amountFormat((float) $params['applied_fee_discount'], 2, '.', ''); ?></td>
+                                            <td class="text-right"><?php echo $setting[0]['currency_symbol'] . amountFormat((float) $params['admission_amount'], 2, '.', ''); ?></td>
+                                        </tr>
+                                        <?php if (isset($params['processing_charge']) && $params['processing_charge'] > 0) { ?>
+                                            <tr class="border_bottom">
+                                                <td>
+                                                    <span class="text-fine"><?php echo $this->lang->line('processing_fees'); ?></span>
+                                                </td>
+                                                <td class="text-right"><?php echo $setting[0]['currency_symbol'] . amountFormat((float) $params['processing_charge'], 2, '.', ''); ?></td>
+                                            </tr>
+                                        <?php } ?>
+                                        <tr class="bordertoplightgray">
+                                            <td colspan="2" class="text-right"><?php echo $this->lang->line('total');?>: <?php echo $setting[0]['currency_symbol'] . amountFormat((float) $params['total'], 2, '.', ''); ?></td>
+                                        </tr>
+                                    <?php } else { // Default to student fees logic ?>
+                                        <tr>
+                                            <th><?php echo $this->lang->line('description'); ?></th>
+                                            <th class="text-right"><?php echo $this->lang->line('amount')?></th>
                                         </tr>
                                         <?php
-                                    }
-                                    ?>
-                                    
-                                        <tr class="border_bottom">
-                                            <td>
-                                                <span class="text-text-success"><?php echo $this->lang->line('processing_fees'); ?></span>
-                                            </td>
-                                            <td class="text-right"><?php echo $setting[0]['currency_symbol'] . amountFormat((float) $params['gateway_processing_charge'], 2, '.', ''); ?></td>
-                                        </tr>
+                                        // Ensure student_fees_master_array exists before iterating
+                                        if (isset($params['student_fees_master_array']) && is_array($params['student_fees_master_array'])) {
+                                            foreach ($params['student_fees_master_array'] as $fees_key => $fees_value) {
+                                                ?>
+                                                <tr>
+                                                   <td>
+                                                        <span class="title"><?php if ($fees_value['is_system']) {
+                                        echo $this->lang->line($fees_value['fee_group_name']);
+                                    } else {
+                                        echo $fees_value['fee_group_name'] ;
+                                    }?> </span>
+                                                        <span class="product-description">
+                                                            <?php  if ($fees_value['is_system']) {
+                                        echo $this->lang->line($fees_value['fee_type_code']);
+                                    } else {
+                                        echo $fees_value['fee_type_code'];
+                                    } ?></span>
+                                                    </td>
+                                                    <td class="text-right"><?php echo $setting[0]['currency_symbol'] . amountFormat((float) $fees_value['amount_balance'], 2, '.', ''); ?></td>
+                                                </tr>
+                                                <tr class="border_bottom">
+                                                    <td> 
+                                                        <span class="text-fine"><?php echo $this->lang->line('fine'); ?></span></td>
+                                                    <td class="text-right"><?php echo $setting[0]['currency_symbol'] . amountFormat((float) $fees_value['fine_balance'], 2, '.', ''); ?></td>
+                                                </tr>
+                                                <tr class="border_bottom">
+                                                    <td>
+                                                        <span class="text-text-success"><?php echo $this->lang->line('discount'); ?></span>
+                                                    </td>
+                                                    <td class="text-right"><?php echo $setting[0]['currency_symbol'] . amountFormat((float) ($params['applied_fee_discount'] ?? 0), 2, '.', ''); ?></td>
+                                                </tr>
+                                                <?php
+                                            }
+                                        }
+                                        ?>
+                                        
+                                        <?php if (isset($params['gateway_processing_charge']) && $params['gateway_processing_charge'] > 0) { ?>
+                                            <tr class="border_bottom">
+                                                <td>
+                                                    <span class="text-text-success"><?php echo $this->lang->line('processing_fees'); ?></span>
+                                                </td>
+                                                <td class="text-right"><?php echo $setting[0]['currency_symbol'] . amountFormat((float) $params['gateway_processing_charge'], 2, '.', ''); ?></td>
+                                            </tr>
+                                        <?php } ?>
                                         <tr class="bordertoplightgray">
-                                            <td colspan="2" class="text-right"><?php echo $this->lang->line('total');?>: <?php echo $setting[0]['currency_symbol'] . amountFormat((float)(($params['fine_amount_balance'] + $params['total']) - $params['applied_fee_discount']+$params['gateway_processing_charge']), 2, '.', ''); ?></td>
+                                            <td colspan="2" class="text-right"><?php echo $this->lang->line('total');?>: <?php echo $setting[0]['currency_symbol'] . amountFormat((float)(($params['fine_amount_balance'] ?? 0) + ($params['total'] ?? 0) - ($params['applied_fee_discount'] ?? 0) + ($params['gateway_processing_charge'] ?? 0)), 2, '.', ''); ?></td>
                                         </tr>
+                                    <?php } ?>
                                 </table>
                                 <script src="<?php echo base_url(); ?>backend/custom/jquery.min.js"></script>
                                 <div class="divider"></div>
