@@ -11,6 +11,7 @@ class Billdesk extends Student_Controller
     public function __construct()
     {
         $this->auth_bypass_methods[] = 'callback'; // Bypass authentication for the callback method
+        $this->auth_bypass_methods[] = 'index';    // Bypass authentication for the index method as well
         parent::__construct();
         $this->api_config = $this->paymentsetting_model->getActiveMethod();
         $this->setting = $this->setting_model->get();
