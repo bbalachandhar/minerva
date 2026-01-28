@@ -564,7 +564,7 @@
                             <div class="row">
                                 <div class="mb-3 col-md-6">
                                     <label class="form-label">Qualifying Exam passed</label>
-                                    <input class="form-control" type="text" placeholder="Enter your exam passed" name="exam_passed" id="exam_passed" tabindex="72">
+                                    <input type="text" class="form-control" placeholder="Enter your exam passed" name="exam_passed" id="exam_passed" tabindex="72">
                                 </div>
                                 <div class="mb-3 col-md-6">
                                     <label class="form-label">Branch</label>
@@ -602,7 +602,10 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="section-card">
+                    </div>
+                </div>
+                                <input type="hidden" name="payment_option" id="payment_option" value="">
+                                        <div class="section-card" id="additionalInfoSection">
                             <h5 class="mb-3">Additional Information</h5>
                             <div class="mb-4">
                                 <label class="form-label">UG Alumni of Meenakshi Group of Institutions</label>
@@ -640,9 +643,6 @@
                                 <input type="text" class="form-control" placeholder="Enter type of disability" name="disability_type" id="disability_type" tabindex="88">
                             </div>
                         </div>
-                    </div>
-                </div>
-                <input type="hidden" name="payment_option" id="payment_option" value="">
                 <button class="btn btn-submit mt-3" type="button" id="submit_application_btn" name="submit" tabindex="89">Submit Application</button>
             </form>
         </div>
@@ -1228,5 +1228,5 @@ $(document).ready(function() {
         }
     });
 });
-</script>
+
 </html>
