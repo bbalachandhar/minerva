@@ -18,6 +18,7 @@ $currency_symbol = $admin_session['currency_symbol'];
                     <ul class="nav nav-tabs">
                         <li class="active"><a href="#tab_1" data-toggle="tab"><?php echo $this->lang->line('online_admission_form_setting'); ?></a></li>
                         <li><a href="#tab_2" data-toggle="tab"><?php echo $this->lang->line('online_admission_fields_setting'); ?></a></li>
+                        <li><a href="#tab_3" data-toggle="tab"><?php echo $this->lang->line('admission_courses'); ?></a></li>
                     </ul>
                     <div class="tab-content">
                         <div class="tab-pane active" id="tab_1">
@@ -222,6 +223,9 @@ if (!empty($custom_fields)) {
                             </form>
                         </div>
 
+                        <div class="tab-pane" id="tab_3">
+                           <iframe src="<?php echo admin_url('onlineadmission/admissioncourses'); ?>" width="100%" frameborder="0" height="800px"></iframe>
+                        </div>
                     </div>
                     <!-- /.tab-content -->
                 </div>

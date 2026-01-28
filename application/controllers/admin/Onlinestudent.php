@@ -544,6 +544,12 @@ class Onlinestudent extends Admin_Controller
                 }
 
                 if ($sch_setting->online_admission_payment == 'yes') {
+
+                    $paybtn = "";
+                    if ($value->paid_status != 1) {
+                        $paybtn = "<a class='btn btn-default btn-xs mt-5 pull-right' data-toggle='tooltip' title='" . $this->lang->line('add_payment') . "' onclick='addpayment(" . '"' . $value->id . '","' . $value->reference_no . '"' . "  )'><i class='fa fa-usd'></i></a>";
+                    }
+
                     if ($value->paid_status == 1) {
                         $row[] = '<span class="label label-success">' . $this->lang->line('paid') . '</span>';
                     } elseif ($value->paid_status == 2) {
@@ -553,10 +559,12 @@ class Onlinestudent extends Admin_Controller
                     }
                 }
 
-                $row[]     =  $enroll;
-                $row[]     =  date($this->customlib->getSchoolDateFormat(), $this->customlib->dateyyyymmddTodateformat(date("Y-m-d", strtotime($value->created_at))));
+                $row[] = $enroll;
+                $row[] = date($this->customlib->getSchoolDateFormat(), $this->customlib->dateyyyymmddTodateformat(date("Y-m-d", strtotime($value->created_at))));
+                $row[] = $value->payment_updated_by_name;
+                $row[] = ($value->payment_updated_at != null) ? date($this->customlib->getSchoolDateFormat(), $this->customlib->dateyyyymmddTodateformat($value->payment_updated_at)) : '';
                 
-                $row[]     = $document . ' ' . $printbtn . ' ' . $editbtn . ' ' . $deletebtn;
+                $row[]     = $document . ' ' . $printbtn . ' ' . $editbtn . ' ' . $deletebtn . ' ' . $paybtn;
                 $dt_data[] = $row;
             }
         }
@@ -568,6 +576,43 @@ class Onlinestudent extends Admin_Controller
             "data"            => $dt_data,
         );
         echo json_encode($json_data);
+    }
+
+    public function addpayment()
+    {
+        if (!$this->rbac->hasPrivilege('online_admission_manual_payment', 'can_add')) {
+            access_denied();
+        }
+
+        $this->form_validation->set_rules('online_admission_id', $this->lang->line('student'), 'required|trim|xss_clean');
+        $this->form_validation->set_rules('transaction_id', $this->lang->line('transaction_id'), 'required|trim|xss_clean');
+        $this->form_validation->set_rules('note', $this->lang->line('note'), 'required|trim|xss_clean');
+
+        if ($this->form_validation->run() == false) {
+            $data = array(
+                'online_admission_id' => form_error('online_admission_id'),
+                'transaction_id'      => form_error('transaction_id'),
+                'note'                => form_error('note'),
+            );
+            $array = array('status' => 'fail', 'error' => $data);
+            echo json_encode($array);
+        } else {
+            $admin_session = $this->session->userdata('admin');
+            $updated_by_staff_id = $admin_session['id'];
+
+            $data = array(
+                'id'                   => $this->input->post('online_admission_id'),
+                'paid_status'          => 1,
+                'transaction_id'       => $this->input->post('transaction_id'),
+                'note'                 => $this->input->post('note'),
+                'payment_updated_by'   => $updated_by_staff_id,
+                'payment_updated_at'   => date('Y-m-d H:i:s'),
+            );
+
+            $this->onlinestudent_model->update($data, null, null, null, null);
+            $array = array('status' => 'success', 'error' => '', 'message' => $this->lang->line('success_message'));
+            echo json_encode($array);
+        }
     }
 
     public function checkpaymentstatus()

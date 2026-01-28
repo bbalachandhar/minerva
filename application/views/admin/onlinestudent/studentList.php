@@ -40,6 +40,8 @@
                                             <?php }?>
                                         <th><?php echo $this->lang->line('enrolled'); ?></th>
                                         <th><?php echo $this->lang->line('created_at'); ?></th>
+                                        <th><?php echo $this->lang->line('updated_by'); ?></th>
+                                        <th><?php echo $this->lang->line('updated_at'); ?></th>
                                         <th class="text-right noExport"><?php echo $this->lang->line('action'); ?></th>
                                     </tr>
                                 </thead>
@@ -55,6 +57,38 @@
         </div>
     </section><!-- /.content -->
 </div><!-- /.content-wrapper -->
+
+<div class="modal fade" id="addPaymentModal" tabindex="-1" role="dialog" aria-labelledby="addPaymentModalLabel">
+    <div class="modal-dialog" role="document">
+        <form id="add_payment_form" method="post">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title" id="addPaymentModalLabel"><?php echo $this->lang->line('add_payment'); ?></h4>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="online_admission_id" id="online_admission_id" value="">
+                    <div class="form-group">
+                        <label for="reference_no"><?php echo $this->lang->line('reference_no'); ?></label>
+                        <input type="text" class="form-control" id="reference_no" name="reference_no" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="transaction_id"><?php echo $this->lang->line('transaction_id'); ?></label>
+                        <input type="text" class="form-control" id="transaction_id" name="transaction_id">
+                    </div>
+                    <div class="form-group">
+                        <label for="note"><?php echo $this->lang->line('note'); ?></label>
+                        <textarea class="form-control" id="note" name="note"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal"><?php echo $this->lang->line('close'); ?></button>
+                    <button type="submit" class="btn btn-primary"><?php echo $this->lang->line('save'); ?></button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
 
 <script>
     ( function ( $ ) {
@@ -85,4 +119,36 @@
             }
         });
     }
+
+    function addpayment(id, reference_no){
+        $('#online_admission_id').val(id);
+        $('#reference_no').val(reference_no);
+        $('#addPaymentModal').modal('show');
+    }
+
+    $(document).ready(function () {
+        $('#add_payment_form').on('submit', function (e) {
+            e.preventDefault();
+            var $this = $(this);
+            $.ajax({
+                url: '<?php echo site_url("admin/onlinestudent/addpayment") ?>',
+                type: "POST",
+                data: $this.serialize(),
+                dataType: 'json',
+                success: function (data) {
+                    if (data.status == "fail") {
+                        var message = "";
+                        $.each(data.error, function (index, value) {
+                            message += value;
+                        });
+                        errorMsg(message);
+                    } else {
+                        successMsg(data.message);
+                        $('#addPaymentModal').modal('hide');
+                        $('.student-list').DataTable().ajax.reload();
+                    }
+                }
+            });
+        });
+    });
 </script>

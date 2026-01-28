@@ -74,9 +74,9 @@ class Onlinestudent_model extends MY_Model
         $this->datatables
             ->select('online_admissions.vehroute_id,vehicle_routes.route_id,vehicle_routes.vehicle_id,transport_route.route_title,vehicles.vehicle_no,hostel_rooms.room_no,vehicles.driver_name,vehicles.driver_contact,hostel.id as `hostel_id`,hostel.hostel_name,room_types.id as `room_type_id`,room_types.room_type ,online_admissions.hostel_room_id,class_sections.id as class_section_id,classes.id AS `class_id`,classes.class,sections.id AS `section_id`,sections.section,online_admissions.id,online_admissions.admission_no, online_admissions.roll_no,online_admissions.admission_date,online_admissions.firstname, online_admissions.lastname,online_admissions.image,    online_admissions.mobileno,online_admissions.email,online_admissions.state,online_admissions.city , online_admissions.pincode , online_admissions.note, online_admissions.religion,online_admissions.cast, school_houses.house_name,online_admissions.dob ,online_admissions.current_address, online_admissions.previous_school,
             online_admissions.guardian_is,
-            online_admissions.permanent_address,IFNULL(online_admissions.category_id, 0) as `category_id`,IFNULL(categories.category, "") as `category`,online_admissions.adhar_no,online_admissions.samagra_id,online_admissions.bank_account_no,online_admissions.bank_name, online_admissions.ifsc_code , online_admissions.guardian_name,online_admissions.father_pic,online_admissions.height ,online_admissions.weight,online_admissions.measurement_date, online_admissions.mother_pic,online_admissions.guardian_pic, online_admissions.guardian_relation,online_admissions.guardian_phone,online_admissions.guardian_address,online_admissions.is_enroll ,online_admissions.created_at,online_admissions.document ,online_admissions.updated_at,online_admissions.father_name,online_admissions.father_phone,online_admissions.blood_group,online_admissions.school_house_id,online_admissions.father_occupation,online_admissions.mother_name,online_admissions.mother_phone,online_admissions.mother_occupation,online_admissions.guardian_occupation,online_admissions.gender,online_admissions.guardian_is,online_admissions.rte,online_admissions.guardian_email,online_admissions.reference_no,online_admissions.paid_status,online_admissions.form_status,online_admissions.submit_date,online_admissions.middlename')
-            ->orderable('online_admissions.reference_no,online_admissions.firstname,classes.class,online_admissions.father_name,online_admissions.dob,online_admissions.gender,categories.category,online_admissions.mobileno," "," "," " ')
-            ->searchable('online_admissions.reference_no,online_admissions.firstname,classes.class,online_admissions.father_name,online_admissions.dob,online_admissions.gender,categories.category,online_admissions.mobileno')
+            online_admissions.permanent_address,IFNULL(online_admissions.category_id, 0) as `category_id`,IFNULL(categories.category, "") as `category`,online_admissions.adhar_no,online_admissions.samagra_id,online_admissions.bank_account_no,online_admissions.bank_name, online_admissions.ifsc_code , online_admissions.guardian_name,online_admissions.father_pic,online_admissions.height ,online_admissions.weight,online_admissions.measurement_date, online_admissions.mother_pic,online_admissions.guardian_pic, online_admissions.guardian_relation,online_admissions.guardian_phone,online_admissions.guardian_address,online_admissions.is_enroll ,online_admissions.created_at,online_admissions.document ,online_admissions.updated_at,online_admissions.father_name,online_admissions.father_phone,online_admissions.blood_group,online_admissions.school_house_id,online_admissions.father_occupation,online_admissions.mother_name,online_admissions.mother_phone,online_admissions.mother_occupation,online_admissions.guardian_occupation,online_admissions.gender,online_admissions.guardian_is,online_admissions.rte,online_admissions.guardian_email,online_admissions.reference_no,online_admissions.paid_status,online_admissions.form_status,online_admissions.submit_date,online_admissions.middlename, CONCAT_WS(" ", staff.name, staff.surname) as payment_updated_by_name, online_admissions.payment_updated_at')
+->orderable('online_admissions.reference_no,online_admissions.firstname,classes.class,online_admissions.father_name,online_admissions.dob,online_admissions.gender,categories.category,online_admissions.mobileno,online_admissions.form_status,online_admissions.paid_status,online_admissions.is_enroll,online_admissions.created_at,online_admissions.payment_updated_at, payment_updated_by_name, " " ')
+->searchable('online_admissions.reference_no,online_admissions.firstname,classes.class,online_admissions.father_name,online_admissions.dob,online_admissions.gender,categories.category,online_admissions.mobileno, CONCAT_WS(" ", staff.name, staff.surname)')
            
             ->join('class_sections','class_sections.id = online_admissions.class_section_id', 'left')
             ->join('classes','class_sections.class_id = classes.id', 'left')
@@ -88,7 +88,8 @@ class Onlinestudent_model extends MY_Model
             ->join('vehicle_routes','vehicle_routes.id = online_admissions.vehroute_id', 'left')
             ->join('transport_route','vehicle_routes.route_id = transport_route.id', 'left')
             ->join('vehicles', 'vehicles.id = vehicle_routes.vehicle_id', 'left')
-            ->join('school_houses', 'school_houses.id = online_admissions.school_house_id', 'left');            
+            ->join('school_houses', 'school_houses.id = online_admissions.school_house_id', 'left')
+            ->join('staff', 'staff.id = online_admissions.payment_updated_by', 'left');            
             if(!empty($class_section_array)){
                 foreach ($class_section_array as $class_sectionkey => $class_sectionvalue) {
                     $query_string="";
@@ -125,9 +126,8 @@ class Onlinestudent_model extends MY_Model
         if (isset($data['id'])) {
             $this->db->trans_begin();
             $data_id          = $data['id'];
-            $class_section_id = $data['class_section_id'];
-
             if ($action == "enroll") {
+                $class_section_id = $data['class_section_id'];
                 //==========================
                 $insert             = true;
                 $sch_setting_detail = $this->setting_model->getSetting();
@@ -287,7 +287,13 @@ class Onlinestudent_model extends MY_Model
                 $this->db->trans_commit();
             }
         }
-        return json_encode(array('record_update_status' => $record_update_status, 'admission_no' => $data['admission_no'] , 'student_id' => $student_id, 'user_password' => $user_password, 'parent_password' => $parent_password));
+        return json_encode(array(
+            'record_update_status' => $record_update_status,
+            'admission_no' => isset($data['admission_no']) ? $data['admission_no'] : null,
+            'student_id' => $student_id,
+            'user_password' => $user_password,
+            'parent_password' => $parent_password
+        ));
     }
 
     public function remove($id)

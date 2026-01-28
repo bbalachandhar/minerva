@@ -10,6 +10,7 @@
         <link href="<?php echo $this->customlib->getBaseUrl(); ?>uploads/school_content/admin_small_logo/<?php echo $this->setting_model->getAdminsmalllogo();?>" rel="shortcut icon" type="image/x-icon">
 
         <link rel="stylesheet" href="<?php echo base_url(); ?>backend/bootstrap/css/bootstrap.min.css">
+        <link rel="stylesheet" href="<?php echo base_url(); ?>backend/plugins/toastr/toastr.min.css">
         <link rel="stylesheet" href="<?php echo base_url(); ?>backend/dist/css/jquery.mCustomScrollbar.min.css">
         <?php
 $this->load->view('layout/theme');
@@ -59,6 +60,7 @@ $this->load->view('layout/theme');
         <script src="<?php echo base_url(); ?>backend/dist/js/jquery.mCustomScrollbar.concat.min.js"></script>
         <script src="<?php echo base_url(); ?>backend/js/school-custom.js"></script>
         <script src="<?php echo base_url(); ?>backend/js/school-admin-custom.js?v=<?php echo time(); ?>"></script>
+        <script src="<?php echo base_url(); ?>backend/plugins/toastr/toastr.min.js"></script>
         <script src="<?php echo base_url(); ?>backend/js/sstoast.js"></script>
         <script src="<?php echo base_url(); ?>backend/js/export_lib.js"></script>
         
