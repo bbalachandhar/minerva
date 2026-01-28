@@ -14,6 +14,7 @@ class Onlineadmission extends Admin_Controller
 
         $this->load->library('media_storage');
         $this->load->model("onlinestudent_model");
+        $this->load->model("admissionclass_model");
         $this->config->load("app-config");
         $this->sch_setting_detail = $this->setting_model->getSetting();
         $this->role;
@@ -33,6 +34,7 @@ class Onlineadmission extends Admin_Controller
         $data['inserted_fields']    = $this->onlinestudent_model->getformfields();
         $data['sch_setting_detail'] = $this->sch_setting_detail;
         $data['custom_fields']      = $this->onlinestudent_model->getcustomfields();
+        $data['admission_classes']  = $this->admissionclass_model->get();
 
         if (!empty($this->input->post('submitbtn'))) {
 
@@ -199,6 +201,143 @@ class Onlineadmission extends Admin_Controller
     {
         $settinglist = $this->setting_model->get($id);         
         $this->media_storage->filedownload($settinglist['online_admission_application_form'], "./uploads/admission_form");
+    }
+
+    public function add_admission_class()
+    {
+        if (!$this->rbac->hasPrivilege('online_admission', 'can_add')) {
+            $array = array('status' => 'fail', 'error' => '', 'message' => $this->lang->line('permission_denied'));
+            echo json_encode($array);
+            exit();
+        }
+
+        $this->form_validation->set_rules('department', $this->lang->line('department'), 'trim|required|xss_clean');
+        $this->form_validation->set_rules('class_name', $this->lang->line('class_name'), 'trim|required|xss_clean');
+        // admission_flags can be optional, no required rule
+
+        if ($this->form_validation->run() == false) {
+            $msg = array(
+                'department'    => form_error('department'),
+                'class_name'    => form_error('class_name'),
+                'admission_flags' => form_error('admission_flags')
+            );
+            $array = array('status' => 'fail', 'error' => $msg, 'message' => $this->lang->line('something_went_wrong'));
+        } else {
+            $data = array(
+                'department'      => $this->input->post('department'),
+                'class_name'      => $this->input->post('class_name'),
+                'admission_flags' => $this->input->post('admission_flags'),
+                'is_active'       => $this->input->post('is_active') ? 1 : 0
+            );
+
+            $insert_id = $this->admissionclass_model->add($data);
+
+            if ($insert_id) {
+                $array = array('status' => 'success', 'error' => '', 'message' => $this->lang->line('record_added_successfully'));
+            } else {
+                $array = array('status' => 'fail', 'error' => '', 'message' => $this->lang->line('error_occurred'));
+            }
+            echo json_encode($array);
+        }
+    }
+
+    public function update_admission_class()
+    {
+        if (!$this->rbac->hasPrivilege('online_admission', 'can_edit')) {
+            $array = array('status' => 'fail', 'error' => '', 'message' => $this->lang->line('permission_denied'));
+            echo json_encode($array);
+            exit();
+        }
+
+        $this->form_validation->set_rules('id', $this->lang->line('id'), 'trim|required|xss_clean');
+        $this->form_validation->set_rules('department', $this->lang->line('department'), 'trim|required|xss_clean');
+        $this->form_validation->set_rules('class_name', $this->lang->line('class_name'), 'trim|required|xss_clean');
+
+        if ($this->form_validation->run() == false) {
+            $msg = array(
+                'id'            => form_error('id'),
+                'department'    => form_error('department'),
+                'class_name'    => form_error('class_name'),
+                'admission_flags' => form_error('admission_flags')
+            );
+            $array = array('status' => 'fail', 'error' => $msg, 'message' => $this->lang->line('something_went_wrong'));
+        } else {
+            $id = $this->input->post('id');
+            $data = array(
+                'department'      => $this->input->post('department'),
+                'class_name'      => $this->input->post('class_name'),
+                'admission_flags' => $this->input->post('admission_flags'),
+                'is_active'       => $this->input->post('is_active') ? 1 : 0
+            );
+
+            $rows_affected = $this->admissionclass_model->update($id, $data);
+
+            if ($rows_affected) {
+                $array = array('status' => 'success', 'error' => '', 'message' => $this->lang->line('record_updated_successfully'));
+            } else {
+                $array = array('status' => 'fail', 'error' => '', 'message' => $this->lang->line('error_occurred') . ' or ' . $this->lang->line('no_change_in_record'));
+            }
+        }
+        echo json_encode($array);
+    }
+
+    public function delete_admission_class()
+    {
+        if (!$this->rbac->hasPrivilege('online_admission', 'can_delete')) {
+            $array = array('status' => 'fail', 'error' => '', 'message' => $this->lang->line('permission_denied'));
+            echo json_encode($array);
+            exit();
+        }
+
+        $this->form_validation->set_rules('id', $this->lang->line('id'), 'trim|required|xss_clean');
+
+        if ($this->form_validation->run() == false) {
+            $msg = array(
+                'id'            => form_error('id')
+            );
+            $array = array('status' => 'fail', 'error' => $msg, 'message' => $this->lang->line('something_went_wrong'));
+        } else {
+            $id = $this->input->post('id');
+            $rows_affected = $this->admissionclass_model->delete($id);
+
+            if ($rows_affected) {
+                $array = array('status' => 'success', 'error' => '', 'message' => $this->lang->line('record_deleted_successfully'));
+            } else {
+                $array = array('status' => 'fail', 'error' => '', 'message' => $this->lang->line('error_occurred'));
+            }
+        }
+        echo json_encode($array);
+    }
+
+    public function change_admission_class_status()
+    {
+        if (!$this->rbac->hasPrivilege('online_admission', 'can_edit')) {
+            $array = array('status' => 'fail', 'error' => '', 'message' => $this->lang->line('permission_denied'));
+            echo json_encode($array);
+            exit();
+        }
+
+        $this->form_validation->set_rules('id', $this->lang->line('id'), 'trim|required|xss_clean');
+        $this->form_validation->set_rules('status', $this->lang->line('status'), 'trim|required|xss_clean');
+
+        if ($this->form_validation->run() == false) {
+            $msg = array(
+                'id'            => form_error('id'),
+                'status'        => form_error('status')
+            );
+            $array = array('status' => 'fail', 'error' => $msg, 'message' => $this->lang->line('something_went_wrong'));
+        } else {
+            $id = $this->input->post('id');
+            $status = $this->input->post('status');
+            $rows_affected = $this->admissionclass_model->changeStatus($id, $status);
+
+            if ($rows_affected) {
+                $array = array('status' => 'success', 'error' => '', 'message' => $this->lang->line('status_changed_successfully'));
+            } else {
+                $array = array('status' => 'fail', 'error' => '', 'message' => $this->lang->line('error_occurred'));
+            }
+        }
+        echo json_encode($array);
     }
 
 }

@@ -1419,28 +1419,42 @@ class Schsettings extends Admin_Controller
         $this->load->view('layout/footer');
         }
     		
-            public function timetablesettings()
-            {
-                $this->session->set_userdata('top_menu', 'System Settings');
-                $this->session->set_userdata('sub_menu', 'schsettings/index');
-                $this->session->set_userdata('subsub_menu', 'schsettings/timetablesettings');
-        
-                $setting              = $this->setting_model->getSetting();
-                if (is_null($setting)) {
-                    $setting = new stdClass();
-                    $setting->base_url = '';
-                    $setting->folder_path = '';
-                }
-                $setting->base_url    = ($setting->base_url == "") ? base_url() : $setting->base_url;
-                $setting->folder_path = FCPATH;
-                $data['result']       = $setting;
-                $this->load->view('layout/header', $data);
-                $this->load->view('setting/timetablesettings', $data);
-                $this->load->view('layout/footer', $data);
-            }
+                public function timetablesettings()
+                {
+                    $this->session->set_userdata('top_menu', 'System Settings');
+                    $this->session->set_userdata('sub_menu', 'schsettings/index');
+                    $this->session->set_userdata('subsub_menu', 'schsettings/timetablesettings');
             
-            public function savetimetablesettings()
+                    $this->load->model("period_model");
+                    $setting              = $this->setting_model->getSetting();
+                    if (is_null($setting)) {
+                        $setting = new stdClass();
+                        $setting->base_url = '';
+                        $setting->folder_path = '';
+                    }
+                            log_message('debug', 'Schsettings::timetablesettings - $setting object before passing to view: ' . print_r($setting, true));
+                    
+                            $setting->base_url    = ($setting->base_url == "") ? base_url() : $setting->base_url;
+                            $setting->folder_path = FCPATH;
+                            $data['result']       = $setting;
+                            $data['period_list'] = $this->period_model->get();
+                            $this->load->view('layout/header', $data);
+                            $this->load->view('setting/timetablesettings', $data);
+                            $this->load->view('layout/footer', $data);
+                        }            public function savetimetablesettings()
             {
+                $this->form_validation->set_rules('sch_id', 'Sch ID', 'trim|required|xss_clean');
+
+                if ($this->form_validation->run() == FALSE) {
+                    $array = array(
+                        'status' => 'fail',
+                        'error' => array('sch_id' => form_error('sch_id')),
+                        'message' => ''
+                    );
+                    echo json_encode($array);
+                    return;
+                }
+
                 $is_dynamic_timetable = $this->input->post('is_dynamic_timetable');
                 if ($is_dynamic_timetable == NULL) {
                     $is_dynamic_timetable = 0;

@@ -16,8 +16,10 @@ $currency_symbol = $admin_session['currency_symbol'];
                     <ul class="nav nav-tabs">
                         <li class="active"><a href="#tab_1" data-toggle="tab"><?php echo $this->lang->line('online_admission_form_setting'); ?></a></li>
                         <li><a href="#tab_2" data-toggle="tab"><?php echo $this->lang->line('online_admission_fields_setting'); ?></a></li>
+                        <li><a href="#tab_3" data-toggle="tab">Admission Classis</a></li>
                     </ul>
                     <div class="tab-content">
+                        <!-- Tab 1 Start -->
                         <div class="tab-pane active" id="tab_1">
                             <?php if ($this->session->flashdata('msg')) {
     ?>
@@ -112,7 +114,9 @@ echo $this->session->flashdata('msg');
                             </div>
                           </form>
                         </div><!-- box body-->
+                        <!-- Tab 1 End -->
                         <!-- /.tab-pane -->
+                        <!-- Tab 2 Start -->
                         <div class="tab-pane" id="tab_2">
                             <form role="form" id="twilio" id="twilio" action="<?php echo site_url('smsconfig/twilio') ?>" method="post">
                                 <div class="">
@@ -197,9 +201,16 @@ if (!empty($custom_fields)) {
                                 <!-- /.box-body -->
                             </form>
                         </div>
+                        <!-- Tab 2 End -->
 
                     </div>
-                    <!-- /.tab-content -->
+                    <!-- /.tab-pane -->
+                    <!-- Tab 3 Start: Admission Classis -->
+                    <div class="tab-pane" id="tab_3">
+                        <?php $this->load->view('admin/onlineadmission/admission_classis_tab'); ?>
+                    </div>
+                    <!-- Tab 3 End: Admission Classis -->
+                    <!-- /.tab-pane -->
                 </div>
             </div>
         </div>

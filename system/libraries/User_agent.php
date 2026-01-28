@@ -182,7 +182,6 @@ class CI_User_agent {
 			$this->_compile_data();
 		}
 
-		log_message('info', 'User Agent Class Initialized');
 	}
 
 	// --------------------------------------------------------------------

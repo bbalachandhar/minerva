@@ -78,12 +78,94 @@
                                                 </form>
                             
                                                 <?php
-                            if (isset($timetable_by_period_day)) {
+                            // Corrected conditional blocks based on user's definition
+                            if ($is_dynamic_timetable) { // User's Dynamic view (no Period column)
+                                if (isset($timetable)) {
+                            ?>
+                                                    <div class="box-header ptbnull"></div>
+                                                    <div class="box-body">
+                                                        <?php
+                                if (!empty($timetable)) {
+                                    ?>
+                               <button type="submit" title="<?php echo $this->lang->line('print'); ?>" class="btn btn-primary btn-xs pull-right  print_timetable"  data-class_id="<?php echo set_value('class_id'); ?>" data-section_id="<?php echo set_value('section_id'); ?>" id="load" data-loading-text="<i class='fa fa-spinner fa-spin'></i> <?php echo $this->lang->line('please_wait'); ?>"><i class="fa fa-print"></i></button>
+                                                            <div class="table-responsive">    
+                                                                <table class="table table-stripped">
+                                                                    <thead>
+                                                                        <tr>
+                                                                            <?php
+                                    // Use $data['days'] from controller for consistent day names
+                                    foreach ($days as $day_key => $day_value) {
+                                        if (strtolower($day_key) === 'sunday') {
+                                            continue;
+                                        }
+                                        ?>
+                                                                                <th class="text text-center"><?php echo $this->lang->line(strtolower($day_key)); ?></th>
+                                                                                <?php
+                                    }
+                                    ?>
+                                                                        </tr>
+                                                                    </thead>
+                                                                    <tbody>
+                                                                        <tr>
+                                                                            <?php
+                                    foreach ($days as $tm_key => $tm_value) { // Iterate through all days to ensure all columns are present
+                                        if (strtolower($tm_key) === 'sunday') {
+                                            continue;
+                                        }
+                                        ?>
+                                                                                <td class="text" width="14%">
+                                                                                    <?php
+                                        // Check if data exists for this specific day
+                                        if (isset($timetable[$tm_key]) && !empty($timetable[$tm_key])) {
+                                            foreach ($timetable[$tm_key] as $tm_k => $tm_kue) {
+                                                ?>
+                                                                                            <div class="card card-sm card-bordered" style="margin-bottom: 10px;">
+                                                                                                <div class="card-body card-body-fixed-height">
+                                                                                                    <h5 class="card-title"><i class="fa fa-book"></i> <?php
+                                                                                                        echo $tm_kue->subject_name;
+                                                                                                        if ($tm_kue->code != '') {
+                                                                                                            echo " (" . $tm_kue->code . ")";
+                                                                                                        }
+                                                                                                        ?></h5>
+                                                                                                    <p class="card-text"><i class="fa fa-clock-o"></i> <?php echo $tm_kue->time_from ?> - <?php echo $tm_kue->time_to; ?></p>
+                                                                                                    <p class="card-text"><i class="fa fa-user"></i> <?php echo $tm_kue->name . " " . $tm_kue->surname . " (" . $tm_kue->employee_id . ")"; ?></p>
+                                                                                                    <p class="card-text"><i class="fa fa-building"></i> <?php echo $this->lang->line('room_no'); ?>: <?php echo $tm_kue->room_no; ?></p>
+                                                                                                </div>
+                                                                                            </div>
+                                                                                            <?php
+                                            }
+                                        } else {
+                                            ?>
+                                                                                        <div class="attachment-block block-b-noraml clearfix">
+                                                                                            <b class="text text-danger"><i class="fa fa-times-circle text-danger"></i> <?php echo $this->lang->line('not_scheduled'); ?></b><br>
+                                                                                        </div>
+                                                                                        <?php
+                                        }
+                                        ?>
+                                                                                </td>
+                                                                                <?php
+                                    }
+                                    ?>
+                                                                        </tr>
+                                                                    </tbody>
+                                                                </table>
+                                                            </div>  
+                                                            <?php
+                                }
+                                ?>
+                            
+                                                    </div>
+                                                </div>
+                                            </div>   
+                                            <?php
+                                } // Closing brace for if (isset($timetable))
+                            } else { // User's Static view (with Period column)
+                                if (isset($timetable_by_period_day)) {
                                 ?>
                                                     <div class="box-header ptbnull"></div>
                                                     <div class="box-body">
                                                         <?php
-                            if (!empty($timetable_by_period_day)) {
+                                if (!empty($timetable_by_period_day)) {
                                     ?>
                                                                <div class="table-responsive">    
                                                                    <table class="table table-stripped">
@@ -91,7 +173,7 @@
                                                                            <tr>
                                                                                <th class="text text-center"><?php echo $this->lang->line('period'); ?></th>
                                                                                <?php
-                                                                               $days = $this->customlib->getDaysname();
+                                                                               // Use $data['days'] from controller for consistent day names
                                                                                foreach ($days as $day_key => $day_value) {
                                                                                    if (strtolower($day_key) === 'sunday') {
                                                                                        continue;
@@ -119,11 +201,11 @@
                                                                                        ?>
                                                                                        <td class="text" width="14%">
                                                                                            <?php
-                                                                                           $entry = $timetable_by_period_day[$period->id][$day_key];
-                                                                                           if (!empty($entry)) {
+                                                                                           $entries = $timetable_by_period_day[$period->id][$day_key];
+                                                                                           if (!empty($entries)) {
                                                                                                // Handle multiple entries for the same period and day
-                                                                                               if (is_array($entry)) {
-                                                                                                   foreach ($entry as $single_entry) {
+                                                                                               if (is_array($entries)) {
+                                                                                                   foreach ($entries as $single_entry) {
                                                                                                        ?>
                                                                                                        <div class="card card-sm card-bordered" style="margin-bottom: 10px;">
                                                                                                            <div class="card-body card-body-fixed-height">
@@ -145,14 +227,14 @@
                                                                                                    <div class="card card-sm card-bordered" style="margin-bottom: 10px;">
                                                                                                        <div class="card-body card-body-fixed-height">
                                                                                                            <h5 class="card-title"><i class="fa fa-book"></i> <?php
-                                                                                                               echo $entry->subject_name;
-                                                                                                               if ($entry->code != '') {
-                                                                                                                   echo " (" . $entry->code . ")";
+                                                                                                               echo $entries->subject_name;
+                                                                                                               if ($entries->code != '') {
+                                                                                                                   echo " (" . $entries->code . ")";
                                                                                                                }
                                                                                                                ?></h5>
-                                                                                                           <p class="card-text"><i class="fa fa-user"></i> <?php echo $entry->name . " " . $entry->surname . " (" . $entry->employee_id . ")"; ?></p>
+                                                                                                           <p class="card-text"><i class="fa fa-user"></i> <?php echo $entries->name . " " . $entries->surname . " (" . $entries->employee_id . ")"; ?></p>
 
-                                                                                                           <p class="card-text"><i class="fa fa-building"></i> <?php echo $this->lang->line('room_no'); ?>: <?php echo $entry->room_no; ?></p>
+                                                                                                           <p class="card-text"><i class="fa fa-building"></i> <?php echo $this->lang->line('room_no'); ?>: <?php echo $entries->room_no; ?></p>
                                                                                                        </div>
                                                                                                    </div>
                                                                                                    <?php
@@ -178,14 +260,15 @@
                                                                </div>  
                                  
                                                             <?php
-                            }
+                                }
                                 ?>
                             
                                                     </div>
                                                 </div>
                                             </div>   
                                             <?php
-                            }
+                                } // Closing brace for if (isset($timetable_by_period_day))
+                            } // Closing brace for else ($is_dynamic_timetable)
                             ?>
                             
                             
@@ -478,7 +561,7 @@
         frameDoc.document.write('<link rel="stylesheet" href="' + base_url + 'backend/bootstrap/css/bootstrap.min.css">');
         frameDoc.document.write('<link rel="stylesheet" href="' + base_url + 'backend/dist/css/font-awesome.min.css">');
         frameDoc.document.write('<link rel="stylesheet" href="' + base_url + 'backend/dist/css/ionicons.min.css">');
-        frameDoc.document.write('<link rel="stylesheet" href="' + base_url + 'backend/dist/css/AdminLTE.min.css">');
+        frameDoc.document.write('<link rel="stylesheet" href="' + base_url + 'backend/dist/css/AdminLTE.min.css');
         frameDoc.document.write('<link rel="stylesheet" href="' + base_url + 'backend/dist/css/skins/_all-skins.min.css">');
         frameDoc.document.write('<link rel="stylesheet" href="' + base_url + 'backend/plugins/iCheck/flat/blue.css">');
         frameDoc.document.write('<link rel="stylesheet" href="' + base_url + 'backend/plugins/morris/morris.css">');

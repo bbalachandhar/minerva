@@ -33,6 +33,97 @@
 </style>
 <script src="<?php echo base_url(); ?>backend/custom/jquery.validate.min.js"></script>
 
+<script type="text/javascript">
+    var base_url = '<?php echo base_url() ?>'; // Make base_url global
+    var prev_department_id = '<?php echo set_value('department_id') ?>';
+    var prev_class_id = '<?php echo set_value('class_id') ?>';
+    var prev_section_id = '<?php echo set_value('section_id') ?>';
+    var prev_subject_group_id = '<?php echo set_value('subject_group_id') ?>';
+
+    function getClassesByDepartment(department_id, selected_class_id) {
+        $('#class_id').html('<option value=""><?php echo $this->lang->line('select'); ?></option>'); 
+        $('#section_id').html('<option value=""><?php echo $this->lang->line('select'); ?></option>'); 
+        $('#subject_group_id').html('<option value=""><?php echo $this->lang->line('select'); ?></option>'); 
+
+        if (department_id !== "") {
+            $.ajax({
+                type: "POST",
+                url: base_url + "admin/timetable/getclassesbydepartment",
+                data: {'department_id': department_id},
+                dataType: "json",
+                success: function (data) {
+                    var div_data = ''; 
+                    $.each(data, function (i, obj) {
+                        var sel = "";
+                        if (selected_class_id && selected_class_id == obj.id) {
+                            sel = "selected";
+                        }
+                        div_data += "<option value='" + obj.id + "' " + sel + ">" + obj.class + "</option>";
+                    });
+                    $('#class_id').append(div_data);
+
+                    if (selected_class_id) {
+                        getSectionByClass(selected_class_id, prev_section_id);
+                    }
+                }
+            });
+        }
+    }
+
+    function getSectionByClass(class_id, selected_section_id) {
+        $('#section_id').html('<option value=""><?php echo $this->lang->line('select'); ?></option>');
+        $('#subject_group_id').html('<option value=""><?php echo $this->lang->line('select'); ?></option>');
+
+        if (class_id !== "") {
+            $.ajax({
+                type: "GET",
+                url: base_url + "sections/getByClass",
+                data: {'class_id': class_id},
+                dataType: "json",
+                success: function (data) {
+                    var div_data = '';
+                    $.each(data, function (i, obj) {
+                        var sel = "";
+                        if (selected_section_id && selected_section_id == obj.section_id) {
+                            sel = "selected";
+                        }
+                        div_data += "<option value='" + obj.section_id + "' " + sel + ">" + obj.section + "</option>";
+                    });
+                    $('#section_id').append(div_data);
+
+                    if (selected_section_id) {
+                        getGroupByClassandSection(class_id, selected_section_id, prev_subject_group_id);
+                    }
+                }
+            });
+        }
+    }
+
+    function getGroupByClassandSection(class_id, section_id, selected_subject_group_id) {
+        $('#subject_group_id').html('<option value=""><?php echo $this->lang->line('select'); ?></option>'); 
+
+        if (class_id !== "" && section_id !== "") {
+            $.ajax({
+                type: "POST",
+                url: base_url + "admin/subjectgroup/getGroupByClassandSection",
+                data: {'class_id': class_id, 'section_id': section_id},
+                dataType: "json",
+                success: function (data) {
+                    var div_data = '';
+                    $.each(data, function (i, obj) {
+                        var sel = "";
+                        if (selected_subject_group_id && selected_subject_group_id == obj.subject_group_id) {
+                            sel = "selected";
+                        }
+                        div_data += "<option value='" + obj.subject_group_id + "' " + sel + ">" + obj.name + "</option>";
+                    });
+                    $('#subject_group_id').append(div_data);
+                }
+            });
+        }
+    }
+</script>
+
 <div class="content-wrapper">
     <!-- Content Header (Page header) -->
 
@@ -42,7 +133,7 @@
             <div class="col-md-12">
                 <div class="box box-primary">
                     <div class="box-header with-border">
-                        <h3 class="box-title"><i class="fa fa-search"></i> <?php echo $this->lang->line('select_criteria'); ?></h3>
+                        <h3 class="box-title"><i class="fa fa-search"></i> <?php echo $this->lang->line('select_criteria'); ?> <?php echo ($is_dynamic_timetable) ? '(Dynamic Timetable)' : '(Static Timetable)'; ?></h3>
                         <div class="box-tools pull-right">
                              <a href="<?php echo site_url('admin/timetable/bulk') ?>" class="btn btn-primary btn-sm"><i class="fa fa-upload"></i> <?php echo $this->lang->line('import_timetable'); ?></a>
                         </div>
@@ -149,116 +240,45 @@ $count++;
                 </section>
             </div>
 
-<!-- Modal -->
-<div class="modal fade" id="confirm-navigation-modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                <h4 class="modal-title" id="myModalLabel"><?php echo $this->lang->line('confirm_navigation'); ?></h4>
-            </div>
-            <div class="modal-body">
-                <?php echo $this->lang->line('unsaved_changes_alert'); ?>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-default" data-dismiss="modal"><?php echo $this->lang->line('cancel'); ?></button>
-                <button type="button" class="btn btn-warning" id="discard-changes-btn"><?php echo $this->lang->line('discard'); ?></button>
-                <button type="button" class="btn btn-primary" id="save-changes-btn"><?php echo $this->lang->line('save'); ?></button>
-            </div>
-        </div>
-    </div>
-</div>
             
 <script type="text/javascript">
+    function getGroupdata(target, target_id, ajax_data) {
+        console.log("getGroupdata: AJAX request started for target:", target, "with data:", ajax_data);
+        $(target).addClass('show'); // Add 'show' class here before AJAX
+        $.ajax({
+            type: 'POST',
+            url: base_url + "admin/timetable/getBydategroupclasssection",
+            data: {'day': ajax_data.day, 'class_id': ajax_data.c, 'section_id': ajax_data.s, 'subject_group_id': ajax_data.group},
+            dataType: 'json',
+            beforeSend: function () {
+                // Already added 'show' class above to ensure it's active immediately
+            },
+            success: function (data) {
+                console.log("getGroupdata: AJAX success. Data received:", data);
+                $(target).html(data.html); // Re-enable HTML injection
+
+                $('.staff', target).select2({dropdownAutoWidth: true, width: '100%'});
+                $('.subject', target).select2({dropdownAutoWidth: true, width: '100%'});
+                $('.period', target).select2({dropdownAutoWidth: true, width: '100%'});
+
+                // Update global tot_count from server response
+                tot_count = data.total_count + 1; // +1 to account for the next new row
+            },
+            error: function (xhr, status, error) {
+                console.error("getGroupdata: AJAX error. Status:", status, "Error:", error, "Response:", xhr.responseText);
+            },
+            complete: function () {
+                console.log("getGroupdata: AJAX complete. Removing 'show' class from target:", target);
+                $(target).removeClass('show');
+            }
+        });
+    }
+
     $(document).ready(function () {
-        var base_url = '<?php echo base_url() ?>';
         var prev_department_id = '<?php echo set_value('department_id') ?>';
         var prev_class_id = '<?php echo set_value('class_id') ?>';
         var prev_section_id = '<?php echo set_value('section_id') ?>';
         var prev_subject_group_id = '<?php echo set_value('subject_group_id') ?>';
-
-        function getClassesByDepartment(department_id, selected_class_id) {
-            $('#class_id').html('<option value=""><?php echo $this->lang->line('select'); ?></option>'); 
-            $('#section_id').html('<option value=""><?php echo $this->lang->line('select'); ?></option>'); 
-            $('#subject_group_id').html('<option value=""><?php echo $this->lang->line('select'); ?></option>'); 
-
-            if (department_id !== "") {
-                $.ajax({
-                    type: "POST",
-                    url: base_url + "admin/timetable/getclassesbydepartment",
-                    data: {'department_id': department_id},
-                    dataType: "json",
-                    success: function (data) {
-                        var div_data = ''; 
-                        $.each(data, function (i, obj) {
-                            var sel = "";
-                            if (selected_class_id && selected_class_id == obj.id) {
-                                sel = "selected";
-                            }
-                            div_data += "<option value='" + obj.id + "' " + sel + ">" + obj.class + "</option>";
-                        });
-                        $('#class_id').append(div_data);
-
-                        if (selected_class_id) {
-                            getSectionByClass(selected_class_id, prev_section_id);
-                        }
-                    }
-                });
-            }
-        }
-
-        function getSectionByClass(class_id, selected_section_id) {
-            $('#section_id').html('<option value=""><?php echo $this->lang->line('select'); ?></option>');
-            $('#subject_group_id').html('<option value=""><?php echo $this->lang->line('select'); ?></option>');
-
-            if (class_id !== "") {
-                $.ajax({
-                    type: "GET",
-                    url: base_url + "sections/getByClass",
-                    data: {'class_id': class_id},
-                    dataType: "json",
-                    success: function (data) {
-                        var div_data = '';
-                        $.each(data, function (i, obj) {
-                            var sel = "";
-                            if (selected_section_id && selected_section_id == obj.section_id) {
-                                sel = "selected";
-                            }
-                            div_data += "<option value='" + obj.section_id + "' " + sel + ">" + obj.section + "</option>";
-                        });
-                        $('#section_id').append(div_data);
-
-                        if (selected_section_id) {
-                            getGroupByClassandSection(class_id, selected_section_id, prev_subject_group_id);
-                        }
-                    }
-                });
-            }
-        }
-
-        function getGroupByClassandSection(class_id, section_id, selected_subject_group_id) {
-            $('#subject_group_id').html('<option value=""><?php echo $this->lang->line('select'); ?></option>'); 
-
-            if (class_id !== "" && section_id !== "") {
-                $.ajax({
-                    type: "POST",
-                    url: base_url + "admin/subjectgroup/getGroupByClassandSection",
-                    data: {'class_id': class_id, 'section_id': section_id},
-                    dataType: "json",
-                    success: function (data) {
-                        var div_data = '';
-                        $.each(data, function (i, obj) {
-                            var sel = "";
-                            if (selected_subject_group_id && selected_subject_group_id == obj.subject_group_id) {
-                                sel = "selected";
-                            }
-                            div_data += "<option value='" + obj.subject_group_id + "' " + sel + ">" + obj.name + "</option>";
-                        });
-                        $('#subject_group_id').append(div_data);
-                    }
-                });
-            }
-        }
 
         $(document).on('change', '#department_id', function (e) {
             var department_id = $(this).val();
@@ -298,89 +318,69 @@ $count++;
             var target = $(e.target).attr("href");
             var target_id = $(e.target).attr("id");
             var ajax_data = $(e.target).data();
+            console.log('Client-side AJAX data for tab:', ajax_data); // <<< Add this log
             getGroupdata(target, target_id, ajax_data);
-        });
-
-        let nextTab = null;
-        let previousTab = null;
-        let onSaveCallback = null;
-
-        $('a[data-toggle="tab"]').on('show.bs.tab', function(e) {
-            previousTab = e.relatedTarget;
-            let previousTabPane = $(previousTab).attr('href');
-
-            if (previousTabPane && $(previousTabPane).data('isDirty')) {
-                e.preventDefault();
-                nextTab = e.target;
-                $('#confirm-navigation-modal').modal('show');
-            }
-        });
-
-        $('#discard-changes-btn').on('click', function() {
-            if (previousTab) {
-                let previousTabPane = $(previousTab).attr('href');
-                $(previousTabPane).data('isDirty', false);
-            }
-            $('#confirm-navigation-modal').modal('hide');
-            if (nextTab) {
-                $(nextTab).tab('show');
-            }
-        });
-
-        $('#save-changes-btn').on('click', function() {
-            onSaveCallback = function() {
-                if (previousTab) {
-                    let previousTabPane = $(previousTab).attr('href');
-                    $(previousTabPane).data('isDirty', false);
-                }
-                $('#confirm-navigation-modal').modal('hide');
-                if (nextTab) {
-                    $(nextTab).tab('show');
-                }
-                // Reset callback
-                onSaveCallback = null;
-            };
-
-            // Get form of the previous tab and submit it
-            if (previousTab) {
-                let previousTabPane = $(previousTab).attr('href');
-                $(previousTabPane).find('form').submit();
-            }
         });
 
         $(document).on('submit','.create_time_table',function(e){
             document.getElementById("insertbtn").disabled = true;
         });   
         
-    });
+        // Moved ibtnDel handler from addrow.php
+        $(document).on('click', '.ibtnDel', function() {
+            var row = $(this).closest('tr');
+            var recordIdInput = row.find('input[name^="prev_id_"]');
+            var recordId = recordIdInput.val();
 
-    function getGroupdata(target, target_id, ajax_data) {
-        var base_url = '<?php echo base_url() ?>'; 
-        $.ajax({
-            type: 'POST',
-            url: base_url + "admin/timetable/getBydategroupclasssection",
-            data: {'day': ajax_data.day, 'class_id': ajax_data.c, 'section_id': ajax_data.s, 'subject_group_id': ajax_data.group},
-            dataType: 'json',
-            beforeSend: function () {
-                $(target).addClass('show');
-            },
-            success: function (data) {
-                $(target).html(data.html);
-                // Initialize dirty flag for the new tab content
-                $(target).data('isDirty', false);
-                
-                // Attach change listener to set dirty flag
-                $(target).find('select, input').on('change', function() {
-                    $(target).data('isDirty', true);
-                });
-
-                $('.staff', target).select2({dropdownAutoWidth: true, width: '100%'});
-                $('.subject', target).select2({dropdownAutoWidth: true, width: '100%'});
-                $('.period', target).select2({dropdownAutoWidth: true, width: '100%'});
-            },
-            complete: function () {
-                $(target).removeClass('show');
+            if (recordId && recordId !== '0') {
+                $(this).closest('form').append('<input type="hidden" name="deleted_ids[]" value="' + recordId + '">');
             }
+            row.remove();
         });
-    }
+    });
 </script>
+<script type="text/template" id="staff_dropdown">
+    <option value=""><?php echo $this->lang->line('select') ?></option>
+    <?php
+    foreach ($staff as $staff_key => $staff_value) {
+        ?>
+        <option value="<?php echo $staff_value['id']; ?>"><?php echo $staff_value['name'] . " " . $staff_value['surname'] . " (" . $staff_value['employee_id'] . ")"; ?></option>
+        <?php
+    }
+    ?>
+</script>
+
+<script type="text/template" id="subject_dropdown">
+    <option value=""><?php echo $this->lang->line('select') ?></option>
+    <?php
+    foreach ($subject as $subject_key => $subject_value) {
+        ?>
+        <option value="<?php echo $subject_value->id; ?>" ><?php echo $subject_value->name . " (" . $subject_value->code . ")"; ?></option>
+        <?php
+    }
+    ?>
+</script>
+<?php if (isset($is_dynamic_timetable) && $is_dynamic_timetable == 1) { ?>
+<!-- Modal -->
+<div class="modal fade" id="confirm-navigation-modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title" id="myModalLabel"><?php echo $this->lang->line('confirm_navigation'); ?></h4>
+            </div>
+            <div class="modal-body">
+                <?php echo $this->lang->line('unsaved_changes_alert'); ?>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal"><?php echo $this->lang->line('cancel'); ?></button>
+                <button type="button" class="btn btn-warning" id="discard-changes-btn"><?php echo $this->lang->line('discard'); ?></button>
+                <button type="button" class="btn btn-primary" id="save-changes-btn"><?php echo $this->lang->line('save'); ?></button>
+            </div>
+        </div>
+    </div>
+</div>
+            
+<?php } else { ?>
+
+<?php } ?>

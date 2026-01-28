@@ -78,7 +78,6 @@ class Admin_Controller extends MY_Controller
         // Load menu helper if not already loaded
         $this->load->helper('menu');
         $side_list = side_menu_list(1);
-        log_message('debug', 'Admin_Controller __construct - $side_list: ' . print_r($side_list, true));
         $this->data['language_name'] = $this->language_name;
     }
 
