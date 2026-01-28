@@ -242,9 +242,11 @@ class PublicAdmissionForm extends CI_Controller
         // Ensure $school_setting is available. Front_Controller::__construct() sets $this->school_details.
         $this->data['school_setting'] = $this->sch_setting_detail;
         
-                // Handle form validation
-                if ($this->sch_setting_detail->institution_type == 'school') {
-                    if ($this->form_validation->run() == false) {
+                        $this->load->model('Onlineadmissioncourse_model');
+                        $this->data['admission_courses'] = $this->Onlineadmissioncourse_model->get(); // Fetch all courses from the new table
+                        
+                        // Handle form validation
+                        if ($this->sch_setting_detail->institution_type == 'school') {                    if ($this->form_validation->run() == false) {
                         // Render the main form content (pages/admission) into a variable
                         $this->data['content'] = $this->load->view('themes/' . $theme . '/pages/admission', $this->data, true);
                         

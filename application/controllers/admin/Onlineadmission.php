@@ -205,10 +205,116 @@ class Onlineadmission extends Admin_Controller
         return true;
     }
 
-    public function download($id)
-    {
-        $settinglist = $this->setting_model->get($id);         
-        $this->media_storage->filedownload($settinglist['online_admission_application_form'], "./uploads/admission_form");
-    }
+        public function download($id)
 
-}
+        {
+
+            $settinglist = $this->setting_model->get($id);         
+
+            $this->media_storage->filedownload($settinglist['online_admission_application_form'], "./uploads/admission_form");
+
+        }
+
+    
+
+    public function admissioncourses()
+    {
+        if (!$this->rbac->hasPrivilege('online_admission_admission_courses', 'can_view')) {
+            access_denied();
+        }
+
+        $this->session->set_userdata('top_menu', 'System Settings');
+        $this->session->set_userdata('sub_menu', 'System Settings/onlineadmissioncourses');
+
+        $this->load->model('Onlineadmissioncourse_model'); // Load the new model
+
+        $data['title'] = $this->lang->line('admission_courses');
+        $data['course_list'] = $this->Onlineadmissioncourse_model->get(); // Get all courses for listing
+
+        $this->form_validation->set_rules(
+            'course_name',
+            $this->lang->line('course_name'),
+            array(
+                'required',
+                'trim',
+                'xss_clean',
+                array('check_exists', array($this->Onlineadmissioncourse_model, 'check_course_name_exists'))
+            )
+        );
+        $this->form_validation->set_rules(
+            'course_code',
+            $this->lang->line('course_code'),
+            array(
+                'required',
+                'trim',
+                'xss_clean',
+                array('check_exists_code', array($this->Onlineadmissioncourse_model, 'check_course_code_exists'))
+            )
+        );
+        $this->form_validation->set_rules('description', $this->lang->line('description'), 'trim|xss_clean');
+        $this->form_validation->set_rules('is_active', $this->lang->line('status'), 'trim|required|xss_clean');
+        // DEBUG: Check iframe parameter
+        error_log('admissioncourses: iframe param = ' . var_export($this->input->get('iframe'), true));
+        error_log('admissioncourses: is_ajax_request = ' . var_export($this->input->is_ajax_request(), true));
+
+        if ($this->form_validation->run() == FALSE) {
+            // Validation failed or first load
+            if ($this->input->get('iframe') != 'true') { // Check if not loaded in iframe
+                $this->load->view("layout/header");
+            }
+            $this->load->view("admin/onlineadmission/admissioncourses_view", $data);
+            if ($this->input->get('iframe') != 'true') { // Check if not loaded in iframe
+                $this->load->view("layout/footer");
+            }
+        } else {
+            // Form submitted and validation passed
+            $course_id = $this->input->post('id');
+            $course_data = array(
+                'course_name' => $this->input->post('course_name'),
+                'course_code' => $this->input->post('course_code'),
+                'description' => $this->input->post('description'),
+                'is_active'   => $this->input->post('is_active'),
+            );
+
+            if ($course_id == 0) {
+                // Add new course
+                $course_data['created_at'] = date('Y-m-d H:i:s');
+                $this->Onlineadmissioncourse_model->add($course_data);
+                $this->session->set_flashdata('msg', '<div class="alert alert-success">' . $this->lang->line('success_message') . '</div>');
+            } else {
+                // Edit existing course
+                $course_data['id'] = $course_id;
+                $course_data['updated_at'] = date('Y-m-d H:i:s');
+                $this->Onlineadmissioncourse_model->update($course_data);
+                $this->session->set_flashdata('msg', '<div class="alert alert-success">' . $this->lang->line('update_message') . '</div>');
+            }
+
+                        redirect('admin/onlineadmission/admissionsetting#tab_3'); // Redirect back to the tab
+
+                    }
+
+                }
+
+            
+
+                public function deletecourse($id)
+
+                {
+
+                    if (!$this->rbac->hasPrivilege('online_admission_admission_courses', 'can_delete')) {
+
+                        access_denied();
+
+                    }
+
+                    $this->load->model('Onlineadmissioncourse_model');
+
+                    $this->Onlineadmissioncourse_model->remove($id);
+
+                    $this->session->set_flashdata('msg', '<div class="alert alert-success">' . $this->lang->line('delete_message') . '</div>');
+
+                    redirect('admin/onlineadmission/admissionsetting#tab_3');
+
+                }
+
+            }

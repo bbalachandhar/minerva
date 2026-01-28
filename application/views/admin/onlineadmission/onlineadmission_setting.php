@@ -224,7 +224,7 @@ if (!empty($custom_fields)) {
                         </div>
 
                         <div class="tab-pane" id="tab_3">
-                           <iframe src="<?php echo admin_url('onlineadmission/admissioncourses'); ?>" width="100%" frameborder="0" height="800px"></iframe>
+                           <iframe src="<?php echo admin_url('onlineadmission/admissioncourses'); ?>?iframe=true" width="100%" frameborder="0" height="800px"></iframe>
                         </div>
                     </div>
                     <!-- /.tab-content -->

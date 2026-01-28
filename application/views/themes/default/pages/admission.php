@@ -84,8 +84,26 @@ foreach ($classlist as $class) {
         </div>
         <div class="col-md-3">
             <div class="form-group">
+                <label for="course_id"><?php echo $this->lang->line('course'); ?></label><small class="req"> *</small>
+                <select id="course_id" name="course_id" class="form-control" tabindex="3">
+                    <option value=""><?php echo $this->lang->line('select'); ?></option>
+                    <?php
+                    foreach ($admission_courses as $course) {
+                        if ($course['is_active'] == 1) { // Only show active courses
+                            ?>
+                            <option value="<?php echo $course['id'] ?>" <?php echo set_select('course_id', $course['id']); ?>><?php echo $course['course_name'] ?></option>
+                            <?php
+                        }
+                    }
+                    ?>
+                </select>
+                <span class="text-danger"><?php echo form_error('course_id'); ?></span>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="form-group">
                 <label><?php echo $this->lang->line('first_name'); ?></label><small class="req"> *</small>
-                <input id="firstname" name="firstname" placeholder="" type="text" class="form-control"  value="<?php echo set_value('firstname'); ?>" autocomplete="off" tabindex="3" />
+                <input id="firstname" name="firstname" placeholder="" type="text" class="form-control"  value="<?php echo set_value('firstname'); ?>" autocomplete="off" tabindex="4" />
                 <span class="text-danger"><?php echo form_error('firstname'); ?></span>
             </div>
         </div>
