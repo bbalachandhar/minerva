@@ -75,6 +75,9 @@ class PublicAdmissionForm extends CI_Controller
 
     public function index()
     {
+        $this->data['name'] = $this->input->get('name');
+        $this->data['email'] = $this->input->get('email');
+        $this->data['mobileno'] = $this->input->get('mobileno');
         // This is a direct copy from Public_admission::index(), adapted for CI_Controller
         // No checks for module_lib->hasActive('online_admission') here, assume always active for this controller
         $this->data['active_menu'] = 'online_admission';

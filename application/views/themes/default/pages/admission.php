@@ -20,6 +20,14 @@ if ($this->session->flashdata('msg')) {
 }
 ?>
     <div class="row justify-content-center align-items-center flex-wrap d-flex pt20">
+    <?php if (isset($name) || isset($email) || isset($mobileno)): ?>
+    <div class="alert alert-info">
+        <p><strong>Debug Information:</strong></p>
+        <?php if (isset($name)): ?><p>Name from URL: <?php echo htmlspecialchars($name); ?></p><?php endif; ?>
+        <?php if (isset($email)): ?><p>Email from URL: <?php echo htmlspecialchars($email); ?></p><?php endif; ?>
+        <?php if (isset($mobileno)): ?><p>Mobile No from URL: <?php echo htmlspecialchars($mobileno); ?></p><?php endif; ?>
+    </div>
+    <?php endif; ?>
         <div class="col-md-12">
             <div class="enquiry-header text-center">
                 <?php if (!empty($header_image)): ?>
