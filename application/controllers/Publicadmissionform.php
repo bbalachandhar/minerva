@@ -75,7 +75,6 @@ class PublicAdmissionForm extends CI_Controller
 
     public function index()
     {
-        var_dump($_GET); die(); // Debug statement to see GET parameters
         $this->data['name'] = $this->input->get('name');
         $this->data['email'] = $this->input->get('email');
         $this->data['mobileno'] = $this->input->get('mobileno');
