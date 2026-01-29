@@ -391,30 +391,40 @@ class Staffattendance extends Admin_Controller
                         $afternoon_session_status = 1; // Present
                     }
 
-                    // Refined overall_attendance_type_id calculation
-                    if ($morning_session_status == 1 && $afternoon_session_status == 1) {
-                        $overall_attendance_type_id = 1; // Present
-                    } elseif (($morning_session_status == 3 || $morning_session_status == 10) && ($afternoon_session_status == 3 || $afternoon_session_status == 11)) {
-                         $overall_attendance_type_id = 3; // Full Day Absent
-                    } elseif ($morning_session_status == 7 && $afternoon_session_status == 1) {
-                        $overall_attendance_type_id = 7; // First Half Permission
-                    } elseif ($morning_session_status == 1 && $afternoon_session_status == 9) {
-                        $overall_attendance_type_id = 9; // Second Half Permission
-                    } elseif ($morning_session_status == 10 && $afternoon_session_status == 1) {
-                        $overall_attendance_type_id = 10; // First Half Absent
-                    } elseif ($morning_session_status == 1 && $afternoon_session_status == 11) {
-                        $overall_attendance_type_id = 11; // Second Half Absent
-                    } elseif ($morning_session_status == 2) { // Morning Late is prioritized if it's the only special status
-                        $overall_attendance_type_id = 2; // Late
-                    } elseif ($morning_session_status == 7 && ($afternoon_session_status == 11 || $afternoon_session_status == 3 || $afternoon_session_status == 10)) { // FHP and afternoon absent/FHA
-                        $overall_attendance_type_id = 7; // First Half Permission
-                    } elseif (($morning_session_status == 10 || $morning_session_status == 3 || $morning_session_status == 11) && $afternoon_session_status == 9) { // morning absent/FHA/SHA and SHP
-                        $overall_attendance_type_id = 9; // Second Half Permission
-                    }
-                    // Catch-all for other combinations not specifically handled, often resulting in Half Day
-                    else {
-                        $overall_attendance_type_id = 6; // Half Day
-                    }
+                // Refined overall_attendance_type_id calculation
+                if ($morning_session_status == 1 && $afternoon_session_status == 1) {
+                    $overall_attendance_type_id = 1; // Present
+                } elseif (($morning_session_status == 3 || $morning_session_status == 10) && ($afternoon_session_status == 3 || $afternoon_session_status == 11)) {
+                     $overall_attendance_type_id = 3; // Full Day Absent
+                }
+                // --- NEW HALF DAY LOGIC ---
+                // If they are present for one half (not FHA/10 and not SHA/11) and absent for the other
+                elseif (
+                    ($morning_session_status != 10 && $afternoon_session_status == 11) || // Present first half, Absent second half
+                    ($morning_session_status == 10 && $afternoon_session_status != 11)    // Absent first half, Present second half
+                ) {
+                    $overall_attendance_type_id = 6; // Half Day
+                }
+                // --- END NEW HALF DAY LOGIC ---
+                elseif ($morning_session_status == 7 && $afternoon_session_status == 1) {
+                    $overall_attendance_type_id = 7; // First Half Permission
+                } elseif ($morning_session_status == 1 && $afternoon_session_status == 9) {
+                    $overall_attendance_type_id = 9; // Second Half Permission
+                } elseif ($morning_session_status == 10 && $afternoon_session_status == 1) {
+                    $overall_attendance_type_id = 10; // First Half Absent
+                } elseif ($morning_session_status == 1 && $afternoon_session_status == 11) {
+                    $overall_attendance_type_id = 11; // Second Half Absent
+                } elseif ($morning_session_status == 2) { // Morning Late is prioritized if it's the only special status
+                    $overall_attendance_type_id = 2; // Late
+                } elseif ($morning_session_status == 7 && ($afternoon_session_status == 11 || $afternoon_session_status == 3 || $afternoon_session_status == 10)) { // FHP and afternoon absent/FHA
+                    $overall_attendance_type_id = 7; // First Half Permission
+                } elseif (($morning_session_status == 10 || $morning_session_status == 3 || $morning_session_status == 11) && $afternoon_session_status == 9) { // morning absent/FHA/SHA and SHP
+                    $overall_attendance_type_id = 9; // Second Half Permission
+                }
+                // Catch-all for other combinations not specifically handled, often resulting in Half Day
+                else {
+                    $overall_attendance_type_id = 6; // Half Day
+                }
                 }
 
                 $session_attendance_data = json_encode(['morning_session' => $morning_session_status, 'afternoon_session' => $afternoon_session_status]);
