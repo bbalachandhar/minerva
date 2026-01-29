@@ -20,6 +20,18 @@ if ($this->session->flashdata('msg')) {
 }
 ?>
     <div class="row justify-content-center align-items-center flex-wrap d-flex pt20">
+    <?php
+    $debug_name = $this->input->get('name');
+    $debug_email = $this->input->get('email');
+    $debug_mobileno = $this->input->get('mobileno');
+    if (!empty($debug_name) || !empty($debug_email) || !empty($debug_mobileno)): ?>
+    <div class="alert alert-info" style="margin-top: 10px;">
+        <p><strong>Debug Information (from GET parameters):</strong></p>
+        <?php if (!empty($debug_name)): ?><p>Name: <?php echo htmlspecialchars($debug_name); ?></p><?php endif; ?>
+        <?php if (!empty($debug_email)): ?><p>Email: <?php echo htmlspecialchars($debug_email); ?></p><?php endif; ?>
+        <?php if (!empty($debug_mobileno)): ?><p>Mobile No: <?php echo htmlspecialchars($debug_mobileno); ?></p><?php endif; ?>
+    </div>
+    <?php endif; ?>
 
         <div class="col-md-12">
             <div class="enquiry-header text-center">
