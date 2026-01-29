@@ -181,13 +181,15 @@ if (!empty($next_date) && $next_date != '0000-00-00') {
         ?></td>
                                                             <td> <?php echo $enquiry_status[$value["status"]] ?></td>
                                                             <td class="mailbox-date text-right white-space-nowrap">
-                                                                <?php if ($this->rbac->hasPrivilege('follow_up_admission_enquiry', 'can_view')) {?>
-                                                                    <a class="btn btn-default btn-xs" onclick="follow_up('<?php echo $value['id']; ?>', '<?php echo $value['status']; ?>', '<?php echo $value['created_by']; ?>');"  data-target="#follow_up" data-toggle="modal"  title="<?php echo $this->lang->line('follow_up_admission_enquiry'); ?>">
-                                                                        <i class="fa fa-phone"></i>
-                                                                    </a>
-                                                                <?php }
-        ?>
-                                                                <?php if ($this->rbac->hasPrivilege('admission_enquiry', 'can_edit')) {?>
+                                                                                                                                <?php if ($this->rbac->hasPrivilege('follow_up_admission_enquiry', 'can_view')) {?>
+                                                                                                                                    <a class="btn btn-default btn-xs" onclick="follow_up('<?php echo $value['id']; ?>', '<?php echo $value['status']; ?>', '<?php echo $value['created_by']; ?>');"  data-target="#follow_up" data-toggle="modal"  title="<?php echo $this->lang->line('follow_up_admission_enquiry'); ?>">
+                                                                                                                                        <i class="fa fa-phone"></i>
+                                                                                                                                    </a>
+                                                                                                                                    <a href="<?php echo site_url('publicadmissionform?email=' . $value['email'] . '&name=' . $value['name'] . '&mobileno=' . $value['contact']); ?>" class="btn btn-default btn-xs" data-toggle="tooltip" title="Create Admission">
+                                                                                                                                        <i class="fa fa-user-plus"></i>
+                                                                                                                                    </a>
+                                                                                                                                <?php }
+                                                                ?>                                                                <?php if ($this->rbac->hasPrivilege('admission_enquiry', 'can_edit')) {?>
                                                                     <a  onclick="getRecord('<?php echo $value['id']; ?>', '<?php echo $value['status']; ?>')" class="btn btn-default btn-xs" data-target="#myModaledit" data-toggle="modal"   title="<?php echo $this->lang->line('edit'); ?>"><i class="fa fa-pencil"></i>
                                                                     </a>
                                                                 <?php }

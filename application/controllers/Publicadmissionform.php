@@ -550,7 +550,7 @@ class PublicAdmissionForm extends CI_Controller
                     }
 
     public function image_handle_upload($str, $var)
-    {         
+    {
         $result         = $this->filetype_model->get();
 
         if (isset($_FILES[$var]) && !empty($_FILES[$var]['name'])) {
@@ -593,7 +593,7 @@ class PublicAdmissionForm extends CI_Controller
     }
     
     public function document_handle_upload($str, $var)
-    {        
+    {
         $result         = $this->filetype_model->get();
 
         if (isset($_FILES[$var]) && !empty($_FILES[$var]['name'])) {
@@ -1307,10 +1307,10 @@ class PublicAdmissionForm extends CI_Controller
         $this->form_validation->set_rules('mother_mobile', 'Mother\'s Mobile Number', 'trim|required|min_length[10]|max_length[10]|xss_clean');
         $this->form_validation->set_rules('mother_occupation', 'Mother\'s Occupation', 'trim|required|xss_clean');
         $this->form_validation->set_rules('gender', 'Gender', 'trim|required|xss_clean');
-        $this->form_validation->set_rules('student_email', 'Email ID', 'trim|required|valid_email|xss_clean');
-        $this->form_validation->set_rules('student_mobile', 'Student\'s Mobile Number', 'trim|required|min_length[10]|max_length[10]|xss_clean');
+        $this->form_validation->set_rules('student_email', 'Email ID', 'trim|required|valid_email|xss_clean|callback_check_duplicate_email');
+        $this->form_validation->set_rules('student_mobile', 'Student\'s Mobile Number', 'trim|required|min_length[10]|max_length[10]|xss_clean|callback_check_duplicate_mobile');
         $this->form_validation->set_rules('dob', 'D.O.B', 'trim|required|xss_clean');
-        $this->form_validation->set_rules('aadhaar', 'Aadhaar Number', 'trim|required|min_length[12]|max_length[12]|xss_clean');
+        $this->form_validation->set_rules('aadhaar', 'Aadhaar Number', 'trim|required|min_length[12]|max_length[12]|xss_clean|callback_check_duplicate_aadhaar');
         $this->form_validation->set_rules('comm_addr', 'Address for Communication', 'trim|required|xss_clean');
         $this->form_validation->set_rules('perm_addr', 'Permanent Address', 'trim|required|xss_clean');
         $this->form_validation->set_rules('user_image', 'Photo', 'callback_image_handle_upload[user_image]');
@@ -1613,21 +1613,47 @@ class PublicAdmissionForm extends CI_Controller
 
     public function check_admissions_data()
     {
-        if ($this->input->post('email_id') && $this->input->post('academic_year')) {
-            $email = $this->input->post('email_id');
-            $academic_year = $this->input->post('academic_year');
-            $count = $this->onlinestudent_model->count_submissions_by_email_and_year($email, $academic_year);
-            echo json_encode(array('count' => $count)); // Return the count
+        if ($this->input->post('email_id')) {
+            $result = $this->onlinestudent_model->check_admissions_data_exists('email', $this->input->post('email_id'));
+            echo json_encode(array('total' => ($result ? 0 : 1)));
         } elseif ($this->input->post('mobile_no')) {
             $result = $this->onlinestudent_model->check_admissions_data_exists('mobileno', $this->input->post('mobile_no'));
-            echo json_encode(array('total' => ($result ? 0 : 1))); // Keep original total=0 for exists, total=1 for not exists
+            echo json_encode(array('total' => ($result ? 0 : 1)));
         } elseif ($this->input->post('aadhaar_no')) {
             $result = $this->onlinestudent_model->check_admissions_data_exists('adhar_no', $this->input->post('aadhaar_no'));
-            echo json_encode(array('total' => ($result ? 0 : 1))); // Keep original total=0 for exists, total=1 for not exists
+            echo json_encode(array('total' => ($result ? 0 : 1)));
         } else {
             echo json_encode(array('count' => 0)); // Default or error case
         }
     }
+
+    public function check_duplicate_email($email)
+    {
+        if ($this->onlinestudent_model->check_admissions_data_exists('email', $email)) {
+            $this->form_validation->set_message('check_duplicate_email', 'Email ID already exists.');
+            return false;
+        }
+        return true;
+    }
+
+    public function check_duplicate_mobile($mobile)
+    {
+        if ($this->onlinestudent_model->check_admissions_data_exists('mobileno', $mobile)) {
+            $this->form_validation->set_message('check_duplicate_mobile', 'Mobile number already exists.');
+            return false;
+        }
+        return true;
+    }
+
+    public function check_duplicate_aadhaar($aadhaar)
+    {
+        if ($this->onlinestudent_model->check_admissions_data_exists('adhar_no', $aadhaar)) {
+            $this->form_validation->set_message('check_duplicate_aadhaar', 'Aadhaar number already exists.');
+            return false;
+        }
+        return true;
+    }
+
 
     public function confirm_payment()
     {
@@ -1727,10 +1753,10 @@ class PublicAdmissionForm extends CI_Controller
         $this->form_validation->set_rules('mother_mobile', 'Mother\'s Mobile Number', 'trim|required|min_length[10]|max_length[10]|xss_clean');
         $this->form_validation->set_rules('mother_occupation', 'Mother\'s Occupation', 'trim|required|xss_clean');
         $this->form_validation->set_rules('gender', 'Gender', 'trim|required|xss_clean');
-        $this->form_validation->set_rules('student_email', 'Email ID', 'trim|required|valid_email|xss_clean');
-        $this->form_validation->set_rules('student_mobile', 'Student\'s Mobile Number', 'trim|required|min_length[10]|max_length[10]|xss_clean');
+        $this->form_validation->set_rules('student_email', 'Email ID', 'trim|required|valid_email|xss_clean|callback_check_duplicate_email');
+        $this->form_validation->set_rules('student_mobile', 'Student\'s Mobile Number', 'trim|required|min_length[10]|max_length[10]|xss_clean|callback_check_duplicate_mobile');
         $this->form_validation->set_rules('dob', 'D.O.B', 'trim|required|xss_clean');
-        $this->form_validation->set_rules('aadhaar', 'Aadhaar Number', 'trim|required|min_length[12]|max_length[12]|xss_clean');
+        $this->form_validation->set_rules('aadhaar', 'Aadhaar Number', 'trim|required|min_length[12]|max_length[12]|xss_clean|callback_check_duplicate_aadhaar');
         $this->form_validation->set_rules('comm_addr', 'Address for Communication', 'trim|required|xss_clean');
         $this->form_validation->set_rules('perm_addr', 'Permanent Address', 'trim|required|xss_clean');
 

@@ -103,7 +103,7 @@ foreach ($classlist as $class) {
         <div class="col-md-3">
             <div class="form-group">
                 <label><?php echo $this->lang->line('first_name'); ?></label><small class="req"> *</small>
-                <input id="firstname" name="firstname" placeholder="" type="text" class="form-control"  value="<?php echo set_value('firstname'); ?>" autocomplete="off" tabindex="4" />
+                <input id="firstname" name="firstname" placeholder="" type="text" class="form-control"  value="<?php echo isset($name) ? htmlspecialchars($name) : set_value('firstname'); ?>" autocomplete="off" tabindex="4" />
                 <span class="text-danger"><?php echo form_error('firstname'); ?></span>
             </div>
         </div>
@@ -156,7 +156,7 @@ foreach ($genderList as $key => $value) {
         <div class="col-md-3">
             <div class="form-group">
                 <label><?php echo $this->lang->line('mobile_number'); ?></label>
-                <input  type="text" class="form-control"  value="<?php echo set_value('mobileno'); ?>" id="mobileno" name="mobileno" autocomplete="off" tabindex="8"/>
+                <input  type="text" class="form-control"  value="<?php echo isset($mobileno) ? htmlspecialchars($mobileno) : set_value('mobileno'); ?>" id="mobileno" name="mobileno" autocomplete="off" tabindex="8"/>
                 <span class="text-danger"><?php echo form_error('mobileno'); ?></span>
             </div>
         </div>
@@ -165,7 +165,7 @@ foreach ($genderList as $key => $value) {
         <div class="col-md-3">
             <div class="form-group">
                 <label><?php echo $this->lang->line('email'); ?></label><small class="req"> *</small>
-                <input  type="text" class="form-control"  value="<?php echo set_value('email'); ?>" id="email" name="email" autocomplete="off" tabindex="9"/>
+                <input  type="text" class="form-control"  value="<?php echo isset($email) ? htmlspecialchars($email) : set_value('email'); ?>" id="email" name="email" autocomplete="off" tabindex="9"/>
                 <span class="text-danger"><?php echo form_error('email'); ?></span>
             </div>
         </div>
