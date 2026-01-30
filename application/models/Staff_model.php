@@ -88,7 +88,7 @@ class Staff_model extends MY_Model
                 $late = $row['count'];
             } elseif ($row['staff_attendance_type_id'] == 3) { // Absent
                 $absent = $row['count'];
-            } elseif ($row['staff_attendance_type_id'] == 4) { // Half Day
+            } elseif ($row['staff_attendance_type_id'] == 6) { // Half Day
                 $half_day = $row['count'];
             }
         }
