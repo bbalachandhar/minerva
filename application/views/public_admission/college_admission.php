@@ -236,7 +236,7 @@
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label class="form-label">Name (In block letters with initial at the end)*</label>
-                                <input type="text" class="form-control" name="user_name" id="user_name" onkeydown="return allowAlphabets(event)" placeholder="Enter your full name" required tabindex="5">
+                                <input type="text" class="form-control" name="user_name" id="user_name" onkeydown="return allowAlphabets(event)" placeholder="Enter your full name" required tabindex="5" value="<?php echo isset($name) ? htmlspecialchars($name) : ''; ?>">
                             </div>
                         </div>
                         <div class="mb-3 col-md-6">
@@ -284,12 +284,12 @@
                     <div class="row">
                         <div class="mb-3 col-md-6">
                             <label class="form-label">Email ID*</label>
-                            <input type="email" class="form-control" placeholder="Enter your Email"  id="student_email" name="student_email" required tabindex="13">
+                            <input type="email" class="form-control" placeholder="Enter your Email"  id="student_email" name="student_email" required tabindex="13" value="<?php echo isset($email) ? htmlspecialchars($email) : ''; ?>">
                             <span id="email_error" class="text-danger"></span>
                         </div>
                         <div class="mb-3 col-md-6">
                             <label class="form-label">Student's Mobile Number*</label>
-                            <input type="text" step="any" class="form-control" placeholder="Enter Student's Mobile Number" id="student_mobile" onchange="validateMobile(this)" onKeyPress="return checkIt(event);" name="student_mobile" required minlength="10" maxlength="10" tabindex="14">
+                            <input type="text" step="any" class="form-control" placeholder="Enter Student's Mobile Number" id="student_mobile" onchange="validateMobile(this)" onKeyPress="return checkIt(event);" name="student_mobile" required minlength="10" maxlength="10" tabindex="14" value="<?php echo isset($mobileno) ? htmlspecialchars($mobileno) : ''; ?>">
                             <span id="mobile_error" class="text-danger"></span>
                         </div>
                     </div>

@@ -20,18 +20,6 @@ if ($this->session->flashdata('msg')) {
 }
 ?>
     <div class="row justify-content-center align-items-center flex-wrap d-flex pt20">
-    <?php
-    $debug_name = $this->input->get('name');
-    $debug_email = $this->input->get('email');
-    $debug_mobileno = $this->input->get('mobileno');
-    if (!empty($debug_name) || !empty($debug_email) || !empty($debug_mobileno)): ?>
-    <div class="alert alert-info" style="margin-top: 10px;">
-        <p><strong>Debug Information (from GET parameters):</strong></p>
-        <?php if (!empty($debug_name)): ?><p>Name: <?php echo htmlspecialchars($debug_name); ?></p><?php endif; ?>
-        <?php if (!empty($debug_email)): ?><p>Email: <?php echo htmlspecialchars($debug_email); ?></p><?php endif; ?>
-        <?php if (!empty($debug_mobileno)): ?><p>Mobile No: <?php echo htmlspecialchars($debug_mobileno); ?></p><?php endif; ?>
-    </div>
-    <?php endif; ?>
 
         <div class="col-md-12">
             <div class="enquiry-header text-center">
@@ -116,7 +104,7 @@ foreach ($classlist as $class) {
         <div class="col-md-3">
             <div class="form-group">
                 <label><?php echo $this->lang->line('first_name'); ?></label><small class="req"> *</small>
-                <input id="firstname" name="firstname" placeholder="" type="text" class="form-control"  value="DEBUG_NAME:<?php echo isset($name) ? htmlspecialchars($name) : 'NOT_SET'; ?>" autocomplete="off" tabindex="4" />
+                <input id="firstname" name="firstname" placeholder="" type="text" class="form-control"  value="<?php echo set_value('firstname'); ?>" autocomplete="off" tabindex="4" />
                 <span class="text-danger"><?php echo form_error('firstname'); ?></span>
             </div>
         </div>
@@ -169,7 +157,7 @@ foreach ($genderList as $key => $value) {
         <div class="col-md-3">
             <div class="form-group">
                 <label><?php echo $this->lang->line('mobile_number'); ?></label>
-                <input  type="text" class="form-control"  value="DEBUG_MOBILENO:<?php echo isset($mobileno) ? htmlspecialchars($mobileno) : 'NOT_SET'; ?>" id="mobileno" name="mobileno" autocomplete="off" tabindex="8"/>
+                <input  type="text" class="form-control"  value="<?php echo set_value('mobileno'); ?>" id="mobileno" name="mobileno" autocomplete="off" tabindex="8"/>
                 <span class="text-danger"><?php echo form_error('mobileno'); ?></span>
             </div>
         </div>
@@ -178,7 +166,7 @@ foreach ($genderList as $key => $value) {
         <div class="col-md-3">
             <div class="form-group">
                 <label><?php echo $this->lang->line('email'); ?></label><small class="req"> *</small>
-                <input  type="text" class="form-control"  value="DEBUG_EMAIL:<?php echo isset($email) ? htmlspecialchars($email) : 'NOT_SET'; ?>" id="email" name="email" autocomplete="off" tabindex="9"/>
+                <input  type="text" class="form-control"  value="<?php echo set_value('email'); ?>" id="email" name="email" autocomplete="off" tabindex="9"/>
                 <span class="text-danger"><?php echo form_error('email'); ?></span>
             </div>
         </div>

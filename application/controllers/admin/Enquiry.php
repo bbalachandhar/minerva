@@ -59,6 +59,20 @@ class Enquiry extends Admin_Controller
             $enquiry_list[$key]["followup_by"]  = isset($follow_up["followup_by"]) ? $follow_up["followup_by"] : '';
         }
    
+        $data['prefill_name']    = $this->input->get('name', TRUE);
+        $data['prefill_email']   = $this->input->get('email', TRUE);
+        $data['prefill_contact'] = $this->input->get('mobileno', TRUE);
+        
+        
+        foreach ($enquiry_list as $key => $value) {
+            $follow_up                          = $this->enquiry_model->getFollowByEnquiry($value["id"]);
+            $enquiry_list[$key]["followupdate"] = isset($follow_up["date"]) ? $follow_up["date"] : '';
+            $enquiry_list[$key]["next_date"]    = isset($follow_up["next_date"]) ? $follow_up["next_date"] : '';
+            $enquiry_list[$key]["response"]     = isset($follow_up["response"]) ? $follow_up["response"] : '';
+            $enquiry_list[$key]["note"]         = isset($follow_up["note"]) ? $follow_up["note"] : '';
+            $enquiry_list[$key]["followup_by"]  = isset($follow_up["followup_by"]) ? $follow_up["followup_by"] : '';
+        }
+   
         
         $data['enquiry_list']   = $enquiry_list;
         $data['enquiry_status'] = $this->enquiry_status;
