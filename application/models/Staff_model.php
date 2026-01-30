@@ -80,6 +80,7 @@ class Staff_model extends MY_Model
         $late = 0;
         $absent = 0;
         $half_day = 0;
+        $permission = 0; // New variable for Permissions
 
         foreach ($attendance_data as $row) {
             if ($row['staff_attendance_type_id'] == 1) { // Present
@@ -90,15 +91,18 @@ class Staff_model extends MY_Model
                 $absent = $row['count'];
             } elseif ($row['staff_attendance_type_id'] == 6) { // Half Day
                 $half_day = $row['count'];
+            } elseif ($row['staff_attendance_type_id'] == 7 || $row['staff_attendance_type_id'] == 9) { // Permissions
+                $permission += $row['count'];
             }
         }
 
-        $total_attended = $present + $late + $half_day;
+        $total_attended = $present + $late + $half_day; // This counts present, late, and half-day as "attended"
 
         $present_percent = ($total_staff > 0) ? ($present / $total_staff) * 100 : 0;
         $late_percent = ($total_staff > 0) ? ($late / $total_staff) * 100 : 0;
         $absent_percent = ($total_staff > 0) ? ($absent / $total_staff) * 100 : 0;
         $half_day_percent = ($total_staff > 0) ? ($half_day / $total_staff) * 100 : 0;
+        $permission_percent = ($total_staff > 0) ? ($permission / $total_staff) * 100 : 0; // Percentage for Permissions
 
         return [
             'total_present' => $present,
@@ -109,6 +113,8 @@ class Staff_model extends MY_Model
             'absent' => round($absent_percent),
             'total_half_day' => $half_day,
             'half_day' => round($half_day_percent),
+            'total_permission' => $permission, // Total count for Permissions
+            'permission' => round($permission_percent), // Percentage for Permissions
             'total_staff' => $total_staff,
             'total_attended' => $total_attended,
             'attended_percent' => ($total_staff > 0) ? ($total_attended / $total_staff) * 100 : 0

@@ -379,6 +379,13 @@ foreach ($notifications as $notice_key => $notice_value) {
                                                 <div class="progress-bar" style="width: <?php echo $staff_attendance_details['half_day']; ?>%"></div>
                                             </div>
                                         </div>
+                                        <p class="text-uppercase mt10 clearfix"><?php echo $staff_attendance_details['total_permission']; ?> Permissions<span class="pull-right"><?php echo $staff_attendance_details['permission']; ?>%</span>
+                                        </p>
+                                        <div class="progress-group">
+                                            <div class="progress progress-minibar">
+                                                <div class="progress-bar" style="width: <?php echo $staff_attendance_details['permission']; ?>%"></div>
+                                            </div>
+                                        </div>
                                     </div><!--./topprograssstart-->
                                 </div><!--./col-md-2-->
             <?php
