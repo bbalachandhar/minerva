@@ -1160,7 +1160,7 @@ $(document).ready(function() {
                 } else if (response.status === 'fail') {
                     console.log('Validation errors:', response.error);
                     displayErrors(response.error);
-                    alert('Please correct the errors shown on the form and try again.');
+                    // Removed the generic alert here to allow specific field errors to be prominent
                 } else {
                     alert('An unknown error occurred. Please try again.');
                 }

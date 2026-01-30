@@ -1856,14 +1856,14 @@ class PublicAdmissionForm extends CI_Controller
 
             // Update enquiry status if enquiry_id is present
             $enquiry_id = $this->input->post('enquiry_id');
-            if (!empty($enquiry_id)) {
-                $this->enquiry_model->update($enquiry_id, array('status' => 'won')); // Assuming 'update' method exists in enquiry_model
-            }
+            log_message('error', 'Enquiry Update Debug: ajax_add_college_admission - enquiry_id received: ' . $enquiry_id);
 
-            // Update enquiry status if enquiry_id is present
-            $enquiry_id = $this->input->post('enquiry_id');
             if (!empty($enquiry_id)) {
-                $this->enquiry_model->update($enquiry_id, array('status' => 'won')); // Assuming 'update' method exists in enquiry_model
+                log_message('error', 'Enquiry Update Debug: Entering enquiry_id update block for ID: ' . $enquiry_id);
+                $update_result = $this->enquiry_model->enquiry_update($enquiry_id, array('status' => 'won'));
+                log_message('error', 'Enquiry Update Debug: enquiry_model->enquiry_update() result for ID ' . $enquiry_id . ': ' . ($update_result ? 'Success' : 'Failure'));
+            } else {
+                log_message('error', 'Enquiry Update Debug: enquiry_id is empty, skipping update.');
             }
 
             if (!empty($data['referral_name'])) {
