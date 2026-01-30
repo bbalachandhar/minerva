@@ -193,6 +193,7 @@
                 </div>
             </div>
             <form action="<?php echo site_url('publicadmissionform/add_college_admission'); ?>" method="POST" enctype="multipart/form-data" id="admission_form">
+                <input type="hidden" name="enquiry_id" value="<?php echo isset($enquiry_id) ? htmlspecialchars($enquiry_id) : ''; ?>">
                 <div class="section-card">
                     <h5 class="text-center mb-4">APPLICATION FORM FOR ADMISSION</h5>
                     <div class="d-flex justify-content-center mb-4">
@@ -564,7 +565,7 @@
                             <div class="row">
                                 <div class="mb-3 col-md-6">
                                     <label class="form-label">Qualifying Exam passed</label>
-                                    <input type="text" class="form-control" placeholder="Enter your exam passed" name="exam_passed" id="exam_passed" tabindex="72">
+                                    <input class="form-control" type="text" placeholder="Enter your exam passed" name="exam_passed" id="exam_passed" tabindex="72">
                                 </div>
                                 <div class="mb-3 col-md-6">
                                     <label class="form-label">Branch</label>
@@ -602,10 +603,7 @@
                                 </div>
                             </div>
                         </div>
-                    </div>
-                </div>
-                                <input type="hidden" name="payment_option" id="payment_option" value="">
-                                        <div class="section-card" id="additionalInfoSection">
+                        <div class="section-card">
                             <h5 class="mb-3">Additional Information</h5>
                             <div class="mb-4">
                                 <label class="form-label">UG Alumni of Meenakshi Group of Institutions</label>
@@ -643,6 +641,9 @@
                                 <input type="text" class="form-control" placeholder="Enter type of disability" name="disability_type" id="disability_type" tabindex="88">
                             </div>
                         </div>
+                    </div>
+                </div>
+                <input type="hidden" name="payment_option" id="payment_option" value="">
                 <button class="btn btn-submit mt-3" type="button" id="submit_application_btn" name="submit" tabindex="89">Submit Application</button>
             </form>
         </div>
@@ -1228,5 +1229,5 @@ $(document).ready(function() {
         }
     });
 });
-
+</script>
 </html>

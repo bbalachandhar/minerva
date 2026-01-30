@@ -23,7 +23,7 @@ class PublicAdmissionForm extends CI_Controller
         $this->load->model('language_model');
         $this->load->model('setting_model');
         $this->sch_setting_detail = $this->setting_model->getSetting(); // Load school settings
-        $this->load->model(array('frontcms_setting_model', 'complaint_Model', 'Visitors_model', 'onlinestudent_model', 'filetype_model', 'customfield_model', 'examgroupstudent_model', 'examgroup_model', 'grade_model', 'marksdivision_model', 'currency_model', 'section_model','holiday_model', 'class_model', 'category_model', 'student_model', 'Online_admission_ug_details_model', 'Online_admission_pg_details_model', 'Online_admission_lateral_details_model', 'Online_admission_references_model', 'Online_admission_nata_details_model', 'notificationsetting_model'));
+        $this->load->model(array('frontcms_setting_model', 'complaint_Model', 'Visitors_model', 'onlinestudent_model', 'filetype_model', 'customfield_model', 'examgroupstudent_model', 'examgroup_model', 'grade_model', 'marksdivision_model', 'currency_model', 'section_model','holiday_model', 'class_model', 'category_model', 'student_model', 'Online_admission_ug_details_model', 'Online_admission_pg_details_model', 'Online_admission_lateral_details_model', 'Online_admission_references_model', 'Online_admission_nata_details_model', 'notificationsetting_model', 'enquiry_model'));
         $this->load->model('examstudent_model');
         $this->load->config('form-builder');
         $this->load->config('app-config');
@@ -78,6 +78,7 @@ class PublicAdmissionForm extends CI_Controller
         $this->data['name'] = $this->input->get('name');
         $this->data['email'] = $this->input->get('email');
         $this->data['mobileno'] = $this->input->get('mobileno');
+        $this->data['enquiry_id'] = $this->input->get('enquiry_id');
         // This is a direct copy from Public_admission::index(), adapted for CI_Controller
         // No checks for module_lib->hasActive('online_admission') here, assume always active for this controller
         $this->data['active_menu'] = 'online_admission';
@@ -1847,11 +1848,23 @@ class PublicAdmissionForm extends CI_Controller
                 'permanent_address' => $data['perm_addr'],
                 'adhar_no' => $data['aadhaar'],
                 'image' => $photo_name,
-                'form_status' => 0,
-                'paid_status' => 0,
-            );
+                'form_status' => 0, // 0 for pending, 1 for submitted
+                'paid_status' => 0, // 0 for unpaid, 1 for paid
+            ); // Correct closing of array
 
             $online_admission_id = $this->onlinestudent_model->add($insert_data_online_admission);
+
+            // Update enquiry status if enquiry_id is present
+            $enquiry_id = $this->input->post('enquiry_id');
+            if (!empty($enquiry_id)) {
+                $this->enquiry_model->update($enquiry_id, array('status' => 'won')); // Assuming 'update' method exists in enquiry_model
+            }
+
+            // Update enquiry status if enquiry_id is present
+            $enquiry_id = $this->input->post('enquiry_id');
+            if (!empty($enquiry_id)) {
+                $this->enquiry_model->update($enquiry_id, array('status' => 'won')); // Assuming 'update' method exists in enquiry_model
+            }
 
             if (!empty($data['referral_name'])) {
                 $insert_ref_data = array(
