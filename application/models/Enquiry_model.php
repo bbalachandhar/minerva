@@ -85,25 +85,63 @@ class enquiry_model extends MY_Model
         }
     }
 
-    public function getenquiry_list($id = null, $status = 'active')
-    {
+        public function getenquiry_list($id = null, $status = 'active')
 
-        if (!empty($id) and !empty($status)) {
-            $this->db->where("enquiry.id", $id);
+        {
+
+            $this->db->select('enquiry.*,classes.class as classname,staff.id as staff_id,staff.name as staff_name,staff.surname as staff_surname,staff.employee_id')->
+
+                join("classes", "enquiry.class_id = classes.id", "left")->
+
+                join("staff", "staff.id = enquiry.assigned", "left");
+
+                
+
+            if (!empty($id)) {
+
+                $this->db->where("enquiry.id", $id);
+
+            }
+
+    
+
+                    if (is_array($status)) {
+
+    
+
+                        $this->db->where_in('enquiry.status', $status);
+
+    
+
+                    } else if ($status != 'all') { // Only apply status filter if not 'all'
+
+    
+
+                        $this->db->where('enquiry.status', $status);
+
+    
+
+                    }
+
+            
+
+            $this->db->order_by("enquiry.id", "desc");
+
+            $query = $this->db->get("enquiry");
+
+    
+
+            if (!empty($id)) {
+
+                return $query->row_array();
+
+            } else {
+
+                return $query->result_array();
+
+            }
+
         }
-
-        $query = $this->db->select('enquiry.*,classes.class as classname,staff.id as staff_id,staff.name as staff_name,staff.surname as staff_surname,staff.employee_id')->
-            join("classes", "enquiry.class_id = classes.id", "left")->
-            join("staff", "staff.id = enquiry.assigned", "left")->
-            where('enquiry.status', $status)->order_by("enquiry.id", "desc")->
-            get("enquiry");
-
-        if (!empty($id) and !empty($status)) {
-            return $query->row_array();
-        } else {
-            return $query->result_array();
-        }
-    }
 
     public function getFollowByEnquiry($id)
     {
@@ -231,44 +269,37 @@ class enquiry_model extends MY_Model
 
     public function searchEnquiry($class, $source, $date_from, $date_to, $status = 'active', $department_id = null)
     {
-        $condition = 0;
+        $this->db->select('enquiry.*,classes.class as classname')->join("classes", "classes.id = enquiry.class_id", "left");
 
         if (!empty($class)) {
-
-            $condition = 1;
             $this->db->where("enquiry.class_id", $class);
         }
 
         if (!empty($source)) {
-
-            $condition = 1;
             $this->db->where("source", $source);
         }
+        
         if (!empty($status)) {
-
-            if ($status != 'all') {
-                $condition = 1;
-                $this->db->where("status", $status);
-            } else {
-
-                $condition = 1;
+            if ($status == 'active') { // If the selected status is 'active', show 'active' AND 'won'
+                $this->db->where_in("enquiry.status", array('active', 'won'));
+            } else if ($status != 'all') { // If a specific status other than 'active' or 'all' is selected
+                $this->db->where("enquiry.status", $status);
             }
+            // If $status is 'all', no 'where' clause is added, showing all records.
+        } else { // If $status is empty (e.g., initial load of search form with no selection, though controller sends 'active')
+            $this->db->where_in("enquiry.status", array('active', 'won'));
         }
 
         if ((!empty($date_from)) && (!empty($date_to))) {
-            $condition = 1;
             $this->db->where("date >= ", $date_from);
             $this->db->where("date <= ", $date_to);
         }
-
-        if ($condition == 0) {
-            $this->db->where("enquiry.status", "active");
-        }
+        
         if ($department_id != null) {
             $this->db->where("classes.department_id", $department_id);
         }
 
-        $query = $this->db->select('enquiry.*,classes.class as classname')->join("classes", "classes.id = enquiry.class_id", "left")->get("enquiry");
+        $query = $this->db->get("enquiry");
         return $query->result_array();
     }
 

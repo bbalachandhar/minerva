@@ -47,7 +47,7 @@ class Enquiry extends Admin_Controller
             $data["selected_department"] = $department_id;
             $enquiry_list           = $this->enquiry_model->searchEnquiry($class, $source, $date_from, $date_to, $status, $department_id);
         } else {
-            $enquiry_list = $this->enquiry_model->getenquiry_list();
+            $enquiry_list = $this->enquiry_model->getenquiry_list(null, array('active', 'won'));
         }
         
         foreach ($enquiry_list as $key => $value) {
