@@ -29,3 +29,4 @@ Thumbs.db
 # Ignore backend captcha images
 /backend/captcha_images/
 /backend
+/.github
