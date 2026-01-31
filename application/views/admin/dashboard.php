@@ -1148,6 +1148,7 @@ if ($this->rbac->hasPrivilege('fees_collection_and_expense_yearly_chart', 'can_v
         var yearly_collection_array = <?php echo json_encode($yearly_collection) ?>;
         var yearly_expense_array = <?php echo json_encode($yearly_expense) ?>;
         var total_month = <?php echo json_encode($total_month) ?>;
+        /* jshint ignore:start */
         var areaChartData_expense_Income = {
         labels: total_month,
                 datasets: [
@@ -1163,7 +1164,8 @@ if ($this->rbac->hasPrivilege('fees_collection_and_expense_yearly_chart', 'can_v
                         data: yearly_expense_array
                 },
                 <?php } ?>
-             <?php if(($this->module_lib->hasActive('income'))){?> 
+             <?php if(($this->module_lib->hasActive('income'))){?>
+                /* jshint ignore:start */ 
                 {
                 label: "Collection",
                         fillColor: "rgba(102, 170, 24, 0.6)",
@@ -1174,7 +1176,8 @@ if ($this->rbac->hasPrivilege('fees_collection_and_expense_yearly_chart', 'can_v
                         pointHighlightStroke: "rgba(60,141,188,1)",
                         data: yearly_collection_array
                 }
-				 <?php } ?>  
+				 /* jshint ignore:end */
+				 <?php } ?>
                 ]
         };
         lineChart.Line(areaChartData_expense_Income, lineChartOptions);
