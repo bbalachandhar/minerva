@@ -2008,7 +2008,7 @@ class Student_model extends MY_Model
             }
         } else {
 
-            $this->db->where(array('class_id' => $class, 'admission_no' => $admission_no));
+            $this->db->where(array('admission_no' => $admission_no));
             $query = $this->db->join("student_session", "students.id = student_session.student_id")->get('students');
 
             if ($query->num_rows() > 0) {
