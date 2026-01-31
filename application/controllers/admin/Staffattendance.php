@@ -334,97 +334,59 @@ class Staffattendance extends Admin_Controller
                 $this->logger->log("Raw timestamps for staff {$staff_id}: " . implode(', ', $timestamps));
                 $this->logger->log("Calculated - In: {$in_time}, Out: {$out_time}, Punches: {$punches} for staff {$staff_id}");
 
+
+                $remark = '';
                 $morning_session_status = 10; // Default to First Half Absent
                 $afternoon_session_status = 11; // Default to Second Half Absent
                 $overall_attendance_type_id = 3; // Default to Full Day Absent
-                $remark = '';
 
-                if ($punches == 1) {
-                    $this->logger->log("Scenario: One punch for staff {$staff_id}, Date: {$date}. Setting to Absent (no exit punch).");
-                    $remark = 'No exit punch';
-                } else {
-                    $present_morning_to = isset($role_settings[$role_id][1]['to']) ? $role_settings[$role_id][1]['to'] : '09:17:00';
-                    $late_to = isset($role_settings[$role_id][2]['to']) ? $role_settings[$role_id][2]['to'] : '09:28:00';
-                    $fhp_from = isset($role_settings[$role_id][7]['from']) ? $role_settings[$role_id][7]['from'] : '09:29:00';
-                    $fhp_to = isset($role_settings[$role_id][7]['to']) ? $role_settings[$role_id][7]['to'] : '10:15:00';
+                // Always use schedule table for both punches
+                $remark = ($punches == 1) ? 'Single punch' : '';
 
-                    $this->logger->log("Morning Session: Evaluating in_time: {$in_time} for staff {$staff_id}, Date: {$date}");
-
-                    if ($in_time <= $present_morning_to) {
-                        $morning_session_status = 1; // Present
-                    } elseif ($in_time > $present_morning_to && $in_time < $fhp_from) {
-                        if ($in_time <= $late_to) {
-                            $late_count_monthly = $this->staffattendancemodel->count_late_in_month($staff_id, $date)['count'];
-                            if ($late_count_monthly < $max_late_allowed) {
-                                $morning_session_status = 2; // Late
-                            } else {
-                                $morning_session_status = 10; // FHA
-                            }
-                        } else {
-                            $morning_session_status = 10; // FHA (Gap between Late and FHP)
-                        }
-                    } elseif ($in_time >= $fhp_from && $in_time <= $fhp_to) {
-                        $permission_count_monthly = $this->staffattendancemodel->count_permission_in_month($staff_id, $date)['count'];
-                        if ($permission_count_monthly < $max_permission_allowed) {
-                            $morning_session_status = 7; // FHP
-                        } else {
-                            $morning_session_status = 10; // FHA
-                        }
-                    } else {
-                        $morning_session_status = 10; // FHA (After FHP window)
+                // Morning session: first punch
+                $morning_type = $this->staffAttendaceSetting_model->getAttendanceTypeByRole($role_id, $in_time);
+                $morning_session_status = ($morning_type) ? $morning_type->staff_attendence_type_id : 10;
+                // Enforce late quota for morning
+                if ($morning_session_status == 2) { // Late
+                    $late_count = $this->staffattendancemodel->count_late_in_month($staff_id, $date)['count'];
+                    if ($late_count >= $max_late_allowed) {
+                        $morning_session_status = 10; // First Half Absent (FHA)
                     }
-
-                    $shp_from = isset($role_settings[$role_id][9]['from']) ? $role_settings[$role_id][9]['from'] : '15:15:00';
-                    $shp_to = isset($role_settings[$role_id][9]['to']) ? $role_settings[$role_id][9]['to'] : '16:15:00';
-
-                    $this->logger->log("Afternoon Session: Evaluating out_time: {$out_time} for staff {$staff_id}, Date: {$date}");
-                    if ($out_time < $shp_from) {
-                        $afternoon_session_status = 11; // SHA
-                    } elseif ($out_time >= $shp_from && $out_time <= $shp_to) {
-                        $permission_count_monthly = $this->staffattendancemodel->count_permission_in_month($staff_id, $date)['count'];
-                        if ($permission_count_monthly < $max_permission_allowed) {
-                            $afternoon_session_status = 9; // SHP
-                        } else {
-                            $afternoon_session_status = 11; // SHA
-                        }
-                    } else { // This covers $out_time > $shp_to
-                        $afternoon_session_status = 1; // Present
+                }
+                // Enforce permission quota for morning
+                if ($morning_session_status == 7) { // FHP
+                    $perm_count = $this->staffattendancemodel->count_permission_in_month($staff_id, $date)['count'];
+                    if ($perm_count >= $max_permission_allowed) {
+                        $morning_session_status = 10; // First Half Absent (FHA)
                     }
+                }
 
-                // Refined overall_attendance_type_id calculation
+                // Afternoon session: last punch
+                $afternoon_type = $this->staffAttendaceSetting_model->getAttendanceTypeByRole($role_id, $out_time);
+                $afternoon_session_status = ($afternoon_type) ? $afternoon_type->staff_attendence_type_id : 11;
+                // Enforce permission quota for afternoon
+                if ($afternoon_session_status == 9) { // SHP
+                    $perm_count = $this->staffattendancemodel->count_permission_in_month($staff_id, $date)['count'];
+                    if ($perm_count >= $max_permission_allowed) {
+                        $afternoon_session_status = 11; // Second Half Absent (SHA)
+                    }
+                }
+
+                // Determine overall attendance type
                 if ($morning_session_status == 1 && $afternoon_session_status == 1) {
                     $overall_attendance_type_id = 1; // Present
-                } elseif (($morning_session_status == 3 || $morning_session_status == 10) && ($afternoon_session_status == 3 || $afternoon_session_status == 11)) {
-                     $overall_attendance_type_id = 3; // Full Day Absent
-                }
-                // --- NEW HALF DAY LOGIC ---
-                // If they are present for one half (not FHA/10 and not SHA/11) and absent for the other
-                elseif (
-                    ($morning_session_status != 10 && $afternoon_session_status == 11) || // Present first half, Absent second half
-                    ($morning_session_status == 10 && $afternoon_session_status != 11)    // Absent first half, Present second half
-                ) {
-                    $overall_attendance_type_id = 6; // Half Day
-                }
-                // --- END NEW HALF DAY LOGIC ---
-                elseif ($morning_session_status == 7 && $afternoon_session_status == 1) {
+                } elseif ($morning_session_status == 2 && $afternoon_session_status == 1) {
+                    $overall_attendance_type_id = 2; // Late
+                } elseif ($morning_session_status == 7 && $afternoon_session_status == 1) {
                     $overall_attendance_type_id = 7; // First Half Permission
                 } elseif ($morning_session_status == 1 && $afternoon_session_status == 9) {
                     $overall_attendance_type_id = 9; // Second Half Permission
-                } elseif ($morning_session_status == 10 && $afternoon_session_status == 1) {
-                    $overall_attendance_type_id = 10; // First Half Absent
-                } elseif ($morning_session_status == 1 && $afternoon_session_status == 11) {
-                    $overall_attendance_type_id = 11; // Second Half Absent
-                } elseif ($morning_session_status == 2) { // Morning Late is prioritized if it's the only special status
-                    $overall_attendance_type_id = 2; // Late
-                } elseif ($morning_session_status == 7 && ($afternoon_session_status == 11 || $afternoon_session_status == 3 || $afternoon_session_status == 10)) { // FHP and afternoon absent/FHA
-                    $overall_attendance_type_id = 7; // First Half Permission
-                } elseif (($morning_session_status == 10 || $morning_session_status == 3 || $morning_session_status == 11) && $afternoon_session_status == 9) { // morning absent/FHA/SHA and SHP
-                    $overall_attendance_type_id = 9; // Second Half Permission
-                }
-                // Catch-all for other combinations not specifically handled, often resulting in Half Day
-                else {
+                } elseif ($morning_session_status == 6 || $afternoon_session_status == 6) {
                     $overall_attendance_type_id = 6; // Half Day
-                }
+                } elseif ($morning_session_status == 3 || $afternoon_session_status == 3) {
+                    $overall_attendance_type_id = 3; // Absent
+                } else {
+                    $overall_attendance_type_id = 6; // Default to Half Day for any other combination
                 }
 
                 $session_attendance_data = json_encode(['morning_session' => $morning_session_status, 'afternoon_session' => $afternoon_session_status]);
@@ -438,7 +400,7 @@ class Staffattendance extends Admin_Controller
                     'date' => $date,
                     'updated_at' => date('Y-m-d H:i:s'),
                 ];
-                
+
                 $existing_attendance = $this->staffattendancemodel->getAttendanceByStaffIdAndDate($staff_id, $date);
                 if ($existing_attendance) {
                     $attendance_record['id'] = $existing_attendance['id'];
