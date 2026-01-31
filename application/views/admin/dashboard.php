@@ -1221,10 +1221,9 @@ if ($this->rbac->hasPrivilege('fees_collection_and_expense_yearly_chart', 'can_v
                         pointHighlightFill: "#fff",
                         pointHighlightStroke: "rgba(220,220,220,1)",
                         data: yearly_expense_array
-                },
+                }<?php if(($this->module_lib->hasActive('income'))){?>,<?php } ?>
                 <?php } ?>
              <?php if(($this->module_lib->hasActive('income'))){?>
-                /* jshint ignore:start */ 
                 {
                 label: "Collection",
                         fillColor: "rgba(102, 170, 24, 0.6)",
@@ -1235,16 +1234,17 @@ if ($this->rbac->hasPrivilege('fees_collection_and_expense_yearly_chart', 'can_v
                         pointHighlightStroke: "rgba(60,141,188,1)",
                         data: yearly_collection_array
                 }
-				 /* jshint ignore:end */
 				 <?php } ?>
                 ]
         };
         lineChart.Line(areaChartData_expense_Income, lineChartOptions);
         }
+        /* jshint ignore:end */
 
         var current_month_days = <?php echo json_encode($current_month_days) ?>;
         var days_collection = <?php echo json_encode($days_collection) ?>;
         var days_expense = <?php echo json_encode($days_expense) ?>;
+        /* jshint ignore:start */
         var areaChartData_classAttendence = {
         labels: current_month_days,
                 datasets: [
@@ -1258,8 +1258,9 @@ if ($this->rbac->hasPrivilege('fees_collection_and_expense_yearly_chart', 'can_v
                         pointHighlightFill: "#fff",
                         pointHighlightStroke: "rgba(220,220,220,1)",
                         data: days_collection
-                },
-				<?php }if(($this->module_lib->hasActive('expense'))){?>											   
+                }<?php if(($this->module_lib->hasActive('expense'))){?>,<?php } ?>
+				<?php } ?>
+				<?php if(($this->module_lib->hasActive('expense'))){?>											   
                 {
                 label: "Digital Goods",
                         fillColor: "rgba(233, 30, 99, 0.9)",
@@ -1273,6 +1274,7 @@ if ($this->rbac->hasPrivilege('fees_collection_and_expense_yearly_chart', 'can_v
 				<?php } ?> 
                 ]
         };
+        /* jshint ignore:end */
          
           <?php }if ($this->rbac->hasPrivilege('fees_collection_and_expense_monthly_chart', 'can_view')) {?>
         if (bar_chart) {
@@ -1280,6 +1282,7 @@ if ($this->rbac->hasPrivilege('fees_collection_and_expense_yearly_chart', 'can_v
         var days_collection = <?php echo json_encode($days_collection) ?>;
         var days_expense = <?php echo json_encode($days_expense) ?>;
 
+        /* jshint ignore:start */
         var areaChartData_classAttendence = {
         labels: current_month_days,
                 datasets: [
@@ -1293,7 +1296,7 @@ if ($this->rbac->hasPrivilege('fees_collection_and_expense_yearly_chart', 'can_v
                         pointHighlightFill: "#fff",
                         pointHighlightStroke: "rgba(220,220,220,1)",
                         data: days_collection
-                },
+                }<?php if(($this->module_lib->hasActive('expense'))){?>,<?php } ?>
                     <?php } ?>
                 <?php if(($this->module_lib->hasActive('expense'))){ ?>												   
                 {
@@ -1309,6 +1312,7 @@ if ($this->rbac->hasPrivilege('fees_collection_and_expense_yearly_chart', 'can_v
 				<?php } ?> 
                 ]
         };
+        /* jshint ignore:end */
         var barChartCanvas = $("#barChart").get(0).getContext("2d");
         var barChart = new Chart(barChartCanvas);
         var barChartData = areaChartData_classAttendence;

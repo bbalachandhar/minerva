@@ -44,9 +44,9 @@
                                     </select>
                                     <span class="text-danger"><?php echo form_error('feecategory_id'); ?></span>
                                 </div>
-                                <div class="form-group">dgh
+                                <div class="form-group">
                                     <label for="exampleInputEmail1"><?php echo $this->lang->line('fee_type'); ?></label>
-                                    <input id=" type" name=" type" placeholder="" type="text" class="form-control"  value="<?php echo set_value(' type'); ?>" />
+                                    <input id="type" name="type" placeholder="" type="text" class="form-control"  value="<?php echo set_value('type'); ?>" />
                                     <span class="text-danger"><?php echo form_error('type'); ?></span>
                                 </div>
                             </div>
