@@ -3,7 +3,7 @@
     .borderwhite{border-top-color: #fff !important;}
     .box-header>.box-tools {display: none;}
     .sidebar-collapse #barChart{height: 100% !important;}
-    .sidebar-collapse #lineChart{height: 100% !!!!important;}
+    .sidebar-collapse #lineChart{height: 100% !important;}
     .tooltip-inner {max-width: 135px;}
 
             /* Original birthday ticker styles */
@@ -97,6 +97,7 @@
 
             .topprograssstart.flex-card h5.pro-border {
                 /* Removed flex-shrink: 0; */
+                margin: 0;
             }
 
             .topprograssstart.flex-card .birthday-ticker-container {
@@ -1027,6 +1028,7 @@ $(document).ready(function () {
         -moz-user-select: none;
         -webkit-user-select: none;
         -ms-user-select: none;
+        user-select: none;
     }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.5.0/Chart.min.js"></script>

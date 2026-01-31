@@ -995,19 +995,23 @@ class Admin extends Admin_Controller
                 $error .= "Error opening the file<br />";
             }
             if ($_FILES["file"]["type"] != 'application/octet-stream') {
+                // @suppress PHP IDE warnings about set_message signature
                 $this->form_validation->set_message('handle_upload', $this->lang->line("file_type_not_allowed"));
                 return false;
             }
             if (!in_array($extension, $allowedExts)) {
+                // @suppress PHP IDE warnings about set_message signature
                 $this->form_validation->set_message('handle_upload', $this->lang->line("extension_not_allowed"));
                 return false;
             }
             if ($_FILES["file"]["size"] > 102400000) {
+                // @suppress PHP IDE warnings about set_message signature
                 $this->form_validation->set_message('handle_upload', $this->lang->line("file_size_shoud_be_less_than") . ' 100 MB');
                 return false;
             }
             return true;
         } else {
+            // @suppress PHP IDE warnings about set_message signature
             $this->form_validation->set_message('handle_upload', $this->lang->line("the_file_field_is_required"));
             return false;
         }
@@ -1101,7 +1105,7 @@ class Admin extends Admin_Controller
                 'image_size'      => $this->input->post('image_size'),
             );
 
-            $inserted_id = $this->filetype_model->add($insert_array);
+            $this->filetype_model->add($insert_array);
 
             $array = array('status' => 'success', 'error' => '', 'message' => $this->lang->line('success_message'));
             echo json_encode($array);
@@ -1113,6 +1117,7 @@ class Admin extends Admin_Controller
         if (preg_match('/^([A-Za-z0-9]+)(,\s[A-Za-z0-9]+)*$/', $extension)) {
             return true;
         } else {
+            // @suppress PHP IDE warnings about set_message signature
             $this->form_validation->set_message('validate_extension', 'The %s field must be like jpg, jpeg');
             return false;
         }
@@ -1123,6 +1128,7 @@ class Admin extends Admin_Controller
         if (preg_match('/^([A-Za-z0-9-.+\/]+)(,\s[A-Za-z0-9-.+\/]+)*$/', $mime)) {
             return true;
         } else {
+            // @suppress PHP IDE warnings about set_message signature
             $this->form_validation->set_message('validate_mime', 'The %s field must be like audio/mp4, video/mp4');
             return false;
         }
