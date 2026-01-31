@@ -898,7 +898,6 @@ class Admin extends Admin_Controller
         }
 
         $data['title']           = 'Search';
-        $search_text             = $search_text;
         $data['sch_setting']     = $this->sch_setting_detail;
         $data['search_text']     = trim($search_text);
         $userdata                = $this->customlib->getUserData();
@@ -1175,7 +1174,6 @@ class Admin extends Admin_Controller
         $sch_setting     = $this->sch_setting_detail;
         $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
         $classlist       = $this->class_model->get();
-        $classlist       = $classlist;
         $carray          = array();
         if (!empty($classlist)) {
             foreach ($classlist as $ckey => $cvalue) {
