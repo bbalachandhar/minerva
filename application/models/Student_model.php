@@ -2861,4 +2861,38 @@ class Student_model extends MY_Model
             'overall_category_counts' => $overall_category_counts
         );
     }
+
+    public function getStudentCountByGender($session_id = null)
+    {
+        if ($session_id == null) {
+            $session_id = $this->current_session;
+        }
+
+        $this->db->select('IFNULL(students.gender, "Not Specified") as gender, COUNT(DISTINCT student_session.student_id) as count');
+        $this->db->from('student_session');
+        $this->db->join('students', 'students.id = student_session.student_id');
+        $this->db->join('classes', 'classes.id = student_session.class_id');
+        $this->db->join('sections', 'sections.id = student_session.section_id');
+        $this->db->where('student_session.session_id', $session_id);
+        $this->db->where('students.is_active', 'yes');
+        $this->db->where('students.disable_at IS NULL', null, false);
+        $this->db->group_by('IFNULL(students.gender, "Not Specified")');
+        $query = $this->db->get();
+        
+        $result = array(
+            'Male' => 0,
+            'Female' => 0,
+            'Other' => 0,
+            'Not Specified' => 0
+        );
+        
+        foreach ($query->result_array() as $row) {
+            $gender = !empty($row['gender']) ? $row['gender'] : 'Not Specified';
+            if (array_key_exists($gender, $result)) {
+                $result[$gender] = (int)$row['count'];
+            }
+        }
+        
+        return $result;
+    }
 }

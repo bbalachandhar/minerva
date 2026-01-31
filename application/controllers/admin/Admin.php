@@ -559,7 +559,13 @@ class Admin extends Admin_Controller
 
         $data['total_students'] = $total_students;
         $data['total_students_heads'] = $total_students_heads;
-		// new features code added
+        
+        // Get student count by gender
+        $gender_counts = $this->Student_model->getStudentCountByGender($current_session);
+        $data['male_students'] = $gender_counts['Male'];
+        $data['female_students'] = $gender_counts['Female'];
+        $data['other_students'] = $gender_counts['Other'];
+        $data['unspecified_students'] = $gender_counts['Not Specified'];
 
         if ($data['sch_setting']->attendence_type == 0) {
             $data['std_graphclass'] = "col-lg-4 col-md-6 col-sm-6";

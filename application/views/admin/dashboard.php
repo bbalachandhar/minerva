@@ -689,7 +689,51 @@ if ($this->module_lib->hasActive('expense')) {
             }
         }
         
-        if ($this->module_lib->hasActive('library')) {
+        if ($this->rbac->hasPrivilege('student_head_count_widget', 'can_view')) {  ?>
+                            <div class="col-md-2 col-sm-6 mb10">
+                                <div class="topprograssstart flex-card">
+                                    <h5 class="pro-border"><?php echo $this->lang->line('student_head_count'); ?> <span class="pull-right" style="font-size: 18px; font-weight: bold;"><?php echo $total_students_heads; ?></span></h5>
+                                    <p class="text-uppercase mt10 clearfix" style="font-size: 12px;">
+                                        <i class="fa fa-male" style="color: #3c8dbc;"></i> Male: <?php echo $male_students; ?> <span class="pull-right"><?php echo ($total_students_heads > 0) ? round(($male_students * 100 / $total_students_heads), 2) : 0; ?>%</span>
+                                    </p>
+                                    <div class="progress-group">
+                                        <div class="progress progress-minibar">
+                                            <div class="progress-bar" style="width: <?php echo ($total_students_heads > 0) ? ($male_students * 100 / $total_students_heads) : 0; ?>%"></div>
+                                        </div>
+                                    </div>
+                                    <p class="text-uppercase mt10 clearfix" style="font-size: 12px;">
+                                        <i class="fa fa-female" style="color: #dd4b39;"></i> Female: <?php echo $female_students; ?> <span class="pull-right"><?php echo ($total_students_heads > 0) ? round(($female_students * 100 / $total_students_heads), 2) : 0; ?>%</span>
+                                    </p>
+                                    <div class="progress-group">
+                                        <div class="progress progress-minibar">
+                                            <div class="progress-bar progress-bar-red" style="width: <?php echo ($total_students_heads > 0) ? ($female_students * 100 / $total_students_heads) : 0; ?>%"></div>
+                                        </div>
+                                    </div>
+                                    <?php if ($other_students > 0) { ?>
+                                    <p class="text-uppercase mt10 clearfix" style="font-size: 12px;">
+                                        Other: <?php echo $other_students; ?>
+                                    </p>
+                                    <div class="progress-group">
+                                        <div class="progress progress-minibar">
+                                            <div class="progress-bar progress-bar-yellow" style="width: <?php echo ($total_students_heads > 0) ? ($other_students * 100 / $total_students_heads) : 0; ?>%"></div>
+                                        </div>
+                                    </div>
+                                    <?php } ?>
+                                    <?php if (!empty($unspecified_students) && $unspecified_students > 0) { ?>
+                                    <p class="text-uppercase mt10 clearfix" style="font-size: 12px;">
+                                        <i class="fa fa-question-circle" style="color: #999;"></i> Not Specified: <?php echo $unspecified_students; ?>
+                                    </p>
+                                    <div class="progress-group">
+                                        <div class="progress progress-minibar">
+                                            <div class="progress-bar" style="background-color: #999; width: <?php echo ($total_students_heads > 0) ? ($unspecified_students * 100 / $total_students_heads) : 0; ?>%"></div>
+                                        </div>
+                                    </div>
+                                    <?php } ?>
+                                </div><!--./topprograssstart-->
+                            </div><!--./col-md-2-->
+        <?php } ?>
+        
+        <?php if ($this->module_lib->hasActive('library')) {
             if ($this->rbac->hasPrivilege('book_overview_widegts', 'can_view')) {
                 ?>
                             <div class="col-md-2 col-sm-6 mb10">
@@ -803,36 +847,8 @@ if ($this->module_lib->hasActive('expense')) {
     <?php
 }
 }
+?>
 
-if ($this->rbac->hasPrivilege('student_count_widget', 'can_view')) {
-    ?>
-                            <div class="col-lg-3 col-md-6 col-sm-6">
-                                <div class="info-box">
-                                    <a href="<?php echo site_url('student/search') ?>">
-                                        <span class="info-box-icon"><i class="fa fa-user"></i></span>
-                                        <div class="info-box-content">
-                                            <span class="info-box-text"><?php echo $this->lang->line('student'); ?></span>
-                                            <span class="info-box-number"><?php echo $total_students; ?></span>
-                                        </div>
-                                    </a>
-                                </div>
-                            </div>
-<?php } ?>
-
-<!-- added new features -->
-   <?php if ($this->rbac->hasPrivilege('student_head_count_widget', 'can_view')) {  ?>
-                            <div class="col-lg-3 col-md-6 col-sm-6">
-                                <div class="info-box">
-                                    <a href="<?php echo site_url('student/search') ?>">
-                                        <span class="info-box-icon"><i class="fa fa-user"></i></span>
-                                        <div class="info-box-content">
-                                            <span class="info-box-text"><?php echo $this->lang->line('student_head_count'); ?></span>
-                                            <span class="info-box-number"><?php echo $total_students_heads; ?></span>
-                                        </div>
-                                    </a>
-                                </div>
-                            </div>
-                        <?php }?>
                     </div>
 
 <?php
