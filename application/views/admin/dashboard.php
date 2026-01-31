@@ -440,23 +440,19 @@ foreach ($notifications as $notice_key => $notice_value) {
         </div>
         <div class="row">
             <?php
-if ($this->module_lib->hasActive('fees_collection')) {
-    if ($this->rbac->hasPrivilege('fees_awaiting_payment_widegts', 'can_view')) {
-        ?>
-                                        <div class="col-md-3 col-sm-6">
-                                            <div class="topprograssstart">
-                                                <p class="mt5 clearfix font14"><i class="fa fa-money ftlayer"></i><?php echo $this->lang->line('fees_awaiting_payment'); ?><span class="pull-right"><?php echo $total_paid; ?>/<?php echo $total_fees ?></span>
-                                                </p>
-                                                <div class="progress-group">
-                                                    <div class="progress progress-minibar">
-                                                        <div class="progress-bar progress-bar-aqua" style="width: <?php echo $fessprogressbar; ?>%"></div>
-                                                    </div>
-                                                </div>
-                                            </div><!--./topprograssstart-->
-                                                                                </div><!--./widget-item-->                    <?php
-                                        }
-                                        }
-                                        ?>
+            if ($this->module_lib->hasActive('fees_collection') && $this->rbac->hasPrivilege('fees_awaiting_payment_widegts', 'can_view')) {
+            ?>
+                <div class="col-md-3 col-sm-6">
+                    <div class="topprograssstart">
+                        <p class="mt5 clearfix font14"><i class="fa fa-money ftlayer"></i><?php echo $this->lang->line('fees_awaiting_payment'); ?>
+                            <span class="pull-right">
+                                <?php echo $currency_symbol . amountFormat(isset($fees_awaiting_total_net_balance) ? $fees_awaiting_total_net_balance : 0); ?>
+                            </span>
+                        </p>
+                    </div><!--./topprograssstart-->
+                </div><!--./widget-item-->
+            <?php }
+            ?>
                                         
                                         <?php 
                                             if ($this->rbac->hasPrivilege('staff_approved_leave_widegts', 'can_view')) {
@@ -610,34 +606,43 @@ if ($this->module_lib->hasActive('expense')) {
         if ($this->module_lib->hasActive('fees_collection')) {
             if ($this->rbac->hasPrivilege('fees_overview_widegts', 'can_view')) {
                 ?>
-                            <div class="col-md-2 col-sm-6 mb10">
-                                <div class="topprograssstart flex-card">
-                                    <h5 class="pro-border"><?php echo $this->lang->line('fees_overview'); ?></h5>
-                                    <p class="text-uppercase mt10 clearfix"><?php echo $fees_overview['total_unpaid']; ?> <?php echo $this->lang->line('unpaid'); ?><span class="pull-right"><?php echo round($fees_overview['unpaid_progress'], 2); ?>%</span>
-                                    </p>
-                                    <div class="progress-group">
-                                        <div class="progress progress-minibar">
-                                            <div class="progress-bar" style="width: <?php echo $fees_overview['unpaid_progress']; ?>%"></div>
-                                        </div>
-                                    </div>
-                                    <p class="text-uppercase mt10 clearfix"><?php echo $fees_overview['total_partial']; ?> <?php echo $this->lang->line('partial'); ?><span class="pull-right"><?php echo round($fees_overview['partial_progress'], 2); ?>%</span>
-                                    </p>
-                                    <div class="progress-group">
-                                        <div class="progress progress-minibar">
-                                            <div class="progress-bar progress-bar-aqua" style="width: <?php echo $fees_overview['partial_progress']; ?>%"></div>
-                                        </div>
-                                    </div>
-                                    <p class="text-uppercase mt10 clearfix"><?php echo $fees_overview['total_paid']; ?> <?php echo $this->lang->line('paid'); ?><span class="pull-right"><?php echo round($fees_overview['paid_progress'], 2); ?>%</span>
-                                    </p>
-                                    <div class="progress-group">
-                                        <div class="progress progress-minibar">
-                                            <div class="progress-bar progress-bar-aqua" style="width: <?php echo $fees_overview['paid_progress']; ?>%"></div>
-                                        </div>
-                                    </div>
-                                </div><!--./topprograssstart-->
-                            </div><!--./col-md-2-->
+                <div class="col-md-3 col-sm-6 mb10">
+                    <div class="topprograssstart flex-card">
+                        <h5 class="pro-border"><?php echo $this->lang->line('fees_overview'); ?></h5>
+                        <p class="text-uppercase mt10 clearfix">
+                            <strong><?php echo $this->lang->line('unpaid'); ?>:</strong> <?php echo $fees_overview['total_unpaid']; ?>
+                            <span class="pull-right"><?php echo round($fees_overview['unpaid_progress'], 2); ?>%</span><br/>
+                            <span style="font-size:12px;color:#888;">Sum: <?php echo $currency_symbol . number_format($fees_overview['unpaid_sum'], 2); ?></span>
+                        </p>
+                        <div class="progress-group">
+                            <div class="progress progress-minibar">
+                                <div class="progress-bar" style="width: <?php echo $fees_overview['unpaid_progress']; ?>%"></div>
+                            </div>
+                        </div>
+                        <p class="text-uppercase mt10 clearfix">
+                            <strong><?php echo $this->lang->line('partial'); ?>:</strong> <?php echo $fees_overview['total_partial']; ?>
+                            <span class="pull-right"><?php echo round($fees_overview['partial_progress'], 2); ?>%</span><br/>
+                            <span style="font-size:12px;color:#888;">Sum: <?php echo $currency_symbol . number_format($fees_overview['partial_sum'], 2); ?></span>
+                        </p>
+                        <div class="progress-group">
+                            <div class="progress progress-minibar">
+                                <div class="progress-bar progress-bar-aqua" style="width: <?php echo $fees_overview['partial_progress']; ?>%"></div>
+                            </div>
+                        </div>
+                        <p class="text-uppercase mt10 clearfix">
+                            <strong><?php echo $this->lang->line('paid'); ?>:</strong> <?php echo $fees_overview['total_paid']; ?>
+                            <span class="pull-right"><?php echo round($fees_overview['paid_progress'], 2); ?>%</span><br/>
+                            <span style="font-size:12px;color:#888;">Sum: <?php echo $currency_symbol . number_format($fees_overview['paid_sum'], 2); ?></span>
+                        </p>
+                        <div class="progress-group">
+                            <div class="progress progress-minibar">
+                                <div class="progress-bar progress-bar-aqua" style="width: <?php echo $fees_overview['paid_progress']; ?>%"></div>
+                            </div>
+                        </div>
+                    </div><!--./topprograssstart-->
+                </div><!--./col-md-3-->
                 <?php
-        }
+            }
         }
         
         if ($this->module_lib->hasActive('library')) {

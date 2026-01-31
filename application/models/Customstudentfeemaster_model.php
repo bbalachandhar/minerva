@@ -17,6 +17,7 @@ class Customstudentfeemaster_model extends MY_Model
         $this->balance_group   = $this->config->item('ci_balance_group');
         $this->balance_type    = $this->config->item('ci_balance_type');
         $this->current_session = $this->setting_model->getCurrentSession();
+        $this->load->model('module_model');
     }
 
     public function searchAssignFeeByClassSection($class_id = null, $section_id = null, $fee_session_group_id = null, $category = null, $gender = null, $rte = null)
