@@ -193,6 +193,7 @@ class Zend_Barcode_Object_Upce extends Zend_Barcode_Object_Ean13
      */
     protected function _validateText($value, $options = array())
     {
+        /** @noinspection PhpParamsInspection */
         $validator = new Zend_Validate_Barcode(array(
             'adapter'  => 'upce',
             'checksum' => false,
