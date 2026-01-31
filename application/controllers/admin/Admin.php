@@ -7,6 +7,8 @@ if (!defined('BASEPATH')) {
 class Admin extends Admin_Controller
 {
 
+    public $sch_setting_detail;
+
     public function __construct()
     {
         parent::__construct();

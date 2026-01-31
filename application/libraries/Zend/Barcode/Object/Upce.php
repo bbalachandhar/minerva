@@ -83,8 +83,9 @@ class Zend_Barcode_Object_Upce extends Zend_Barcode_Object_Ean13
      */
     public function getText()
     {
-        if ($text[0] != 1) {
-            $text[0] = 0;
+        $text = parent::getText();
+        if (isset($text[0]) && $text[0] != '1') {
+            $text[0] = '0';
         }
         return $text;
     }
