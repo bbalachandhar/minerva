@@ -567,7 +567,6 @@ class Student_model extends MY_Model
             ->where('students.is_active', "yes")
             ->group_start()
                 ->where('students.disable_at', null)
-                ->or_where('students.disable_at', '0000-00-00')
             ->group_end();
         if ($class_id != null) {
             if (is_array($class_id)) {
@@ -615,7 +614,6 @@ class Student_model extends MY_Model
         $this->datatables->where('students.is_active', 'yes');
         $this->datatables->group_start();
         $this->datatables->where('students.disable_at', null);
-        $this->datatables->or_where('students.disable_at', '0000-00-00');
         $this->datatables->group_end();
         $this->datatables->sort('students.admission_no', 'asc');
         $this->datatables->searchable('class_id,section_id,admission_no,students.firstname,students.middlename,  students.lastname,students.father_name,students.dob,students.guardian_phone');

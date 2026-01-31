@@ -284,6 +284,85 @@ class Branch extends MY_Addon_MBController
                         $total_balance += $net_balance;
                     }
                 }
+            } else {
+                // Other branches - need to load branch database
+                $branches_list = $this->multibranch_model->get();
+                $branch_id = null;
+                
+                foreach ($branches_list as $branch) {
+                    if ($branch->database_name === $db_name) {
+                        $branch_id = $branch->id;
+                        break;
+                    }
+                }
+                
+                if ($branch_id) {
+                    $branch_db = $this->load->database('branch_' . $branch_id, true);
+                    
+                    // Get students for this branch
+                    $branch_db->select('students.id, student_session.id as student_session_id');
+                    $branch_db->from('student_session');
+                    $branch_db->join('students', 'student_session.student_id = students.id');
+                    $branch_db->where('student_session.session_id', $session_id);
+                    $branch_db->where('students.is_active', 'yes');
+                    $students_query = $branch_db->get();
+                    $students = $students_query->result_array();
+                    
+                    if (!empty($students)) {
+                        // Temporarily switch models to use branch database
+                        $original_db = $this->Customstudentfeemaster_model->db;
+                        $original_student_db = $this->Student_model->db;
+                        $original_fee_db = $this->Studentfeemaster_model->db;
+                        
+                        $this->Customstudentfeemaster_model->db = $branch_db;
+                        $this->Customstudentfeemaster_model->current_session = $session_id;
+                        $this->Student_model->db = $branch_db;
+                        $this->Studentfeemaster_model->db = $branch_db;
+                        
+                        foreach ($students as $student) {
+                            $student_session_id = $student['student_session_id'];
+                            $fees_data = $this->Customstudentfeemaster_model->getTransStudentFees($student_session_id);
+                            $advance_balances = $this->Studentfeemaster_model->get_advance_balance($student_session_id);
+                            
+                            $advance_paid = isset($advance_balances['paid_advance_balance']) ? $advance_balances['paid_advance_balance'] : 0;
+                            $advance_discount = isset($advance_balances['discount_advance_balance']) ? $advance_balances['discount_advance_balance'] : 0;
+
+                            $totalfee = 0;
+                            if (!empty($fees_data->fees)) {
+                                foreach ($fees_data->fees as $fee_item) {
+                                    $totalfee += $fee_item->amount;
+                                }
+                            }
+
+                            $total_paid_sum = 0;
+                            if ($fees_data) {
+                                $total_paid_sum = $fees_data->tuition_paid + $fees_data->other_paid + $fees_data->hostel_paid + $fees_data->transport_paid;
+                            }
+
+                            $previous_session_balance_data = $this->Customstudentfeemaster_model->getPreviousSessionBalance($student_session_id);
+                            $last_yr_cf = !empty($previous_session_balance_data) ? $previous_session_balance_data->amount : 0;
+                            $cf_paid = $this->Customstudentfeemaster_model->getPreviousSessionPaid($student_session_id);
+                            $cf_balance = $last_yr_cf - $cf_paid;
+
+                            if ($totalfee == 0 && $cf_balance == 0) {
+                                continue;
+                            }
+
+                            $balance = $totalfee - $total_paid_sum;
+                            $balance += $cf_balance;
+                            $net_balance = $balance - ($advance_paid + $advance_discount);
+
+                            $total_fees += $totalfee;
+                            $total_paid += $total_paid_sum;
+                            $total_balance += $net_balance;
+                        }
+                        
+                        // Restore original database connections
+                        $this->Customstudentfeemaster_model->db = $original_db;
+                        $this->Student_model->db = $original_student_db;
+                        $this->Studentfeemaster_model->db = $original_fee_db;
+                    }
+                }
             }
 
             $rows[] = array(
