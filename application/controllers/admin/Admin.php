@@ -96,31 +96,7 @@ class Admin extends Admin_Controller
 
     public function dashboard()
     {
-        // --- Net Balance Aggregation for Dashboard Widget ---
-        $current_session = $this->setting_model->getCurrentSession();
-        $students = $this->Student_model->getStudentsBySession($current_session);
-        $total_net_balance = 0;
-        $balance_group = $this->config->item('ci_balance_group');
-        if (!empty($students)) {
-            foreach ($students as $student) {
-                $student_session_id = $student['student_session_id'];
-                $fees_summary = $this->Customstudentfeemaster_model->getTransStudentFees($student_session_id);
-                $advance_balances = $this->Studentfeemaster_model->get_advance_balance($student_session_id);
-                $advance_paid = isset($advance_balances['paid_advance_balance']) ? $advance_balances['paid_advance_balance'] : 0;
-                $advance_discount = isset($advance_balances['discount_advance_balance']) ? $advance_balances['discount_advance_balance'] : 0;
-                $cf_balance = 0;
-                $balance_record = $this->Customstudentfeemaster_model->getBalanceMasterRecord($balance_group, '(' . $student_session_id . ')');
-                $last_yr_cf = !empty($balance_record) ? $balance_record[0]->amount : 0;
-                $cf_paid = $this->Customstudentfeemaster_model->getPreviousSessionPaid($student_session_id);
-                $cf_balance = $last_yr_cf - $cf_paid;
-                $totalfee = $fees_summary ? ($fees_summary->tuition_demand + $fees_summary->other_demand + $fees_summary->hostel_demand + $fees_summary->transport_demand) : 0;
-                $total_paid_sum = $fees_summary ? ($fees_summary->tuition_paid + $fees_summary->other_paid + $fees_summary->hostel_paid + $fees_summary->transport_paid) : 0;
-                $balance = $totalfee - $total_paid_sum + $cf_balance;
-                $net_balance = $balance - ($advance_paid + $advance_discount);
-                $total_net_balance += $net_balance;
-            }
-        }
-        $data['fees_awaiting_total_net_balance'] = $total_net_balance;
+        $data['fees_awaiting_total_net_balance'] = 0;
         
         $role            = $this->customlib->getStaffRole();
         $role_id         = json_decode($role)->id;
@@ -283,6 +259,9 @@ class Admin extends Admin_Controller
         $student_transport_fee = $this->studentfeemaster_model->getTransportFeesByDueDate($start_date, $end_date);
         $data['fees_awaiting'] = $student_due_fee;
 
+        $current_session = $this->setting_model->getCurrentSession();
+        $students = $this->Student_model->getStudentsBySession($current_session);
+
         // Debug output for fee fetching
         error_log('DEBUG: getFeesAwaiting returned: ' . print_r($student_due_fee, true));
         error_log('DEBUG: getTransportFeesByDueDate returned: ' . print_r($student_transport_fee, true));
@@ -363,66 +342,71 @@ class Admin extends Admin_Controller
         $enquiry       = $this->admin_model->getAllEnquiryCount($start_date, $end_date);
         $total_counter = $total_paid + $total_unpaid + $total_partial;
 
-        // --- Enhanced Fees Overview: Counts and Sums for Unpaid, Partial, Paid ---
-        $unpaid_count = 0;
-        $unpaid_sum = 0;
-        $partial_count = 0;
-        $partial_sum = 0;
-        $paid_count = 0;
-        $paid_sum = 0;
+        $data['fees_overview'] = array(
+            'total_unpaid'     => 0,
+            'unpaid_sum'       => 0,
+            'unpaid_progress'  => 0,
+            'total_partial'    => 0,
+            'partial_sum'      => 0,
+            'partial_progress' => 0,
+            'total_paid'       => 0,
+            'paid_sum'         => 0,
+            'paid_progress'    => 0,
+            'total_demand'     => 0,
+            'total_collection' => 0,
+            'total_awaiting'   => 0,
+        );
+        $data['fees_awaiting_progress'] = 0;
 
-        // Use the same students loop as net balance
+        // Calculate Total Demand, Collection, Awaiting (match Custom Balance Fees Report)
+        $total_demand = 0;
+        $total_collection = 0;
+        $total_awaiting = 0;
         if (!empty($students)) {
             foreach ($students as $student) {
                 $student_session_id = $student['student_session_id'];
-                $fees_summary = $this->Customstudentfeemaster_model->getTransStudentFees($student_session_id);
+                $fees_data = $this->Customstudentfeemaster_model->getTransStudentFees($student_session_id);
                 $advance_balances = $this->Studentfeemaster_model->get_advance_balance($student_session_id);
                 $advance_paid = isset($advance_balances['paid_advance_balance']) ? $advance_balances['paid_advance_balance'] : 0;
                 $advance_discount = isset($advance_balances['discount_advance_balance']) ? $advance_balances['discount_advance_balance'] : 0;
-                $cf_balance = 0;
-                $balance_group = $this->config->item('ci_balance_group');
-                $balance_record = $this->Customstudentfeemaster_model->getBalanceMasterRecord($balance_group, '(' . $student_session_id . ')');
-                $last_yr_cf = !empty($balance_record) ? $balance_record[0]->amount : 0;
+
+                // Total fees (sum of fee items)
+                $totalfee = 0;
+                if (!empty($fees_data->fees)) {
+                    foreach ($fees_data->fees as $fee_item) {
+                        $totalfee += $fee_item->amount;
+                    }
+                }
+
+                // Total paid (tuition + other + hostel + transport)
+                $total_paid_sum = 0;
+                if ($fees_data) {
+                    $total_paid_sum = $fees_data->tuition_paid + $fees_data->other_paid + $fees_data->hostel_paid + $fees_data->transport_paid;
+                }
+
+                // Previous session balance (CF)
+                $previous_session_balance_data = $this->Customstudentfeemaster_model->getPreviousSessionBalance($student_session_id);
+                $last_yr_cf = !empty($previous_session_balance_data) ? $previous_session_balance_data->amount : 0;
                 $cf_paid = $this->Customstudentfeemaster_model->getPreviousSessionPaid($student_session_id);
                 $cf_balance = $last_yr_cf - $cf_paid;
-                $totalfee = $fees_summary ? ($fees_summary->tuition_demand + $fees_summary->other_demand + $fees_summary->hostel_demand + $fees_summary->transport_demand) : 0;
-                $total_paid_sum = $fees_summary ? ($fees_summary->tuition_paid + $fees_summary->other_paid + $fees_summary->hostel_paid + $fees_summary->transport_paid) : 0;
-                $balance = $totalfee - $total_paid_sum + $cf_balance;
+
+                $balance = $totalfee - $total_paid_sum;
+                $balance += $cf_balance;
                 $net_balance = $balance - ($advance_paid + $advance_discount);
 
-                // Categorize student
-                if ($totalfee == 0 && $cf_balance == 0) {
-                    // No fees assigned, skip
-                    continue;
-                }
-                if ($net_balance > 0 && $total_paid_sum == 0) {
-                    // Unpaid (no payment)
-                    $unpaid_count++;
-                    $unpaid_sum += $net_balance;
-                } elseif ($net_balance > 0 && $total_paid_sum > 0) {
-                    // Partial
-                    $partial_count++;
-                    $partial_sum += $net_balance;
-                } elseif ($net_balance <= 0 && $total_paid_sum > 0) {
-                    // Fully paid
-                    $paid_count++;
-                    $paid_sum += $total_paid_sum;
-                }
+                $student_demand = $totalfee;
+                $student_collection = $total_paid_sum;
+                $student_awaiting = $net_balance;
+
+                $total_demand += $student_demand;
+                $total_collection += $student_collection;
+                $total_awaiting += $student_awaiting;
             }
         }
-
-        $total_counter = $unpaid_count + $partial_count + $paid_count;
-        $data['fees_overview'] = array(
-            'total_unpaid'     => $unpaid_count,
-            'unpaid_sum'       => $unpaid_sum,
-            'unpaid_progress'  => ($total_counter > 0) ? (($unpaid_count * 100) / $total_counter) : 0,
-            'total_partial'    => $partial_count,
-            'partial_sum'      => $partial_sum,
-            'partial_progress' => ($total_counter > 0) ? (($partial_count * 100) / $total_counter) : 0,
-            'total_paid'       => $paid_count,
-            'paid_sum'         => $paid_sum,
-            'paid_progress'    => ($total_counter > 0) ? (($paid_count * 100) / $total_counter) : 0,
-        );
+        $data['fees_overview']['total_demand'] = $total_demand;
+        $data['fees_overview']['total_collection'] = $total_collection;
+        $data['fees_overview']['total_awaiting'] = $total_awaiting;
+        $data['fees_awaiting_progress'] = ($total_demand > 0) ? (($total_awaiting * 100) / $total_demand) : 0;
 
         $total_enquiry = $enquiry['total'];
 
@@ -564,7 +548,6 @@ class Admin extends Admin_Controller
             $data['staffapprovemonthlyleave'] = 0;
         }
 
-        $tot_head_students = $this->studentsession_model->getTotalHeadCountBySession();
         $tot_students = $this->studentsession_model->getTotalStudentBySession();
         if (!empty($tot_students)) {
             $total_students = $tot_students->total_student;
@@ -587,6 +570,116 @@ class Admin extends Admin_Controller
         $this->load->view('layout/header', $data);
         $this->load->view('admin/dashboard', $data);
         $this->load->view('layout/footer', $data);
+    }
+
+    public function fees_overview_widget()
+    {
+        if (!$this->rbac->hasPrivilege('fees_overview_widegts', 'can_view')) {
+            access_denied();
+        }
+
+        $current_session = $this->setting_model->getCurrentSession();
+        $students = $this->Student_model->getStudentsBySession($current_session);
+
+        $unpaid_count = 0;
+        $unpaid_sum = 0;
+        $partial_count = 0;
+        $partial_sum = 0;
+        $paid_count = 0;
+        $paid_sum = 0;
+
+        $total_demand = 0;
+        $total_collection = 0;
+        $total_awaiting = 0;
+
+        if (!empty($students)) {
+            foreach ($students as $student) {
+                $student_session_id = $student['student_session_id'];
+                $fees_data = $this->Customstudentfeemaster_model->getTransStudentFees($student_session_id);
+                $advance_balances = $this->Studentfeemaster_model->get_advance_balance($student_session_id);
+                $advance_paid = isset($advance_balances['paid_advance_balance']) ? $advance_balances['paid_advance_balance'] : 0;
+                $advance_discount = isset($advance_balances['discount_advance_balance']) ? $advance_balances['discount_advance_balance'] : 0;
+
+                $totalfee = 0;
+                if (!empty($fees_data->fees)) {
+                    foreach ($fees_data->fees as $fee_item) {
+                        $totalfee += $fee_item->amount;
+                    }
+                }
+
+                $total_paid_sum = 0;
+                if ($fees_data) {
+                    $total_paid_sum = $fees_data->tuition_paid + $fees_data->other_paid + $fees_data->hostel_paid + $fees_data->transport_paid;
+                }
+
+                $previous_session_balance_data = $this->Customstudentfeemaster_model->getPreviousSessionBalance($student_session_id);
+                $last_yr_cf = !empty($previous_session_balance_data) ? $previous_session_balance_data->amount : 0;
+                $cf_paid = $this->Customstudentfeemaster_model->getPreviousSessionPaid($student_session_id);
+                $cf_balance = $last_yr_cf - $cf_paid;
+
+                $balance = $totalfee - $total_paid_sum;
+                $balance += $cf_balance;
+                $net_balance = $balance - ($advance_paid + $advance_discount);
+
+                if ($totalfee == 0 && $cf_balance == 0) {
+                    continue;
+                }
+
+                if ($net_balance > 0 && $total_paid_sum == 0) {
+                    $unpaid_count++;
+                    $unpaid_sum += $net_balance;
+                } elseif ($net_balance > 0 && $total_paid_sum > 0) {
+                    $partial_count++;
+                    $partial_sum += $net_balance;
+                } elseif ($net_balance <= 0 && $total_paid_sum > 0) {
+                    $paid_count++;
+                    $paid_sum += $total_paid_sum;
+                }
+
+                $total_demand += $totalfee;
+                $total_collection += $total_paid_sum;
+                $total_awaiting += $net_balance;
+            }
+        }
+
+        $total_counter = $unpaid_count + $partial_count + $paid_count;
+        $unpaid_progress = ($total_counter > 0) ? (($unpaid_count * 100) / $total_counter) : 0;
+        $partial_progress = ($total_counter > 0) ? (($partial_count * 100) / $total_counter) : 0;
+        $paid_progress = ($total_counter > 0) ? (($paid_count * 100) / $total_counter) : 0;
+        $fees_awaiting_progress = ($total_demand > 0) ? (($total_awaiting * 100) / $total_demand) : 0;
+
+        $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
+
+        $response = array(
+            'status' => 'success',
+            'data' => array(
+                'total_unpaid' => $unpaid_count,
+                'unpaid_progress' => round($unpaid_progress, 2),
+                'unpaid_sum' => $unpaid_sum,
+                'unpaid_sum_formatted' => $currency_symbol . number_format($unpaid_sum, 2),
+                'total_partial' => $partial_count,
+                'partial_progress' => round($partial_progress, 2),
+                'partial_sum' => $partial_sum,
+                'partial_sum_formatted' => $currency_symbol . number_format($partial_sum, 2),
+                'total_paid' => $paid_count,
+                'paid_progress' => round($paid_progress, 2),
+                'paid_sum' => $paid_sum,
+                'paid_sum_formatted' => $currency_symbol . number_format($paid_sum, 2),
+                'total_demand' => $total_demand,
+                'total_demand_formatted' => $currency_symbol . number_format($total_demand, 2),
+                'total_collection' => $total_collection,
+                'total_collection_formatted' => $currency_symbol . number_format($total_collection, 2),
+                'total_awaiting' => $total_awaiting,
+                'total_awaiting_formatted' => $currency_symbol . number_format($total_awaiting, 2),
+                'fees_awaiting_progress' => round($fees_awaiting_progress, 2),
+                'fees_awaiting_total_net_balance' => $total_awaiting,
+                'fees_awaiting_total_net_balance_formatted' => $currency_symbol . number_format($total_awaiting, 2),
+            ),
+        );
+
+        return $this->output
+            ->set_content_type('application/json')
+            ->set_output(json_encode($response));
     }
 	
     public function getUserImage()

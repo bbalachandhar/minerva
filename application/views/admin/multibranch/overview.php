@@ -6,6 +6,32 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
     @media print {
     .displaynone { display:block !important;}
 }
+    .fo-skeleton {
+        position: relative;
+        color: transparent;
+        background: #e6e6e6;
+        border-radius: 4px;
+        display: inline-block;
+        min-width: 40px;
+    }
+    .fo-skeleton.fo-line {
+        min-width: 120px;
+        height: 12px;
+        vertical-align: middle;
+    }
+    .fo-skeleton::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent);
+        animation: fo-shimmer 1.2s infinite;
+    }
+    @keyframes fo-shimmer {
+        100% { transform: translateX(200%); }
+    }
 </style>
  <link rel="stylesheet" href="<?php echo base_url(); ?>backend/dist/css/multi_branch.css">
 <!-- Content Wrapper. Contains page content -->
@@ -51,13 +77,13 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                     foreach ($school_students as $school_key => $school_value) {
                                                                   
                                         ?>
-                                <tr>
+                                <tr data-branch="<?php echo $school_value['db_name']; ?>">
                                     <td width="26%"><?php echo $school_value['name']; ?></td>
                                     <td><?php echo $school_value['session']; ?></td>
                                     <td><?php echo $school_value['total_student']; ?></td>
-                                    <td class="text text-right"><?php echo $currency_symbol.amountFormat($school_value['total_fees']); ?></td>
-                                    <td class="text text-right"><?php echo $currency_symbol.amountFormat($school_value['total_paid']); ?></td>
-                                    <td class="text text-right"><?php echo $currency_symbol.amountFormat($school_value['total_balance']); ?></td>
+                                    <td class="text text-right"><span class="branch-total-fees fo-skeleton fo-line">0</span></td>
+                                    <td class="text text-right"><span class="branch-total-paid fo-skeleton fo-line">0</span></td>
+                                    <td class="text text-right"><span class="branch-total-balance fo-skeleton fo-line">0</span></td>
                                 </tr>
                                 <?php
 
@@ -430,5 +456,45 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                 }]
             }
         }
+    });
+
+    $(document).ready(function() {
+        $.ajax({
+            url: "<?php echo site_url('admin/multibranch/branch/fees_overview_async'); ?>",
+            method: 'GET',
+            dataType: 'json'
+        }).done(function(resp) {
+            if (!resp || resp.status !== 'success') {
+                return;
+            }
+
+            if (resp.rows && resp.rows.length) {
+                resp.rows.forEach(function(row) {
+                    var $tr = $('tr[data-branch="' + row.db_name + '"]');
+                    if (!$tr.length) {
+                        return;
+                    }
+                    $tr.find('.branch-total-fees').text(row.total_fees_formatted).removeClass('fo-skeleton');
+                    $tr.find('.branch-total-paid').text(row.total_paid_formatted).removeClass('fo-skeleton');
+                    $tr.find('.branch-total-balance').text(row.total_balance_formatted).removeClass('fo-skeleton');
+                });
+            }
+
+            if (resp.chart && feesChart) {
+                feesChart.data.labels = resp.chart.labels || [];
+                if (feesChart.data.datasets[0]) {
+                    feesChart.data.datasets[0].data = resp.chart.total_fees || [];
+                }
+                if (feesChart.data.datasets[1]) {
+                    feesChart.data.datasets[1].data = resp.chart.total_paid || [];
+                }
+                if (feesChart.data.datasets[2]) {
+                    feesChart.data.datasets[2].data = resp.chart.total_balance || [];
+                }
+                feesChart.update();
+            }
+        }).fail(function() {
+            $('.branch-total-fees, .branch-total-paid, .branch-total-balance').removeClass('fo-skeleton');
+        });
     });
 </script>

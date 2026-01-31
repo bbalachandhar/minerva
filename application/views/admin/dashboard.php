@@ -5,6 +5,38 @@
     .sidebar-collapse #barChart{height: 100% !important;}
     .sidebar-collapse #lineChart{height: 100% !important;}
     .tooltip-inner {max-width: 135px;}
+    #calendar {
+        height: 80%;
+    }
+    #calendar .fc-view-container {
+        height: 100%;
+    }
+    .fo-skeleton {
+        position: relative;
+        color: transparent;
+        background: #e6e6e6;
+        border-radius: 4px;
+        display: inline-block;
+        min-width: 40px;
+    }
+    .fo-skeleton.fo-line {
+        min-width: 120px;
+        height: 12px;
+        vertical-align: middle;
+    }
+    .fo-skeleton::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent);
+        animation: fo-shimmer 1.2s infinite;
+    }
+    @keyframes fo-shimmer {
+        100% { transform: translateX(200%); }
+    }
 
             /* Original birthday ticker styles */
             .birthday-ticker-container {
@@ -447,9 +479,14 @@ foreach ($notifications as $notice_key => $notice_value) {
                     <div class="topprograssstart">
                         <p class="mt5 clearfix font14"><i class="fa fa-money ftlayer"></i><?php echo $this->lang->line('fees_awaiting_payment'); ?>
                             <span class="pull-right">
-                                <?php echo $currency_symbol . amountFormat(isset($fees_awaiting_total_net_balance) ? $fees_awaiting_total_net_balance : 0); ?>
+                                <span class="fees-awaiting-amount fo-skeleton fo-line">0</span>
                             </span>
                         </p>
+                        <div class="progress-group">
+                            <div class="progress progress-minibar">
+                                <div class="progress-bar progress-bar-red fees-awaiting-progress-bar" style="width: <?php echo round(isset($fees_awaiting_progress) ? $fees_awaiting_progress : 0, 2); ?>%"></div>
+                            </div>
+                        </div>
                     </div><!--./topprograssstart-->
                 </div><!--./widget-item-->
             <?php }
@@ -608,38 +645,44 @@ if ($this->module_lib->hasActive('expense')) {
             if ($this->rbac->hasPrivilege('fees_overview_widegts', 'can_view')) {
                 ?>
                 <div class="col-md-3 col-sm-6 mb10">
-                    <div class="topprograssstart flex-card">
+                    <div class="topprograssstart flex-card" id="fees-overview-widget" data-url="<?php echo site_url('admin/admin/fees_overview_widget'); ?>">
                         <h5 class="pro-border"><?php echo $this->lang->line('fees_overview'); ?></h5>
                         <p class="text-uppercase mt10 clearfix">
-                            <strong><?php echo $this->lang->line('unpaid'); ?>:</strong> <?php echo $fees_overview['total_unpaid']; ?>
-                            <span class="pull-right"><?php echo round($fees_overview['unpaid_progress'], 2); ?>%</span><br/>
-                            <span style="font-size:12px;color:#888;">Sum: <?php echo $currency_symbol . number_format($fees_overview['unpaid_sum'], 2); ?></span>
+                            <strong><?php echo $this->lang->line('unpaid'); ?>:</strong> <span class="fo-total-unpaid fo-skeleton">0</span>
+                            <span class="pull-right"><span class="fo-unpaid-progress fo-skeleton">0</span>%</span><br/>
+                            <span style="font-size:12px;color:#888;">Sum: <span class="fo-unpaid-sum fo-skeleton fo-line">0</span></span>
                         </p>
                         <div class="progress-group">
                             <div class="progress progress-minibar">
-                                <div class="progress-bar" style="width: <?php echo $fees_overview['unpaid_progress']; ?>%"></div>
+                                <div class="progress-bar fo-unpaid-bar" style="width: 0%"></div>
                             </div>
                         </div>
                         <p class="text-uppercase mt10 clearfix">
-                            <strong><?php echo $this->lang->line('partial'); ?>:</strong> <?php echo $fees_overview['total_partial']; ?>
-                            <span class="pull-right"><?php echo round($fees_overview['partial_progress'], 2); ?>%</span><br/>
-                            <span style="font-size:12px;color:#888;">Sum: <?php echo $currency_symbol . number_format($fees_overview['partial_sum'], 2); ?></span>
+                            <strong><?php echo $this->lang->line('partial'); ?>:</strong> <span class="fo-total-partial fo-skeleton">0</span>
+                            <span class="pull-right"><span class="fo-partial-progress fo-skeleton">0</span>%</span><br/>
+                            <span style="font-size:12px;color:#888;">Sum: <span class="fo-partial-sum fo-skeleton fo-line">0</span></span>
                         </p>
                         <div class="progress-group">
                             <div class="progress progress-minibar">
-                                <div class="progress-bar progress-bar-aqua" style="width: <?php echo $fees_overview['partial_progress']; ?>%"></div>
+                                <div class="progress-bar progress-bar-aqua fo-partial-bar" style="width: 0%"></div>
                             </div>
                         </div>
                         <p class="text-uppercase mt10 clearfix">
-                            <strong><?php echo $this->lang->line('paid'); ?>:</strong> <?php echo $fees_overview['total_paid']; ?>
-                            <span class="pull-right"><?php echo round($fees_overview['paid_progress'], 2); ?>%</span><br/>
-                            <span style="font-size:12px;color:#888;">Sum: <?php echo $currency_symbol . number_format($fees_overview['paid_sum'], 2); ?></span>
+                            <strong><?php echo $this->lang->line('paid'); ?>:</strong> <span class="fo-total-paid fo-skeleton">0</span>
+                            <span class="pull-right"><span class="fo-paid-progress fo-skeleton">0</span>%</span><br/>
+                            <span style="font-size:12px;color:#888;">Sum: <span class="fo-paid-sum fo-skeleton fo-line">0</span></span>
                         </p>
                         <div class="progress-group">
                             <div class="progress progress-minibar">
-                                <div class="progress-bar progress-bar-aqua" style="width: <?php echo $fees_overview['paid_progress']; ?>%"></div>
+                                <div class="progress-bar progress-bar-aqua fo-paid-bar" style="width: 0%"></div>
                             </div>
                         </div>
+                        <hr/>
+                        <p class="text-uppercase mt10 clearfix" style="font-size:14px;">
+                            <strong>Total Demand:</strong> <span class="fo-total-demand fo-skeleton fo-line">0</span><br/>
+                            <strong>Total Collection:</strong> <span class="fo-total-collection fo-skeleton fo-line">0</span><br/>
+                            <strong>Total Awaiting:</strong> <span class="fo-total-awaiting fo-skeleton fo-line">0</span>
+                        </p>
                     </div><!--./topprograssstart-->
                 </div><!--./col-md-3-->
                 <?php
@@ -1351,6 +1394,62 @@ if ($this->rbac->hasPrivilege('fees_collection_and_expense_yearly_chart', 'can_v
             resizeTimer = setTimeout(function() {
                 updateTickerAnimation();
             }, 250); // Debounce to prevent excessive calls
+        });
+    });
+</script>
+<script type="text/javascript">
+    $(document).ready(function() {
+        var $widget = $('#fees-overview-widget');
+        if (!$widget.length) {
+            return;
+        }
+
+        var url = $widget.data('url');
+        if (!url) {
+            return;
+        }
+
+        $.ajax({
+            url: url,
+            method: 'GET',
+            dataType: 'json'
+        }).done(function(resp) {
+            if (!resp || resp.status !== 'success' || !resp.data) {
+                return;
+            }
+
+            var d = resp.data;
+            $widget.find('.fo-total-unpaid').text(d.total_unpaid);
+            $widget.find('.fo-unpaid-progress').text(d.unpaid_progress);
+            $widget.find('.fo-unpaid-sum').text(d.unpaid_sum_formatted);
+            $widget.find('.fo-unpaid-bar').css('width', d.unpaid_progress + '%');
+
+            $widget.find('.fo-total-partial').text(d.total_partial);
+            $widget.find('.fo-partial-progress').text(d.partial_progress);
+            $widget.find('.fo-partial-sum').text(d.partial_sum_formatted);
+            $widget.find('.fo-partial-bar').css('width', d.partial_progress + '%');
+
+            $widget.find('.fo-total-paid').text(d.total_paid);
+            $widget.find('.fo-paid-progress').text(d.paid_progress);
+            $widget.find('.fo-paid-sum').text(d.paid_sum_formatted);
+            $widget.find('.fo-paid-bar').css('width', d.paid_progress + '%');
+
+            $widget.find('.fo-total-demand').text(d.total_demand_formatted);
+            $widget.find('.fo-total-collection').text(d.total_collection_formatted);
+            $widget.find('.fo-total-awaiting').text(d.total_awaiting_formatted);
+
+            $('.fees-awaiting-amount').text(d.fees_awaiting_total_net_balance_formatted);
+
+            $widget.find('.fo-skeleton').removeClass('fo-skeleton');
+
+            $('.fees-awaiting-amount').removeClass('fo-skeleton');
+
+            var $awaitingBar = $('.fees-awaiting-progress-bar');
+            if ($awaitingBar.length && typeof d.fees_awaiting_progress !== 'undefined') {
+                $awaitingBar.css('width', d.fees_awaiting_progress + '%');
+            }
+        }).fail(function() {
+            $widget.find('.fo-skeleton').removeClass('fo-skeleton');
         });
     });
 </script>

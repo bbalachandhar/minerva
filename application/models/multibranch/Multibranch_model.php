@@ -27,7 +27,15 @@ class Multibranch_model extends MY_Model
         $this->db_default->order_by('sch_settings.id');
         $query = $this->db_default->get();
         $res = $query->row();
-        $res->name = $this->lang->line('home_branch');      
+        $res->name = $this->lang->line('home_branch');
+        $CI = &get_instance();
+        $CI->load->model('setting_model');
+        $current_session_data = $CI->setting_model->getCurrentSessiondata();
+        if (!empty($current_session_data)) {
+            $res->session_id = $current_session_data['session_id'];
+            $res->session = $current_session_data['session'];
+            $res->start_month = $current_session_data['start_month'];
+        }
         $db_array[$default_db]=$res;
 
         // =============================

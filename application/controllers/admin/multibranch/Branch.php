@@ -34,8 +34,6 @@ class Branch extends MY_Addon_MBController
 
         $school_students = $this->multi_common_model->getStudentCount($branches);
 
-        $school_fees = $this->multi_common_model->getCurrentSessionStudentFees($branches);
-
         $school_transport_fees = $this->multi_common_model->getStudentTransportFees($branches);
 
         $staff_list = $this->multi_common_model->getStaff($branches);
@@ -91,27 +89,9 @@ class Branch extends MY_Addon_MBController
 //============Staff Payroll end==============================
 
             //===============fees=======================
-            $total_fees    = 0;
-            $total_paid    = 0;
-            $total_balance = 0;
-            if (!empty($school_fees[$_branch_key])) {
-
-                foreach ($school_fees[$_branch_key] as $sch_fee_key => $sch_fee_value) {
-                    $total_fees += $sch_fee_value->fee_amount;
-                    if (isJSON($sch_fee_value->amount_detail)) {
-                        $amount_paid_array = json_decode($sch_fee_value->amount_detail);
-                        foreach ($amount_paid_array as $amount_paid_key => $amount_paid_value) {
-                            $total_paid += ($amount_paid_value->amount + $amount_paid_value->amount_discount);
-                        }
-
-                    }
-                }
-
-            }
-
-            $school_students[$_branch_key]['total_fees']    = $total_fees;
-            $school_students[$_branch_key]['total_paid']    = $total_paid;
-            $school_students[$_branch_key]['total_balance'] = ($total_fees - $total_paid);
+            $school_students[$_branch_key]['total_fees']    = 0;
+            $school_students[$_branch_key]['total_paid']    = 0;
+            $school_students[$_branch_key]['total_balance'] = 0;
 //==========================================
 
             //===============staff attendance=======================
@@ -221,9 +201,9 @@ class Branch extends MY_Addon_MBController
 
         foreach ($school_students as $school_key => $school_value) {
             $fees_chart_data['labels'][] = $school_value['name'];
-            $fees_chart_data['datasets'][0]['data'][] = $school_value['total_fees'];
-            $fees_chart_data['datasets'][1]['data'][] = $school_value['total_paid'];
-            $fees_chart_data['datasets'][2]['data'][] = $school_value['total_balance'];
+            $fees_chart_data['datasets'][0]['data'][] = 0;
+            $fees_chart_data['datasets'][1]['data'][] = 0;
+            $fees_chart_data['datasets'][2]['data'][] = 0;
         }
 
         $data['fees_chart_data'] = json_encode($fees_chart_data);
@@ -231,6 +211,111 @@ class Branch extends MY_Addon_MBController
         $this->load->view('layout/header', $data);
         $this->load->view('admin/multibranch/overview', $data);
         $this->load->view('layout/footer', $data);
+    }
+
+    public function fees_overview_async()
+    {
+        if (!$this->rbac->hasPrivilege('multi_branch_overview', 'can_view')) {
+            access_denied();
+        }
+
+        // Load required models
+        $this->load->model('Student_model');
+        $this->load->model('Customstudentfeemaster_model');
+        $this->load->model('Studentfeemaster_model');
+
+        $branches = $this->multibranch_model->getSchoolCurrentSessions();
+        $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
+
+        $rows = array();
+        $chart_labels = array();
+        $chart_total_fees = array();
+        $chart_total_paid = array();
+        $chart_total_balance = array();
+
+        foreach ($branches as $db_name => $branch_info) {
+            $session_id = $branch_info->session_id;
+
+            $total_fees = 0;
+            $total_paid = 0;
+            $total_balance = 0;
+
+            // Get students using the model (will use default DB for home branch)
+            if ($db_name === $this->db->database) {
+                // Home branch - use controller's already loaded models
+                $students = $this->Student_model->getStudentsBySession($session_id);
+
+                if (!empty($students)) {
+                    foreach ($students as $student) {
+                        $student_session_id = $student['student_session_id'];
+                        $fees_data = $this->Customstudentfeemaster_model->getTransStudentFees($student_session_id);
+                        $advance_balances = $this->Studentfeemaster_model->get_advance_balance($student_session_id);
+                        
+                        $advance_paid = isset($advance_balances['paid_advance_balance']) ? $advance_balances['paid_advance_balance'] : 0;
+                        $advance_discount = isset($advance_balances['discount_advance_balance']) ? $advance_balances['discount_advance_balance'] : 0;
+
+                        $totalfee = 0;
+                        if (!empty($fees_data->fees)) {
+                            foreach ($fees_data->fees as $fee_item) {
+                                $totalfee += $fee_item->amount;
+                            }
+                        }
+
+                        $total_paid_sum = 0;
+                        if ($fees_data) {
+                            $total_paid_sum = $fees_data->tuition_paid + $fees_data->other_paid + $fees_data->hostel_paid + $fees_data->transport_paid;
+                        }
+
+                        $previous_session_balance_data = $this->Customstudentfeemaster_model->getPreviousSessionBalance($student_session_id);
+                        $last_yr_cf = !empty($previous_session_balance_data) ? $previous_session_balance_data->amount : 0;
+                        $cf_paid = $this->Customstudentfeemaster_model->getPreviousSessionPaid($student_session_id);
+                        $cf_balance = $last_yr_cf - $cf_paid;
+
+                        if ($totalfee == 0 && $cf_balance == 0) {
+                            continue;
+                        }
+
+                        $balance = $totalfee - $total_paid_sum;
+                        $balance += $cf_balance;
+                        $net_balance = $balance - ($advance_paid + $advance_discount);
+
+                        $total_fees += $totalfee;
+                        $total_paid += $total_paid_sum;
+                        $total_balance += $net_balance;
+                    }
+                }
+            }
+
+            $rows[] = array(
+                'db_name' => $db_name,
+                'total_fees' => $total_fees,
+                'total_paid' => $total_paid,
+                'total_balance' => $total_balance,
+                'total_fees_formatted' => $currency_symbol . amountFormat($total_fees),
+                'total_paid_formatted' => $currency_symbol . amountFormat($total_paid),
+                'total_balance_formatted' => $currency_symbol . amountFormat($total_balance),
+            );
+
+            $chart_labels[] = $branch_info->name;
+            $chart_total_fees[] = $total_fees;
+            $chart_total_paid[] = $total_paid;
+            $chart_total_balance[] = $total_balance;
+        }
+
+        $response = array(
+            'status' => 'success',
+            'rows' => $rows,
+            'chart' => array(
+                'labels' => $chart_labels,
+                'total_fees' => $chart_total_fees,
+                'total_paid' => $chart_total_paid,
+                'total_balance' => $chart_total_balance,
+            ),
+        );
+
+        return $this->output
+            ->set_content_type('application/json')
+            ->set_output(json_encode($response));
     }
 
     public function upload()
