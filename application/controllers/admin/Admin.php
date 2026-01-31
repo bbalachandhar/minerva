@@ -4,6 +4,49 @@ if (!defined('BASEPATH')) {
     exit('No direct script access allowed');
 }
 
+/**
+ * Admin Controller
+ *
+ * @property CI_Loader $load
+ * @property CI_DB_query_builder $db
+ * @property CI_Session $session
+ * @property CI_Form_validation $form_validation
+ * @property CI_Input $input
+ * @property CI_Output $output
+ * @property CI_Config $config
+ * @property CI_Lang $lang
+ * @property Setting_model $setting_model
+ * @property Auth $auth
+ * @property Student_model $Student_model
+ * @property Student_model $student_model
+ * @property Customstudentfeemaster_model $Customstudentfeemaster_model
+ * @property Studentfeemaster_model $Studentfeemaster_model
+ * @property Customlib $customlib
+ * @property Notification_model $notification_model
+ * @property Studentfeemaster_model $studentfeemaster_model
+ * @property Studenttransportfee_model $studenttransportfee_model
+ * @property Studentsession_model $studentsession_model
+ * @property Role_model $role_model
+ * @property Expense_model $expense_model
+ * @property Studentfee_model $studentfee_model
+ * @property Income_model $income_model
+ * @property Admin_model $admin_model
+ * @property Book_model $book_model
+ * @property Bookissue_model $bookissue_model
+ * @property Stuattendence_model $stuattendence_model
+ * @property Staff_model $Staff_model
+ * @property Apply_leave_model $apply_leave_model
+ * @property Staff_model $staff_model
+ * @property Rbac $rbac
+ * @property Session_model $session_model
+ * @property Enc_lib $enc_lib
+ * @property M_pdf $m_pdf
+ * @property Filetype_model $filetype_model
+ * @property Class_model $class_model
+ * @property Customfield_model $customfield_model
+ * @property Module_lib $module_lib
+ * @property CI_DB_utility $dbutil
+ */
 class Admin extends Admin_Controller
 {
 
@@ -723,13 +766,31 @@ class Admin extends Admin_Controller
         }
         $dir    = "./backup/database_backup/";
         $result = array();
-        $cdir   = scandir($dir);
-        foreach ($cdir as $key => $value) {
-            if (!in_array($value, array(".", ".."))) {
-                if (is_dir($dir . DIRECTORY_SEPARATOR . $value)) {
-                    $result[$value] = dirToArray($dir . DIRECTORY_SEPARATOR . $value);
-                } else {
-                    $result[] = $value;
+        if (is_dir($dir)) {
+            $cdir = scandir($dir);
+            foreach ($cdir as $key => $value) {
+                if (!in_array($value, array(".", ".."))) {
+                    $fullPath = $dir . DIRECTORY_SEPARATOR . $value;
+                    if (is_dir($fullPath)) {
+                        // Recursively collect files under the subdirectory
+                        $files = array();
+                        try {
+                            $iterator = new RecursiveIteratorIterator(
+                                new RecursiveDirectoryIterator($fullPath, FilesystemIterator::SKIP_DOTS),
+                                RecursiveIteratorIterator::LEAVES_ONLY
+                            );
+                            foreach ($iterator as $fileinfo) {
+                                // store path relative to the subdirectory
+                                $files[] = substr($fileinfo->getPathname(), strlen($fullPath) + 1);
+                            }
+                        } catch (Exception $e) {
+                            // on error, keep files empty for this folder
+                            $files = array();
+                        }
+                        $result[$value] = $files;
+                    } else {
+                        $result[] = $value;
+                    }
                 }
             }
         }
@@ -805,8 +866,10 @@ class Admin extends Admin_Controller
         $html        = $this->load->view('reports/students_detail', $data, true);
         $pdfFilePath = "output_pdf_name.pdf";
         $this->load->library('m_pdf');
-        $this->m_pdf->pdf->WriteHTML($html);
-        $this->m_pdf->pdf->Output($pdfFilePath, "D");
+        /** @var stdClass $m_pdf */
+        $m_pdf = $this->m_pdf;
+        $m_pdf->pdf->WriteHTML($html);
+        $m_pdf->pdf->Output($pdfFilePath, "D");
     }
 
     public function downloadbackup($file)
@@ -928,6 +991,7 @@ class Admin extends Admin_Controller
             $allowedExts = array('sql');
             $temp        = explode(".", $_FILES["file"]["name"]);
             $extension   = end($temp);
+            $error       = '';
             if ($_FILES["file"]["error"] > 0) {
                 $error .= "Error opening the file<br />";
             }
