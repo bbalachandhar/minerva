@@ -602,6 +602,12 @@ class Admin extends Admin_Controller
             foreach ($students as $student) {
                 $student_session_id = $student['student_session_id'];
                 $fees_data = $this->Customstudentfeemaster_model->getTransStudentFees($student_session_id);
+                
+                // Handle null or empty fees_data
+                if (empty($fees_data)) {
+                    continue;
+                }
+                
                 $advance_balances = $this->Studentfeemaster_model->get_advance_balance($student_session_id);
                 $advance_paid = isset($advance_balances['paid_advance_balance']) ? $advance_balances['paid_advance_balance'] : 0;
                 $advance_discount = isset($advance_balances['discount_advance_balance']) ? $advance_balances['discount_advance_balance'] : 0;
@@ -615,7 +621,10 @@ class Admin extends Admin_Controller
 
                 $total_paid_sum = 0;
                 if ($fees_data) {
-                    $total_paid_sum = $fees_data->tuition_paid + $fees_data->other_paid + $fees_data->hostel_paid + $fees_data->transport_paid;
+                    $total_paid_sum = (isset($fees_data->tuition_paid) ? $fees_data->tuition_paid : 0) + 
+                                    (isset($fees_data->other_paid) ? $fees_data->other_paid : 0) + 
+                                    (isset($fees_data->hostel_paid) ? $fees_data->hostel_paid : 0) + 
+                                    (isset($fees_data->transport_paid) ? $fees_data->transport_paid : 0);
                 }
 
                 $previous_session_balance_data = $this->Customstudentfeemaster_model->getPreviousSessionBalance($student_session_id);

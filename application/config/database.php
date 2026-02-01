@@ -31,7 +31,7 @@ $mydb   = $db['default'];
 $mysqli = new mysqli($mydb['hostname'], $mydb["username"], $mydb["password"], $mydb["database"]);
 
 if ($mysqli->connect_errno) {
-    printf("connection failed: %s\n", $mysqli->connect_error());
+    printf("connection failed: %s\n", $mysqli->connect_error);
     exit();
 }
 

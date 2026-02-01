@@ -1093,84 +1093,91 @@ $(document).ready(function () {
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.5.0/Chart.min.js"></script>
 <script type="text/javascript">
  <?php if ($this->rbac->hasPrivilege('income_donut_graph', 'can_view') && ($this->module_lib->hasActive('income'))) {
+    // Prepare data safely using json_encode
+    $income_labels = array();
+    $income_colors = array();
+    $income_values = array();
+    $color_index = 1;
+    foreach ($incomegraph as $value) {
+        $income_labels[] = $value['income_category'];
+        $income_colors[] = incomegraphColors($color_index);
+        $income_values[] = $value['total'];
+        $color_index++;
+        if ($color_index == 8) $color_index = 1;
+    }
     ?>
-    new Chart(document.getElementById("doughnut-chart"), {
-    type: 'doughnut',
+    if (document.getElementById("doughnut-chart") && <?php echo json_encode(!empty($income_labels)); ?>) {
+        new Chart(document.getElementById("doughnut-chart"), {
+            type: 'doughnut',
             data: {
-            labels: [<?php foreach ($incomegraph as $value) {?>"<?php echo $value['income_category']; ?>", <?php }?> ],
-                    datasets: [
-                    {
+                labels: <?php echo json_encode($income_labels); ?>,
+                datasets: [{
                     label: "Income",
-                            backgroundColor: [<?php $s = 1;
-    foreach ($incomegraph as $value) {
-        ?>"<?php echo incomegraphColors($s++); ?>", <?php
-if ($s == 8) {
-            $s = 1;
-        }
-    }
-    ?> ],
-                            data: [<?php $s = 1;
-    foreach ($incomegraph as $value) {
-        ?><?php echo $value['total']; ?>, <?php }?>]
-                    }
-                    ]
+                    backgroundColor: <?php echo json_encode($income_colors); ?>,
+                    data: <?php echo json_encode($income_values); ?>
+                }]
             },
             options: {
-            responsive: true,
-                    circumference: Math.PI,
-                    rotation: - Math.PI,
-                    legend: {
-                    position: 'top',
-                    },
-                    title: {
-                    display: true,
-                    },
-                    animation: {
+                responsive: true,
+                circumference: Math.PI,
+                rotation: - Math.PI,
+                legend: {
+                    position: 'top'
+                },
+                title: {
+                    display: true
+                },
+                animation: {
                     animateScale: true,
-                            animateRotate: true
-                    }
+                    animateRotate: true
+                }
             }
-    });
+        });
+    }
    <?php
-}if (($this->rbac->hasPrivilege('expense_donut_graph', 'can_view')) && ($this->module_lib->hasActive('expense'))) {
-    ?>
-    new Chart(document.getElementById("doughnut-chart1"), {
-    type: 'doughnut',
-            data: {
-            labels: [<?php foreach ($expensegraph as $value) {?>"<?php echo $value['exp_category']; ?>", <?php }?>],
-                    datasets: [
-                    {
-                    label: "Population (millions)",
-                            backgroundColor: [<?php $ss = 1;
+}
+if (($this->rbac->hasPrivilege('expense_donut_graph', 'can_view')) && ($this->module_lib->hasActive('expense'))) {
+    // Prepare data safely using json_encode
+    $expense_labels = array();
+    $expense_colors = array();
+    $expense_values = array();
+    $color_index = 1;
     foreach ($expensegraph as $value) {
-        ?>"<?php echo expensegraphColors($ss++); ?>", <?php
-if ($ss == 8) {
-            $ss = 1;
-        }
+        $expense_labels[] = $value['exp_category'];
+        $expense_colors[] = expensegraphColors($color_index);
+        $expense_values[] = $value['total'];
+        $color_index++;
+        if ($color_index == 8) $color_index = 1;
     }
-    ?>],
-                            data: [<?php foreach ($expensegraph as $value) {?><?php echo $value['total']; ?>, <?php }?>]
-                    }
-                    ]
+    ?>
+    if (document.getElementById("doughnut-chart1") && <?php echo json_encode(!empty($expense_labels)); ?>) {
+        new Chart(document.getElementById("doughnut-chart1"), {
+            type: 'doughnut',
+            data: {
+                labels: <?php echo json_encode($expense_labels); ?>,
+                datasets: [{
+                    label: "Expenses",
+                    backgroundColor: <?php echo json_encode($expense_colors); ?>,
+                    data: <?php echo json_encode($expense_values); ?>
+                }]
             },
             options: {
-            responsive: true,
-                    circumference: Math.PI,
-                    rotation: - Math.PI,
-                    legend: {
-                    position: 'top',
-                    },
-                    title: {
-                    display: true,
-                    },
-                    animation: {
+                responsive: true,
+                circumference: Math.PI,
+                rotation: - Math.PI,
+                legend: {
+                    position: 'top'
+                },
+                title: {
+                    display: true
+                },
+                animation: {
                     animateScale: true,
-                            animateRotate: true
-                    }
+                    animateRotate: true
+                }
             }
-    });
-<?php
-}
+        });
+    }
 if (($this->module_lib->hasActive('fees_collection')) || ($this->module_lib->hasActive('expense')) || ($this->module_lib->hasActive('income'))) {
     ?>
         $(function () {
