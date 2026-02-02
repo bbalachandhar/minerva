@@ -601,6 +601,17 @@ class Onlinestudent_model extends MY_Model
         }
     }
 
+    public function get_admission_by_field($field, $value)
+    {
+        $this->db->select('id, reference_no');
+        $this->db->where($field, $value);
+        $query = $this->db->get('online_admissions');
+        if ($query->num_rows() > 0) {
+            return $query->row();
+        }
+        return null;
+    }
+
     public function count_submissions_by_email_and_year($email, $academic_year)
     {
         // Example: Academic year "2026-2027" means from 2026-08-01 to 2027-07-31

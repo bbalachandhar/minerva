@@ -1317,6 +1317,10 @@ class PublicAdmissionForm extends CI_Controller
         $this->form_validation->set_rules('aadhaar', 'Aadhaar Number', 'trim|required|min_length[12]|max_length[12]|xss_clean|callback_check_duplicate_aadhaar');
         $this->form_validation->set_rules('comm_addr', 'Address for Communication', 'trim|required|xss_clean');
         $this->form_validation->set_rules('perm_addr', 'Permanent Address', 'trim|required|xss_clean');
+        $this->form_validation->set_rules('state', 'State', 'trim|required|xss_clean');
+        $this->form_validation->set_rules('city', 'City', 'trim|required|xss_clean');
+        $this->form_validation->set_rules('state', 'State', 'trim|required|xss_clean');
+        $this->form_validation->set_rules('city', 'City', 'trim|required|xss_clean');
         $this->form_validation->set_rules('user_image', 'Photo', 'callback_image_handle_upload[user_image]');
 
         $courseLevel = $this->input->post('courseLevel');
@@ -1329,6 +1333,11 @@ class PublicAdmissionForm extends CI_Controller
             $this->form_validation->set_rules('total_maths', 'Total Maths Marks', 'trim|required|numeric|less_than_equal_to[100]|xss_clean');
             $this->form_validation->set_rules('physics_marks', 'Physics & Chemistry Marks', 'trim|required|numeric|less_than_equal_to[total_physics]|xss_clean');
             $this->form_validation->set_rules('total_physics', 'Total Physics & Chemistry Marks', 'trim|required|numeric|less_than_equal_to[100]|xss_clean');
+            $this->form_validation->set_rules('chemistry_marks', 'Chemistry Marks', 'trim|required|numeric|less_than_equal_to[total_chemistry]|xss_clean');
+            $this->form_validation->set_rules('total_chemistry', 'Total Chemistry Marks', 'trim|required|numeric|less_than_equal_to[100]|xss_clean');
+            $this->form_validation->set_rules('chemistry_perc', 'Chemistry Percentage', 'trim|numeric|xss_clean');
+            $this->form_validation->set_rules('average_marks', 'Average Marks', 'trim|numeric|xss_clean');
+            $this->form_validation->set_rules('cutoff_marks', 'Cut Off Marks', 'trim|numeric|xss_clean');
             if ($this->input->post('ug_course') == 1) { // B.Arch course ID
                 $this->form_validation->set_rules('nata_score', 'NATA Score', 'trim|required|xss_clean');
                 $this->form_validation->set_rules('application_number', 'NATA Application Form', 'trim|required|xss_clean');
@@ -1439,6 +1448,8 @@ class PublicAdmissionForm extends CI_Controller
                 'mother_occupation' => $data['mother_occupation'],
                 'current_address' => $data['comm_addr'],
                 'permanent_address' => $data['perm_addr'],
+                'state' => $data['state'],
+                'city' => $data['city'],
                 'adhar_no' => $data['aadhaar'],
                 'image' => $photo_name,
                 'form_status' => 0, // 0 for pending, 1 for submitted
@@ -1446,6 +1457,12 @@ class PublicAdmissionForm extends CI_Controller
             );
 
             $online_admission_id = $this->onlinestudent_model->add($insert_data_online_admission);
+
+            // Update enquiry status only when a valid enquiry_id is provided
+            $enquiry_id = trim((string)$this->input->post('enquiry_id'));
+            if ($enquiry_id !== '' && ctype_digit($enquiry_id)) {
+                $this->enquiry_model->enquiry_update($enquiry_id, array('status' => 'won'));
+            }
 
             // Save reference details
             if (!empty($data['referral_name'])) {
@@ -1468,6 +1485,11 @@ class PublicAdmissionForm extends CI_Controller
                     'total_maths' => $data['total_maths'],
                     'physics_marks' => $data['physics_marks'],
                     'total_physics' => $data['total_physics'],
+                    'chemistry_marks' => $data['chemistry_marks'],
+                    'total_chemistry' => $data['total_chemistry'],
+                    'chemistry_perc' => $data['chemistry_perc'],
+                    'average_marks' => $data['average_marks'],
+                    'cutoff_marks' => $data['cutoff_marks'],
                 );
                 $this->Online_admission_ug_details_model->add($insert_ug_data);
 
@@ -1548,7 +1570,7 @@ class PublicAdmissionForm extends CI_Controller
                 'guardian_phone' => $data['father_mobile']
             );
 
-            $payment_option = $this->input->post('payment_option');
+            $payment_option = trim((string)$this->input->post('payment_option'));
 
             // If payment is not required OR payment_option is 'pay_later'
             if ($this->sch_setting_detail->online_admission_payment != 'yes' || $this->sch_setting_detail->online_admission_amount <= 0 || $payment_option == 'pay_later') {
@@ -1633,8 +1655,10 @@ class PublicAdmissionForm extends CI_Controller
 
     public function check_duplicate_email($email)
     {
-        if ($this->onlinestudent_model->check_admissions_data_exists('email', $email)) {
-            $this->form_validation->set_message('check_duplicate_email', 'Email ID already exists.');
+        $existing = $this->onlinestudent_model->get_admission_by_field('email', $email);
+        if ($existing) {
+            $ref_no = !empty($existing->reference_no) ? ' (Ref No: ' . $existing->reference_no . ')' : '';
+            $this->form_validation->set_message('check_duplicate_email', 'Email ID already exists' . $ref_no . '.');
             return false;
         }
         return true;
@@ -1642,8 +1666,10 @@ class PublicAdmissionForm extends CI_Controller
 
     public function check_duplicate_mobile($mobile)
     {
-        if ($this->onlinestudent_model->check_admissions_data_exists('mobileno', $mobile)) {
-            $this->form_validation->set_message('check_duplicate_mobile', 'Mobile number already exists.');
+        $existing = $this->onlinestudent_model->get_admission_by_field('mobileno', $mobile);
+        if ($existing) {
+            $ref_no = !empty($existing->reference_no) ? ' (Ref No: ' . $existing->reference_no . ')' : '';
+            $this->form_validation->set_message('check_duplicate_mobile', 'Mobile number already exists' . $ref_no . '.');
             return false;
         }
         return true;
@@ -1651,8 +1677,10 @@ class PublicAdmissionForm extends CI_Controller
 
     public function check_duplicate_aadhaar($aadhaar)
     {
-        if ($this->onlinestudent_model->check_admissions_data_exists('adhar_no', $aadhaar)) {
-            $this->form_validation->set_message('check_duplicate_aadhaar', 'Aadhaar number already exists.');
+        $existing = $this->onlinestudent_model->get_admission_by_field('adhar_no', $aadhaar);
+        if ($existing) {
+            $ref_no = !empty($existing->reference_no) ? ' (Ref No: ' . $existing->reference_no . ')' : '';
+            $this->form_validation->set_message('check_duplicate_aadhaar', 'Aadhaar number already exists' . $ref_no . '.');
             return false;
         }
         return true;
@@ -1780,6 +1808,11 @@ class PublicAdmissionForm extends CI_Controller
             $this->form_validation->set_rules('total_maths', 'Total Maths Marks', 'trim|required|numeric|xss_clean');
             $this->form_validation->set_rules('physics_marks', 'Physics & Chemistry Marks', 'trim|required|numeric|xss_clean');
             $this->form_validation->set_rules('total_physics', 'Total Physics & Chemistry Marks', 'trim|required|numeric|xss_clean');
+            $this->form_validation->set_rules('chemistry_marks', 'Chemistry Marks', 'trim|required|numeric|less_than_equal_to[total_chemistry]|xss_clean');
+            $this->form_validation->set_rules('total_chemistry', 'Total Chemistry Marks', 'trim|required|numeric|less_than_equal_to[100]|xss_clean');
+            $this->form_validation->set_rules('chemistry_perc', 'Chemistry Percentage', 'trim|numeric|xss_clean');
+            $this->form_validation->set_rules('average_marks', 'Average Marks', 'trim|numeric|xss_clean');
+            $this->form_validation->set_rules('cutoff_marks', 'Cut Off Marks', 'trim|numeric|xss_clean');
             if ($this->input->post('ug_course') == 1) { // B.Arch course ID
                 $this->form_validation->set_rules('nata_score', 'NATA Score', 'trim|required|xss_clean');
                 $this->form_validation->set_rules('application_number', 'NATA Application Form', 'trim|required|xss_clean');
@@ -1846,6 +1879,8 @@ class PublicAdmissionForm extends CI_Controller
                 'mother_occupation' => $data['mother_occupation'],
                 'current_address' => $data['comm_addr'],
                 'permanent_address' => $data['perm_addr'],
+                'state' => $data['state'],
+                'city' => $data['city'],
                 'adhar_no' => $data['aadhaar'],
                 'image' => $photo_name,
                 'form_status' => 0, // 0 for pending, 1 for submitted
@@ -1854,16 +1889,10 @@ class PublicAdmissionForm extends CI_Controller
 
             $online_admission_id = $this->onlinestudent_model->add($insert_data_online_admission);
 
-            // Update enquiry status if enquiry_id is present
-            $enquiry_id = $this->input->post('enquiry_id');
-            log_message('error', 'Enquiry Update Debug: ajax_add_college_admission - enquiry_id received: ' . $enquiry_id);
-
-            if (!empty($enquiry_id)) {
-                log_message('error', 'Enquiry Update Debug: Entering enquiry_id update block for ID: ' . $enquiry_id);
-                $update_result = $this->enquiry_model->enquiry_update($enquiry_id, array('status' => 'won'));
-                log_message('error', 'Enquiry Update Debug: enquiry_model->enquiry_update() result for ID ' . $enquiry_id . ': ' . ($update_result ? 'Success' : 'Failure'));
-            } else {
-                log_message('error', 'Enquiry Update Debug: enquiry_id is empty, skipping update.');
+            // Update enquiry status only when a valid enquiry_id is provided
+            $enquiry_id = trim((string)$this->input->post('enquiry_id'));
+            if ($enquiry_id !== '' && ctype_digit($enquiry_id)) {
+                $this->enquiry_model->enquiry_update($enquiry_id, array('status' => 'won'));
             }
 
             if (!empty($data['referral_name'])) {
@@ -1884,6 +1913,10 @@ class PublicAdmissionForm extends CI_Controller
                     'passing_year_x' => $data['tenth_passing'],
                     'maths_marks' => $data['maths_marks'], 'total_maths' => $data['total_maths'],
                     'physics_marks' => $data['physics_marks'], 'total_physics' => $data['total_physics'],
+                    'chemistry_marks' => $data['chemistry_marks'], 'total_chemistry' => $data['total_chemistry'],
+                    'chemistry_perc' => $data['chemistry_perc'],
+                    'average_marks' => $data['average_marks'],
+                    'cutoff_marks' => $data['cutoff_marks'],
                 ]);
                 if ($data['ug_course'] == 1) { // B.Arch course ID
                     $this->Online_admission_nata_details_model->add([
