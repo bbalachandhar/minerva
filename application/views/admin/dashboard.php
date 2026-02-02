@@ -1252,33 +1252,51 @@ if ($this->rbac->hasPrivilege('fees_collection_and_expense_yearly_chart', 'can_v
         var days_collection = <?php echo json_encode($days_collection) ?>;
         var days_expense = <?php echo json_encode($days_expense) ?>;
         /* jshint ignore:start */
+        <?php
+        $datasets = array();
+        $income_active = $this->module_lib->hasActive('income');
+        $expense_active = $this->module_lib->hasActive('expense');
+        if($income_active){
+            $datasets[] = array(
+                'label' => 'Collection',
+                'fillColor' => 'rgba(102, 170, 24, 0.6)',
+                'strokeColor' => 'rgba(102, 170, 24, 0.6)',
+                'pointColor' => 'rgba(102, 170, 24, 0.6)',
+                'pointStrokeColor' => '#c1c7d1',
+                'pointHighlightFill' => '#fff',
+                'pointHighlightStroke' => 'rgba(220,220,220,1)',
+                'data' => 'days_collection'
+            );
+        }
+        if($expense_active){
+            $datasets[] = array(
+                'label' => 'Expense',
+                'fillColor' => 'rgba(233, 30, 99, 0.9)',
+                'strokeColor' => 'rgba(233, 30, 99, 0.9)',
+                'pointColor' => 'rgba(233, 30, 99, 0.9)',
+                'pointStrokeColor' => 'rgba(233, 30, 99, 0.9)',
+                'pointHighlightFill' => 'rgba(233, 30, 99, 0.9)',
+                'pointHighlightStroke' => 'rgba(60,141,188,1)',
+                'data' => 'days_expense'
+            );
+        }
+        ?>
         var areaChartData_classAttendence = {
         labels: current_month_days,
                 datasets: [
-				 <?php if(($this->module_lib->hasActive('income'))){?>												  
-                {
-                label: "Electronics",
-                        fillColor: "rgba(102, 170, 24, 0.6)",
-                        strokeColor: "rgba(102, 170, 24, 0.6)",
-                        pointColor: "rgba(102, 170, 24, 0.6)",
-                        pointStrokeColor: "#c1c7d1",
-                        pointHighlightFill: "#fff",
-                        pointHighlightStroke: "rgba(220,220,220,1)",
-                        data: days_collection
-                }<?php if(($this->module_lib->hasActive('expense'))){?>,<?php } ?>
+                <?php foreach($datasets as $index => $dataset){ ?>
+                    <?php if($index > 0) echo ','; ?>
+                    {
+                    label: "<?php echo $dataset['label']; ?>",
+                            fillColor: "<?php echo $dataset['fillColor']; ?>",
+                            strokeColor: "<?php echo $dataset['strokeColor']; ?>",
+                            pointColor: "<?php echo $dataset['pointColor']; ?>",
+                            pointStrokeColor: "<?php echo $dataset['pointStrokeColor']; ?>",
+                            pointHighlightFill: "<?php echo $dataset['pointHighlightFill']; ?>",
+                            pointHighlightStroke: "<?php echo $dataset['pointHighlightStroke']; ?>",
+                            data: <?php echo $dataset['data']; ?>
+                    }
                 <?php } ?>
-                <?php if(($this->module_lib->hasActive('expense'))){?>
-                {
-                label: "Digital Goods",
-                        fillColor: "rgba(233, 30, 99, 0.9)",
-                        strokeColor: "rgba(233, 30, 99, 0.9)",
-                        pointColor: "rgba(233, 30, 99, 0.9)",
-                        pointStrokeColor: "rgba(233, 30, 99, 0.9)",
-                        pointHighlightFill: "rgba(233, 30, 99, 0.9)",
-                        pointHighlightStroke: "rgba(60,141,188,1)",
-                        data: days_expense
-                }
-                <?php } ?> 
                 ]
         };
         /* jshint ignore:end */
@@ -1290,33 +1308,51 @@ if ($this->rbac->hasPrivilege('fees_collection_and_expense_yearly_chart', 'can_v
         var days_expense = <?php echo json_encode($days_expense) ?>;
 
         /* jshint ignore:start */
+        <?php
+        $datasets_bar = array();
+        $income_active = $this->module_lib->hasActive('income');
+        $expense_active = $this->module_lib->hasActive('expense');
+        if($income_active){
+            $datasets_bar[] = array(
+                'label' => 'Collection',
+                'fillColor' => 'rgba(102, 170, 24, 0.6)',
+                'strokeColor' => 'rgba(102, 170, 24, 0.6)',
+                'pointColor' => 'rgba(102, 170, 24, 0.6)',
+                'pointStrokeColor' => '#c1c7d1',
+                'pointHighlightFill' => '#fff',
+                'pointHighlightStroke' => 'rgba(220,220,220,1)',
+                'data' => 'days_collection'
+            );
+        }
+        if($expense_active){
+            $datasets_bar[] = array(
+                'label' => 'Expense',
+                'fillColor' => 'rgba(233, 30, 99, 0.9)',
+                'strokeColor' => 'rgba(233, 30, 99, 0.9)',
+                'pointColor' => 'rgba(233, 30, 99, 0.9)',
+                'pointStrokeColor' => 'rgba(233, 30, 99, 0.9)',
+                'pointHighlightFill' => 'rgba(233, 30, 99, 0.9)',
+                'pointHighlightStroke' => 'rgba(60,141,188,1)',
+                'data' => 'days_expense'
+            );
+        }
+        ?>
         var areaChartData_classAttendence = {
         labels: current_month_days,
                 datasets: [
-                <?php if(($this->module_lib->hasActive('income'))){?>											 
-                {
-                label: "Electronics",
-                        fillColor: "rgba(102, 170, 24, 0.6)",
-                        strokeColor: "rgba(102, 170, 24, 0.6)",
-                        pointColor: "rgba(102, 170, 24, 0.6)",
-                        pointStrokeColor: "#c1c7d1",
-                        pointHighlightFill: "#fff",
-                        pointHighlightStroke: "rgba(220,220,220,1)",
-                        data: days_collection
-                }<?php if(($this->module_lib->hasActive('expense'))){?>,<?php } ?>
+                <?php foreach($datasets_bar as $index => $dataset){ ?>
+                    <?php if($index > 0) echo ','; ?>
+                    {
+                    label: "<?php echo $dataset['label']; ?>",
+                            fillColor: "<?php echo $dataset['fillColor']; ?>",
+                            strokeColor: "<?php echo $dataset['strokeColor']; ?>",
+                            pointColor: "<?php echo $dataset['pointColor']; ?>",
+                            pointStrokeColor: "<?php echo $dataset['pointStrokeColor']; ?>",
+                            pointHighlightFill: "<?php echo $dataset['pointHighlightFill']; ?>",
+                            pointHighlightStroke: "<?php echo $dataset['pointHighlightStroke']; ?>",
+                            data: <?php echo $dataset['data']; ?>
+                    }
                 <?php } ?>
-                <?php if(($this->module_lib->hasActive('expense'))){ ?>
-                ,{
-                label: "Digital Goods",
-                        fillColor: "rgba(233, 30, 99, 0.9)",
-                        strokeColor: "rgba(233, 30, 99, 0.9)",
-                        pointColor: "rgba(233, 30, 99, 0.9)",
-                        pointStrokeColor: "rgba(233, 30, 99, 0.9)",
-                        pointHighlightFill: "rgba(233, 30, 99, 0.9)",
-                        pointHighlightStroke: "rgba(60,141,188,1)",
-                        data: days_expense
-                }
-				<?php } ?> 
                 ]
         };
         /* jshint ignore:end */
