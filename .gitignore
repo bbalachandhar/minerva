@@ -31,3 +31,8 @@ Thumbs.db
 /backend
 /.github
 uploads/
+index.php
+application/config/config.php
+application/config/database.php
+application/config/autoload.php
+application/config/production/
