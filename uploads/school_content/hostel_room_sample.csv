@@ -1,4 +1,0 @@
-hostel_id,room_type_id,room_no,no_of_bed,cost_per_bed,description
-1,1,A101,2,1000,First floor room
-1,2,A102,3,1500,First floor room with attached bathroom
-2,1,B201,2,1200,Second floor room

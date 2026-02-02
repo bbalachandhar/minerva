@@ -1,6 +1,0 @@
-name,code,type,teacher_ids,department_name
-Mathematics,MATH101,Theory,1,Science
-Physics,PHY201,Practical,2,Science
-Chemistry,CHEM301,Theory,,Science
-English,ENG101,Theory,1,Humanities
-Computer Science,CS101,Theory,1,2,Computer Science
