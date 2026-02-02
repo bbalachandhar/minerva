@@ -193,7 +193,9 @@
                 </div>
             </div>
             <form action="<?php echo site_url('publicadmissionform/add_college_admission'); ?>" method="POST" enctype="multipart/form-data" id="admission_form">
-                <input type="hidden" name="enquiry_id" value="<?php echo isset($enquiry_id) ? htmlspecialchars($enquiry_id) : ''; ?>">
+                <?php if (!empty($enquiry_id)) { ?>
+                    <input type="hidden" name="enquiry_id" value="<?php echo htmlspecialchars($enquiry_id); ?>">
+                <?php } ?>
                 <div class="section-card">
                     <h5 class="text-center mb-4">APPLICATION FORM FOR ADMISSION</h5>
                     <div class="d-flex justify-content-center mb-4">
@@ -247,7 +249,7 @@
                     </div>
                     <div class="row">
                         <div class="mb-3 col-md-6">
-                            <label class="form-label">Father's Mobile Number*</label>
+                            <label class="form-label">Father's/Guardian's Mobile Number*</label>
                             <input type="text" class="form-control" minlength="10" maxlength="10" placeholder="Enter your Father's Mobile Number"  onchange="validateMobile(this)" name="father_mobile" id="father_mobile"  onKeyPress="return checkIt(event);" required tabindex="7">
                         </div>
                         <div class="mb-3 col-md-6">
@@ -257,11 +259,11 @@
                     </div>
                     <div class="row">
                         <div class="mb-3 col-md-6">
-                            <label class="form-label">Mother's Name</label>
+                            <label class="form-label">Mother's Name*</label>
                             <input type="text" class="form-control" onkeydown="return allowAlphabets(event)" placeholder="Enter your Mother's Name" name="mother_name" id="mother_name" required tabindex="9">
                         </div>
                         <div class="mb-3 col-md-6">
-                            <label class="form-label">Mother's Mobile Number*</label>
+                            <label class="form-label">Mother's/Guardian's Mobile Number*</label>
                             <input type="text" class="form-control" placeholder="Enter your Mother's Mobile Number" name="mother_mobile" id="mother_mobile"  onchange="validateMobile(this)" required minlength="10" maxlength="10" onKeyPress="return checkIt(event);" tabindex="10">
                         </div>
                     </div>
@@ -284,7 +286,7 @@
                     </div>
                     <div class="row">
                         <div class="mb-3 col-md-6">
-                            <label class="form-label">Email ID*</label>
+                            <label class="form-label">Student's Email ID*</label>
                             <input type="email" class="form-control" placeholder="Enter your Email"  id="student_email" name="student_email" required tabindex="13" value="<?php echo isset($email) ? htmlspecialchars($email) : ''; ?>">
                             <span id="email_error" class="text-danger"></span>
                         </div>
@@ -296,12 +298,12 @@
                     </div>
                     <div class="row">
                         <div class="mb-3 col-md-6">
-                            <label class="form-label">D.O.B*</label>
+                            <label class="form-label">Student's D.O.B*</label>
                             <input type="date" class="form-control" placeholder="Enter your D.O.B"  id="dob" name="dob" required tabindex="15">
                             <span id="dob_error" class="text-danger"></span>
                         </div>
                         <div class="mb-3 col-md-6">
-                            <label class="form-label">Aadhaar Number*</label>
+                            <label class="form-label">Student's Mob Number*</label>
                             <input type="text" step="any" class="form-control" placeholder="Enter your Aadhar Number" id="aadhaar" name="aadhaar" required minlength="12" maxlength="12" onKeyPress="return checkIt(event);" tabindex="16">
                             <span id="aadhaar_error" class="text-danger"></span>
                         </div>
@@ -315,8 +317,37 @@
                         </div>
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label class="form-label">Permanent Address*</label>
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <label class="form-label mb-0">Permanent Address*</label>
+                                    <div class="form-check">
+                                        <input type="checkbox" class="form-check-input" id="same_as_comm" name="same_as_comm">
+                                        <label class="form-check-label" for="same_as_comm">
+                                            Same as Communication Address
+                                        </label>
+                                    </div>
+                                </div>
                                 <textarea class="form-control" placeholder="Enter your Permanent Address" name="perm_addr" id="perm_addr" required tabindex="18"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="section-card">
+                    <h5 class="mb-3">STATE AND CITY*</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">State*</label>
+                                <select class="form-control" id="state" name="state" required tabindex="19">
+                                    <option value="">Select State</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">City*</label>
+                                <select class="form-control" id="city" name="city" required tabindex="20">
+                                    <option value="">Select City</option>
+                                </select>
                             </div>
                         </div>
                     </div>
@@ -363,13 +394,19 @@
                                                                                                 <option value="12">B.E. Cybersecurity and Bachelor of Design (B.Des)</option>
                                                         </select>                        </div>
                         <div class="section-card">
-                            <div class="mb-3">
-                                <label class="form-label">Name of the school of X std*</label>
-                                <input type="text" class="form-control" placeholder="Enter your year"  name="school_name" id="school_name" onkeydown="return allowAlphabets(event)" tabindex="23">
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Year of passing of X std*</label>
-                                <input  type="text" class="form-control" placeholder="Enter your year" name="tenth_passing" id="tenth_passing" minlength="4" maxlength="4" onKeyPress="return checkIt(event);" tabindex="24">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Name of the school of X std*</label>
+                                        <input type="text" class="form-control" placeholder="Enter your year"  name="school_name" id="school_name" onkeydown="return allowAlphabets(event)" tabindex="23">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Year of passing of X std*</label>
+                                        <input  type="text" class="form-control" placeholder="Enter your year" name="tenth_passing" id="tenth_passing" minlength="4" maxlength="4" onKeyPress="return checkIt(event);" tabindex="24">
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         <div class="section-card">
@@ -387,21 +424,29 @@
                                     <tbody>
                                         <tr>
                                             <td>Maths (M)</td>
-                                            <td><input type="number" step="1" min="0" max="100" value="0" class="form-control text-center" name="total_maths" id="total_maths" onKeyPress="return checkIt(event);" tabindex="25"></td>
-                                            <td><input type="number" step="1" min="0" max="100" value="0" class="form-control text-center" name="maths_marks" id="maths_marks" onKeyPress="return checkIt(event);" tabindex="26"></td>
+                                            <td><input type="number" step="1" min="0" max="100" value="0" class="form-control text-center" name="total_maths" id="total_maths" onKeyPress="return checkIt(event);" onfocus="if(this.value=='0') this.value='';" onblur="if(this.value=='') this.value='0';" tabindex="25"></td>
+                                            <td><input type="number" step="1" min="0" max="100" value="0" class="form-control text-center" name="maths_marks" id="maths_marks" onKeyPress="return checkIt(event);" onfocus="if(this.value=='0') this.value='';" onblur="if(this.value=='') this.value='0';" tabindex="26"></td>
                                             <td><input type="number" step="1" min="0" max="100" value="0" class="form-control text-center" name="maths_perc" id="maths_perc" readonly tabindex="-1"></td>
                                         </tr>
                                         <tr>
-                                            <td>Physics (P) & Chemistry (C) put together</td>
-                                            <td><input type="number" step="1" min="0" max="100" value="0" class="form-control text-center" name="total_physics" id="total_physics" onKeyPress="return checkIt(event);" tabindex="27"></td>
-                                            <td><input type="number" step="1" min="0" max="100" value="0" class="form-control text-center" name="physics_marks" id="physics_marks" onKeyPress="return checkIt(event);" tabindex="28"></td>
+                                            <td>Physics (P)</td>
+                                            <td><input type="number" step="1" min="0" max="100" value="0" class="form-control text-center" name="total_physics" id="total_physics" onKeyPress="return checkIt(event);" onfocus="if(this.value=='0') this.value='';" onblur="if(this.value=='') this.value='0';" tabindex="27"></td>
+                                            <td><input type="number" step="1" min="0" max="100" value="0" class="form-control text-center" name="physics_marks" id="physics_marks" onKeyPress="return checkIt(event);" onfocus="if(this.value=='0') this.value='';" onblur="if(this.value=='') this.value='0';" tabindex="28"></td>
                                             <td><input type="number" step="1" min="0" max="100" value="0" class="form-control text-center" name="physics_perc" id="physics_perc" readonly tabindex="-1"></td>
                                         </tr>
                                         <tr>
-                                            <td>Total</td>
-                                            <td><input type="number" step="1" min="0" max="100" value="0" class="form-control text-center" name="total_marks" id="total_marks" readonly tabindex="-1"></td>
-                                            <td><input type="number" step="1" min="0" max="100" value="0" class="form-control text-center" name="obtain_marks" id="obtain_marks" readonly tabindex="-1"></td>
-                                            <td><input type="number" step="1" min="0" max="100" value="0" class="form-control text-center" name="total_perc" id="total_perc" readonly tabindex="-1"></td>
+                                            <td>Chemistry (C)</td>
+                                            <td><input type="number" step="1" min="0" max="100" value="0" class="form-control text-center" name="total_chemistry" id="total_chemistry" onKeyPress="return checkIt(event);" onfocus="if(this.value=='0') this.value='';" onblur="if(this.value=='') this.value='0';" tabindex="29"></td>
+                                            <td><input type="number" step="1" min="0" max="100" value="0" class="form-control text-center" name="chemistry_marks" id="chemistry_marks" onKeyPress="return checkIt(event);" onfocus="if(this.value=='0') this.value='';" onblur="if(this.value=='') this.value='0';" tabindex="30"></td>
+                                            <td><input type="number" step="1" min="0" max="100" value="0" class="form-control text-center" name="chemistry_perc" id="chemistry_perc" readonly tabindex="-1"></td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Average: (P+C+M)/3</strong></td>
+                                            <td colspan="3"><input type="number" step="0.01" min="0" max="100" value="0" class="form-control text-center" name="average_marks" id="average_marks" readonly tabindex="-1"></td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Cut Off: (P+C)/2 + M</strong></td>
+                                            <td colspan="3"><input type="number" step="0.01" min="0" max="200" value="0" class="form-control text-center" name="cutoff_marks" id="cutoff_marks" readonly tabindex="-1"></td>
                                         </tr>
                                     </tbody>
                                 </table>
@@ -427,13 +472,19 @@
                                                             </select>
                         </div>
                         <div class="section-card">
-                            <div class="mb-3">
-                                <label class="form-label">Name of the school of X std*</label>
-                                <input type="text" class="form-control" placeholder="Enter your year"  name="lateral_school_name" id="lateral_school_name" onkeydown="return allowAlphabets(event)" tabindex="30">
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Year of passing of X std*</label>
-                                <input  type="text" class="form-control" placeholder="Enter your year" name="lateral_tenth_passing" id="lateral_tenth_passing" minlength="4" maxlength="4" onKeyPress="return checkIt(event);" tabindex="31">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Name of the school of X std*</label>
+                                        <input type="text" class="form-control" placeholder="Enter your year"  name="lateral_school_name" id="lateral_school_name" onkeydown="return allowAlphabets(event)" tabindex="30">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Year of passing of X std*</label>
+                                        <input  type="text" class="form-control" placeholder="Enter your year" name="lateral_tenth_passing" id="lateral_tenth_passing" minlength="4" maxlength="4" onKeyPress="return checkIt(event);" tabindex="31">
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         <div class="section-card mt-4">
@@ -531,7 +582,7 @@
                     
                     <div id="nata_sec" style="display:none">
                         <div class="section-card">
-                            <h5 class="mb-2">NATA (for B.Arch only)</h5>
+                            <h5 class="mb-2">NATA/JEE2 (for B.Arch only)</h5>
                             <div class="mb-3">
                                 <label class="form-label">Score</label>
                                 <input class="form-control" placeholder="Enter Score" name="nata_score" id="nata_score" tabindex="68">
@@ -660,6 +711,26 @@
                     <p>How would you like to proceed with the application fee?</p>
                     <button type="button" class="btn btn-primary btn-lg mt-3" id="payOnlineBtn">Pay Fee Online</button>
                     <button type="button" class="btn btn-secondary btn-lg mt-3" id="payLaterBtn">Pay Later</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Error Modal -->
+    <div class="modal fade" id="errorModal" tabindex="-1" aria-labelledby="errorModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title" id="errorModalLabel">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>Your application has been submitted, please contact Admission team!
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="errorModalContent"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                 </div>
             </div>
         </div>
@@ -985,20 +1056,28 @@
             return marks; 
         }
         function calculateTotal() {
-            let mathsMarks   = calculatePercentage("#maths_marks", "#total_maths", "#maths_perc");
-            let physicsMarks = calculatePercentage("#physics_marks", "#total_physics", "#physics_perc");
-            let totalMarksObtained = mathsMarks + physicsMarks;
-            let totalMarks = parseFloat($("#total_maths").val() || 0) + parseFloat($("#total_physics").val() || 0);
-            $("#obtain_marks").val(totalMarksObtained);
-            $("#total_marks").val(totalMarks);
-            if (totalMarks > 0) {
-                let totalPercentage = (totalMarksObtained / totalMarks) * 100;
-                $("#total_perc").val(totalPercentage.toFixed(2));
-            } else {
-                $("#total_perc").val("0.00");
-            }
+            let mathsMarks     = calculatePercentage("#maths_marks", "#total_maths", "#maths_perc");
+            let physicsMarks   = calculatePercentage("#physics_marks", "#total_physics", "#physics_perc");
+            let chemistryMarks = calculatePercentage("#chemistry_marks", "#total_chemistry", "#chemistry_perc");
+            
+            // Calculate Cut Off: (P+C)/2 + M
+            // And Average: (P+C+M)/3
+            setTimeout(function() {
+                let mathsPerc = parseFloat($("#maths_perc").val() || 0);
+                let physicsPerc = parseFloat($("#physics_perc").val() || 0);
+                let chemistryPerc = parseFloat($("#chemistry_perc").val() || 0);
+                
+                // Cut Off = (P+C)/2 + M
+                let PCAvg = (physicsPerc + chemistryPerc) / 2;
+                let cutoff = PCAvg + mathsPerc;
+                $("#cutoff_marks").val(cutoff.toFixed(2));
+                
+                // Average = (P+C+M)/3
+                let average = (physicsPerc + chemistryPerc + mathsPerc) / 3;
+                $("#average_marks").val(average.toFixed(2));
+            }, 10);
         }
-        $("#maths_marks, #total_maths, #physics_marks, #total_physics").on("input", function() {
+        $("#maths_marks, #total_maths, #physics_marks, #total_physics, #chemistry_marks, #total_chemistry").on("input", function() {
             calculateTotal();
         });
     });
@@ -1128,7 +1207,20 @@ $(document).ready(function() {
         }
 
         console.log('Client-side validation passed. Showing payment modal.');
-        var paymentOptionModal = new bootstrap.Modal(document.getElementById('paymentOptionModal'));
+        
+        // Clean up any existing modal instance first
+        const modalEl = document.getElementById('paymentOptionModal');
+        const existingModal = bootstrap.Modal.getInstance(modalEl);
+        if (existingModal) {
+            existingModal.dispose();
+        }
+        
+        // Remove any backdrops
+        $('.modal-backdrop').remove();
+        $('body').removeClass('modal-open').css('overflow', '').css('padding-right', '');
+        
+        // Create fresh modal instance
+        const paymentOptionModal = new bootstrap.Modal(modalEl, { backdrop: 'static', keyboard: false });
         paymentOptionModal.show();
     });
 
@@ -1137,9 +1229,16 @@ $(document).ready(function() {
         console.log('Submitting form with payment option:', paymentOption);
         $('#payment_option').val(paymentOption);
         
-        var paymentOptionModal = bootstrap.Modal.getInstance(document.getElementById('paymentOptionModal'));
-        paymentOptionModal.hide();
-
+        // Close the modal first
+        const modalEl = document.getElementById('paymentOptionModal');
+        const modal = bootstrap.Modal.getInstance(modalEl);
+        if (modal) {
+            modal.hide();
+        }
+        
+        $('.modal-backdrop').remove();
+        $('body').removeClass('modal-open').css('overflow', '').css('padding-right', '');
+        
         var formData = new FormData(document.getElementById('admission_form'));
         const submitBtn = $('#submit_application_btn');
         submitBtn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Submitting...');
@@ -1154,30 +1253,86 @@ $(document).ready(function() {
             contentType: false,
             processData: false,
             success: function(response) {
+                console.log('AJAX Response:', response);
                 if (response.status === 'success') {
-                    console.log('AJAX success:', response);
+                    console.log('Success, redirecting to:', response.redirect_url);
                     window.location.href = response.redirect_url;
                 } else if (response.status === 'fail') {
                     console.log('Validation errors:', response.error);
                     displayErrors(response.error);
-                    // Removed the generic alert here to allow specific field errors to be prominent
+                    
+                    // Show errors in modal
+                    let errorHtml = '<ul class="list-unstyled mb-0">';
+                    $.each(response.error, function(field, message) {
+                        errorHtml += '<li class="mb-2"><i class="bi bi-x-circle-fill text-danger me-2"></i>' + message + '</li>';
+                    });
+                    errorHtml += '</ul>';
+                    $('#errorModalContent').html(errorHtml);
+                    
+                    const errorModal = new bootstrap.Modal(document.getElementById('errorModal'));
+                    errorModal.show();
+                    
+                    submitBtn.prop('disabled', false).text('Submit Application');
                 } else {
-                    alert('An unknown error occurred. Please try again.');
+                    console.error('Unknown response:', response);
+                    $('#errorModalContent').html('<p><i class="bi bi-x-circle-fill text-danger me-2"></i>An unknown error occurred. Please try again.</p>');
+                    const errorModal = new bootstrap.Modal(document.getElementById('errorModal'));
+                    errorModal.show();
+                    submitBtn.prop('disabled', false).text('Submit Application');
                 }
             },
             error: function(jqXHR, textStatus, errorThrown) {
-                console.error('AJAX Error:', textStatus, errorThrown, jqXHR.responseText);
-                alert('A server error occurred. Please check the developer console for more details and try again.');
-            },
-            complete: function() {
+                console.error('AJAX Error:', textStatus, errorThrown);
+                console.error('Response Text:', jqXHR.responseText);
+                $('#errorModalContent').html('<p><i class="bi bi-exclamation-triangle-fill text-danger me-2"></i>A server error occurred. Please try again later.</p>');
+                const errorModal = new bootstrap.Modal(document.getElementById('errorModal'));
+                errorModal.show();
                 submitBtn.prop('disabled', false).text('Submit Application');
             }
         });
     }
 
     // Handlers for modal buttons
-    $('#payOnlineBtn').on('click', function() { submitForm('pay_online'); });
-    $('#payLaterBtn').on('click', function() { submitForm('pay_later'); });
+    $(document).on('click', '#payOnlineBtn', function() { 
+        console.log('Pay Online button clicked - event delegated');
+        submitForm('pay_online'); 
+    });
+    $(document).on('click', '#payLaterBtn', function() { 
+        console.log('Pay Later button clicked - event delegated');
+        submitForm('pay_later'); 
+    });
+
+    // Reset state when navigating back to this page (bfcache)
+    window.addEventListener('pageshow', function(event) {
+        console.log('pageshow event fired, persisted:', event.persisted);
+        
+        if (event.persisted) {
+            // Page was restored from bfcache (back button was used)
+            console.log('Resetting form state after back button navigation');
+            
+            // Re-enable submit button and reset text
+            $('#submit_application_btn').prop('disabled', false).text('Submit Application');
+            
+            // Clear payment option
+            $('#payment_option').val('');
+            
+            // Destroy any existing modal instance and remove backdrops
+            const modalEl = document.getElementById('paymentOptionModal');
+            if (modalEl) {
+                const modalInstance = bootstrap.Modal.getInstance(modalEl);
+                if (modalInstance) {
+                    modalInstance.dispose(); // Completely destroy the modal instance
+                }
+            }
+            
+            // Force remove any modal artifacts
+            $('.modal-backdrop').remove();
+            $('body').removeClass('modal-open').css('overflow', '').css('padding-right', '');
+            
+            // Clear any error messages
+            clearErrors();
+        }
+    });
     
     // --- Existing client-side validation handlers for instant feedback ---
     $('#student_email').on('change', function() {
@@ -1226,6 +1381,79 @@ $(document).ready(function() {
         if (dob > minAgeDate) {
             $('#dob_error').text('Applicant must be at least 17 years old.');
             $(this).val('');
+        }
+    });
+
+    // Load India states and cities
+    let statesData = {};
+    
+    $.ajax({
+        url: '<?php echo base_url("backend/json-files/india_states_cities.json"); ?>',
+        type: 'GET',
+        dataType: 'json',
+        success: function(data) {
+            const stateSelect = document.getElementById('state');
+            
+            // Sort states alphabetically
+            data.states.sort((a, b) => a.name.localeCompare(b.name));
+            
+            data.states.forEach(function(state) {
+                // Sort cities alphabetically
+                state.cities.sort((a, b) => a.localeCompare(b));
+                statesData[state.name] = state.cities;
+                
+                const option = document.createElement('option');
+                option.value = state.name;
+                option.textContent = state.name;
+                stateSelect.appendChild(option);
+            });
+        }
+    });
+
+    // Populate cities when state is selected
+    document.getElementById('state').addEventListener('change', function() {
+        const selectedState = this.value;
+        const citySelect = document.getElementById('city');
+        citySelect.innerHTML = '<option value="">Select City</option>';
+        
+        if (statesData[selectedState]) {
+            statesData[selectedState].forEach(function(city) {
+                const option = document.createElement('option');
+                option.value = city;
+                option.textContent = city;
+                citySelect.appendChild(option);
+            });
+        }
+    });
+
+    function copyCommunicationToPermanent() {
+        var checkbox = document.getElementById('same_as_comm');
+        var commAddr = document.getElementById('comm_addr');
+        var permAddr = document.getElementById('perm_addr');
+        
+        console.log('Checkbox checked:', checkbox.checked);
+        console.log('Comm Address:', commAddr.value);
+        
+        if (checkbox.checked) {
+            permAddr.value = commAddr.value;
+            permAddr.style.backgroundColor = '#f0f8ff';
+            console.log('Copied to Permanent Address:', permAddr.value);
+        } else {
+            permAddr.value = '';
+            permAddr.style.backgroundColor = '';
+        }
+    }
+
+    // Listen for changes on checkbox
+    document.getElementById('same_as_comm').addEventListener('change', function() {
+        copyCommunicationToPermanent();
+    });
+
+    // Listen for changes on communication address if checkbox is checked
+    document.getElementById('comm_addr').addEventListener('input', function() {
+        var checkbox = document.getElementById('same_as_comm');
+        if (checkbox.checked) {
+            document.getElementById('perm_addr').value = this.value;
         }
     });
 });

@@ -69,12 +69,29 @@
             <p><strong><?php echo $this->lang->line('total_amount_to_pay'); ?>: <?php echo $total_amount_to_pay_currency; ?></strong></p>
         </div>
 
-        <form action="<?php echo site_url('publicadmissionform/initiate_gateway_payment'); ?>" method="POST">
+        <form action="<?php echo site_url('publicadmissionform/initiate_gateway_payment'); ?>" method="POST" id="paymentForm">
             <input type="hidden" name="online_admission_id" value="<?php echo $online_admission_id; ?>">
-            <button type="submit" class="btn btn-proceed"><?php echo $this->lang->line('proceed_to_payment'); ?></button>
+            <button type="submit" class="btn btn-proceed" id="proceedBtn"><?php echo $this->lang->line('proceed_to_payment'); ?></button>
             <a href="<?php echo site_url('publicadmissionform'); ?>" class="btn btn-cancel"><?php echo $this->lang->line('cancel_application'); ?></a>
         </form>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Prevent multiple submissions
+        document.getElementById('paymentForm').addEventListener('submit', function(e) {
+            const btn = document.getElementById('proceedBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Processing...';
+        });
+        
+        // Reset on page show (back button navigation)
+        window.addEventListener('pageshow', function(event) {
+            if (event.persisted) {
+                const btn = document.getElementById('proceedBtn');
+                btn.disabled = false;
+                btn.textContent = '<?php echo $this->lang->line('proceed_to_payment'); ?>';
+            }
+        });
+    </script>
 </body>
 </html>
