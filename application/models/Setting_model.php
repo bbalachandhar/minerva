@@ -100,9 +100,24 @@ class Setting_model extends MY_Model {
         $this->db->from('sch_settings');
         $this->db->join('sessions', 'sessions.id = sch_settings.session_id');
         $this->db->join('languages', 'languages.id = sch_settings.lang_id');
-                $this->db->join('currencies', 'currencies.id = sch_settings.currency');
+        $this->db->join('currencies', 'currencies.id = sch_settings.currency');
         $this->db->order_by('sch_settings.id');
         $query = $this->db->get();    
+        
+        // Handle query failure
+        if ($query === FALSE) {
+            $error = $this->db->error();
+            log_message('error', 'getSetting query failed - Error Code: ' . $error['code'] . ', Message: ' . $error['message']);
+            log_message('error', 'Query: ' . $this->db->last_query());
+            
+            // Return minimal settings to prevent fatal error
+            $result = new stdClass();
+            $result->id = 1;
+            $result->name = 'School';
+            $result->session_id = 1;
+            $result->currency_symbol = '₹';
+            return $result;
+        }
         
         $result = $query->row();
 

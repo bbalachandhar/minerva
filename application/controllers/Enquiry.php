@@ -60,6 +60,8 @@ class Enquiry extends CI_Controller
             $this->load->view('enquiry/enquiry_template', $data);
         } else {
             // Save the enquiry
+            // Generate unique reference number
+            $reference_no = 'ENQ-' . date('YmdHis') . rand(100,999);
             $enquiry = array(
                 'name'           => $this->input->post('name'),
                 'contact'        => $this->input->post('contact'),
@@ -73,33 +75,37 @@ class Enquiry extends CI_Controller
                 'email'          => $this->input->post('email'),
                 'class_id'       => $this->input->post('class'),
                 'created_by'     => 1,
-                'status'         => 'active'
+                'status'         => 'active',
+                'ref_no'         => $reference_no
             );
             $this->enquiry_model->add($enquiry);
-            
+
             // Send email notification
             $sender_details = array(
-                'name'           => $enquiry['name'], // Changed from 'firstname' to 'name'
-                'lastname'       => 'Enquiry', // Using a generic placeholder for lastname
+                'name'           => $enquiry['name'],
+                'lastname'       => 'Enquiry',
                 'email'          => $enquiry['email'],
                 'date'           => $enquiry['date'],
-                'reference_no'   => 'ENQ-' . time(), // Added for reference number
+                'reference_no'   => $reference_no,
                 'contact'        => $enquiry['contact'],
                 'source'         => $enquiry['source'],
                 'class'          => $enquiry['class_id'],
                 'reference'      => $enquiry['reference'],
-                'reference_name' => $enquiry['reference_name'],
-                'reference_contact' => $enquiry['reference_contact']
+                'reference_name' => isset($enquiry['reference_name']) ? $enquiry['reference_name'] : '',
+                'reference_contact' => isset($enquiry['reference_contact']) ? $enquiry['reference_contact'] : ''
             );
             $this->mailsmsconf->mailsms('enquiry_form_submission', $sender_details);
 
-            $this->session->set_flashdata('success_message', 'Your enquiry has been submitted successfully. We will get back to you shortly.');
+            $this->session->set_flashdata('success_message', 'Your enquiry has been submitted successfully. We will get back to you shortly.<br><strong>Your Reference Number: ' . $reference_no . '</strong>');
             redirect('enquiry/success');
         }
     }
 
     public function success()
     {
+        // Get website URL from sch_settings
+        $setting = $this->setting_model->getSetting();
+        $data['website_url'] = isset($setting->website) ? $setting->website : base_url();
         $data['main_content'] = 'enquiry/success';
         $this->load->view('enquiry/enquiry_template', $data);
     }

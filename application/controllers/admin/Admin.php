@@ -248,10 +248,7 @@ class Admin extends Admin_Controller
         }
 
         $data['days_expense']        = $days_expense;
-        
-        // DEBUG: Log the arrays to check if they're empty
-        file_put_contents('/tmp/dashboard_debug.log', 'Days Collection Count: ' . count($days_collection) . ', Days Expense Count: ' . count($days_expense) . ', Data: ' . json_encode(array('days_collection' => array_slice($days_collection, 0, 5), 'days_expense' => array_slice($days_expense, 0, 5))) . PHP_EOL, FILE_APPEND);
-        
+
         $student_fee_history         = $this->studentfee_model->getTodayStudentFees();
         $data['student_fee_history'] = $student_fee_history;
 
