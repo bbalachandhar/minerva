@@ -244,6 +244,18 @@ class Admin extends Admin_Controller
         }
 
         $data['days_expense']        = $days_expense;
+        
+        // CRITICAL DEBUGGING - Check data arrays
+        error_log('=== DASHBOARD DATA DEBUG ===');
+        error_log('Month Days Count: ' . count($month_days));
+        error_log('Days Collection Count: ' . count($days_collection));
+        error_log('Days Expense Count: ' . count($days_expense));
+        error_log('Days Collection Sample: ' . json_encode(array_slice($days_collection, 0, 3)));
+        error_log('Days Expense Sample: ' . json_encode(array_slice($days_expense, 0, 3)));
+        error_log('Yearly Collection Count: ' . count($s));
+        error_log('Yearly Expense Count: ' . count($ex));
+        error_log('=========================');
+        
         $student_fee_history         = $this->studentfee_model->getTodayStudentFees();
         $data['student_fee_history'] = $student_fee_history;
 
