@@ -30,6 +30,11 @@ if ($this->rbac->hasPrivilege('income', 'can_add')) {
                                     <?php echo $this->session->flashdata('msg');
         $this->session->unset_userdata('msg'); ?>
                                 <?php }?>
+                                <?php if ($this->session->flashdata('error')) {
+        ?>
+                                    <?php echo "<div class='alert alert-danger text-left'>" . $this->session->flashdata('error') . "</div>";
+        $this->session->unset_userdata('error'); ?>
+                                <?php }?>
                                 <?php
 if (isset($error_message)) {
         echo "<div class='alert alert-danger'>" . $error_message . "</div>";

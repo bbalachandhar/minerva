@@ -192,8 +192,8 @@ class Expense_model extends MY_Model
     public function getExpenseHeadData($start_date, $end_date)
     {
         $condition = "date_format(date,'%Y-%m-%d') between '" . $start_date . "' and '" . $end_date . "'";
-        $recorddata = $this->db->select('sum(amount) as total,exp_category')->from('expenses');
-        $this->db->join('expense_head', 'expenses.exp_head_id = expense_head.id');
+        $recorddata = $this->db->select("sum(amount) as total, COALESCE(exp_category, 'Other') as exp_category")->from('expenses');
+        $this->db->join('expense_head', 'expenses.exp_head_id = expense_head.id', 'left');
         $this->db->where($condition)->group_by('expense_head.id');
         $r = $this->db->get()->result_array();
         return $r;

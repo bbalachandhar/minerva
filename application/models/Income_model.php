@@ -67,8 +67,8 @@ class Income_model extends My_Model
     {
         $condition = "date_format(date,'%Y-%m-%d') between '" . $start_date . "' and '" . $end_date . "'";
 
-        $this->db->select('sum(amount) as total,income_category')->from('income');
-        $this->db->join('income_head', 'income.income_head_id = income_head.id');
+        $this->db->select("sum(amount) as total, COALESCE(income_category, 'Other') as income_category")->from('income');
+        $this->db->join('income_head', 'income.income_head_id = income_head.id', 'left');
         $this->db->where($condition)->group_by('income_head.id');
         $r = $this->db->get()->result_array();
         return $r;

@@ -115,6 +115,9 @@ class Admin extends Admin_Controller
         } else {
             $Next_year = $b;
         }
+        // Increase execution time for dashboard data processing
+        set_time_limit(300); // 5 minutes for large datasets
+        
         $data['mysqlVersion'] = $this->setting_model->getMysqlVersion();
         $data['sqlMode']      = $this->setting_model->getSqlMode();
         //========================== Current Attendence ==========================
@@ -192,8 +195,9 @@ class Admin extends Admin_Controller
             $expense_monthly = $this->expense_model->getTotalExpenseBwdate($month_start, $month_end);
 
             if (!empty($expense_monthly)) {
-                $amt  = 0;
-                $ex[] = $amt + convertBaseAmountCurrencyFormat($expense_monthly->amount);
+                $ex[] = convertBaseAmountCurrencyFormat($expense_monthly->amount);
+            } else {
+                $ex[] = "0.00";  // Add 0.00 when no expenses to prevent array gaps
             }
 
             $start_session_month = strtotime("+1 month", $start_session_month);
@@ -323,17 +327,22 @@ class Admin extends Admin_Controller
             $data['fees_awaiting_total_amount'] = $unpaid_total_amount;
         }
 
+        $month_income = 0;
         $incomegraph = $this->income_model->getIncomeHeadsData($start_date, $end_date);
         foreach ($incomegraph as $key => $value) {
             $incomegraph[$key]['total'] = convertBaseAmountCurrencyFormat($value['total']);
+            if (!empty($value['total'])) {
+                $month_income = $month_income + $value['total'];  // Add raw numeric value, not formatted string
+            }
         }
         $data['incomegraph'] = $incomegraph;
+        $data['month_income'] = $month_income;
 
         $expensegraph = $this->expense_model->getExpenseHeadData($start_date, $end_date);
         foreach ($expensegraph as $key => $value) {
             $expensegraph[$key]['total'] = convertBaseAmountCurrencyFormat($value['total']);
             if (!empty($value['total'])) {
-                $month_expense = $month_expense + convertBaseAmountCurrencyFormat($value['total']);
+                $month_expense = $month_expense + $value['total'];  // Add raw numeric value, not formatted string
             }
         }
         $data['expensegraph']  = $expensegraph;
@@ -497,6 +506,9 @@ class Admin extends Admin_Controller
         }
         $data['sch_setting']            = $this->sch_setting_detail;
 
+        // Birthday widgets automatically respect branch settings via Db_manager library
+        // Db_manager switches database connection based on session['admin']['db_array']['db_group']
+        // All model queries (Student_model, Staff_model) use $this->db which points to active branch database
         $today_date = date('Y-m-d');
         $data['student_birthdays'] = $this->Student_model->getBirthDayStudents($today_date, false, false);
         

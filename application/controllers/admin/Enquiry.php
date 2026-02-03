@@ -6,6 +6,7 @@ if (!defined('BASEPATH')) {
 
 class Enquiry extends Admin_Controller
 {
+    public $enquiry_status;
 
     public function __construct()
     {

@@ -830,6 +830,24 @@ if ($this->module_lib->hasActive('fees_collection')) {
 }
 ?>
 <?php
+if ($this->module_lib->hasActive('income')) {
+    if ($this->rbac->hasPrivilege('monthly_income_widget', 'can_view')) {
+        ?>
+                                <div class="col-lg-3 col-md-6 col-sm-6">
+                                    <div class="info-box">
+                                        <a href="<?php echo site_url('admin/income') ?>">
+                                            <span class="info-box-icon"><i class="fa fa-bank"></i></span>
+                                            <div class="info-box-content">
+                                                <span class="info-box-text"><?php echo 'Monthly ' . $this->lang->line('income'); ?></span>
+                                                <span class="info-box-number"><?php if($month_income){ echo $currency_symbol . amountFormat($month_income); } ?></span>
+                                            </div>
+                                        </a>
+                                    </div>
+                                </div>
+    <?php }
+}
+?>
+<?php
 if ($this->module_lib->hasActive('expense')) {
     if ($this->rbac->hasPrivilege('monthly_expense_widget', 'can_view')) {
         ?>
@@ -1093,91 +1111,84 @@ $(document).ready(function () {
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.5.0/Chart.min.js"></script>
 <script type="text/javascript">
  <?php if ($this->rbac->hasPrivilege('income_donut_graph', 'can_view') && ($this->module_lib->hasActive('income'))) {
-    // Prepare data safely using json_encode
-    $income_labels = array();
-    $income_colors = array();
-    $income_values = array();
-    $color_index = 1;
-    foreach ($incomegraph as $value) {
-        $income_labels[] = $value['income_category'];
-        $income_colors[] = incomegraphColors($color_index);
-        $income_values[] = $value['total'];
-        $color_index++;
-        if ($color_index == 8) $color_index = 1;
-    }
     ?>
-    if (document.getElementById("doughnut-chart") && <?php echo json_encode(!empty($income_labels)); ?>) {
-        new Chart(document.getElementById("doughnut-chart"), {
-            type: 'doughnut',
+    new Chart(document.getElementById("doughnut-chart"), {
+    type: 'doughnut',
             data: {
-                labels: <?php echo json_encode($income_labels); ?>,
-                datasets: [{
+            labels: [<?php foreach ($incomegraph as $value) {?>"<?php echo $value['income_category']; ?>", <?php }?> ],
+                    datasets: [
+                    {
                     label: "Income",
-                    backgroundColor: <?php echo json_encode($income_colors); ?>,
-                    data: <?php echo json_encode($income_values); ?>
-                }]
+                            backgroundColor: [<?php $s = 1;
+    foreach ($incomegraph as $value) {
+        ?>"<?php echo incomegraphColors($s++); ?>", <?php
+if ($s == 8) {
+            $s = 1;
+        }
+    }
+    ?> ],
+                            data: [<?php $s = 1;
+    foreach ($incomegraph as $value) {
+        ?><?php echo $value['total']; ?>, <?php }?>]
+                    }
+                    ]
             },
             options: {
-                responsive: true,
-                circumference: Math.PI,
-                rotation: - Math.PI,
-                legend: {
-                    position: 'top'
-                },
-                title: {
-                    display: true
-                },
-                animation: {
+            responsive: true,
+                    circumference: Math.PI,
+                    rotation: - Math.PI,
+                    legend: {
+                    position: 'top',
+                    },
+                    title: {
+                    display: true,
+                    },
+                    animation: {
                     animateScale: true,
-                    animateRotate: true
-                }
+                            animateRotate: true
+                    }
             }
-        });
-    }
+    });
    <?php
-}
-if (($this->rbac->hasPrivilege('expense_donut_graph', 'can_view')) && ($this->module_lib->hasActive('expense'))) {
-    // Prepare data safely using json_encode
-    $expense_labels = array();
-    $expense_colors = array();
-    $expense_values = array();
-    $color_index = 1;
-    foreach ($expensegraph as $value) {
-        $expense_labels[] = $value['exp_category'];
-        $expense_colors[] = expensegraphColors($color_index);
-        $expense_values[] = $value['total'];
-        $color_index++;
-        if ($color_index == 8) $color_index = 1;
-    }
+}if (($this->rbac->hasPrivilege('expense_donut_graph', 'can_view')) && ($this->module_lib->hasActive('expense'))) {
     ?>
-    if (document.getElementById("doughnut-chart1") && <?php echo json_encode(!empty($expense_labels)); ?>) {
-        new Chart(document.getElementById("doughnut-chart1"), {
-            type: 'doughnut',
+    new Chart(document.getElementById("doughnut-chart1"), {
+    type: 'doughnut',
             data: {
-                labels: <?php echo json_encode($expense_labels); ?>,
-                datasets: [{
-                    label: "Expenses",
-                    backgroundColor: <?php echo json_encode($expense_colors); ?>,
-                    data: <?php echo json_encode($expense_values); ?>
-                }]
+            labels: [<?php foreach ($expensegraph as $value) {?>"<?php echo $value['exp_category']; ?>", <?php }?>],
+                    datasets: [
+                    {
+                    label: "Population (millions)",
+                            backgroundColor: [<?php $ss = 1;
+    foreach ($expensegraph as $value) {
+        ?>"<?php echo expensegraphColors($ss++); ?>", <?php
+if ($ss == 8) {
+            $ss = 1;
+        }
+    }
+    ?>],
+                            data: [<?php foreach ($expensegraph as $value) {?><?php echo $value['total']; ?>, <?php }?>]
+                    }
+                    ]
             },
             options: {
-                responsive: true,
-                circumference: Math.PI,
-                rotation: - Math.PI,
-                legend: {
-                    position: 'top'
-                },
-                title: {
-                    display: true
-                },
-                animation: {
+            responsive: true,
+                    circumference: Math.PI,
+                    rotation: - Math.PI,
+                    legend: {
+                    position: 'top',
+                    },
+                    title: {
+                    display: true,
+                    },
+                    animation: {
                     animateScale: true,
-                    animateRotate: true
-                }
+                            animateRotate: true
+                    }
             }
-        });
-    }
+    });
+<?php
+}
 if (($this->module_lib->hasActive('fees_collection')) || ($this->module_lib->hasActive('expense')) || ($this->module_lib->hasActive('income'))) {
     ?>
         $(function () {
@@ -1218,7 +1229,7 @@ if ($this->rbac->hasPrivilege('fees_collection_and_expense_yearly_chart', 'can_v
         var areaChartData_expense_Income = {
         labels: total_month,
                 datasets: [
-                <?php if(($this->module_lib->hasActive('expense'))){?>												   
+				<?php if(($this->module_lib->hasActive('expense'))){?>												   
                 {
                 label: "Expense",
                         fillColor: "rgba(215, 44, 44, 0.7)",
@@ -1228,21 +1239,21 @@ if ($this->rbac->hasPrivilege('fees_collection_and_expense_yearly_chart', 'can_v
                         pointHighlightFill: "#fff",
                         pointHighlightStroke: "rgba(220,220,220,1)",
                         data: yearly_expense_array
-                },
+                }<?php if(($this->module_lib->hasActive('income'))){?>,<?php } ?>
                 <?php } ?>
-            <?php if(($this->module_lib->hasActive('income'))){?>
-            {
-            label: "Collection",
-                    fillColor: "rgba(102, 170, 24, 0.6)",
-                    strokeColor: "rgba(102, 170, 24, 0.6)",
-                    pointColor: "rgba(102, 170, 24, 0.9)",
-                    pointStrokeColor: "rgba(102, 170, 24, 0.6)",
-                    pointHighlightFill: "#fff",
-                    pointHighlightStroke: "rgba(60,141,188,1)",
-                    data: yearly_collection_array
-            }
-             <?php } ?>
-            ]
+             <?php if(($this->module_lib->hasActive('income'))){?>
+                {
+                label: "Collection",
+                        fillColor: "rgba(102, 170, 24, 0.6)",
+                        strokeColor: "rgba(102, 170, 24, 0.6)",
+                        pointColor: "rgba(102, 170, 24, 0.9)",
+                        pointStrokeColor: "rgba(102, 170, 24, 0.6)",
+                        pointHighlightFill: "#fff",
+                        pointHighlightStroke: "rgba(60,141,188,1)",
+                        data: yearly_collection_array
+                }
+				 <?php } ?>
+                ]
         };
         lineChart.Line(areaChartData_expense_Income, lineChartOptions);
         }
@@ -1252,107 +1263,71 @@ if ($this->rbac->hasPrivilege('fees_collection_and_expense_yearly_chart', 'can_v
         var days_collection = <?php echo json_encode($days_collection) ?>;
         var days_expense = <?php echo json_encode($days_expense) ?>;
         /* jshint ignore:start */
-        <?php
-        $datasets = array();
-        $income_active = $this->module_lib->hasActive('income');
-        $expense_active = $this->module_lib->hasActive('expense');
-        if($income_active){
-            $datasets[] = array(
-                'label' => 'Collection',
-                'fillColor' => 'rgba(102, 170, 24, 0.6)',
-                'strokeColor' => 'rgba(102, 170, 24, 0.6)',
-                'pointColor' => 'rgba(102, 170, 24, 0.6)',
-                'pointStrokeColor' => '#c1c7d1',
-                'pointHighlightFill' => '#fff',
-                'pointHighlightStroke' => 'rgba(220,220,220,1)',
-                'data' => 'days_collection'
-            );
-        }
-        if($expense_active){
-            $datasets[] = array(
-                'label' => 'Expense',
-                'fillColor' => 'rgba(233, 30, 99, 0.9)',
-                'strokeColor' => 'rgba(233, 30, 99, 0.9)',
-                'pointColor' => 'rgba(233, 30, 99, 0.9)',
-                'pointStrokeColor' => 'rgba(233, 30, 99, 0.9)',
-                'pointHighlightFill' => 'rgba(233, 30, 99, 0.9)',
-                'pointHighlightStroke' => 'rgba(60,141,188,1)',
-                'data' => 'days_expense'
-            );
-        }
-        ?>
         var areaChartData_classAttendence = {
         labels: current_month_days,
                 datasets: [
-                <?php foreach($datasets as $index => $dataset){ ?>
-                    <?php if($index > 0) echo ','; ?>
-                    {
-                    label: "<?php echo $dataset['label']; ?>",
-                            fillColor: "<?php echo $dataset['fillColor']; ?>",
-                            strokeColor: "<?php echo $dataset['strokeColor']; ?>",
-                            pointColor: "<?php echo $dataset['pointColor']; ?>",
-                            pointStrokeColor: "<?php echo $dataset['pointStrokeColor']; ?>",
-                            pointHighlightFill: "<?php echo $dataset['pointHighlightFill']; ?>",
-                            pointHighlightStroke: "<?php echo $dataset['pointHighlightStroke']; ?>",
-                            data: <?php echo $dataset['data']; ?>
-                    }
-                <?php } ?>
+				 <?php if(($this->module_lib->hasActive('income'))){?>												  
+                {
+                label: "Electronics",
+                        fillColor: "rgba(102, 170, 24, 0.6)",
+                        strokeColor: "rgba(102, 170, 24, 0.6)",
+                        pointColor: "rgba(102, 170, 24, 0.6)",
+                        pointStrokeColor: "#c1c7d1",
+                        pointHighlightFill: "#fff",
+                        pointHighlightStroke: "rgba(220,220,220,1)",
+                        data: days_collection
+                }<?php if(($this->module_lib->hasActive('expense'))){?>,<?php } ?>
+				<?php } ?>
+				<?php if(($this->module_lib->hasActive('expense'))){?>											   
+                {
+                label: "Digital Goods",
+                        fillColor: "rgba(233, 30, 99, 0.9)",
+                        strokeColor: "rgba(233, 30, 99, 0.9)",
+                        pointColor: "rgba(233, 30, 99, 0.9)",
+                        pointStrokeColor: "rgba(233, 30, 99, 0.9)",
+                        pointHighlightFill: "rgba(233, 30, 99, 0.9)",
+                        pointHighlightStroke: "rgba(60,141,188,1)",
+                        data: days_expense
+                }
+				<?php } ?> 
                 ]
         };
         /* jshint ignore:end */
          
-        <?php }if ($this->rbac->hasPrivilege('fees_collection_and_expense_monthly_chart', 'can_view')) {?>
+          <?php }if ($this->rbac->hasPrivilege('fees_collection_and_expense_monthly_chart', 'can_view')) {?>
         if (bar_chart) {
             var current_month_days = <?php echo json_encode($current_month_days) ?>;
         var days_collection = <?php echo json_encode($days_collection) ?>;
         var days_expense = <?php echo json_encode($days_expense) ?>;
 
         /* jshint ignore:start */
-        <?php
-        $datasets_bar = array();
-        $income_active = $this->module_lib->hasActive('income');
-        $expense_active = $this->module_lib->hasActive('expense');
-        if($income_active){
-            $datasets_bar[] = array(
-                'label' => 'Collection',
-                'fillColor' => 'rgba(102, 170, 24, 0.6)',
-                'strokeColor' => 'rgba(102, 170, 24, 0.6)',
-                'pointColor' => 'rgba(102, 170, 24, 0.6)',
-                'pointStrokeColor' => '#c1c7d1',
-                'pointHighlightFill' => '#fff',
-                'pointHighlightStroke' => 'rgba(220,220,220,1)',
-                'data' => 'days_collection'
-            );
-        }
-        if($expense_active){
-            $datasets_bar[] = array(
-                'label' => 'Expense',
-                'fillColor' => 'rgba(233, 30, 99, 0.9)',
-                'strokeColor' => 'rgba(233, 30, 99, 0.9)',
-                'pointColor' => 'rgba(233, 30, 99, 0.9)',
-                'pointStrokeColor' => 'rgba(233, 30, 99, 0.9)',
-                'pointHighlightFill' => 'rgba(233, 30, 99, 0.9)',
-                'pointHighlightStroke' => 'rgba(60,141,188,1)',
-                'data' => 'days_expense'
-            );
-        }
-        ?>
         var areaChartData_classAttendence = {
         labels: current_month_days,
                 datasets: [
-                <?php foreach($datasets_bar as $index => $dataset){ ?>
-                    <?php if($index > 0) echo ','; ?>
-                    {
-                    label: "<?php echo $dataset['label']; ?>",
-                            fillColor: "<?php echo $dataset['fillColor']; ?>",
-                            strokeColor: "<?php echo $dataset['strokeColor']; ?>",
-                            pointColor: "<?php echo $dataset['pointColor']; ?>",
-                            pointStrokeColor: "<?php echo $dataset['pointStrokeColor']; ?>",
-                            pointHighlightFill: "<?php echo $dataset['pointHighlightFill']; ?>",
-                            pointHighlightStroke: "<?php echo $dataset['pointHighlightStroke']; ?>",
-                            data: <?php echo $dataset['data']; ?>
-                    }
-                <?php } ?>
+				<?php if(($this->module_lib->hasActive('income'))){?>											 
+                {
+                label: "Electronics",
+                        fillColor: "rgba(102, 170, 24, 0.6)",
+                        strokeColor: "rgba(102, 170, 24, 0.6)",
+                        pointColor: "rgba(102, 170, 24, 0.6)",
+                        pointStrokeColor: "#c1c7d1",
+                        pointHighlightFill: "#fff",
+                        pointHighlightStroke: "rgba(220,220,220,1)",
+                        data: days_collection
+                }<?php if(($this->module_lib->hasActive('expense'))){?>,<?php } ?>
+                    <?php } ?>
+                <?php if(($this->module_lib->hasActive('expense'))){ ?>												   
+                {
+                label: "Digital Goods",
+                        fillColor: "rgba(233, 30, 99, 0.9)",
+                        strokeColor: "rgba(233, 30, 99, 0.9)",
+                        pointColor: "rgba(233, 30, 99, 0.9)",
+                        pointStrokeColor: "rgba(233, 30, 99, 0.9)",
+                        pointHighlightFill: "rgba(233, 30, 99, 0.9)",
+                        pointHighlightStroke: "rgba(60,141,188,1)",
+                        data: days_expense
+                }
+				<?php } ?> 
                 ]
         };
         /* jshint ignore:end */
