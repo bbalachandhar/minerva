@@ -84,6 +84,18 @@ foreach ($department_list as $department) {
                                         <span class="text-danger"><?php echo form_error('search_type'); ?></span>
                                     </div>
                                 </div>
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label>Discount Type</label>
+                                        <select id="discount_type_filter" name="discount_type_filter" class="form-control">
+                                            <option value="">All Discounts</option>
+                                            <?php foreach ($discount_list as $discount) { ?>
+                                                <option value="<?php echo $discount['id']; ?>" <?php echo set_select('discount_type_filter', $discount['id'], set_value('discount_type_filter')); ?>><?php echo $discount['name']; ?></option>
+                                            <?php } ?>
+                                        </select>
+                                        <span class="text-danger"><?php echo form_error('discount_type_filter'); ?></span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         <div class="box-footer">

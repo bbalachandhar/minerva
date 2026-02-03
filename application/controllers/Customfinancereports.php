@@ -59,13 +59,14 @@ class Customfinancereports extends Admin_Controller
             $class_id   = $this->input->post('class_id');
             $section_id = $this->input->post('section_id');
             $department_id = $this->input->post('department_id');
-
-            if (isset($class_id)) {
+            $discount_type_filter = trim($this->input->post('discount_type_filter'));
+            
+            if (!empty($class_id)) {
                 $studentlist = $this->student_model->searchByClassSectionWithSession($class_id, $section_id, $this->current_session, $department_id);
             } else {
-                $studentlist = $this->student_model->getStudents($department_id); // Pass department_id
+                $studentlist = $this->student_model->searchByClassSectionWithSession(null, null, $this->current_session, $department_id);
             }
-
+            
             $student_Array = array();
             if (!empty($studentlist)) {
                 foreach ($studentlist as $key => $eachstudent) {
@@ -148,6 +149,23 @@ class Customfinancereports extends Admin_Controller
                     // Overwrite the old discount total with the new dynamic one
                     $obj->discount = $total_student_discount_dynamic;
 
+                    // Filter based on discount type if specified
+                    $has_discount_type = false;
+                    if (!empty($discount_type_filter)) {
+                        // Check if student has the selected discount type
+                        if (!empty($obj->applied_discounts)) {
+                            foreach ($obj->applied_discounts as $student_discount) {
+                                if ((int)$student_discount['fees_discount_id'] == (int)$discount_type_filter) {
+                                    $has_discount_type = true;
+                                    break;
+                                }
+                            }
+                        }
+                    } else {
+                        // If no discount type is selected, include all students
+                        $has_discount_type = true;
+                    }
+
                     // Filter based on search type
                     $include_student = false;
                     if ($search_type == 'all') {
@@ -162,7 +180,8 @@ class Customfinancereports extends Admin_Controller
                         }
                     }
 
-                    if($include_student){
+                    // Apply both filters
+                    if($include_student && $has_discount_type){
                         $student_Array[] = $obj;
                     }
                 }
@@ -186,11 +205,12 @@ class Customfinancereports extends Admin_Controller
         $search_type   = $this->input->post('search_type');
         $class_id   = $this->input->post('class_id');
         $section_id = $this->input->post('section_id');
+        $discount_type_filter = trim($this->input->post('discount_type_filter'));
 
-        if (isset($class_id)) {
+        if (!empty($class_id)) {
             $studentlist = $this->student_model->searchByClassSectionWithSession($class_id, $section_id);
         } else {
-            $studentlist = $this->student_model->getStudents();
+            $studentlist = $this->student_model->searchByClassSectionWithSession(null, null, $this->current_session);
         }
 
         $student_Array = array();
@@ -244,6 +264,24 @@ class Customfinancereports extends Admin_Controller
                 $obj->fine     = $total_fine_sum;
                 $obj->discount = $total_discount_sum;
                 $obj->balance  = $totalfee - $total_paid_sum;
+
+                // Filter based on discount type if specified
+                $has_discount_type = false;
+                if (!empty($discount_type_filter)) {
+                    // Check if student has the selected discount type
+                    if (!empty($obj->applied_discounts)) {
+                        foreach ($obj->applied_discounts as $student_discount) {
+                            if ((int)$student_discount['fees_discount_id'] == (int)$discount_type_filter) {
+                                $has_discount_type = true;
+                                break;
+                            }
+                        }
+                    }
+                } else {
+                    // If no discount type is selected, include all students
+                    $has_discount_type = true;
+                }
+
                 // Filter based on search type
                 $include_student = false;
                 if ($search_type == 'all') {
@@ -258,7 +296,8 @@ class Customfinancereports extends Admin_Controller
                     }
                 }
 
-                if($include_student){
+                // Apply both filters
+                if($include_student && $has_discount_type){
                     $student_Array[] = $obj;
                 }
             }
@@ -278,7 +317,6 @@ class Customfinancereports extends Admin_Controller
     {
         $this->output->set_content_type('application/json');
         $department_id = $this->input->post('department_id');
-        log_message('debug', 'Customfinancereports->get_classes_by_department - Received department_id: ' . $department_id);
 
         $classes = array();
         if (!empty($department_id)) {

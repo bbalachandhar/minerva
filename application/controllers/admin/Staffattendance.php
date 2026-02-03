@@ -329,10 +329,12 @@ class Staffattendance extends Admin_Controller
                 sort($timestamps);
 
                 $in_time = date('H:i:s', $timestamps[0]);
-                $out_time = date('H:i:s', end($timestamps));
                 $punches = count($timestamps);
+                // If only one punch, treat out_time as null to avoid calculating afternoon status based on morning punch
+                $out_time = ($punches > 1) ? date('H:i:s', end($timestamps)) : null;
+                
                 $this->logger->log("Raw timestamps for staff {$staff_id}: " . implode(', ', $timestamps));
-                $this->logger->log("Calculated - In: {$in_time}, Out: {$out_time}, Punches: {$punches} for staff {$staff_id}");
+                $this->logger->log("Calculated - In: {$in_time}, Out: " . ($out_time ?? 'NULL') . ", Punches: {$punches} for staff {$staff_id}");
 
 
                 $remark = '';
@@ -341,11 +343,24 @@ class Staffattendance extends Admin_Controller
                 $overall_attendance_type_id = 3; // Default to Full Day Absent
 
                 // Always use schedule table for both punches
-                $remark = ($punches == 1) ? 'Single punch' : '';
+                $remark = ($punches == 1) ? 'Single punch - No exit time' : '';
 
                 // Morning session: first punch
                 $morning_type = $this->staffAttendaceSetting_model->getAttendanceTypeByRole($role_id, $in_time);
-                $morning_session_status = ($morning_type) ? $morning_type->staff_attendence_type_id : 10;
+                
+                if ($morning_type) {
+                    $morning_session_status = $morning_type->staff_attendence_type_id;
+                } else {
+                    // Check for early arrival (Present)
+                    $present_id = isset($this->config_attendance['present']) ? $this->config_attendance['present'] : 1;
+                    $present_setting = $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($role_id, $present_id);
+
+                    if ($present_setting && strtotime($in_time) < strtotime($present_setting->entry_time_from)) {
+                        $morning_session_status = $present_id;
+                    } else {
+                        $morning_session_status = 10;
+                    }
+                }
                 // Enforce late quota for morning
                 if ($morning_session_status == 2) { // Late
                     $late_count = $this->staffattendancemodel->count_late_in_month($staff_id, $date)['count'];
@@ -362,14 +377,20 @@ class Staffattendance extends Admin_Controller
                 }
 
                 // Afternoon session: last punch
-                $afternoon_type = $this->staffAttendaceSetting_model->getAttendanceTypeByRole($role_id, $out_time);
-                $afternoon_session_status = ($afternoon_type) ? $afternoon_type->staff_attendence_type_id : 11;
-                // Enforce permission quota for afternoon
-                if ($afternoon_session_status == 9) { // SHP
-                    $perm_count = $this->staffattendancemodel->count_permission_in_month($staff_id, $date)['count'];
-                    if ($perm_count >= $max_permission_allowed) {
-                        $afternoon_session_status = 11; // Second Half Absent (SHA)
+                if ($out_time !== null) {
+                    $afternoon_type = $this->staffAttendaceSetting_model->getAttendanceTypeByRole($role_id, $out_time);
+                    $afternoon_session_status = ($afternoon_type) ? $afternoon_type->staff_attendence_type_id : 11;
+                    
+                    // Enforce permission quota for afternoon
+                    if ($afternoon_session_status == 9) { // SHP
+                        $perm_count = $this->staffattendancemodel->count_permission_in_month($staff_id, $date)['count'];
+                        if ($perm_count >= $max_permission_allowed) {
+                            $afternoon_session_status = 11; // Second Half Absent (SHA)
+                        }
                     }
+                } else {
+                    // No exit punch - defaults to Second Half Absent (11) as set initially
+                    $afternoon_session_status = 11; 
                 }
 
                 // Determine overall attendance type
