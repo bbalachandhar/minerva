@@ -1251,9 +1251,6 @@ if ($this->rbac->hasPrivilege('fees_collection_and_expense_yearly_chart', 'can_v
         var current_month_days = <?php echo json_encode($current_month_days) ?>;
         var days_collection = <?php echo json_encode($days_collection) ?>;
         var days_expense = <?php echo json_encode($days_expense) ?>;
-        console.log('DEBUG: current_month_days =', current_month_days);
-        console.log('DEBUG: days_collection =', days_collection);
-        console.log('DEBUG: days_expense =', days_expense);
         /* jshint ignore:start */
         <?php
         $datasets = array();
