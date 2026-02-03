@@ -1294,7 +1294,7 @@ if ($this->rbac->hasPrivilege('fees_collection_and_expense_yearly_chart', 'can_v
                             pointStrokeColor: "<?php echo $dataset['pointStrokeColor']; ?>",
                             pointHighlightFill: "<?php echo $dataset['pointHighlightFill']; ?>",
                             pointHighlightStroke: "<?php echo $dataset['pointHighlightStroke']; ?>",
-                            data: <?php echo $dataset['data']; ?>
+                            data: <?php echo ($dataset['data'] == 'days_collection') ? 'days_collection' : 'days_expense'; ?>
                     }
                 <?php } ?>
                 ]
