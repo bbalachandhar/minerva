@@ -130,6 +130,7 @@ if ($enkey == $status) {
                                         <table class="table table-hover table-striped table-bordered" id="enquirytable">
                                             <thead>
                                                 <tr>
+                                                    <th>Reference No</th>
                                                     <th><?php echo $this->lang->line('name'); ?></th>
                                                     <th><?php echo $this->lang->line('phone'); ?></th>
                                                     <th><?php echo $this->lang->line('source'); ?></th>
@@ -161,6 +162,7 @@ if (empty($enquiry_list)) {
         }
         ?>
                                                         <tr <?php echo $class ?>>
+                                                            <td class="mailbox-name"><?php echo date('Y') . str_pad($value['id'], 6, '0', STR_PAD_LEFT); ?></td>
                                                             <td class="mailbox-name"><?php echo $value['name']; ?> </td>
                                                             <td class="mailbox-name"><?php echo $value['contact']; ?> </td>
                                                             <td class="mailbox-name"><?php echo $value['source']; ?></td>
@@ -246,22 +248,16 @@ if (!empty($next_date) && $next_date != '0000-00-00') {
                                             <input type="text" value="<?php echo set_value('email'); ?>" name="email" class="form-control">
                                         </div>
                                     </div>
-                                    <div class="col-sm-4">
+                                    <div class="col-sm-6">
                                         <div class="form-group">
                                             <label for="email"><?php echo $this->lang->line('address'); ?></label>
                                             <textarea name="address" class="form-control" ><?php echo set_value('address'); ?></textarea>
                                         </div>
                                     </div>
-                                    <div class="col-sm-4">
+                                    <div class="col-sm-6">
                                         <div class="form-group">
                                             <label for="email"><?php echo $this->lang->line('description'); ?></label>
                                             <textarea name="description" class="form-control" ><?php echo set_value('description'); ?></textarea>
-                                        </div>
-                                    </div>
-                                    <div class="col-sm-4">
-                                        <div class="form-group">
-                                            <label for="pwd"><?php echo $this->lang->line('note'); ?></label>
-                                            <textarea name="note" class="form-control" ><?php echo set_value('note'); ?></textarea>
                                         </div>
                                     </div>
                                     <div class="col-sm-4">
@@ -291,6 +287,18 @@ if (!empty($next_date) && $next_date != '0000-00-00') {
                                     </div>
                                     <div class="col-sm-3">
                                         <div class="form-group">
+                                            <label for="pwd"><?php echo $this->lang->line('source'); ?></label> <small class="req"> *</small>
+                                            <select name="source" class="form-control">
+                                                <option value=""><?php echo $this->lang->line('select') ?></option>
+                                                <?php foreach ($sourcelist as $key => $value) {?>
+                                                    <option value="<?php echo $value['source']; ?>"><?php echo $value['source']; ?></option>
+                                                <?php }
+?>
+                                            </select>
+                                        </div><!--./form-group-->
+                                    </div>
+                                    <div class="col-sm-3">
+                                        <div class="form-group">
                                             <label for="pwd"><?php echo $this->lang->line('reference'); ?></label>
                                             <select name="reference" class="form-control">
                                                 <option value=""><?php echo $this->lang->line('select') ?></option>
@@ -303,14 +311,8 @@ if (!empty($next_date) && $next_date != '0000-00-00') {
                                     </div>
                                     <div class="col-sm-3">
                                         <div class="form-group">
-                                            <label for="pwd"><?php echo $this->lang->line('source'); ?></label> <small class="req"> *</small>
-                                            <select name="source" class="form-control">
-                                                <option value=""><?php echo $this->lang->line('select') ?></option>
-                                                <?php foreach ($sourcelist as $key => $value) {?>
-                                                    <option value="<?php echo $value['source']; ?>"><?php echo $value['source']; ?></option>
-                                                <?php }
-?>
-                                            </select>
+                                            <label for="pwd">Referencer Details</label>
+                                            <input type="text" class="form-control" name="referencer_details" value="<?php echo set_value('referencer_details'); ?>">
                                         </div><!--./form-group-->
                                     </div>
                                     <div class="col-sm-3">
@@ -326,12 +328,6 @@ foreach ($class_list as $key => $value) {
 }
 ?>
                                             </select>
-                                        </div><!--./form-group-->
-                                    </div>
-                                    <div class="col-sm-3">
-                                        <div class="form-group">
-                                            <label for="pwd"><?php echo $this->lang->line('number_of_child'); ?></label>
-                                            <input type="number" class="form-control" min="1" value="<?php echo set_value('no_of_child'); ?>" name="no_of_child">
                                         </div><!--./form-group-->
                                     </div>
                                 </div><!--./row-->

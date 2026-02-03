@@ -117,12 +117,11 @@ class Enquiry extends Admin_Controller
                 'date'           => date('Y-m-d', $this->customlib->datetostrtotime($this->input->post('date'))),
                 'description'    => $this->input->post('description'),
                 'follow_up_date' => date('Y-m-d', $this->customlib->datetostrtotime($this->input->post('follow_up_date'))),
-                'note'           => $this->input->post('note'),
+                'note'           => $this->input->post('referencer_details'),
                 'source'         => $this->input->post('source'),
                 'email'          => $this->input->post('email'),
     'assigned'       => IsNullOrEmptyString($this->input->post('assigned')) ? NULL :$this->input->post('assigned'),
                 'class_id' => IsNullOrEmptyString($this->input->post('class')) ? NULL :$this->input->post('class'),
-                'no_of_child'    => $this->input->post('no_of_child'),
                 'status'         => 'active',
                 'created_by'     => $created_by,
             );
@@ -259,12 +258,11 @@ class Enquiry extends Admin_Controller
                 'date'           => date('Y-m-d', $this->customlib->datetostrtotime($this->input->post('date'))),
                 'description'    => $this->input->post('description'),
                 'follow_up_date' => date('Y-m-d', $this->customlib->datetostrtotime($this->input->post('follow_up_date'))),
-                'note'           => $this->input->post('note'),
+                'note'           => $this->input->post('referencer_details'),
                 'source'         => $this->input->post('source'),
                 'email'          => $this->input->post('email'),
                 'assigned'       => empty2null($this->input->post('assigned')),
                 'class_id'       => empty2null($this->input->post('class')),
-                'no_of_child'    => $this->input->post('no_of_child'),
             );
             $this->enquiry_model->enquiry_update($id, $enquiry_update);
             $array = array('status' => 'success', 'error' => '', 'message' => $this->lang->line('update_message'));

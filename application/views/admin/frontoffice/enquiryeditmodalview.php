@@ -22,23 +22,17 @@
                         <span class="text-danger"><?php echo form_error('email'); ?></span>
                     </div>
                 </div>
-                <div class="col-sm-4">
+                <div class="col-sm-6">
                     <div class="form-group">
                         <label for="email"><?php echo $this->lang->line('address'); ?></label> 
                         <textarea name="address" class="form-control"><?php echo set_value('address', trim($enquiry_data['address'])) ?></textarea>
                         <span class="text-danger"><?php echo form_error('address'); ?></span>
                     </div>
                 </div>
-                <div class="col-sm-4">
+                <div class="col-sm-6">
                     <div class="form-group">
                         <label for="email"><?php echo $this->lang->line('description'); ?></label>
                         <textarea name="description" class="form-control" ><?php echo set_value('description', $enquiry_data['description']); ?></textarea>
-                    </div>
-                </div>
-                <div class="col-sm-4">
-                    <div class="form-group">
-                        <label for="pwd"><?php echo $this->lang->line('note'); ?></label> 
-                        <textarea name="note" class="form-control" ><?php echo set_value('note', $enquiry_data['note']); ?></textarea>
                     </div>
                 </div>
                 <div class="col-sm-4">
@@ -74,19 +68,6 @@
                 </div>
                 <div class="col-sm-3">
                     <div class="form-group">
-                        <label for="pwd"><?php echo $this->lang->line('reference'); ?></label>   
-                        <select name="reference" class="form-control">
-                            <option value=""><?php echo $this->lang->line('select') ?></option>
-                            <?php foreach ($Reference as $key => $value) { ?>
-                                <option value="<?php echo $value['reference']; ?>" <?php if (set_value('reference', $enquiry_data['reference']) == $value['reference']) { ?>selected=""<?php } ?>><?php echo $value['reference']; ?></option>    
-                            <?php }
-                            ?>
-                        </select>
-                        <span class="text-danger"><?php echo form_error('reference'); ?></span>
-                    </div>
-                </div>    
-                <div class="col-sm-3">
-                    <div class="form-group">
                         <label for="pwd"><?php echo $this->lang->line('source'); ?></label><small class="req"> *</small>
                         <select name="source" class="form-control">
                             <option value=""><?php echo $this->lang->line('select') ?></option>
@@ -100,7 +81,26 @@
 ?> 
                         </select>
                     </div>
-                </div>      
+                </div>    
+                <div class="col-sm-3">
+                    <div class="form-group">
+                        <label for="pwd"><?php echo $this->lang->line('reference'); ?></label>   
+                        <select name="reference" class="form-control">
+                            <option value=""><?php echo $this->lang->line('select') ?></option>
+                            <?php foreach ($Reference as $key => $value) { ?>
+                                <option value="<?php echo $value['reference']; ?>" <?php if (set_value('reference', $enquiry_data['reference']) == $value['reference']) { ?>selected=""<?php } ?>><?php echo $value['reference']; ?></option>    
+                            <?php }
+                            ?>
+                        </select>
+                        <span class="text-danger"><?php echo form_error('reference'); ?></span>
+                    </div>
+                </div>    
+                <div class="col-sm-3">
+                    <div class="form-group">
+                        <label for="pwd">Referencer Details</label>
+                        <input type="text" class="form-control" name="referencer_details" value="<?php echo set_value('referencer_details', $enquiry_data['note']); ?>">
+                    </div>
+                </div>    
                 <div class="col-sm-3">
                     <div class="form-group">
                         <label for="pwd"><?php echo $this->lang->line('class'); ?></label> 
@@ -115,13 +115,6 @@
                             }
                             ?>
                         </select>
-                    </div>
-                </div>
-                <div class="col-sm-3">                
-                    <div class="form-group">
-                        <label for="pwd"><?php echo $this->lang->line('number_of_child'); ?></label> 
-                        <input type="number" class="form-control" min="1" value="<?php echo set_value('no_of_child', $enquiry_data['no_of_child']); ?>" name="no_of_child">
-                        <span class="text-danger"><?php echo form_error('no_of_child'); ?></span>
                     </div>
                 </div> 
             </div><!--./row-->                        

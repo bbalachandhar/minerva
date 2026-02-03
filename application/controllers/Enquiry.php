@@ -50,8 +50,6 @@ class Enquiry extends CI_Controller
         $this->form_validation->set_rules('email', 'Email', 'trim|valid_email|xss_clean');
         $this->form_validation->set_rules('source', 'Source', 'trim|required|xss_clean');
         $this->form_validation->set_rules('class', 'Class', 'trim|required|xss_clean');
-        $this->form_validation->set_rules('reference_name', 'Reference Name', 'trim|xss_clean');
-        $this->form_validation->set_rules('reference_contact', 'Reference Contact', 'trim|xss_clean');
         if ($this->form_validation->run() == FALSE) {
             // Load dropdown data
             $data['class_list'] = $this->class_model->get();
@@ -67,16 +65,13 @@ class Enquiry extends CI_Controller
                 'contact'        => $this->input->post('contact'),
                 'address'        => $this->input->post('address'),
                 'reference'      => $this->input->post('reference'),
-                'reference_name' => $this->input->post('reference_name'),
-                'reference_contact' => $this->input->post('reference_contact'),
                 'date'           => date('Y-m-d'),
                 'description'    => $this->input->post('description'),
                 'follow_up_date' => date('Y-m-d'),
-                'note'           => $this->input->post('note'),
+                'note'           => $this->input->post('referencer_details'),
                 'source'         => $this->input->post('source'),
                 'email'          => $this->input->post('email'),
                 'class_id'       => $this->input->post('class'),
-                'no_of_child'    => 1,
                 'created_by'     => 1,
                 'status'         => 'active'
             );
