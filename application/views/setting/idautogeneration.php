@@ -16,11 +16,35 @@
                     <div class="">
                         <form role="form" id="id_auto_generation_form" method="post" enctype="multipart/form-data">
                             <input type="hidden" name="sch_id" value="<?php echo $result->id; ?>">
-                            <div class="box-body">                       
+                            <div class="box-body">                      
+                                <div class="row">
+                                    <div class="col-md-12">
+                                        <div class="alert alert-info" style="margin-bottom: 15px;">
+                                            <strong>Instructions</strong>
+                                            <ul style="margin: 8px 0 0 18px;">
+                                                   <li>Total digit length includes the prefix and optional current year.</li>
+                                                   <li>Remaining digits are numeric and will be zero-padded.</li>
+                                                   <li>Example (Year Off): Prefix = MCE (3), Total Digits = 10, Start From = 1 → MCE0000001.</li>
+                                                   <li>Example (Year On): Prefix = MCE (3) + Year (4), Total Digits = 10, Start From = 1 → MCE2026001.</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
                                 <div class="row">
                                     <div class="col-md-12">
                                         <h4 class="session-head"><?php echo $this->lang->line('student_admission_no_auto_generation'); ?></h4>
                                     </div><!--./col-md-12-->
+                                    <div class="col-md-12">
+                                        <div class="alert alert-info" style="margin-bottom: 15px;">
+                                            <strong>Instructions</strong>
+                                            <ul style="margin: 8px 0 0 18px;">
+                                                   <li>Total digit length includes the prefix and optional current year.</li>
+                                                   <li>Remaining digits are numeric and will be zero-padded.</li>
+                                                   <li>Example (Year Off): Prefix = ADM (3), Total Digits = 10, Start From = 1 → ADM0000001.</li>
+                                                   <li>Example (Year On): Prefix = ADM (3) + Year (4), Total Digits = 10, Start From = 1 → ADM2026001.</li>
+                                            </ul>
+                                        </div>
+                                    </div>
                                     <div class="col-md-12">
                                         <div class="form-group row">
                                             <label class="col-sm-3"><?php echo $this->lang->line('auto_admission_no'); ?></label>
@@ -48,6 +72,16 @@
                                             <div class="col-sm-9">
                                                 <input type="text" name="adm_prefix" id="adm_prefix" class="form-control" value="<?php echo $result->adm_prefix; ?>">
                                                 <span class="text-danger"><?php echo form_error('adm_prefix'); ?></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-12">
+                                        <div class="form-group row">
+                                            <label class="col-sm-3">Include Current Year</label>
+                                            <div class="col-sm-9">
+                                                <label class="checkbox-inline">
+                                                    <input type="checkbox" name="adm_include_current_year" value="1" <?php if (!empty($result->adm_include_current_year)) { echo "checked"; } ?>> Yes
+                                                </label>
                                             </div>
                                         </div>
                                     </div>
@@ -111,6 +145,16 @@
                                             <div class="col-sm-9">
                                                 <input id="staffid_prefix" value="<?php echo $result->staffid_prefix; ?>" name="staffid_prefix" placeholder="" type="text" class="form-control" />
                                                 <span class="text-danger"><?php echo form_error('staffid_prefix'); ?></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-12">
+                                        <div class="form-group row">
+                                            <label class="col-sm-3">Include Current Year</label>
+                                            <div class="col-sm-9">
+                                                <label class="checkbox-inline">
+                                                    <input type="checkbox" name="staffid_include_current_year" value="1" <?php if (!empty($result->staffid_include_current_year)) { echo "checked"; } ?>> Yes
+                                                </label>
                                             </div>
                                         </div>
                                     </div>

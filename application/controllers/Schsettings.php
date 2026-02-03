@@ -490,11 +490,21 @@ class Schsettings extends Admin_Controller
     {
         $adm_start_from = $this->input->post('adm_start_from');
         $adm_no_digit   = $this->input->post('adm_no_digit');
+        $adm_prefix     = $this->input->post('adm_prefix');
+        $adm_include_current_year = $this->input->post('adm_include_current_year') ? 1 : 0;
+        
         if ($adm_no_digit != "") {
-            if (strlen($adm_start_from) == $adm_no_digit) {
+            $prefix_length = strlen($adm_prefix);
+            if ($adm_include_current_year) {
+                $prefix_length += 4;
+            }
+            $available_digits = $adm_no_digit - $prefix_length;
+            
+            // Check if start_from number fits within available digit space
+            if (strlen($adm_start_from) <= $available_digits) {
                 return true;
             }
-            $this->form_validation->set_message('check_admission_digit', $this->lang->line('admission_start_from') . ' ' . $adm_no_digit . ' ' . $this->lang->line('digit_long'));
+            $this->form_validation->set_message('check_admission_digit', 'Admission Start From must be ' . $available_digits . ' digits or less (Total: ' . $adm_no_digit . ' - Prefix: ' . $prefix_length . ' chars)');
             return false;
         }
         return true;
@@ -504,11 +514,21 @@ class Schsettings extends Admin_Controller
     {
         $adm_start_from   = $this->input->post('staffid_start_from');
         $staffid_no_digit = $this->input->post('staffid_no_digit');
+        $staffid_prefix   = $this->input->post('staffid_prefix');
+        $staffid_include_current_year = $this->input->post('staffid_include_current_year') ? 1 : 0;
+        
         if ($staffid_no_digit != "") {
-            if (strlen($adm_start_from) == $staffid_no_digit) {
+            $prefix_length = strlen($staffid_prefix);
+            if ($staffid_include_current_year) {
+                $prefix_length += 4;
+            }
+            $available_digits = $staffid_no_digit - $prefix_length;
+            
+            // Check if start_from number fits within available digit space
+            if (strlen($adm_start_from) <= $available_digits) {
                 return true;
             }
-            $this->form_validation->set_message('check_staff_id_digit', $this->lang->line('staff_id_start_from_must_be') . ' ' . strlen($adm_start_from) . ' ' . $this->lang->line('digit_long'));
+            $this->form_validation->set_message('check_staff_id_digit', 'Staff ID Start From must be ' . $available_digits . ' digits or less (Total: ' . $staffid_no_digit . ' - Prefix: ' . $prefix_length . ' chars)');
             return false;
         }
         return true;
@@ -851,10 +871,12 @@ class Schsettings extends Admin_Controller
                 'adm_prefix'          => $this->input->post('adm_prefix'),
                 'adm_no_digit'        => $this->input->post('adm_no_digit'),
                 'adm_auto_insert'     => $this->input->post('adm_auto_insert'),
+                'adm_include_current_year' => $this->input->post('adm_include_current_year') ? 1 : 0,
                 'staffid_start_from'  => $this->input->post('staffid_start_from'),
                 'staffid_prefix'      => $this->input->post('staffid_prefix'),
                 'staffid_no_digit'    => $this->input->post('staffid_no_digit'),
                 'staffid_auto_insert' => $this->input->post('staffid_auto_insert'),
+                'staffid_include_current_year' => $this->input->post('staffid_include_current_year') ? 1 : 0,
             );
 
             $data['adm_update_status']     = 1;

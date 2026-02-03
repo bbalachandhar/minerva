@@ -751,26 +751,32 @@ class Student extends Admin_Controller
 					$data_setting['adm_update_status'] = $this->sch_setting_detail->adm_update_status;
 					$admission_no                      = 0;
 		
-					if ($this->sch_setting_detail->adm_auto_insert) {
-						if ($this->sch_setting_detail->adm_update_status) {
-		
-							$admission_no = $this->sch_setting_detail->adm_prefix . $this->sch_setting_detail->adm_start_from;
-		
-							$last_student = $this->student_model->lastRecord();
-							if (!empty($last_student)) {
-		
-								$last_admission_digit = str_replace($this->sch_setting_detail->adm_prefix, "", $last_student->admission_no);
-		
-								$admission_no                = $this->sch_setting_detail->adm_prefix . sprintf("%0" . $this->sch_setting_detail->adm_no_digit . "d", $last_admission_digit + 1);
-								$data_insert['admission_no'] = $admission_no;
-							} else {
-								$admission_no                = $this->sch_setting_detail->adm_prefix . $this->sch_setting_detail->adm_start_from;
-								$data_insert['admission_no'] = $admission_no;
-							}
-						} else {
-							$admission_no                = $this->sch_setting_detail->adm_prefix . $this->sch_setting_detail->adm_start_from;
-							$data_insert['admission_no'] = $admission_no;
-						}
+                    if ($this->sch_setting_detail->adm_auto_insert) {
+                        $year_prefix = !empty($this->sch_setting_detail->adm_include_current_year) ? date('Y') : '';
+                        $id_prefix = $this->sch_setting_detail->adm_prefix . $year_prefix;
+                        $number_digits = (int)$this->sch_setting_detail->adm_no_digit - strlen($id_prefix);
+                        if ($number_digits < 1) {
+                            $number_digits = 1;
+                        }
+
+                        if ($this->sch_setting_detail->adm_update_status) {
+				
+                            $admission_no = $id_prefix . $this->sch_setting_detail->adm_start_from;
+				
+                            $last_student = $this->student_model->lastRecord();
+                            if (!empty($last_student)) {
+				
+                                $last_admission_digit = str_replace($id_prefix, "", $last_student->admission_no);
+                                $admission_no                = $id_prefix . sprintf("%0" . $number_digits . "d", $last_admission_digit + 1);
+                                $data_insert['admission_no'] = $admission_no;
+                            } else {
+                                $admission_no                = $id_prefix . $this->sch_setting_detail->adm_start_from;
+                                $data_insert['admission_no'] = $admission_no;
+                            }
+                        } else {
+                            $admission_no                = $id_prefix . $this->sch_setting_detail->adm_start_from;
+                            $data_insert['admission_no'] = $admission_no;
+                        }
 		
 						$admission_no_exists = $this->student_model->check_adm_exists($admission_no);
 						if ($admission_no_exists) {
@@ -1404,13 +1410,20 @@ class Student extends Admin_Controller
                             //-------------------------
 
                             if ($this->sch_setting_detail->adm_auto_insert) {
+                                $year_prefix = !empty($this->sch_setting_detail->adm_include_current_year) ? date('Y') : '';
+                                $id_prefix = $this->sch_setting_detail->adm_prefix . $year_prefix;
+                                $number_digits = (int)$this->sch_setting_detail->adm_no_digit - strlen($id_prefix);
+                                if ($number_digits < 1) {
+                                    $number_digits = 1;
+                                }
+
                                 if ($this->sch_setting_detail->adm_update_status) {
                                     $last_student                     = $this->student_model->lastRecord();
-                                    $last_admission_digit             = str_replace($this->sch_setting_detail->adm_prefix, "", $last_student->admission_no);
-                                    $admission_no                     = $this->sch_setting_detail->adm_prefix . sprintf("%0" . $this->sch_setting_detail->adm_no_digit . "d", $last_admission_digit + 1);
+                                    $last_admission_digit             = str_replace($id_prefix, "", $last_student->admission_no);
+                                    $admission_no                     = $id_prefix . sprintf("%0" . $number_digits . "d", $last_admission_digit + 1);
                                     $student_data[$i]["admission_no"] = $admission_no;
                                 } else {
-                                    $admission_no                     = $this->sch_setting_detail->adm_prefix . $this->sch_setting_detail->adm_start_from;
+                                    $admission_no                     = $id_prefix . $this->sch_setting_detail->adm_start_from;
                                     $student_data[$i]["admission_no"] = $admission_no;
                                 }
 

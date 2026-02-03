@@ -28,15 +28,16 @@ class Income extends Admin_Controller
         $this->form_validation->set_rules('amount', $this->lang->line('amount'), 'trim|required|xss_clean');
         $this->form_validation->set_rules('name', $this->lang->line('name'), 'trim|required|xss_clean');
         $this->form_validation->set_rules('date', $this->lang->line('date'), 'trim|required|xss_clean');
-        $this->form_validation->set_rules('documents', $this->lang->line('documents'), 'callback_handle_upload');
         if ($this->form_validation->run() == true) {
-
-            $upload_result = $this->media_storage->fileupload("documents", "./uploads/school_income/");
-            if ($upload_result['status'] === false) {
-                $this->session->set_flashdata('error', $upload_result['message']);
-                redirect('admin/income/index');
+            $img_name = '';
+            if (isset($_FILES["documents"]) && $_FILES['documents']['name'] != '' && (!empty($_FILES['documents']['name']))) {
+                $upload_result = $this->media_storage->fileupload("documents", "./uploads/school_income/");
+                if ($upload_result['status'] === false) {
+                    $this->session->set_flashdata('error', $upload_result['message']);
+                    redirect('admin/income/index');
+                }
+                $img_name = $upload_result['message'];
             }
-            $img_name = $upload_result['message'];
 
             $data = array(
                 'income_head_id' => $this->input->post('inc_head_id'),
@@ -191,7 +192,6 @@ class Income extends Admin_Controller
         $this->form_validation->set_rules('amount', $this->lang->line('amount'), 'trim|required|xss_clean');
         $this->form_validation->set_rules('name', $this->lang->line('name'), 'trim|required|xss_clean');
         $this->form_validation->set_rules('date', $this->lang->line('date'), 'trim|required|xss_clean');
-        $this->form_validation->set_rules('documents', $this->lang->line('documents'), 'callback_handle_upload');
         if ($this->form_validation->run() == false) {
             $this->load->view('layout/header', $data);
             $this->load->view('admin/income/incomeEdit', $data);

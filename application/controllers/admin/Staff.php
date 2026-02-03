@@ -751,16 +751,23 @@ class Staff extends Admin_Controller
             $employee_id                           = 0;
 
             if ($this->sch_setting_detail->staffid_auto_insert) {
+                $year_prefix = !empty($this->sch_setting_detail->staffid_include_current_year) ? date('Y') : '';
+                $id_prefix = $this->sch_setting_detail->staffid_prefix . $year_prefix;
+                $number_digits = (int)$this->sch_setting_detail->staffid_no_digit - strlen($id_prefix);
+                if ($number_digits < 1) {
+                    $number_digits = 1;
+                }
+
                 if ($this->sch_setting_detail->staffid_update_status) {
 
-                    $employee_id = $this->sch_setting_detail->staffid_prefix . $this->sch_setting_detail->staffid_start_from;
+                    $employee_id = $id_prefix . $this->sch_setting_detail->staffid_start_from;
                     $last_student = $this->staff_model->lastRecord();
-                    $last_admission_digit = str_replace($this->sch_setting_detail->staffid_prefix, "", $last_student->employee_id);
+                    $last_admission_digit = str_replace($id_prefix, "", $last_student->employee_id);
 
-                    $employee_id                = $this->sch_setting_detail->staffid_prefix . sprintf("%0" . $this->sch_setting_detail->staffid_no_digit . "d", $last_admission_digit + 1);
+                    $employee_id                = $id_prefix . sprintf("%0" . $number_digits . "d", $last_admission_digit + 1);
                     $data_insert['employee_id'] = $employee_id;
                 } else {
-                    $employee_id                = $this->sch_setting_detail->staffid_prefix . $this->sch_setting_detail->staffid_start_from;
+                    $employee_id                = $id_prefix . $this->sch_setting_detail->staffid_start_from;
                     $data_insert['employee_id'] = $employee_id;
                 }
 
