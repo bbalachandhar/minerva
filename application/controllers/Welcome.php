@@ -788,6 +788,8 @@ class Welcome extends Front_Controller
             $this->data['guardian_address']    = $result['guardian_address'];
             $this->data['current_address']   = $result['current_address'];
             $this->data['permanent_address'] = $result['permanent_address'];
+            $this->data['state'] = $result['state'];
+            $this->data['city'] = $result['city'];
             $this->data['bank_account_no'] = $result['bank_account_no'];
             $this->data['bank_name']       = $result['bank_name'];
             $this->data['ifsc_code']       = $result['ifsc_code'];
@@ -796,6 +798,17 @@ class Welcome extends Front_Controller
             $this->data['previous_school'] = $result['previous_school'];
             $this->data['note']            = $result['note'];
             $this->data['rte']             = $result['rte'];
+            $this->data['total_maths'] = isset($result['total_maths']) ? $result['total_maths'] : null;
+            $this->data['maths_marks'] = isset($result['maths_marks']) ? $result['maths_marks'] : null;
+            $this->data['maths_perc'] = isset($result['maths_perc']) ? $result['maths_perc'] : null;
+            $this->data['total_physics'] = isset($result['total_physics']) ? $result['total_physics'] : null;
+            $this->data['physics_marks'] = isset($result['physics_marks']) ? $result['physics_marks'] : null;
+            $this->data['physics_perc'] = isset($result['physics_perc']) ? $result['physics_perc'] : null;
+            $this->data['total_chemistry'] = isset($result['total_chemistry']) ? $result['total_chemistry'] : null;
+            $this->data['chemistry_marks'] = isset($result['chemistry_marks']) ? $result['chemistry_marks'] : null;
+            $this->data['chemistry_perc'] = isset($result['chemistry_perc']) ? $result['chemistry_perc'] : null;
+            $this->data['average_marks'] = isset($result['average_marks']) ? $result['average_marks'] : null;
+            $this->data['cutoff_marks'] = isset($result['cutoff_marks']) ? $result['cutoff_marks'] : null;
             $this->data['reference_no']    = $result['reference_no'];
             $this->data['transaction_id']  = $this->customlib->gettransactionid($result['id']);
             $this->data['transaction_paid_amount']  = $this->customlib->gettransactionpaidamount($result['id']);
@@ -835,6 +848,22 @@ class Welcome extends Front_Controller
             $this->data['nata_details'] = $this->Online_admission_nata_details_model->get_by_online_admission_id($id);
             $this->data['reference_details'] = $this->Online_admission_references_model->get_by_online_admission_id($id);
 
+            // Course name mapping for UG courses
+            $this->data['course_names'] = array(
+                1 => 'B.Arch - Bachelor of Architecture',
+                2 => 'B.E. CIVIL - Civil Engineering',
+                3 => 'B.E. CSE - Computer Science Engineering',
+                4 => 'B.E. CSE(AIML) - CSE(Artificial Intelligence & Machine Learning)',
+                5 => 'B.E. EEE - Electrical and Electronics Engineering',
+                6 => 'B.E. ECE - Electronics and Communication Engineering',
+                7 => 'B.E. EIE - Electronics and Instrumentation Engineering',
+                8 => 'B.E. MECH - Mechanical Engineering',
+                9 => 'B.TECH. AIDS - Artificial Intelligence and Data Science',
+                10 => 'B.TECH. CSBS - Computer Science and Business System',
+                11 => 'B.TECH. IT - Information Technology',
+                12 => 'B.E. Cybersecurity and Bachelor of Design (B.Des)',
+            );
+
             if($this->data['ug_details']){
                 $this->data['course_level'] = 'ug';
             } elseif($this->data['pg_details']){
@@ -843,6 +872,10 @@ class Welcome extends Front_Controller
                 $this->data['course_level'] = 'lateral';
             } else {
                 $this->data['course_level'] = '';
+            }
+
+            if ($this->data['course_level'] === '' && ($this->data['total_maths'] !== null || $this->data['total_physics'] !== null || $this->data['total_chemistry'] !== null)) {
+                $this->data['course_level'] = 'ug';
             }
             
             if ($this->module_lib->hasModule('online_course')) {

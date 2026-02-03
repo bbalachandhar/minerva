@@ -176,7 +176,7 @@ if ($online_admission_payment == 'yes') {
               <h4 class="pagetitleh2"><?php echo $this->lang->line('basic_details'); ?></h4>
               <div class="col-md-3 col-lg-3 col-sm-3">
                   <div class="form-group">
-                    <label><b><?php echo $this->lang->line('class'); ?></b></label>
+                    <label><b>Courses applied</b></label>
                     <p><?php echo $class_name; ?></p>
                   </div>
               </div>
@@ -493,6 +493,170 @@ if (is_string($field_value->field_value) && is_array(json_decode($field_value->f
                       </div>
                   </div>
               <?php }?>
+          </div>
+        </div>
+        <?php }?>
+        <?php if ($course_level == 'ug' && ($total_maths !== null || $total_physics !== null || $total_chemistry !== null)) {?>
+        <div class="printcontent">
+          <div class="row">
+          <h4 class="pagetitleh2">HSC Examination Details</h4>
+          <div class="col-md-4 col-lg-4 col-sm-4">
+            <div class="form-group">
+              <label><b>Maths (M) - Marks Obtained</b></label>
+              <p><?php echo ($maths_marks !== null) ? $maths_marks : "--"; ?></p>
+            </div>
+          </div>
+          <div class="col-md-4 col-lg-4 col-sm-4">
+            <div class="form-group">
+              <label><b>Maths (M) - Maximum Marks</b></label>
+              <p><?php echo ($total_maths !== null) ? $total_maths : "--"; ?></p>
+            </div>
+          </div>
+          <div class="col-md-4 col-lg-4 col-sm-4">
+            <div class="form-group">
+              <label><b>Maths (M) - Percentage</b></label>
+              <p><?php echo ($maths_perc !== null) ? $maths_perc : "--"; ?></p>
+            </div>
+          </div>
+
+          <div class="col-md-4 col-lg-4 col-sm-4">
+            <div class="form-group">
+              <label><b>Physics (P) - Marks Obtained</b></label>
+              <p><?php echo ($physics_marks !== null) ? $physics_marks : "--"; ?></p>
+            </div>
+          </div>
+          <div class="col-md-4 col-lg-4 col-sm-4">
+            <div class="form-group">
+              <label><b>Physics (P) - Maximum Marks</b></label>
+              <p><?php echo ($total_physics !== null) ? $total_physics : "--"; ?></p>
+            </div>
+          </div>
+          <div class="col-md-4 col-lg-4 col-sm-4">
+            <div class="form-group">
+              <label><b>Physics (P) - Percentage</b></label>
+              <p><?php echo ($physics_perc !== null) ? $physics_perc : "--"; ?></p>
+            </div>
+          </div>
+
+          <div class="col-md-4 col-lg-4 col-sm-4">
+            <div class="form-group">
+              <label><b>Chemistry (C) - Marks Obtained</b></label>
+              <p><?php echo ($chemistry_marks !== null) ? $chemistry_marks : "--"; ?></p>
+            </div>
+          </div>
+          <div class="col-md-4 col-lg-4 col-sm-4">
+            <div class="form-group">
+              <label><b>Chemistry (C) - Maximum Marks</b></label>
+              <p><?php echo ($total_chemistry !== null) ? $total_chemistry : "--"; ?></p>
+            </div>
+          </div>
+          <div class="col-md-4 col-lg-4 col-sm-4">
+            <div class="form-group">
+              <label><b>Chemistry (C) - Percentage</b></label>
+              <p><?php echo ($chemistry_perc !== null) ? $chemistry_perc : "--"; ?></p>
+            </div>
+          </div>
+
+          <div class="col-md-6 col-lg-6 col-sm-6">
+            <div class="form-group">
+              <label><b>Average Marks (P+C+M)/3</b></label>
+              <p><?php echo ($average_marks !== null) ? $average_marks : "--"; ?></p>
+            </div>
+          </div>
+          <div class="col-md-6 col-lg-6 col-sm-6">
+            <div class="form-group">
+              <label><b>Cut Off Marks (P+C)/2 + M</b></label>
+              <p><?php echo ($cutoff_marks !== null) ? $cutoff_marks : "--"; ?></p>
+            </div>
+          </div>
+          </div>
+        </div>
+        <?php }?>
+
+        <?php if (!empty($reference_details)) {?>
+        <div class="printcontent">
+          <div class="row">
+          <h4 class="pagetitleh2">REFERENCES DETAILS (OPTIONAL)</h4>
+          <div class="col-md-4 col-lg-4 col-sm-4">
+            <div class="form-group">
+              <label><b>Referrer Name</b></label>
+              <p><?php echo isset($reference_details['referrer_name']) ? $reference_details['referrer_name'] : "--"; ?></p>
+            </div>
+          </div>
+          <div class="col-md-4 col-lg-4 col-sm-4">
+            <div class="form-group">
+              <label><b>Relationship</b></label>
+              <p><?php echo isset($reference_details['relationship']) ? $reference_details['relationship'] : "--"; ?></p>
+            </div>
+          </div>
+          <div class="col-md-4 col-lg-4 col-sm-4">
+            <div class="form-group">
+              <label><b>Phone No.</b></label>
+              <p><?php echo isset($reference_details['phone_no']) ? $reference_details['phone_no'] : "--"; ?></p>
+            </div>
+          </div>
+          </div>
+        </div>
+        <?php }?>
+
+        <?php if ($course_level == 'pg' && $pg_details) {?>
+        <div class="printcontent">
+          <div class="row">
+          <h4 class="pagetitleh2">PG Applicant UG Details</h4>
+          <div class="col-md-4 col-lg-4 col-sm-4">
+            <div class="form-group">
+              <label><b>PG Course ID</b></label>
+              <p><?php echo isset($pg_details['pg_course_id']) ? $pg_details['pg_course_id'] : "--"; ?></p>
+            </div>
+          </div>
+          <div class="col-md-4 col-lg-4 col-sm-4">
+            <div class="form-group">
+              <label><b>Qualifying Exam Passed</b></label>
+              <p><?php echo isset($pg_details['qualifying_exam']) ? $pg_details['qualifying_exam'] : "--"; ?></p>
+            </div>
+          </div>
+          <div class="col-md-4 col-lg-4 col-sm-4">
+            <div class="form-group">
+              <label><b>Branch</b></label>
+              <p><?php echo isset($pg_details['branch']) ? $pg_details['branch'] : "--"; ?></p>
+            </div>
+          </div>
+          <div class="col-md-4 col-lg-4 col-sm-4">
+            <div class="form-group">
+              <label><b>Year of Passing</b></label>
+              <p><?php echo isset($pg_details['year_of_passing']) ? $pg_details['year_of_passing'] : "--"; ?></p>
+            </div>
+          </div>
+          <div class="col-md-4 col-lg-4 col-sm-4">
+            <div class="form-group">
+              <label><b>Name of College</b></label>
+              <p><?php echo isset($pg_details['college_name']) ? $pg_details['college_name'] : "--"; ?></p>
+            </div>
+          </div>
+          <div class="col-md-4 col-lg-4 col-sm-4">
+            <div class="form-group">
+              <label><b>Name of University</b></label>
+              <p><?php echo isset($pg_details['university_name']) ? $pg_details['university_name'] : "--"; ?></p>
+            </div>
+          </div>
+          <div class="col-md-4 col-lg-4 col-sm-4">
+            <div class="form-group">
+              <label><b>TANCET / PGETA Application No</b></label>
+              <p><?php echo isset($pg_details['tancet_pgeta_app_no']) ? $pg_details['tancet_pgeta_app_no'] : "--"; ?></p>
+            </div>
+          </div>
+          <div class="col-md-4 col-lg-4 col-sm-4">
+            <div class="form-group">
+              <label><b>TANCET / PGETA Exam Year</b></label>
+              <p><?php echo isset($pg_details['tancet_pgeta_year']) ? $pg_details['tancet_pgeta_year'] : "--"; ?></p>
+            </div>
+          </div>
+          <div class="col-md-4 col-lg-4 col-sm-4">
+            <div class="form-group">
+              <label><b>TANCET / PGETA Score</b></label>
+              <p><?php echo isset($pg_details['tancet_pgeta_score']) ? $pg_details['tancet_pgeta_score'] : "--"; ?></p>
+            </div>
+          </div>
           </div>
         </div>
         <?php }?>

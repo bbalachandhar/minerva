@@ -166,6 +166,8 @@
                     <div class="col-md-4"><p><span class="data-label">Aadhaar Number:</span> <span class="data-value"><?php echo $adhar_no; ?></span></p></div>
                     <div class="col-md-4"><p><span class="data-label">Communication Address:</span> <span class="data-value"><?php echo $current_address; ?></span></p></div>
                     <div class="col-md-4"><p><span class="data-label">Permanent Address:</span> <span class="data-value"><?php echo $permanent_address; ?></span></p></div>
+                    <div class="col-md-4"><p><span class="data-label">State:</span> <span class="data-value"><?php echo $state; ?></span></p></div>
+                    <div class="col-md-4"><p><span class="data-label">City:</span> <span class="data-value"><?php echo $city; ?></span></p></div>
                 </div>
             </div>
 
@@ -186,34 +188,57 @@
             </div>
             <?php endif; ?>
 
-            <?php if ($course_level == 'ug' && $ug_details): ?>
+            <?php if ($course_level == 'ug' && ($ug_details || $total_maths !== null || $total_physics !== null || $total_chemistry !== null)): ?>
             <div class="section-card">
-                <h5 class="mb-3">UNDERGRADUATE DETAILS</h5>
+                <h5 class="mb-3">COURSE DETAILS</h5>
                 <div class="row">
-                    <div class="col-md-6">
-                        <?php
-                        $course_id = $ug_details['ug_course_id'];
-                        $course_name = isset($courses[$course_id]) ? $courses[$course_id] : 'Unknown Course';
+                    <div class="col-md-12">
+                        <?php 
+                        $course_name = 'Not Selected';
+                        if (isset($ug_course_id) && $ug_course_id && isset($course_names[$ug_course_id])) {
+                            $course_name = $course_names[$ug_course_id];
+                        }
                         ?>
-                        <p><span class="data-label">Courses Offered:</span> <span class="data-value"><?php echo $course_name; ?></span></p>
-                    </div>
-                    <div class="col-md-6">
-                        <p><span class="data-label">Name of the school of X std:</span> <span class="data-value"><?php echo $ug_details['school_name_x']; ?></span></p>
-                    </div>
-                    <div class="col-md-6">
-                        <p><span class="data-label">Year of passing of X std:</span> <span class="data-value"><?php echo $ug_details['passing_year_x']; ?></span></p>
+                        <p><span class="data-label">Courses applied:</span> <span class="data-value"><?php echo $course_name; ?></span></p>
                     </div>
                 </div>
             </div>
             <div class="section-card">
                 <h5 class="mb-3">HSC Examination Details</h5>
+                <?php
+                $hsc_details = $ug_details ? $ug_details : array(
+                    'maths_marks' => $maths_marks,
+                    'total_maths' => $total_maths,
+                    'maths_perc' => $maths_perc,
+                    'physics_marks' => $physics_marks,
+                    'total_physics' => $total_physics,
+                    'physics_perc' => $physics_perc,
+                    'chemistry_marks' => $chemistry_marks,
+                    'total_chemistry' => $total_chemistry,
+                    'chemistry_perc' => $chemistry_perc,
+                    'average_marks' => $average_marks,
+                    'cutoff_marks' => $cutoff_marks,
+                );
+                ?>
                 <table class="table table-bordered">
-                    <thead><tr><th>Subject</th><th>Marks Obtained</th><th>Maximum Marks</th></tr></thead>
+                    <thead><tr><th>Subject</th><th>Marks Obtained</th><th>Maximum Marks</th><th>Percentage</th></tr></thead>
                     <tbody>
-                        <tr><td>Maths</td><td><?php echo $ug_details['maths_marks']; ?></td><td><?php echo $ug_details['total_maths']; ?></td></tr>
-                        <tr><td>Physics & Chemistry</td><td><?php echo $ug_details['physics_marks']; ?></td><td><?php echo $ug_details['total_physics']; ?></td></tr>
+                        <tr><td>Maths (M)</td><td><?php echo $hsc_details['maths_marks']; ?></td><td><?php echo $hsc_details['total_maths']; ?></td><td><?php echo $hsc_details['maths_perc']; ?>%</td></tr>
+                        <tr><td>Physics (P)</td><td><?php echo $hsc_details['physics_marks']; ?></td><td><?php echo $hsc_details['total_physics']; ?></td><td><?php echo $hsc_details['physics_perc']; ?>%</td></tr>
+                        <tr><td>Chemistry (C)</td><td><?php echo $hsc_details['chemistry_marks']; ?></td><td><?php echo $hsc_details['total_chemistry']; ?></td><td><?php echo $hsc_details['chemistry_perc']; ?>%</td></tr>
                     </tbody>
                 </table>
+            </div>
+            <div class="section-card">
+                <h5 class="mb-3">Calculated Values</h5>
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><span class="data-label">Average Marks (P+C+M)/3:</span> <span class="data-value"><?php echo $hsc_details['average_marks']; ?></span></p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><span class="data-label">Cut Off Marks (P+C)/2 + M:</span> <span class="data-value"><?php echo $hsc_details['cutoff_marks']; ?></span></p>
+                    </div>
+                </div>
             </div>
                 <?php if ($nata_details): ?>
                 <div class="section-card">

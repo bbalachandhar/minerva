@@ -16,12 +16,12 @@ $currency_symbol = $admin_session['currency_symbol'];
                        <h3 class="box-title titlefix"><?php echo $this->lang->line('online_admission'); ?></h3>
                     </div>
                     <ul class="nav nav-tabs">
-                        <li class="active"><a href="#tab_1" data-toggle="tab"><?php echo $this->lang->line('online_admission_form_setting'); ?></a></li>
+                        <li><a href="#tab_1" data-toggle="tab"><?php echo $this->lang->line('online_admission_form_setting'); ?></a></li>
                         <li><a href="#tab_2" data-toggle="tab"><?php echo $this->lang->line('online_admission_fields_setting'); ?></a></li>
                         <li><a href="#tab_3" data-toggle="tab"><?php echo $this->lang->line('admission_courses'); ?></a></li>
                     </ul>
                     <div class="tab-content">
-                        <div class="tab-pane active" id="tab_1">
+                        <div class="tab-pane" id="tab_1">
                             <?php if ($this->session->flashdata('msg')) {
     ?>
                                         <?php
@@ -30,6 +30,7 @@ echo $this->session->flashdata('msg');
     ?>
                                     <?php }?>
                             <form action="<?php echo site_url('admin/onlineadmission/admissionsetting') ?>" method="post" id="form1" accept-charset="utf-8" enctype="multipart/form-data">
+                                <input type="hidden" name="active_tab" id="active_tab" value="tab_1">
                                 <div class="row">
                                         <label class="col-lg-3 col-md-4 col-sm-5 control-label"><?php echo $this->lang->line('online_admission'); ?></label>
                                         <div class="col-lg-9 col-md-8 col-sm-7">
@@ -224,7 +225,9 @@ if (!empty($custom_fields)) {
                         </div>
 
                         <div class="tab-pane" id="tab_3">
-                           <iframe src="<?php echo admin_url('onlineadmission/admissioncourses'); ?>?iframe=true" width="100%" frameborder="0" height="800px"></iframe>
+                            <div class="content" style="padding: 15px 0;">
+                                <?php $this->load->view('admin/onlineadmission/admissioncourses/tab_content'); ?>
+                            </div>
                         </div>
                     </div>
                     <!-- /.tab-content -->
@@ -477,4 +480,17 @@ function findSelected($inserted_fields, $find)
             $("#submitbtn").button('loading');
         });
     })
+
+    $(document).ready(function () {
+        var hash = window.location.hash;
+        if (hash) {
+            $('a[href="' + hash + '"]').tab('show');
+            $('#active_tab').val(hash.replace('#', ''));
+        }
+
+        $('a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
+            var target = $(e.target).attr("href");
+            $('#active_tab').val(target.replace('#', ''));
+        });
+    });
 </script>

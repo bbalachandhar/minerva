@@ -1456,6 +1456,22 @@ class PublicAdmissionForm extends CI_Controller
                 'paid_status' => 0, // 0 for unpaid, 1 for paid
             );
 
+            // Add HSC marks for UG applicants (coming from school)
+            if ($courseLevel == 'ug') {
+                $insert_data_online_admission['total_maths'] = $data['total_maths'];
+                $insert_data_online_admission['maths_marks'] = $data['maths_marks'];
+                $insert_data_online_admission['maths_perc'] = $data['maths_perc'];
+                $insert_data_online_admission['total_physics'] = $data['total_physics'];
+                $insert_data_online_admission['physics_marks'] = $data['physics_marks'];
+                $insert_data_online_admission['physics_perc'] = $data['physics_perc'];
+                $insert_data_online_admission['total_chemistry'] = $data['total_chemistry'];
+                $insert_data_online_admission['chemistry_marks'] = $data['chemistry_marks'];
+                $insert_data_online_admission['chemistry_perc'] = $data['chemistry_perc'];
+                $insert_data_online_admission['average_marks'] = $data['average_marks'];
+                $insert_data_online_admission['cutoff_marks'] = $data['cutoff_marks'];
+                $insert_data_online_admission['ug_course_id'] = $data['ug_course'];
+            }
+
             $online_admission_id = $this->onlinestudent_model->add($insert_data_online_admission);
 
             // Update enquiry status only when a valid enquiry_id is provided
@@ -1476,22 +1492,9 @@ class PublicAdmissionForm extends CI_Controller
             }
 
             if ($courseLevel == 'ug') {
-                $insert_ug_data = array(
-                    'online_admission_id' => $online_admission_id,
-                    'ug_course_id' => $data['ug_course'],
-                    'school_name_x' => $data['school_name'],
-                    'passing_year_x' => $data['tenth_passing'],
-                    'maths_marks' => $data['maths_marks'],
-                    'total_maths' => $data['total_maths'],
-                    'physics_marks' => $data['physics_marks'],
-                    'total_physics' => $data['total_physics'],
-                    'chemistry_marks' => $data['chemistry_marks'],
-                    'total_chemistry' => $data['total_chemistry'],
-                    'chemistry_perc' => $data['chemistry_perc'],
-                    'average_marks' => $data['average_marks'],
-                    'cutoff_marks' => $data['cutoff_marks'],
-                );
-                $this->Online_admission_ug_details_model->add($insert_ug_data);
+                // HSC marks already saved to online_admissions table above
+                // online_admission_ug_details table is for PG applicants' UG degree info
+                // So we don't insert into online_admission_ug_details for UG applicants
 
                 if ($data['ug_course'] == 1) { // B.Arch course ID
                     $insert_nata_data = array(
@@ -1887,6 +1890,21 @@ class PublicAdmissionForm extends CI_Controller
                 'paid_status' => 0, // 0 for unpaid, 1 for paid
             ); // Correct closing of array
 
+            // Add HSC marks for UG applicants (coming from school)
+            if ($courseLevel == 'ug') {
+                $insert_data_online_admission['total_maths'] = $data['total_maths'];
+                $insert_data_online_admission['maths_marks'] = $data['maths_marks'];
+                $insert_data_online_admission['maths_perc'] = $data['maths_perc'];
+                $insert_data_online_admission['total_physics'] = $data['total_physics'];
+                $insert_data_online_admission['physics_marks'] = $data['physics_marks'];
+                $insert_data_online_admission['physics_perc'] = $data['physics_perc'];
+                $insert_data_online_admission['total_chemistry'] = $data['total_chemistry'];
+                $insert_data_online_admission['chemistry_marks'] = $data['chemistry_marks'];
+                $insert_data_online_admission['chemistry_perc'] = $data['chemistry_perc'];
+                $insert_data_online_admission['average_marks'] = $data['average_marks'];
+                $insert_data_online_admission['cutoff_marks'] = $data['cutoff_marks'];
+            }
+
             $online_admission_id = $this->onlinestudent_model->add($insert_data_online_admission);
 
             // Update enquiry status only when a valid enquiry_id is provided
@@ -1906,6 +1924,9 @@ class PublicAdmissionForm extends CI_Controller
             }
 
             if ($courseLevel == 'ug') {
+                // HSC marks already saved to online_admissions table above
+                // online_admission_ug_details is for PG applicants' UG degree info
+                /*
                 $this->Online_admission_ug_details_model->add([
                     'online_admission_id' => $online_admission_id,
                     'ug_course_id' => $data['ug_course'],
@@ -1918,6 +1939,7 @@ class PublicAdmissionForm extends CI_Controller
                     'average_marks' => $data['average_marks'],
                     'cutoff_marks' => $data['cutoff_marks'],
                 ]);
+                */
                 if ($data['ug_course'] == 1) { // B.Arch course ID
                     $this->Online_admission_nata_details_model->add([
                         'online_admission_id' => $online_admission_id,

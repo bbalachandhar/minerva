@@ -71,4 +71,47 @@ class Onlineadmissioncourses_model extends MY_Model
             return true;
         }
     }
+
+    /**
+     * Validation callback for checking if course name exists (excluding current record during edit)
+     */
+    public function valid_check_exists($str)
+    {
+        $id = $this->input->post('id');
+        if ($id) {
+            // During edit, exclude current record
+            $this->db->where('id !=', $id);
+        }
+        $this->db->where('course_name', $str);
+        $query = $this->db->get('online_admission_courses');
+        
+        if ($query->num_rows() > 0) {
+            return FALSE;
+        }
+        return TRUE;
+    }
+
+    /**
+     * Validation callback for checking if course code exists (excluding current record during edit)
+     */
+    public function valid_check_exists_code($str)
+    {
+        if (empty($str)) {
+            // Course code is optional
+            return TRUE;
+        }
+        
+        $id = $this->input->post('id');
+        if ($id) {
+            // During edit, exclude current record
+            $this->db->where('id !=', $id);
+        }
+        $this->db->where('course_code', $str);
+        $query = $this->db->get('online_admission_courses');
+        
+        if ($query->num_rows() > 0) {
+            return FALSE;
+        }
+        return TRUE;
+    }
 }
