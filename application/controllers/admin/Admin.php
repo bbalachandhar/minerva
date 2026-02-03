@@ -96,6 +96,7 @@ class Admin extends Admin_Controller
 
     public function dashboard()
     {
+        log_message('debug', 'DASHBOARD: Dashboard function called');
         $data['fees_awaiting_total_net_balance'] = 0;
         
         $role            = $this->customlib->getStaffRole();
@@ -244,6 +245,13 @@ class Admin extends Admin_Controller
         }
 
         $data['days_expense']        = $days_expense;
+        
+        // Debug output
+        log_message('debug', 'DASHBOARD: Days Expense Array: ' . json_encode($days_expense));
+        log_message('debug', 'DASHBOARD: Days Collection Array: ' . json_encode($days_collection));
+        log_message('debug', 'DASHBOARD: Month Days Array: ' . json_encode($month_days));
+        log_message('debug', 'DASHBOARD: Current Month Days Count: ' . count($month_days) . ' Expense Count: ' . count($days_expense) . ' Collection Count: ' . count($days_collection));
+        
         $student_fee_history         = $this->studentfee_model->getTodayStudentFees();
         $data['student_fee_history'] = $student_fee_history;
 
@@ -572,6 +580,8 @@ class Admin extends Admin_Controller
         } else {
             $data['std_graphclass'] = "col-lg-4 col-md-6 col-sm-6";
         }
+
+        log_message('debug', 'DASHBOARD_VIEW: Before rendering - days_expense=' . json_encode($data['days_expense']) . ' days_collection=' . json_encode($data['days_collection']));
 
         $this->load->view('layout/header', $data);
         $this->load->view('admin/dashboard', $data);
