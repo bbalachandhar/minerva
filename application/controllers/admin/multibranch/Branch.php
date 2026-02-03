@@ -498,14 +498,26 @@ class Branch extends MY_Addon_MBController
     {
         $data          = array();
         $active_branch = "";
-        if (!is_null(get_cookie('branch_cookie'))) {
+        $branch_cookie = get_cookie('branch_cookie');
+        if (!is_null($branch_cookie) && $branch_cookie !== '') {
 
-            $active_branch = get_cookie('branch_cookie');
-            $active_branch = str_replace("branch_", "", $active_branch);
-        } else {
-            
+            if ($branch_cookie === 'default') {
                 $active_branch = 0;
-           
+            } else {
+                $active_branch = str_replace("branch_", "", $branch_cookie);
+            }
+        } else {
+            $admin_userdata = $this->session->userdata('admin');
+            if (is_array($admin_userdata) && isset($admin_userdata['db_array']['db_group'])) {
+                $db_group = $admin_userdata['db_array']['db_group'];
+                if ($db_group === 'default') {
+                    $active_branch = 0;
+                } else {
+                    $active_branch = str_replace("branch_", "", $db_group);
+                }
+            } else {
+                $active_branch = 0;
+            }
         }
 
         $data['active_branch'] = $active_branch;
@@ -547,17 +559,26 @@ class Branch extends MY_Addon_MBController
     }
 
     public function switch_branch() {
-
             $select_branch = $this->input->post('branch');
             $expire        = (60 * 60 * 24 * 365 * 2); //2 Year
 
+            if ($select_branch === null || $select_branch === '') {
+                echo json_encode(array('status' => '0', 'error' => '', 'message' => $this->lang->line('no_record_found')));
+                return;
+            }
+
             if ($select_branch != 0) {
                 $branch = $this->multibranch_model->get($select_branch);
+                if (empty($branch) || empty($branch->id)) {
+                    echo json_encode(array('status' => '0', 'error' => '', 'message' => $this->lang->line('no_record_found')));
+                    return;
+                }
                 $branch_group = 'branch_' . $branch->id;
                 set_cookie(array(
                     'name'   => 'branch_cookie',
                     'value'  => 'branch_' . $branch->id,
                     'expire' => $expire,
+                    'path'   => '/',
                 ));
             } else {
                 $branch_group = 'default';
@@ -565,19 +586,44 @@ class Branch extends MY_Addon_MBController
                     'name'   => 'branch_cookie',
                     'value'  => 'default',
                     'expire' => $expire,
+                    'path'   => '/',
                 ));
-                 
             }
-            $this->new_db  = $this->load->database($branch_group, TRUE);
 
-                $this->new_db->select('sch_settings.id,sch_settings.base_url,sch_settings.folder_path');
-                $this->new_db->from('sch_settings');
-                $query = $this->new_db->get();
-                $db= $query->row();
+            $this->new_db = $this->load->database($branch_group, TRUE);
+            if (!$this->new_db || $this->new_db->conn_id === false) {
+                echo json_encode(array('status' => '0', 'error' => '', 'message' => $this->lang->line('something_went_wrong')));
+                return;
+            }
 
-            $this->session->userdata['admin']['db_array']['db_group']    = $branch_group;
-            $this->session->userdata['admin']['db_array']['base_url']    = $db->base_url;
-            $this->session->userdata['admin']['db_array']['folder_path'] = $db->folder_path;
+            if (!$this->new_db->table_exists('sch_settings')) {
+                echo json_encode(array('status' => '0', 'error' => '', 'message' => $this->lang->line('something_went_wrong')));
+                return;
+            }
+
+            $this->new_db->select('sch_settings.id,sch_settings.base_url,sch_settings.folder_path');
+            $this->new_db->from('sch_settings');
+            $query = $this->new_db->get();
+            $db    = $query ? $query->row() : null;
+
+            if (empty($db)) {
+                $default_setting = $this->setting_model->getSchoolDetail();
+                $db = new stdClass();
+                $db->base_url    = !empty($default_setting->base_url) ? $default_setting->base_url : base_url();
+                $db->folder_path = !empty($default_setting->folder_path) ? $default_setting->folder_path : FCPATH;
+            }
+
+            $admin_userdata = $this->session->userdata('admin');
+            if (!is_array($admin_userdata)) {
+                $admin_userdata = array();
+            }
+            if (!isset($admin_userdata['db_array']) || !is_array($admin_userdata['db_array'])) {
+                $admin_userdata['db_array'] = array();
+            }
+            $admin_userdata['db_array']['db_group']    = $branch_group;
+            $admin_userdata['db_array']['base_url']    = $db->base_url;
+            $admin_userdata['db_array']['folder_path'] = $db->folder_path;
+            $this->session->set_userdata('admin', $admin_userdata);
 
             //==================
             $array = array('status' => '1', 'error' => '', 'message' => $this->lang->line('success_message'));
