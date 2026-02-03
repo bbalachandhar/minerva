@@ -875,7 +875,7 @@ $lang['fee_type'] = "Fee Type";
 $lang['transferred'] = "Transferred";$lang['feedback'] = "Feedback";	
 $lang['feegroup_combination_already_exists'] = "Fee Group combination already exists"; 	
 $lang['fees'] = "Fees";	
-$lang['fees_awaiting_payment'] = "Fees Awaiting Payment";	
+$lang['fees_awaiting_payment'] = "Fees Awaiting";	
 $lang['fees_carry_forward'] = "Fees Carry Forward";	
 $lang['fees_category'] = "Fees Category";	
 $lang['fees_code'] = "Fees Code";	
