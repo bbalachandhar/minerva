@@ -148,19 +148,6 @@
             }
         </style>
 <div class="content-wrapper">
-    <form method="get" action="">
-        <div style="margin: 10px 0;">
-            <label for="dashboard_session_id"><b>Current Session:</b></label>
-            <select name="dashboard_session_id" id="dashboard_session_id" onchange="this.form.submit()" style="display:inline-block; width:auto;">
-                <?php if (isset($dashboard_sessions)) {
-                    foreach ($dashboard_sessions as $sess) { ?>
-                        <option value="<?php echo $sess['id']; ?>" <?php if ($dashboard_selected_session_id == $sess['id']) echo 'selected'; ?>>
-                            <?php echo htmlspecialchars($sess['session']); ?>
-                        </option>
-                <?php }} ?>
-            </select>
-        </div>
-    </form>
     <section class="content">
         <div class="">
             <?php if (ENVIRONMENT != 'production') { ?>
