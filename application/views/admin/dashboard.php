@@ -778,9 +778,6 @@ if ($this->module_lib->hasActive('expense')) {
             <div class="col-md-2 col-sm-6 mb10">
                 <div class="topprograssstart flex-card">
                     <h5 class="pro-border"><?php echo $this->lang->line('student_head_count'); ?> <span class="pull-right" style="font-size: 18px; font-weight: bold;"><?php echo isset($total_students_heads) ? $total_students_heads : 0; ?></span></h5>
-                    <?php
-                        $mf_sum = (int)$male_students + (int)$female_students;
-                    ?>
                     <p class="text-uppercase mt10 clearfix" style="font-size: 12px;">
                         <i class="fa fa-male" style="color: #3c8dbc;"></i> Male: <?php echo isset($male_students) ? $male_students : 0; ?> <span class="pull-right"><?php echo (isset($total_students_heads) && $total_students_heads > 0) ? round(($male_students * 100 / $total_students_heads), 2) : 0; ?>%</span>
                     </p>
@@ -797,49 +794,16 @@ if ($this->module_lib->hasActive('expense')) {
                             <div class="progress-bar progress-bar-red" style="width: <?php echo (isset($total_students_heads) && $total_students_heads > 0) ? ($female_students * 100 / $total_students_heads) : 0; ?>%"></div>
                         </div>
                     </div>
-                    <p class="text-uppercase mt10 clearfix" style="font-size: 12px; font-weight:bold;">
-                        Male + Female Subtotal: <?php echo $mf_sum; ?>
-                    </p>
                     <?php if (isset($other_students) && $other_students > 0) { ?>
-                    <p class="text-uppercase mt10 clearfix" style="font-size: 12px;">
-                        Other: <?php echo $other_students; ?>
-                    </p>
-                    <div class="progress-group">
-                        <div class="progress progress-minibar">
-                            <div class="progress-bar progress-bar-yellow" style="width: <?php echo ($total_students_heads > 0) ? ($other_students * 100 / $total_students_heads) : 0; ?>%"></div>
-                        </div>
-                    </div>
-                    <?php } ?>
-                    <?php if (isset($unspecified_students) && $unspecified_students > 0) { ?>
-                    <p class="text-uppercase mt10 clearfix" style="font-size: 12px;">
-                        <i class="fa fa-question-circle" style="color: #999;"></i> Not Specified: <?php echo $unspecified_students; ?>
-                    </p>
-                    <div class="progress-group">
-                        <div class="progress progress-minibar">
-                            <div class="progress-bar" style="background-color: #999; width: <?php echo ($total_students_heads > 0) ? ($unspecified_students * 100 / $total_students_heads) : 0; ?>%"></div>
-                        </div>
-                    </div>
-                    <?php } ?>
-                    <p class="text-uppercase mt10 clearfix" style="font-size: 12px; font-weight:bold;">
-                        Male + Female Total: <?php echo $mf_sum; ?>
-                    </p>
-                    <?php if (isset($other_students) && $other_students > 0) { ?>
-                    <p class="text-uppercase mt10 clearfix" style="font-size: 12px;">
-                        Other: <?php echo $other_students; ?>
-                    </p>
-                    <div class="progress-group">
-                        <div class="progress progress-minibar">
-                            <div class="progress-bar progress-bar-yellow" style="width: <?php echo ($total_students_heads > 0) ? ($other_students * 100 / $total_students_heads) : 0; ?>%"></div>
-                        </div>
-                    </div>
-                    <?php } ?>
-                    <?php if (isset($unspecified_students) && $unspecified_students > 0) { ?>
-                    <p class="text-uppercase mt10 clearfix" style="font-size: 12px;">
-                        <i class="fa fa-question-circle" style="color: #999;"></i> Not Specified: <?php echo $unspecified_students; ?>
-                    </p>
-                    <div class="progress-group">
-                        <div class="progress progress-minibar">
-                            <div class="progress-bar" style="background-color: #999; width: <?php echo ($total_students_heads > 0) ? ($unspecified_students * 100 / $total_students_heads) : 0; ?>%"></div>
+                    <div class="widget-others-under-female" style="margin-top: 10px;">
+                        <p class="text-uppercase mt10 clearfix" style="font-size: 12px;">
+                            <i class="fa fa-genderless" style="color: #f39c12;"></i> Others: <?php echo $other_students; ?>
+                            <span class="pull-right"><?php echo (isset($total_students_heads) && $total_students_heads > 0) ? round(($other_students * 100 / $total_students_heads), 2) : 0; ?>%</span>
+                        </p>
+                        <div class="progress-group">
+                            <div class="progress progress-minibar">
+                                <div class="progress-bar progress-bar-yellow" style="width: <?php echo ($total_students_heads > 0) ? ($other_students * 100 / $total_students_heads) : 0; ?>%"></div>
+                            </div>
                         </div>
                     </div>
                     <?php } ?>
