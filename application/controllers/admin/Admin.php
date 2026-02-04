@@ -151,9 +151,52 @@ class Admin extends Admin_Controller
         $data['month_collection'] = $month_collection+$month_transport_collection;
 
 
-        $tot_head_students = $this->studentsession_model->getTotalHeadCountBySession();
-        $total_students = count($tot_head_students);
-        $data['total_students'] = $total_students;
+        // Use search page logic for student, male, female counts (with session filter)
+        $this->load->model('Session_model');
+        $sessions = $this->Session_model->get();
+        $selected_session_id = $this->input->get_post('dashboard_session_id');
+        if (!$selected_session_id) {
+            $selected_session_id = $this->setting_model->getCurrentSession();
+        }
+        $data['dashboard_sessions'] = $sessions;
+        $data['dashboard_selected_session_id'] = $selected_session_id;
+
+        // Get all students for selected session
+        $students = $this->Student_model->getStudentsBySession($selected_session_id);
+        $total_students_heads = count($students);
+        $male_students = 0;
+        $female_students = 0;
+        $other_students = 0;
+        $unspecified_students = 0;
+        $extra_students = array();
+        foreach ($students as $student) {
+            $gender = strtolower(trim($student['gender']));
+            if ($gender === 'male') $male_students++;
+            else if ($gender === 'female') $female_students++;
+            else {
+                if ($gender === 'other') $other_students++;
+                else $unspecified_students++;
+                $extra_students[] = $student;
+            }
+        }
+        $data['total_students_heads'] = $total_students_heads;
+        $data['male_students'] = $male_students;
+        $data['female_students'] = $female_students;
+        $data['other_students'] = $other_students;
+        $data['unspecified_students'] = $unspecified_students;
+        $data['total_students'] = $total_students_heads;
+        $data['extra_students'] = $extra_students;
+
+        // DEBUG: Print all students not counted as male or female
+        $counted_ids = $counted_ids ?? [];
+        $not_counted = array_filter($students, function($stu) use ($counted_ids) {
+            return !in_array($stu['id'], $counted_ids);
+        });
+        if (count($not_counted) > 0) {
+            error_log('DASHBOARD DEBUG students not counted as male/female: ' . print_r(array_map(function($stu) {
+                return ['id' => $stu['id'], 'name' => $stu['firstname'].' '.$stu['lastname'], 'gender' => $stu['gender']];
+            }, $not_counted), true));
+        }
         $tot_roles              = $this->role_model->get();
         foreach ($tot_roles as $key => $value) {
 

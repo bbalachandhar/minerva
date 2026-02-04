@@ -1,3 +1,13 @@
+        <?php if (isset($extra_students) && count($extra_students) > 0) { ?>
+            <div class="alert alert-warning" style="margin-top:10px;">
+                <strong>Extra students (not male/female):</strong>
+                <ul style="max-height:120px;overflow:auto;">
+                    <?php foreach ($extra_students as $stu) { ?>
+                        <li><?php echo htmlspecialchars($stu['firstname'].' '.$stu['lastname'].' (ID: '.$stu['id'].', Gender: '.($stu['gender'] ?: 'Not specified').')'); ?></li>
+                    <?php } ?>
+                </ul>
+            </div>
+        <?php } ?>
 <?php $currency_symbol = $this->customlib->getSchoolCurrencyFormat();?>
 <style type="text/css">
     .borderwhite{border-top-color: #fff !important;}
@@ -138,6 +148,19 @@
             }
         </style>
 <div class="content-wrapper">
+    <form method="get" action="">
+        <div style="margin: 10px 0;">
+            <label for="dashboard_session_id"><b>Current Session:</b></label>
+            <select name="dashboard_session_id" id="dashboard_session_id" onchange="this.form.submit()" style="display:inline-block; width:auto;">
+                <?php if (isset($dashboard_sessions)) {
+                    foreach ($dashboard_sessions as $sess) { ?>
+                        <option value="<?php echo $sess['id']; ?>" <?php if ($dashboard_selected_session_id == $sess['id']) echo 'selected'; ?>>
+                            <?php echo htmlspecialchars($sess['session']); ?>
+                        </option>
+                <?php }} ?>
+            </select>
+        </div>
+    </form>
     <section class="content">
         <div class="">
             <?php if (ENVIRONMENT != 'production') { ?>
@@ -689,48 +712,65 @@ if ($this->module_lib->hasActive('expense')) {
             }
         }
         
-        if ($this->rbac->hasPrivilege('student_head_count_widget', 'can_view')) {  ?>
-                            <div class="col-md-2 col-sm-6 mb10">
-                                <div class="topprograssstart flex-card">
-                                    <h5 class="pro-border"><?php echo $this->lang->line('student_head_count'); ?> <span class="pull-right" style="font-size: 18px; font-weight: bold;"><?php echo $total_students_heads; ?></span></h5>
-                                    <p class="text-uppercase mt10 clearfix" style="font-size: 12px;">
-                                        <i class="fa fa-male" style="color: #3c8dbc;"></i> Male: <?php echo $male_students; ?> <span class="pull-right"><?php echo ($total_students_heads > 0) ? round(($male_students * 100 / $total_students_heads), 2) : 0; ?>%</span>
-                                    </p>
-                                    <div class="progress-group">
-                                        <div class="progress progress-minibar">
-                                            <div class="progress-bar" style="width: <?php echo ($total_students_heads > 0) ? ($male_students * 100 / $total_students_heads) : 0; ?>%"></div>
-                                        </div>
-                                    </div>
-                                    <p class="text-uppercase mt10 clearfix" style="font-size: 12px;">
-                                        <i class="fa fa-female" style="color: #dd4b39;"></i> Female: <?php echo $female_students; ?> <span class="pull-right"><?php echo ($total_students_heads > 0) ? round(($female_students * 100 / $total_students_heads), 2) : 0; ?>%</span>
-                                    </p>
-                                    <div class="progress-group">
-                                        <div class="progress progress-minibar">
-                                            <div class="progress-bar progress-bar-red" style="width: <?php echo ($total_students_heads > 0) ? ($female_students * 100 / $total_students_heads) : 0; ?>%"></div>
-                                        </div>
-                                    </div>
-                                    <?php if ($other_students > 0) { ?>
-                                    <p class="text-uppercase mt10 clearfix" style="font-size: 12px;">
-                                        Other: <?php echo $other_students; ?>
-                                    </p>
-                                    <div class="progress-group">
-                                        <div class="progress progress-minibar">
-                                            <div class="progress-bar progress-bar-yellow" style="width: <?php echo ($total_students_heads > 0) ? ($other_students * 100 / $total_students_heads) : 0; ?>%"></div>
-                                        </div>
-                                    </div>
-                                    <?php } ?>
-                                    <?php if (!empty($unspecified_students) && $unspecified_students > 0) { ?>
-                                    <p class="text-uppercase mt10 clearfix" style="font-size: 12px;">
-                                        <i class="fa fa-question-circle" style="color: #999;"></i> Not Specified: <?php echo $unspecified_students; ?>
-                                    </p>
-                                    <div class="progress-group">
-                                        <div class="progress progress-minibar">
-                                            <div class="progress-bar" style="background-color: #999; width: <?php echo ($total_students_heads > 0) ? ($unspecified_students * 100 / $total_students_heads) : 0; ?>%"></div>
-                                        </div>
-                                    </div>
-                                    <?php } ?>
-                                </div><!--./topprograssstart-->
-                            </div><!--./col-md-2-->
+        if ($this->rbac->hasPrivilege('student_head_count_widget', 'can_view')) {
+        ?>
+            <div class="col-md-2 col-sm-6 mb10">
+                <div class="topprograssstart flex-card">
+                    <h5 class="pro-border"><?php echo $this->lang->line('student_head_count'); ?> <span class="pull-right" style="font-size: 18px; font-weight: bold;"><?php echo isset($total_students_heads) ? $total_students_heads : 0; ?></span></h5>
+                    <?php
+                        $mf_sum = (int)$male_students + (int)$female_students;
+                    ?>
+                    <?php if ($mf_sum != $total_students_heads && isset($extra_students) && count($extra_students) > 0) { ?>
+                        <div style="margin:8px 0 0 0; padding:4px; background:#fffbe6; border:1px solid #ffe58f; border-radius:4px; max-height:120px; overflow:auto; font-size:12px;">
+                            <strong>Extra students (not male/female):</strong>
+                            <ul style="margin:0 0 0 15px; padding:0;">
+                                <?php foreach ($extra_students as $stu) { ?>
+                                    <li><?php echo htmlspecialchars($stu['firstname'].' '.$stu['lastname'].' (ID: '.$stu['id'].', Gender: '.($stu['gender'] ?: 'Not specified').')'); ?></li>
+                                <?php } ?>
+                            </ul>
+                        </div>
+                    <?php } ?>
+                    <p class="text-uppercase mt10 clearfix" style="font-size: 12px;">
+                        <i class="fa fa-male" style="color: #3c8dbc;"></i> Male: <?php echo isset($male_students) ? $male_students : 0; ?> <span class="pull-right"><?php echo (isset($total_students_heads) && $total_students_heads > 0) ? round(($male_students * 100 / $total_students_heads), 2) : 0; ?>%</span>
+                    </p>
+                    <div class="progress-group">
+                        <div class="progress progress-minibar">
+                            <div class="progress-bar" style="width: <?php echo (isset($total_students_heads) && $total_students_heads > 0) ? ($male_students * 100 / $total_students_heads) : 0; ?>%"></div>
+                        </div>
+                    </div>
+                    <p class="text-uppercase mt10 clearfix" style="font-size: 12px;">
+                        <i class="fa fa-female" style="color: #dd4b39;"></i> Female: <?php echo isset($female_students) ? $female_students : 0; ?> <span class="pull-right"><?php echo (isset($total_students_heads) && $total_students_heads > 0) ? round(($female_students * 100 / $total_students_heads), 2) : 0; ?>%</span>
+                    </p>
+                    <div class="progress-group">
+                        <div class="progress progress-minibar">
+                            <div class="progress-bar progress-bar-red" style="width: <?php echo (isset($total_students_heads) && $total_students_heads > 0) ? ($female_students * 100 / $total_students_heads) : 0; ?>%"></div>
+                        </div>
+                    </div>
+                    <p class="text-uppercase mt10 clearfix" style="font-size: 12px; font-weight:bold;">
+                        Male + Female Total: <?php echo $mf_sum; ?>
+                    </p>
+                    <?php if (isset($other_students) && $other_students > 0) { ?>
+                    <p class="text-uppercase mt10 clearfix" style="font-size: 12px;">
+                        Other: <?php echo $other_students; ?>
+                    </p>
+                    <div class="progress-group">
+                        <div class="progress progress-minibar">
+                            <div class="progress-bar progress-bar-yellow" style="width: <?php echo ($total_students_heads > 0) ? ($other_students * 100 / $total_students_heads) : 0; ?>%"></div>
+                        </div>
+                    </div>
+                    <?php } ?>
+                    <?php if (isset($unspecified_students) && $unspecified_students > 0) { ?>
+                    <p class="text-uppercase mt10 clearfix" style="font-size: 12px;">
+                        <i class="fa fa-question-circle" style="color: #999;"></i> Not Specified: <?php echo $unspecified_students; ?>
+                    </p>
+                    <div class="progress-group">
+                        <div class="progress progress-minibar">
+                            <div class="progress-bar" style="background-color: #999; width: <?php echo ($total_students_heads > 0) ? ($unspecified_students * 100 / $total_students_heads) : 0; ?>%"></div>
+                        </div>
+                    </div>
+                    <?php } ?>
+                </div><!--./topprograssstart-->
+            </div><!--./col-md-2-->
         <?php } ?>
         
         <?php if ($this->module_lib->hasActive('library')) {

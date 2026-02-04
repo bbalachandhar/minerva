@@ -2028,12 +2028,20 @@ class Customlib
         $this->CI->zend->load('Zend/Barcode');
         //generate barcode
         $imageResource = Zend_Barcode::factory('code128', 'image', array('text' => $code, 'barHeight' => 20), array())->draw();
-        imagepng($imageResource, 'uploads/student_id_card/barcodes/' . $student_id. '.png');
-        $barcode = 'uploads/student_id_card/barcodes/' . $student_id. '.png';
+        $barcode_dir = 'uploads/student_id_card/barcodes/';
+        if (!is_dir($barcode_dir)) {
+            mkdir($barcode_dir, 0777, true);
+        }
+        imagepng($imageResource, $barcode_dir . $student_id. '.png');
+        $barcode = $barcode_dir . $student_id. '.png';
 
         //=============qrcode=================
         $this->CI->load->library('QR_Code');
-        $qrcode =   $this->CI->qr_code->generate('uploads/student_id_card/qrcode/',$code,$student_id);
+        $qrcode_dir = 'uploads/student_id_card/qrcode/';
+        if (!is_dir($qrcode_dir)) {
+            mkdir($qrcode_dir, 0777, true);
+        }
+        $qrcode =   $this->CI->qr_code->generate($qrcode_dir, $code, $student_id);
 
         if ($default_return_code == "barcode") {
             return $barcode;
@@ -2053,11 +2061,19 @@ class Customlib
         $this->CI->zend->load('Zend/Barcode');
         //generate barcode
         $imageResource = Zend_Barcode::factory('code128', 'image', array('text' => $code, 'barHeight' => 20), array())->draw();
-        imagepng($imageResource, 'uploads/staff_id_card/barcodes/' . $staff_id . '.png');
-        $barcode = 'uploads/staff_id_card/barcodes/' . $staff_id . '.png';
+        $barcode_dir = 'uploads/staff_id_card/barcodes/';
+        if (!is_dir($barcode_dir)) {
+            mkdir($barcode_dir, 0777, true);
+        }
+        imagepng($imageResource, $barcode_dir . $staff_id . '.png');
+        $barcode = $barcode_dir . $staff_id . '.png';
       //=============qrcode=================
       $this->CI->load->library('QR_Code');
-      $qrcode =   $this->CI->qr_code->generate('uploads/staff_id_card/qrcode/',$code,$staff_id);
+      $qrcode_dir = 'uploads/staff_id_card/qrcode/';
+      if (!is_dir($qrcode_dir)) {
+          mkdir($qrcode_dir, 0777, true);
+      }
+      $qrcode =   $this->CI->qr_code->generate($qrcode_dir, $code, $staff_id);
 
       if ($default_return_code == "barcode") {
           return $barcode;
