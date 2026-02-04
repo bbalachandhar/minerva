@@ -2868,15 +2868,33 @@ class Student_model extends MY_Model
             $session_id = $this->current_session;
         }
 
-        $this->db->select('IFNULL(students.gender, "Not Specified") as gender, COUNT(DISTINCT student_session.student_id) as count');
-        $this->db->from('student_session');
-        $this->db->join('students', 'students.id = student_session.student_id');
-        $this->db->join('classes', 'classes.id = student_session.class_id');
+        $this->db->select('students.gender');
+        $this->db->from('students');
+        $this->db->join('student_session', 'student_session.student_id = students.id');
+        $this->db->join('classes', 'student_session.class_id = classes.id');
         $this->db->join('sections', 'sections.id = student_session.section_id');
+        $this->db->join('categories', 'students.category_id = categories.id', 'left');
         $this->db->where('student_session.session_id', $session_id);
         $this->db->where('students.is_active', 'yes');
-        $this->db->where('students.disable_at IS NULL', null, false);
-        $this->db->group_by('IFNULL(students.gender, "Not Specified")');
+        $this->db->group_start();
+        $this->db->like('students.firstname', '');
+        $this->db->or_like('students.lastname', '');
+        $this->db->or_like('students.admission_no', '');
+        $this->db->group_end();
+        $this->db->order_by('students.admission_no', 'asc');
+        $query = $this->db->get();
+        $result = array('Male' => 0, 'Female' => 0, 'Other/Unspecified' => 0);
+        foreach ($query->result_array() as $row) {
+            $gender = strtolower(trim($row['gender']));
+            if ($gender === 'male' || $gender === 'm' || $gender === 'boy' || $gender === 'man') {
+                $result['Male']++;
+            } else if ($gender === 'female' || $gender === 'f' || $gender === 'girl' || $gender === 'woman') {
+                $result['Female']++;
+            } else {
+                $result['Other/Unspecified']++;
+            }
+        }
+        return $result;
         $query = $this->db->get();
         
         $result = array(

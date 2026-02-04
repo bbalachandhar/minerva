@@ -162,40 +162,26 @@ class Admin extends Admin_Controller
         $data['dashboard_selected_session_id'] = $selected_session_id;
 
         // Get all students for selected session
-        $students = $this->Student_model->getStudentsBySession($selected_session_id);
-        $total_students_heads = count($students);
-        $male_students = 0;
-        $female_students = 0;
-        $other_students = 0;
-        $unspecified_students = 0;
-        $extra_students = array();
-        foreach ($students as $student) {
-            $gender = strtolower(trim($student['gender']));
-            if ($gender === 'male') $male_students++;
-            else if ($gender === 'female') $female_students++;
-            else {
-                if ($gender === 'other') $other_students++;
-                else $unspecified_students++;
-                $extra_students[] = $student;
-            }
-        }
+        $gender_counts = $this->Student_model->getStudentCountByGender($selected_session_id);
+                log_message('debug', 'DASHBOARD DEBUG: Using session_id for head count: ' . $selected_session_id);
+            $extra_students = array(); // Always define to avoid undefined variable errors
+        $data['male_students'] = isset($gender_counts['Male']) ? $gender_counts['Male'] : 0;
+        $data['female_students'] = isset($gender_counts['Female']) ? $gender_counts['Female'] : 0;
+        $data['other_students'] = isset($gender_counts['Other/Unspecified']) ? $gender_counts['Other/Unspecified'] : 0;
+        $data['unspecified_students'] = 0; // No longer used, but kept for compatibility
+        $total_students_heads =
+            (isset($gender_counts['Male']) ? $gender_counts['Male'] : 0)
+            + (isset($gender_counts['Female']) ? $gender_counts['Female'] : 0)
+            + (isset($gender_counts['Other/Unspecified']) ? $gender_counts['Other/Unspecified'] : 0);
         $data['total_students_heads'] = $total_students_heads;
-        $data['male_students'] = $male_students;
-        $data['female_students'] = $female_students;
-        $data['other_students'] = $other_students;
-        $data['unspecified_students'] = $unspecified_students;
         $data['total_students'] = $total_students_heads;
-        $data['extra_students'] = $extra_students;
+        $data['extra_students'] = array(); // Optionally, you can fetch and display extra students if needed
 
-        // DEBUG: Print all students not counted as male or female
-        $counted_ids = $counted_ids ?? [];
-        $not_counted = array_filter($students, function($stu) use ($counted_ids) {
-            return !in_array($stu['id'], $counted_ids);
-        });
-        if (count($not_counted) > 0) {
-            error_log('DASHBOARD DEBUG students not counted as male/female: ' . print_r(array_map(function($stu) {
-                return ['id' => $stu['id'], 'name' => $stu['firstname'].' '.$stu['lastname'], 'gender' => $stu['gender']];
-            }, $not_counted), true));
+        // DEBUG: Log all extra students with their raw gender value
+        if (count($extra_students) > 0) {
+            log_message('debug', 'DASHBOARD DEBUG: Extra students (not male/female/other): ' . print_r(array_map(function($stu) {
+                return ['id' => $stu['id'], 'name' => $stu['firstname'].' '.$stu['lastname'], 'gender_raw' => $stu['gender']];
+            }, $extra_students), true));
         }
         $tot_roles              = $this->role_model->get();
         foreach ($tot_roles as $key => $value) {
@@ -609,10 +595,10 @@ class Admin extends Admin_Controller
         
         // Get student count by gender
         $gender_counts = $this->Student_model->getStudentCountByGender($current_session);
-        $data['male_students'] = $gender_counts['Male'];
-        $data['female_students'] = $gender_counts['Female'];
-        $data['other_students'] = $gender_counts['Other'];
-        $data['unspecified_students'] = $gender_counts['Not Specified'];
+        $data['male_students'] = isset($gender_counts['Male']) ? $gender_counts['Male'] : 0;
+        $data['female_students'] = isset($gender_counts['Female']) ? $gender_counts['Female'] : 0;
+        $data['other_students'] = isset($gender_counts['Other/Unspecified']) ? $gender_counts['Other/Unspecified'] : 0;
+        $data['unspecified_students'] = 0; // No longer used, but kept for compatibility
 
         if ($data['sch_setting']->attendence_type == 0) {
             $data['std_graphclass'] = "col-lg-4 col-md-6 col-sm-6";
