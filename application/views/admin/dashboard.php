@@ -673,7 +673,7 @@ if ($this->module_lib->hasActive('expense')) {
                         <p class="text-uppercase mt10 clearfix">
                             <strong><?php echo $this->lang->line('unpaid'); ?>:</strong> <span class="fo-total-unpaid fo-skeleton">0</span>
                             <span class="pull-right"><span class="fo-unpaid-progress fo-skeleton">0</span>%</span><br/>
-                            <span style="font-size:12px;color:#888;">Sum: <span class="fo-unpaid-sum fo-skeleton fo-line">0</span></span>
+                            <span style="font-size:12px;color:#888;">BAL SUM: <span class="fo-unpaid-sum fo-skeleton fo-line">0</span></span>
                         </p>
                         <div class="progress-group">
                             <div class="progress progress-minibar">
@@ -683,7 +683,7 @@ if ($this->module_lib->hasActive('expense')) {
                         <p class="text-uppercase mt10 clearfix">
                             <strong><?php echo $this->lang->line('partial'); ?>:</strong> <span class="fo-total-partial fo-skeleton">0</span>
                             <span class="pull-right"><span class="fo-partial-progress fo-skeleton">0</span>%</span><br/>
-                            <span style="font-size:12px;color:#888;">Sum: <span class="fo-partial-sum fo-skeleton fo-line">0</span></span>
+                            <span style="font-size:12px;color:#888;">BAL SUM: <span class="fo-partial-sum fo-skeleton fo-line">0</span></span>
                         </p>
                         <div class="progress-group">
                             <div class="progress progress-minibar">
@@ -701,11 +701,72 @@ if ($this->module_lib->hasActive('expense')) {
                             </div>
                         </div>
                         <hr/>
-                        <p class="text-uppercase mt10 clearfix" style="font-size:14px;">
-                            <strong>Total Demand:</strong> <span class="fo-total-demand fo-skeleton fo-line">0</span><br/>
-                            <strong>Total Collection:</strong> <span class="fo-total-collection fo-skeleton fo-line">0</span><br/>
-                            <strong>Total Awaiting:</strong> <span class="fo-total-awaiting fo-skeleton fo-line">0</span>
+                        <p class="text-uppercase mt10 clearfix">
+                            <strong>Total Demand:</strong> <span class="fo-total-demand-count fo-skeleton">0</span>
+                            <span class="pull-right"><span class="fo-demand-progress fo-skeleton">0</span>%</span><br>
+                            <span style="font-size:12px;color:#888;">Sum: <span class="fo-demand-sum fo-skeleton fo-line">0</span></span>
                         </p>
+                        <div class="progress-group">
+                            <div class="progress progress-minibar">
+                                <div class="progress-bar fo-demand-bar fo-skeleton progress-bar-blue" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <p class="text-uppercase mt10 clearfix">
+                            <strong>Total Collection:</strong> <span class="fo-total-collection-count fo-skeleton">0</span>
+                            <span class="pull-right"><span class="fo-collection-progress fo-skeleton">0</span>%</span><br>
+                            <span style="font-size:12px;color:#888;">Sum: <span class="fo-collection-sum fo-skeleton fo-line">0</span></span>
+                        </p>
+                        <div class="progress-group">
+                            <div class="progress progress-minibar">
+                                <div class="progress-bar fo-collection-bar fo-skeleton progress-bar-green" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <p class="text-uppercase mt10 clearfix">
+                            <strong>Total Awaiting:</strong> <span class="fo-total-awaiting-count fo-skeleton">0</span>
+                            <span class="pull-right"><span class="fo-awaiting-progress fo-skeleton">0</span>%</span><br>
+                            <span style="font-size:12px;color:#888;">Sum: <span class="fo-awaiting-sum fo-skeleton fo-line">0</span></span>
+                        </p>
+                        <div class="progress-group">
+                            <div class="progress progress-minibar">
+                                <div class="progress-bar fo-awaiting-bar fo-skeleton progress-bar-yellow" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <p class="text-uppercase mt10 clearfix">
+                            <strong>Last Year Pending Demand:</strong> <span class="fo-total-cfdemand-count fo-skeleton">0</span>
+                            <span class="pull-right"><span class="fo-cfdemand-progress fo-skeleton">0</span>%</span><br>
+                            <span style="font-size:12px;color:#888;">Sum: <span class="fo-cfdemand-sum fo-skeleton fo-line">0</span></span>
+                        </p>
+                        <div class="progress-group">
+                            <div class="progress progress-minibar">
+                                <div class="progress-bar fo-cfdemand-bar fo-skeleton progress-bar-red" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <p class="text-uppercase mt10 clearfix">
+                            <strong>Last Year Pending Collection:</strong> <span class="fo-total-cfcollection-count fo-skeleton">0</span>
+                            <span class="pull-right"><span class="fo-cfcollection-progress fo-skeleton">0</span>%</span><br>
+                            <span style="font-size:12px;color:#888;">Sum: <span class="fo-cfcollection-sum fo-skeleton fo-line">0</span></span>
+                        </p>
+                        <div class="progress-group">
+                            <div class="progress progress-minibar">
+                                <div class="progress-bar fo-cfcollection-bar fo-skeleton progress-bar-purple" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <p class="text-uppercase mt10 clearfix">
+                            <strong>Last Year Pending:</strong> <span class="fo-total-cfbalance-count fo-skeleton">0</span>
+                            <span class="pull-right"><span class="fo-cfbalance-progress fo-skeleton">0</span>%</span><br>
+                            <span style="font-size:12px;color:#888;">Sum: <span class="fo-cfbalance-sum fo-skeleton fo-line">0</span></span>
+                        </p>
+                        <div class="progress-group">
+                            <div class="progress progress-minibar">
+                                <div class="progress-bar fo-cfbalance-bar fo-skeleton progress-bar-orange" style="width: 0%"></div>
+                                .progress-bar-blue { background-color: #007bff !important; }
+                                .progress-bar-green { background-color: #28a745 !important; }
+                                .progress-bar-yellow { background-color: #ffc107 !important; }
+                                .progress-bar-red { background-color: #dc3545 !important; }
+                                .progress-bar-purple { background-color: #6f42c1 !important; }
+                                .progress-bar-orange { background-color: #fd7e14 !important; }
+                            </div>
+                        </div>
                     </div><!--./topprograssstart-->
                 </div><!--./col-md-3-->
                 <?php
@@ -1426,6 +1487,16 @@ if ($this->rbac->hasPrivilege('fees_collection_and_expense_yearly_chart', 'can_v
 </script>
 <script type="text/javascript">
     $(document).ready(function() {
+                // Add skeleton loading to new card fields on AJAX start
+                $(document).ajaxStart(function() {
+                    var $widget = $('#fees-overview-widget');
+                    $widget.find('.fo-total-demand-count, .fo-demand-progress, .fo-demand-sum, .fo-demand-bar, .fo-total-collection-count, .fo-collection-progress, .fo-collection-sum, .fo-collection-bar, .fo-total-awaiting-count, .fo-awaiting-progress, .fo-awaiting-sum, .fo-awaiting-bar, .fo-total-cfdemand-count, .fo-cfdemand-progress, .fo-cfdemand-sum, .fo-cfdemand-bar, .fo-total-cfcollection-count, .fo-cfcollection-progress, .fo-cfcollection-sum, .fo-cfcollection-bar, .fo-total-cfbalance-count, .fo-cfbalance-progress, .fo-cfbalance-sum, .fo-cfbalance-bar').addClass('fo-skeleton');
+                });
+                // Remove skeleton loading on AJAX complete
+                $(document).ajaxStop(function() {
+                    var $widget = $('#fees-overview-widget');
+                    $widget.find('.fo-total-demand-count, .fo-demand-progress, .fo-demand-sum, .fo-demand-bar, .fo-total-collection-count, .fo-collection-progress, .fo-collection-sum, .fo-collection-bar, .fo-total-awaiting-count, .fo-awaiting-progress, .fo-awaiting-sum, .fo-awaiting-bar, .fo-total-cfdemand-count, .fo-cfdemand-progress, .fo-cfdemand-sum, .fo-cfdemand-bar, .fo-total-cfcollection-count, .fo-cfcollection-progress, .fo-cfcollection-sum, .fo-cfcollection-bar, .fo-total-cfbalance-count, .fo-cfbalance-progress, .fo-cfbalance-sum, .fo-cfbalance-bar').removeClass('fo-skeleton');
+                });
         // Function to update ticker animation properties
         function updateTickerAnimation() {
             $('.birthday-ticker-content').each(function() {
@@ -1512,9 +1583,37 @@ if ($this->rbac->hasPrivilege('fees_collection_and_expense_yearly_chart', 'can_v
             $widget.find('.fo-paid-sum').text(d.paid_sum_formatted);
             $widget.find('.fo-paid-bar').css('width', d.paid_progress + '%');
 
-            $widget.find('.fo-total-demand').text(d.total_demand_formatted);
-            $widget.find('.fo-total-collection').text(d.total_collection_formatted);
-            $widget.find('.fo-total-awaiting').text(d.total_awaiting_formatted);
+
+            // Use new backend fields for each card
+            $widget.find('.fo-total-demand-count').text(d.demand_count || 0);
+            $widget.find('.fo-demand-progress').text(d.demand_progress);
+            $widget.find('.fo-demand-sum').text(d.demand_sum_formatted);
+            $widget.find('.fo-demand-bar').css('width', d.demand_progress + '%');
+
+            $widget.find('.fo-total-collection-count').text(d.collection_count || 0);
+            $widget.find('.fo-collection-progress').text(d.collection_progress);
+            $widget.find('.fo-collection-sum').text(d.collection_sum_formatted);
+            $widget.find('.fo-collection-bar').css('width', d.collection_progress + '%');
+
+            $widget.find('.fo-total-awaiting-count').text(d.awaiting_count || 0);
+            $widget.find('.fo-awaiting-progress').text(d.awaiting_progress);
+            $widget.find('.fo-awaiting-sum').text(d.awaiting_sum_formatted);
+            $widget.find('.fo-awaiting-bar').css('width', d.awaiting_progress + '%');
+
+            $widget.find('.fo-total-cfdemand-count').text(d.cfdemand_count || 0);
+            $widget.find('.fo-cfdemand-progress').text(d.cfdemand_progress);
+            $widget.find('.fo-cfdemand-sum').text(d.cfdemand_sum_formatted);
+            $widget.find('.fo-cfdemand-bar').css('width', d.cfdemand_progress + '%');
+
+            $widget.find('.fo-total-cfcollection-count').text(d.cfcollection_count || 0);
+            $widget.find('.fo-cfcollection-progress').text(d.cfcollection_progress);
+            $widget.find('.fo-cfcollection-sum').text(d.cfcollection_sum_formatted);
+            $widget.find('.fo-cfcollection-bar').css('width', d.cfcollection_progress + '%');
+
+            $widget.find('.fo-total-cfbalance-count').text(d.cfbalance_count || 0);
+            $widget.find('.fo-cfbalance-progress').text(d.cfbalance_progress);
+            $widget.find('.fo-cfbalance-sum').text(d.cfbalance_sum_formatted);
+            $widget.find('.fo-cfbalance-bar').css('width', d.cfbalance_progress + '%');
 
             $('.fees-awaiting-amount').text(d.fees_awaiting_total_net_balance_formatted);
 

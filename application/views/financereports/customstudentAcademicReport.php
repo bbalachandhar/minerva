@@ -139,7 +139,7 @@ foreach ($department_list as $department) {
                                     <th class="text-right"><?php echo $this->lang->line('total') . " " . $this->lang->line('discount'); ?></th>
                                     <th class="text-right"><?php echo $this->lang->line('fine'); ?></th>
                                     <th class="text-right"><?php echo $this->lang->line('balance'); ?></th>
-                                    <th class="text-right">Net Balance(Balance-Advance Payments)</th>
+                                    <th class="text-right">Net Balance(Balance-CF-Balance)</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -222,7 +222,7 @@ foreach ($department_list as $department) {
                                             <td class="text-right"><?php echo amountFormat($student->discount); ?></td>
                                             <td class="text-right"><?php echo amountFormat($student->fine); ?></td>
                                             <td class="text-right"><?php echo amountFormat($student->balance); ?></td>
-                                            <td class="text-right"><?php echo amountFormat($student->net_balance); ?></td>
+                                            <td class="text-right"><?php echo amountFormat($student->balance - $student->cf_balance); ?></td>
                                         </tr>
                                         <?php
                                     }
@@ -260,7 +260,17 @@ foreach ($department_list as $department) {
                                     <td class="text-right"><?php echo $currency_symbol . amountFormat($total_discount); ?></td>
                                     <td class="text-right"><?php echo $currency_symbol . amountFormat($total_fine); ?></td>
                                     <td class="text-right"><?php echo $currency_symbol . amountFormat($total_balance); ?></td>
-                                    <td class="text-right"><?php echo $currency_symbol . amountFormat($total_net_balance); ?></td>
+                                    <td class="text-right">
+                                        <?php 
+                                        $total_net_balance_cf = 0;
+                                        if (!empty($student_due_fee)) {
+                                            foreach ($student_due_fee as $student) {
+                                                $total_net_balance_cf += ($student->balance - $student->cf_balance);
+                                            }
+                                        }
+                                        echo $currency_symbol . amountFormat($total_net_balance_cf); 
+                                        ?>
+                                    </td>
                                 </tr>
                             </tfoot>
                         </table>
