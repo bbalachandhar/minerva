@@ -6,6 +6,24 @@
             display: none !important;
         }
     }
+
+    .att-present {
+        background-color: #d4edda;
+        color: #155724;
+        font-weight: 600;
+    }
+
+    .att-half-day {
+        background-color: #fff3cd;
+        color: #856404;
+        font-weight: 600;
+    }
+
+    .att-absent {
+        background-color: #f8d7da;
+        color: #721c24;
+        font-weight: 600;
+    }
 </style>
 
 <div class="content-wrapper" style="min-height: 946px;">
@@ -110,19 +128,16 @@
                                     </div>
                                     <div class="col-md-8 col-sm-8">
                                         <div class="pull-right">
-                                            <?php
-                                            foreach ($attendencetypeslist as $key_type => $value_type) {
-                                            ?>
-                                                &nbsp;&nbsp;
-                                                <b>
-                                                    <?php
-                                                    $att_type = str_replace(" ", "_", strtolower($value_type['type']));
-                                                    echo $this->lang->line($att_type) . ": " . $value_type['key_value'] . "";
-                                                    ?>
-                                                </b>
-                                            <?php
-                                            }
-                                            ?>
+                                            <span class="label att-present" style="padding: 4px 8px; margin-right: 6px;">Present</span>
+                                            <span class="label att-half-day" style="padding: 4px 8px; margin-right: 6px;">Half Day</span>
+                                            <span class="label att-absent" style="padding: 4px 8px;">Absent</span>
+                                            <span style="margin-left: 10px;"></span>
+                                            <b>WD</b>: Working Days
+                                            &nbsp;&nbsp;<b>A*</b>: Total Absent (incl. 0.5 for HD)
+                                            &nbsp;&nbsp;<b>P*</b>: Total Present (incl. 0.5 for HD)
+                                            &nbsp;&nbsp;<b>H</b>: Holidays
+                                            &nbsp;&nbsp;<b>HD</b>: Half Day
+                                            &nbsp;&nbsp;<b>WE</b>: Weekends
                                         </div>
                                     </div>
                                 </div>
@@ -146,9 +161,16 @@
                                                     <?php echo $this->lang->line('staff_date'); ?>
                                                 </th>
                                                 <th><br /><span data-toggle="tooltip" title="<?php echo $this->lang->line("gross_present_percentage"); ?>"> (%)</span></th>
+                                                <th><br /><span data-toggle="tooltip" title="Total Working Days">WD</span></th>
+                                                <th><br /><span data-toggle="tooltip" title="Total Absent (Excluding Holidays)">A*</span></th>
+                                                <th><br /><span data-toggle="tooltip" title="Total Present (Including Half Day)">P*</span></th>
+                                                <th><br /><span data-toggle="tooltip" title="Total Holidays">H</span></th>
                                                 <?php
                                                 if (!empty($attendence_array)) {
                                                     foreach ($attendencetypeslist as $key => $value) {
+                                                        if (in_array((int)$value['id'], [1, 2, 3, 7, 8, 9, 10, 11], true)) {
+                                                            continue;
+                                                        }
                                                 ?>
                                                         <th colspan="1"><br /><span data-toggle="tooltip" title="<?php echo $this->lang->line('total') . ' ' . $value["type"]; ?>"><?php echo strip_tags($value["key_value"]); ?>
 
@@ -158,13 +180,13 @@
                                                     }
                                                 }
                                                 ?>
-                                                <th colspan="1"><br /><span data-toggle="tooltip" title="Sundays">Sun</span></th>
+                                                <th colspan="1"><br /><span data-toggle="tooltip" title="Weekends">WE</span></th>
                                                 <?php
                                                 foreach ($attendence_array as $at_key => $at_value) {
                                                      $header_class = '';
-                                                    if (date('D', $this->customlib->dateyyyymmddTodateformat($at_value)) == "Sun") {
+                                                    if (!empty($weekend_day_dates) && in_array($at_value, $weekend_day_dates, true)) {
                                                         $header_class = 'bg-danger';
-                                                    }elseif (in_array($at_value, $holiday_dates)) {
+                                                    } elseif (in_array($at_value, $holiday_dates)) {
                                                         $header_class = 'bg-warning';
                                                     }
                                                 ?>
@@ -190,16 +212,19 @@
                                                                                         $row_count = 1;
                                                                                         $i         = 0;
                                                                                         foreach ($student_array as $student_key => $student_value) {
-                                                                                            $total_present = ($monthAttendance[$i][$student_value['id']]['present'] + $monthAttendance[$i][$student_value['id']]['late'] + $monthAttendance[$i][$student_value['id']]['half_day']);
-                                        
-                                                                                            $total_days = $monthAttendance[$i][$student_value['id']]['present'] + $monthAttendance[$i][$student_value['id']]['late'] + $monthAttendance[$i][$student_value['id']]['absent'] + $monthAttendance[$i][$student_value['id']]['half_day'] + $monthAttendance[$i][$student_value['id']]['holiday'] + $monthAttendance[$i][$student_value['id']]['sunday'];
-                                        
-                                                                                            if ($total_days == 0) {
+                                                                                            $present_count = $monthAttendance[$i][$student_value['id']]['present'] ?? 0;
+                                                                                            $half_day_count = $monthAttendance[$i][$student_value['id']]['half_day'] ?? 0;
+                                                                                            $absent_count = $absent_working_day_counts[$student_value['id']] ?? 0;
+                                                                                            $working_days = $working_days_count ?? 0;
+                                                                                            $total_present = $present_count + ($half_day_count * 0.5);
+                                                                                            $total_absent = $absent_count + ($half_day_count * 0.5);
+
+                                                                                            if ($working_days == 0) {
                                                                                                 $percentage       = -1;
                                                                                                 $print_percentage = "-";
                                                                                             } else {
-                                        
-                                                                                                $percentage       = ($total_present / $total_days) * 100;
+
+                                                                                                $percentage       = ($total_present / $working_days) * 100;
                                                                                                 $print_percentage = round($percentage, 0);
                                                                                             }
                                         
@@ -220,10 +245,17 @@
                                                                                                     <div class="fee_detail_popover" style="display: none"><?php echo $this->lang->line('staff_id'); ?>: <?php echo $student_value['employee_id']; ?></div>
                                                                                                 </td>
                                                                                                 <td><?php echo "<label $label>" . $print_percentage . "</label>"; ?></td>
+                                                                                                                                                                                                <td><?php echo $working_days; ?></td>
+                                                                                                                                                                                                <td><?php echo rtrim(rtrim(number_format((float)$total_absent, 1, '.', ''), '0'), '.'); ?></td>
+                                                                                                <td><?php echo rtrim(rtrim(number_format((float)$total_present, 1, '.', ''), '0'), '.'); ?></td>
+                                                                                                                                                                                                <td><?php echo $holiday_count ?? 0; ?></td>
                                                                                                 <?php
                                                                                                 if(!empty($monthAttendance)){
                                                                                                 foreach ($attendencetypeslist as $key => $value) {
                                                                                                   $att_type_key = str_replace(" ", "_", strtolower($value['type']));
+                                                                                                                                                                                                      if (in_array((int)$value['id'], [1, 2, 3, 7, 8, 9, 10, 11], true)) {
+                                                                                                                                                                                                            continue;
+                                                                                                                                                                                                    }
                                                                                                 ?>
                                                                                                   <td><?php echo $monthAttendance[$i][$student_value['id']][$att_type_key] ?? 0; ?></td>
                                                                                                 <?php }
@@ -236,17 +268,26 @@
                                                                                                 foreach ($attendence_array as $at_key => $at_value) {
                                                                                                     $cell_class = '';
                                                                                                     $attendance_key = $resultlist[$at_value][$student_value['id']]['key'] ?? null;
+                                                                                                    $display_key = $attendance_key ?? '';
                                         
-                                                                                                    if (date('D', $this->customlib->dateyyyymmddTodateformat($at_value)) == "Sun") {
+                                                                                                    if (!empty($weekend_day_dates) && in_array($at_value, $weekend_day_dates, true)) {
                                                                                                         $cell_class = 'bg-danger';
-                                                                                                    }elseif (in_array($at_value, $holiday_dates) || $attendance_key == 'HO') {
+                                                                                                        $display_key = 'W';
+                                                                                                    } elseif (in_array($at_value, $holiday_dates) || $attendance_key == 'HO') {
                                                                                                         $cell_class = 'bg-warning';
+                                                                                                        $display_key = 'H';
+                                                                                                    } elseif ($attendance_key === 'P') {
+                                                                                                        $cell_class = 'att-present';
+                                                                                                    } elseif ($attendance_key === 'HD') {
+                                                                                                        $cell_class = 'att-half-day';
+                                                                                                    } elseif ($attendance_key === 'A') {
+                                                                                                        $cell_class = 'att-absent';
                                                                                                     }
                                                                                                 ?>
                                                                                                     <td class="tdcls text text-center <?php echo $cell_class; ?>">
                                                                                                         <center>
                                                                                                         <span data-toggle="popover" class="detail_popover" data-original-title="" title="">
-                                                                                                        <a href="#"><?php echo ($attendance_key ?? '');  ?></a></span>
+                                                                                                        <a href="#"><?php echo $display_key;  ?></a></span>
                                                                                                         <div class="fee_detail_popover" style="display: none">
                                                                                                             <?php
                                                                                                                 if (!empty($resultlist[$at_value][$student_value['id']]['remark'])) {

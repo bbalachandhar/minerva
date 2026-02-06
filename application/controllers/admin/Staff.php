@@ -252,6 +252,154 @@ class Staff extends Admin_Controller
         $stafflist                = $this->staff_model->get();
         $data['stafflist']        = $stafflist;
 
+        // Current month summary for attendance tab
+        $this->load->model("holiday_model");
+        $this->load->model("setting_model");
+        $this->load->model("payroll_model");
+
+        $current_year = date('Y');
+        $current_month_number = date('m');
+        $current_month_label = date('F Y');
+        $today_date = date('Y-m-d');
+
+        $holidays = $this->holiday_model->get();
+        $official_holiday_dates = [];
+        foreach ($holidays as $holiday_value) {
+            $from_date = new DateTime($holiday_value['from_date']);
+            $to_date = new DateTime($holiday_value['to_date']);
+            $current = clone $from_date;
+            while ($current <= $to_date) {
+                if ($current->format('m') == $current_month_number && $current->format('Y') == $current_year) {
+                    $official_holiday_dates[] = $current->format('Y-m-d');
+                }
+                $current->modify('+1 day');
+            }
+        }
+        $official_holiday_dates = array_values(array_unique($official_holiday_dates));
+
+        $settings = $this->setting_model->getSetting();
+        $weekendDaysStr = isset($settings->weekend_days) && !empty($settings->weekend_days) ? $settings->weekend_days : '0';
+        $weekendDays = array_map('intval', explode(',', $weekendDaysStr));
+        $isSecondSaturdayWeekend = isset($settings->isSecondSaturdayHoliday) ? (int)$settings->isSecondSaturdayHoliday : 0;
+
+        $num_of_days = cal_days_in_month(CAL_GREGORIAN, (int)$current_month_number, (int)$current_year);
+        $cutoff_day = (int)date('d');
+        $second_saturday_date = null;
+        if ($isSecondSaturdayWeekend) {
+            $saturdayCount = 0;
+            for ($day = 1; $day <= $num_of_days; $day++) {
+                $date = new DateTime($current_year . "-" . $current_month_number . "-" . sprintf("%02d", $day));
+                if ((int)$date->format('w') == 6) {
+                    $saturdayCount++;
+                    if ($saturdayCount == 2) {
+                        $second_saturday_date = $date->format('Y-m-d');
+                        break;
+                    }
+                }
+            }
+        }
+
+        $weekend_day_dates = [];
+        for ($day = 1; $day <= $num_of_days; $day++) {
+            $dateStr = $current_year . "-" . $current_month_number . "-" . sprintf("%02d", $day);
+            $dayOfWeek = (int)date('w', strtotime($dateStr));
+            if (in_array($dayOfWeek, $weekendDays, true) || ($second_saturday_date && $dateStr === $second_saturday_date)) {
+                $weekend_day_dates[] = $dateStr;
+            }
+        }
+        $weekend_day_dates = array_values(array_unique($weekend_day_dates));
+
+        $holiday_dates_for_H = array_values(array_unique(array_filter($official_holiday_dates, function ($dateStr) use ($weekend_day_dates) {
+            return !in_array($dateStr, $weekend_day_dates, true);
+        })));
+
+        $weekend_day_dates_mtd = array_values(array_filter($weekend_day_dates, function ($dateStr) use ($today_date) {
+            return $dateStr <= $today_date;
+        }));
+        $holiday_dates_for_H_mtd = array_values(array_filter($holiday_dates_for_H, function ($dateStr) use ($today_date) {
+            return $dateStr <= $today_date;
+        }));
+
+        $working_day_dates = [];
+        for ($day = 1; $day <= $num_of_days; $day++) {
+            $dateStr = $current_year . "-" . $current_month_number . "-" . sprintf("%02d", $day);
+            if (!in_array($dateStr, $weekend_day_dates, true) && !in_array($dateStr, $holiday_dates_for_H, true)) {
+                $working_day_dates[] = $dateStr;
+            }
+        }
+
+        $working_day_dates = array_values(array_filter($working_day_dates, function ($dateStr) use ($today_date) {
+            return $dateStr <= $today_date;
+        }));
+
+        $present_count = 0;
+        $half_day_count = 0;
+        $absent_count = 0;
+        foreach ($working_day_dates as $work_date) {
+            $staff_attendance = $this->staffattendancemodel->searchStaffattendance($work_date, $id, false);
+            $key = $staff_attendance['key'] ?? null;
+            if ($key === 'P') {
+                $present_count++;
+            } elseif ($key === 'HD') {
+                $half_day_count++;
+            } else {
+                $absent_count++;
+            }
+        }
+
+        $late_count = $this->payroll_model->count_attendance_obj((int)$current_month_number, (int)$current_year, $id, 2)
+            + $this->payroll_model->count_attendance_obj((int)$current_month_number, (int)$current_year, $id, 8);
+
+        $data['month_summary'] = [
+            'label' => $current_month_label,
+            'working_days' => count($working_day_dates),
+            'weekends' => count($weekend_day_dates_mtd),
+            'holidays' => count($holiday_dates_for_H_mtd),
+            'present' => $present_count,
+            'half_day' => $half_day_count,
+            'absent' => $absent_count,
+            'late' => $late_count,
+        ];
+
+        // Year-wide weekend/holiday dates for attendance grid
+        $holiday_dates_year = [];
+        $weekend_day_dates_year = [];
+        for ($m = 1; $m <= 12; $m++) {
+            $days_in_month = cal_days_in_month(CAL_GREGORIAN, $m, (int)$current_year);
+
+            $second_saturday_date_year = null;
+            if ($isSecondSaturdayWeekend) {
+                $saturdayCount = 0;
+                for ($day = 1; $day <= $days_in_month; $day++) {
+                    $date = new DateTime($current_year . "-" . sprintf("%02d", $m) . "-" . sprintf("%02d", $day));
+                    if ((int)$date->format('w') == 6) {
+                        $saturdayCount++;
+                        if ($saturdayCount == 2) {
+                            $second_saturday_date_year = $date->format('Y-m-d');
+                            break;
+                        }
+                    }
+                }
+            }
+
+            for ($day = 1; $day <= $days_in_month; $day++) {
+                $dateStr = $current_year . "-" . sprintf("%02d", $m) . "-" . sprintf("%02d", $day);
+                $dayOfWeek = (int)date('w', strtotime($dateStr));
+                if (in_array($dayOfWeek, $weekendDays, true) || ($second_saturday_date_year && $dateStr === $second_saturday_date_year)) {
+                    $weekend_day_dates_year[] = $dateStr;
+                }
+            }
+        }
+
+        foreach ($official_holiday_dates as $dateStr) {
+            if (!in_array($dateStr, $weekend_day_dates_year, true)) {
+                $holiday_dates_year[] = $dateStr;
+            }
+        }
+
+        $data['weekend_day_dates_year'] = array_values(array_unique($weekend_day_dates_year));
+        $data['holiday_dates_year'] = array_values(array_unique($holiday_dates_year));
+
         $this->load->view('layout/header', $data);
         $this->load->view('admin/staff/staffprofile', $data);
         $this->load->view('layout/footer', $data);

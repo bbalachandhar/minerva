@@ -291,6 +291,41 @@
                                         </div>
                                     </div>
                                 </div><!--./row-->
+                                <div class="row">
+                                    <div class="col-md-12">
+                                        <div class="form-group row">
+                                            <label class="col-sm-3">Weekend Days <small class="req">*</small></label>
+                                            <div class="col-sm-9">
+                                                <div style="padding: 10px;">
+                                                    <label class="checkbox-inline">
+                                                        <input type="checkbox" name="weekend_days[]" value="0" 
+                                                            <?php if (isset($result->weekend_days) && strpos($result->weekend_days, '0') !== false) echo 'checked'; ?>> Sunday
+                                                    </label>
+                                                    <label class="checkbox-inline">
+                                                        <input type="checkbox" name="weekend_days[]" value="6" 
+                                                            <?php if (isset($result->weekend_days) && strpos($result->weekend_days, '6') !== false) echo 'checked'; ?>> Saturday
+                                                    </label>
+                                                </div>
+                                                <small class="text-muted">Select which days are considered weekends for working days calculation</small>
+                                                <span class="text-danger"><?php echo form_error('weekend_days'); ?></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div><!--./row-->
+                                <div class="row">
+                                    <div class="col-md-12">
+                                        <div class="form-group row">
+                                            <label class="col-sm-3">Second Saturday Weekend</label>
+                                            <div class="col-sm-9">
+                                                <div class="material-switch">
+                                                    <input id="isSecondSaturdayHoliday" name="isSecondSaturdayHoliday" type="checkbox" class="chk" value="1" <?php echo (isset($result->isSecondSaturdayHoliday) && $result->isSecondSaturdayHoliday == 1) ? 'checked="checked"' : ''; ?>>
+                                                    <label for="isSecondSaturdayHoliday" class="label-success"></label>
+                                                </div>
+                                                <small class="text-muted">Enable to mark second Saturday of every month as weekend</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div><!--./row-->
                                 <input type="hidden" id="folder_path" name="folder_path" value="<?php echo FCPATH; ?>">                               
                             </div><!-- /.box-body -->
                             <div class="box-footer">

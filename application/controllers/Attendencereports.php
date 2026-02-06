@@ -462,6 +462,7 @@ class Attendencereports extends Admin_Controller
             $num_of_days            = cal_days_in_month(CAL_GREGORIAN, $month_number, $searchyear);
             
             $this->load->model("holiday_model");
+            $this->load->model("setting_model");
             $holidays = $this->holiday_model->get();
             $official_holiday_dates = [];
             foreach ($holidays as $holiday_key => $holiday_value) {
@@ -477,6 +478,53 @@ class Attendencereports extends Admin_Controller
                 }
             }
             $data['holiday_dates'] = array_unique($official_holiday_dates);
+
+            $settings = $this->setting_model->getSetting();
+            $weekendDaysStr = isset($settings->weekend_days) && !empty($settings->weekend_days) ? $settings->weekend_days : '0';
+            $weekendDays = array_map('intval', explode(',', $weekendDaysStr));
+            $isSecondSaturdayWeekend = isset($settings->isSecondSaturdayHoliday) ? (int)$settings->isSecondSaturdayHoliday : 0;
+
+            $second_saturday_date = null;
+            if ($isSecondSaturdayWeekend) {
+                $saturdayCount = 0;
+                for ($i = 1; $i <= $num_of_days; $i++) {
+                    $date = new DateTime($searchyear . "-" . $month_number . "-" . sprintf("%02d", $i));
+                    if ((int)$date->format('w') == 6) {
+                        $saturdayCount++;
+                        if ($saturdayCount == 2) {
+                            $second_saturday_date = $date->format('Y-m-d');
+                            break;
+                        }
+                    }
+                }
+            }
+
+            $weekend_day_dates = [];
+            for ($i = 1; $i <= $num_of_days; $i++) {
+                $dateStr = $searchyear . "-" . $month_number . "-" . sprintf("%02d", $i);
+                $dayOfWeek = (int)date('w', strtotime($dateStr));
+                if (in_array($dayOfWeek, $weekendDays, true) || ($second_saturday_date && $dateStr === $second_saturday_date)) {
+                    $weekend_day_dates[] = $dateStr;
+                }
+            }
+            $weekend_day_dates = array_values(array_unique($weekend_day_dates));
+            $data['weekend_day_dates'] = $weekend_day_dates;
+            $data['weekend_count'] = count($weekend_day_dates);
+
+            $working_day_dates = [];
+            for ($i = 1; $i <= $num_of_days; $i++) {
+                $dateStr = $searchyear . "-" . $month_number . "-" . sprintf("%02d", $i);
+                if (!in_array($dateStr, $weekend_day_dates, true) && !in_array($dateStr, $data['holiday_dates'], true)) {
+                    $working_day_dates[] = $dateStr;
+                }
+            }
+            $data['working_day_dates'] = $working_day_dates;
+            $data['working_days_count'] = count($working_day_dates);
+
+            $holiday_dates_for_H = array_values(array_unique(array_filter($data['holiday_dates'], function ($dateStr) use ($weekend_day_dates) {
+                return !in_array($dateStr, $weekend_day_dates, true);
+            })));
+            $data['holiday_count'] = count($holiday_dates_for_H);
 
             $data['month_selected'] = $month;
             $data['year_selected']  = $searchyear;
@@ -509,6 +557,22 @@ class Attendencereports extends Admin_Controller
                 }
             }
 
+            $absent_working_day_counts = [];
+            if (!empty($stafflist)) {
+                foreach ($stafflist as $staff_row) {
+                    $staff_id = $staff_row['id'];
+                    $absent_count = 0;
+                    foreach ($working_day_dates as $work_date) {
+                        $att_key = $date_result[$work_date][$staff_id]['key'] ?? null;
+                        if ($att_key === 'A') {
+                            $absent_count++;
+                        }
+                    }
+                    $absent_working_day_counts[$staff_id] = $absent_count;
+                }
+            }
+            $data['absent_working_day_counts'] = $absent_working_day_counts;
+
 
             $data['monthAttendance'] = $monthAttendance;
             $data['resultlist']      = $date_result;
@@ -531,6 +595,7 @@ class Attendencereports extends Admin_Controller
     public function monthAttendance($st_month, $no_of_months, $emp)
     {
         $this->load->model("holiday_model");
+        $this->load->model("setting_model");
         $holidays = $this->holiday_model->get();
         $this->load->model("staffattendancemodel");
         $this->staff_attendance  = $this->config->item('staffattendance');
@@ -542,18 +607,39 @@ class Attendencereports extends Admin_Controller
             $month = date('m', strtotime($st_month . " -$i month"));
             $year  = date('Y', strtotime($st_month . " -$i month"));
             
-            $sundays_in_month = [];
+            $weekend_days_in_month = [];
             $official_holiday_dates = [];
             $num_of_days = cal_days_in_month(CAL_GREGORIAN, $month, $year);
 
-            // Calculate all Sundays in the month
-            for ($day = 1; $day <= $num_of_days; $day++) {
-                $att_date = $year . "-" . $month . "-" . sprintf("%02d", $day);
-                if (date('w', strtotime($att_date)) == 0) { // 0 for Sunday
-                    $sundays_in_month[] = $att_date;
+            $settings = $this->setting_model->getSetting();
+            $weekendDaysStr = isset($settings->weekend_days) && !empty($settings->weekend_days) ? $settings->weekend_days : '0';
+            $weekendDays = array_map('intval', explode(',', $weekendDaysStr));
+            $isSecondSaturdayWeekend = isset($settings->isSecondSaturdayHoliday) ? (int)$settings->isSecondSaturdayHoliday : 0;
+
+            $second_saturday_date = null;
+            if ($isSecondSaturdayWeekend) {
+                $saturdayCount = 0;
+                for ($day = 1; $day <= $num_of_days; $day++) {
+                    $date = new DateTime($year . "-" . $month . "-" . sprintf("%02d", $day));
+                    if ((int)$date->format('w') == 6) {
+                        $saturdayCount++;
+                        if ($saturdayCount == 2) {
+                            $second_saturday_date = $date->format('Y-m-d');
+                            break;
+                        }
+                    }
                 }
             }
-            $sundays_in_month = array_unique($sundays_in_month);
+
+            // Calculate all configured weekend days in the month
+            for ($day = 1; $day <= $num_of_days; $day++) {
+                $att_date = $year . "-" . $month . "-" . sprintf("%02d", $day);
+                $dayOfWeek = (int)date('w', strtotime($att_date));
+                if (in_array($dayOfWeek, $weekendDays, true) || ($second_saturday_date && $att_date === $second_saturday_date)) {
+                    $weekend_days_in_month[] = $att_date;
+                }
+            }
+            $weekend_days_in_month = array_values(array_unique($weekend_days_in_month));
 
             // Collect official holiday dates from annual_calendar
             foreach ($holidays as $holiday_key => $holiday_value) {
@@ -570,7 +656,7 @@ class Attendencereports extends Admin_Controller
             }
             $official_holiday_dates = array_unique($official_holiday_dates);
 
-            $holidays_for_H_column = array_diff($official_holiday_dates, $sundays_in_month);
+            $holidays_for_H_column = array_diff($official_holiday_dates, $weekend_days_in_month);
 
             $attendance_types_from_db = $this->staffattendancemodel->getStaffAttendanceType();
             $att_key_to_id_map = [];
@@ -584,7 +670,7 @@ class Attendencereports extends Admin_Controller
 
                 if ($att_key == 'holiday') {
                     $r[$att_key] = count($holidays_for_H_column);
-                    $r['sunday'] = count($sundays_in_month);
+                    $r['sunday'] = count($weekend_days_in_month);
                     continue;
                 }
 

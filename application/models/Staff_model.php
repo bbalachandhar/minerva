@@ -57,7 +57,7 @@ class Staff_model extends MY_Model
         $this->db->select('staff_id');
         $this->db->from("staff_attendance");
         $this->db->where('date = ', $date);
-        $this->db->where("(staff_attendance_type_id='1' OR staff_attendance_type_id='2' OR staff_attendance_type_id='4')");
+        $this->db->where("(staff_attendance_type_id='1' OR staff_attendance_type_id='6')");
         $this->db->group_by('staff_attendance.staff_id');
         $query = $this->db->get();
         $q     = $query->result_array();
@@ -85,18 +85,14 @@ class Staff_model extends MY_Model
         foreach ($attendance_data as $row) {
             if ($row['staff_attendance_type_id'] == 1) { // Present
                 $present = $row['count'];
-            } elseif ($row['staff_attendance_type_id'] == 2) { // Late
-                $late = $row['count'];
             } elseif ($row['staff_attendance_type_id'] == 3) { // Absent
                 $absent = $row['count'];
             } elseif ($row['staff_attendance_type_id'] == 6) { // Half Day
                 $half_day = $row['count'];
-            } elseif ($row['staff_attendance_type_id'] == 7 || $row['staff_attendance_type_id'] == 9) { // Permissions
-                $permission += $row['count'];
             }
         }
 
-        $total_attended = $present + $late + $half_day; // This counts present, late, and half-day as "attended"
+        $total_attended = $present + $half_day; // This counts present and half-day as "attended"
 
         $present_percent = ($total_staff > 0) ? ($present / $total_staff) * 100 : 0;
         $late_percent = ($total_staff > 0) ? ($late / $total_staff) * 100 : 0;
@@ -1296,5 +1292,19 @@ class Staff_model extends MY_Model
         $this->db->where('employee_id', $id);
         $query = $this->db->get();
         return $query->row();
+    }
+
+    public function getByDepartment($department_id = null)
+    {
+        $this->db->select('staff.id, staff.name, staff.employee_id as code, department.department_name as department');
+        $this->db->from('staff');
+        $this->db->join('department', 'department.id = staff.department', 'left');
+        if (!empty($department_id)) {
+            $this->db->where('staff.department', $department_id);
+        }
+        $this->db->where('staff.is_active', 1);
+        $this->db->order_by('staff.name', 'asc');
+        $query = $this->db->get();
+        return $query->result_array();
     }
 }

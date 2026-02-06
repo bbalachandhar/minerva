@@ -218,7 +218,8 @@ if (!function_exists('main_menu_array')) {
                 'leaverequest'      => array('leaverequest'),  
                 'leavetypes'        => array('index','leaveedit','createleavetype'),  
                 'department'        => array('department','departmentedit'),  
-                'designation'       => array('designation','designationedit'),            
+                'designation'       => array('designation','designationedit'),
+                'specialattendance' => array('index','search','generate_attendance','get_employees_by_department'),            
             ), 
             
             'communicate' => array(          
@@ -443,12 +444,12 @@ if (!function_exists("activate_submenu")) {
     {
         $CI = get_instance();
 
-        $class  = $CI->router->fetch_class();
+        $class  = strtolower($CI->router->fetch_class());
         $method = $CI->router->fetch_method();
 
         if (is_array($arg_methods)) {
             foreach ($arg_methods as $arg_methods_key => $arg_methods_value) {
-                if ($method == $arg_methods_value && $class == $arg_class) {
+                if ($method == $arg_methods_value && $class == strtolower($arg_class)) {
                     return $class_active;
                     break;
                 }

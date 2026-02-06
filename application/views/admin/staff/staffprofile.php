@@ -923,38 +923,89 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                         </div>
 
                         <div class="tab-pane" id="attendance">
+                            <style type="text/css">
+                                .att-card {
+                                    border-radius: 10px;
+                                    color: #fff;
+                                    padding: 10px 12px;
+                                    position: relative;
+                                    overflow: hidden;
+                                }
+                                .att-card .icon {
+                                    position: absolute;
+                                    right: 10px;
+                                    bottom: 8px;
+                                    opacity: 0.2;
+                                }
+                                .att-present { background: linear-gradient(135deg, #2ecc71, #27ae60); }
+                                .att-absent { background: linear-gradient(135deg, #e74c3c, #c0392b); }
+                                .att-late { background: linear-gradient(135deg, #f1c40f, #f39c12); }
+                                .att-halfday { background: linear-gradient(135deg, #9b59b6, #8e44ad); }
+                                .att-holiday { background: linear-gradient(135deg, #3498db, #2980b9); }
+                                .att-cell {
+                                    color: #fff;
+                                    font-weight: 600;
+                                    text-align: center;
+                                    border-radius: 6px;
+                                    padding: 2px 6px;
+                                    display: inline-block;
+                                    min-width: 28px;
+                                }
+                                .att-cell-present { background: linear-gradient(135deg, #2ecc71, #27ae60); }
+                                .att-cell-absent { background: linear-gradient(135deg, #e74c3c, #c0392b); }
+                                .att-cell-halfday { background: linear-gradient(135deg, #9b59b6, #8e44ad); }
+                                .att-cell-weekend { background: linear-gradient(135deg, #34495e, #2c3e50); }
+                                .att-cell-holiday { background: linear-gradient(135deg, #3498db, #2980b9); }
+                            </style>
+                            <?php
+                            $summary = isset($month_summary) ? $month_summary : [
+                                'label' => date('F Y'),
+                                'working_days' => 0,
+                                'weekends' => 0,
+                                'holidays' => 0,
+                                'present' => 0,
+                                'half_day' => 0,
+                                'absent' => 0,
+                                'late' => 0,
+                            ];
+                            $total_present = $summary['present'] + ($summary['half_day'] * 0.5);
+                            $total_absent = $summary['absent'] + ($summary['half_day'] * 0.5);
+                            $format_count = function ($value) {
+                                return rtrim(rtrim(number_format((float)$value, 1, '.', ''), '0'), '.');
+                            };
+                            ?>
                             <div class="row">
                                 <div class="col-lg-3 col-md-4 col-sm-6 col20per">
-                                    <div class="staffprofile">
-                                        <h5><?php echo $this->lang->line('total_present'); ?></h5>
-                                        <h4 class="total_present"><?php echo isset($countAttendance['Present']) ? count($countAttendance['Present']) : 0; ?></h4>
+                                    <div class="staffprofile att-card att-present">
+                                        <h5><?php echo $this->lang->line('total_present'); ?> (P*)</h5>
+                                        <h4 class="total_present"><?php echo $format_count($total_present); ?></h4>
                                         <div class="icon">
                                             <i class="fa  fa-check-square-o"></i>
                                         </div>
                                     </div>
                                 </div><!--./col-md-3-->
                                 <div class="col-lg-3 col-md-4 col-sm-6 col20per">
-                                    <div class="staffprofile">
+                                    <div class="staffprofile att-card att-absent">
+                                        <h5><?php echo $this->lang->line('total_absent'); ?> (A*)</h5>
+                                        <h4 class="total_absent"><?php echo $format_count($total_absent); ?></h4>
+                                        <div class="icon">
+                                            <i class="fa  fa-check-square-o"></i>
+                                        </div>
+                                    </div>
+                                </div><!--./col-md-3-->
+                                <div class="col-lg-3 col-md-4 col-sm-6 col20per">
+                                    <div class="staffprofile att-card att-late">
                                         <h5><?php echo $this->lang->line('total_late'); ?></h5>
-                                        <h4 class="total_late"><?php echo count($countAttendance['Late']); ?></h4>
+                                        <h4 class="total_late"><?php echo $summary['late']; ?></h4>
                                         <div class="icon">
                                             <i class="fa  fa-check-square-o"></i>
                                         </div>
                                     </div>
                                 </div><!--./col-md-3-->
                                 <div class="col-lg-3 col-md-4 col-sm-6 col20per">
-                                    <div class="staffprofile">
-                                        <h5><?php echo $this->lang->line('total_absent'); ?></h5>
-                                        <h4 class="total_absent"><?php echo count($countAttendance['Absent']); ?></h4>
-                                        <div class="icon">
-                                            <i class="fa  fa-check-square-o"></i>
-                                        </div>
-                                    </div>
-                                </div><!--./col-md-3-->
-                                <div class="col-lg-3 col-md-4 col-sm-6 col20per">
-                                    <div class="staffprofile">
+                                    <div class="staffprofile att-card att-halfday">
                                         <h5><?php echo $this->lang->line('total_half_day'); ?></h5>
-                                        <h4 class="total_half_day"><?php echo count($countAttendance['Half Day']); ?></h4>
+                                        <h4 class="total_half_day"><?php echo $summary['half_day']; ?></h4>
                                         <div class="icon">
                                             <i class="fa fa-check-square-o"></i>
                                         </div>
@@ -962,20 +1013,29 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                 </div><!--./col-md-3-->
 
                                 <div class="col-lg-3 col-md-4 col-sm-6 col20per">
-                                    <div class="staffprofile">
+                                    <div class="staffprofile att-card att-holiday">
                                         <h5><?php echo $this->lang->line('total_holiday'); ?></h5>
-                                        <h4 class="total_holiday"><?php echo count($countAttendance['Holiday']); ?></h4>
+                                        <h4 class="total_holiday"><?php echo $summary['holidays']; ?></h4>
                                         <div class="icon">
                                             <i class="fa  fa-check-square-o"></i>
                                         </div>
                                     </div>
                                 </div><!--./col-md-3-->
-                                 <div class="col-lg-3 col-md-4 col-sm-6 col20per">
-                                    <div class="staffprofile">
-                                        <h5><?php echo $this->lang->line('half_day'); ?></h5>
-                                        <h4 class="total_half_day"><?php echo isset($countAttendance['Half Day']) ? count($countAttendance['Half Day']) : 0; ?></h4>
+                                <div class="col-lg-3 col-md-4 col-sm-6 col20per">
+                                    <div class="staffprofile att-card" style="background: linear-gradient(135deg, #16a085, #1abc9c);">
+                                        <h5>Working Days (<?php echo $summary['label']; ?>)</h5>
+                                        <h4><?php echo $summary['working_days']; ?></h4>
                                         <div class="icon">
-                                            <i class="fa  fa-check-square-o"></i>
+                                            <i class="fa fa-calendar"></i>
+                                        </div>
+                                    </div>
+                                </div><!--./col-md-3-->
+                                <div class="col-lg-3 col-md-4 col-sm-6 col20per">
+                                    <div class="staffprofile att-card" style="background: linear-gradient(135deg, #34495e, #2c3e50);">
+                                        <h5>Weekends (<?php echo $summary['label']; ?>)</h5>
+                                        <h4><?php echo $summary['weekends']; ?></h4>
+                                        <div class="icon">
+                                            <i class="fa fa-calendar-times-o"></i>
                                         </div>
                                     </div>
                                 </div><!--./col-md-3-->
@@ -1047,15 +1107,28 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                                     foreach ($monthlist as $key => $value) {
                                                         $datemonth = date("m", strtotime($key));
                                                         $att_dates = date("Y") . "-" . $datemonth . "-" . sprintf("%02d", $i);
+                                                        $display_key = '';
+                                                        $display_class = '';
+                                                        if (!empty($weekend_day_dates_year) && in_array($att_dates, $weekend_day_dates_year, true)) {
+                                                            $display_key = 'W';
+                                                            $display_class = 'att-cell-weekend';
+                                                        } elseif (!empty($holiday_dates_year) && in_array($att_dates, $holiday_dates_year, true)) {
+                                                            $display_key = 'H';
+                                                            $display_class = 'att-cell-holiday';
+                                                        } elseif (array_key_exists($att_dates, $resultlist) && !empty($resultlist[$att_dates]["key"])) {
+                                                            $display_key = $resultlist[$att_dates]["key"];
+                                                            if ($display_key === 'P') {
+                                                                $display_class = 'att-cell-present';
+                                                            } elseif ($display_key === 'HD') {
+                                                                $display_class = 'att-cell-halfday';
+                                                            } elseif ($display_key === 'A') {
+                                                                $display_class = 'att-cell-absent';
+                                                            }
+                                                        }
                                                     ?>
                                                         <td>
-                                                            <span data-toggle="popover" class="detail_popover" data-original-title="" title=""><a href="#" style="color:#333"><?php
-                                                                                                                                                                                if (array_key_exists($att_dates, $resultlist)) {
-                                                                                                                                                                                    if (!empty($resultlist[$att_dates]["key"])) {
-                                                                                                                                                                                        echo $resultlist[$att_dates]["key"];
-                                                                                                                                                                                    } else {
-                                                                                                                                                                                    }
-                                                                                                                                                                                }
+                                                            <span data-toggle="popover" class="detail_popover" data-original-title="" title=""><a href="#" class="att-cell <?php echo $display_class; ?>"><?php
+                                                                                                                                                                                echo $display_key;
                                                                                                                                                                                 ?></a>
                                                             </span>
                                                         </td>

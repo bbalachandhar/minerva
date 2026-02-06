@@ -886,7 +886,11 @@ class Leaverequest extends Admin_Controller
             $department = $this->department_model->getDepartmentType($staff_details['department']);
             if ($department && $department['dept_head_id']) {
                 $recommender_details = $this->staff_model->get($department['dept_head_id']);
-                $data['recommender_info'] = $recommender_details['name'] . ' ' . $recommender_details['surname'] . ' (' . $recommender_details['designation'] . ')';
+                if ($recommender_details && is_array($recommender_details)) {
+                    $data['recommender_info'] = $recommender_details['name'] . ' ' . $recommender_details['surname'] . ' (' . $recommender_details['designation'] . ')';
+                } else {
+                    $data['recommender_info'] = $this->lang->line('not_assigned');
+                }
             } else {
                 $data['recommender_info'] = $this->lang->line('not_assigned');
             }
@@ -897,7 +901,11 @@ class Leaverequest extends Admin_Controller
         $setting = $this->setting_model->getSetting();
         if ($setting && isset($setting->leave_approver_id)) {
             $approver_details = $this->staff_model->get($setting->leave_approver_id);
-            $data['approver_info'] = $approver_details['name'] . ' ' . $approver_details['surname'] . ' (' . $approver_details['designation'] . ')';
+            if ($approver_details && is_array($approver_details)) {
+                $data['approver_info'] = $approver_details['name'] . ' ' . $approver_details['surname'] . ' (' . $approver_details['designation'] . ')';
+            } else {
+                $data['approver_info'] = $this->lang->line('not_assigned');
+            }
         } else {
             $data['approver_info'] = $this->lang->line('not_assigned');
         }

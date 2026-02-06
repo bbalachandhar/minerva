@@ -97,6 +97,10 @@ $route['admin/staff/managebiometricdevice'] = 'admin/staff/managebiometricdevice
 $route['admin/staff/add_biometric_device'] = 'admin/staff/add_biometric_device';
 $route['admin/staff/edit_biometric_device/(:num)'] = 'admin/staff/edit_biometric_device/$1';
 $route['admin/staff/delete_biometric_device/(:num)'] = 'admin/staff/delete_biometric_device/$1';
+
+$route['admin/specialattendance'] = 'admin/specialattendance/index';
+$route['admin/specialattendance/(:any)'] = 'admin/specialattendance/$1';
+
 $route['studentfee/do_bulk_upload_by_feetype'] = 'studentfee/do_bulk_upload_by_feetype';
 $route['admin/staff/activate_biometric_device/(:num)'] = 'admin/staff/activate_biometric_device/$1';
 $route['admin/timetable/bulk']         = 'admin/timetable/bulk';

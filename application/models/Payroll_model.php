@@ -172,7 +172,7 @@ class Payroll_model extends MY_Model
 
     public function count_attendance_obj($month, $year, $staff_id, $attendance_type = 1)
     {
-        $session_level_types = [7, 9, 10, 11]; // FHP, SHP, FHA, SHA
+        $session_level_types = [2, 7, 8, 9]; // FHL, FHP, SHL, SHP
 
         if (in_array($attendance_type, $session_level_types)) {
             // New logic to count from JSON

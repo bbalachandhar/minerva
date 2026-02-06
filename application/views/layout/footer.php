@@ -24,6 +24,25 @@ $feesinbackdate = $this->customlib->getfeesinbackdate();
 <script src="<?php echo base_url(); ?>backend/toast-alert/toastr.js"></script>
 <script src="<?php echo base_url(); ?>backend/bootstrap/js/bootstrap.min.js"></script>
 
+<script type="text/javascript">
+    (function () {
+        var iconHref = '<?php echo $this->customlib->getBaseUrl(); ?>uploads/school_content/admin_small_logo/<?php echo $this->setting_model->getAdminsmalllogo(); ?>';
+        if (!iconHref) {
+            return;
+        }
+        var existing = document.querySelector("link[rel~='icon']");
+        if (existing) {
+            existing.href = iconHref;
+            return;
+        }
+        var link = document.createElement('link');
+        link.rel = 'shortcut icon';
+        link.type = 'image/x-icon';
+        link.href = iconHref;
+        document.head.appendChild(link);
+    })();
+</script>
+
 <!-- Eonasdan Bootstrap Datetimepicker CSS -->
 <link rel="stylesheet" href="<?php echo base_url(); ?>backend/datepicker/css/bootstrap-datetimepicker.css">
 <link rel="stylesheet" href="<?php echo base_url(); ?>backend/plugins/select2/select2.min.css">

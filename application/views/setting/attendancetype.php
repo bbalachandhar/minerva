@@ -172,21 +172,15 @@
                                         </div>
                                     </div>
 
-<div class="row">
-                                        <div class="col-md-6">
-                                            <div class="form-group row">
-                                                <label class="col-sm-4"> Max Late Allowed (Monthly)</label>
-                                                <div class="col-sm-8">
-                                                    <input type="number" class="form-control" name="max_late_allowed" id="max_late_allowed" value="<?php echo $result->max_late_allowed; ?>">
-                                                </div>
+                                    <div class="col-md-12">
+                                        <div class="form-group row">
+                                            <label class="col-sm-2"> <?php echo $this->lang->line('max_late_allowed'); ?></label>
+                                            <div class="col-sm-4">
+                                                <input type="number" min="0" class="form-control" name="max_late_allowed" id="max_late_allowed" value="<?php echo $result->max_late_allowed; ?>">
                                             </div>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <div class="form-group row">
-                                                <label class="col-sm-4"> Max Permission Allowed (Monthly)</label>
-                                                <div class="col-sm-8">
-                                                    <input type="number" class="form-control" name="max_permission_allowed" id="max_permission_allowed" value="<?php echo $result->max_permission_allowed; ?>">
-                                                </div>
+                                            <label class="col-sm-2"> <?php echo $this->lang->line('max_permission_allowed'); ?></label>
+                                            <div class="col-sm-4">
+                                                <input type="number" min="0" class="form-control" name="max_permission_allowed" id="max_permission_allowed" value="<?php echo $result->max_permission_allowed; ?>">
                                             </div>
                                         </div>
                                     </div>
@@ -203,8 +197,8 @@
                                 ?>
                             </div>
                         </form>
-                                                            </div><!-- /.box-body -->
-                                                        </div>
+                    </div>
+                </div>
                                         
                                                         <div class="box box-primary <?php echo ($result->student_biometric == '0') ? 'hide' : ''; ?>" id="save_class_time_hide_show">
                                                             <div class="box-header ptbnull">
@@ -357,66 +351,127 @@
 																	</div>
 																</div>
 																
-																<div class="append_row paddA10">
-																	<?php
-																	$row = 1;
-																	if (!empty($list_value['schedule'])) {
-																		$count = 1;
-																	?>
-																		<div class="row">
-																			<div class="col-md-12">
-																				<?php
-																				                                                if (!empty($attendance_type)) {
-																				                                                    foreach ($attendance_type as $att_type_key => $att_type_value) {
-																				                                                        if ($att_type_value->id == 4) {
-																				                                                            continue;
-																				                                                        }
-																				                                                        $return_value = get_input_value($list_value['schedule'], $att_type_value->id);																					
-																				?>
-																						<input type="hidden" name="row[]" value="<?php echo $row; ?>">
-																						<input type="hidden" name="attendance_type_id_<?php echo $row; ?>" value="<?php echo $att_type_value->id; ?>">
-																						<input type="hidden" name="role_id_<?php echo $row; ?>" value="<?php echo $list_value['role_id']; ?>">
-																						<div class="row">
-																							<div class="col-sm-3 col-lg-3 col-md-3">
-																								<?php  
-                                                                                                echo $this->lang->line($att_type_value->long_lang_name) . " (" . $att_type_value->key_value . ")"; ?>
-																							</div>
-																							<div class="col-sm-9 col-lg-9 col-md-9">
-																								<div class="row">
-																									<div class="col-sm-6 col-lg-6 col-md-6">
-																										<div class="form-group">
-																											
-																											<div class="input-group">
-																												<input type="text" name="entry_time_from_<?php echo $row; ?>" class="form-control entry_time_from time valid" id="entry_time_from" value="<?php echo $return_value['entry_time_from'] ?>">
-																												<div class="input-group-addon">
-																													<span class="fa fa-clock-o"></span>
-																												</div>
-																											</div>
-																										</div>
-																									</div>
-																									<div class="col-sm-6 col-lg-6 col-md-6">
-																										<div class="form-group">
-																											
-																											<div class="input-group">
-																												<input type="text" name="entry_time_to_<?php echo $row; ?>" class="form-control entry_time_to time valid" id="time_to" value="<?php echo $return_value['entry_time_to'] ?>">
-																												<div class="input-group-addon">
-																													<span class="fa fa-clock-o"></span>
-																												</div>
-																											</div>
-																										</div>
-																									</div>
-																								</div>
-																							</div>                                                                            
-																						</div>
-																				<?php
-																				$row++;
-																				}
-																		}
-																		?>
-																			</div>
-																		</div>
-																	<?php  $count++;   }  ?>
-																</div>
+                                                                <div class="append_row paddA10">
+                                                                    <?php
+                                                                    $row = 1;
+                                                                    $first_half_ids = [1, 2, 7, 6, 8];
+                                                                    $second_half_ids = [9];
+                                                                    if (!empty($list_value['schedule'])) {
+                                                                        $count = 1;
+                                                                    ?>
+                                                                        <div class="row">
+                                                                            <div class="col-md-12">
+                                                                                <div class="attendance_section">Arrival (In Time)</div>
+                                                                                <?php
+                                                                                if (!empty($attendance_type)) {
+                                                                                    foreach ($first_half_ids as $ordered_type_id) {
+                                                                                        $att_type_value = null;
+                                                                                        foreach ($attendance_type as $candidate_type) {
+                                                                                            if ((int)$candidate_type->id === (int)$ordered_type_id) {
+                                                                                                $att_type_value = $candidate_type;
+                                                                                                break;
+                                                                                            }
+                                                                                        }
+                                                                                        if (!$att_type_value) {
+                                                                                            continue;
+                                                                                        }
+                                                                                        $return_value = get_input_value($list_value['schedule'], $att_type_value->id);
+                                                                                ?>
+                                                                                        <input type="hidden" name="row[]" value="<?php echo $row; ?>">
+                                                                                        <input type="hidden" name="attendance_type_id_<?php echo $row; ?>" value="<?php echo $att_type_value->id; ?>">
+                                                                                        <input type="hidden" name="role_id_<?php echo $row; ?>" value="<?php echo $list_value['role_id']; ?>">
+                                                                                        <div class="row">
+                                                                                            <div class="col-sm-3 col-lg-3 col-md-3">
+                                                                                                <?php echo $this->lang->line($att_type_value->long_lang_name) . " (" . $att_type_value->key_value . ")"; ?>
+                                                                                            </div>
+                                                                                            <div class="col-sm-9 col-lg-9 col-md-9">
+                                                                                                <div class="row">
+                                                                                                    <div class="col-sm-6 col-lg-6 col-md-6">
+                                                                                                        <div class="form-group">
+                                                                                                            <div class="input-group">
+                                                                                                                <input type="text" name="entry_time_from_<?php echo $row; ?>" class="form-control entry_time_from time valid" id="entry_time_from" value="<?php echo $return_value['entry_time_from'] ?>">
+                                                                                                                <div class="input-group-addon">
+                                                                                                                    <span class="fa fa-clock-o"></span>
+                                                                                                                </div>
+                                                                                                            </div>
+                                                                                                        </div>
+                                                                                                    </div>
+                                                                                                    <div class="col-sm-6 col-lg-6 col-md-6">
+                                                                                                        <div class="form-group">
+                                                                                                            <div class="input-group">
+                                                                                                                <input type="text" name="entry_time_to_<?php echo $row; ?>" class="form-control entry_time_to time valid" id="time_to" value="<?php echo $return_value['entry_time_to'] ?>">
+                                                                                                                <div class="input-group-addon">
+                                                                                                                    <span class="fa fa-clock-o"></span>
+                                                                                                                </div>
+                                                                                                            </div>
+                                                                                                        </div>
+                                                                                                    </div>
+                                                                                                </div>
+                                                                                            </div>
+                                                                                        </div>
+                                                                                <?php
+                                                                                $row++;
+                                                                                }
+                                                                            }
+                                                                            ?>
+
+                                                                                <div class="attendance_section">Departure (Out Time)</div>
+                                                                                <?php
+                                                                                if (!empty($attendance_type)) {
+                                                                                    foreach ($attendance_type as $att_type_key => $att_type_value) {
+                                                                                        if (!in_array((int)$att_type_value->id, $second_half_ids, true)) {
+                                                                                            continue;
+                                                                                        }
+                                                                                        $return_value = get_input_value($list_value['schedule'], $att_type_value->id);
+                                                                                ?>
+                                                                                        <input type="hidden" name="row[]" value="<?php echo $row; ?>">
+                                                                                        <input type="hidden" name="attendance_type_id_<?php echo $row; ?>" value="<?php echo $att_type_value->id; ?>">
+                                                                                        <input type="hidden" name="role_id_<?php echo $row; ?>" value="<?php echo $list_value['role_id']; ?>">
+                                                                                        <div class="row">
+                                                                                            <div class="col-sm-3 col-lg-3 col-md-3">
+                                                                                                <?php echo $this->lang->line($att_type_value->long_lang_name) . " (" . $att_type_value->key_value . ")"; ?>
+                                                                                            </div>
+                                                                                            <div class="col-sm-9 col-lg-9 col-md-9">
+                                                                                                <div class="row">
+                                                                                                    <div class="col-sm-6 col-lg-6 col-md-6">
+                                                                                                        <div class="form-group">
+                                                                                                            <div class="input-group">
+                                                                                                                <input type="text" name="entry_time_from_<?php echo $row; ?>" class="form-control entry_time_from time valid" id="entry_time_from" value="<?php echo $return_value['entry_time_from'] ?>">
+                                                                                                                <div class="input-group-addon">
+                                                                                                                    <span class="fa fa-clock-o"></span>
+                                                                                                                </div>
+                                                                                                            </div>
+                                                                                                        </div>
+                                                                                                    </div>
+                                                                                                    <div class="col-sm-6 col-lg-6 col-md-6">
+                                                                                                        <div class="form-group">
+                                                                                                            <div class="input-group">
+                                                                                                                <input type="text" name="entry_time_to_<?php echo $row; ?>" class="form-control entry_time_to time valid" id="time_to" value="<?php echo $return_value['entry_time_to'] ?>">
+                                                                                                                <div class="input-group-addon">
+                                                                                                                    <span class="fa fa-clock-o"></span>
+                                                                                                                </div>
+                                                                                                            </div>
+                                                                                                        </div>
+                                                                                                    </div>
+                                                                                                </div>
+                                                                                            </div>
+                                                                                        </div>
+                                                                                <?php
+                                                                                $row++;
+                                                                                }
+                                                                            }
+                                                                            ?>
+
+                                                                                <div class="alert alert-info" style="margin-top: 10px;">
+                                                                                    <strong>Day Summary:</strong> Both halves present → Present; one half present → Half Day; both absent → Absent.
+                                                                                </div>
+                                                                                <div class="alert alert-warning" style="margin-top: 10px;">
+                                                                                    <strong>Note:</strong> If any attendance window is set to 00:00:00–00:00:00, that rule is ignored during attendance processing.
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    <?php  $count++;   }  ?>
+                                                                </div>
 															</div>
 														
 														</div>
