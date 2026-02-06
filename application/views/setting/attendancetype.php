@@ -354,8 +354,8 @@
                                                                 <div class="append_row paddA10">
                                                                     <?php
                                                                     $row = 1;
-                                                                    $first_half_ids = [1, 2, 7, 6, 8];
-                                                                    $second_half_ids = [9];
+                                                                    $first_half_ids = [1, 2, 5, 4, 6];
+                                                                    $second_half_ids = [7];
                                                                     if (!empty($list_value['schedule'])) {
                                                                         $count = 1;
                                                                     ?>

@@ -336,8 +336,8 @@ class Staffattendance extends Admin_Controller
 
 
                 $remark = '';
-                $morning_session_status = 10; // Default to First Half Absent
-                $afternoon_session_status = 11; // Default to Second Half Absent
+                $morning_session_status = 8; // Default to First Half Absent
+                $afternoon_session_status = 9; // Default to Second Half Absent
                 $overall_attendance_type_id = 3; // Default to Full Day Absent
 
                 // Always use schedule table for both punches
@@ -348,13 +348,13 @@ class Staffattendance extends Admin_Controller
                 $second_half_start = false;
 
                 if ($morning_type) {
-                    if ((int)$morning_type->staff_attendence_type_id === 6) { // Half Day window means second-half start
-                        $morning_session_status = 10; // First Half Absent
+                    if ((int)$morning_type->staff_attendence_type_id === 4) { // Half Day window means second-half start
+                        $morning_session_status = 8; // First Half Absent
                         $afternoon_session_status = 1; // Second Half Present
                         $second_half_start = true;
-                    } elseif ((int)$morning_type->staff_attendence_type_id === 8) { // SHL is arrival-based
-                        $morning_session_status = 10; // First Half Absent
-                        $afternoon_session_status = 8; // Second Half Late
+                    } elseif ((int)$morning_type->staff_attendence_type_id === 6) { // SHL is arrival-based
+                        $morning_session_status = 8; // First Half Absent
+                        $afternoon_session_status = 6; // Second Half Late
                         $second_half_start = true;
                     } else {
                         $morning_session_status = $morning_type->staff_attendence_type_id;
@@ -367,13 +367,13 @@ class Staffattendance extends Admin_Controller
                     if ($present_setting && strtotime($in_time) < strtotime($present_setting->entry_time_from)) {
                         $morning_session_status = $present_id;
                     } else {
-                        $shl_range = isset($role_settings[$role_id][8]) ? $role_settings[$role_id][8] : null;
+                        $shl_range = isset($role_settings[$role_id][6]) ? $role_settings[$role_id][6] : null;
                         if ($shl_range && !empty($shl_range['to']) && strtotime($in_time) > strtotime($shl_range['to'])) {
-                            $morning_session_status = 10;
-                            $afternoon_session_status = 11;
+                            $morning_session_status = 8;
+                            $afternoon_session_status = 9;
                             $second_half_start = true;
                         } else {
-                            $morning_session_status = 10;
+                            $morning_session_status = 8;
                         }
                     }
                 }
@@ -384,15 +384,15 @@ class Staffattendance extends Admin_Controller
                     if ($afternoon_type) {
                         $afternoon_session_status = $afternoon_type->staff_attendence_type_id;
                     } else {
-                        $shp_range = isset($role_settings[$role_id][9]) ? $role_settings[$role_id][9] : null;
+                        $shp_range = isset($role_settings[$role_id][7]) ? $role_settings[$role_id][7] : null;
 
                         if ($shp_range && $this->time_in_range($out_time, $shp_range['from'], $shp_range['to'])) {
-                            $afternoon_session_status = 9;
+                            $afternoon_session_status = 7;
                         } else {
                             $second_half_cutoff = !empty($settings->morning_session_end_time) ? $settings->morning_session_end_time : null;
 
                             if ($second_half_cutoff && strtotime($out_time) < strtotime($second_half_cutoff)) {
-                                $afternoon_session_status = 11;
+                                $afternoon_session_status = 9;
                             } else {
                                 $present_cutoff = null;
                                 if ($shp_range && !empty($shp_range['to'])) {
@@ -404,26 +404,26 @@ class Staffattendance extends Admin_Controller
                                 if ($present_cutoff && strtotime($out_time) >= strtotime($present_cutoff)) {
                                     $afternoon_session_status = 1;
                                 } else {
-                                    $afternoon_session_status = 11;
+                                    $afternoon_session_status = 9;
                                 }
                             }
                         }
                     }
                 } else {
-                    // No exit punch - defaults to Second Half Absent (11)
-                    $afternoon_session_status = 11; 
+                    // No exit punch - defaults to Second Half Absent (9)
+                    $afternoon_session_status = 9; 
                 }
 
                 // Determine overall attendance type
                 $morning_session_status = (int)$morning_session_status;
                 $afternoon_session_status = (int)$afternoon_session_status;
-                $first_half_present = in_array($morning_session_status, [1, 2, 7], true);
-                $second_half_present = in_array($afternoon_session_status, [1, 8, 9], true);
+                $first_half_present = in_array($morning_session_status, [1, 2, 5], true);
+                $second_half_present = in_array($afternoon_session_status, [1, 6, 7], true);
 
                 if ($first_half_present && $second_half_present) {
                     $overall_attendance_type_id = 1; // Present
                 } elseif ($first_half_present || $second_half_present) {
-                    $overall_attendance_type_id = 6; // Half Day
+                    $overall_attendance_type_id = 4; // Half Day
                 } else {
                     $overall_attendance_type_id = 3; // Absent
                 }

@@ -79,8 +79,8 @@
                         <div class="col-xs-6 text-right">
                             <address>
                                 <strong><?php echo $this->lang->line('date'); ?>:</strong> <?php echo date($this->customlib->getSchoolDateFormat(), strtotime($collection['date_collected'])); ?><br>
-                                <?php if (!empty($collection['student_id'])) { ?>
-                                    <strong><?php echo $this->lang->line('class'); ?>:</strong> <?php echo $collection['class_name'] . ' (' . $collection['section'] . ')'; ?><br>
+                                <?php if (!empty($collection['student_id']) && !empty($collection['class_name'])) { ?>
+                                    <strong><?php echo $this->lang->line('class'); ?>:</strong> <?php echo $collection['class_name'] . (!empty($collection['section']) ? ' (' . $collection['section'] . ')' : ''); ?><br>
                                 <?php } ?>
                             </address>
                         </div>

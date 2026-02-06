@@ -23,11 +23,27 @@ if (!empty($resultlist)) {
 foreach ($monthlist as $key => $value) {
             $datemonth = date("m", strtotime($key));
             $att_dates = $year . "-" . $datemonth . "-" . sprintf("%02d", $i);
-            ?>
-                        <td><span data-toggle="popover" class="detail_popover" data-original-title="" title=""><a href="#" style="color:#333"><?php
-if (array_key_exists($att_dates, $resultlist)) {
-                echo $resultlist[$att_dates]["key"];
+            $display_key = '';
+            $display_class = '';
+            if (!empty($weekend_day_dates_year) && in_array($att_dates, $weekend_day_dates_year, true)) {
+                $display_key = 'W';
+                $display_class = 'att-cell-weekend';
+            } elseif (!empty($holiday_dates_year) && in_array($att_dates, $holiday_dates_year, true)) {
+                $display_key = 'H';
+                $display_class = 'att-cell-holiday';
+            } elseif (array_key_exists($att_dates, $resultlist) && !empty($resultlist[$att_dates]["key"])) {
+                $display_key = $resultlist[$att_dates]["key"];
+                if ($display_key === 'P') {
+                    $display_class = 'att-cell-present';
+                } elseif ($display_key === 'HD') {
+                    $display_class = 'att-cell-halfday';
+                } elseif ($display_key === 'A') {
+                    $display_class = 'att-cell-absent';
+                }
             }
+            ?>
+                        <td><span data-toggle="popover" class="detail_popover" data-original-title="" title=""><a href="#" class="att-cell <?php echo $display_class; ?>"><?php
+echo $display_key;
             ?></a></span>
                             <div class="fee_detail_popover" style="display: none"><?php echo $resultlist[$att_dates]["remark"]; ?></div>
                         </td>

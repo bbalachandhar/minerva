@@ -165,21 +165,7 @@
                                                 <th><br /><span data-toggle="tooltip" title="Total Absent (Excluding Holidays)">A*</span></th>
                                                 <th><br /><span data-toggle="tooltip" title="Total Present (Including Half Day)">P*</span></th>
                                                 <th><br /><span data-toggle="tooltip" title="Total Holidays">H</span></th>
-                                                <?php
-                                                if (!empty($attendence_array)) {
-                                                    foreach ($attendencetypeslist as $key => $value) {
-                                                        if (in_array((int)$value['id'], [1, 2, 3, 7, 8, 9, 10, 11], true)) {
-                                                            continue;
-                                                        }
-                                                ?>
-                                                        <th colspan="1"><br /><span data-toggle="tooltip" title="<?php echo $this->lang->line('total') . ' ' . $value["type"]; ?>"><?php echo strip_tags($value["key_value"]); ?>
-
-                                                            </span></th>
-
-                                                <?php
-                                                    }
-                                                }
-                                                ?>
+                                                <th colspan="1"><br /><span data-toggle="tooltip" title="Total Half Day">HD</span></th>
                                                 <th colspan="1"><br /><span data-toggle="tooltip" title="Weekends">WE</span></th>
                                                 <?php
                                                 foreach ($attendence_array as $at_key => $at_value) {
@@ -248,40 +234,55 @@
                                                                                                                                                                                                 <td><?php echo $working_days; ?></td>
                                                                                                                                                                                                 <td><?php echo rtrim(rtrim(number_format((float)$total_absent, 1, '.', ''), '0'), '.'); ?></td>
                                                                                                 <td><?php echo rtrim(rtrim(number_format((float)$total_present, 1, '.', ''), '0'), '.'); ?></td>
-                                                                                                                                                                                                <td><?php echo $holiday_count ?? 0; ?></td>
-                                                                                                <?php
-                                                                                                if(!empty($monthAttendance)){
-                                                                                                foreach ($attendencetypeslist as $key => $value) {
-                                                                                                  $att_type_key = str_replace(" ", "_", strtolower($value['type']));
-                                                                                                                                                                                                      if (in_array((int)$value['id'], [1, 2, 3, 7, 8, 9, 10, 11], true)) {
-                                                                                                                                                                                                            continue;
-                                                                                                                                                                                                    }
-                                                                                                ?>
-                                                                                                  <td><?php echo $monthAttendance[$i][$student_value['id']][$att_type_key] ?? 0; ?></td>
-                                                                                                <?php }
-                                                                                                ?>
-                                                                                                  <td><?php echo $monthAttendance[$i][$student_value['id']]['sunday'] ?? 0; ?></td>
-                                                                                                <?php
-                                                                                                }
-                                                                                                 ?>
+                                                                                                <td><?php echo $holiday_count ?? 0; ?></td>
+                                                                                                <td><?php echo $half_day_count; ?></td>
+                                                                                                <td><?php echo $weekend_count ?? 0; ?></td>
                                                                                                 <?php
                                                                                                 foreach ($attendence_array as $at_key => $at_value) {
                                                                                                     $cell_class = '';
-                                                                                                    $attendance_key = $resultlist[$at_value][$student_value['id']]['key'] ?? null;
+                                                                                                    $attendance_row = $resultlist[$at_value][$student_value['id']] ?? [];
+                                                                                                    $attendance_key = $attendance_row['key'] ?? null;
                                                                                                     $display_key = $attendance_key ?? '';
+                                                                                                    $normalized_key = $attendance_key;
+                                                                                                    $present_keys = ['P', 'FHL', 'SHL', 'FHP', 'SHP'];
+                                                                                                    $absent_keys = ['A', 'FHA', 'SHA'];
+                                                                                                    if (in_array($attendance_key, $present_keys, true)) {
+                                                                                                        $normalized_key = 'P';
+                                                                                                    } elseif (in_array($attendance_key, $absent_keys, true)) {
+                                                                                                        $normalized_key = 'A';
+                                                                                                    }
                                         
+                                                                                                    $is_weekend_or_holiday = false;
                                                                                                     if (!empty($weekend_day_dates) && in_array($at_value, $weekend_day_dates, true)) {
                                                                                                         $cell_class = 'bg-danger';
                                                                                                         $display_key = 'W';
+                                                                                                        $tooltip_text = 'Weekend';
+                                                                                                        $is_weekend_or_holiday = true;
                                                                                                     } elseif (in_array($at_value, $holiday_dates) || $attendance_key == 'HO') {
                                                                                                         $cell_class = 'bg-warning';
                                                                                                         $display_key = 'H';
-                                                                                                    } elseif ($attendance_key === 'P') {
+                                                                                                        $tooltip_text = 'Holiday';
+                                                                                                        $is_weekend_or_holiday = true;
+                                                                                                    } elseif ($normalized_key === 'P') {
                                                                                                         $cell_class = 'att-present';
+                                                                                                        $tooltip_text = 'Present';
                                                                                                     } elseif ($attendance_key === 'HD') {
                                                                                                         $cell_class = 'att-half-day';
-                                                                                                    } elseif ($attendance_key === 'A') {
+                                                                                                        $out_time = $attendance_row['out_time'] ?? null;
+                                                                                                        $biometric_attendence = (int)($attendance_row['biometric_attendence'] ?? 0);
+                                                                                                        if ($biometric_attendence === 1 && (empty($out_time) || $out_time === '00:00:00')) {
+                                                                                                            $tooltip_text = 'No Exit Punch Found';
+                                                                                                        } else {
+                                                                                                            $tooltip_text = 'Half Day';
+                                                                                                        }
+                                                                                                    } elseif ($normalized_key === 'A') {
                                                                                                         $cell_class = 'att-absent';
+                                                                                                        $tooltip_text = 'Absent';
+                                                                                                    } else {
+                                                                                                        $tooltip_text = 'N/A';
+                                                                                                    }
+                                                                                                    if (!$is_weekend_or_holiday && $attendance_key && $normalized_key && !in_array($attendance_key, ['HD', 'HO'], true)) {
+                                                                                                        $display_key = $normalized_key;
                                                                                                     }
                                                                                                 ?>
                                                                                                     <td class="tdcls text text-center <?php echo $cell_class; ?>">
@@ -291,8 +292,12 @@
                                                                                                         <div class="fee_detail_popover" style="display: none">
                                                                                                             <?php
                                                                                                                 if (!empty($resultlist[$at_value][$student_value['id']]['remark'])) {
-                                                                                                                        echo $resultlist[$at_value][$student_value['id']]['remark'];
-                                                                                                            }  ?></div>
+                                                                                                                    echo $resultlist[$at_value][$student_value['id']]['remark'];
+                                                                                                                } else {
+                                                                                                                    echo $tooltip_text;
+                                                                                                                }
+                                                                                                            ?>
+                                                                                                        </div>
                                                                                                     </center></td>
                                                                                                 <?php
                                                                                                 }

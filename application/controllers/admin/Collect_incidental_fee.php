@@ -189,6 +189,99 @@ class Collect_incidental_fee extends Admin_Controller {
         echo json_encode($sections);
     }
 
+    public function getStudentsForClassWiseCollection()
+    {
+        if (!$this->rbac->hasPrivilege('collect_incidental_fee', 'can_view')) {
+            echo json_encode(['status' => 'error', 'message' => $this->lang->line('access_denied')]);
+            return;
+        }
+
+        $class_id = $this->input->post('class_id');
+        $section_id = $this->input->post('section_id');
+        $incidental_fee_type_id = $this->input->post('incidental_fee_type_id');
+
+        if (empty($class_id) || empty($section_id) || empty($incidental_fee_type_id)) {
+            echo json_encode(['status' => 'error', 'message' => $this->lang->line('invalid_input')]);
+            return;
+        }
+
+        $session_id = $this->setting_model->getCurrentSession();
+        $students = $this->student_model->getStudentByClassSectionID($class_id, $section_id, null, $session_id);
+
+        $student_list = [];
+        if (!empty($students)) {
+            foreach ($students as $student) {
+                $student_list[] = [
+                    'student_session_id' => $student['student_session_id'],
+                    'student_id' => $student['id'],
+                    'admission_no' => $student['admission_no'],
+                    'firstname' => $student['firstname'],
+                    'lastname' => $student['lastname'],
+                ];
+            }
+        }
+
+        echo json_encode(['status' => 'success', 'students' => $student_list]);
+    }
+
+    public function saveClassWiseIncidentalFees()
+    {
+        if (!$this->rbac->hasPrivilege('collect_incidental_fee', 'can_add')) {
+            echo json_encode(['status' => 'error', 'message' => $this->lang->line('access_denied')]);
+            return;
+        }
+
+        $class_id = $this->input->post('class_id');
+        $section_id = $this->input->post('section_id');
+        $incidental_fee_type_id = $this->input->post('incidental_fee_type_id');
+        $amounts = $this->input->post('amounts');
+
+        if (empty($class_id) || empty($section_id) || empty($incidental_fee_type_id) || empty($amounts) || !is_array($amounts)) {
+            echo json_encode(['status' => 'error', 'message' => $this->lang->line('invalid_input')]);
+            return;
+        }
+
+        $session_id = $this->setting_model->getCurrentSession();
+        $collected_by = $this->customlib->getStaffID();
+        $saved_count = 0;
+
+        foreach ($amounts as $student_session_id => $amount) {
+            $amount = (float)$amount;
+            if ($amount <= 0) {
+                continue;
+            }
+
+            $student_row = $this->student_model->getByStudentSession($student_session_id);
+            if (empty($student_row) || empty($student_row['id'])) {
+                continue;
+            }
+
+            $receipt_no = $this->incidental_fee_collection_model->get_receipt_no();
+            $insert_data = [
+                'incidental_fee_type_id' => $incidental_fee_type_id,
+                'incidental_fee_assignment_id' => null,
+                'session_id' => $session_id,
+                'student_id' => $student_row['id'],
+                'amount_collected' => $amount,
+                'collected_by' => $collected_by,
+                'receipt_no' => $receipt_no,
+                'notes' => null,
+                'date_collected' => date('Y-m-d H:i:s'),
+            ];
+
+            $collection_id = $this->incidental_fee_collection_model->add($insert_data);
+            if ($collection_id) {
+                $saved_count++;
+            }
+        }
+
+        if ($saved_count > 0) {
+            echo json_encode(['status' => 'success', 'message' => $this->lang->line('fee_collected_successfully')]);
+        } else {
+            echo json_encode(['status' => 'error', 'message' => $this->lang->line('no_record_found')]);
+        }
+    }
+
     public function revert($collection_id) {
         if (!$this->rbac->hasPrivilege('collect_incidental_fee', 'can_delete')) {
             access_denied();

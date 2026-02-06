@@ -153,12 +153,12 @@ class Attendance_model extends CI_Model {
         $present_id = 1;
         $first_half_late_id = 2;
         $absent_id = 3;
-        $half_day_id = 6;
-        $permission_first_session_id = 7;
-        $second_half_late_id = 8;
-        $permission_second_session_id = 9;
-        $first_half_absent_id = 10;
-        $second_half_absent_id = 11;
+        $half_day_id = 4;
+        $permission_first_session_id = 5;
+        $second_half_late_id = 6;
+        $permission_second_session_id = 7;
+        $first_half_absent_id = 8;
+        $second_half_absent_id = 9;
 
         $morning_session_end_time = $setting->morning_session_end_time;
         $evening_session_end_time = $setting->evening_session_end_time;
@@ -336,12 +336,12 @@ class Attendance_model extends CI_Model {
         $present_id = 1;
         $first_half_late_id = 2;
         $absent_id = 3;
-        $half_day_id = 6;
-        $permission_first_session_id = 7;
-        $second_half_late_id = 8;
-        $permission_second_session_id = 9;
-        $first_half_absent_id = 10;
-        $second_half_absent_id = 11;
+        $half_day_id = 4;
+        $permission_first_session_id = 5;
+        $second_half_late_id = 6;
+        $permission_second_session_id = 7;
+        $first_half_absent_id = 8;
+        $second_half_absent_id = 9;
 
         $setting = $this->setting_model->getSetting();
         $morning_session_end_time = $setting->morning_session_end_time;

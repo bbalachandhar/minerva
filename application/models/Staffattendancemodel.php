@@ -162,9 +162,9 @@ class Staffattendancemodel extends MY_Model {
         }
         
         if ($user_type == "select") {
-            $query = $this->db->query("select staff_attendance.staff_attendance_type_id,staff_attendance_type.type as `att_type`,staff_attendance_type.key_value as `key`,staff_attendance.remark,staff.name,staff.surname,staff.employee_id,staff.contact_no,staff.email,roles.name as user_type,IFNULL(staff_attendance.date, 'xxx') as date, IFNULL(staff_attendance.id, 0) as attendence_id, staff.id as id from staff left join staff_attendance on (staff.id = staff_attendance.staff_id) and staff_attendance.date = " . $this->db->escape($date) . " left join staff_attendance_type on staff_attendance_type.id = staff_attendance.staff_attendance_type_id left join staff_roles on staff_roles.staff_id = staff.id left join roles on staff_roles.role_id = roles.id where staff.is_active = 1 $condition");
+            $query = $this->db->query("select staff_attendance.staff_attendance_type_id,staff_attendance_type.type as `att_type`,staff_attendance_type.key_value as `key`,staff_attendance.remark,staff_attendance.in_time,staff_attendance.out_time,staff_attendance.session_attendance_data,staff_attendance.biometric_attendence,staff_attendance.qrcode_attendance,staff.name,staff.surname,staff.employee_id,staff.contact_no,staff.email,roles.name as user_type,IFNULL(staff_attendance.date, 'xxx') as date, IFNULL(staff_attendance.id, 0) as attendence_id, staff.id as id from staff left join staff_attendance on (staff.id = staff_attendance.staff_id) and staff_attendance.date = " . $this->db->escape($date) . " left join staff_attendance_type on staff_attendance_type.id = staff_attendance.staff_attendance_type_id left join staff_roles on staff_roles.staff_id = staff.id left join roles on staff_roles.role_id = roles.id where staff.is_active = 1 $condition");
         } else {
-            $query = $this->db->query("select staff_attendance.staff_attendance_type_id,staff_attendance_type.type as `att_type`,staff_attendance_type.key_value as `key`,staff_attendance.remark,staff.name,staff.surname,staff.employee_id,staff.contact_no,staff.email,roles.name as user_type,IFNULL(staff_attendance.date, 'xxx') as date, IFNULL(staff_attendance.id, 0) as attendence_id, staff.id as id from staff  left join staff_roles on (staff.id = staff_roles.staff_id) left join roles on (roles.id = staff_roles.role_id) left join staff_attendance on (staff.id = staff_attendance.staff_id) and staff_attendance.date = " . $this->db->escape($date) . " left join staff_attendance_type on staff_attendance_type.id = staff_attendance.staff_attendance_type_id  where roles.name = '" . $user_type . "' and staff.is_active = 1 $condition");
+            $query = $this->db->query("select staff_attendance.staff_attendance_type_id,staff_attendance_type.type as `att_type`,staff_attendance_type.key_value as `key`,staff_attendance.remark,staff_attendance.in_time,staff_attendance.out_time,staff_attendance.session_attendance_data,staff_attendance.biometric_attendence,staff_attendance.qrcode_attendance,staff.name,staff.surname,staff.employee_id,staff.contact_no,staff.email,roles.name as user_type,IFNULL(staff_attendance.date, 'xxx') as date, IFNULL(staff_attendance.id, 0) as attendence_id, staff.id as id from staff  left join staff_roles on (staff.id = staff_roles.staff_id) left join roles on (roles.id = staff_roles.role_id) left join staff_attendance on (staff.id = staff_attendance.staff_id) and staff_attendance.date = " . $this->db->escape($date) . " left join staff_attendance_type on staff_attendance_type.id = staff_attendance.staff_attendance_type_id  where roles.name = '" . $user_type . "' and staff.is_active = 1 $condition");
         }
 
         return $query->result_array();
@@ -172,7 +172,26 @@ class Staffattendancemodel extends MY_Model {
 
     public function attendanceYearCount() {
         $query = $this->db->select("distinct year(date) as year")->get("staff_attendance");
-        return $query->result_array();
+        $years = $query->result_array();
+
+        $year_map = [];
+        foreach ($years as $row) {
+            if (!empty($row['year'])) {
+                $year_map[(int)$row['year']] = true;
+            }
+        }
+
+        $current_year = (int)date('Y');
+        for ($i = 0; $i < 5; $i++) {
+            $year_map[$current_year - $i] = true;
+        }
+
+        $final_years = array_keys($year_map);
+        rsort($final_years);
+
+        return array_map(function ($year) {
+            return ['year' => $year];
+        }, $final_years);
     }
 
     public function searchStaffattendance($date, $staff_id, $active_staff = true) {
@@ -227,7 +246,7 @@ class Staffattendancemodel extends MY_Model {
         $this->db->select('count(*) as count');
         $this->db->from('staff_attendance');
         $this->db->where('staff_id', $staff_id);
-        $this->db->where_in('staff_attendance_type_id', [7, 9]); // 7=FHP, 9=SHP
+        $this->db->where_in('staff_attendance_type_id', [5, 7]); // 5=FHP, 7=SHP
         $this->db->where('MONTH(date)', date('m', strtotime($date)));
         $this->db->where('YEAR(date)', date('Y', strtotime($date)));
         $query = $this->db->get();

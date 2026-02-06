@@ -935,7 +935,8 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                     position: absolute;
                                     right: 10px;
                                     bottom: 8px;
-                                    opacity: 0.2;
+                                    opacity: 0.45;
+                                    color: #fff;
                                 }
                                 .att-present { background: linear-gradient(135deg, #2ecc71, #27ae60); }
                                 .att-absent { background: linear-gradient(135deg, #e74c3c, #c0392b); }
@@ -1023,7 +1024,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                 </div><!--./col-md-3-->
                                 <div class="col-lg-3 col-md-4 col-sm-6 col20per">
                                     <div class="staffprofile att-card" style="background: linear-gradient(135deg, #16a085, #1abc9c);">
-                                        <h5>Working Days (<?php echo $summary['label']; ?>)</h5>
+                                        <h5>Working Days</h5>
                                         <h4><?php echo $summary['working_days']; ?></h4>
                                         <div class="icon">
                                             <i class="fa fa-calendar"></i>
@@ -1032,7 +1033,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                 </div><!--./col-md-3-->
                                 <div class="col-lg-3 col-md-4 col-sm-6 col20per">
                                     <div class="staffprofile att-card" style="background: linear-gradient(135deg, #34495e, #2c3e50);">
-                                        <h5>Weekends (<?php echo $summary['label']; ?>)</h5>
+                                        <h5>Weekends</h5>
                                         <h4><?php echo $summary['weekends']; ?></h4>
                                         <div class="icon">
                                             <i class="fa fa-calendar-times-o"></i>
@@ -1811,12 +1812,6 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
             },
             success: function(result) {
                 $("#ajaxattendance").html(result.page);
-                $('.total_present').text(result.countAttendance.present);
-                $('.total_late').text(result.countAttendance.late);
-                $('.total_absent').text(result.countAttendance.absent);
-                $('.total_half_day').text(result.countAttendance.half_day);
-                $('.total_holiday').text(result.countAttendance.holiday);
-                $('.total_half_day_second_shift').text(result.countAttendance.half_day_second_shift);
                 $('.modal_inner_loader').fadeOut("slow");
             },
             error: function(xhr) { // if error occured

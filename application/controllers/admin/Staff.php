@@ -565,6 +565,8 @@ class Staff extends Admin_Controller
     public function ajax_attendance()
     {
         $this->load->model("staffattendancemodel");
+        $this->load->model("holiday_model");
+        $this->load->model("setting_model");
         $attendencetypes             = $this->staffattendancemodel->getStaffAttendanceType();
         $data['attendencetypeslist'] = $attendencetypes;
 
@@ -579,6 +581,63 @@ class Staff extends Admin_Controller
             $data['yearlist']  = $this->staffattendancemodel->attendanceYearCount();
             $session_current   = $this->setting_model->getCurrentSessionName();
             $startMonth        = $this->setting_model->getStartMonth();
+
+            // Weekend/holiday dates for selected year
+            $settings = $this->setting_model->getSetting();
+            $weekendDaysStr = isset($settings->weekend_days) && !empty($settings->weekend_days) ? $settings->weekend_days : '0';
+            $weekendDays = array_map('intval', explode(',', $weekendDaysStr));
+            $isSecondSaturdayWeekend = isset($settings->isSecondSaturdayHoliday) ? (int)$settings->isSecondSaturdayHoliday : 0;
+
+            $holidays = $this->holiday_model->get();
+            $official_holiday_dates = [];
+            foreach ($holidays as $holiday_value) {
+                $from_date = new DateTime($holiday_value['from_date']);
+                $to_date = new DateTime($holiday_value['to_date']);
+                $current = clone $from_date;
+                while ($current <= $to_date) {
+                    if ($current->format('Y') == $year) {
+                        $official_holiday_dates[] = $current->format('Y-m-d');
+                    }
+                    $current->modify('+1 day');
+                }
+            }
+            $official_holiday_dates = array_values(array_unique($official_holiday_dates));
+
+            $weekend_day_dates_year = [];
+            for ($m = 1; $m <= 12; $m++) {
+                $days_in_month = cal_days_in_month(CAL_GREGORIAN, $m, (int)$year);
+
+                $second_saturday_date_year = null;
+                if ($isSecondSaturdayWeekend) {
+                    $saturdayCount = 0;
+                    for ($day = 1; $day <= $days_in_month; $day++) {
+                        $date = new DateTime($year . "-" . sprintf("%02d", $m) . "-" . sprintf("%02d", $day));
+                        if ((int)$date->format('w') == 6) {
+                            $saturdayCount++;
+                            if ($saturdayCount == 2) {
+                                $second_saturday_date_year = $date->format('Y-m-d');
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                for ($day = 1; $day <= $days_in_month; $day++) {
+                    $dateStr = $year . "-" . sprintf("%02d", $m) . "-" . sprintf("%02d", $day);
+                    $dayOfWeek = (int)date('w', strtotime($dateStr));
+                    if (in_array($dayOfWeek, $weekendDays, true) || ($second_saturday_date_year && $dateStr === $second_saturday_date_year)) {
+                        $weekend_day_dates_year[] = $dateStr;
+                    }
+                }
+            }
+            $weekend_day_dates_year = array_values(array_unique($weekend_day_dates_year));
+
+            $holiday_dates_year = array_values(array_unique(array_filter($official_holiday_dates, function ($dateStr) use ($weekend_day_dates_year) {
+                return !in_array($dateStr, $weekend_day_dates_year, true);
+            })));
+
+            $data['weekend_day_dates_year'] = $weekend_day_dates_year;
+            $data['holiday_dates_year'] = $holiday_dates_year;
 
             foreach ($monthlist as $key => $value) {
                 $datemonth       = date("m", strtotime($key));

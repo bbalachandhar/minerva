@@ -57,7 +57,7 @@ class Staff_model extends MY_Model
         $this->db->select('staff_id');
         $this->db->from("staff_attendance");
         $this->db->where('date = ', $date);
-        $this->db->where("(staff_attendance_type_id='1' OR staff_attendance_type_id='6')");
+        $this->db->where("(staff_attendance_type_id='1' OR staff_attendance_type_id='4')");
         $this->db->group_by('staff_attendance.staff_id');
         $query = $this->db->get();
         $q     = $query->result_array();
@@ -87,7 +87,7 @@ class Staff_model extends MY_Model
                 $present = $row['count'];
             } elseif ($row['staff_attendance_type_id'] == 3) { // Absent
                 $absent = $row['count'];
-            } elseif ($row['staff_attendance_type_id'] == 6) { // Half Day
+            } elseif ($row['staff_attendance_type_id'] == 4) { // Half Day
                 $half_day = $row['count'];
             }
         }
