@@ -4,6 +4,11 @@ if (!defined('BASEPATH')) {
     exit('No direct script access allowed');
 }
 
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+
 class Attendencereports extends Admin_Controller
 {
 
@@ -590,6 +595,250 @@ class Attendencereports extends Admin_Controller
             $this->load->view('attendencereports/staffattendancereport', $data);
             $this->load->view('layout/footer', $data);
         }
+    }
+
+    public function staffattendancereport_export_excel()
+    {
+        if (!$this->rbac->hasPrivilege('staff_attendance_report', 'can_view')) {
+            access_denied();
+        }
+
+        require_once APPPATH . 'third_party/vendor/autoload.php';
+
+        $role = $this->input->get('role');
+        $month = $this->input->get('month');
+        $searchyear = $this->input->get('year');
+
+        if (empty($month) || empty($searchyear)) {
+            show_error('Month and year are required', 400);
+        }
+
+        $month_number = is_numeric($month) ? sprintf('%02d', (int)$month) : date("m", strtotime($month));
+        $num_of_days = cal_days_in_month(CAL_GREGORIAN, (int)$month_number, (int)$searchyear);
+
+        $this->load->model("holiday_model");
+        $this->load->model("setting_model");
+        $holidays = $this->holiday_model->get();
+
+        $official_holiday_dates = [];
+        foreach ($holidays as $holiday_value) {
+            $from_date = new DateTime($holiday_value['from_date']);
+            $to_date = new DateTime($holiday_value['to_date']);
+            $current = clone $from_date;
+            while ($current <= $to_date) {
+                if ($current->format('m') == $month_number && $current->format('Y') == $searchyear) {
+                    $official_holiday_dates[] = $current->format('Y-m-d');
+                }
+                $current->modify('+1 day');
+            }
+        }
+        $holiday_dates = array_values(array_unique($official_holiday_dates));
+
+        $settings = $this->setting_model->getSetting();
+        $weekendDaysStr = isset($settings->weekend_days) && !empty($settings->weekend_days) ? $settings->weekend_days : '0';
+        $weekendDays = array_map('intval', explode(',', $weekendDaysStr));
+        $isSecondSaturdayWeekend = isset($settings->isSecondSaturdayHoliday) ? (int)$settings->isSecondSaturdayHoliday : 0;
+
+        $second_saturday_date = null;
+        if ($isSecondSaturdayWeekend) {
+            $saturdayCount = 0;
+            for ($i = 1; $i <= $num_of_days; $i++) {
+                $date = new DateTime($searchyear . "-" . $month_number . "-" . sprintf("%02d", $i));
+                if ((int)$date->format('w') == 6) {
+                    $saturdayCount++;
+                    if ($saturdayCount == 2) {
+                        $second_saturday_date = $date->format('Y-m-d');
+                        break;
+                    }
+                }
+            }
+        }
+
+        $weekend_day_dates = [];
+        for ($i = 1; $i <= $num_of_days; $i++) {
+            $dateStr = $searchyear . "-" . $month_number . "-" . sprintf("%02d", $i);
+            $dayOfWeek = (int)date('w', strtotime($dateStr));
+            if (in_array($dayOfWeek, $weekendDays, true) || ($second_saturday_date && $dateStr === $second_saturday_date)) {
+                $weekend_day_dates[] = $dateStr;
+            }
+        }
+        $weekend_day_dates = array_values(array_unique($weekend_day_dates));
+
+        $working_day_dates = [];
+        for ($i = 1; $i <= $num_of_days; $i++) {
+            $dateStr = $searchyear . "-" . $month_number . "-" . sprintf("%02d", $i);
+            if (!in_array($dateStr, $weekend_day_dates, true) && !in_array($dateStr, $holiday_dates, true)) {
+                $working_day_dates[] = $dateStr;
+            }
+        }
+
+        $holiday_dates_for_H = array_values(array_unique(array_filter($holiday_dates, function ($dateStr) use ($weekend_day_dates) {
+            return !in_array($dateStr, $weekend_day_dates, true);
+        })));
+        $holiday_count = count($holiday_dates_for_H);
+
+        $last_day_of_month = $searchyear . "-" . $month_number . "-" . $num_of_days;
+        $stafflist = $this->staffattendancemodel->searchAttendanceReport($role, $last_day_of_month);
+
+        $attendence_array = [];
+        $date_result = [];
+        for ($i = 1; $i <= $num_of_days; $i++) {
+            $att_date = $searchyear . "-" . $month_number . "-" . sprintf("%02d", $i);
+            $attendence_array[] = $att_date;
+
+            $res = $this->staffattendancemodel->searchAttendanceReport($role, $att_date);
+            $s = [];
+            foreach ($res as $result_v) {
+                $s[$result_v['id']] = $result_v;
+            }
+            $date_result[$att_date] = $s;
+        }
+
+        $monthAttendance = [];
+        if (!empty($stafflist)) {
+            foreach ($stafflist as $result_v) {
+                $date = $searchyear . "-" . (is_numeric($month) ? sprintf('%02d', (int)$month) : $month);
+                $newdate = date('Y-m-d', strtotime($date));
+                $monthAttendance[] = $this->monthAttendance($newdate, 1, $result_v['id']);
+            }
+        }
+
+        $absent_working_day_counts = [];
+        if (!empty($stafflist)) {
+            foreach ($stafflist as $staff_row) {
+                $staff_id = $staff_row['id'];
+                $absent_count = 0;
+                foreach ($working_day_dates as $work_date) {
+                    $att_key = $date_result[$work_date][$staff_id]['key'] ?? null;
+                    if ($att_key === 'A') {
+                        $absent_count++;
+                    }
+                }
+                $absent_working_day_counts[$staff_id] = $absent_count;
+            }
+        }
+
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Staff Attendance');
+
+        $headers = ['Staff / Date', '(%)', 'WD', 'A*', 'P*', 'H', 'HD', 'WE'];
+        foreach ($attendence_array as $att_date) {
+            $headers[] = date('d', strtotime($att_date)) . "\n" . date('D', strtotime($att_date));
+        }
+
+        $colIndex = 1;
+        foreach ($headers as $header) {
+            $sheet->setCellValueByColumnAndRow($colIndex, 1, $header);
+            $colIndex++;
+        }
+
+        $headerRange = 'A1:' . $sheet->getHighestColumn() . '1';
+        $sheet->getStyle($headerRange)->getFont()->setBold(true);
+        $sheet->getStyle($headerRange)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER)->setWrapText(true);
+
+        $presentFill = ['fillType' => Fill::FILL_SOLID, 'color' => ['argb' => 'FFD4EDDA']];
+        $halfDayFill = ['fillType' => Fill::FILL_SOLID, 'color' => ['argb' => 'FFFFF3CD']];
+        $absentFill = ['fillType' => Fill::FILL_SOLID, 'color' => ['argb' => 'FFF8D7DA']];
+        $weekendFill = ['fillType' => Fill::FILL_SOLID, 'color' => ['argb' => 'FFF8D7DA']];
+        $holidayFill = ['fillType' => Fill::FILL_SOLID, 'color' => ['argb' => 'FFFFF3CD']];
+
+        $rowIndex = 2;
+        $i = 0;
+        foreach ($stafflist as $staff_row) {
+            $staff_id = $staff_row['id'];
+            $present_count = $monthAttendance[$i][$staff_id]['present'] ?? 0;
+            $half_day_count = $monthAttendance[$i][$staff_id]['half_day'] ?? 0;
+            $absent_count = $absent_working_day_counts[$staff_id] ?? 0;
+            $working_days = count($working_day_dates);
+            $total_present = $present_count + ($half_day_count * 0.5);
+            $total_absent = $absent_count + ($half_day_count * 0.5);
+
+            if ($working_days == 0) {
+                $print_percentage = '-';
+            } else {
+                $percentage = ($total_present / $working_days) * 100;
+                $print_percentage = round($percentage, 0);
+            }
+
+            $row = [
+                $staff_row['name'] . ' ' . $staff_row['surname'],
+                $print_percentage,
+                $working_days,
+                rtrim(rtrim(number_format((float)$total_absent, 1, '.', ''), '0'), '.'),
+                rtrim(rtrim(number_format((float)$total_present, 1, '.', ''), '0'), '.'),
+                $holiday_count,
+                $half_day_count,
+                count($weekend_day_dates),
+            ];
+
+            $colIndex = 1;
+            foreach ($row as $value) {
+                $sheet->setCellValueByColumnAndRow($colIndex, $rowIndex, $value);
+                $colIndex++;
+            }
+
+            foreach ($attendence_array as $att_date) {
+                $attendance_row = $date_result[$att_date][$staff_id] ?? [];
+                $attendance_key = $attendance_row['key'] ?? null;
+                $display_key = $attendance_key ?? '';
+
+                $present_keys = ['P', 'FHL', 'SHL', 'FHP', 'SHP'];
+                $absent_keys = ['A', 'FHA', 'SHA'];
+                $normalized_key = $attendance_key;
+                if (in_array($attendance_key, $present_keys, true)) {
+                    $normalized_key = 'P';
+                } elseif (in_array($attendance_key, $absent_keys, true)) {
+                    $normalized_key = 'A';
+                }
+
+                if (!empty($weekend_day_dates) && in_array($att_date, $weekend_day_dates, true)) {
+                    $display_key = 'W';
+                } elseif (in_array($att_date, $holiday_dates, true) || $attendance_key == 'HO') {
+                    $display_key = 'H';
+                } elseif ($attendance_key === 'HD') {
+                    $display_key = 'HD';
+                } elseif ($normalized_key === 'P') {
+                    $display_key = 'P';
+                } elseif ($normalized_key === 'A') {
+                    $display_key = 'A';
+                }
+
+                $sheet->setCellValueByColumnAndRow($colIndex, $rowIndex, $display_key);
+
+                $cell = $sheet->getCellByColumnAndRow($colIndex, $rowIndex)->getCoordinate();
+                if ($display_key === 'P') {
+                    $sheet->getStyle($cell)->getFill()->applyFromArray($presentFill);
+                } elseif ($display_key === 'HD') {
+                    $sheet->getStyle($cell)->getFill()->applyFromArray($halfDayFill);
+                } elseif ($display_key === 'A') {
+                    $sheet->getStyle($cell)->getFill()->applyFromArray($absentFill);
+                } elseif ($display_key === 'W') {
+                    $sheet->getStyle($cell)->getFill()->applyFromArray($weekendFill);
+                } elseif ($display_key === 'H') {
+                    $sheet->getStyle($cell)->getFill()->applyFromArray($holidayFill);
+                }
+
+                $sheet->getStyle($cell)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                $colIndex++;
+            }
+
+            $rowIndex++;
+            $i++;
+        }
+
+        foreach (range('A', $sheet->getHighestColumn()) as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        $filename = 'Staff_Attendance_Report_' . $month_number . '_' . $searchyear . '.xlsx';
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+
+        $writer = new Xlsx($spreadsheet);
+        $writer->save('php://output');
+        exit;
     }
 
     public function monthAttendance($st_month, $no_of_months, $emp)

@@ -25,6 +25,102 @@ $(document).ready(function () {
                     text: '<i class="fa fa-file-excel-o"></i>',
                     titleAttr: 'Excel',
                     title: $('.download_label').html(),
+                    action: function (e, dt, button, config) {
+                        if ($('.staff-attendance-report').length) {
+                            var role = $('#role').val() || '';
+                            var month = $('#month').val() || '';
+                            var year = $('#year').val() || '';
+                            var url = baseurl + 'attendencereports/staffattendancereport_export_excel?role=' + encodeURIComponent(role) + '&month=' + encodeURIComponent(month) + '&year=' + encodeURIComponent(year);
+                            window.location.href = url;
+                            return;
+                        }
+                        $.fn.dataTable.ext.buttons.excelHtml5.action.call(this, e, dt, button, config);
+                    },
+                    customize: function (xlsx) {
+                        var reportTitle = ($('.download_label').text() || '').toLowerCase();
+                        var isStaffReport = $('.staff-attendance-report').length || reportTitle.indexOf('staff attendance report') !== -1;
+                        if (!isStaffReport) {
+                            return;
+                        }
+
+                        var sheet = xlsx.xl.worksheets['sheet1.xml'];
+                        var styles = xlsx.xl['styles.xml'];
+                        var sharedStrings = xlsx.xl['sharedStrings.xml'];
+
+                        var fills = $('fills', styles);
+                        var cellXfs = $('cellXfs', styles);
+
+                        var fillCount = parseInt(fills.attr('count'), 10) || 0;
+                        var xfCount = parseInt(cellXfs.attr('count'), 10) || 0;
+
+                        function addFill(rgb) {
+                            fills.append('<fill><patternFill patternType="solid"><fgColor rgb="' + rgb + '"/><bgColor indexed="64"/></patternFill></fill>');
+                            return fillCount++;
+                        }
+
+                        function addXf(fillId) {
+                            var baseXf = $('xf', cellXfs).first().clone();
+                            baseXf.attr('fillId', fillId);
+                            baseXf.attr('applyFill', '1');
+                            cellXfs.append(baseXf);
+                            return xfCount++;
+                        }
+
+                        var presentFill = addFill('FFD4EDDA');
+                        var halfDayFill = addFill('FFFFF3CD');
+                        var absentFill = addFill('FFF8D7DA');
+                        var weekendFill = addFill('FFF8D7DA');
+                        var holidayFill = addFill('FFFFF3CD');
+
+                        var presentXf = addXf(presentFill);
+                        var halfDayXf = addXf(halfDayFill);
+                        var absentXf = addXf(absentFill);
+                        var weekendXf = addXf(weekendFill);
+                        var holidayXf = addXf(holidayFill);
+
+                        fills.attr('count', fillCount);
+                        cellXfs.attr('count', xfCount);
+
+                        function getCellText(cell) {
+                            var type = cell.attr('t');
+                            if (type === 'inlineStr') {
+                                return $('is t', cell).text();
+                            }
+
+                            var v = $('v', cell).text();
+                            if (!v) {
+                                return '';
+                            }
+                            if (type === 's') {
+                                if (sharedStrings && $('si', sharedStrings).length) {
+                                    var si = $('si', sharedStrings).eq(parseInt(v, 10));
+                                    return si.text();
+                                }
+                                return v;
+                            }
+                            return v;
+                        }
+
+                        $('row c', sheet).each(function () {
+                            var cell = $(this);
+                            var text = $.trim(getCellText(cell));
+                            if (!text) {
+                                text = $.trim(cell.text());
+                            }
+                            text = text.replace(/\s+/g, '').toUpperCase();
+                            if (text === 'P') {
+                                cell.attr('s', String(presentXf));
+                            } else if (text === 'HD') {
+                                cell.attr('s', String(halfDayXf));
+                            } else if (text === 'A') {
+                                cell.attr('s', String(absentXf));
+                            } else if (text === 'W') {
+                                cell.attr('s', String(weekendXf));
+                            } else if (text === 'H') {
+                                cell.attr('s', String(holidayXf));
+                            }
+                        });
+                    },
                     exportOptions: {
                         columns: ["thead th:not(.noExport)"]
                     }

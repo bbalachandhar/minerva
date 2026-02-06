@@ -111,6 +111,7 @@ class ComposerStaticInitbc22bf9bb9f042ae952049ac4146ff7f
         '4af1dca6db8c527c6eed27bff85ff0e5' => __DIR__ . '/..' . '/thecodingmachine/safe/generated/yaz.php',
         'fe43ca06499ac37bc2dedd823af71eb5' => __DIR__ . '/..' . '/thecodingmachine/safe/generated/zip.php',
         '356736db98a6834f0a886b8d509b0ecd' => __DIR__ . '/..' . '/thecodingmachine/safe/generated/zlib.php',
+        '2cffec82183ee1cea088009cef9a6fc3' => __DIR__ . '/..' . '/ezyang/htmlpurifier/library/HTMLPurifier.composer.php',
         '1f87db08236948d07391152dccb70f04' => __DIR__ . '/..' . '/google/apiclient-services/autoload.php',
         'b067bc7112e384b61c701452d53a14a8' => __DIR__ . '/..' . '/mtdowling/jmespath.php/src/JmesPath.php',
         '6124b4c8570aa390c21fafd04a26c69f' => __DIR__ . '/..' . '/myclabs/deep-copy/src/DeepCopy/deep_copy.php',
@@ -133,6 +134,10 @@ class ComposerStaticInitbc22bf9bb9f042ae952049ac4146ff7f
         array (
             'chillerlan\\Settings\\' => 20,
             'chillerlan\\QRCode\\' => 18,
+        ),
+        'Z' =>
+        array (
+            'ZipStream\\' => 10,
         ),
         'S' =>
         array (
@@ -161,12 +166,14 @@ class ComposerStaticInitbc22bf9bb9f042ae952049ac4146ff7f
         ),
         'P' =>
         array (
+            'Psr\\SimpleCache\\' => 16,
             'Psr\\Log\\' => 8,
             'Psr\\Http\\Message\\' => 17,
             'Psr\\Http\\Client\\' => 16,
             'Psr\\EventDispatcher\\' => 20,
             'Psr\\Container\\' => 14,
             'Psr\\Cache\\' => 10,
+            'PhpOffice\\PhpSpreadsheet\\' => 25,
             'ParagonIE\\ConstantTime\\' => 23,
         ),
         'O' =>
@@ -182,6 +189,7 @@ class ComposerStaticInitbc22bf9bb9f042ae952049ac4146ff7f
             'Mpdf\\' => 5,
             'Monolog\\' => 8,
             'Money\\' => 6,
+            'Matrix\\' => 7,
         ),
         'J' =>
         array (
@@ -222,6 +230,7 @@ class ComposerStaticInitbc22bf9bb9f042ae952049ac4146ff7f
         ),
         'C' =>
         array (
+            'Complex\\' => 8,
             'Clue\\StreamFilter\\' => 18,
         ),
         'B' =>
@@ -251,6 +260,10 @@ class ComposerStaticInitbc22bf9bb9f042ae952049ac4146ff7f
         'chillerlan\\QRCode\\' =>
         array (
             0 => __DIR__ . '/..' . '/chillerlan/php-qrcode/src',
+        ),
+        'ZipStream\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/maennchen/zipstream-php/src',
         ),
         'Symfony\\Polyfill\\Php83\\' =>
         array (
@@ -342,6 +355,10 @@ class ComposerStaticInitbc22bf9bb9f042ae952049ac4146ff7f
             1 => __DIR__ . '/..' . '/thecodingmachine/safe/deprecated',
             2 => __DIR__ . '/..' . '/thecodingmachine/safe/generated',
         ),
+        'Psr\\SimpleCache\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/psr/simple-cache/src',
+        ),
         'Psr\\Log\\' =>
         array (
             0 => __DIR__ . '/..' . '/psr/log/src',
@@ -366,6 +383,10 @@ class ComposerStaticInitbc22bf9bb9f042ae952049ac4146ff7f
         'Psr\\Cache\\' =>
         array (
             0 => __DIR__ . '/..' . '/psr/cache/src',
+        ),
+        'PhpOffice\\PhpSpreadsheet\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/phpoffice/phpspreadsheet/src/PhpSpreadsheet',
         ),
         'ParagonIE\\ConstantTime\\' =>
         array (
@@ -402,6 +423,10 @@ class ComposerStaticInitbc22bf9bb9f042ae952049ac4146ff7f
         'Money\\' =>
         array (
             0 => __DIR__ . '/..' . '/moneyphp/money/src',
+        ),
+        'Matrix\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/markbaker/matrix/classes/src',
         ),
         'Jose\\Component\\Signature\\Algorithm\\' =>
         array (
@@ -503,6 +528,10 @@ class ComposerStaticInitbc22bf9bb9f042ae952049ac4146ff7f
         array (
             0 => __DIR__ . '/..' . '/myclabs/deep-copy/src/DeepCopy',
         ),
+        'Complex\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/markbaker/complex/classes/src',
+        ),
         'Clue\\StreamFilter\\' =>
         array (
             0 => __DIR__ . '/..' . '/clue/stream-filter/src',
@@ -518,6 +547,16 @@ class ComposerStaticInitbc22bf9bb9f042ae952049ac4146ff7f
         'AESKW\\' =>
         array (
             0 => __DIR__ . '/..' . '/spomky-labs/aes-key-wrap/src',
+        ),
+    );
+
+    public static $prefixesPsr0 = array (
+        'H' =>
+        array (
+            'HTMLPurifier' =>
+            array (
+                0 => __DIR__ . '/..' . '/ezyang/htmlpurifier/library',
+            ),
         ),
     );
 
@@ -594,6 +633,7 @@ class ComposerStaticInitbc22bf9bb9f042ae952049ac4146ff7f
         return \Closure::bind(function () use ($loader) {
             $loader->prefixLengthsPsr4 = ComposerStaticInitbc22bf9bb9f042ae952049ac4146ff7f::$prefixLengthsPsr4;
             $loader->prefixDirsPsr4 = ComposerStaticInitbc22bf9bb9f042ae952049ac4146ff7f::$prefixDirsPsr4;
+            $loader->prefixesPsr0 = ComposerStaticInitbc22bf9bb9f042ae952049ac4146ff7f::$prefixesPsr0;
             $loader->classMap = ComposerStaticInitbc22bf9bb9f042ae952049ac4146ff7f::$classMap;
 
         }, null, ClassLoader::class);

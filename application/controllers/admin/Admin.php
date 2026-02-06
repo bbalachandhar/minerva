@@ -527,27 +527,9 @@ class Admin extends Admin_Controller
         }
         $data['sch_setting']            = $this->sch_setting_detail;
 
-        // Birthday widgets automatically respect branch settings via Db_manager library
-        // Db_manager switches database connection based on session['admin']['db_array']['db_group']
-        // All model queries (Student_model, Staff_model) use $this->db which points to active branch database
-        $today_date = date('Y-m-d');
-        $data['student_birthdays'] = $this->Student_model->getBirthDayStudents($today_date, false, false);
-        
-        $staff_birthdays = array();
-        $today_day_no = date('N');
-        $monday = date('Y-m-d', strtotime('last monday'));
-        $sunday = date('Y-m-d', strtotime('next sunday'));
-
-        $current_date = $monday;
-        while (strtotime($current_date) <= strtotime($sunday)) {
-            $daily_birthdays = $this->Staff_model->getBirthDayStaff($current_date, 1, false, false);
-            if (!empty($daily_birthdays)) {
-                $staff_birthdays = array_merge($staff_birthdays, $daily_birthdays);
-            }
-            $current_date = date('Y-m-d', strtotime('+1 day', strtotime($current_date)));
-        }
-
-        $data['staff_birthdays'] = $staff_birthdays;
+        // Birthday widgets are loaded async after dashboard render
+        $data['student_birthdays'] = [];
+        $data['staff_birthdays'] = [];
 		// new features code added
         // $input_session   = $this->setting_model->getCurrentSessionName();
         // list($a, $b)  = explode('-', $input_session);
@@ -1014,6 +996,46 @@ class Admin extends Admin_Controller
         $this->load->view('layout/header', $data);
         $this->load->view('admin/backup', $data);
         $this->load->view('layout/footer', $data);
+    }
+
+    public function student_birthdays_widget()
+    {
+        $today_date = date('Y-m-d');
+        $data['student_birthdays'] = $this->Student_model->getBirthDayStudents($today_date, false, false);
+        $data['sch_setting'] = $this->sch_setting_detail;
+
+        $html = $this->load->view('admin/widgets/student_birthdays_widget', $data, true);
+        echo json_encode([
+            'status' => 'success',
+            'count' => count($data['student_birthdays']),
+            'html' => $html,
+        ]);
+    }
+
+    public function staff_birthdays_widget()
+    {
+        $staff_birthdays = [];
+        $monday = date('Y-m-d', strtotime('last monday'));
+        $sunday = date('Y-m-d', strtotime('next sunday'));
+
+        $current_date = $monday;
+        while (strtotime($current_date) <= strtotime($sunday)) {
+            $daily_birthdays = $this->Staff_model->getBirthDayStaff($current_date, 1, false, false);
+            if (!empty($daily_birthdays)) {
+                $staff_birthdays = array_merge($staff_birthdays, $daily_birthdays);
+            }
+            $current_date = date('Y-m-d', strtotime('+1 day', strtotime($current_date)));
+        }
+
+        $data['staff_birthdays'] = $staff_birthdays;
+        $data['sch_setting'] = $this->sch_setting_detail;
+
+        $html = $this->load->view('admin/widgets/staff_birthdays_widget', $data, true);
+        echo json_encode([
+            'status' => 'success',
+            'count' => count($staff_birthdays),
+            'html' => $html,
+        ]);
     }
 
     public function changepass()

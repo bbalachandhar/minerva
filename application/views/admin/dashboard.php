@@ -257,97 +257,24 @@ foreach ($notifications as $notice_key => $notice_value) {
         </style>
         <div class="row equal-height-row">
             <div class="col-md-3 col-sm-6 mb10">
-                <div class="topprograssstart flex-card">
-                    <h5 class="pro-border">Students Today's Birthday - <?php echo count($student_birthdays); ?></h5>
-                    <div class="birthday-ticker-container">
-                        <div class="birthday-ticker-clipper">
-                        <div class="birthday-ticker-content" style="animation-duration: 20s;">                        
-                          <?php if (!empty($student_birthdays)) {?>
-                            <div class="mediarow">
-                                <div class="row">
-                                    <?php foreach (array_merge($student_birthdays, $student_birthdays) as $student) { ?>
-                                        <div class="col-lg-12 col-md-12 col-sm-12 img_div_modal">
-                                            <div class="staffinfo-box">
-                                                <div class="staffleft-box">
-                                                    <?php
-                                                        if (!empty($student["image"])) {
-                                                            $image = "uploads/student_images/" . $student["image"];
-                                                        } else {
-                                                            $image = "uploads/student_images/no_image.png";
-                                                        }
-                                                    ?>
-                                                    <img src="<?php echo base_url() . $image ?>" alt="User Image">
-                                                </div>
-                                                <div class="staffleft-content">
-                                                    <h5><span><?php echo $student["firstname"] . " " . $student["lastname"]; ?></span></h5>
-                                                    <p><font><?php echo $student["class"] . " (" . $student["section"] . ")" ?></font></p>
-                                                    <p><font><?php echo $student["mobileno"] ?></font></p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    <?php } ?>
-                                </div>
-                            </div>
-                        <?php } else { ?>
-                            <p class="text-center"><?php echo $this->lang->line('no_record_found'); ?></p>
-                        <?php } ?>
-                        </div>
+                <div class="topprograssstart flex-card" id="student-birthday-widget" data-url="<?php echo site_url('admin/admin/student_birthdays_widget'); ?>">
+                    <h5 class="pro-border">Students Today's Birthday - <span class="student-birthday-count">0</span></h5>
+                    <div class="birthday-ticker-container birthday-widget-body">
+                        <div class="fo-skeleton fo-line" style="width:80%;margin:10px auto;"></div>
+                        <div class="fo-skeleton fo-line" style="width:70%;margin:10px auto;"></div>
+                        <div class="fo-skeleton fo-line" style="width:60%;margin:10px auto;"></div>
                     </div>
                 </div>
             </div>
-            </div>
             <div class="col-md-3 col-sm-6 mb10">
-                <div class="topprograssstart flex-card">
-                    <h5 class="pro-border">Current Week Staff Birthdays - <?php echo count($staff_birthdays); ?></h5>
-                    <div class="birthday-ticker-container">
-                         <?php 
-                            $staff_birthday_count = count($staff_birthdays);
-                            $staff_scroll_duration = ($staff_birthday_count > 0) ? $staff_birthday_count * 2 : 50;
-                        ?>
-                        <div class="birthday-ticker-clipper">
-                            <div class="birthday-ticker-content" style="animation-duration: 20s;">
-                                <?php if (!empty($staff_birthdays)) { ?>
-                                     <div class="mediarow">
-                                        <div class="row">
-                                            <?php foreach (array_merge($staff_birthdays, $staff_birthdays) as $staff) { ?>
-                                                <div class="col-lg-12 col-md-12 col-sm-12 img_div_modal">
-                                                    <div class="staffinfo-box">
-                                                        <div class="staffleft-box">
-                                                            <?php
-                                                                if (!empty($staff["image"])) {
-                                                                    $image = "uploads/staff_images/" . $staff["image"];
-                                                                } else {
-                                                                     if ($staff['gender'] == 'Male') {
-                                                                        $image = "uploads/staff_images/default_male.jpg";
-                                                                    } else {
-                                                                        $image = "uploads/staff_images/default_female.jpg";
-                                                                    }
-                                                                }
-                                                            ?>
-                                                            <img src="<?php echo base_url() . $image ?>" alt="User Image">
-                                                            <div class="birthday-date">
-                                                                <?php echo date('d M', strtotime($staff['dob'])); ?>
-                                                            </div>
-                                                        </div>
-                                                        <div class="staffleft-content">
-                                                            <h5><span><?php echo $staff["name"] . " " . $staff["surname"]; ?></span></h5>
-                                                            <p><font><?php echo $staff["employee_id"] ?></font></p>
-                                                            <p><font><?php echo $staff["contact_no"] ?></font></p>
-                                                            <p><font><?php echo $staff["department"]; ?></font></p>
-                                                            <p class="staffsub" ><span data-toggle="tooltip" title="<?php echo $this->lang->line('role'); ?>"><?php echo $staff["role"] ?></span> <span data-toggle="tooltip" title="<?php echo 'Designation'; ?>"> <?php echo $staff["designation"] ?></span></p>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            <?php } ?>
-                                        </div>
-                                    </div>
-                                <?php } else { ?>
-                                    <p class="text-center"><?php echo $this->lang->line('no_record_found'); ?></p>
-                                <?php } ?>
-                            </div> <!-- Close birthday-ticker-content -->
-                        </div> <!-- Close birthday-ticker-clipper -->
-                        </div>
+                <div class="topprograssstart flex-card" id="staff-birthday-widget" data-url="<?php echo site_url('admin/admin/staff_birthdays_widget'); ?>">
+                    <h5 class="pro-border">Current Week Staff Birthdays - <span class="staff-birthday-count">0</span></h5>
+                    <div class="birthday-ticker-container birthday-widget-body">
+                        <div class="fo-skeleton fo-line" style="width:80%;margin:10px auto;"></div>
+                        <div class="fo-skeleton fo-line" style="width:70%;margin:10px auto;"></div>
+                        <div class="fo-skeleton fo-line" style="width:60%;margin:10px auto;"></div>
                     </div>
+                </div>
             </div>
             <?php
             if ($this->module_lib->hasActive('student_attendance')) {
@@ -1496,6 +1423,7 @@ if ($this->rbac->hasPrivilege('fees_collection_and_expense_yearly_chart', 'can_v
                 $tickerContent.css('animation-play-state', 'running');
             });
         }
+        window.updateTickerAnimation = updateTickerAnimation;
 
         // Run on document ready
         updateTickerAnimation();
@@ -1592,5 +1520,43 @@ if ($this->rbac->hasPrivilege('fees_collection_and_expense_yearly_chart', 'can_v
         }).fail(function() {
             $widget.find('.fo-skeleton').removeClass('fo-skeleton');
         });
+    });
+</script>
+<script type="text/javascript">
+    $(document).ready(function() {
+        function loadBirthdayWidget($widget, countSelector) {
+            if (!$widget.length) {
+                return;
+            }
+
+            var url = $widget.data('url');
+            if (!url) {
+                return;
+            }
+
+            $.ajax({
+                url: url,
+                method: 'GET',
+                dataType: 'json'
+            }).done(function(resp) {
+                if (!resp || resp.status !== 'success') {
+                    return;
+                }
+
+                if (typeof resp.count !== 'undefined') {
+                    $widget.find(countSelector).text(resp.count);
+                }
+
+                if (resp.html) {
+                    $widget.find('.birthday-widget-body').html(resp.html);
+                    if (typeof window.updateTickerAnimation === 'function') {
+                        window.updateTickerAnimation();
+                    }
+                }
+            });
+        }
+
+        loadBirthdayWidget($('#student-birthday-widget'), '.student-birthday-count');
+        loadBirthdayWidget($('#staff-birthday-widget'), '.staff-birthday-count');
     });
 </script>

@@ -9,6 +9,7 @@
         }
     ],
     "minimum-stability": "dev",
+    "prefer-stable": true,
     "require": {
            "mpdf/mpdf":"^8.2.0",
            "google/apiclient": "^2.16.0",
@@ -18,11 +19,18 @@
            "sonata-project/google-authenticator": "^2.2",
            "web-token/jwt-framework": "^2.2",
            "chillerlan/php-qrcode": "^4.3",
-           "aws/aws-sdk-php": "^3.0"
+           "aws/aws-sdk-php": "^3.0",
+           "phpoffice/phpspreadsheet": "1.29.0"
     },
     "config": {
         "allow-plugins": {
             "php-http/discovery": true
+        },
+        "platform": {
+            "php": "8.2.4"
+        },
+        "audit": {
+            "block-insecure": false
         }
     }
 }

@@ -24,6 +24,19 @@
         color: #721c24;
         font-weight: 600;
     }
+
+    .btn-colored-excel {
+        background-color: #2f3640;
+        color: #ffffff !important;
+        border-color: #2f3640;
+        margin-right: 6px;
+    }
+    .btn-colored-excel:hover,
+    .btn-colored-excel:focus {
+        background-color: #1e272e;
+        border-color: #1e272e;
+        color: #ffffff !important;
+    }
 </style>
 
 <div class="content-wrapper" style="min-height: 946px;">
@@ -128,6 +141,9 @@
                                     </div>
                                     <div class="col-md-8 col-sm-8">
                                         <div class="pull-right">
+                                            <?php if (!empty($month_selected) && !empty($year_selected)) { ?>
+                                                <a class="btn btn-xs btn-colored-excel" href="<?php echo site_url('attendencereports/staffattendancereport_export_excel?role=' . urlencode($role_selected) . '&month=' . urlencode($month_selected) . '&year=' . urlencode($year_selected)); ?>" title="Export in Excel(Colored)"><i class="fa fa-file-excel-o"></i> Export in Excel(Colored)</a>
+                                            <?php } ?>
                                             <span class="label att-present" style="padding: 4px 8px; margin-right: 6px;">Present</span>
                                             <span class="label att-half-day" style="padding: 4px 8px; margin-right: 6px;">Half Day</span>
                                             <span class="label att-absent" style="padding: 4px 8px;">Absent</span>
@@ -154,7 +170,7 @@
                                     <div> <?php echo
                                             $this->customlib->get_postmessage();
                                             ?></div>
-                                    <table class="table table-striped table-bordered table-hover example xyz">
+                                    <table class="table table-striped table-bordered table-hover example xyz staff-attendance-report">
                                         <thead>
                                             <tr>
                                                 <th>
@@ -339,6 +355,43 @@
         content: function() {
             return $(this).closest('td').find('.fee_detail_popover').html();
         }
+    });
+
+    $(document).ready(function() {
+        if (!$('.staff-attendance-report').length) {
+            return;
+        }
+
+        var addColoredExcelButton = function() {
+            if ($('#staff-colored-excel-btn').length) {
+                return;
+            }
+
+            var $btns = $('.dt-buttons');
+            if (!$btns.length) {
+                return;
+            }
+
+            var $btn = $('<a/>', {
+                id: 'staff-colored-excel-btn',
+                class: 'dt-button buttons-html5 buttons-excel',
+                title: 'Excel (Colored)',
+                html: '<i class="fa fa-file-excel-o"></i> <span>Excel (Colored)</span>'
+            });
+
+            $btn.on('click', function(e) {
+                e.preventDefault();
+                var role = $('#role').val() || '';
+                var month = $('#month').val() || '';
+                var year = $('#year').val() || '';
+                var url = baseurl + 'attendencereports/staffattendancereport_export_excel?role=' + encodeURIComponent(role) + '&month=' + encodeURIComponent(month) + '&year=' + encodeURIComponent(year);
+                window.location.href = url;
+            });
+
+            $btns.append($btn);
+        };
+
+        setTimeout(addColoredExcelButton, 0);
     });
 
     var base_url = '<?php echo base_url() ?>';
