@@ -1101,6 +1101,7 @@ $lang['incorrect_record'] = "Incorrect Record";
 $lang['individual'] = "Individual";	
 $lang['indusrty_type'] = "Industry Type";	
 $lang['inserted'] = "Inserted";	
+$lang['updated'] = "Updated";
 $lang['instagram_url'] = "Instagram URL";	
 $lang['instamojo'] = "InstaMojo";	
 $lang['instamojo_settings_not_available'] = "Instamojo Settings Not Available";	
