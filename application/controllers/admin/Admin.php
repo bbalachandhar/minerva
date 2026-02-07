@@ -144,11 +144,7 @@ class Admin extends Admin_Controller
         
         $first_day_this_month     = date('Y-m-01'); //comment
         
-        // $current_month_collection = $this->studentfeemaster_model->getDepositAmountBetweenDate($first_day_this_month, $current_date);
-        $month_collection         = $this->whatever($getDepositeAmount, $first_day_this_month, $current_date);
-        $month_transport_collection         = $this->whatever($student_transport_fee, $first_day_this_month, $current_date);
-
-        $data['month_collection'] = $month_collection+$month_transport_collection;
+        $data['month_collection'] = 0;
 
 
         // Use search page logic for student, male, female counts (with session filter)
@@ -161,28 +157,14 @@ class Admin extends Admin_Controller
         $data['dashboard_sessions'] = $sessions;
         $data['dashboard_selected_session_id'] = $selected_session_id;
 
-        // Get all students for selected session
-        $gender_counts = $this->Student_model->getStudentCountByGender($selected_session_id);
-                log_message('debug', 'DASHBOARD DEBUG: Using session_id for head count: ' . $selected_session_id);
-            $extra_students = array(); // Always define to avoid undefined variable errors
-        $data['male_students'] = isset($gender_counts['Male']) ? $gender_counts['Male'] : 0;
-        $data['female_students'] = isset($gender_counts['Female']) ? $gender_counts['Female'] : 0;
-        $data['other_students'] = isset($gender_counts['Other/Unspecified']) ? $gender_counts['Other/Unspecified'] : 0;
+        // Student head count is loaded async after dashboard render
+        $data['male_students'] = 0;
+        $data['female_students'] = 0;
+        $data['other_students'] = 0;
         $data['unspecified_students'] = 0; // No longer used, but kept for compatibility
-        $total_students_heads =
-            (isset($gender_counts['Male']) ? $gender_counts['Male'] : 0)
-            + (isset($gender_counts['Female']) ? $gender_counts['Female'] : 0)
-            + (isset($gender_counts['Other/Unspecified']) ? $gender_counts['Other/Unspecified'] : 0);
-        $data['total_students_heads'] = $total_students_heads;
-        $data['total_students'] = $total_students_heads;
-        $data['extra_students'] = array(); // Optionally, you can fetch and display extra students if needed
-
-        // DEBUG: Log all extra students with their raw gender value
-        if (count($extra_students) > 0) {
-            log_message('debug', 'DASHBOARD DEBUG: Extra students (not male/female/other): ' . print_r(array_map(function($stu) {
-                return ['id' => $stu['id'], 'name' => $stu['firstname'].' '.$stu['lastname'], 'gender_raw' => $stu['gender']];
-            }, $extra_students), true));
-        }
+        $data['total_students_heads'] = 0;
+        $data['total_students'] = 0;
+        $data['extra_students'] = array();
         $tot_roles              = $this->role_model->get();
         foreach ($tot_roles as $key => $value) {
 
@@ -215,68 +197,12 @@ class Admin extends Admin_Controller
         }
         //======================== getexpense by month ==============================
         $ex                  = array();
-        $start_session_month = strtotime($year_str_month);
-        while ($start_session_month <= $end) {
-
-            $month_start = date('Y-m-d', $start_session_month);
-            $month_end   = date("Y-m-t", $start_session_month);
-
-            $expense_monthly = $this->expense_model->getTotalExpenseBwdate($month_start, $month_end);
-
-            if (!empty($expense_monthly)) {
-                $ex[] = convertBaseAmountCurrencyFormat($expense_monthly->amount);
-            } else {
-                $ex[] = "0.00";  // Add 0.00 when no expenses to prevent array gaps
-            }
-
-            $start_session_month = strtotime("+1 month", $start_session_month);
-        }
-
-        $data['yearly_collection'] = $s;
-       
-        $data['yearly_expense']    = $ex;
-        $data['total_month']       = $total_month;
-
-        //======================= current month collection /expense ===================
-     
-        // hardcoded '01' for first day
-        $startdate       = date('m/01/Y');
-        $enddate         = date('m/t/Y');
-        $start           = strtotime($startdate);
-        $end             = strtotime($enddate);
-        $currentdate     = $start;
-        $month_days      = array();
-        $days_collection = array();
-        while ($currentdate <= $end) {
-            $cur_date          = date('Y-m-d', $currentdate);
-            $month_days[]      = date('d', $currentdate);
-            $coll_amt          = $this->whatever($getDepositeAmount, $cur_date, $cur_date);
-            $tranport_amt      = $this->whatever($student_transport_fee, $cur_date, $cur_date);
-            $days_collection[] = convertBaseAmountCurrencyFormat($coll_amt+$tranport_amt);
-            $currentdate       = strtotime('+1 day', $currentdate);
-        }
-        $data['current_month_days'] = $month_days;
-        $data['days_collection']    = $days_collection;
-
-
-        //======================= current month /expense ==============================
-        // hardcoded '01' for first day
-
-        $startdate    = date('m/01/Y');
-        $enddate      = date('m/t/Y');
-        $start        = strtotime($startdate);
-        $end          = strtotime($enddate);
-        $currentdate  = $start;
-        $days_expense = array();
-        while ($currentdate <= $end) {
-            $cur_date       = date('Y-m-d', $currentdate);
-            $month_days[]   = date('d', $currentdate);
-            $currentdate    = strtotime('+1 day', $currentdate);
-            $ct             = $this->getExpensebyday($cur_date);
-            $days_expense[] = convertBaseAmountCurrencyFormat($ct);
-        }
-
-        $data['days_expense']        = $days_expense;
+        $data['yearly_collection'] = array();
+        $data['yearly_expense']    = array();
+        $data['total_month']       = array();
+        $data['current_month_days'] = array();
+        $data['days_collection']    = array();
+        $data['days_expense']       = array();
 
         $student_fee_history         = $this->studentfee_model->getTodayStudentFees();
         $data['student_fee_history'] = $student_fee_history;
@@ -440,37 +366,18 @@ class Admin extends Admin_Controller
 
         $total_enquiry = $enquiry['total'];
 
-        if ($total_enquiry > 0) {
-
-            $data['enquiry_overview'] = array(
-                'won'              => $enquiry['complete'],
-                'won_progress'     => ($enquiry['complete'] * 100) / $total_enquiry,
-                'active'           => $enquiry['active'],
-                'active_progress'  => ($enquiry['active'] * 100) / $total_enquiry,
-                'passive'          => $enquiry['passive'],
-                'passive_progress' => ($enquiry['passive'] * 100) / $total_enquiry,
-                'dead'             => $enquiry['dead'],
-                'dead_progress'    => ($enquiry['dead'] * 100) / $total_enquiry,
-                'lost'             => $enquiry['lost'],
-                'lost_progress'    => ($enquiry['lost'] * 100) / $total_enquiry,
-            );
-
-        } else {
-
-            $data['enquiry_overview'] = array(
-                'won'              => 0,
-                'won_progress'     => 0,
-                'active'           => 0,
-                'active_progress'  => 0,
-                'passive'          => 0,
-                'passive_progress' => 0,
-                'dead'             => 0,
-                'dead_progress'    => 0,
-                'lost'             => 0,
-                'lost_progress'    => 0,
-            );
-
-        }
+        $data['enquiry_overview'] = array(
+            'won'              => 0,
+            'won_progress'     => 0,
+            'active'           => 0,
+            'active_progress'  => 0,
+            'passive'          => 0,
+            'passive_progress' => 0,
+            'dead'             => 0,
+            'dead_progress'    => 0,
+            'lost'             => 0,
+            'lost_progress'    => 0,
+        );
 
         $data['total_paid'] = $total_paid;
         $data['total_fees'] = $total_fess;
@@ -480,51 +387,47 @@ class Admin extends Admin_Controller
             $data['fessprogressbar'] = 0;
         }
 
-        $data['total_enquiry']  = $total_enquiry  = $enquiry['total'];
-        $data['total_complete'] = $complete_enquiry = $enquiry['complete'];
-        if ($total_enquiry > 0) {
-            $data['fenquiryprogressbar'] = ($complete_enquiry * 100) / $total_enquiry;
-        } else {
-            $data['fenquiryprogressbar'] = 0;
-        }
-
-        $bookoverview      = $this->book_model->bookoverview($start_date, $end_date);
-        $bookduereport     = $this->bookissue_model->dueforreturn($start_date, $end_date);
-        $forreturndata     = $this->bookissue_model->forreturn($start_date, $end_date);
-        $dueforreturn      = $bookduereport[0]['total'];
-        $forreturn         = $forreturndata[0]['total'];
-        $total_qty         = $bookoverview[0]['qty'];
-        $total_issued      = $bookoverview[0]['total_issue'];
-        $availble          = '0';
-        $availble_progress = 0;
-        $issued_progress   = 0;
-
-        if ($total_qty > 0) {
-            $availble          = $total_qty - $total_issued;
-            $availble_progress = ($availble * 100) / $total_qty;
-            $issued_progress   = ($total_issued * 100) / $total_qty;
-        }
+        $data['total_enquiry']  = 0;
+        $data['total_complete'] = 0;
+        $data['fenquiryprogressbar'] = 0;
 
         $data['book_overview'] = array(
-            'total'             => $total_qty,
-            'total_progress'    => 100,
-            'availble'          => $availble,
-            'availble_progress' => round($availble_progress, 2),
-            'total_issued'      => $total_issued,
-            'issued_progress'   => round($issued_progress, 2),
-            'dueforreturn'      => $dueforreturn,
-            'forreturn'         => $forreturn,
+            'total'             => 0,
+            'total_progress'    => 0,
+            'availble'          => 0,
+            'availble_progress' => 0,
+            'total_issued'      => 0,
+            'issued_progress'   => 0,
+            'dueforreturn'      => 0,
+            'forreturn'         => 0,
         );
 
-        $Attendence                   = $this->stuattendence_model->getTodayDayAttendance($total_students);
-        $data['attendence_data']      = $Attendence;
-        $data['staff_attendance_details'] = $this->Staff_model->getTodayStaffAttendanceDetails();
-        $staff_attendance_details = $data['staff_attendance_details'];
-        if ($staff_attendance_details['total_staff'] > 0) {
-            $data['percentTotalStaff_data'] = ($staff_attendance_details['total_present'] * 100) / $staff_attendance_details['total_staff'];
-        } else {
-            $data['percentTotalStaff_data'] = 0;
-        }
+        $data['attendence_data'] = array(
+            'total_present' => 0,
+            'present' => '0%',
+            'total_late' => 0,
+            'late' => '0%',
+            'total_absent' => 0,
+            'absent' => '0%',
+            'total_half_day' => 0,
+            'half_day' => '0%'
+        );
+        $data['staff_attendance_details'] = array(
+            'total_present' => 0,
+            'present' => 0,
+            'total_late' => 0,
+            'late' => 0,
+            'total_absent' => 0,
+            'absent' => 0,
+            'total_half_day' => 0,
+            'half_day' => 0,
+            'total_permission' => 0,
+            'permission' => 0,
+            'total_staff' => 0,
+            'total_attended' => 0,
+            'attended_percent' => 0
+        );
+        $data['percentTotalStaff_data'] = 0;
         $data['sch_setting']            = $this->sch_setting_detail;
 
         // Birthday widgets are loaded async after dashboard render
@@ -543,43 +446,23 @@ class Admin extends Admin_Controller
         // $first_day_this_month  = date("20$Current_year".'-m-01'); //added
         // $last_day_this_month  = date("20$Current_year".'-m-t');  //added
 
-        $data['getStudentMonthlyLeave'] = $getStudentMonthlyLeave = count($this->apply_leave_model->getStudentMonthlyLeave($start_date, $end_date));
-        $data['getStudentApproveMonthlyLeave'] = $getStudentApproveMonthlyLeave =   count($this->apply_leave_model->getStudentApproveMonthlyLeave($start_date, $end_date));
- 
-        if ($getStudentMonthlyLeave > 0) {
-            $data['studentapprovemonthlyleave'] = ($getStudentApproveMonthlyLeave * 100) / $getStudentMonthlyLeave;
-        } else {
-            $data['studentapprovemonthlyleave'] = 0;
-        }
-        $data['getStaffMonthlyLeave'] = $getStaffMonthlyLeave = count($this->apply_leave_model->getStaffMonthlyLeave($start_date, $end_date));
-		
-		// echo $this->db->last_query(); die;
-		
-        $data['getStaffApproveMonthlyLeave'] = $getStaffApproveMonthlyLeave =   count($this->apply_leave_model->getStaffApproveMonthlyLeave($start_date, $end_date));
-
-        if ($getStaffMonthlyLeave > 0) {
-            $data['staffapprovemonthlyleave'] = ($getStaffApproveMonthlyLeave * 100) / $getStaffMonthlyLeave;
-        } else {
-            $data['staffapprovemonthlyleave'] = 0;
-        }
+        $data['getStudentMonthlyLeave'] = 0;
+        $data['getStudentApproveMonthlyLeave'] = 0;
+        $data['studentapprovemonthlyleave'] = 0;
+        $data['getStaffMonthlyLeave'] = 0;
+        $data['getStaffApproveMonthlyLeave'] = 0;
+        $data['staffapprovemonthlyleave'] = 0;
 
         $tot_students = $this->studentsession_model->getTotalStudentBySession();
         if (!empty($tot_students)) {
             $total_students = $tot_students->total_student;
         }
 
-        if (!empty($tot_head_students)) {
-            $total_students_heads = count($tot_head_students);
-        } 
-
         $data['total_students'] = $total_students;
-        $data['total_students_heads'] = $total_students_heads;
-        
-        // Get student count by gender
-        $gender_counts = $this->Student_model->getStudentCountByGender($current_session);
-        $data['male_students'] = isset($gender_counts['Male']) ? $gender_counts['Male'] : 0;
-        $data['female_students'] = isset($gender_counts['Female']) ? $gender_counts['Female'] : 0;
-        $data['other_students'] = isset($gender_counts['Other/Unspecified']) ? $gender_counts['Other/Unspecified'] : 0;
+        $data['total_students_heads'] = 0;
+        $data['male_students'] = 0;
+        $data['female_students'] = 0;
+        $data['other_students'] = 0;
         $data['unspecified_students'] = 0; // No longer used, but kept for compatibility
 
         if ($data['sch_setting']->attendence_type == 0) {
@@ -778,6 +661,526 @@ class Admin extends Admin_Controller
                 'last_yr_pending' => $total_cf_balance,
                 'last_yr_pending_formatted' => $currency_symbol . number_format($total_cf_balance, 2),
             ),
+        );
+
+        return $this->output
+            ->set_content_type('application/json')
+            ->set_output(json_encode($response));
+    }
+
+    public function student_head_count_widget()
+    {
+        if (!$this->rbac->hasPrivilege('student_head_count_widget', 'can_view')) {
+            access_denied();
+        }
+
+        $current_session = $this->setting_model->getCurrentSession();
+        $gender_counts = $this->Student_model->getStudentCountByGender($current_session);
+
+        $male_students = isset($gender_counts['Male']) ? (int)$gender_counts['Male'] : 0;
+        $female_students = isset($gender_counts['Female']) ? (int)$gender_counts['Female'] : 0;
+        $other_students = isset($gender_counts['Other/Unspecified']) ? (int)$gender_counts['Other/Unspecified'] : 0;
+
+        $total_students_heads = $male_students + $female_students + $other_students;
+
+        $male_percent = ($total_students_heads > 0) ? round(($male_students * 100) / $total_students_heads, 2) : 0;
+        $female_percent = ($total_students_heads > 0) ? round(($female_students * 100) / $total_students_heads, 2) : 0;
+        $other_percent = ($total_students_heads > 0) ? round(($other_students * 100) / $total_students_heads, 2) : 0;
+
+        $response = array(
+            'status' => 'success',
+            'data' => array(
+                'total_students_heads' => $total_students_heads,
+                'male_students' => $male_students,
+                'female_students' => $female_students,
+                'other_students' => $other_students,
+                'male_percent' => $male_percent,
+                'female_percent' => $female_percent,
+                'other_percent' => $other_percent,
+            ),
+        );
+
+        return $this->output
+            ->set_content_type('application/json')
+            ->set_output(json_encode($response));
+    }
+
+    public function student_today_attendance_widget()
+    {
+        if (!$this->rbac->hasPrivilege('today_attendance_widegts', 'can_view')) {
+            access_denied();
+        }
+
+        $total_students = 0;
+        $tot_students = $this->studentsession_model->getTotalStudentBySession();
+        if (!empty($tot_students)) {
+            $total_students = (int)$tot_students->total_student;
+        }
+
+        if ($total_students <= 0) {
+            $attendance = array(
+                'total_present' => 0,
+                'present' => '0%',
+                'total_late' => 0,
+                'late' => '0%',
+                'total_absent' => 0,
+                'absent' => '0%',
+                'total_half_day' => 0,
+                'half_day' => '0%'
+            );
+        } else {
+            $attendance = $this->stuattendence_model->getTodayDayAttendance($total_students);
+            if (empty($attendance)) {
+                $attendance = array(
+                    'total_present' => 0,
+                    'present' => '0%',
+                    'total_late' => 0,
+                    'late' => '0%',
+                    'total_absent' => 0,
+                    'absent' => '0%',
+                    'total_half_day' => 0,
+                    'half_day' => '0%'
+                );
+            }
+        }
+
+        $response = array(
+            'status' => 'success',
+            'data' => $attendance,
+        );
+
+        return $this->output
+            ->set_content_type('application/json')
+            ->set_output(json_encode($response));
+    }
+
+    public function staff_today_attendance_widget()
+    {
+        if (!$this->rbac->hasPrivilege('staff_today_attendance', 'can_view')) {
+            access_denied();
+        }
+
+        $attendance = $this->Staff_model->getTodayStaffAttendanceDetails();
+        if (empty($attendance)) {
+            $attendance = array(
+                'total_present' => 0,
+                'present' => 0,
+                'total_late' => 0,
+                'late' => 0,
+                'total_absent' => 0,
+                'absent' => 0,
+                'total_half_day' => 0,
+                'half_day' => 0,
+                'total_permission' => 0,
+                'permission' => 0,
+                'total_staff' => 0,
+                'total_attended' => 0,
+                'attended_percent' => 0
+            );
+        }
+
+        $response = array(
+            'status' => 'success',
+            'data' => $attendance,
+        );
+
+        return $this->output
+            ->set_content_type('application/json')
+            ->set_output(json_encode($response));
+    }
+
+    public function enquiry_overview_widget()
+    {
+        if (!$this->rbac->hasPrivilege('enquiry_overview_widegts', 'can_view')) {
+            access_denied();
+        }
+
+        $start_date = date('Y-m-01');
+        $end_date = date('Y-m-t');
+        $enquiry = $this->admin_model->getAllEnquiryCount($start_date, $end_date);
+        $total_enquiry = isset($enquiry['total']) ? $enquiry['total'] : 0;
+
+        if ($total_enquiry > 0) {
+            $overview = array(
+                'won'              => $enquiry['complete'],
+                'won_progress'     => ($enquiry['complete'] * 100) / $total_enquiry,
+                'active'           => $enquiry['active'],
+                'active_progress'  => ($enquiry['active'] * 100) / $total_enquiry,
+                'passive'          => $enquiry['passive'],
+                'passive_progress' => ($enquiry['passive'] * 100) / $total_enquiry,
+                'dead'             => $enquiry['dead'],
+                'dead_progress'    => ($enquiry['dead'] * 100) / $total_enquiry,
+                'lost'             => $enquiry['lost'],
+                'lost_progress'    => ($enquiry['lost'] * 100) / $total_enquiry,
+            );
+        } else {
+            $overview = array(
+                'won'              => 0,
+                'won_progress'     => 0,
+                'active'           => 0,
+                'active_progress'  => 0,
+                'passive'          => 0,
+                'passive_progress' => 0,
+                'dead'             => 0,
+                'dead_progress'    => 0,
+                'lost'             => 0,
+                'lost_progress'    => 0,
+            );
+        }
+
+        $response = array(
+            'status' => 'success',
+            'data' => $overview,
+        );
+
+        return $this->output
+            ->set_content_type('application/json')
+            ->set_output(json_encode($response));
+    }
+
+    public function library_overview_widget()
+    {
+        if (!$this->rbac->hasPrivilege('book_overview_widegts', 'can_view')) {
+            access_denied();
+        }
+
+        $start_date = date('Y-m-01');
+        $end_date = date('Y-m-t');
+
+        $bookoverview  = $this->book_model->bookoverview($start_date, $end_date);
+        $bookduereport = $this->bookissue_model->dueforreturn($start_date, $end_date);
+        $forreturndata = $this->bookissue_model->forreturn($start_date, $end_date);
+
+        $dueforreturn = isset($bookduereport[0]['total']) ? (int)$bookduereport[0]['total'] : 0;
+        $forreturn = isset($forreturndata[0]['total']) ? (int)$forreturndata[0]['total'] : 0;
+        $total_qty = isset($bookoverview[0]['qty']) ? (int)$bookoverview[0]['qty'] : 0;
+        $total_issued = isset($bookoverview[0]['total_issue']) ? (int)$bookoverview[0]['total_issue'] : 0;
+
+        $availble = 0;
+        $availble_progress = 0;
+        $issued_progress = 0;
+
+        if ($total_qty > 0) {
+            $availble = $total_qty - $total_issued;
+            $availble_progress = ($availble * 100) / $total_qty;
+            $issued_progress = ($total_issued * 100) / $total_qty;
+        }
+
+        $response = array(
+            'status' => 'success',
+            'data' => array(
+                'total' => $total_qty,
+                'availble' => $availble,
+                'availble_progress' => round($availble_progress, 2),
+                'total_issued' => $total_issued,
+                'issued_progress' => round($issued_progress, 2),
+                'dueforreturn' => $dueforreturn,
+                'forreturn' => $forreturn,
+            )
+        );
+
+        return $this->output
+            ->set_content_type('application/json')
+            ->set_output(json_encode($response));
+    }
+
+    public function monthly_fees_collection_widget()
+    {
+        if (!$this->rbac->hasPrivilege('Monthly fees_collection_widget', 'can_view')) {
+            access_denied();
+        }
+
+        $input = $this->setting_model->getCurrentSessionName();
+        list($a, $b) = explode('-', $input);
+        $Current_year = $a;
+        if (strlen($b) == 2) {
+            $Next_year = substr($a, 0, 2) . $b;
+        } else {
+            $Next_year = $b;
+        }
+
+        $ar = $this->startmonthandend();
+        $year_str_month = $Current_year . '-' . $ar[0] . '-01';
+        $year_end_month = date("Y-m-t", strtotime($Next_year . '-' . $ar[1] . '-01'));
+
+        $getDepositeAmount = $this->studentfeemaster_model->getDepositAmountBetweenDate($year_str_month, $year_end_month);
+        $student_transport_fee = $this->studenttransportfee_model->getTransportDepositAmountBetweenDate($year_str_month, $year_end_month);
+
+        $current_date = date('Y-m-d');
+        $first_day_this_month = date('Y-m-01');
+
+        $month_collection = $this->whatever($getDepositeAmount, $first_day_this_month, $current_date);
+        $month_transport_collection = $this->whatever($student_transport_fee, $first_day_this_month, $current_date);
+
+        $total = $month_collection + $month_transport_collection;
+        $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
+
+        $response = array(
+            'status' => 'success',
+            'data' => array(
+                'amount' => $total,
+                'amount_formatted' => $total ? ($currency_symbol . amountFormat($total)) : ''
+            )
+        );
+
+        return $this->output
+            ->set_content_type('application/json')
+            ->set_output(json_encode($response));
+    }
+
+    public function monthly_income_widget()
+    {
+        if (!$this->rbac->hasPrivilege('monthly_income_widget', 'can_view')) {
+            access_denied();
+        }
+
+        $start_date = date('Y-m-01');
+        $end_date = date('Y-m-t');
+        $month_income = 0;
+        $incomegraph = $this->income_model->getIncomeHeadsData($start_date, $end_date);
+        foreach ($incomegraph as $value) {
+            if (!empty($value['total'])) {
+                $month_income += $value['total'];
+            }
+        }
+
+        $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
+
+        $response = array(
+            'status' => 'success',
+            'data' => array(
+                'amount' => $month_income,
+                'amount_formatted' => $month_income ? ($currency_symbol . amountFormat($month_income)) : ''
+            )
+        );
+
+        return $this->output
+            ->set_content_type('application/json')
+            ->set_output(json_encode($response));
+    }
+
+    public function monthly_expense_widget()
+    {
+        if (!$this->rbac->hasPrivilege('monthly_expense_widget', 'can_view')) {
+            access_denied();
+        }
+
+        $start_date = date('Y-m-01');
+        $end_date = date('Y-m-t');
+        $month_expense = 0;
+        $expensegraph = $this->expense_model->getExpenseHeadData($start_date, $end_date);
+        foreach ($expensegraph as $value) {
+            if (!empty($value['total'])) {
+                $month_expense += $value['total'];
+            }
+        }
+
+        $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
+
+        $response = array(
+            'status' => 'success',
+            'data' => array(
+                'amount' => $month_expense,
+                'amount_formatted' => $month_expense ? ($currency_symbol . amountFormat($month_expense)) : ''
+            )
+        );
+
+        return $this->output
+            ->set_content_type('application/json')
+            ->set_output(json_encode($response));
+    }
+
+    public function staff_approved_leave_widget()
+    {
+        if (!$this->rbac->hasPrivilege('staff_approved_leave_widegts', 'can_view')) {
+            access_denied();
+        }
+
+        $start_date = date('Y-m-01');
+        $end_date = date('Y-m-t');
+
+        $total = count($this->apply_leave_model->getStaffMonthlyLeave($start_date, $end_date));
+        $approved = count($this->apply_leave_model->getStaffApproveMonthlyLeave($start_date, $end_date));
+        $percent = ($total > 0) ? ($approved * 100) / $total : 0;
+
+        $response = array(
+            'status' => 'success',
+            'data' => array(
+                'total' => $total,
+                'approved' => $approved,
+                'percent' => round($percent, 2)
+            )
+        );
+
+        return $this->output
+            ->set_content_type('application/json')
+            ->set_output(json_encode($response));
+    }
+
+    public function student_approved_leave_widget()
+    {
+        if (!$this->rbac->hasPrivilege('student_approved_leave_widegts', 'can_view')) {
+            access_denied();
+        }
+
+        $start_date = date('Y-m-01');
+        $end_date = date('Y-m-t');
+
+        $total = count($this->apply_leave_model->getStudentMonthlyLeave($start_date, $end_date));
+        $approved = count($this->apply_leave_model->getStudentApproveMonthlyLeave($start_date, $end_date));
+        $percent = ($total > 0) ? ($approved * 100) / $total : 0;
+
+        $response = array(
+            'status' => 'success',
+            'data' => array(
+                'total' => $total,
+                'approved' => $approved,
+                'percent' => round($percent, 2)
+            )
+        );
+
+        return $this->output
+            ->set_content_type('application/json')
+            ->set_output(json_encode($response));
+    }
+
+    public function converted_leads_widget()
+    {
+        if (!$this->rbac->hasPrivilege('conveted_leads_widegts', 'can_view')) {
+            access_denied();
+        }
+
+        $start_date = date('Y-m-01');
+        $end_date = date('Y-m-t');
+
+        $enquiry = $this->admin_model->getAllEnquiryCount($start_date, $end_date);
+        $total = isset($enquiry['total']) ? (int)$enquiry['total'] : 0;
+        $complete = isset($enquiry['complete']) ? (int)$enquiry['complete'] : 0;
+        $percent = ($total > 0) ? ($complete * 100) / $total : 0;
+
+        $response = array(
+            'status' => 'success',
+            'data' => array(
+                'total' => $total,
+                'complete' => $complete,
+                'percent' => round($percent, 2)
+            )
+        );
+
+        return $this->output
+            ->set_content_type('application/json')
+            ->set_output(json_encode($response));
+    }
+
+    public function fees_collection_expenses_monthly_widget()
+    {
+        if (!$this->rbac->hasPrivilege('fees_collection_and_expense_monthly_chart', 'can_view')) {
+            access_denied();
+        }
+
+        $input = $this->setting_model->getCurrentSessionName();
+        list($a, $b) = explode('-', $input);
+        $Current_year = $a;
+        if (strlen($b) == 2) {
+            $Next_year = substr($a, 0, 2) . $b;
+        } else {
+            $Next_year = $b;
+        }
+
+        $ar = $this->startmonthandend();
+        $year_str_month = $Current_year . '-' . $ar[0] . '-01';
+        $year_end_month = date("Y-m-t", strtotime($Next_year . '-' . $ar[1] . '-01'));
+
+        $getDepositeAmount = $this->studentfeemaster_model->getDepositAmountBetweenDate($year_str_month, $year_end_month);
+        $student_transport_fee = $this->studenttransportfee_model->getTransportDepositAmountBetweenDate($year_str_month, $year_end_month);
+
+        $startdate = date('m/01/Y');
+        $enddate = date('m/t/Y');
+        $start = strtotime($startdate);
+        $end = strtotime($enddate);
+        $currentdate = $start;
+        $month_days = array();
+        $days_collection = array();
+        $days_expense = array();
+
+        while ($currentdate <= $end) {
+            $cur_date = date('Y-m-d', $currentdate);
+            $month_days[] = date('d', $currentdate);
+            $coll_amt = $this->whatever($getDepositeAmount, $cur_date, $cur_date);
+            $tranport_amt = $this->whatever($student_transport_fee, $cur_date, $cur_date);
+            $days_collection[] = convertBaseAmountCurrencyFormat($coll_amt + $tranport_amt);
+            $ct = $this->getExpensebyday($cur_date);
+            $days_expense[] = convertBaseAmountCurrencyFormat($ct);
+            $currentdate = strtotime('+1 day', $currentdate);
+        }
+
+        $response = array(
+            'status' => 'success',
+            'data' => array(
+                'labels' => $month_days,
+                'collection' => $days_collection,
+                'expense' => $days_expense,
+            )
+        );
+
+        return $this->output
+            ->set_content_type('application/json')
+            ->set_output(json_encode($response));
+    }
+
+    public function fees_collection_expenses_session_widget()
+    {
+        if (!$this->rbac->hasPrivilege('fees_collection_and_expense_yearly_chart', 'can_view')) {
+            access_denied();
+        }
+
+        $input = $this->setting_model->getCurrentSessionName();
+        list($a, $b) = explode('-', $input);
+        $Current_year = $a;
+        if (strlen($b) == 2) {
+            $Next_year = substr($a, 0, 2) . $b;
+        } else {
+            $Next_year = $b;
+        }
+
+        $ar = $this->startmonthandend();
+        $year_str_month = $Current_year . '-' . $ar[0] . '-01';
+        $year_end_month = date("Y-m-t", strtotime($Next_year . '-' . $ar[1] . '-01'));
+
+        $getDepositeAmount = $this->studentfeemaster_model->getDepositAmountBetweenDate($year_str_month, $year_end_month);
+        $student_transport_fee = $this->studenttransportfee_model->getTransportDepositAmountBetweenDate($year_str_month, $year_end_month);
+
+        $start_month = strtotime($year_str_month);
+        $end = strtotime($year_end_month);
+        $total_month = array();
+        $yearly_collection = array();
+        $yearly_expense = array();
+
+        while ($start_month <= $end) {
+            $total_month[] = $this->lang->line(strtolower(date('F', $start_month)));
+            $month_start = date('Y-m-d', $start_month);
+            $month_end = date("Y-m-t", $start_month);
+            $return = $this->whatever($getDepositeAmount, $month_start, $month_end);
+            $tranport_amt = $this->whatever($student_transport_fee, $month_start, $month_end);
+            $yearly_collection[] = (!IsNullOrEmptyString($return) || !IsNullOrEmptyString($tranport_amt)) ? convertBaseAmountCurrencyFormat($return + $tranport_amt) : "0.00";
+
+            $expense_monthly = $this->expense_model->getTotalExpenseBwdate($month_start, $month_end);
+            if (!empty($expense_monthly)) {
+                $yearly_expense[] = convertBaseAmountCurrencyFormat($expense_monthly->amount);
+            } else {
+                $yearly_expense[] = "0.00";
+            }
+
+            $start_month = strtotime("+1 month", $start_month);
+        }
+
+        $response = array(
+            'status' => 'success',
+            'data' => array(
+                'labels' => $total_month,
+                'collection' => $yearly_collection,
+                'expense' => $yearly_expense,
+            )
         );
 
         return $this->output

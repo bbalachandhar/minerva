@@ -254,6 +254,39 @@ foreach ($notifications as $notice_key => $notice_value) {
                 flex-grow: 1;
                 min-height: 150px; /* A sensible minimum height */
             }
+            .chart-async {
+                position: relative;
+                min-height: 120px;
+            }
+            .chart-async.is-loading canvas {
+                opacity: 0.35;
+            }
+            .chart-async-loader {
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                display: none;
+                align-items: center;
+                justify-content: center;
+                background: rgba(255, 255, 255, 0.7);
+                z-index: 2;
+            }
+            .chart-async-spinner {
+                width: 28px;
+                height: 28px;
+                border-radius: 50%;
+                border: 3px solid rgba(60, 141, 188, 0.2);
+                border-top-color: rgba(60, 141, 188, 0.9);
+                animation: chart-spin 0.9s linear infinite;
+            }
+            @keyframes chart-spin {
+                to { transform: rotate(360deg); }
+            }
+            .chart-async.is-loading .chart-async-loader {
+                display: flex;
+            }
         </style>
         <div class="row equal-height-row">
             <div class="col-md-3 col-sm-6 mb10">
@@ -281,34 +314,34 @@ foreach ($notifications as $notice_key => $notice_value) {
                 if ($this->rbac->hasPrivilege('today_attendance_widegts', 'can_view')) {
                     ?>
                                 <div class="col-md-2 col-sm-6 mb10">
-                                    <div class="topprograssstart flex-card">
+                                    <div class="topprograssstart flex-card" id="student-attendance-widget" data-url="<?php echo site_url('admin/admin/student_today_attendance_widget'); ?>">
                                         <h5 class="pro-border"> <?php echo $this->lang->line('student_today_attendance'); ?></h5>
-                                        <p class="text-uppercase mt10 clearfix"><?php echo $attendence_data['total_present']; ?> <?php echo $this->lang->line('present'); ?><span class="pull-right"><?php echo $attendence_data['present']; ?></span>
+                                        <p class="text-uppercase mt10 clearfix"><span class="sta-present-count fo-skeleton">0</span> <?php echo $this->lang->line('present'); ?><span class="pull-right"><span class="sta-present-percent fo-skeleton">0%</span></span>
                                         </p>
                                         <div class="progress-group">
                                             <div class="progress progress-minibar">
-                                                <div class="progress-bar" style="width: <?php echo $attendence_data['present']; ?>"></div>
+                                                <div class="progress-bar sta-present-bar" style="width: 0%"></div>
                                             </div>
                                         </div>
-                                        <p class="text-uppercase mt10 clearfix"><?php echo $attendence_data['total_late']; ?> <?php echo $this->lang->line('late') ?><span class="pull-right"><?php echo $attendence_data['late']; ?></span>
+                                        <p class="text-uppercase mt10 clearfix"><span class="sta-late-count fo-skeleton">0</span> <?php echo $this->lang->line('late') ?><span class="pull-right"><span class="sta-late-percent fo-skeleton">0%</span></span>
                                         </p>
                                         <div class="progress-group">
                                             <div class="progress progress-minibar">
-                                                <div class="progress-bar" style="width: <?php echo $attendence_data['late']; ?>"></div>
+                                                <div class="progress-bar sta-late-bar" style="width: 0%"></div>
                                             </div>
                                         </div>
-                                        <p class="text-uppercase mt10 clearfix"><?php echo $attendence_data['total_absent']; ?> <?php echo $this->lang->line('absent'); ?><span class="pull-right"><?php echo $attendence_data['absent']; ?></span>
+                                        <p class="text-uppercase mt10 clearfix"><span class="sta-absent-count fo-skeleton">0</span> <?php echo $this->lang->line('absent'); ?><span class="pull-right"><span class="sta-absent-percent fo-skeleton">0%</span></span>
                                         </p>
                                         <div class="progress-group">
                                             <div class="progress progress-minibar">
-                                                <div class="progress-bar" style="width: <?php echo $attendence_data['absent']; ?>"></div>
+                                                <div class="progress-bar sta-absent-bar" style="width: 0%"></div>
                                             </div>
                                         </div>
-                                        <p class="text-uppercase mt10 clearfix"><?php echo $attendence_data['total_half_day']; ?> <?php echo $this->lang->line('half_day'); ?><span class="pull-right"><?php echo $attendence_data['half_day']; ?></span>
+                                        <p class="text-uppercase mt10 clearfix"><span class="sta-halfday-count fo-skeleton">0</span> <?php echo $this->lang->line('half_day'); ?><span class="pull-right"><span class="sta-halfday-percent fo-skeleton">0%</span></span>
                                         </p>
                                         <div class="progress-group">
                                             <div class="progress progress-minibar">
-                                                <div class="progress-bar" style="width: <?php echo $attendence_data['half_day']; ?>"></div>
+                                                <div class="progress-bar sta-halfday-bar" style="width: 0%"></div>
                                             </div>
                                         </div>
                                     </div><!--./topprograssstart-->
@@ -319,41 +352,41 @@ foreach ($notifications as $notice_key => $notice_value) {
             if ($this->rbac->hasPrivilege('staff_today_attendance', 'can_view')) {
             ?>
                                 <div class="col-md-2 col-sm-6 mb10">
-                                    <div class="topprograssstart flex-card">
+                                    <div class="topprograssstart flex-card" id="staff-attendance-widget" data-url="<?php echo site_url('admin/admin/staff_today_attendance_widget'); ?>">
                                         <h5 class="pro-border"> Staff Today Attendance</h5>
-                                        <p class="text-uppercase mt10 clearfix"><?php echo $staff_attendance_details['total_present']; ?> Present<span class="pull-right"><?php echo $staff_attendance_details['present']; ?>%</span>
+                                        <p class="text-uppercase mt10 clearfix"><span class="sfa-present-count fo-skeleton">0</span> Present<span class="pull-right"><span class="sfa-present-percent fo-skeleton">0</span>%</span>
                                         </p>
                                         <div class="progress-group">
                                             <div class="progress progress-minibar">
-                                                <div class="progress-bar" style="width: <?php echo $staff_attendance_details['present']; ?>%"></div>
+                                                <div class="progress-bar sfa-present-bar" style="width: 0%"></div>
                                             </div>
                                         </div>
-                                        <p class="text-uppercase mt10 clearfix"><?php echo $staff_attendance_details['total_late']; ?> Late<span class="pull-right"><?php echo $staff_attendance_details['late']; ?>%</span>
+                                        <p class="text-uppercase mt10 clearfix"><span class="sfa-late-count fo-skeleton">0</span> Late<span class="pull-right"><span class="sfa-late-percent fo-skeleton">0</span>%</span>
                                         </p>
                                         <div class="progress-group">
                                             <div class="progress progress-minibar">
-                                                <div class="progress-bar" style="width: <?php echo $staff_attendance_details['late']; ?>%"></div>
+                                                <div class="progress-bar sfa-late-bar" style="width: 0%"></div>
                                             </div>
                                         </div>
-                                        <p class="text-uppercase mt10 clearfix"><?php echo $staff_attendance_details['total_absent']; ?> Absent<span class="pull-right"><?php echo $staff_attendance_details['absent']; ?>%</span>
+                                        <p class="text-uppercase mt10 clearfix"><span class="sfa-absent-count fo-skeleton">0</span> Absent<span class="pull-right"><span class="sfa-absent-percent fo-skeleton">0</span>%</span>
                                         </p>
                                         <div class="progress-group">
                                             <div class="progress progress-minibar">
-                                                <div class="progress-bar" style="width: <?php echo $staff_attendance_details['absent']; ?>%"></div>
+                                                <div class="progress-bar sfa-absent-bar" style="width: 0%"></div>
                                             </div>
                                         </div>
-                                        <p class="text-uppercase mt10 clearfix"><?php echo $staff_attendance_details['total_half_day']; ?> Half Day<span class="pull-right"><?php echo $staff_attendance_details['half_day']; ?>%</span>
+                                        <p class="text-uppercase mt10 clearfix"><span class="sfa-halfday-count fo-skeleton">0</span> Half Day<span class="pull-right"><span class="sfa-halfday-percent fo-skeleton">0</span>%</span>
                                         </p>
                                         <div class="progress-group">
                                             <div class="progress progress-minibar">
-                                                <div class="progress-bar" style="width: <?php echo $staff_attendance_details['half_day']; ?>%"></div>
+                                                <div class="progress-bar sfa-halfday-bar" style="width: 0%"></div>
                                             </div>
                                         </div>
-                                        <p class="text-uppercase mt10 clearfix"><?php echo $staff_attendance_details['total_permission']; ?> Permissions<span class="pull-right"><?php echo $staff_attendance_details['permission']; ?>%</span>
+                                        <p class="text-uppercase mt10 clearfix"><span class="sfa-permission-count fo-skeleton">0</span> Permissions<span class="pull-right"><span class="sfa-permission-percent fo-skeleton">0</span>%</span>
                                         </p>
                                         <div class="progress-group">
                                             <div class="progress progress-minibar">
-                                                <div class="progress-bar" style="width: <?php echo $staff_attendance_details['permission']; ?>%"></div>
+                                                <div class="progress-bar sfa-permission-bar" style="width: 0%"></div>
                                             </div>
                                         </div>
                                     </div><!--./topprograssstart-->
@@ -364,41 +397,41 @@ foreach ($notifications as $notice_key => $notice_value) {
                 if ($this->rbac->hasPrivilege('enquiry_overview_widegts', 'can_view')) {
                     ?>
                                 <div class="col-md-2 col-sm-6 mb10">
-                                    <div class="topprograssstart flex-card">
+                                    <div class="topprograssstart flex-card" id="enquiry-overview-widget" data-url="<?php echo site_url('admin/admin/enquiry_overview_widget'); ?>">
                                         <h5 class="pro-border"><?php echo $this->lang->line('enquiry_overview'); ?></h5>
-                                        <p class="text-uppercase mt10 clearfix"><?php echo $enquiry_overview['active']; ?> <?php echo $this->lang->line('active') ?><span class="pull-right"><?php echo round($enquiry_overview['active_progress'], 2); ?>%</span>
+                                        <p class="text-uppercase mt10 clearfix"><span class="eo-active-count fo-skeleton">0</span> <?php echo $this->lang->line('active') ?><span class="pull-right"><span class="eo-active-percent fo-skeleton">0</span>%</span>
                                         </p>
                                         <div class="progress-group">
                                             <div class="progress progress-minibar">
-                                                <div class="progress-bar progress-bar-red" style="width: <?php echo $enquiry_overview['active_progress']; ?>%"></div>
+                                                <div class="progress-bar progress-bar-red eo-active-bar" style="width: 0%"></div>
                                             </div>
                                         </div>
-                                        <p class="text-uppercase mt10 clearfix"><?php echo $enquiry_overview['won']; ?> <?php echo $this->lang->line('won') ?><span class="pull-right"><?php echo round($enquiry_overview['won_progress'], 2); ?>%</span>
+                                        <p class="text-uppercase mt10 clearfix"><span class="eo-won-count fo-skeleton">0</span> <?php echo $this->lang->line('won') ?><span class="pull-right"><span class="eo-won-percent fo-skeleton">0</span>%</span>
                                         </p>
                                         <div class="progress-group">
                                             <div class="progress progress-minibar">
-                                                <div class="progress-bar progress-bar-yellow" style="width: <?php echo $enquiry_overview['won_progress']; ?>%"></div>
+                                                <div class="progress-bar progress-bar-yellow eo-won-bar" style="width: 0%"></div>
                                             </div>
                                         </div>
-                                        <p class="text-uppercase mt10 clearfix"><?php echo $enquiry_overview['passive']; ?> <?php echo $this->lang->line('passive') ?><span class="pull-right"><?php echo round($enquiry_overview['passive_progress'], 2); ?>%</span>
+                                        <p class="text-uppercase mt10 clearfix"><span class="eo-passive-count fo-skeleton">0</span> <?php echo $this->lang->line('passive') ?><span class="pull-right"><span class="eo-passive-percent fo-skeleton">0</span>%</span>
                                         </p>
                                         <div class="progress-group">
                                             <div class="progress progress-minibar">
-                                                <div class="progress-bar progress-bar-yellow" style="width: <?php echo $enquiry_overview['passive_progress']; ?>%"></div>
+                                                <div class="progress-bar progress-bar-yellow eo-passive-bar" style="width: 0%"></div>
                                             </div>
                                         </div>
-                                        <p class="text-uppercase mt10 clearfix"><?php echo $enquiry_overview['lost']; ?> <?php echo $this->lang->line('lost') ?><span class="pull-right"><?php echo round($enquiry_overview['lost_progress'], 2); ?>%</span>
+                                        <p class="text-uppercase mt10 clearfix"><span class="eo-lost-count fo-skeleton">0</span> <?php echo $this->lang->line('lost') ?><span class="pull-right"><span class="eo-lost-percent fo-skeleton">0</span>%</span>
                                         </p>
                                         <div class="progress-group">
                                             <div class="progress progress-minibar">
-                                                <div class="progress-bar progress-bar-yellow" style="width: <?php echo $enquiry_overview['lost_progress']; ?>%"></div>
+                                                <div class="progress-bar progress-bar-yellow eo-lost-bar" style="width: 0%"></div>
                                             </div>
                                         </div>
-                                        <p class="text-uppercase mt10 clearfix"><?php echo $enquiry_overview['dead']; ?> <?php echo $this->lang->line('dead') ?><span class="pull-right"><?php echo round($enquiry_overview['dead_progress'], 2); ?>%</span>
+                                        <p class="text-uppercase mt10 clearfix"><span class="eo-dead-count fo-skeleton">0</span> <?php echo $this->lang->line('dead'); ?><span class="pull-right"><span class="eo-dead-percent fo-skeleton">0</span>%</span>
                                         </p>
                                         <div class="progress-group">
                                             <div class="progress progress-minibar">
-                                                <div class="progress-bar progress-bar-yellow" style="width: <?php echo $enquiry_overview['dead_progress']; ?>%"></div>
+                                                <div class="progress-bar progress-bar-yellow eo-dead-bar" style="width: 0%"></div>
                                             </div>
                                         </div>
                                     </div><!--./topprograssstart-->
@@ -433,12 +466,12 @@ foreach ($notifications as $notice_key => $notice_value) {
                                             if ($this->rbac->hasPrivilege('staff_approved_leave_widegts', 'can_view')) {
                                                 ?>
                                                             <div class="col-md-3 col-sm-6">
-                                                                <div class="topprograssstart shadow">
-                                                                    <p class="mt5 font14"><i class="fa fa-ioxhost ftlayer"></i><?php echo $this->lang->line('staff_approved_leave'); ?><span class="pull-right"><?php echo ($getStaffApproveMonthlyLeave) + 0; ?>/<?php echo ($getStaffMonthlyLeave); ?></span>
+                                                                <div class="topprograssstart shadow" id="staff-approved-leave-widget" data-url="<?php echo site_url('admin/admin/staff_approved_leave_widget'); ?>">
+                                                                    <p class="mt5 font14"><i class="fa fa-ioxhost ftlayer"></i><?php echo $this->lang->line('staff_approved_leave'); ?><span class="pull-right"><span class="sal-approved fo-skeleton">0</span>/<span class="sal-total fo-skeleton">0</span></span>
                                                                     </p>
                                                                     <div class="progress-group">
                                                                         <div class="progress progress-minibar">
-                                                                            <div class="progress-bar progress-bar-lris-blue" style="width: <?php echo $staffapprovemonthlyleave; ?>%"></div>
+                                                                            <div class="progress-bar progress-bar-lris-blue sal-progress" style="width: 0%"></div>
                                                                         </div>
                                                                     </div>
                                                                 </div><!--./topprograssstart-->
@@ -451,12 +484,12 @@ foreach ($notifications as $notice_key => $notice_value) {
     if ($this->rbac->hasPrivilege('student_approved_leave_widegts', 'can_view')) {
         ?>
                     <div class="col-md-3 col-sm-6">
-                        <div class="topprograssstart shadow">
-                            <p class="mt5 font14"><i class="fa fa-ioxhost ftlayer"></i><?php echo $this->lang->line('student_approved_leave'); ?><span class="pull-right"><?php echo ($getStudentApproveMonthlyLeave) + 0; ?>/<?php echo ($getStudentMonthlyLeave); ?></span>
+                        <div class="topprograssstart shadow" id="student-approved-leave-widget" data-url="<?php echo site_url('admin/admin/student_approved_leave_widget'); ?>">
+                            <p class="mt5 font14"><i class="fa fa-ioxhost ftlayer"></i><?php echo $this->lang->line('student_approved_leave'); ?><span class="pull-right"><span class="stl-approved fo-skeleton">0</span>/<span class="stl-total fo-skeleton">0</span></span>
                             </p>
                             <div class="progress-group">
                                 <div class="progress progress-minibar">
-                                    <div class="progress-bar" style="width: <?php echo $studentapprovemonthlyleave; ?>%"></div>
+                                    <div class="progress-bar stl-progress" style="width: 0%"></div>
                                 </div>
                             </div>
                         </div><!--./topprograssstart-->
@@ -470,12 +503,12 @@ if ($this->module_lib->hasActive('front_office')) {
     if ($this->rbac->hasPrivilege('conveted_leads_widegts', 'can_view')) {
         ?>
                     <div class="col-md-3 col-sm-6">
-                        <div class="topprograssstart">
-                            <p class="mt5 clearfix font14"><i class="fa fa-ioxhost ftlayer"></i><?php echo $this->lang->line('converted_leads'); ?><span class="pull-right"><?php echo $total_complete + 0; ?>/<?php echo $total_enquiry; ?></span>
+                        <div class="topprograssstart" id="converted-leads-widget" data-url="<?php echo site_url('admin/admin/converted_leads_widget'); ?>">
+                            <p class="mt5 clearfix font14"><i class="fa fa-ioxhost ftlayer"></i><?php echo $this->lang->line('converted_leads'); ?><span class="pull-right"><span class="cl-complete fo-skeleton">0</span>/<span class="cl-total fo-skeleton">0</span></span>
                             </p>
                             <div class="progress-group">
                                 <div class="progress progress-minibar">
-                                    <div class="progress-bar progress-bar-red" style="width: <?php echo $fenquiryprogressbar; ?>%"></div>
+                                    <div class="progress-bar progress-bar-red cl-progress" style="width: 0%"></div>
                                 </div>
                             </div>
                         </div><!--./topprograssstart-->
@@ -502,8 +535,9 @@ if (($this->module_lib->hasActive('fees_collection')) || ($this->module_lib->has
                                 
                             </div>
                             <div class="box-body">
-                                <div class="chart">
-                                    <canvas id="barChart" height="98"></canvas>
+                                <div class="chart chart-async" id="fees-collection-expenses-monthly">
+                                    <div class="chart-async-loader"><span class="chart-async-spinner"></span></div>
+                                    <canvas id="barChart" height="98" data-url="<?php echo site_url('admin/admin/fees_collection_expenses_monthly_widget'); ?>"></canvas>
                                 </div>
                             </div>
                         </div>
@@ -547,8 +581,9 @@ if (($this->module_lib->hasActive('fees_collection')) || ($this->module_lib->has
                                 </div>
                             </div>
                             <div class="box-body">
-                                <div class="chart">
-                                    <canvas id="lineChart" height="98"></canvas>
+                                <div class="chart chart-async" id="fees-collection-expenses-session">
+                                    <div class="chart-async-loader"><span class="chart-async-spinner"></span></div>
+                                    <canvas id="lineChart" height="98" data-url="<?php echo site_url('admin/admin/fees_collection_expenses_session_widget'); ?>"></canvas>
                                 </div>
                             </div>
                         </div>
@@ -690,37 +725,35 @@ if ($this->module_lib->hasActive('expense')) {
         if ($this->rbac->hasPrivilege('student_head_count_widget', 'can_view')) {
         ?>
             <div class="col-md-2 col-sm-6 mb10">
-                <div class="topprograssstart flex-card">
-                    <h5 class="pro-border"><?php echo $this->lang->line('student_head_count'); ?> <span class="pull-right" style="font-size: 18px; font-weight: bold;"><?php echo isset($total_students_heads) ? $total_students_heads : 0; ?></span></h5>
+                <div class="topprograssstart flex-card" id="student-headcount-widget" data-url="<?php echo site_url('admin/admin/student_head_count_widget'); ?>">
+                    <h5 class="pro-border"><?php echo $this->lang->line('student_head_count'); ?> <span class="pull-right shc-total fo-skeleton" style="font-size: 18px; font-weight: bold;">0</span></h5>
                     <p class="text-uppercase mt10 clearfix" style="font-size: 12px;">
-                        <i class="fa fa-male" style="color: #3c8dbc;"></i> Male: <?php echo isset($male_students) ? $male_students : 0; ?> <span class="pull-right"><?php echo (isset($total_students_heads) && $total_students_heads > 0) ? round(($male_students * 100 / $total_students_heads), 2) : 0; ?>%</span>
+                        <i class="fa fa-male" style="color: #3c8dbc;"></i> Male: <span class="shc-male-count fo-skeleton">0</span> <span class="pull-right"><span class="shc-male-percent fo-skeleton">0</span>%</span>
                     </p>
                     <div class="progress-group">
                         <div class="progress progress-minibar">
-                            <div class="progress-bar" style="width: <?php echo (isset($total_students_heads) && $total_students_heads > 0) ? ($male_students * 100 / $total_students_heads) : 0; ?>%"></div>
+                            <div class="progress-bar shc-male-bar" style="width: 0%"></div>
                         </div>
                     </div>
                     <p class="text-uppercase mt10 clearfix" style="font-size: 12px;">
-                        <i class="fa fa-female" style="color: #dd4b39;"></i> Female: <?php echo isset($female_students) ? $female_students : 0; ?> <span class="pull-right"><?php echo (isset($total_students_heads) && $total_students_heads > 0) ? round(($female_students * 100 / $total_students_heads), 2) : 0; ?>%</span>
+                        <i class="fa fa-female" style="color: #dd4b39;"></i> Female: <span class="shc-female-count fo-skeleton">0</span> <span class="pull-right"><span class="shc-female-percent fo-skeleton">0</span>%</span>
                     </p>
                     <div class="progress-group">
                         <div class="progress progress-minibar">
-                            <div class="progress-bar progress-bar-red" style="width: <?php echo (isset($total_students_heads) && $total_students_heads > 0) ? ($female_students * 100 / $total_students_heads) : 0; ?>%"></div>
+                            <div class="progress-bar progress-bar-red shc-female-bar" style="width: 0%"></div>
                         </div>
                     </div>
-                    <?php if (isset($other_students) && $other_students > 0) { ?>
-                    <div class="widget-others-under-female" style="margin-top: 10px;">
+                    <div class="widget-others-under-female shc-others" style="margin-top: 10px; display: none;">
                         <p class="text-uppercase mt10 clearfix" style="font-size: 12px;">
-                            <i class="fa fa-genderless" style="color: #f39c12;"></i> Others: <?php echo $other_students; ?>
-                            <span class="pull-right"><?php echo (isset($total_students_heads) && $total_students_heads > 0) ? round(($other_students * 100 / $total_students_heads), 2) : 0; ?>%</span>
+                            <i class="fa fa-genderless" style="color: #f39c12;"></i> Others: <span class="shc-other-count">0</span>
+                            <span class="pull-right"><span class="shc-other-percent">0</span>%</span>
                         </p>
                         <div class="progress-group">
                             <div class="progress progress-minibar">
-                                <div class="progress-bar progress-bar-yellow" style="width: <?php echo ($total_students_heads > 0) ? ($other_students * 100 / $total_students_heads) : 0; ?>%"></div>
+                                <div class="progress-bar progress-bar-yellow shc-other-bar" style="width: 0%"></div>
                             </div>
                         </div>
                     </div>
-                    <?php } ?>
                 </div><!--./topprograssstart-->
             </div><!--./col-md-2-->
         <?php } ?>
@@ -729,34 +762,34 @@ if ($this->module_lib->hasActive('expense')) {
             if ($this->rbac->hasPrivilege('book_overview_widegts', 'can_view')) {
                 ?>
                             <div class="col-md-2 col-sm-6 mb10">
-                                <div class="topprograssstart flex-card">
+                                <div class="topprograssstart flex-card" id="library-overview-widget" data-url="<?php echo site_url('admin/admin/library_overview_widget'); ?>">
                                     <h5 class="pro-border"><?php echo $this->lang->line('library_overview'); ?></h5>
-                                    <p class="text-uppercase mt10 clearfix"><?php echo $book_overview['dueforreturn']; ?> <?php echo $this->lang->line('due_for_return'); ?><span class="pull-right"></span>
+                                    <p class="text-uppercase mt10 clearfix"><span class="lib-dueforreturn fo-skeleton">0</span> <?php echo $this->lang->line('due_for_return'); ?><span class="pull-right"></span>
                                     </p>
                                     <div class="progress-group">
                                         <div class="progress progress-minibar">
-                                            <div class="progress-bar progress-bar-green" style="width: <?php echo $book_overview['dueforreturn']; ?>%"></div>
+                                            <div class="progress-bar progress-bar-green lib-dueforreturn-bar" style="width: 0%"></div>
                                         </div>
                                     </div>
-                                    <p class="text-uppercase mt10 clearfix"><?php echo $book_overview['forreturn']; ?> <?php echo $this->lang->line('returned') ?><span class="pull-right"></span>
+                                    <p class="text-uppercase mt10 clearfix"><span class="lib-forreturn fo-skeleton">0</span> <?php echo $this->lang->line('returned') ?><span class="pull-right"></span>
                                     </p>
                                     <div class="progress-group">
                                         <div class="progress progress-minibar">
-                                            <div class="progress-bar progress-bar-green" style="width: <?php echo $book_overview['forreturn']; ?>%"></div>
+                                            <div class="progress-bar progress-bar-green lib-forreturn-bar" style="width: 0%"></div>
                                         </div>
                                     </div>
-                                    <p class="text-uppercase mt10 clearfix"><?php echo $book_overview['total_issued']; ?> <?php echo $this->lang->line('issued_out_of'); ?> <?php echo $book_overview['total'] ?><span class="pull-right"><?php echo $book_overview['issued_progress']; ?>%</span>
+                                    <p class="text-uppercase mt10 clearfix"><span class="lib-total-issued fo-skeleton">0</span> <?php echo $this->lang->line('issued_out_of'); ?> <span class="lib-total fo-skeleton">0</span><span class="pull-right"><span class="lib-issued-progress fo-skeleton">0</span>%</span>
                                     </p>
                                     <div class="progress-group">
                                         <div class="progress progress-minibar">
-                                            <div class="progress-bar progress-bar-green" style="width: <?php echo $book_overview['issued_progress']; ?>%"></div>
+                                            <div class="progress-bar progress-bar-green lib-issued-bar" style="width: 0%"></div>
                                         </div>
                                     </div>
-                                    <p class="text-uppercase mt10 clearfix"><?php echo $book_overview['availble']; ?> <?php echo $this->lang->line('available_out_of') ?> <?php echo $book_overview['total']; ?><span class="pull-right"><?php echo $book_overview['availble_progress']; ?>%</span>
+                                    <p class="text-uppercase mt10 clearfix"><span class="lib-availble fo-skeleton">0</span> <?php echo $this->lang->line('available_out_of') ?> <span class="lib-total fo-skeleton">0</span><span class="pull-right"><span class="lib-availble-progress fo-skeleton">0</span>%</span>
                                     </p>
                                     <div class="progress-group">
                                         <div class="progress progress-minibar">
-                                            <div class="progress-bar progress-bar-green" style="width: <?php echo $book_overview['availble_progress']; ?>%"></div>
+                                            <div class="progress-bar progress-bar-green lib-availble-bar" style="width: 0%"></div>
                                         </div>
                                     </div>
                                 </div><!--./topprograssstart-->
@@ -808,12 +841,12 @@ if ($this->module_lib->hasActive('fees_collection')) {
     if ($this->rbac->hasPrivilege('Monthly fees_collection_widget', 'can_view')) {
         ?>
                                 <div class="col-lg-3 col-md-6 col-sm-6">
-                                    <div class="info-box">
+                                    <div class="info-box" id="monthly-fees-collection-widget" data-url="<?php echo site_url('admin/admin/monthly_fees_collection_widget'); ?>">
                                         <a href="<?php echo site_url('studentfee') ?>">
                                             <span class="info-box-icon"><i class="fa fa-money"></i></span>
                                             <div class="info-box-content">
                                                 <span class="info-box-text"><?php echo $this->lang->line('monthly_fees_collection'); ?></span>
-                                                <span class="info-box-number"><?php if($month_collection){ echo $currency_symbol . amountFormat($month_collection); } ?></span>
+                                                <span class="info-box-number mfc-amount fo-skeleton">0</span>
                                             </div>
                                         </a>
                                     </div>
@@ -826,12 +859,12 @@ if ($this->module_lib->hasActive('income')) {
     if ($this->rbac->hasPrivilege('monthly_income_widget', 'can_view')) {
         ?>
                                 <div class="col-lg-3 col-md-6 col-sm-6">
-                                    <div class="info-box">
+                                    <div class="info-box" id="monthly-income-widget" data-url="<?php echo site_url('admin/admin/monthly_income_widget'); ?>">
                                         <a href="<?php echo site_url('admin/income') ?>">
                                             <span class="info-box-icon"><i class="fa fa-bank"></i></span>
                                             <div class="info-box-content">
                                                 <span class="info-box-text"><?php echo 'Monthly ' . $this->lang->line('income'); ?></span>
-                                                <span class="info-box-number"><?php if($month_income){ echo $currency_symbol . amountFormat($month_income); } ?></span>
+                                                <span class="info-box-number mi-amount fo-skeleton">0</span>
                                             </div>
                                         </a>
                                     </div>
@@ -844,12 +877,12 @@ if ($this->module_lib->hasActive('expense')) {
     if ($this->rbac->hasPrivilege('monthly_expense_widget', 'can_view')) {
         ?>
                                 <div class="col-lg-3 col-md-6 col-sm-6">
-                                    <div class="info-box">
+                                    <div class="info-box" id="monthly-expense-widget" data-url="<?php echo site_url('admin/admin/monthly_expense_widget'); ?>">
                                         <a href="<?php echo site_url('admin/expense') ?>">
                                             <span class="info-box-icon"><i class="fa fa-credit-card"></i></span>
                                             <div class="info-box-content">
                                                 <span class="info-box-text"><?php echo $this->lang->line('monthly_expenses'); ?></span>
-                                                <span class="info-box-number"><?php if($month_expense){ echo $currency_symbol . amountFormat($month_expense); } ?></span>
+                                                <span class="info-box-number me-amount fo-skeleton">0</span>
                                             </div>
                                         </a>
                                     </div>
@@ -1205,148 +1238,145 @@ if (($this->module_lib->hasActive('fees_collection')) || ($this->module_lib->has
         };
         var bar_chart = "<?php echo $bar_chart ?>";
         var line_chart = "<?php echo $line_chart ?>";
-         <?php
-if ($this->rbac->hasPrivilege('fees_collection_and_expense_yearly_chart', 'can_view')) {
-        ?>
+        var hasIncome = <?php echo ($this->module_lib->hasActive('income')) ? 'true' : 'false'; ?>;
+        var hasExpense = <?php echo ($this->module_lib->hasActive('expense')) ? 'true' : 'false'; ?>;
+
         if (line_chart) {
+            var $lineCanvas = $("#lineChart");
+            var lineUrl = $lineCanvas.data('url');
+            if ($lineCanvas.length && lineUrl) {
+                var $lineWrapper = $lineCanvas.closest('.chart-async');
+                $lineWrapper.addClass('is-loading');
+                $.ajax({
+                    url: lineUrl,
+                    method: 'GET',
+                    dataType: 'json'
+                }).done(function(resp) {
+                    if (!resp || resp.status !== 'success' || !resp.data) {
+                        return;
+                    }
 
-        var lineChartCanvas = $("#lineChart").get(0).getContext("2d");
-        var lineChart = new Chart(lineChartCanvas);
-        var lineChartOptions = areaChartOptions;
-        lineChartOptions.datasetFill = false;
-        var yearly_collection_array = <?php echo json_encode($yearly_collection) ?>;
-        var yearly_expense_array = <?php echo json_encode($yearly_expense) ?>;
-        var total_month = <?php echo json_encode($total_month) ?>;
-        /* jshint ignore:start */
-        var areaChartData_expense_Income = {
-        labels: total_month,
-                datasets: [
-				<?php if(($this->module_lib->hasActive('expense'))){?>												   
-                {
-                label: "Expense",
-                        fillColor: "rgba(215, 44, 44, 0.7)",
-                        strokeColor: "rgba(215, 44, 44, 0.7)",
-                        pointColor: "rgba(233, 30, 99, 0.9)",
-                        pointStrokeColor: "#c1c7d1",
-                        pointHighlightFill: "#fff",
-                        pointHighlightStroke: "rgba(220,220,220,1)",
-                        data: yearly_expense_array
-                }<?php if(($this->module_lib->hasActive('income'))){?>,<?php } ?>
-                <?php } ?>
-             <?php if(($this->module_lib->hasActive('income'))){?>
-                {
-                label: "Collection",
-                        fillColor: "rgba(102, 170, 24, 0.6)",
-                        strokeColor: "rgba(102, 170, 24, 0.6)",
-                        pointColor: "rgba(102, 170, 24, 0.9)",
-                        pointStrokeColor: "rgba(102, 170, 24, 0.6)",
-                        pointHighlightFill: "#fff",
-                        pointHighlightStroke: "rgba(60,141,188,1)",
-                        data: yearly_collection_array
-                }
-				 <?php } ?>
-                ]
-        };
-        lineChart.Line(areaChartData_expense_Income, lineChartOptions);
+                    var labels = resp.data.labels || [];
+                    var collection = resp.data.collection || [];
+                    var expense = resp.data.expense || [];
+
+                    var datasets = [];
+                    if (hasExpense) {
+                        datasets.push({
+                            label: "Expense",
+                            fillColor: "rgba(215, 44, 44, 0.7)",
+                            strokeColor: "rgba(215, 44, 44, 0.7)",
+                            pointColor: "rgba(233, 30, 99, 0.9)",
+                            pointStrokeColor: "#c1c7d1",
+                            pointHighlightFill: "#fff",
+                            pointHighlightStroke: "rgba(220,220,220,1)",
+                            data: expense
+                        });
+                    }
+                    if (hasIncome) {
+                        datasets.push({
+                            label: "Collection",
+                            fillColor: "rgba(102, 170, 24, 0.6)",
+                            strokeColor: "rgba(102, 170, 24, 0.6)",
+                            pointColor: "rgba(102, 170, 24, 0.9)",
+                            pointStrokeColor: "rgba(102, 170, 24, 0.6)",
+                            pointHighlightFill: "#fff",
+                            pointHighlightStroke: "rgba(60,141,188,1)",
+                            data: collection
+                        });
+                    }
+
+                    var areaChartData_expense_Income = {
+                        labels: labels,
+                        datasets: datasets
+                    };
+
+                    var lineChartCanvas = $lineCanvas.get(0).getContext("2d");
+                    var lineChart = new Chart(lineChartCanvas);
+                    var lineChartOptions = areaChartOptions;
+                    lineChartOptions.datasetFill = false;
+                    lineChart.Line(areaChartData_expense_Income, lineChartOptions);
+                    $lineWrapper.removeClass('is-loading');
+                }).fail(function() {
+                    $lineWrapper.removeClass('is-loading');
+                });
+            }
         }
-        /* jshint ignore:end */
 
-        var current_month_days = <?php echo json_encode($current_month_days) ?>;
-        var days_collection = <?php echo json_encode($days_collection) ?>;
-        var days_expense = <?php echo json_encode($days_expense) ?>;
-        /* jshint ignore:start */
-        var areaChartData_classAttendence = {
-        labels: current_month_days,
-                datasets: [
-				 <?php if(($this->module_lib->hasActive('income'))){?>												  
-                {
-                label: "Electronics",
-                        fillColor: "rgba(102, 170, 24, 0.6)",
-                        strokeColor: "rgba(102, 170, 24, 0.6)",
-                        pointColor: "rgba(102, 170, 24, 0.6)",
-                        pointStrokeColor: "#c1c7d1",
-                        pointHighlightFill: "#fff",
-                        pointHighlightStroke: "rgba(220,220,220,1)",
-                        data: days_collection
-                }<?php if(($this->module_lib->hasActive('expense'))){?>,<?php } ?>
-				<?php } ?>
-				<?php if(($this->module_lib->hasActive('expense'))){?>											   
-                {
-                label: "Digital Goods",
-                        fillColor: "rgba(233, 30, 99, 0.9)",
-                        strokeColor: "rgba(233, 30, 99, 0.9)",
-                        pointColor: "rgba(233, 30, 99, 0.9)",
-                        pointStrokeColor: "rgba(233, 30, 99, 0.9)",
-                        pointHighlightFill: "rgba(233, 30, 99, 0.9)",
-                        pointHighlightStroke: "rgba(60,141,188,1)",
-                        data: days_expense
-                }
-				<?php } ?> 
-                ]
-        };
-        /* jshint ignore:end */
-         
-          <?php }if ($this->rbac->hasPrivilege('fees_collection_and_expense_monthly_chart', 'can_view')) {?>
         if (bar_chart) {
-            var current_month_days = <?php echo json_encode($current_month_days) ?>;
-        var days_collection = <?php echo json_encode($days_collection) ?>;
-        var days_expense = <?php echo json_encode($days_expense) ?>;
+            var $barCanvas = $("#barChart");
+            var barUrl = $barCanvas.data('url');
+            if ($barCanvas.length && barUrl) {
+                var $barWrapper = $barCanvas.closest('.chart-async');
+                $barWrapper.addClass('is-loading');
+                $.ajax({
+                    url: barUrl,
+                    method: 'GET',
+                    dataType: 'json'
+                }).done(function(resp) {
+                    if (!resp || resp.status !== 'success' || !resp.data) {
+                        return;
+                    }
 
-        /* jshint ignore:start */
-        var areaChartData_classAttendence = {
-        labels: current_month_days,
-                datasets: [
-				<?php if(($this->module_lib->hasActive('income'))){?>											 
-                {
-                label: "Electronics",
-                        fillColor: "rgba(102, 170, 24, 0.6)",
-                        strokeColor: "rgba(102, 170, 24, 0.6)",
-                        pointColor: "rgba(102, 170, 24, 0.6)",
-                        pointStrokeColor: "#c1c7d1",
-                        pointHighlightFill: "#fff",
-                        pointHighlightStroke: "rgba(220,220,220,1)",
-                        data: days_collection
-                }<?php if(($this->module_lib->hasActive('expense'))){?>,<?php } ?>
-                    <?php } ?>
-                <?php if(($this->module_lib->hasActive('expense'))){ ?>												   
-                {
-                label: "Digital Goods",
-                        fillColor: "rgba(233, 30, 99, 0.9)",
-                        strokeColor: "rgba(233, 30, 99, 0.9)",
-                        pointColor: "rgba(233, 30, 99, 0.9)",
-                        pointStrokeColor: "rgba(233, 30, 99, 0.9)",
-                        pointHighlightFill: "rgba(233, 30, 99, 0.9)",
-                        pointHighlightStroke: "rgba(60,141,188,1)",
-                        data: days_expense
-                }
-				<?php } ?> 
-                ]
-        };
-        /* jshint ignore:end */
-        var barChartCanvas = $("#barChart").get(0).getContext("2d");
-        var barChart = new Chart(barChartCanvas);
-        var barChartData = areaChartData_classAttendence;
-        // barChartData.datasets[1].fillColor = "rgba(233, 30, 99, 0.9)";
-        // barChartData.datasets[1].strokeColor = "rgba(233, 30, 99, 0.9)";
-        // barChartData.datasets[1].pointColor = "rgba(233, 30, 99, 0.9)";
-        var barChartOptions = {
-        scaleBeginAtZero: true,
-                scaleShowGridLines: true,
-                scaleGridLineColor: "rgba(0,0,0,.05)",
-                scaleGridLineWidth: 1,
-                scaleShowHorizontalLines: false,
-                scaleShowVerticalLines: false,
-                barShowStroke: true,
-                barStrokeWidth: 2,
-                barValueSpacing: 5,
-                barDatasetSpacing: 1,
-                responsive: true,
-                maintainAspectRatio: true
-        };
-        barChartOptions.datasetFill = false;
-        barChart.Bar(barChartData, barChartOptions);
+                    var labels = resp.data.labels || [];
+                    var collection = resp.data.collection || [];
+                    var expense = resp.data.expense || [];
+
+                    var datasets = [];
+                    if (hasIncome) {
+                        datasets.push({
+                            label: "Electronics",
+                            fillColor: "rgba(102, 170, 24, 0.6)",
+                            strokeColor: "rgba(102, 170, 24, 0.6)",
+                            pointColor: "rgba(102, 170, 24, 0.6)",
+                            pointStrokeColor: "#c1c7d1",
+                            pointHighlightFill: "#fff",
+                            pointHighlightStroke: "rgba(220,220,220,1)",
+                            data: collection
+                        });
+                    }
+                    if (hasExpense) {
+                        datasets.push({
+                            label: "Digital Goods",
+                            fillColor: "rgba(233, 30, 99, 0.9)",
+                            strokeColor: "rgba(233, 30, 99, 0.9)",
+                            pointColor: "rgba(233, 30, 99, 0.9)",
+                            pointStrokeColor: "rgba(233, 30, 99, 0.9)",
+                            pointHighlightFill: "rgba(233, 30, 99, 0.9)",
+                            pointHighlightStroke: "rgba(60,141,188,1)",
+                            data: expense
+                        });
+                    }
+
+                    var barChartData = {
+                        labels: labels,
+                        datasets: datasets
+                    };
+
+                    var barChartCanvas = $barCanvas.get(0).getContext("2d");
+                    var barChart = new Chart(barChartCanvas);
+                    var barChartOptions = {
+                        scaleBeginAtZero: true,
+                        scaleShowGridLines: true,
+                        scaleGridLineColor: "rgba(0,0,0,.05)",
+                        scaleGridLineWidth: 1,
+                        scaleShowHorizontalLines: false,
+                        scaleShowVerticalLines: false,
+                        barShowStroke: true,
+                        barStrokeWidth: 2,
+                        barValueSpacing: 5,
+                        barDatasetSpacing: 1,
+                        responsive: true,
+                        maintainAspectRatio: true
+                    };
+                    barChartOptions.datasetFill = false;
+                    barChart.Bar(barChartData, barChartOptions);
+                    $barWrapper.removeClass('is-loading');
+                }).fail(function() {
+                    $barWrapper.removeClass('is-loading');
+                });
+            }
         }
-         <?php }?>
         });
     <?php
 }
@@ -1382,11 +1412,53 @@ if ($this->rbac->hasPrivilege('fees_collection_and_expense_yearly_chart', 'can_v
                 $(document).ajaxStart(function() {
                     var $widget = $('#fees-overview-widget');
                     $widget.find('.fo-total-demand-count, .fo-demand-progress, .fo-demand-sum, .fo-demand-bar, .fo-total-collection-count, .fo-collection-progress, .fo-collection-sum, .fo-collection-bar, .fo-total-awaiting-count, .fo-awaiting-progress, .fo-awaiting-sum, .fo-awaiting-bar, .fo-total-cfdemand-count, .fo-cfdemand-progress, .fo-cfdemand-sum, .fo-cfdemand-bar, .fo-total-cfcollection-count, .fo-cfcollection-progress, .fo-cfcollection-sum, .fo-cfcollection-bar, .fo-total-cfbalance-count, .fo-cfbalance-progress, .fo-cfbalance-sum, .fo-cfbalance-bar').addClass('fo-skeleton');
+
+                    var $headcount = $('#student-headcount-widget');
+                    $headcount.find('.shc-total, .shc-male-count, .shc-male-percent, .shc-female-count, .shc-female-percent').addClass('fo-skeleton');
+
+                    var $studentAttendance = $('#student-attendance-widget');
+                    $studentAttendance.find('.sta-present-count, .sta-present-percent, .sta-late-count, .sta-late-percent, .sta-absent-count, .sta-absent-percent, .sta-halfday-count, .sta-halfday-percent').addClass('fo-skeleton');
+
+                    var $staffAttendance = $('#staff-attendance-widget');
+                    $staffAttendance.find('.sfa-present-count, .sfa-present-percent, .sfa-late-count, .sfa-late-percent, .sfa-absent-count, .sfa-absent-percent, .sfa-halfday-count, .sfa-halfday-percent, .sfa-permission-count, .sfa-permission-percent').addClass('fo-skeleton');
+
+                    var $enquiryOverview = $('#enquiry-overview-widget');
+                    $enquiryOverview.find('.eo-active-count, .eo-active-percent, .eo-won-count, .eo-won-percent, .eo-passive-count, .eo-passive-percent, .eo-lost-count, .eo-lost-percent, .eo-dead-count, .eo-dead-percent').addClass('fo-skeleton');
+
+                    var $libraryOverview = $('#library-overview-widget');
+                    $libraryOverview.find('.lib-dueforreturn, .lib-forreturn, .lib-total-issued, .lib-total, .lib-issued-progress, .lib-availble, .lib-availble-progress').addClass('fo-skeleton');
+
+                    $('#monthly-fees-collection-widget .mfc-amount, #monthly-income-widget .mi-amount, #monthly-expense-widget .me-amount').addClass('fo-skeleton');
+
+                    $('#staff-approved-leave-widget .sal-approved, #staff-approved-leave-widget .sal-total').addClass('fo-skeleton');
+                    $('#student-approved-leave-widget .stl-approved, #student-approved-leave-widget .stl-total').addClass('fo-skeleton');
+                    $('#converted-leads-widget .cl-complete, #converted-leads-widget .cl-total').addClass('fo-skeleton');
                 });
                 // Remove skeleton loading on AJAX complete
                 $(document).ajaxStop(function() {
                     var $widget = $('#fees-overview-widget');
                     $widget.find('.fo-total-demand-count, .fo-demand-progress, .fo-demand-sum, .fo-demand-bar, .fo-total-collection-count, .fo-collection-progress, .fo-collection-sum, .fo-collection-bar, .fo-total-awaiting-count, .fo-awaiting-progress, .fo-awaiting-sum, .fo-awaiting-bar, .fo-total-cfdemand-count, .fo-cfdemand-progress, .fo-cfdemand-sum, .fo-cfdemand-bar, .fo-total-cfcollection-count, .fo-cfcollection-progress, .fo-cfcollection-sum, .fo-cfcollection-bar, .fo-total-cfbalance-count, .fo-cfbalance-progress, .fo-cfbalance-sum, .fo-cfbalance-bar').removeClass('fo-skeleton');
+
+                    var $headcount = $('#student-headcount-widget');
+                    $headcount.find('.shc-total, .shc-male-count, .shc-male-percent, .shc-female-count, .shc-female-percent').removeClass('fo-skeleton');
+
+                    var $studentAttendance = $('#student-attendance-widget');
+                    $studentAttendance.find('.sta-present-count, .sta-present-percent, .sta-late-count, .sta-late-percent, .sta-absent-count, .sta-absent-percent, .sta-halfday-count, .sta-halfday-percent').removeClass('fo-skeleton');
+
+                    var $staffAttendance = $('#staff-attendance-widget');
+                    $staffAttendance.find('.sfa-present-count, .sfa-present-percent, .sfa-late-count, .sfa-late-percent, .sfa-absent-count, .sfa-absent-percent, .sfa-halfday-count, .sfa-halfday-percent, .sfa-permission-count, .sfa-permission-percent').removeClass('fo-skeleton');
+
+                    var $enquiryOverview = $('#enquiry-overview-widget');
+                    $enquiryOverview.find('.eo-active-count, .eo-active-percent, .eo-won-count, .eo-won-percent, .eo-passive-count, .eo-passive-percent, .eo-lost-count, .eo-lost-percent, .eo-dead-count, .eo-dead-percent').removeClass('fo-skeleton');
+
+                    var $libraryOverview = $('#library-overview-widget');
+                    $libraryOverview.find('.lib-dueforreturn, .lib-forreturn, .lib-total-issued, .lib-total, .lib-issued-progress, .lib-availble, .lib-availble-progress').removeClass('fo-skeleton');
+
+                    $('#monthly-fees-collection-widget .mfc-amount, #monthly-income-widget .mi-amount, #monthly-expense-widget .me-amount').removeClass('fo-skeleton');
+
+                    $('#staff-approved-leave-widget .sal-approved, #staff-approved-leave-widget .sal-total').removeClass('fo-skeleton');
+                    $('#student-approved-leave-widget .stl-approved, #student-approved-leave-widget .stl-total').removeClass('fo-skeleton');
+                    $('#converted-leads-widget .cl-complete, #converted-leads-widget .cl-total').removeClass('fo-skeleton');
                 });
         // Function to update ticker animation properties
         function updateTickerAnimation() {
@@ -1520,6 +1592,343 @@ if ($this->rbac->hasPrivilege('fees_collection_and_expense_yearly_chart', 'can_v
         }).fail(function() {
             $widget.find('.fo-skeleton').removeClass('fo-skeleton');
         });
+    });
+</script>
+<script type="text/javascript">
+    $(document).ready(function() {
+        var $headcount = $('#student-headcount-widget');
+        if (!$headcount.length) {
+            return;
+        }
+
+        var url = $headcount.data('url');
+        if (!url) {
+            return;
+        }
+
+        $.ajax({
+            url: url,
+            method: 'GET',
+            dataType: 'json'
+        }).done(function(resp) {
+            if (!resp || resp.status !== 'success' || !resp.data) {
+                return;
+            }
+
+            var d = resp.data;
+            $headcount.find('.shc-total').text(d.total_students_heads || 0);
+
+            $headcount.find('.shc-male-count').text(d.male_students || 0);
+            $headcount.find('.shc-male-percent').text(d.male_percent || 0);
+            $headcount.find('.shc-male-bar').css('width', (d.male_percent || 0) + '%');
+
+            $headcount.find('.shc-female-count').text(d.female_students || 0);
+            $headcount.find('.shc-female-percent').text(d.female_percent || 0);
+            $headcount.find('.shc-female-bar').css('width', (d.female_percent || 0) + '%');
+
+            if ((d.other_students || 0) > 0) {
+                $headcount.find('.shc-others').show();
+                $headcount.find('.shc-other-count').text(d.other_students || 0);
+                $headcount.find('.shc-other-percent').text(d.other_percent || 0);
+                $headcount.find('.shc-other-bar').css('width', (d.other_percent || 0) + '%');
+            } else {
+                $headcount.find('.shc-others').hide();
+            }
+
+            $headcount.find('.fo-skeleton').removeClass('fo-skeleton');
+        }).fail(function() {
+            $headcount.find('.fo-skeleton').removeClass('fo-skeleton');
+        });
+    });
+</script>
+<script type="text/javascript">
+    $(document).ready(function() {
+        var $studentAttendance = $('#student-attendance-widget');
+        if ($studentAttendance.length) {
+            var url = $studentAttendance.data('url');
+            if (url) {
+                $.ajax({
+                    url: url,
+                    method: 'GET',
+                    dataType: 'json'
+                }).done(function(resp) {
+                    if (!resp || resp.status !== 'success' || !resp.data) {
+                        return;
+                    }
+
+                    var d = resp.data;
+                    $studentAttendance.find('.sta-present-count').text(d.total_present || 0);
+                    $studentAttendance.find('.sta-present-percent').text(d.present || '0%');
+                    $studentAttendance.find('.sta-present-bar').css('width', d.present || '0%');
+
+                    $studentAttendance.find('.sta-late-count').text(d.total_late || 0);
+                    $studentAttendance.find('.sta-late-percent').text(d.late || '0%');
+                    $studentAttendance.find('.sta-late-bar').css('width', d.late || '0%');
+
+                    $studentAttendance.find('.sta-absent-count').text(d.total_absent || 0);
+                    $studentAttendance.find('.sta-absent-percent').text(d.absent || '0%');
+                    $studentAttendance.find('.sta-absent-bar').css('width', d.absent || '0%');
+
+                    $studentAttendance.find('.sta-halfday-count').text(d.total_half_day || 0);
+                    $studentAttendance.find('.sta-halfday-percent').text(d.half_day || '0%');
+                    $studentAttendance.find('.sta-halfday-bar').css('width', d.half_day || '0%');
+
+                    $studentAttendance.find('.fo-skeleton').removeClass('fo-skeleton');
+                }).fail(function() {
+                    $studentAttendance.find('.fo-skeleton').removeClass('fo-skeleton');
+                });
+            }
+        }
+
+        var $staffAttendance = $('#staff-attendance-widget');
+        if ($staffAttendance.length) {
+            var staffUrl = $staffAttendance.data('url');
+            if (staffUrl) {
+                $.ajax({
+                    url: staffUrl,
+                    method: 'GET',
+                    dataType: 'json'
+                }).done(function(resp) {
+                    if (!resp || resp.status !== 'success' || !resp.data) {
+                        return;
+                    }
+
+                    var d = resp.data;
+                    $staffAttendance.find('.sfa-present-count').text(d.total_present || 0);
+                    $staffAttendance.find('.sfa-present-percent').text(d.present || 0);
+                    $staffAttendance.find('.sfa-present-bar').css('width', (d.present || 0) + '%');
+
+                    $staffAttendance.find('.sfa-late-count').text(d.total_late || 0);
+                    $staffAttendance.find('.sfa-late-percent').text(d.late || 0);
+                    $staffAttendance.find('.sfa-late-bar').css('width', (d.late || 0) + '%');
+
+                    $staffAttendance.find('.sfa-absent-count').text(d.total_absent || 0);
+                    $staffAttendance.find('.sfa-absent-percent').text(d.absent || 0);
+                    $staffAttendance.find('.sfa-absent-bar').css('width', (d.absent || 0) + '%');
+
+                    $staffAttendance.find('.sfa-halfday-count').text(d.total_half_day || 0);
+                    $staffAttendance.find('.sfa-halfday-percent').text(d.half_day || 0);
+                    $staffAttendance.find('.sfa-halfday-bar').css('width', (d.half_day || 0) + '%');
+
+                    $staffAttendance.find('.sfa-permission-count').text(d.total_permission || 0);
+                    $staffAttendance.find('.sfa-permission-percent').text(d.permission || 0);
+                    $staffAttendance.find('.sfa-permission-bar').css('width', (d.permission || 0) + '%');
+
+                    $staffAttendance.find('.fo-skeleton').removeClass('fo-skeleton');
+                }).fail(function() {
+                    $staffAttendance.find('.fo-skeleton').removeClass('fo-skeleton');
+                });
+            }
+        }
+
+        var $enquiryOverview = $('#enquiry-overview-widget');
+        if ($enquiryOverview.length) {
+            var enquiryUrl = $enquiryOverview.data('url');
+            if (enquiryUrl) {
+                $.ajax({
+                    url: enquiryUrl,
+                    method: 'GET',
+                    dataType: 'json'
+                }).done(function(resp) {
+                    if (!resp || resp.status !== 'success' || !resp.data) {
+                        return;
+                    }
+
+                    var d = resp.data;
+                    $enquiryOverview.find('.eo-active-count').text(d.active || 0);
+                    $enquiryOverview.find('.eo-active-percent').text(d.active_progress || 0);
+                    $enquiryOverview.find('.eo-active-bar').css('width', (d.active_progress || 0) + '%');
+
+                    $enquiryOverview.find('.eo-won-count').text(d.won || 0);
+                    $enquiryOverview.find('.eo-won-percent').text(d.won_progress || 0);
+                    $enquiryOverview.find('.eo-won-bar').css('width', (d.won_progress || 0) + '%');
+
+                    $enquiryOverview.find('.eo-passive-count').text(d.passive || 0);
+                    $enquiryOverview.find('.eo-passive-percent').text(d.passive_progress || 0);
+                    $enquiryOverview.find('.eo-passive-bar').css('width', (d.passive_progress || 0) + '%');
+
+                    $enquiryOverview.find('.eo-lost-count').text(d.lost || 0);
+                    $enquiryOverview.find('.eo-lost-percent').text(d.lost_progress || 0);
+                    $enquiryOverview.find('.eo-lost-bar').css('width', (d.lost_progress || 0) + '%');
+
+                    $enquiryOverview.find('.eo-dead-count').text(d.dead || 0);
+                    $enquiryOverview.find('.eo-dead-percent').text(d.dead_progress || 0);
+                    $enquiryOverview.find('.eo-dead-bar').css('width', (d.dead_progress || 0) + '%');
+
+                    $enquiryOverview.find('.fo-skeleton').removeClass('fo-skeleton');
+                }).fail(function() {
+                    $enquiryOverview.find('.fo-skeleton').removeClass('fo-skeleton');
+                });
+            }
+        }
+    });
+</script>
+<script type="text/javascript">
+    $(document).ready(function() {
+        var $libraryOverview = $('#library-overview-widget');
+        if ($libraryOverview.length) {
+            var libraryUrl = $libraryOverview.data('url');
+            if (libraryUrl) {
+                $.ajax({
+                    url: libraryUrl,
+                    method: 'GET',
+                    dataType: 'json'
+                }).done(function(resp) {
+                    if (!resp || resp.status !== 'success' || !resp.data) {
+                        return;
+                    }
+
+                    var d = resp.data;
+                    $libraryOverview.find('.lib-dueforreturn').text(d.dueforreturn || 0);
+                    $libraryOverview.find('.lib-dueforreturn-bar').css('width', (d.dueforreturn || 0) + '%');
+
+                    $libraryOverview.find('.lib-forreturn').text(d.forreturn || 0);
+                    $libraryOverview.find('.lib-forreturn-bar').css('width', (d.forreturn || 0) + '%');
+
+                    $libraryOverview.find('.lib-total-issued').text(d.total_issued || 0);
+                    $libraryOverview.find('.lib-total').text(d.total || 0);
+                    $libraryOverview.find('.lib-issued-progress').text(d.issued_progress || 0);
+                    $libraryOverview.find('.lib-issued-bar').css('width', (d.issued_progress || 0) + '%');
+
+                    $libraryOverview.find('.lib-availble').text(d.availble || 0);
+                    $libraryOverview.find('.lib-availble-progress').text(d.availble_progress || 0);
+                    $libraryOverview.find('.lib-availble-bar').css('width', (d.availble_progress || 0) + '%');
+
+                    $libraryOverview.find('.fo-skeleton').removeClass('fo-skeleton');
+                }).fail(function() {
+                    $libraryOverview.find('.fo-skeleton').removeClass('fo-skeleton');
+                });
+            }
+        }
+
+        var $monthlyFees = $('#monthly-fees-collection-widget');
+        if ($monthlyFees.length) {
+            var feesUrl = $monthlyFees.data('url');
+            if (feesUrl) {
+                $.ajax({
+                    url: feesUrl,
+                    method: 'GET',
+                    dataType: 'json'
+                }).done(function(resp) {
+                    if (!resp || resp.status !== 'success' || !resp.data) {
+                        return;
+                    }
+                    $monthlyFees.find('.mfc-amount').text(resp.data.amount_formatted || '');
+                    $monthlyFees.find('.fo-skeleton').removeClass('fo-skeleton');
+                }).fail(function() {
+                    $monthlyFees.find('.fo-skeleton').removeClass('fo-skeleton');
+                });
+            }
+        }
+
+        var $monthlyIncome = $('#monthly-income-widget');
+        if ($monthlyIncome.length) {
+            var incomeUrl = $monthlyIncome.data('url');
+            if (incomeUrl) {
+                $.ajax({
+                    url: incomeUrl,
+                    method: 'GET',
+                    dataType: 'json'
+                }).done(function(resp) {
+                    if (!resp || resp.status !== 'success' || !resp.data) {
+                        return;
+                    }
+                    $monthlyIncome.find('.mi-amount').text(resp.data.amount_formatted || '');
+                    $monthlyIncome.find('.fo-skeleton').removeClass('fo-skeleton');
+                }).fail(function() {
+                    $monthlyIncome.find('.fo-skeleton').removeClass('fo-skeleton');
+                });
+            }
+        }
+
+        var $monthlyExpense = $('#monthly-expense-widget');
+        if ($monthlyExpense.length) {
+            var expenseUrl = $monthlyExpense.data('url');
+            if (expenseUrl) {
+                $.ajax({
+                    url: expenseUrl,
+                    method: 'GET',
+                    dataType: 'json'
+                }).done(function(resp) {
+                    if (!resp || resp.status !== 'success' || !resp.data) {
+                        return;
+                    }
+                    $monthlyExpense.find('.me-amount').text(resp.data.amount_formatted || '');
+                    $monthlyExpense.find('.fo-skeleton').removeClass('fo-skeleton');
+                }).fail(function() {
+                    $monthlyExpense.find('.fo-skeleton').removeClass('fo-skeleton');
+                });
+            }
+        }
+    });
+</script>
+<script type="text/javascript">
+    $(document).ready(function() {
+        var $staffLeave = $('#staff-approved-leave-widget');
+        if ($staffLeave.length) {
+            var staffLeaveUrl = $staffLeave.data('url');
+            if (staffLeaveUrl) {
+                $.ajax({
+                    url: staffLeaveUrl,
+                    method: 'GET',
+                    dataType: 'json'
+                }).done(function(resp) {
+                    if (!resp || resp.status !== 'success' || !resp.data) {
+                        return;
+                    }
+                    $staffLeave.find('.sal-approved').text(resp.data.approved || 0);
+                    $staffLeave.find('.sal-total').text(resp.data.total || 0);
+                    $staffLeave.find('.sal-progress').css('width', (resp.data.percent || 0) + '%');
+                    $staffLeave.find('.fo-skeleton').removeClass('fo-skeleton');
+                }).fail(function() {
+                    $staffLeave.find('.fo-skeleton').removeClass('fo-skeleton');
+                });
+            }
+        }
+
+        var $studentLeave = $('#student-approved-leave-widget');
+        if ($studentLeave.length) {
+            var studentLeaveUrl = $studentLeave.data('url');
+            if (studentLeaveUrl) {
+                $.ajax({
+                    url: studentLeaveUrl,
+                    method: 'GET',
+                    dataType: 'json'
+                }).done(function(resp) {
+                    if (!resp || resp.status !== 'success' || !resp.data) {
+                        return;
+                    }
+                    $studentLeave.find('.stl-approved').text(resp.data.approved || 0);
+                    $studentLeave.find('.stl-total').text(resp.data.total || 0);
+                    $studentLeave.find('.stl-progress').css('width', (resp.data.percent || 0) + '%');
+                    $studentLeave.find('.fo-skeleton').removeClass('fo-skeleton');
+                }).fail(function() {
+                    $studentLeave.find('.fo-skeleton').removeClass('fo-skeleton');
+                });
+            }
+        }
+
+        var $convertedLeads = $('#converted-leads-widget');
+        if ($convertedLeads.length) {
+            var convertedUrl = $convertedLeads.data('url');
+            if (convertedUrl) {
+                $.ajax({
+                    url: convertedUrl,
+                    method: 'GET',
+                    dataType: 'json'
+                }).done(function(resp) {
+                    if (!resp || resp.status !== 'success' || !resp.data) {
+                        return;
+                    }
+                    $convertedLeads.find('.cl-complete').text(resp.data.complete || 0);
+                    $convertedLeads.find('.cl-total').text(resp.data.total || 0);
+                    $convertedLeads.find('.cl-progress').css('width', (resp.data.percent || 0) + '%');
+                    $convertedLeads.find('.fo-skeleton').removeClass('fo-skeleton');
+                }).fail(function() {
+                    $convertedLeads.find('.fo-skeleton').removeClass('fo-skeleton');
+                });
+            }
+        }
     });
 </script>
 <script type="text/javascript">
