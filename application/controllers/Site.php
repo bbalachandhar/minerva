@@ -96,23 +96,6 @@ class Site extends Public_Controller
             $setting_result        = $this->setting_model->get();
             $result                = $this->staff_model->checkLogin($login_post);           
            
-            if (!empty($result->language_id)) {
-                $lang_array = array('lang_id' => $result->language_id, 'language' => $result->language);
-                if ($result->is_rtl == 1) {
-                    $is_rtl = "enabled";
-                } else {
-                    $is_rtl = "disabled";
-                }
-
-            } else {
-                $lang_array = array('lang_id' => $setting_result[0]['lang_id'], 'language' => $setting_result[0]['language']);
-                if ($setting_result[0]['is_rtl'] == 1) {
-                    $is_rtl = "enabled";
-                } else {
-                    $is_rtl = "disabled";
-                }
-            }
-
             if ($result) {
                 if ($result->is_active) {
                     if ($result->surname != "") {
@@ -121,12 +104,16 @@ class Site extends Public_Controller
                         $logusername = $result->name;
                     }
 
+                    // Fetch all assigned roles for this staff
+                    $role_rows = $this->db->select('role_id')->from('staff_roles')->where('staff_id', $result->id)->get()->result_array();
+                    $role_ids = array_map(function($row) { return $row['role_id']; }, $role_rows);
+
                     $session_data = array(
                         'id'                     => $result->id,
                         'username'               => $logusername,
                         'email'                  => $result->email,
                         'image'                  =>$result->image,
-                        'roles'                  => $result->roles,
+                        'roles'                  => $role_ids,
                         'date_format'            => $setting_result[0]['date_format'],                        
                         'currency'               => ($result->currency == 0) ? $setting_result[0]['currency']: $result->currency,
                         'currency_base_price'    => ($result->base_price == 0) ? $setting_result[0]['base_price']: $result->base_price,
@@ -148,10 +135,10 @@ class Site extends Public_Controller
                                                     ],
                         'superadmin_restriction' => $setting_result[0]['superadmin_restriction'],
                         'saas_key'               => $setting_result[0]['saas_key'],
-                        'admin_panel_whatsapp'   		=> $setting_result[0]['admin_panel_whatsapp'],
+                        'admin_panel_whatsapp'   => $setting_result[0]['admin_panel_whatsapp'],
                         'admin_panel_whatsapp_mobile'   => $setting_result[0]['admin_panel_whatsapp_mobile'],
-                        'admin_panel_whatsapp_from'   	=> $setting_result[0]['admin_panel_whatsapp_from'],
-                        'admin_panel_whatsapp_to'  		=> $setting_result[0]['admin_panel_whatsapp_to'],						
+                        'admin_panel_whatsapp_from'     => $setting_result[0]['admin_panel_whatsapp_from'],
+                        'admin_panel_whatsapp_to'       => $setting_result[0]['admin_panel_whatsapp_to'],                        
                     );
 
                     $this->session->set_userdata('admin', $session_data);
@@ -165,11 +152,9 @@ class Site extends Public_Controller
                     } else {
                         redirect('admin/admin/dashboard');
                     }
-
                 } else {
                     $data['name']          = $app_name;
                     $data['error_message'] = $this->lang->line('your_account_is_disabled_please_contact_to_administrator');
-
                     $this->load->view('admin/login', $data);
                 }
             } else {

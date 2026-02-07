@@ -189,6 +189,11 @@ class Staff extends Admin_Controller
         $month_number          = date("m", strtotime($startMonth));
         $data['rate_canview']  = 0;
 
+        // Fetch assigned roles for this staff
+        $role_rows = $this->db->select('role_id')->from('staff_roles')->where('staff_id', $id)->get()->result_array();
+        $assigned_role_ids = array_map(function($row) { return $row['role_id']; }, $role_rows);
+        $data['assigned_roles'] = $assigned_role_ids;
+
         if ($id != '1') {
             $staff_rating = $this->staff_model->staff_ratingById($id);
 
@@ -896,6 +901,9 @@ class Staff extends Admin_Controller
         $data["marital_status"] = $marital_status;
         $data["contract_type"] = $this->contract_type;
         $staff = $this->staff_model->get($id);
+        // Fetch all assigned roles for this staff
+        $role_rows = $this->db->select('role_id')->from('staff_roles')->where('staff_id', $id)->get()->result_array();
+        $staff['roles'] = array_map(function($row) { return $row['role_id']; }, $role_rows);
         $data['staff'] = $staff;
 
         $staff_leaves          = $this->leaverequest_model->staff_leave_request($id);
@@ -923,7 +931,7 @@ class Staff extends Admin_Controller
         }
 
         $this->form_validation->set_rules('name', $this->lang->line('name'), 'trim|required|xss_clean');
-        $this->form_validation->set_rules('role', $this->lang->line('role'), 'trim|required|xss_clean');
+        $this->form_validation->set_rules('role[]', $this->lang->line('role'), 'trim|required|xss_clean');
         $this->form_validation->set_rules('gender', $this->lang->line('gender'), 'trim|required|xss_clean');
         $this->form_validation->set_rules('dob', $this->lang->line('date_of_birth'), 'trim|required|xss_clean');
         $this->form_validation->set_rules('biometric_id', $this->lang->line('biometric_id'), 'trim|xss_clean|callback__check_biometric_id_exists');
@@ -963,7 +971,7 @@ class Staff extends Admin_Controller
             $biometric_id = $this->input->post("biometric_id");
             $department = empty2null($this->input->post("department"));
             $designation = empty2null($this->input->post("designation"));
-            $role = $this->input->post("role");
+            $roles = $this->input->post("role"); // Array of role IDs
             $name = $this->input->post("name");
             $gender = $this->input->post("gender");
             $marital_status = $this->input->post("marital_status");
@@ -1173,7 +1181,7 @@ class Staff extends Admin_Controller
                     );
                 }
             }
-            $role_array = array('role_id' => $this->input->post('role'), 'staff_id' => $id);
+            $role_array = array('role_ids' => $roles, 'staff_id' => $id); // Pass array of role IDs
 
             if (isset($_FILES["file"]) && !empty($_FILES['file']['name'])) {
                 $upload_result = $this->media_storage->fileupload("file", "./uploads/staff_images/");

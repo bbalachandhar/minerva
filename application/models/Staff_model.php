@@ -299,16 +299,17 @@ class Staff_model extends MY_Model
             $this->db->where('id', $staff_id);
             $this->db->update('staff', $data);
 
-            // Update staff_roles
+            // Update staff_roles for multiple roles
             $this->db->where('staff_id', $staff_id);
-            $q = $this->db->get('staff_roles');
-
-            if ( $q->num_rows() > 0 ) {
-                $this->db->where('staff_id', $staff_id);
-                $this->db->update('staff_roles', $roles);
-            } else {
-                $roles['staff_id'] = $staff_id;
-                $this->db->insert('staff_roles', $roles);
+            $this->db->delete('staff_roles'); // Remove all existing roles
+            if (isset($roles['role_ids']) && is_array($roles['role_ids'])) {
+                $role_batch = array();
+                foreach ($roles['role_ids'] as $role_id) {
+                    $role_batch[] = array('staff_id' => $staff_id, 'role_id' => $role_id);
+                }
+                if (!empty($role_batch)) {
+                    $this->db->insert_batch('staff_roles', $role_batch);
+                }
             }
 
             // Update staff_leave_details
@@ -323,9 +324,17 @@ class Staff_model extends MY_Model
 
         } else { // If 'id' is not set, it's an insert
             $this->db->insert('staff', $data);
-            $staff_id          = $this->db->insert_id();
-            $roles['staff_id'] = $staff_id;
-            $this->db->insert_batch('staff_roles', array($roles));
+            $staff_id = $this->db->insert_id();
+            // Insert multiple roles
+            if (isset($roles['role_ids']) && is_array($roles['role_ids'])) {
+                $role_batch = array();
+                foreach ($roles['role_ids'] as $role_id) {
+                    $role_batch[] = array('staff_id' => $staff_id, 'role_id' => $role_id);
+                }
+                if (!empty($role_batch)) {
+                    $this->db->insert_batch('staff_roles', $role_batch);
+                }
+            }
 
             if (!empty($leave_array)) {
                 foreach ($leave_array as $key => $value) {

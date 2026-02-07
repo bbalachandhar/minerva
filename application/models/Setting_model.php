@@ -270,8 +270,16 @@ class Setting_model extends MY_Model {
     }
 
     public function getLanguage() {
-        $query = $this->db->select('languages.language,languages.short_code')->where('id', $this->session->userdata['admin']['language']['lang_id'])->get('languages');
-        return $query->row_array();
+        $lang_id = null;
+        if (isset($this->session->userdata['admin']) && isset($this->session->userdata['admin']['language']) && isset($this->session->userdata['admin']['language']['lang_id'])) {
+            $lang_id = $this->session->userdata['admin']['language']['lang_id'];
+        }
+        if ($lang_id) {
+            $query = $this->db->select('languages.language,languages.short_code')->where('id', $lang_id)->get('languages');
+            return $query->row_array();
+        } else {
+            return null;
+        }
     }
     
     public function getuserLanguage() {

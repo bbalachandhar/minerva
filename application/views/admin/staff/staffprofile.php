@@ -1,3 +1,18 @@
+<!-- Show assigned roles -->
+<div class="form-group">
+    <label><b><?php echo $this->lang->line('role'); ?></b></label>
+    <?php if (isset($assigned_roles) && is_array($assigned_roles) && count($assigned_roles) > 0) { ?>
+        <div style="margin-bottom: 10px;">
+            <?php foreach ($roles as $role) {
+                if (in_array($role['id'], $assigned_roles)) {
+                    echo '<span style="display:inline-block;background:#1976d2;color:#fff;padding:4px 10px;border-radius:4px;margin-right:6px;margin-bottom:4px;">' . htmlspecialchars($role['name']) . '</span>';
+                }
+            } ?>
+        </div>
+    <?php } else { ?>
+        <span style="color:#888;">None Assigned</span>
+    <?php } ?>
+</div>
 <?php
 $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
 ?>
@@ -151,7 +166,22 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                 <b><?php echo $this->lang->line('prefix'); ?></b> <a class="pull-right text-aqua"><?php echo $staff['prefix']; ?></a>
                             </li>
                             <li class="list-group-item listnoback">
-                                <b><?php echo $this->lang->line('role'); ?></b> <a class="pull-right text-aqua"><?php echo $staff['user_type']; ?></a>
+                                <b><?php echo $this->lang->line('role'); ?></b>
+                                <span class="pull-right text-aqua">
+                                    <?php
+                                    if (isset($assigned_roles) && is_array($assigned_roles) && count($assigned_roles) > 0) {
+                                        $role_names = array();
+                                        foreach ($roles as $role) {
+                                            if (in_array($role['id'], $assigned_roles)) {
+                                                $role_names[] = htmlspecialchars($role['name']);
+                                            }
+                                        }
+                                        echo implode(', ', $role_names);
+                                    } else {
+                                        echo 'None Assigned';
+                                    }
+                                    ?>
+                                </span>
                             </li>
                             <?php if ($sch_setting->staff_designation) { ?>
                                 <li class="list-group-item listnoback">

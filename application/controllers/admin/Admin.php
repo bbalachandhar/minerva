@@ -98,13 +98,20 @@ class Admin extends Admin_Controller
     {
         $data['fees_awaiting_total_net_balance'] = 0;
         
-        $role            = $this->customlib->getStaffRole();
-        $role_id         = json_decode($role)->id;
-        $data['role_id'] = $role_id;
+        $staffid = $this->customlib->getStaffID();
+        // Fetch all assigned roles for this staff
+        $role_rows = $this->db->select('role_id')->from('staff_roles')->where('staff_id', $staffid)->get()->result_array();
+        $role_ids = array_map(function($row) { return $row['role_id']; }, $role_rows);
+        $data['role_ids'] = $role_ids;
 
-        $staffid       = $this->customlib->getStaffID();
-        $notifications = $this->notification_model->getUnreadStaffNotification($staffid, $role_id);
-
+        // Fetch notifications for all roles
+        $notifications = array();
+        foreach ($role_ids as $role_id) {
+            $role_notifications = $this->notification_model->getUnreadStaffNotification($staffid, $role_id);
+            if (!empty($role_notifications)) {
+                $notifications = array_merge($notifications, $role_notifications);
+            }
+        }
         $data['notifications'] = $notifications;
         $input                 = $this->setting_model->getCurrentSessionName();
 

@@ -13,8 +13,13 @@
 </div>
 
 <?php
-$language      = $this->customlib->getLanguage();
-$language_name = $language["short_code"];
+
+$language = $this->customlib->getLanguage();
+if (is_array($language) && isset($language["short_code"])) {
+    $language_name = $language["short_code"];
+} else {
+    $language_name = "en"; // fallback to English or default
+}
 
 $feesinbackdate = $this->customlib->getfeesinbackdate();
 

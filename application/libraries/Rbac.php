@@ -21,8 +21,8 @@ class Rbac
  
     public function hasPrivilege($category = null, $permission = null)
     {    
-        $roles            = $this->CI->customlib->getStaffRole();
-        $logged_user_role = json_decode($roles)->name;
+        $roles_data = $this->CI->customlib->getStaffRole();
+        $logged_user_role = json_decode($roles_data)->name;
 
         if ($logged_user_role == 'Super Admin') {
             return true;
@@ -30,24 +30,17 @@ class Rbac
 
         $admin = $this->CI->session->userdata('admin');
 
-        // Add this check
         if (!$admin || !isset($admin['roles']) || empty($admin['roles'])) {
-            return false; // No admin logged in or roles not available, so no privilege
+            return false;
         }
 
-        $roles    = $admin['roles'];
-        $role_key = key($roles);
-        $role_id  = $roles[$role_key];
-
-        $role_perm = $this->CI->rolepermission_model->getPermissionByRoleandCategory($role_id, trim($category));
-
-        if ($role_perm) {
-            if (array_key_exists($permission, $role_perm)) {
-               return ($role_perm[$permission]);
+        $role_ids = $admin['roles'];
+        foreach ($role_ids as $role_id) {
+            $role_perm = $this->CI->rolepermission_model->getPermissionByRoleandCategory($role_id, trim($category));
+            if ($role_perm && array_key_exists($permission, $role_perm) && $role_perm[$permission]) {
+                return true;
             }
-
-        }       
-
+        }
         return false;
     }
 

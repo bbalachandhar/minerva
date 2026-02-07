@@ -692,20 +692,16 @@ class Customlib
 
     public function getRTL()
     {
-        $rtl   = "";
+        $rtl = "";
         $admin = $this->CI->session->userdata('admin');
         if ($admin) {
-            if ($admin['is_rtl'] == "disabled") {
-                $rtl = "";
-            } else {
+            // Accept both numeric and string values for is_rtl
+            if (isset($admin['is_rtl']) && ($admin['is_rtl'] == 1 || $admin['is_rtl'] === 'enabled')) {
                 $rtl = "dir='rtl' lang='ar'";
             }
         } else if ($this->CI->session->userdata('student')) {
             $student = $this->CI->session->userdata('student');
-
-            if ($student['is_rtl'] == "disabled") {
-                $rtl = "";
-            } else {
+            if (isset($student['is_rtl']) && ($student['is_rtl'] == 1 || $student['is_rtl'] === 'enabled')) {
                 $rtl = "dir='rtl' lang='ar'";
             }
         }

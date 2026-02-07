@@ -59,6 +59,7 @@ $route['admin/librarypositionshelf/import'] = 'admin/librarypositionshelf/import
 $route['admin/bulkholliday'] = 'admin/BulkHoliday';
 $route['admin/bulkholliday/(:any)'] = 'admin/BulkHoliday/$1';
 $route['404_override'] = '';
+$route['admin/unauthorized'] = 'admin/Admin/unauthorized';
 $route['translate_uri_dashes'] = FALSE;
 
 $route['admin/librarycategory'] = 'admin/librarycategory';

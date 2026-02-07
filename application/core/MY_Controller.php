@@ -24,23 +24,32 @@ class MY_Controller extends CI_Controller
         $this->load->library(array('version_control'));
 
         if ($this->session->has_userdata('admin')) {
-
-            $admin    = $this->session->userdata('admin');
-            $language = ($admin['language']['language']);
+            $admin = $this->session->userdata('admin');
+            if (isset($admin['language']) && isset($admin['language']['language'])) {
+                $language = $admin['language']['language'];
+            } else {
+                $this->school_details = $this->setting_model->getSchoolDetail();
+                $language = $this->school_details->language;
+            }
         } else if ($this->session->has_userdata('student')) {
-
             $student = $this->session->userdata('student');
-
-            $language = ($student['language']['language']);
+            if (isset($student['language']) && isset($student['language']['language'])) {
+                $language = $student['language']['language'];
+            } else {
+                $this->school_details = $this->setting_model->getSchoolDetail();
+                $language = $this->school_details->language;
+            }
         } else {
             $this->school_details = $this->setting_model->getSchoolDetail();
-            $language             = ($this->school_details->language);
+            $language = $this->school_details->language;
         }
 
         $lang_array = array('form_validation_lang');
         $map        = directory_map(APPPATH . "./language/" . $language . "/app_files");
-        foreach ($map as $lang_key => $lang_value) {
-            $lang_array[] = 'app_files/' . str_replace(".php", "", $lang_value);
+        if (is_array($map)) {
+            foreach ($map as $lang_key => $lang_value) {
+                $lang_array[] = 'app_files/' . str_replace(".php", "", $lang_value);
+            }
         }
 
         $this->load->language($lang_array, $language);
