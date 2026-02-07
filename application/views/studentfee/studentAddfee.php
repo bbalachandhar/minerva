@@ -245,17 +245,18 @@ foreach ($student_due_fee as $key => $fee) {
         $total_deposite_amount += $fee_paid;
         $total_fine_amount += $fee_fine;
         $feetype_balance = $fee_value->amount - ($fee_paid + $fee_discount);
-        $total_balance_amount += $feetype_balance;
-
         if ($fee_value->amount == 0) {
             // This is a credit-based fee like Advance Payments.
             // 1. Adjust the Grand Total for the 'Paid' column.
             $total_deposite_amount -= $fee_paid;
+            // 2. Adjust the Grand Total for the 'Discount' column (negative discount = advance used).
+            $total_discount_amount -= $fee_discount;
 
-            // 2. Set the variables for display in this row.
+            // 3. Set the variables for display in this row.
             $feetype_balance = $fee_paid + $fee_discount; // The balance is the total credit amount.
             $fee_paid = 0; // The 'paid' amount for a credit fee is conceptually zero.
         }
+        $total_balance_amount += $feetype_balance;
         ?>
         <?php
         if (!empty($fee_value->due_date) && $feetype_balance > 0 && strtotime($fee_value->due_date) < strtotime(date('Y-m-d'))) { ?>
@@ -919,6 +920,7 @@ echo $currency_symbol . amountFormat(($total_balance_amount - $alot_fee_discount
         var date = $('#date').val();
         var student_session_id = $('#std_id').val();
         var amount = $('#amount').val();
+        var fee_balance = $('#fee_balance').val();
         var amount_discount = $('#amount_discount').val();
         var amount_discount_advance = $('#amount_discount_from_advance').val();
         var amount_fine = $('#amount_fine').val();
@@ -939,10 +941,33 @@ echo $currency_symbol . amountFormat(($total_balance_amount - $alot_fee_discount
         var use_paid_advance = $('input[name="use_paid_advance"]:checked').val();
         var use_discount_advance = $('input[name="use_discount_advance"]:checked').val();
 
+        var amount_val = parseFloat(amount);
+        var fee_balance_val = parseFloat(fee_balance);
+        var amount_discount_val = parseFloat(amount_discount);
+        var amount_discount_advance_val = parseFloat(amount_discount_advance);
+        var total_discount_val = 0;
+        if (!isNaN(amount_discount_val) && amount_discount_val > 0) {
+            total_discount_val += amount_discount_val;
+        }
+        if (!isNaN(amount_discount_advance_val) && amount_discount_advance_val > 0) {
+            total_discount_val += amount_discount_advance_val;
+        }
+        if ((isNaN(amount_val) || amount_val <= 0) && total_discount_val <= 0) {
+            $('#amount_error').empty().append('Enter paying amount or discount amount.');
+            $this.button('reset');
+            return;
+        }
+        if (!isNaN(fee_balance_val) && amount_val > fee_balance_val) {
+            $('#amount_error').empty().append('Paying amount cannot be greater than fee amount.');
+            $this.button('reset');
+            return;
+        }
+        $('#amount_error').empty();
+
         $.ajax({
             url: '<?php echo site_url("studentfee/addstudentfee") ?>',
             type: 'post',
-            data: {action: action, student_session_id: student_session_id, date: date, type: feetype, amount: amount, amount_discount: amount_discount, amount_discount_advance: amount_discount_advance, amount_fine: amount_fine, description: description, student_fees_master_id: student_fees_master_id, fee_groups_feetype_id: fee_groups_feetype_id,fee_category:fee_category, transport_fees_id:transport_fees_id, payment_mode: payment_mode, guardian_phone: guardian_phone, guardian_email: guardian_email, student_fees_discount_id: student_fees_discount_id, parent_app_key: parent_app_key,discounts: selectedDiscounts, use_paid_advance: use_paid_advance, use_discount_advance: use_discount_advance},
+            data: {action: action, student_session_id: student_session_id, date: date, type: feetype, amount: amount, amount_discount: amount_discount, amount_discount_advance: amount_discount_advance, amount_fine: amount_fine, description: description, student_fees_master_id: student_fees_master_id, fee_groups_feetype_id: fee_groups_feetype_id,fee_category:fee_category, transport_fees_id:transport_fees_id, payment_mode: payment_mode, guardian_phone: guardian_phone, guardian_email: guardian_email, student_fees_discount_id: student_fees_discount_id, parent_app_key: parent_app_key, fee_discount_group: selectedDiscounts, use_paid_advance: use_paid_advance, use_discount_advance: use_discount_advance},
             dataType: 'json',
             success: function (response) {
                 console.log('AJAX success callback executed');

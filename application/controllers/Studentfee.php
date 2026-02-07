@@ -1114,6 +1114,10 @@ class Studentfee extends Admin_Controller
         $use_paid_advance = $this->input->post('use_paid_advance');
         $use_discount_advance = $this->input->post('use_discount_advance');
         $amount_discount_from_advance = $this->input->post('amount_discount_from_advance') ? convertCurrencyFormatToBaseAmount($this->input->post('amount_discount_from_advance')) : 0;
+        $raw_group_discounts = $this->input->post('fee_discount_group');
+        if ($use_discount_advance === 'yes' && $amount_discount_from_advance <= 0 && $final_amount_discount > 0 && empty($raw_group_discounts)) {
+            $amount_discount_from_advance = $final_amount_discount;
+        }
         
         $db_payment_mode = $this->input->post('payment_mode');
         if ($use_paid_advance === 'yes' || $use_discount_advance === 'yes') {
