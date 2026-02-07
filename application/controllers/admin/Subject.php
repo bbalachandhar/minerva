@@ -257,7 +257,7 @@ class Subject extends Admin_Controller
                         $result = [];
         
                         if ($file_extension == 'csv') {
-                            $this->load->library('csvreader');
+                            $this->load->library('CSVReader');
                             $result = $this->csvreader->parse_file($file_path);
                             log_message('debug', 'CSV parsed result: ' . print_r($result, true));
                         } elseif (in_array($file_extension, ['xlsx', 'xls'])) {

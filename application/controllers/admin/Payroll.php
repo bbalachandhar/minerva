@@ -778,7 +778,7 @@ class Payroll extends Admin_Controller
             $month = $this->input->post('month');
             $year = $this->input->post('year');
             $file_path = $this->session->userdata('csv_path');
-            $this->load->library('csvreader');
+            $this->load->library('CSVReader');
             $result = $this->csvreader->parse_file($file_path, true);
 
             if (!empty($result)) {

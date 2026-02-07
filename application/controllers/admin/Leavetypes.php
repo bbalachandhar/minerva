@@ -149,7 +149,7 @@ class LeaveTypes extends Admin_Controller
     public function handle_bulk_upload()
     {
         if (isset($_FILES['file']) && $_FILES['file']['error'] == 0) {
-            $this->load->library('csvreader');
+            $this->load->library('CSVReader');
             $result = $this->csvreader->parse_file($_FILES['file']['tmp_name']);
 
             foreach ($result as $row) {

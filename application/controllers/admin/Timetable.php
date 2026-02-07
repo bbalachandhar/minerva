@@ -18,7 +18,7 @@ class Timetable extends Admin_Controller
         $this->load->model('subject_model');
         $this->load->model('subjecttimetable_model');
         $this->load->dbutil();
-        $this->load->library('csvreader');
+        $this->load->library('CSVReader');
         $this->session->set_userdata('top_menu', 'Academics');
         $this->session->set_userdata('sub_menu', 'Academics/timetable');
 
@@ -594,7 +594,7 @@ class Timetable extends Admin_Controller
 
     public function handle_csv_upload()
     {
-        $this->load->library('csvreader');
+        $this->load->library('CSVReader');
         if (isset($_FILES["file"]) && !empty($_FILES['file']['name'])) {
             $file_type = $_FILES["file"]['type'];
             $file_name = $_FILES["file"]["name"];

@@ -9,7 +9,7 @@ class BulkHoliday extends Admin_Controller
     public function __construct()
     {
         parent::__construct();
-        $this->load->library('csvreader');
+        $this->load->library('CSVReader');
         $this->load->model('holiday_model');
         $this->load->model('setting_model');
         $this->load->library('form_validation');

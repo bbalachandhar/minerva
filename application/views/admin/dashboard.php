@@ -287,11 +287,31 @@ foreach ($notifications as $notice_key => $notice_value) {
             .chart-async.is-loading .chart-async-loader {
                 display: flex;
             }
+            .widget-header-color {
+                color: #fff;
+                padding: 8px 10px;
+                border-radius: 4px;
+            }
+            .widget-header-student-bday {
+                background: #5c6bc0;
+            }
+            .widget-header-staff-bday {
+                background: #26a69a;
+            }
+            .widget-header-student-att {
+                background: #42a5f5;
+            }
+            .widget-header-staff-att {
+                background: #ff7043;
+            }
+            .widget-header-enquiry {
+                background: #7e57c2;
+            }
         </style>
         <div class="row equal-height-row">
             <div class="col-md-3 col-sm-6 mb10">
                 <div class="topprograssstart flex-card" id="student-birthday-widget" data-url="<?php echo site_url('admin/admin/student_birthdays_widget'); ?>">
-                    <h5 class="pro-border">Students Today's Birthday - <span class="student-birthday-count">0</span></h5>
+                    <h5 class="pro-border widget-header-color widget-header-student-bday">Students Today's Birthday - <span class="student-birthday-count">0</span></h5>
                     <div class="birthday-ticker-container birthday-widget-body">
                         <div class="fo-skeleton fo-line" style="width:80%;margin:10px auto;"></div>
                         <div class="fo-skeleton fo-line" style="width:70%;margin:10px auto;"></div>
@@ -301,7 +321,7 @@ foreach ($notifications as $notice_key => $notice_value) {
             </div>
             <div class="col-md-3 col-sm-6 mb10">
                 <div class="topprograssstart flex-card" id="staff-birthday-widget" data-url="<?php echo site_url('admin/admin/staff_birthdays_widget'); ?>">
-                    <h5 class="pro-border">Current Week Staff Birthdays - <span class="staff-birthday-count">0</span></h5>
+                    <h5 class="pro-border widget-header-color widget-header-staff-bday">Current Week Staff Birthdays - <span class="staff-birthday-count">0</span></h5>
                     <div class="birthday-ticker-container birthday-widget-body">
                         <div class="fo-skeleton fo-line" style="width:80%;margin:10px auto;"></div>
                         <div class="fo-skeleton fo-line" style="width:70%;margin:10px auto;"></div>
@@ -315,7 +335,7 @@ foreach ($notifications as $notice_key => $notice_value) {
                     ?>
                                 <div class="col-md-2 col-sm-6 mb10">
                                     <div class="topprograssstart flex-card" id="student-attendance-widget" data-url="<?php echo site_url('admin/admin/student_today_attendance_widget'); ?>">
-                                        <h5 class="pro-border"> <?php echo $this->lang->line('student_today_attendance'); ?></h5>
+                                        <h5 class="pro-border widget-header-color widget-header-student-att"> <?php echo $this->lang->line('student_today_attendance'); ?></h5>
                                         <p class="text-uppercase mt10 clearfix"><span class="sta-present-count fo-skeleton">0</span> <?php echo $this->lang->line('present'); ?><span class="pull-right"><span class="sta-present-percent fo-skeleton">0%</span></span>
                                         </p>
                                         <div class="progress-group">
@@ -353,7 +373,7 @@ foreach ($notifications as $notice_key => $notice_value) {
             ?>
                                 <div class="col-md-2 col-sm-6 mb10">
                                     <div class="topprograssstart flex-card" id="staff-attendance-widget" data-url="<?php echo site_url('admin/admin/staff_today_attendance_widget'); ?>">
-                                        <h5 class="pro-border"> Staff Today Attendance</h5>
+                                        <h5 class="pro-border widget-header-color widget-header-staff-att"> Staff Today Attendance</h5>
                                         <p class="text-uppercase mt10 clearfix"><span class="sfa-present-count fo-skeleton">0</span> Present<span class="pull-right"><span class="sfa-present-percent fo-skeleton">0</span>%</span>
                                         </p>
                                         <div class="progress-group">
@@ -398,7 +418,7 @@ foreach ($notifications as $notice_key => $notice_value) {
                     ?>
                                 <div class="col-md-2 col-sm-6 mb10">
                                     <div class="topprograssstart flex-card" id="enquiry-overview-widget" data-url="<?php echo site_url('admin/admin/enquiry_overview_widget'); ?>">
-                                        <h5 class="pro-border"><?php echo $this->lang->line('enquiry_overview'); ?></h5>
+                                        <h5 class="pro-border widget-header-color widget-header-enquiry"><?php echo $this->lang->line('enquiry_overview'); ?></h5>
                                         <p class="text-uppercase mt10 clearfix"><span class="eo-active-count fo-skeleton">0</span> <?php echo $this->lang->line('active') ?><span class="pull-right"><span class="eo-active-percent fo-skeleton">0</span>%</span>
                                         </p>
                                         <div class="progress-group">
