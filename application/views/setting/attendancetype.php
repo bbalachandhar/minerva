@@ -184,6 +184,28 @@
                                             </div>
                                         </div>
                                     </div>
+
+                                    <div class="col-md-12">
+                                        <div class="form-group row">
+                                            <label class="col-sm-2">Payroll Cutoff Offset</label>
+                                            <div class="col-sm-4">
+                                                <select name="payroll_cutoff_day" id="payroll_cutoff_day" class="form-control">
+                                                    <?php $selected_cutoff = isset($result->payroll_cutoff_day) ? (int) $result->payroll_cutoff_day : 0; ?>
+                                                    <option value="0" <?php echo ($selected_cutoff === 0) ? 'selected' : ''; ?>>Calendar Month</option>
+                                                    <?php for ($day = 1; $day <= 15; $day++) { ?>
+                                                        <option value="<?php echo $day; ?>" <?php echo ($selected_cutoff === $day) ? 'selected' : ''; ?>><?php echo $day; ?> day(s) before month end</option>
+                                                    <?php } ?>
+                                                </select>
+                                                <small class="text-muted">
+                                                    <?php if ($selected_cutoff === 0) { ?>
+                                                        Period is the calendar month.
+                                                    <?php } else { ?>
+                                                        Period ends <?php echo $selected_cutoff; ?> day(s) before month end; start date is the next day after that cutoff in the previous month.
+                                                    <?php } ?>
+                                                </small>
+                                            </div>
+                                        </div>
+                                    </div>
                                
                                 </div><!--./row--> 
                             </div><!-- /.box-body -->

@@ -67,14 +67,17 @@ class Leaverequest extends Admin_Controller
         $data["leave_request"] = $filtered_leave_request;
         $LeaveTypes            = $this->staff_model->getLeaveType();
         $userdata              = $this->customlib->getUserData();
-        $data['staff_id'] = $userdata['id'];
+        $current_staff_id = (is_array($userdata) && isset($userdata['id'])) ? (int) $userdata['id'] : 0;
+        $data['staff_id'] = $current_staff_id;
         $data["leavetype"]     = $LeaveTypes;
         $staffRole             = $this->staff_model->getStaffRole();
         $data["staffrole"]     = $staffRole;
         $data["status"]        = $this->status;
 
         // Fetch staff details, timetable, and potential substitutes
-        $current_staff_id = $userdata['id'];
+        if ($current_staff_id === 0) {
+            $current_staff_id = (int) $this->customlib->getStaffID();
+        }
         $staff_details = $this->staff_model->get($current_staff_id);
         $data['current_staff_details'] = $staff_details;
 
@@ -96,7 +99,11 @@ class Leaverequest extends Admin_Controller
             $department = $this->department_model->getDepartmentType($staff_details['department']);
             if ($department && $department['dept_head_id']) {
                 $recommender_details = $this->staff_model->get($department['dept_head_id']);
-                $data['recommender_info'] = $recommender_details['name'] . ' ' . $recommender_details['surname'] . ' (' . $recommender_details['designation'] . ')';
+                if (!empty($recommender_details) && is_array($recommender_details)) {
+                    $data['recommender_info'] = $recommender_details['name'] . ' ' . $recommender_details['surname'] . ' (' . $recommender_details['designation'] . ')';
+                } else {
+                    $data['recommender_info'] = $this->lang->line('not_assigned');
+                }
             } else {
                 $data['recommender_info'] = $this->lang->line('not_assigned');
             }
@@ -109,7 +116,11 @@ class Leaverequest extends Admin_Controller
         $setting = $this->setting_model->getSetting();
         if ($setting && isset($setting->leave_approver_id)) {
             $approver_details = $this->staff_model->get($setting->leave_approver_id);
-            $data['approver_info'] = $approver_details['name'] . ' ' . $approver_details['surname'] . ' (' . $approver_details['designation'] . ')';
+            if (!empty($approver_details) && is_array($approver_details)) {
+                $data['approver_info'] = $approver_details['name'] . ' ' . $approver_details['surname'] . ' (' . $approver_details['designation'] . ')';
+            } else {
+                $data['approver_info'] = $this->lang->line('not_assigned');
+            }
         } else {
             $data['approver_info'] = $this->lang->line('not_assigned');
         }
@@ -199,6 +210,57 @@ class Leaverequest extends Admin_Controller
 
         $html .= "</select>";
         echo $html;
+    }
+
+    public function permissionQuota()
+    {
+        $staff_id = (int) $this->input->post('staff_id');
+        $leave_type_id = (int) $this->input->post('leave_type_id');
+        $leave_from_date = $this->input->post('leave_from_date');
+
+        if ($staff_id <= 0 || $leave_type_id <= 0) {
+            echo json_encode(['status' => 'fail', 'message' => 'Invalid request']);
+            return;
+        }
+
+        $leave_type = $this->staff_model->getLeaveType($leave_type_id);
+        $is_permission = !empty($leave_type) && isset($leave_type['type']) && strtolower(trim($leave_type['type'])) === 'permission';
+
+        if (!$is_permission) {
+            echo json_encode([
+                'status' => 'success',
+                'is_permission' => false,
+                'quota' => 0,
+                'used' => 0,
+                'remaining' => 0,
+            ]);
+            return;
+        }
+
+        $start_date = date('Y-m-01');
+        $end_date = date('Y-m-t');
+        if (!empty($leave_from_date)) {
+            $parsed = $this->customlib->dateFormatToYYYYMMDD($leave_from_date);
+            if (!empty($parsed)) {
+                $start_date = date('Y-m-01', strtotime($parsed));
+                $end_date = date('Y-m-t', strtotime($parsed));
+            }
+        }
+
+        $quota = isset($this->sch_setting_detail->max_permission_allowed) && (int) $this->sch_setting_detail->max_permission_allowed > 0
+            ? (int) $this->sch_setting_detail->max_permission_allowed
+            : 2;
+
+        $used = (float) $this->leaverequest_model->countLeaveDaysInRange($staff_id, $leave_type_id, $start_date, $end_date);
+        $remaining = max(0, $quota - $used);
+
+        echo json_encode([
+            'status' => 'success',
+            'is_permission' => true,
+            'quota' => $quota,
+            'used' => $used,
+            'remaining' => $remaining,
+        ]);
     }
 
     public function leaveStatus()

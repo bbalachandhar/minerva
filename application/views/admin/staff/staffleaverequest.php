@@ -301,6 +301,8 @@ if ($this->rbac->hasPrivilege('approve_leave_request', 'can_edit')) {
 ?>
                                 </select>
                             </div>
+                            <small id="permission_quota_info" class="text-muted" style="display:none;"></small>
+                            <div id="permission_quota_warning" class="text-danger" style="display:none;"></div>
                             <span class="text-danger"><?php echo form_error('leave_type'); ?></span>
                         </div>
                           <div class="form-group col-xs-12 col-sm-12 col-md-12 col-lg-6">
@@ -747,6 +749,7 @@ if ($this->rbac->hasPrivilege('approve_leave_request', 'can_edit')) {
             data: {lid: lid},
             success: function (result) {
                 $("#leavetypeddl").html(result);
+                updatePermissionQuota();
             }
         });
     }
@@ -846,8 +849,55 @@ if ($this->rbac->hasPrivilege('approve_leave_request', 'can_edit')) {
             } else {
                 $('#timetable_section').hide();
             }
+            updatePermissionQuota();
+        });
+
+        $(document).on('change', '#leave_type', function() {
+            updatePermissionQuota();
         });
     });
+
+    function updatePermissionQuota() {
+        var staff_id = $('#empname').val();
+        var leave_type_id = $('#leave_type').val();
+        var leave_from_date = $('#leave_from_date').val();
+        var base_url = '<?php echo base_url() ?>';
+
+        $('#permission_quota_info').hide().text('');
+        $('#permission_quota_warning').hide().text('');
+
+        if (!staff_id || !leave_type_id) {
+            return;
+        }
+
+        $.ajax({
+            url: base_url + 'admin/leaverequest/permissionQuota',
+            type: 'POST',
+            dataType: 'json',
+            data: {
+                staff_id: staff_id,
+                leave_type_id: leave_type_id,
+                leave_from_date: leave_from_date
+            },
+            success: function (response) {
+                if (!response || response.status !== 'success') {
+                    return;
+                }
+                if (!response.is_permission) {
+                    return;
+                }
+
+                var infoText = 'Permission quota this month: ' + response.quota + '. Used: ' + response.used + '. Remaining: ' + response.remaining + '.';
+                $('#permission_quota_info').text(infoText).show();
+
+                if (response.remaining <= 0) {
+                    var warnText = 'You have consumed your monthly permission quota.';
+                    $('#permission_quota_warning').text(warnText).show();
+                    alert(warnText);
+                }
+            }
+        });
+    }
 
     function loadTimetableAndSubstitutes(staff_id, leave_from_date, leave_to_date) {
         var base_url = '<?php echo base_url() ?>';

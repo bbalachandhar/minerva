@@ -463,6 +463,14 @@ class Attendencereports extends Admin_Controller
             $this->load->view('layout/footer', $data);
         } else {
 
+            $type_map = [];
+            foreach ($attendencetypes as $type_row) {
+                $key_value = strtoupper(trim($type_row['key_value'] ?? ''));
+                if (!empty($key_value)) {
+                    $type_map[$key_value] = (int) $type_row['id'];
+                }
+            }
+
             $month_number           = date("m", strtotime($month));
             $num_of_days            = cal_days_in_month(CAL_GREGORIAN, $month_number, $searchyear);
             
@@ -577,6 +585,65 @@ class Attendencereports extends Admin_Controller
                 }
             }
             $data['absent_working_day_counts'] = $absent_working_day_counts;
+
+            $total_late_counts = [];
+            $total_permission_counts = [];
+            if (!empty($stafflist)) {
+                $this->load->model('staffAttendaceSetting_model');
+                $start_date = $searchyear . '-' . $month_number . '-01';
+                $end_date = date('Y-m-t', strtotime($start_date));
+
+                $role_settings_map = [];
+                foreach ($stafflist as $staff_row) {
+                    $role_id = (int) ($staff_row['role_id'] ?? 0);
+                    if (!$role_id || isset($role_settings_map[$role_id])) {
+                        continue;
+                    }
+                    $role_settings_map[$role_id] = [
+                        'FHL' => !empty($type_map['FHL']) ? $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($role_id, $type_map['FHL']) : false,
+                        'FHP' => !empty($type_map['FHP']) ? $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($role_id, $type_map['FHP']) : false,
+                        'SHL' => !empty($type_map['SHL']) ? $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($role_id, $type_map['SHL']) : false,
+                        'SHP' => !empty($type_map['SHP']) ? $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($role_id, $type_map['SHP']) : false,
+                    ];
+                }
+
+                foreach ($stafflist as $staff_row) {
+                    $staff_id = $staff_row['id'];
+                    $role_id = (int) ($staff_row['role_id'] ?? 0);
+                    $settings = $role_settings_map[$role_id] ?? [];
+                    $rows = $this->staffattendancemodel->getAttendanceRowsInRange($staff_id, $start_date, $end_date);
+
+                    $late_total = 0;
+                    $permission_total = 0;
+
+                    foreach ($rows as $row) {
+                        $in_time = $row['in_time'] ?? '';
+                        $out_time = $row['out_time'] ?? '';
+
+                        $late_for_day = 0;
+                        if (!empty($in_time)) {
+                            if (!empty($settings['SHL']) && $this->timeInRange($in_time, $settings['SHL']->entry_time_from, $settings['SHL']->entry_time_to)) {
+                                $late_for_day = 1;
+                            } elseif (!empty($settings['FHL']) && $this->timeInRange($in_time, $settings['FHL']->entry_time_from, $settings['FHL']->entry_time_to)) {
+                                $late_for_day = 1;
+                            }
+                        }
+                        $late_total += $late_for_day;
+
+                        if (!empty($in_time) && !empty($settings['FHP']) && $this->timeInRange($in_time, $settings['FHP']->entry_time_from, $settings['FHP']->entry_time_to)) {
+                            $permission_total += 1;
+                        }
+                        if (!empty($out_time) && !empty($settings['SHP']) && $this->timeInRange($out_time, $settings['SHP']->entry_time_from, $settings['SHP']->entry_time_to)) {
+                            $permission_total += 1;
+                        }
+                    }
+
+                    $total_late_counts[$staff_id] = $late_total;
+                    $total_permission_counts[$staff_id] = $permission_total;
+                }
+            }
+            $data['total_late_counts'] = $total_late_counts;
+            $data['total_permission_counts'] = $total_permission_counts;
 
 
             $data['monthAttendance'] = $monthAttendance;
@@ -841,6 +908,102 @@ class Attendencereports extends Admin_Controller
         exit;
     }
 
+    public function staffAttendanceDetail()
+    {
+        if (!$this->rbac->hasPrivilege('staff_attendance_report', 'can_view')) {
+            access_denied();
+        }
+
+        $staff_id = (int) $this->input->post('staff_id');
+        $month = $this->input->post('month');
+        $year = $this->input->post('year');
+        $type = strtoupper(trim($this->input->post('type')));
+
+        if (empty($staff_id) || empty($month) || empty($year) || empty($type)) {
+            echo json_encode(['status' => 'fail', 'message' => 'Invalid request.']);
+            return;
+        }
+
+        $month_number = is_numeric($month) ? sprintf('%02d', (int) $month) : date("m", strtotime($month));
+        $start_date = $year . '-' . $month_number . '-01';
+        $end_date = date('Y-m-t', strtotime($start_date));
+
+        $attendencetypes = $this->staffattendancemodel->getStaffAttendanceType();
+        $type_map = [];
+        foreach ($attendencetypes as $type_row) {
+            $key_value = strtoupper(trim($type_row['key_value'] ?? ''));
+            if (!empty($key_value)) {
+                $type_map[$key_value] = (int) $type_row['id'];
+            }
+        }
+
+        $rows = $this->staffattendancemodel->getAttendanceRowsInRange($staff_id, $start_date, $end_date);
+        $details = [];
+
+        if ($type === 'HD') {
+            $hd_id = $type_map['HD'] ?? null;
+            foreach ($rows as $row) {
+                if (!empty($hd_id) && (int) $row['staff_attendance_type_id'] === (int) $hd_id) {
+                    $details[] = [
+                        'date' => $this->customlib->dateformat($row['date']),
+                        'in_time' => !empty($row['in_time']) ? $row['in_time'] : '-',
+                        'out_time' => !empty($row['out_time']) ? $row['out_time'] : '-',
+                        'session' => 'Full Day',
+                    ];
+                }
+            }
+        } else {
+            $this->load->model('staffAttendaceSetting_model');
+            $staff = $this->staff_model->get($staff_id);
+            $role_id = (int) ($staff['role_id'] ?? 0);
+
+            $settings = [
+                'FHL' => !empty($type_map['FHL']) ? $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($role_id, $type_map['FHL']) : false,
+                'FHP' => !empty($type_map['FHP']) ? $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($role_id, $type_map['FHP']) : false,
+                'SHL' => !empty($type_map['SHL']) ? $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($role_id, $type_map['SHL']) : false,
+                'SHP' => !empty($type_map['SHP']) ? $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($role_id, $type_map['SHP']) : false,
+            ];
+
+            foreach ($rows as $row) {
+                $in_time = $row['in_time'] ?? '';
+                $out_time = $row['out_time'] ?? '';
+                $matches = [];
+
+                if ($type === 'TL') {
+                    if (!empty($in_time)) {
+                        if (!empty($settings['SHL']) && $this->timeInRange($in_time, $settings['SHL']->entry_time_from, $settings['SHL']->entry_time_to)) {
+                            $matches[] = 'Afternoon';
+                        } elseif (!empty($settings['FHL']) && $this->timeInRange($in_time, $settings['FHL']->entry_time_from, $settings['FHL']->entry_time_to)) {
+                            $matches[] = 'Morning';
+                        }
+                    }
+                } elseif ($type === 'TP') {
+                    if (!empty($in_time) && !empty($settings['FHP']) && $this->timeInRange($in_time, $settings['FHP']->entry_time_from, $settings['FHP']->entry_time_to)) {
+                        $matches[] = 'Morning';
+                    }
+                    if (!empty($out_time) && !empty($settings['SHP']) && $this->timeInRange($out_time, $settings['SHP']->entry_time_from, $settings['SHP']->entry_time_to)) {
+                        $matches[] = 'Afternoon';
+                    }
+                }
+
+                foreach ($matches as $session_label) {
+                    $details[] = [
+                        'date' => $this->customlib->dateformat($row['date']),
+                        'in_time' => !empty($in_time) ? $in_time : '-',
+                        'out_time' => !empty($out_time) ? $out_time : '-',
+                        'session' => $session_label,
+                    ];
+                }
+            }
+        }
+
+        echo json_encode([
+            'status' => 'success',
+            'type' => $type,
+            'rows' => $details,
+        ]);
+    }
+
     public function monthAttendance($st_month, $no_of_months, $emp)
     {
         $this->load->model("holiday_model");
@@ -1076,5 +1239,23 @@ class Attendencereports extends Admin_Controller
         $this->load->view('layout/header', $data);
         $this->load->view('attendencereports/reportbymonth', $data);
         $this->load->view('layout/footer', $data);
+    }
+
+    private function timeInRange($time, $from, $to)
+    {
+        if (empty($time) || empty($from) || empty($to)) {
+            return false;
+        }
+
+        $base_date = date('Y-m-d');
+        $time_ts = strtotime($base_date . ' ' . $time);
+        $from_ts = strtotime($base_date . ' ' . $from);
+        $to_ts = strtotime($base_date . ' ' . $to);
+
+        if ($time_ts === false || $from_ts === false || $to_ts === false) {
+            return false;
+        }
+
+        return ($time_ts >= $from_ts && $time_ts <= $to_ts);
     }
 }

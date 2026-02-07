@@ -108,6 +108,18 @@ if ($year == date("Y")) {
                                         <button type="submit" name="search" value="search" class="btn btn-primary btn-sm pull-right checkbox-toggle"><i class="fa fa-search"></i> <?php echo $this->lang->line('search'); ?></button>
                                     </div>
                                 </div>
+                                <?php if ($this->rbac->hasPrivilege('staff_payroll', 'can_add')) {?>
+                                    <div class="col-md-12">
+                                        <div class="form-group">
+                                            <div class="pull-right" style="margin-top:6px;">
+                                                <label class="checkbox-inline" style="margin-right:8px;">
+                                                    <input type="checkbox" name="bulk_overwrite" value="1"> Overwrite existing payslips
+                                                </label>
+                                                <button type="submit" name="bulk_calculate" value="1" formaction="<?php echo site_url('admin/payroll/bulkcalculate') ?>" class="btn btn-success btn-sm"><i class="fa fa-calculator"></i> Bulk Calculate</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                <?php }?>
                             </div>
                         </div>
                     </form>

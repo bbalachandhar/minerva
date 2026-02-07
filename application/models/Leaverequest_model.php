@@ -104,6 +104,33 @@ class Leaverequest_model extends MY_model
         return $query1->row_array();
     }
 
+    public function countLeaveDaysInRange($staff_id, $leave_type_id, $start_date, $end_date)
+    {
+        $this->db->select('leave_from, leave_to, leave_days');
+        $this->db->from('staff_leave_request');
+        $this->db->where('staff_id', $staff_id);
+        $this->db->where('leave_type_id', $leave_type_id);
+        $this->db->where('status!=', 'disapprove');
+        $this->db->where('leave_from <=', $end_date);
+        $this->db->where('leave_to >=', $start_date);
+        $rows = $this->db->get()->result_array();
+
+        $total = 0;
+        foreach ($rows as $row) {
+            $from = new DateTime(max($row['leave_from'], $start_date));
+            $to = new DateTime(min($row['leave_to'], $end_date));
+            $days = (int) $from->diff($to)->days + 1;
+
+            if (!empty($row['leave_days']) && $row['leave_from'] === $row['leave_to']) {
+                $total += (float) $row['leave_days'];
+            } else {
+                $total += $days;
+            }
+        }
+
+        return $total;
+    }
+
     public function changeLeaveStatus($data, $staff_id)
     {
         $this->db->trans_start(); # Starting Transaction

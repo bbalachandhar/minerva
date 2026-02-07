@@ -155,6 +155,7 @@ if ($this->rbac->hasPrivilege('leave_types', 'can_add')) {
                             <table class="table table-striped table-bordered table-hover example">
                                 <thead>
                                     <tr>
+                                        <th><?php echo $this->lang->line('id'); ?></th>
                                         <th><?php echo $this->lang->line('name'); ?></th>
                                         <th><?php echo $this->lang->line('applicable_for'); ?></th>
                                         <th><?php echo $this->lang->line('max_leave_days'); ?></th>
@@ -173,6 +174,7 @@ $count = 1;
 foreach ($leavetype as $value) {
     ?>
                                         <tr>
+                                            <td class="mailbox-name"> <?php echo $value['id'] ?></td>
                                             <td class="mailbox-name"> <?php echo $value['type'] ?></td>
                                             <td class="mailbox-name"> <?php echo $value['is_staff_specific'] ?></td>
                                             <td class="mailbox-name"> <?php echo $value['max_leave_days'] ?></td>

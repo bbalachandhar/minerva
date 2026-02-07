@@ -15,7 +15,10 @@
                     if (($this->rbac->hasPrivilege('payroll_report', 'can_view'))) {
                         ?>
                         <li class="col-lg-4 col-md-4 col-sm-6 <?php echo set_SubSubmenu('Reports/attendance/attendance_report'); ?>">
-                            <a href="<?php echo base_url(); ?>admin/payroll/payrollreport"><i class="fa fa-file-text-o"></i> <?php echo $this->lang->line('payroll_report'); ?></a>
+                            <a href="<?php echo base_url(); ?>admin/payroll/payrollreport"><i class="fa fa-file-text-o"></i> Paid Payroll Report</a>
+                        </li>
+                        <li class="col-lg-4 col-md-4 col-sm-6 <?php echo set_SubSubmenu('Reports/attendance/attendance_report'); ?>">
+                            <a href="<?php echo base_url(); ?>admin/payroll/payrollreport_generated"><i class="fa fa-file-text-o"></i> Generated Payroll Report</a>
                         </li>
                     <?php } ?>
                 </ul>

@@ -118,9 +118,13 @@ $image=$this->media_storage->getImageURL("uploads/staff_images/" . $file);
                                         <div class="rotatetest"><?php echo $this->lang->line("attendance") ?></div>
                                     </div>
                                     <div class="padd-en-rtl33">
+                                        <div class="text-muted" style="font-size:11px; margin-bottom:6px;">
+                                            P*: Present incl. half-day and approved paid leave on absent days. A*: Absent incl. half-day and late/permission penalty beyond limits. L: Late count. PR: Permission count. APR: Approved paid leaves. LOP: Loss Of Pay days.
+                                        </div>
                                         <table class="table mb0 font13" >
                                             <tr>
                                                 <th  class="bozero"><?php echo $this->lang->line('month'); ?></th>
+                                                <th class="bozero"><span data-toggle="tooltip" title="Total Working Days">WD</span></th>
                                                 <th class="bozero"><span data-toggle="tooltip" title="Total Present (Including Half Day)">P*</span></th>
                                                 <th class="bozero"><span data-toggle="tooltip" title="Total Absent (Including Half Day)">A*</span></th>
                                                 <th class="bozero"><span data-toggle="tooltip" title="Half Day">HD</span></th>
@@ -128,15 +132,17 @@ $image=$this->media_storage->getImageURL("uploads/staff_images/" . $file);
                                                 <th class="bozero"><span data-toggle="tooltip" title="Total Late">L</span></th>
                                                 <th class="bozero"><span data-toggle="tooltip" title="Total Permissions">PR</span></th>
                                                 <th class="bozero"><span data-toggle="tooltip" title="Approved Paid Leaves">APR</span></th>
+                                                <th class="bozero"><span data-toggle="tooltip" title="Loss Of Pay Days">LOP</span></th>
                                                 <th class="bozero"><span data-toggle="tooltip" title="Weekends">WE</span></th>
                                             </tr>
                                                 <?php
                                             foreach ($monthAttendance as $attendence_key => $attendence_value) {
-                                                print_r($attendence_value);
                                             ?>
                                             <?php
 $lop_rules = $this->config->item('lop_rules');
 $half_day_weight = isset($lop_rules['half_day_weight']) ? (float) $lop_rules['half_day_weight'] : 0.5;
+$max_late_allowed = isset($sch_setting->max_late_allowed) ? (int) $sch_setting->max_late_allowed : 0;
+$max_permission_allowed = isset($sch_setting->max_permission_allowed) ? (int) $sch_setting->max_permission_allowed : 0;
 $present = (int) ($attendence_value['present'] ?? 0);
 $half_day = (int) ($attendence_value['half_day'] ?? 0);
 $total_present = $present + ($half_day * $half_day_weight);
@@ -146,9 +152,28 @@ $late_count = (int) ($attendence_value['late'] ?? 0);
 $permission_count = (int) ($attendence_value['first_half_permission'] ?? 0) + (int) ($attendence_value['second_half_permission'] ?? 0);
 $approved_leave = $monthLeaves[date("m", strtotime($attendence_key))] ?? 0;
 $weekend_count = (int) ($attendence_value['sunday'] ?? 0);
+$first_half_absent = (int) ($attendence_value['first_half_absent'] ?? 0);
+$second_half_absent = (int) ($attendence_value['second_half_absent'] ?? 0);
+$paid_leave_absent = $month_paid_leave_absent[$attendence_key] ?? 0;
+$days_in_period = (int) ($attendence_value['days_in_period'] ?? 0);
+if ($days_in_period <= 0) {
+    $days_in_period = cal_days_in_month(CAL_GREGORIAN, (int) date("m", strtotime($attendence_key)), (int) date("Y", strtotime($attendence_key)));
+}
+$working_days = (int) ($attendence_value['working_days'] ?? 0);
+if ($working_days <= 0) {
+    $working_days = max(0, $days_in_period - $holiday_count - $weekend_count);
+}
+
+$excess_late = $late_count > $max_late_allowed ? ($late_count - $max_late_allowed) : 0;
+$excess_permission = $permission_count > $max_permission_allowed ? ($permission_count - $max_permission_allowed) : 0;
+$late_permission_penalty = ($excess_late + $excess_permission) * $half_day_weight;
+$total_present = max(0, $total_present - $late_permission_penalty + $paid_leave_absent);
+$total_absent = $total_absent + $late_permission_penalty;
+$lop_days = $total_absent + (($first_half_absent + $second_half_absent) * $half_day_weight);
 ?>
                                             <tr>
                                                 <td><?php echo date("F", strtotime($attendence_key)); ?></td>
+                                                <td><?php echo $working_days; ?></td>
                                                 <td><?php echo rtrim(rtrim(number_format((float) $total_present, 1, '.', ''), '0'), '.'); ?></td>
                                                 <td><?php echo rtrim(rtrim(number_format((float) $total_absent, 1, '.', ''), '0'), '.'); ?></td>
                                                 <td><?php echo $half_day; ?></td>
@@ -156,6 +181,7 @@ $weekend_count = (int) ($attendence_value['sunday'] ?? 0);
                                                 <td><?php echo $late_count; ?></td>
                                                 <td><?php echo $permission_count; ?></td>
                                                 <td><?php echo $approved_leave; ?></td>
+                                                <td><?php echo rtrim(rtrim(number_format((float) $lop_days, 1, '.', ''), '0'), '.'); ?></td>
                                                 <td><?php echo $weekend_count; ?></td>
                                             </tr>
                                             <?php
@@ -272,15 +298,21 @@ $deduction_count++;
                                                 </div>
                                             </div><!--./form-group-->
                                             <div class="form-group">
+                                                <label class="col-sm-4 control-label"><?php echo $this->lang->line('gross_salary'); ?></label>
+                                                <div class="col-sm-8">
+                    <input class="form-control" name="gross_salary" id="gross_salary" type="text" value="<?php echo convertBaseAmountCurrencyFormat(($employee_payroll['basic'] + $employee_payroll['total_allowance']) - $employee_payroll['total_deduction']); ?>"/>
+                                                </div>
+                                            </div><!--./form-group-->
+                                            <div class="form-group">
                                                 <label class="col-sm-4 control-label"><?php echo $this->lang->line('deduction'); ?></label>
                                                 <div class="col-sm-8 deductiondred">
                                                     <input class="form-control" name="total_deduction" id="total_deduction" type="text" style="color:#f50000" value="<?php echo convertBaseAmountCurrencyFormat($employee_payroll['total_deduction']); ?>"/>
                                                 </div>
                                             </div><!--./form-group-->
                                             <div class="form-group">
-                                                <label class="col-sm-4 control-label"><?php echo $this->lang->line('gross_salary'); ?></label>
-                                                <div class="col-sm-8">
-                    <input class="form-control" name="gross_salary" id="gross_salary" type="text" value="<?php echo convertBaseAmountCurrencyFormat(($employee_payroll['basic'] + $employee_payroll['total_allowance']) - $employee_payroll['total_deduction']); ?>"/>
+                                                <label class="col-sm-4 control-label">LOP</label>
+                                                <div class="col-sm-8 deductiondred">
+                                                    <input class="form-control" name="leave_deduction" id="lop_deduction" type="text" style="color:#f50000" value="<?php echo convertBaseAmountCurrencyFormat($employee_payroll['leave_deduction']); ?>" readonly />
                                                 </div>
                                             </div><!--./form-group-->
                                             <div class="form-group">
@@ -299,6 +331,9 @@ $deduction_count++;
                                                     <input class="form-control" name="month" value="<?php echo $month; ?>"  type="hidden" />
                                                     <input class="form-control" name="year" value="<?php echo $year; ?>"  type="hidden" />
                                                     <input class="form-control" name="status" value="generated"  type="hidden" />
+                                                    <input class="form-control" id="working_days" value="<?php echo $payroll_lop_summary['working_days']; ?>" type="hidden" />
+                                                    <input class="form-control" id="paid_days" value="<?php echo $payroll_lop_summary['paid_days']; ?>" type="hidden" />
+                                                    <input class="form-control" id="lop_days" value="<?php echo $payroll_lop_summary['lop_days']; ?>" type="hidden" />
                                                 </div>
                                             </div><!--./form-group-->
                                         </div>
@@ -318,9 +353,36 @@ $deduction_count++;
 </div>
 
 <script type="text/javascript">
+    function findBasicPayRow() {
+        var allowance_type = document.getElementsByName('allowance_type[]');
+        var allowance_amount = document.getElementsByName('allowance_amount[]');
+        for (var i = 0; i < allowance_type.length; i++) {
+            var label = (allowance_type[i].value || '').trim().toLowerCase();
+            if (label === 'basic pay' || label === 'basic salary') {
+                return { typeEl: allowance_type[i], amountEl: allowance_amount[i] };
+            }
+        }
+        return null;
+    }
+
+    function syncBasicFromEarnings() {
+        var basicRow = findBasicPayRow();
+        if (basicRow && basicRow.amountEl.value !== '') {
+            $("#basic").val(basicRow.amountEl.value);
+        }
+    }
+
+    function syncEarningsFromBasic() {
+        var basicRow = findBasicPayRow();
+        if (basicRow) {
+            basicRow.amountEl.value = $("#basic").val();
+        }
+    }
+
     function add_allowance() {
         $("#net_salary").val('');
         $("#gross_salary").val('');
+        syncBasicFromEarnings();
         var basic_pay = $("#basic").val();
        if(basic_pay > 0){ 
         var allowance_type = document.getElementsByName('allowance_type[]');
@@ -337,6 +399,10 @@ $deduction_count++;
                 var inpvalue = inp.value;
             }
 
+            var label = (allowance_type[i].value || '').trim().toLowerCase();
+            if (label === 'basic pay' || label === 'basic salary') {
+                continue;
+            }
             total_allowance += parseFloat(inpvalue);
         }
 
@@ -350,20 +416,29 @@ $deduction_count++;
             total_deduction += parseFloat(inpdvalue);
         }
 
-        var gross_salary = parseFloat(basic_pay) + parseFloat(total_allowance) - parseFloat(total_deduction);
+        var working_days = parseFloat($("#working_days").val()) || 0;
+        var lop_days = parseFloat($("#lop_days").val()) || 0;
+
+        var gross_salary = parseFloat(basic_pay) + parseFloat(total_allowance);
+        var lop_deduction = 0;
+        if (working_days > 0 && lop_days > 0) {
+            lop_deduction = (gross_salary / working_days) * lop_days;
+        }
 
         var tax = $("#tax_percent").val();
         if (tax == '') {
             var tax = 0;
         }
 
-        var net_salary = parseFloat(basic_pay) + parseFloat(total_allowance) - parseFloat(total_deduction) - parseFloat(tax);
+        var net_salary = gross_salary - parseFloat(total_deduction) - lop_deduction - parseFloat(tax);
 
+        syncEarningsFromBasic();
         $("#total_allowance").val(total_allowance.toFixed(2));
         $("#total_deduction").val(total_deduction.toFixed(2));
         $("#total_allow").html(total_allowance.toFixed(2));
         $("#total_deduc").html(total_deduction.toFixed(2));
         $("#gross_salary").val(gross_salary.toFixed(2));
+        $("#lop_deduction").val(lop_deduction.toFixed(2));
         $("#net_salary").val(net_salary.toFixed(2));
     }
     }
@@ -393,6 +468,10 @@ $deduction_count++;
         var rowCount = table.rows.length;
         $("#deduction_row" + id).html("");
     }
+
+    $("#basic").on("input", function () {
+        syncEarningsFromBasic();
+    });
 
     $("#contact_submit").click(function (event) {
         var net = $("#net_salary").val();

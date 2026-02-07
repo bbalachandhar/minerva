@@ -1035,6 +1035,16 @@ class Schsettings extends Admin_Controller
             $array = array('status' => 'fail', 'error' => $data);
             echo json_encode($array);
         } else {
+            $cutoff_day = $this->input->post('payroll_cutoff_day');
+            if ($cutoff_day === '' || $cutoff_day === null) {
+                $cutoff_day = 0;
+            } else {
+                $cutoff_day = (int) $cutoff_day;
+                if ($cutoff_day < 0 || $cutoff_day > 27) {
+                    $cutoff_day = 0;
+                }
+            }
+
             $data = array(
                 'id'               => $this->input->post('sch_id'),
                 'attendence_type'  => $this->input->post('attendence_type'),
@@ -1047,6 +1057,7 @@ class Schsettings extends Admin_Controller
                 'evening_session_end_time' => $this->input->post('evening_session_end_time'),
                 'max_late_allowed' => $this->input->post('max_late_allowed'),
                 'max_permission_allowed' => $this->input->post('max_permission_allowed'),
+                'payroll_cutoff_day' => $cutoff_day,
             );
             
             $this->setting_model->add($data);

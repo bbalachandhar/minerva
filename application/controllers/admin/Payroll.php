@@ -137,6 +137,7 @@ class Payroll extends Admin_Controller
         $data["alloted_leave"]   = $alloted_leave[0]["alloted_leave"];
         $data['month_absent_working_days'] = $this->getMonthAbsentWorkingDays($monthAttendanceData, $id);
         $data['month_absent_total'] = $this->getMonthAbsentTotals($monthAttendanceData, $data['month_absent_working_days']);
+        $data['month_paid_leave_absent'] = $this->getMonthPaidLeaveAbsentCounts($monthAttendanceData, $id);
         $data['payroll_lop_summary'] = $this->getPayrollLopSummary($monthAttendanceData, $data['monthLeaves'], $month, $year, $id);
 
         $this->load->view("layout/header", $data);
@@ -185,6 +186,7 @@ class Payroll extends Admin_Controller
         $data["alloted_leave"]   = $alloted_leave[0]["alloted_leave"];
         $data['month_absent_working_days'] = $this->getMonthAbsentWorkingDays($data['monthAttendance'], $employee_payroll['staff_id']);
         $data['month_absent_total'] = $this->getMonthAbsentTotals($data['monthAttendance'], $data['month_absent_working_days']);
+        $data['month_paid_leave_absent'] = $this->getMonthPaidLeaveAbsentCounts($data['monthAttendance'], $employee_payroll['staff_id']);
         $data['payroll_lop_summary'] = $this->getPayrollLopSummary($data['monthAttendance'], $data['monthLeaves'], $data["month"], $data["year"], $employee_payroll['staff_id']);
         $this->load->view("layout/header", $data);
         $this->load->view("admin/payroll/edit", $data);
@@ -197,10 +199,16 @@ class Payroll extends Admin_Controller
         $month_key = '01-' . $month_num . '-' . $year;
         $attendance = $monthAttendance[$month_key] ?? reset($monthAttendance) ?? [];
 
+        $period = $this->getPayrollPeriodRange($month, $year);
+        $days_in_period = (int) ($attendance['days_in_period'] ?? $this->getDaysInRange($period['start_date'], $period['end_date']));
+        $working_days = (int) ($attendance['working_days'] ?? 0);
+        if ($working_days === 0) {
+            $context = $this->getWorkingDayContextRange($period['start_date'], $period['end_date']);
+            $working_days = count($context['working_day_dates']);
+        }
+
         $holidays = (int) ($attendance['holiday'] ?? 0);
         $sundays = (int) ($attendance['sunday'] ?? 0);
-        $days_in_month = cal_days_in_month(CAL_GREGORIAN, (int) $month_num, (int) $year);
-        $working_days = max(0, $days_in_month - $holidays - $sundays);
 
         $present = (int) ($attendance['present'] ?? 0);
         $late = (int) ($attendance['late'] ?? 0);
@@ -215,26 +223,29 @@ class Payroll extends Admin_Controller
 
         $lop_rules = $this->config->item('lop_rules');
         $half_day_weight = isset($lop_rules['half_day_weight']) ? (float) $lop_rules['half_day_weight'] : 0.5;
-        $late_to_half_day = isset($lop_rules['late_to_half_day']) ? (int) $lop_rules['late_to_half_day'] : 0;
-        $permission_to_half_day = isset($lop_rules['permission_to_half_day']) ? (int) $lop_rules['permission_to_half_day'] : 0;
 
-        $late_half_days = $late_to_half_day > 0 ? floor($late / $late_to_half_day) : 0;
         $permission_count = $first_half_permission + $second_half_permission;
-        $permission_half_days = $permission_to_half_day > 0 ? floor($permission_count / $permission_to_half_day) : 0;
+        $max_late_allowed = isset($this->sch_setting_detail->max_late_allowed) ? (int) $this->sch_setting_detail->max_late_allowed : 0;
+        $max_permission_allowed = isset($this->sch_setting_detail->max_permission_allowed) ? (int) $this->sch_setting_detail->max_permission_allowed : 0;
 
-        $lop_days = $absent_working
-            + ($half_day * $half_day_weight)
-            + (($first_half_absent + $second_half_absent) * 0.5)
-            + ($late_half_days * 0.5)
-            + ($permission_half_days * 0.5);
+        $late_half_days = $late > $max_late_allowed ? ($late - $max_late_allowed) : 0;
+        $permission_half_days = $permission_count > $max_permission_allowed ? ($permission_count - $max_permission_allowed) : 0;
 
-        $total_present = $present + ($half_day * $half_day_weight);
-        $total_absent = $absent_working + ($half_day * $half_day_weight);
+        $paid_leave_absent = $this->getPaidLeaveAbsentCountRange($period['start_date'], $period['end_date'], $staff_id);
+
+        $late_permission_penalty = ($late_half_days + $permission_half_days) * $half_day_weight;
+
+        $total_present = max(0, $present + ($half_day * $half_day_weight) - $late_permission_penalty + $paid_leave_absent);
+        $total_absent = $absent_working + ($half_day * $half_day_weight) + $late_permission_penalty;
+
+        $lop_days = $total_absent
+            + (($first_half_absent + $second_half_absent) * $half_day_weight);
+
         $paid_days = $total_present;
 
         return [
             'month_key' => $month_key,
-            'days_in_month' => $days_in_month,
+            'days_in_month' => $days_in_period,
             'working_days' => $working_days,
             'present' => $present,
             'absent' => $total_absent,
@@ -245,6 +256,7 @@ class Payroll extends Admin_Controller
             'first_half_permission' => $first_half_permission,
             'second_half_permission' => $second_half_permission,
             'approved_leave' => $approved_leave,
+            'paid_leave_absent' => $paid_leave_absent,
             'holidays' => $holidays,
             'sundays' => $sundays,
             'late_half_days' => $late_half_days,
@@ -266,6 +278,19 @@ class Payroll extends Admin_Controller
         return $absent_by_month;
     }
 
+    private function getMonthPaidLeaveAbsentCounts($monthAttendance, $staff_id)
+    {
+        $paid_leave_by_month = [];
+        foreach (array_keys($monthAttendance) as $month_key) {
+            $month_num = date('m', strtotime($month_key));
+            $year = date('Y', strtotime($month_key));
+            $period = $this->getPayrollPeriodRange($month_num, $year);
+            $paid_leave_by_month[$month_key] = $this->getPaidLeaveAbsentCountRange($period['start_date'], $period['end_date'], $staff_id);
+        }
+
+        return $paid_leave_by_month;
+    }
+
     private function getMonthAbsentTotals($monthAttendance, $absent_working_days)
     {
         $lop_rules = $this->config->item('lop_rules');
@@ -283,7 +308,8 @@ class Payroll extends Admin_Controller
 
     private function getAbsentWorkingDayCount($month_num, $year, $staff_id)
     {
-        $context = $this->getWorkingDayContext($month_num, $year);
+        $period = $this->getPayrollPeriodRange($month_num, $year);
+        $context = $this->getWorkingDayContextRange($period['start_date'], $period['end_date']);
         $working_day_dates = $context['working_day_dates'];
         $absent_count = 0;
 
@@ -295,56 +321,108 @@ class Payroll extends Admin_Controller
             }
         }
 
-        return $absent_count;
+        $paid_leave_absent = $this->getPaidLeaveAbsentCountRange($period['start_date'], $period['end_date'], $staff_id, $context);
+
+        return max(0, $absent_count - $paid_leave_absent);
+    }
+
+    private function getPaidLeaveAbsentCount($month_num, $year, $staff_id, $context = null)
+    {
+        $period = $this->getPayrollPeriodRange($month_num, $year);
+        return $this->getPaidLeaveAbsentCountRange($period['start_date'], $period['end_date'], $staff_id, $context);
+    }
+
+    private function getPaidLeaveAbsentCountRange($start_date, $end_date, $staff_id, $context = null)
+    {
+        if ($context === null) {
+            $context = $this->getWorkingDayContextRange($start_date, $end_date);
+        }
+
+        $working_day_dates = $context['working_day_dates'];
+        $approved_paid_leave_dates = $this->getApprovedPaidLeaveDatesByRange($start_date, $end_date, $staff_id);
+        $approved_paid_leave_dates = array_values(array_intersect($approved_paid_leave_dates, $working_day_dates));
+
+        $paid_leave_absent = 0;
+        foreach ($approved_paid_leave_dates as $leave_date) {
+            $attendance_row = $this->staffattendancemodel->searchStaffattendance($leave_date, $staff_id, false);
+            $attendance_key = $attendance_row['key'] ?? null;
+            if ($attendance_key === 'A') {
+                $paid_leave_absent++;
+            }
+        }
+
+        return $paid_leave_absent;
+    }
+
+    private function getApprovedPaidLeaveDates($month_num, $year, $staff_id)
+    {
+        $start_date = $year . '-' . sprintf('%02d', $month_num) . '-01';
+        $end_date = date('Y-m-t', strtotime($start_date));
+
+        return $this->getApprovedPaidLeaveDatesByRange($start_date, $end_date, $staff_id);
+    }
+
+    private function getApprovedPaidLeaveDatesByRange($start_date, $end_date, $staff_id)
+    {
+        $this->db->select('staff_leave_request.leave_from, staff_leave_request.leave_to');
+        $this->db->from('staff_leave_request');
+        $this->db->join('leave_types', 'leave_types.id = staff_leave_request.leave_type_id');
+        $this->db->where('staff_leave_request.staff_id', $staff_id);
+        $this->db->where('staff_leave_request.status', 'approve');
+        $this->db->where('leave_types.is_lop', 0);
+        $this->db->where('staff_leave_request.leave_from <=', $end_date);
+        $this->db->where('staff_leave_request.leave_to >=', $start_date);
+        $rows = $this->db->get()->result_array();
+
+        $leave_dates = [];
+        foreach ($rows as $row) {
+            $from = new DateTime(max($row['leave_from'], $start_date));
+            $to = new DateTime(min($row['leave_to'], $end_date));
+            while ($from <= $to) {
+                $leave_dates[] = $from->format('Y-m-d');
+                $from->modify('+1 day');
+            }
+        }
+
+        return array_values(array_unique($leave_dates));
     }
 
     private function getWorkingDayContext($month_num, $year)
     {
+        $start_date = $year . '-' . sprintf('%02d', $month_num) . '-01';
+        $end_date = date('Y-m-t', strtotime($start_date));
+        return $this->getWorkingDayContextRange($start_date, $end_date);
+    }
+
+    private function getWorkingDayContextRange($start_date, $end_date, $settings = null, $holidays = null)
+    {
         $this->load->model("holiday_model");
         $this->load->model("setting_model");
 
-        $holidays = $this->holiday_model->get();
-        $settings = $this->setting_model->getSetting();
-
-        $num_of_days = cal_days_in_month(CAL_GREGORIAN, (int) $month_num, (int) $year);
+        if ($settings === null) {
+            $settings = $this->setting_model->getSetting();
+        }
+        if ($holidays === null) {
+            $holidays = $this->holiday_model->get();
+        }
 
         $weekendDaysStr = isset($settings->weekend_days) && !empty($settings->weekend_days) ? $settings->weekend_days : '0';
         $weekendDays = array_map('intval', explode(',', $weekendDaysStr));
         $isSecondSaturdayWeekend = isset($settings->isSecondSaturdayHoliday) ? (int) $settings->isSecondSaturdayHoliday : 0;
 
-        $second_saturday_date = null;
-        if ($isSecondSaturdayWeekend) {
-            $saturdayCount = 0;
-            for ($day = 1; $day <= $num_of_days; $day++) {
-                $dateObj = new DateTime($year . "-" . $month_num . "-" . sprintf("%02d", $day));
-                if ((int) $dateObj->format('w') == 6) {
-                    $saturdayCount++;
-                    if ($saturdayCount == 2) {
-                        $second_saturday_date = $dateObj->format('Y-m-d');
-                        break;
-                    }
-                }
-            }
-        }
-
-        $weekend_day_dates = [];
-        for ($day = 1; $day <= $num_of_days; $day++) {
-            $dateStr = $year . "-" . $month_num . "-" . sprintf("%02d", $day);
-            $dayOfWeek = (int) date('w', strtotime($dateStr));
-            if (in_array($dayOfWeek, $weekendDays, true) || ($second_saturday_date && $dateStr === $second_saturday_date)) {
-                $weekend_day_dates[] = $dateStr;
-            }
-        }
-        $weekend_day_dates = array_values(array_unique($weekend_day_dates));
+        $range_start = new DateTime($start_date);
+        $range_end = new DateTime($end_date);
 
         $official_holiday_dates = [];
         foreach ($holidays as $holiday_value) {
             $from_date = new DateTime($holiday_value['from_date']);
             $to_date = new DateTime($holiday_value['to_date']);
-
+            if ($to_date < $range_start || $from_date > $range_end) {
+                continue;
+            }
             $current = clone $from_date;
             while ($current <= $to_date) {
-                if ($current->format('m') == $month_num && $current->format('Y') == $year) {
+                if ($current >= $range_start && $current <= $range_end) {
                     $official_holiday_dates[] = $current->format('Y-m-d');
                 }
                 $current->modify('+1 day');
@@ -352,23 +430,105 @@ class Payroll extends Admin_Controller
         }
         $official_holiday_dates = array_values(array_unique($official_holiday_dates));
 
-        $holiday_dates = array_values(array_unique(array_filter($official_holiday_dates, function ($dateStr) use ($weekend_day_dates) {
-            return !in_array($dateStr, $weekend_day_dates, true);
-        })));
-
+        $weekend_day_dates = [];
         $working_day_dates = [];
-        for ($day = 1; $day <= $num_of_days; $day++) {
-            $dateStr = $year . "-" . $month_num . "-" . sprintf("%02d", $day);
-            if (!in_array($dateStr, $weekend_day_dates, true) && !in_array($dateStr, $holiday_dates, true)) {
+        $holiday_dates = [];
+
+        $current = new DateTime($start_date);
+        while ($current <= $range_end) {
+            $dateStr = $current->format('Y-m-d');
+            $dayOfWeek = (int) $current->format('w');
+            $is_second_saturday = false;
+            if ($isSecondSaturdayWeekend && $dayOfWeek === 6) {
+                $is_second_saturday = $this->isSecondSaturday($current);
+            }
+
+            $is_weekend = in_array($dayOfWeek, $weekendDays, true) || $is_second_saturday;
+            $is_official_holiday = in_array($dateStr, $official_holiday_dates, true);
+
+            if ($is_weekend) {
+                $weekend_day_dates[] = $dateStr;
+            }
+            if ($is_official_holiday && !$is_weekend) {
+                $holiday_dates[] = $dateStr;
+            }
+            if (!$is_weekend && !$is_official_holiday) {
                 $working_day_dates[] = $dateStr;
             }
+
+            $current->modify('+1 day');
         }
 
         return [
-            'working_day_dates' => $working_day_dates,
-            'weekend_day_dates' => $weekend_day_dates,
-            'holiday_dates' => $holiday_dates,
+            'working_day_dates' => array_values(array_unique($working_day_dates)),
+            'weekend_day_dates' => array_values(array_unique($weekend_day_dates)),
+            'holiday_dates' => array_values(array_unique($holiday_dates)),
         ];
+    }
+
+    private function isSecondSaturday(DateTime $dateObj)
+    {
+        $month_start = new DateTime($dateObj->format('Y-m-01'));
+        $count = 0;
+        while ($month_start <= $dateObj) {
+            if ((int) $month_start->format('w') === 6) {
+                $count++;
+            }
+            if ($month_start->format('Y-m-d') === $dateObj->format('Y-m-d')) {
+                break;
+            }
+            $month_start->modify('+1 day');
+        }
+        return $count === 2;
+    }
+
+    private function getPayrollPeriodRange($month, $year)
+    {
+        $offset_days = isset($this->sch_setting_detail->payroll_cutoff_day) ? (int) $this->sch_setting_detail->payroll_cutoff_day : 0;
+        $month_num = (int) $month;
+        $year_num = (int) $year;
+        if ($month_num < 1 || $month_num > 12) {
+            $month_num = (int) date('m', strtotime($year . '-' . $month . '-01'));
+        }
+
+        if ($offset_days <= 0) {
+            $start_date = sprintf('%04d-%02d-01', $year_num, $month_num);
+            $end_date = date('Y-m-t', strtotime($start_date));
+            return [
+                'start_date' => $start_date,
+                'end_date' => $end_date,
+                'offset_days' => 0,
+            ];
+        }
+
+        $last_day = cal_days_in_month(CAL_GREGORIAN, $month_num, $year_num);
+        $cutoff_day = max(1, $last_day - $offset_days);
+
+        $prev_month = $month_num - 1;
+        $prev_year = $year_num;
+        if ($prev_month === 0) {
+            $prev_month = 12;
+            $prev_year--;
+        }
+        $prev_month_days = cal_days_in_month(CAL_GREGORIAN, $prev_month, $prev_year);
+        $start_day = min($prev_month_days, $cutoff_day + 1);
+
+        $start_date = sprintf('%04d-%02d-%02d', $prev_year, $prev_month, $start_day);
+        $end_date = sprintf('%04d-%02d-%02d', $year_num, $month_num, $cutoff_day);
+
+        return [
+            'start_date' => $start_date,
+            'end_date' => $end_date,
+            'offset_days' => $offset_days,
+        ];
+    }
+
+    private function getDaysInRange($start_date, $end_date)
+    {
+        $start = new DateTime($start_date);
+        $end = new DateTime($end_date);
+        $diff = $start->diff($end);
+        return (int) $diff->days + 1;
     }
 
     public function editpayroll()
@@ -415,9 +575,15 @@ class Payroll extends Admin_Controller
         }
         
         if($tax){
-                $tax = convertCurrencyFormatToBaseAmount($tax);
+            $tax = convertCurrencyFormatToBaseAmount($tax);
         }else{
-                $tax = 0;  
+            $tax = 0;  
+        }
+
+        if($leave_deduction){
+            $leave_deduction = convertCurrencyFormatToBaseAmount($leave_deduction);
+        }else{
+            $leave_deduction = 0;
         }
         
         
@@ -433,7 +599,7 @@ class Payroll extends Admin_Controller
                 'month'           => $month,
                 'year'            => $year,
                 'tax'             => $tax,
-                'leave_deduction' => '0',
+                'leave_deduction' => $leave_deduction,
                 'generated_by'    => $this->customlib->getStaffID(),
             );
 
@@ -560,56 +726,11 @@ class Payroll extends Admin_Controller
             $month = date('m', strtotime($st_month . " -$i month"));
             $year  = date('Y', strtotime($st_month . " -$i month"));
 
-
-            $official_holiday_dates = [];
-            $num_of_days = cal_days_in_month(CAL_GREGORIAN, $month, $year);
-
-            $weekendDaysStr = isset($settings->weekend_days) && !empty($settings->weekend_days) ? $settings->weekend_days : '0';
-            $weekendDays = array_map('intval', explode(',', $weekendDaysStr));
-            $isSecondSaturdayWeekend = isset($settings->isSecondSaturdayHoliday) ? (int) $settings->isSecondSaturdayHoliday : 0;
-
-            $second_saturday_date = null;
-            if ($isSecondSaturdayWeekend) {
-                $saturdayCount = 0;
-                for ($day = 1; $day <= $num_of_days; $day++) {
-                    $dateObj = new DateTime($year . "-" . $month . "-" . sprintf("%02d", $day));
-                    if ((int) $dateObj->format('w') == 6) {
-                        $saturdayCount++;
-                        if ($saturdayCount == 2) {
-                            $second_saturday_date = $dateObj->format('Y-m-d');
-                            break;
-                        }
-                    }
-                }
-            }
-
-            $weekend_day_dates = [];
-            for ($day = 1; $day <= $num_of_days; $day++) {
-                $att_date = $year . "-" . $month . "-" . sprintf("%02d", $day);
-                $dayOfWeek = (int) date('w', strtotime($att_date));
-                if (in_array($dayOfWeek, $weekendDays, true) || ($second_saturday_date && $att_date === $second_saturday_date)) {
-                    $weekend_day_dates[] = $att_date;
-                }
-            }
-            $weekend_day_dates = array_values(array_unique($weekend_day_dates));
-
-            // Collect official holiday dates from annual_calendar
-            foreach ($holidays as $holiday_key => $holiday_value) {
-                $from_date = new DateTime($holiday_value['from_date']);
-                $to_date = new DateTime($holiday_value['to_date']);
-                
-                $current = clone $from_date;
-                while ($current <= $to_date) {
-                    if ($current->format('m') == $month && $current->format('Y') == $year) {
-                        $official_holiday_dates[] = $current->format('Y-m-d');
-                    }
-                    $current->modify('+1 day');
-                }
-            }
-            $official_holiday_dates = array_unique($official_holiday_dates);
-
-            // This is for display in the "H" column for "other leaves"
-            $holidays_for_H_column = array_diff($official_holiday_dates, $weekend_day_dates);
+            $period = $this->getPayrollPeriodRange($month, $year);
+            $context = $this->getWorkingDayContextRange($period['start_date'], $period['end_date'], $settings, $holidays);
+            $weekend_day_dates = $context['weekend_day_dates'];
+            $holidays_for_H_column = $context['holiday_dates'];
+            $working_day_dates = $context['working_day_dates'];
 
 
             $attendance_types_from_db = $this->staffattendancemodel->getStaffAttendanceType();
@@ -629,12 +750,15 @@ class Payroll extends Admin_Controller
                 }
 
                 if ($attendance_type_id_for_query !== null) {
-                    $s = $this->payroll_model->count_attendance_obj($month, $year, $emp, $attendance_type_id_for_query);
+                    $s = $this->payroll_model->count_attendance_range($period['start_date'], $period['end_date'], $emp, $attendance_type_id_for_query);
                     $r[$att_key] = $s;
                 } else {
                     $r[$att_key] = 0;
                 }
             }
+
+            $r['days_in_period'] = $this->getDaysInRange($period['start_date'], $period['end_date']);
+            $r['working_days'] = count($working_day_dates);
 
 
             $record['01-' . $month . '-' . $year] = $r;
@@ -650,14 +774,13 @@ class Payroll extends Admin_Controller
             $r           = array();
             $month       = date('m', strtotime($st_month . " -$i month"));
             $year        = date('Y', strtotime($st_month . " -$i month"));
-            $leave_count = $this->staff_model->count_leave($month, $year, $emp);
-            if (!empty($leave_count["tl"])) {
-                $l = $leave_count["tl"];
-            } else {
-                $l = "0";
-            }
+            $period = $this->getPayrollPeriodRange($month, $year);
+            $context = $this->getWorkingDayContextRange($period['start_date'], $period['end_date']);
+            $working_day_dates = $context['working_day_dates'];
+            $approved_paid_leave_dates = $this->getApprovedPaidLeaveDatesByRange($period['start_date'], $period['end_date'], $emp);
+            $approved_paid_leave_dates = array_values(array_intersect($approved_paid_leave_dates, $working_day_dates));
 
-            $record[$month] = $l;
+            $record[$month] = count($approved_paid_leave_dates);
         }
 
         return $record;
@@ -694,10 +817,16 @@ class Payroll extends Admin_Controller
         }
         
         if($this->input->post("tax")){
-                $tax = convertCurrencyFormatToBaseAmount($this->input->post("tax"));
+            $tax = convertCurrencyFormatToBaseAmount($this->input->post("tax"));
         }else{
-                $tax = 0;  
+            $tax = 0;  
         }      
+
+        if($leave_deduction){
+            $leave_deduction = convertCurrencyFormatToBaseAmount($leave_deduction);
+        }else{
+            $leave_deduction = 0;
+        }
  
         $status          = $this->input->post("status");
         $staff_id        = $this->input->post("staff_id");
@@ -723,7 +852,7 @@ class Payroll extends Admin_Controller
                 'month'                  => $month,
                 'year'                   => $year,
                 'tax'                    => $tax,
-                'leave_deduction'        => '0',
+                'leave_deduction'        => $leave_deduction,
             );
 
             $checkForUpdate = $this->payroll_model->checkPayslip($month, $year, $staff_id);
@@ -810,6 +939,125 @@ class Payroll extends Admin_Controller
         $this->load->view("layout/header", $data);
         $this->load->view("admin/payroll/stafflist", $data);
         $this->load->view("layout/footer", $data);
+    }
+
+    public function bulkcalculate()
+    {
+        if (!$this->rbac->hasPrivilege('staff_payroll', 'can_add')) {
+            access_denied();
+        }
+
+        $month = $this->input->post('month');
+        $year = $this->input->post('year');
+        $role = $this->input->post('role');
+        $overwrite = $this->input->post('bulk_overwrite') ? true : false;
+
+        if (empty($month) || empty($year) || $month === 'select' || $year === 'select') {
+            $this->session->set_flashdata('msg', '<div class="alert alert-warning text-center">Please select month and year for bulk calculation.</div>');
+            redirect('admin/payroll');
+        }
+
+        $staff_list = $this->payroll_model->searchEmployee($month, $year, '', $role);
+        $generated = 0;
+        $updated_existing = 0;
+        $skipped_existing = 0;
+
+        foreach ($staff_list as $staff) {
+            if (!empty($staff['payslip_id']) && !$overwrite) {
+                $skipped_existing++;
+                continue;
+            }
+
+            $basic = !empty($staff['basic_salary']) ? $staff['basic_salary'] : 0;
+            $last_payslip = $this->payroll_model->getLastPayslip($staff['id']);
+            $allowances = [];
+            $total_allowance = 0;
+            $total_deduction = 0;
+            $tax = 0;
+
+            if (!empty($last_payslip)) {
+                if ((float) $basic <= 0 && !empty($last_payslip['basic'])) {
+                    $basic = $last_payslip['basic'];
+                }
+                $tax = !empty($last_payslip['tax']) ? $last_payslip['tax'] : 0;
+                $allowances = $this->payroll_model->getAllowance($last_payslip['id']);
+                foreach ($allowances as $allowance) {
+                    if ($allowance['cal_type'] === 'positive') {
+                        $total_allowance += (float) $allowance['amount'];
+                    } else {
+                        $total_deduction += (float) $allowance['amount'];
+                    }
+                }
+            }
+
+            $date = $year . '-' . $month;
+            $newdate = date('Y-m-d', strtotime($date . ' +1 month'));
+            $monthAttendanceData = $this->monthAttendance($newdate, 3, $staff['id']);
+            $monthLeaves = $this->monthLeaves($newdate, 3, $staff['id']);
+            $lop_summary = $this->getPayrollLopSummary($monthAttendanceData, $monthLeaves, $month, $year, $staff['id']);
+
+            $gross_salary = (float) $basic + (float) $total_allowance;
+            $lop_deduction = 0;
+            if (!empty($lop_summary['working_days']) && !empty($lop_summary['lop_days'])) {
+                $lop_deduction = ($gross_salary / (float) $lop_summary['working_days']) * (float) $lop_summary['lop_days'];
+            }
+
+            $net_salary = $gross_salary - (float) $total_deduction - (float) $lop_deduction - (float) $tax;
+
+            $data = array(
+                'staff_id' => $staff['id'],
+                'basic' => $basic,
+                'total_allowance' => $total_allowance,
+                'total_deduction' => $total_deduction,
+                'net_salary' => $net_salary,
+                'payment_date' => date('Y-m-d'),
+                'status' => 'generated',
+                'month' => $month,
+                'year' => $year,
+                'tax' => $tax,
+                'leave_deduction' => $lop_deduction,
+            );
+
+            if (!empty($staff['payslip_id']) && $overwrite) {
+                $data['id'] = $staff['payslip_id'];
+            }
+
+            $payslipid = $this->payroll_model->createPayslip($data);
+
+            if (!empty($staff['payslip_id']) && $overwrite) {
+                $this->db->where('payslip_id', $payslipid)->delete('payslip_allowance');
+            }
+
+            if (!empty($allowances)) {
+                foreach ($allowances as $allowance) {
+                    $allowance_data = array(
+                        'payslip_id' => $payslipid,
+                        'allowance_type' => $allowance['allowance_type'],
+                        'amount' => $allowance['amount'],
+                        'staff_id' => $staff['id'],
+                        'cal_type' => $allowance['cal_type'],
+                    );
+                    $this->payroll_model->add_allowance($allowance_data);
+                }
+            }
+
+            if (!empty($staff['payslip_id']) && $overwrite) {
+                $updated_existing++;
+            } else {
+                $generated++;
+            }
+        }
+
+        $message = '<div class="alert alert-success text-center">Bulk payroll calculated. Generated: ' . $generated . '.</div>';
+        if ($updated_existing > 0) {
+            $message .= '<div class="alert alert-info text-center">Overwritten payslips: ' . $updated_existing . '.</div>';
+        }
+        if ($skipped_existing > 0) {
+            $message .= '<div class="alert alert-warning text-center">Skipped existing payslips: ' . $skipped_existing . '.</div>';
+        }
+        $this->session->set_flashdata('msg', $message);
+
+        redirect('admin/payroll/search/' . $month . '/' . $year . '/' . $role);
     }
 
     public function paymentRecord()
@@ -901,6 +1149,16 @@ class Payroll extends Admin_Controller
 
     public function payrollreport()
     {
+        $this->loadPayrollReport(['paid'], 'Paid Payroll Report', 'admin/payroll/payrollreport');
+    }
+
+    public function payrollreport_generated()
+    {
+        $this->loadPayrollReport(['generated'], 'Generated Payroll Report', 'admin/payroll/payrollreport_generated');
+    }
+
+    private function loadPayrollReport($status_filter, $report_title, $report_action)
+    {
         if (!$this->rbac->hasPrivilege('payroll_report', 'can_view')) {
             access_denied();
         }
@@ -918,6 +1176,8 @@ class Payroll extends Admin_Controller
         $staffRole            = $this->staff_model->getStaffRole();
         $data["role"]         = $staffRole;
         $data["payment_mode"] = $this->payment_mode;
+        $data['report_title'] = $report_title;
+        $data['report_action'] = $report_action;
 
         $this->form_validation->set_rules('year', $this->lang->line('year'), 'trim|required|xss_clean');
         if ($this->form_validation->run() == false) {
@@ -925,7 +1185,7 @@ class Payroll extends Admin_Controller
             $this->load->view("admin/payroll/payrollreport", $data);
             $this->load->view("layout/footer", $data);
         } else {
-            $result = $this->payroll_model->getpayrollReport($month, $year, $role);
+            $result = $this->payroll_model->getpayrollReport($month, $year, $role, $status_filter);
             $data["result"] = $result;
             $this->load->view("layout/header", $data);
             $this->load->view("admin/payroll/payrollreport", $data);

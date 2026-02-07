@@ -22,7 +22,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                         <h3 class="box-title"><i class="fa fa-search"></i> <?php echo $this->lang->line('select_criteria'); ?></h3>
                     </div>
                     <div class="box-body">
-                        <form role="form" action="<?php echo site_url('admin/payroll/payrollreport') ?>" method="post">
+                        <form role="form" action="<?php echo site_url($report_action ?? 'admin/payroll/payrollreport') ?>" method="post">
                                     <?php echo $this->customlib->getCSRF(); ?>
                                     <div class="">
                                      <div class="row">
@@ -93,7 +93,7 @@ if (($year == $yearvalue["year"])) {
                     <div class="">
                          <div class="box-header ptbnull"></div>
                         <div class="box-header with-border">
-                            <h3 class="box-title"><i class="fa fa-users"></i> <?php echo $this->lang->line('payroll_report'); ?></h3>
+                            <h3 class="box-title"><i class="fa fa-users"></i> <?php echo $report_title ?? $this->lang->line('payroll_report'); ?></h3>
                         </div>
                         <div class="box-body table-responsive">
                             <div class="tab-content">
@@ -112,6 +112,7 @@ if (($year == $yearvalue["year"])) {
                                                 <th class="text text-right"><?php echo $this->lang->line('earning'); ?> <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
                                                 <th class="text text-right"><?php echo $this->lang->line('deduction'); ?> <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
                                                 <th class="text text-right"><?php echo $this->lang->line('gross_salary'); ?> <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
+                                                <th class="text text-right">LOP <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
                                                 <th class="text text-right"><?php echo $this->lang->line('tax'); ?> <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
                                                 <th class="text text-right"><?php echo $this->lang->line('net_salary'); ?> <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
                                             </tr>
@@ -124,6 +125,7 @@ $basic     = 0;
     $earnings  = 0;
     $deduction = 0;
     $tax       = 0;
+    $lop       = 0;
 
     if (empty($result)) {
         ?>
@@ -140,6 +142,7 @@ $basic     = 0;
             $earnings += $value["total_allowance"];
             $deduction += $value["total_deduction"];
             $tax += $value["tax"];
+            $lop += $value["leave_deduction"] ?? 0;
             $total     = 0;
             $grd_total = 0;
             ?>
@@ -181,6 +184,9 @@ $t = ($value['total_deduction']);
                                                         <?php echo amountFormat($value['basic'] + $value['total_allowance'] - $t); ?>
                                                     </td>
                                                     <td class="text text-right">
+                                                        <?php echo amountFormat($value['leave_deduction'] ?? 0); ?>
+                                                    </td>
+                                                    <td class="text text-right">
             <?php
 $t = ($value['tax']);
             echo amountFormat($t);
@@ -207,6 +213,7 @@ $count++;
                                                 <td class="text text-right"><?php echo $currency_symbol . amountFormat($earnings); ?></td>
                                                 <td class="text text-right"><?php echo $currency_symbol . amountFormat($deduction); ?></td>
                                                 <td class="text text-right"><?php echo $currency_symbol . amountFormat($gross - $deduction); ?></td>
+                                                <td class="text text-right"><?php echo $currency_symbol . amountFormat($lop); ?></td>
                                                 <td class="text text-right"><?php echo $currency_symbol . amountFormat($tax); ?></td>
                                                 <td class="text text-right"><?php echo $currency_symbol . amountFormat($net); ?></td>
 

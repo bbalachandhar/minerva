@@ -50,8 +50,8 @@
                                     <div class="well">
                                         <h4><?php echo $this->lang->line('instructions'); ?></h4>
                                         <p><?php echo $this->lang->line('the_csv_file_should_be_in_the_following_format'); ?>:</p>
-                                        <p><code>staff_id,leave_type_id,days</code></p>
-                                        <p><?php echo $this->lang->line('ensure_the_staff_id_and_leave_type_id_are_correct'); ?></p>
+                                        <p><code>employee_no,leavetype_id,balance_days</code></p>
+                                        <p>Ensure the employee number and leave type id are correct.</p>
                                     </div>
                                 </div>
                             </div>

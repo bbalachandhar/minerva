@@ -154,6 +154,8 @@
                                             &nbsp;&nbsp;<b>H</b>: Holidays
                                             &nbsp;&nbsp;<b>HD</b>: Half Day
                                             &nbsp;&nbsp;<b>WE</b>: Weekends
+                                            &nbsp;&nbsp;<b>TL</b>: Total Late
+                                            &nbsp;&nbsp;<b>TP</b>: Total Permission
                                         </div>
                                     </div>
                                 </div>
@@ -183,6 +185,8 @@
                                                 <th><br /><span data-toggle="tooltip" title="Total Holidays">H</span></th>
                                                 <th colspan="1"><br /><span data-toggle="tooltip" title="Total Half Day">HD</span></th>
                                                 <th colspan="1"><br /><span data-toggle="tooltip" title="Weekends">WE</span></th>
+                                                <th colspan="1"><br /><span data-toggle="tooltip" title="Total Late Counts">TL</span></th>
+                                                <th colspan="1"><br /><span data-toggle="tooltip" title="Total Permission Counts">TP</span></th>
                                                 <?php
                                                 foreach ($attendence_array as $at_key => $at_value) {
                                                      $header_class = '';
@@ -221,6 +225,9 @@
                                                                                             $total_present = $present_count + ($half_day_count * 0.5);
                                                                                             $total_absent = $absent_count + ($half_day_count * 0.5);
 
+                                                                                            $total_late = $total_late_counts[$student_value['id']] ?? 0;
+                                                                                            $total_permission = $total_permission_counts[$student_value['id']] ?? 0;
+
                                                                                             if ($working_days == 0) {
                                                                                                 $percentage       = -1;
                                                                                                 $print_percentage = "-";
@@ -251,8 +258,34 @@
                                                                                                                                                                                                 <td><?php echo rtrim(rtrim(number_format((float)$total_absent, 1, '.', ''), '0'), '.'); ?></td>
                                                                                                 <td><?php echo rtrim(rtrim(number_format((float)$total_present, 1, '.', ''), '0'), '.'); ?></td>
                                                                                                 <td><?php echo $holiday_count ?? 0; ?></td>
-                                                                                                <td><?php echo $half_day_count; ?></td>
+                                                                                                <td>
+                                                                                                    <?php if ((float) $half_day_count > 0) { ?>
+                                                                                                        <a href="#" onclick="showAttendanceDetail('<?php echo $student_value['id']; ?>','HD'); return false;">
+                                                                                                            <?php echo $half_day_count; ?> <i class="fa fa-eye"></i>
+                                                                                                        </a>
+                                                                                                    <?php } else { ?>
+                                                                                                        <?php echo $half_day_count; ?>
+                                                                                                    <?php } ?>
+                                                                                                </td>
                                                                                                 <td><?php echo $weekend_count ?? 0; ?></td>
+                                                                                                <td>
+                                                                                                    <?php if ((int) $total_late > 0) { ?>
+                                                                                                        <a href="#" onclick="showAttendanceDetail('<?php echo $student_value['id']; ?>','TL'); return false;">
+                                                                                                            <?php echo $total_late; ?> <i class="fa fa-eye"></i>
+                                                                                                        </a>
+                                                                                                    <?php } else { ?>
+                                                                                                        <?php echo $total_late; ?>
+                                                                                                    <?php } ?>
+                                                                                                </td>
+                                                                                                <td>
+                                                                                                    <?php if ((int) $total_permission > 0) { ?>
+                                                                                                        <a href="#" onclick="showAttendanceDetail('<?php echo $student_value['id']; ?>','TP'); return false;">
+                                                                                                            <?php echo $total_permission; ?> <i class="fa fa-eye"></i>
+                                                                                                        </a>
+                                                                                                    <?php } else { ?>
+                                                                                                        <?php echo $total_permission; ?>
+                                                                                                    <?php } ?>
+                                                                                                </td>
                                                                                                 <?php
                                                                                                 foreach ($attendence_array as $at_key => $at_value) {
                                                                                                     $cell_class = '';
@@ -343,6 +376,33 @@
             </div>
         </div>
     </section>
+</div>
+
+<div id="attendance_detail_modal" class="modal fade" role="dialog">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title">Attendance Details</h4>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Session</th>
+                                <th>Punch In</th>
+                                <th>Punch Out</th>
+                            </tr>
+                        </thead>
+                        <tbody id="attendance_detail_body">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script type="text/javascript">
@@ -437,5 +497,46 @@
         }, 500);
 
         return true;
+    }
+
+    function showAttendanceDetail(staff_id, type) {
+        var month = '<?php echo $month_selected ?? ''; ?>';
+        var year = '<?php echo $year_selected ?? ''; ?>';
+
+        $('#attendance_detail_body').html('<tr><td colspan="4" class="text-center">Loading...</td></tr>');
+        $('#attendance_detail_modal').modal('show');
+
+        $.ajax({
+            url: base_url + 'attendencereports/staffAttendanceDetail',
+            type: 'POST',
+            dataType: 'json',
+            data: {
+                staff_id: staff_id,
+                month: month,
+                year: year,
+                type: type
+            },
+            success: function (response) {
+                if (!response || response.status !== 'success' || !response.rows || response.rows.length === 0) {
+                    $('#attendance_detail_body').html('<tr><td colspan="4" class="text-center">No records found.</td></tr>');
+                    return;
+                }
+
+                var rowsHtml = '';
+                $.each(response.rows, function (i, row) {
+                    rowsHtml += '<tr>'
+                        + '<td>' + row.date + '</td>'
+                        + '<td>' + row.session + '</td>'
+                        + '<td>' + row.in_time + '</td>'
+                        + '<td>' + row.out_time + '</td>'
+                        + '</tr>';
+                });
+
+                $('#attendance_detail_body').html(rowsHtml);
+            },
+            error: function () {
+                $('#attendance_detail_body').html('<tr><td colspan="4" class="text-center">Failed to load data.</td></tr>');
+            }
+        });
     }
 </script>

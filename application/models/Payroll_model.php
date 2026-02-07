@@ -213,6 +213,49 @@ class Payroll_model extends MY_Model
         }
     }
 
+    public function count_attendance_range($start_date, $end_date, $staff_id, $attendance_type = 1)
+    {
+        $session_level_types = [2, 5, 6, 7]; // FHL, FHP, SHL, SHP
+
+        if (in_array($attendance_type, $session_level_types)) {
+            $this->db->select('session_attendance_data');
+            $this->db->from('staff_attendance');
+            $this->db->where('staff_id', $staff_id);
+            $this->db->where('date >=', $start_date);
+            $this->db->where('date <=', $end_date);
+            $query = $this->db->get();
+            $results = $query->result_array();
+
+            $count = 0;
+            if (!empty($results)) {
+                foreach ($results as $row) {
+                    if (!empty($row['session_attendance_data'])) {
+                        $session_data = json_decode($row['session_attendance_data'], true);
+                        if ($session_data) {
+                            if ((isset($session_data['morning_session']) && $session_data['morning_session'] == $attendance_type)) {
+                                $count++;
+                            }
+                            if ((isset($session_data['afternoon_session']) && $session_data['afternoon_session'] == $attendance_type)) {
+                                $count++;
+                            }
+                        }
+                    }
+                }
+            }
+            return $count;
+        }
+
+        $this->db->select('count(*) as attendence');
+        $this->db->from('staff_attendance');
+        $this->db->where('staff_id', $staff_id);
+        $this->db->where('date >=', $start_date);
+        $this->db->where('date <=', $end_date);
+        $this->db->where('staff_attendance_type_id', $attendance_type);
+        $query = $this->db->get();
+        $row = $query->row();
+        return $row ? (int) $row->attendence : 0;
+    }
+
     public function updatePaymentStatus($status, $id)
     {
         $data = array('status' => $status);
@@ -299,7 +342,7 @@ class Payroll_model extends MY_Model
         return $query->row_array();
     }
 
-    public function getpayrollReport($month, $year, $role)
+    public function getpayrollReport($month, $year, $role, $statuses = ['paid'])
     {
         if ($this->session->has_userdata('admin')) {
             $getStaffRole     = $this->customlib->getStaffRole();
@@ -311,20 +354,24 @@ class Payroll_model extends MY_Model
         }
         
         if ($role == "select" && $month != "") {
-            $data = array('staff_payslip.month' => $month, 'staff_payslip.year' => $year, 'staff_payslip.status' => 'paid');
+            $data = array('staff_payslip.month' => $month, 'staff_payslip.year' => $year);
         } else if ($role == "select" && $month == "") {
 
-            $data = array('staff_payslip.year' => $year, 'staff_payslip.status' => 'paid');
+            $data = array('staff_payslip.year' => $year);
         } else if ($role != "select" && $month == "") {
 
-            $data = array('staff_payslip.year' => $year, 'roles.name' => $role, 'staff_payslip.status' => 'paid');
+            $data = array('staff_payslip.year' => $year, 'roles.name' => $role);
         } else {
 
-            $data = array('staff_payslip.month' => $month, 'staff_payslip.year' => $year, 'roles.name' => $role, 'staff_payslip.status' => 'paid');
+            $data = array('staff_payslip.month' => $month, 'staff_payslip.year' => $year, 'roles.name' => $role);
         }
         $data['staff.is_active'] = 1;
 
-        $query = $this->db->select('staff.id,staff.employee_id,staff.name,roles.name as user_type,staff.surname,staff_designation.designation,department.department_name as department,staff_payslip.*')->join("staff_payslip", "staff_payslip.staff_id = staff.id", "inner")->join("staff_designation", "staff.designation = staff_designation.id", "left")->join("department", "staff.department = department.id", "left")->join("staff_roles", "staff_roles.staff_id = staff.id", "left")->join("roles", "staff_roles.role_id = roles.id", "left")->where($data)->get("staff");
+        if (empty($statuses)) {
+            $statuses = ['paid'];
+        }
+
+        $query = $this->db->select('staff.id,staff.employee_id,staff.name,roles.name as user_type,staff.surname,staff_designation.designation,department.department_name as department,staff_payslip.*')->join("staff_payslip", "staff_payslip.staff_id = staff.id", "inner")->join("staff_designation", "staff.designation = staff_designation.id", "left")->join("department", "staff.department = department.id", "left")->join("staff_roles", "staff_roles.staff_id = staff.id", "left")->join("roles", "staff_roles.role_id = roles.id", "left")->where($data)->where_in('staff_payslip.status', $statuses)->get("staff");
 
         return $query->result_array();
     }

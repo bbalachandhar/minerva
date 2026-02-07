@@ -153,10 +153,20 @@ class LeaveTypes extends Admin_Controller
             $result = $this->csvreader->parse_file($_FILES['file']['tmp_name']);
 
             foreach ($result as $row) {
-                $staff_id = $row['staff_id'];
-                $leave_type_id = $row['leave_type_id'];
-                $days = $row['days'];
-                $this->leavetypes_model->update_staff_leave_details($staff_id, $leave_type_id, $days, true);
+                $employee_no = $row['employee_no'] ?? null;
+                $leave_type_id = $row['leavetype_id'] ?? null;
+                $days = $row['balance_days'] ?? null;
+
+                if ($employee_no === null || $leave_type_id === null || $days === null || $employee_no === '' || $leave_type_id === '' || $days === '') {
+                    continue;
+                }
+
+                $staff = $this->staff_model->get_by_employee_id($employee_no);
+                if (empty($staff) || empty($staff['id'])) {
+                    continue;
+                }
+
+                $this->leavetypes_model->update_staff_leave_details((int) $staff['id'], (int) $leave_type_id, $days, true);
             }
 
             $this->session->set_flashdata('msg', '<div class="alert alert-success">' . $this->lang->line('bulk_upload_successfully') . '</div>');
