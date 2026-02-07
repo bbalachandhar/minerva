@@ -135,6 +135,9 @@ class Payroll extends Admin_Controller
         $data["attendanceType"]  = $this->staffattendancemodel->getStaffAttendanceType();
         $data["staff_attendance_keys"] = array_keys($this->staff_attendance);
         $data["alloted_leave"]   = $alloted_leave[0]["alloted_leave"];
+        $data['month_absent_working_days'] = $this->getMonthAbsentWorkingDays($monthAttendanceData, $id);
+        $data['month_absent_total'] = $this->getMonthAbsentTotals($monthAttendanceData, $data['month_absent_working_days']);
+        $data['payroll_lop_summary'] = $this->getPayrollLopSummary($monthAttendanceData, $data['monthLeaves'], $month, $year, $id);
 
         $this->load->view("layout/header", $data);
         $this->load->view("admin/payroll/create", $data);
@@ -178,10 +181,194 @@ class Payroll extends Admin_Controller
         $data['monthAttendance'] = $this->monthAttendance($newdate, 3, $employee_payroll['staff_id']);
         $data['monthLeaves']     = $this->monthLeaves($newdate, 3, $employee_payroll['staff_id']);
         $data["attendanceType"]  = $this->staffattendancemodel->getStaffAttendanceType();
+        $data["staff_attendance_keys"] = array_keys($this->staff_attendance);
         $data["alloted_leave"]   = $alloted_leave[0]["alloted_leave"];
+        $data['month_absent_working_days'] = $this->getMonthAbsentWorkingDays($data['monthAttendance'], $employee_payroll['staff_id']);
+        $data['month_absent_total'] = $this->getMonthAbsentTotals($data['monthAttendance'], $data['month_absent_working_days']);
+        $data['payroll_lop_summary'] = $this->getPayrollLopSummary($data['monthAttendance'], $data['monthLeaves'], $data["month"], $data["year"], $employee_payroll['staff_id']);
         $this->load->view("layout/header", $data);
         $this->load->view("admin/payroll/edit", $data);
         $this->load->view("layout/footer", $data);
+    }
+
+    private function getPayrollLopSummary($monthAttendance, $monthLeaves, $month, $year, $staff_id)
+    {
+        $month_num = date('m', strtotime($year . '-' . $month . '-01'));
+        $month_key = '01-' . $month_num . '-' . $year;
+        $attendance = $monthAttendance[$month_key] ?? reset($monthAttendance) ?? [];
+
+        $holidays = (int) ($attendance['holiday'] ?? 0);
+        $sundays = (int) ($attendance['sunday'] ?? 0);
+        $days_in_month = cal_days_in_month(CAL_GREGORIAN, (int) $month_num, (int) $year);
+        $working_days = max(0, $days_in_month - $holidays - $sundays);
+
+        $present = (int) ($attendance['present'] ?? 0);
+        $late = (int) ($attendance['late'] ?? 0);
+        $absent_working = $this->getAbsentWorkingDayCount($month_num, $year, $staff_id);
+        $half_day = (int) ($attendance['half_day'] ?? 0);
+        $first_half_absent = (int) ($attendance['first_half_absent'] ?? 0);
+        $second_half_absent = (int) ($attendance['second_half_absent'] ?? 0);
+        $first_half_permission = (int) ($attendance['first_half_permission'] ?? 0);
+        $second_half_permission = (int) ($attendance['second_half_permission'] ?? 0);
+
+        $approved_leave = (int) ($monthLeaves[$month_num] ?? 0);
+
+        $lop_rules = $this->config->item('lop_rules');
+        $half_day_weight = isset($lop_rules['half_day_weight']) ? (float) $lop_rules['half_day_weight'] : 0.5;
+        $late_to_half_day = isset($lop_rules['late_to_half_day']) ? (int) $lop_rules['late_to_half_day'] : 0;
+        $permission_to_half_day = isset($lop_rules['permission_to_half_day']) ? (int) $lop_rules['permission_to_half_day'] : 0;
+
+        $late_half_days = $late_to_half_day > 0 ? floor($late / $late_to_half_day) : 0;
+        $permission_count = $first_half_permission + $second_half_permission;
+        $permission_half_days = $permission_to_half_day > 0 ? floor($permission_count / $permission_to_half_day) : 0;
+
+        $lop_days = $absent_working
+            + ($half_day * $half_day_weight)
+            + (($first_half_absent + $second_half_absent) * 0.5)
+            + ($late_half_days * 0.5)
+            + ($permission_half_days * 0.5);
+
+        $total_present = $present + ($half_day * $half_day_weight);
+        $total_absent = $absent_working + ($half_day * $half_day_weight);
+        $paid_days = $total_present;
+
+        return [
+            'month_key' => $month_key,
+            'days_in_month' => $days_in_month,
+            'working_days' => $working_days,
+            'present' => $present,
+            'absent' => $total_absent,
+            'half_day' => $half_day,
+            'late' => $late,
+            'first_half_absent' => $first_half_absent,
+            'second_half_absent' => $second_half_absent,
+            'first_half_permission' => $first_half_permission,
+            'second_half_permission' => $second_half_permission,
+            'approved_leave' => $approved_leave,
+            'holidays' => $holidays,
+            'sundays' => $sundays,
+            'late_half_days' => $late_half_days,
+            'permission_half_days' => $permission_half_days,
+            'lop_days' => $lop_days,
+            'paid_days' => $paid_days,
+        ];
+    }
+
+    private function getMonthAbsentWorkingDays($monthAttendance, $staff_id)
+    {
+        $absent_by_month = [];
+        foreach (array_keys($monthAttendance) as $month_key) {
+            $month_num = date('m', strtotime($month_key));
+            $year = date('Y', strtotime($month_key));
+            $absent_by_month[$month_key] = $this->getAbsentWorkingDayCount($month_num, $year, $staff_id);
+        }
+
+        return $absent_by_month;
+    }
+
+    private function getMonthAbsentTotals($monthAttendance, $absent_working_days)
+    {
+        $lop_rules = $this->config->item('lop_rules');
+        $half_day_weight = isset($lop_rules['half_day_weight']) ? (float) $lop_rules['half_day_weight'] : 0.5;
+
+        $total_by_month = [];
+        foreach ($monthAttendance as $month_key => $attendance_row) {
+            $half_day = (int) ($attendance_row['half_day'] ?? 0);
+            $absent_working = (int) ($absent_working_days[$month_key] ?? 0);
+            $total_by_month[$month_key] = $absent_working + ($half_day * $half_day_weight);
+        }
+
+        return $total_by_month;
+    }
+
+    private function getAbsentWorkingDayCount($month_num, $year, $staff_id)
+    {
+        $context = $this->getWorkingDayContext($month_num, $year);
+        $working_day_dates = $context['working_day_dates'];
+        $absent_count = 0;
+
+        foreach ($working_day_dates as $work_date) {
+            $attendance_row = $this->staffattendancemodel->searchStaffattendance($work_date, $staff_id, false);
+            $attendance_key = $attendance_row['key'] ?? null;
+            if ($attendance_key === 'A') {
+                $absent_count++;
+            }
+        }
+
+        return $absent_count;
+    }
+
+    private function getWorkingDayContext($month_num, $year)
+    {
+        $this->load->model("holiday_model");
+        $this->load->model("setting_model");
+
+        $holidays = $this->holiday_model->get();
+        $settings = $this->setting_model->getSetting();
+
+        $num_of_days = cal_days_in_month(CAL_GREGORIAN, (int) $month_num, (int) $year);
+
+        $weekendDaysStr = isset($settings->weekend_days) && !empty($settings->weekend_days) ? $settings->weekend_days : '0';
+        $weekendDays = array_map('intval', explode(',', $weekendDaysStr));
+        $isSecondSaturdayWeekend = isset($settings->isSecondSaturdayHoliday) ? (int) $settings->isSecondSaturdayHoliday : 0;
+
+        $second_saturday_date = null;
+        if ($isSecondSaturdayWeekend) {
+            $saturdayCount = 0;
+            for ($day = 1; $day <= $num_of_days; $day++) {
+                $dateObj = new DateTime($year . "-" . $month_num . "-" . sprintf("%02d", $day));
+                if ((int) $dateObj->format('w') == 6) {
+                    $saturdayCount++;
+                    if ($saturdayCount == 2) {
+                        $second_saturday_date = $dateObj->format('Y-m-d');
+                        break;
+                    }
+                }
+            }
+        }
+
+        $weekend_day_dates = [];
+        for ($day = 1; $day <= $num_of_days; $day++) {
+            $dateStr = $year . "-" . $month_num . "-" . sprintf("%02d", $day);
+            $dayOfWeek = (int) date('w', strtotime($dateStr));
+            if (in_array($dayOfWeek, $weekendDays, true) || ($second_saturday_date && $dateStr === $second_saturday_date)) {
+                $weekend_day_dates[] = $dateStr;
+            }
+        }
+        $weekend_day_dates = array_values(array_unique($weekend_day_dates));
+
+        $official_holiday_dates = [];
+        foreach ($holidays as $holiday_value) {
+            $from_date = new DateTime($holiday_value['from_date']);
+            $to_date = new DateTime($holiday_value['to_date']);
+
+            $current = clone $from_date;
+            while ($current <= $to_date) {
+                if ($current->format('m') == $month_num && $current->format('Y') == $year) {
+                    $official_holiday_dates[] = $current->format('Y-m-d');
+                }
+                $current->modify('+1 day');
+            }
+        }
+        $official_holiday_dates = array_values(array_unique($official_holiday_dates));
+
+        $holiday_dates = array_values(array_unique(array_filter($official_holiday_dates, function ($dateStr) use ($weekend_day_dates) {
+            return !in_array($dateStr, $weekend_day_dates, true);
+        })));
+
+        $working_day_dates = [];
+        for ($day = 1; $day <= $num_of_days; $day++) {
+            $dateStr = $year . "-" . $month_num . "-" . sprintf("%02d", $day);
+            if (!in_array($dateStr, $weekend_day_dates, true) && !in_array($dateStr, $holiday_dates, true)) {
+                $working_day_dates[] = $dateStr;
+            }
+        }
+
+        return [
+            'working_day_dates' => $working_day_dates,
+            'weekend_day_dates' => $weekend_day_dates,
+            'holiday_dates' => $holiday_dates,
+        ];
     }
 
     public function editpayroll()
@@ -361,6 +548,8 @@ class Payroll extends Admin_Controller
     {
         $this->load->model("holiday_model");
         $holidays = $this->holiday_model->get();
+        $this->load->model("setting_model");
+        $settings = $this->setting_model->getSetting();
         $this->load->model("staffattendancemodel");
         $this->staff_attendance  = $this->config->item('staffattendance');
 
@@ -372,19 +561,37 @@ class Payroll extends Admin_Controller
             $year  = date('Y', strtotime($st_month . " -$i month"));
 
 
-            $holiday_dates = array();
-            $sundays_in_month = [];
             $official_holiday_dates = [];
             $num_of_days = cal_days_in_month(CAL_GREGORIAN, $month, $year);
 
-            // Calculate all Sundays in the month
-            for ($day = 1; $day <= $num_of_days; $day++) {
-                $att_date = $year . "-" . $month . "-" . sprintf("%02d", $day);
-                if (date('w', strtotime($att_date)) == 0) { // 0 for Sunday
-                    $sundays_in_month[] = $att_date;
+            $weekendDaysStr = isset($settings->weekend_days) && !empty($settings->weekend_days) ? $settings->weekend_days : '0';
+            $weekendDays = array_map('intval', explode(',', $weekendDaysStr));
+            $isSecondSaturdayWeekend = isset($settings->isSecondSaturdayHoliday) ? (int) $settings->isSecondSaturdayHoliday : 0;
+
+            $second_saturday_date = null;
+            if ($isSecondSaturdayWeekend) {
+                $saturdayCount = 0;
+                for ($day = 1; $day <= $num_of_days; $day++) {
+                    $dateObj = new DateTime($year . "-" . $month . "-" . sprintf("%02d", $day));
+                    if ((int) $dateObj->format('w') == 6) {
+                        $saturdayCount++;
+                        if ($saturdayCount == 2) {
+                            $second_saturday_date = $dateObj->format('Y-m-d');
+                            break;
+                        }
+                    }
                 }
             }
-            $sundays_in_month = array_unique($sundays_in_month);
+
+            $weekend_day_dates = [];
+            for ($day = 1; $day <= $num_of_days; $day++) {
+                $att_date = $year . "-" . $month . "-" . sprintf("%02d", $day);
+                $dayOfWeek = (int) date('w', strtotime($att_date));
+                if (in_array($dayOfWeek, $weekendDays, true) || ($second_saturday_date && $att_date === $second_saturday_date)) {
+                    $weekend_day_dates[] = $att_date;
+                }
+            }
+            $weekend_day_dates = array_values(array_unique($weekend_day_dates));
 
             // Collect official holiday dates from annual_calendar
             foreach ($holidays as $holiday_key => $holiday_value) {
@@ -401,14 +608,8 @@ class Payroll extends Admin_Controller
             }
             $official_holiday_dates = array_unique($official_holiday_dates);
 
-            // Calculate actual holidays that are NOT Sundays
-            $holidays_only_count = count(array_diff($official_holiday_dates, $sundays_in_month));
-            // Calculate Sundays that are NOT official holidays
-            $sundays_only_count = count(array_diff($sundays_in_month, $official_holiday_dates));
-
-            // Merge all actual holiday dates (excluding Sundays if they are also official holidays) into $holiday_dates
             // This is for display in the "H" column for "other leaves"
-            $holidays_for_H_column = array_diff($official_holiday_dates, $sundays_in_month);
+            $holidays_for_H_column = array_diff($official_holiday_dates, $weekend_day_dates);
 
 
             $attendance_types_from_db = $this->staffattendancemodel->getStaffAttendanceType();
@@ -423,7 +624,7 @@ class Payroll extends Admin_Controller
 
                 if ($att_key == 'holiday') {
                     $r[$att_key] = count($holidays_for_H_column); // Now this only counts "other leaves"
-                    $r['sunday'] = count($sundays_in_month); // Adding Sundays to a new key
+                    $r['sunday'] = count($weekend_day_dates); // Weekend days count
                     continue;
                 }
 

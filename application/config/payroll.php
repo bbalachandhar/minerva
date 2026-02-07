@@ -39,6 +39,11 @@ $config['payroll_status'] = array(
     'unpaid' => lang('unpaid'),
     'not_generate' => lang('not_generated'),
 );
+$config['lop_rules'] = array(
+    'half_day_weight' => 0.5,
+    'late_to_half_day' => 0,
+    'permission_to_half_day' => 0,
+);
 $config['payment_mode'] = array(
     'cash' => lang('cash'),
     'cheque' => lang('cheque'),
