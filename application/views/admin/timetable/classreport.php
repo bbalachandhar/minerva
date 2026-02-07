@@ -130,9 +130,9 @@
                                                                                                             echo " (" . $tm_kue->code . ")";
                                                                                                         }
                                                                                                         ?></h5>
-                                                                                                    <p class="card-text"><i class="fa fa-clock-o"></i> <?php echo $tm_kue->time_from ?> - <strong class=""><?php echo $tm_kue->time_to; ?></strong></p>
-                                                                                                    <p class="card-text"><i class="fa fa-user"></i> <?php echo $tm_kue->name . " " . $tm_kue->surname . " (" . $tm_kue->employee_id . ")"; ?></p>
-                                                                                                    <p class="card-text"><i class="fa fa-building"></i> <?php echo $this->lang->line('room_no'); ?>: <?php echo $tm_kue->room_no; ?></p>
+                                                                                                    <p class="card-text"><i class="fa fa-clock-o"></i> <?php echo $tm_kue->time_from; ?> - <?php echo $tm_kue->time_to; ?></p>
+                                                                                                        <p class="card-text"><i class="fa fa-user"></i> <?php echo $tm_kue->name . " " . $tm_kue->surname . " (" . $tm_kue->employee_id . ")"; ?></p>
+                                                                                                        <p class="card-text"><i class="fa fa-building"></i> <?php echo $this->lang->line('room_no'); ?>: <?php echo ($tm_kue->room_no == '00:00' || $tm_kue->room_no == '' ? '' : $tm_kue->room_no); ?></p>
                                                                                                 </div>
                                                                                             </div>
                                                                                             <?php
