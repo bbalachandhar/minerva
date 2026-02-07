@@ -137,7 +137,7 @@ class Attendance_model extends CI_Model {
      * @param string $date The date to process (YYYY-MM-DD).
      * @return bool True if processed successfully, false otherwise.
      */
-    public function process_daily_biometric_attendance($date) {
+    public function process_daily_biometric_attendance($date, $now_ts = null) {
         $setting = $this->setting_model->getSetting();
         if (!$setting->staff_biometric) {
             log_message('info', 'Staff biometric attendance is disabled.');
@@ -162,6 +162,22 @@ class Attendance_model extends CI_Model {
 
         $morning_session_end_time = $setting->morning_session_end_time;
         $evening_session_end_time = $setting->evening_session_end_time;
+        $now_ts = $now_ts ?: time();
+        $final_cutoff_ts = null;
+        if (!empty($evening_session_end_time)) {
+            $final_cutoff_ts = strtotime($date . ' ' . $evening_session_end_time);
+        } elseif (!empty($morning_session_end_time)) {
+            $final_cutoff_ts = strtotime($date . ' ' . $morning_session_end_time);
+        }
+        $is_final = $final_cutoff_ts ? ($now_ts >= $final_cutoff_ts) : true;
+        $now_ts = time();
+        $final_cutoff_ts = null;
+        if (!empty($evening_session_end_time)) {
+            $final_cutoff_ts = strtotime($date . ' ' . $evening_session_end_time);
+        } elseif (!empty($morning_session_end_time)) {
+            $final_cutoff_ts = strtotime($date . ' ' . $morning_session_end_time);
+        }
+        $is_final = $final_cutoff_ts ? ($now_ts >= $final_cutoff_ts) : true;
 
         $all_staff = $this->staff_model->get(); 
         $staff_punches_by_day = [];
@@ -229,6 +245,8 @@ class Attendance_model extends CI_Model {
                 $second_half_status = $second_half_absent_id;
 
                 $arrival_second_half_status = null;
+                $pending_out_punch = false;
+                $pending_out_punch = false;
 
                 if ($half_day_settings && $this->time_in_range($in_time_final, $half_day_settings->entry_time_from, $half_day_settings->entry_time_to)) {
                     $first_half_status = $first_half_absent_id;
@@ -282,8 +300,15 @@ class Attendance_model extends CI_Model {
                         }
                     }
                 } else {
-                    $second_half_status = $second_half_absent_id;
-                    $remark = 'No closing punch found';
+                    if (!$is_final) {
+                        $second_half_status = $present_id;
+                        $pending_out_punch = true;
+                        $remark = 'Pending out punch';
+                    } else {
+                        $first_half_status = $first_half_absent_id;
+                        $second_half_status = $second_half_absent_id;
+                        $remark = 'No closing punch found';
+                    }
                 }
 
                 $first_half_present = in_array($first_half_status, [$present_id, $first_half_late_id, $permission_first_session_id], true);
@@ -297,7 +322,12 @@ class Attendance_model extends CI_Model {
                     $attendance_type_id = $absent_id;
                 }
 
-                $session_attendance_data = json_encode(['morning_session' => $first_half_status, 'afternoon_session' => $second_half_status]);
+                $session_attendance_data = json_encode([
+                    'morning_session' => $first_half_status,
+                    'afternoon_session' => $second_half_status,
+                    'pending_out_punch' => (!empty($pending_out_punch) && !$is_final) ? true : false,
+                    'is_final' => $is_final
+                ]);
             }
 
             // Prepare and save the final record
@@ -460,8 +490,15 @@ class Attendance_model extends CI_Model {
                         }
                     }
                 } else {
-                    $second_half_status = $second_half_absent_id;
-                    $remark = 'No closing punch found';
+                    if (!$is_final) {
+                        $second_half_status = $present_id;
+                        $pending_out_punch = true;
+                        $remark = 'Pending out punch';
+                    } else {
+                        $first_half_status = $first_half_absent_id;
+                        $second_half_status = $second_half_absent_id;
+                        $remark = 'No closing punch found';
+                    }
                 }
 
                 $first_half_present = in_array($first_half_status, [$present_id, $first_half_late_id, $permission_first_session_id], true);
@@ -475,7 +512,12 @@ class Attendance_model extends CI_Model {
                     $attendance_type_id = $absent_id;
                 }
 
-                $session_attendance_data = json_encode(['morning_session' => $first_half_status, 'afternoon_session' => $second_half_status]);
+                $session_attendance_data = json_encode([
+                    'morning_session' => $first_half_status,
+                    'afternoon_session' => $second_half_status,
+                    'pending_out_punch' => (!empty($pending_out_punch) && !$is_final) ? true : false,
+                    'is_final' => $is_final
+                ]);
             }
 
             $attendance_record_data = [

@@ -360,6 +360,9 @@
                                                                 
                                                                 echo 'Morning: ' . ($morning_text ?: 'N/A') . '<br>';
                                                                 echo 'Afternoon: ' . ($afternoon_text ?: 'N/A');
+                                                                if (!empty($session_data['pending_out_punch'])) {
+                                                                    echo '<br><span class="text-warning">Pending out punch</span>';
+                                                                }
                                                             } else {
                                                                 echo 'N/A';
                                                             }

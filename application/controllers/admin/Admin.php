@@ -64,6 +64,19 @@ class Admin extends Admin_Controller
         $this->sch_setting_detail = $this->setting_model->getSetting();
     }
 
+    private function getDashboardCache($key, $ttl, $builder)
+    {
+        $this->load->driver('cache', array('adapter' => 'file', 'backup' => 'dummy'));
+        $cached = $this->cache->get($key);
+        if ($cached !== false && $cached !== null) {
+            return $cached;
+        }
+
+        $data = call_user_func($builder);
+        $this->cache->save($key, $data, $ttl);
+        return $data;
+    }
+
     public function unauthorized()
     {
         $data = array();
@@ -204,8 +217,7 @@ class Admin extends Admin_Controller
         $data['days_collection']    = array();
         $data['days_expense']       = array();
 
-        $student_fee_history         = $this->studentfee_model->getTodayStudentFees();
-        $data['student_fee_history'] = $student_fee_history;
+        $data['student_fee_history'] = [];
 
         $event_colors         = array("#03a9f4", "#c53da9", "#757575", "#8e24aa", "#d81b60", "#7cb342", "#fb8c00", "#fb3b3b");
         $data["event_colors"] = $event_colors;
@@ -215,71 +227,26 @@ class Admin extends Admin_Controller
         $end_date             = date('Y-m-t');
         $current_month        = date('F');
 
-        $student_due_fee       = $this->studentfeemaster_model->getFeesAwaiting($start_date, $end_date);
-        $student_transport_fee = $this->studentfeemaster_model->getTransportFeesByDueDate($start_date, $end_date);
-        $data['fees_awaiting'] = $student_due_fee;
-
-        $current_session = $this->setting_model->getCurrentSession();
-        $students = $this->Student_model->getStudentsBySession($current_session);
-
-        // Debug output for fee fetching
-        error_log('DEBUG: getFeesAwaiting returned: ' . print_r($student_due_fee, true));
-        error_log('DEBUG: getTransportFeesByDueDate returned: ' . print_r($student_transport_fee, true));
+        $data['fees_awaiting'] = [];
 
         $total_fess    = 0;
         $total_paid    = 0;
         $total_unpaid  = 0;
         $total_partial = 0;
 
-        if (!empty($student_transport_fee)) {
+        $total_fess    = 0;
+        $total_paid    = 0;
+        $total_unpaid  = 0;
+        $total_partial = 0;
 
-            foreach ($student_transport_fee as $transport_fees_key => $transport_fees_value) {
-
-                $amount_to_be_taken = 0;
-                if ($transport_fees_value->fees > 0) {
-                    $amount_to_be_taken = $transport_fees_value->fees;
-                }
-
-                if ($amount_to_be_taken > 0) {
-                    $total_fess++;
-
-                    if (is_string($transport_fees_value->amount_detail) && is_array(json_decode($transport_fees_value->amount_detail, true)) && (json_last_error() == JSON_ERROR_NONE)) {
-                        $amount_paid_details = (json_decode($transport_fees_value->amount_detail));
-                        $amt_                = 0;
-                        foreach ($amount_paid_details as $amount_paid_detail_key => $amount_paid_detail_value) {
-                            $amt_ = $amt_ + $amount_paid_detail_value->amount;
-                        }
-
-                        if (($amt_ + $amount_paid_detail_value->amount_discount) >= $amount_to_be_taken) {
-                            $total_paid++;
-                        } elseif (($amt_ + $amount_paid_detail_value->amount_discount) < $amount_to_be_taken) {
-                            $total_partial++;
-                        }
-                    } else {
-                        $total_unpaid++;
-                    }
-
-                }
-            }
-        }
-
-        if (!empty($data['fees_awaiting'])) {
-            $unpaid_total_amount = 0;
-            foreach ($data['fees_awaiting'] as $awaiting_key => $awaiting_value) {
-                // Calculate (Balance - CF-Balance) for each student
-                $balance = isset($awaiting_value->balance) ? $awaiting_value->balance : 0;
-                $cf_balance = isset($awaiting_value->cf_balance) ? $awaiting_value->cf_balance : 0;
-                $unpaid_total_amount += ($balance - $cf_balance);
-            }
-            $data['fees_awaiting_total_amount'] = $unpaid_total_amount;
-        }
+        $data['fees_awaiting_total_amount'] = 0;
 
         $month_income = 0;
         $incomegraph = $this->income_model->getIncomeHeadsData($start_date, $end_date);
         foreach ($incomegraph as $key => $value) {
             $incomegraph[$key]['total'] = convertBaseAmountCurrencyFormat($value['total']);
             if (!empty($value['total'])) {
-                $month_income = $month_income + $value['total'];  // Add raw numeric value, not formatted string
+                $month_income = $month_income + $value['total'];
             }
         }
         $data['incomegraph'] = $incomegraph;
@@ -289,7 +256,7 @@ class Admin extends Admin_Controller
         foreach ($expensegraph as $key => $value) {
             $expensegraph[$key]['total'] = convertBaseAmountCurrencyFormat($value['total']);
             if (!empty($value['total'])) {
-                $month_expense = $month_expense + $value['total'];  // Add raw numeric value, not formatted string
+                $month_expense = $month_expense + $value['total'];
             }
         }
         $data['expensegraph']  = $expensegraph;
@@ -314,55 +281,10 @@ class Admin extends Admin_Controller
         );
         $data['fees_awaiting_progress'] = 0;
 
-        // Calculate Total Demand, Collection, Awaiting (match Custom Balance Fees Report)
-        $total_demand = 0;
-        $total_collection = 0;
-        $total_awaiting = 0;
-        if (!empty($students)) {
-            foreach ($students as $student) {
-                $student_session_id = $student['student_session_id'];
-                $fees_data = $this->Customstudentfeemaster_model->getTransStudentFees($student_session_id);
-                $advance_balances = $this->Studentfeemaster_model->get_advance_balance($student_session_id);
-                $advance_paid = isset($advance_balances['paid_advance_balance']) ? $advance_balances['paid_advance_balance'] : 0;
-                $advance_discount = isset($advance_balances['discount_advance_balance']) ? $advance_balances['discount_advance_balance'] : 0;
-
-                // Total fees (sum of fee items)
-                $totalfee = 0;
-                if (!empty($fees_data->fees)) {
-                    foreach ($fees_data->fees as $fee_item) {
-                        $totalfee += $fee_item->amount;
-                    }
-                }
-
-                // Total paid (tuition + other + hostel + transport)
-                $total_paid_sum = 0;
-                if ($fees_data) {
-                    $total_paid_sum = $fees_data->tuition_paid + $fees_data->other_paid + $fees_data->hostel_paid + $fees_data->transport_paid;
-                }
-
-                // Previous session balance (CF)
-                $previous_session_balance_data = $this->Customstudentfeemaster_model->getPreviousSessionBalance($student_session_id);
-                $last_yr_cf = !empty($previous_session_balance_data) ? $previous_session_balance_data->amount : 0;
-                $cf_paid = $this->Customstudentfeemaster_model->getPreviousSessionPaid($student_session_id);
-                $cf_balance = $last_yr_cf - $cf_paid;
-
-                $balance = $totalfee - $total_paid_sum;
-                $balance += $cf_balance;
-                $net_balance = $balance - ($advance_paid + $advance_discount);
-
-                $student_demand = $totalfee;
-                $student_collection = $total_paid_sum;
-                $student_awaiting = $net_balance;
-
-                $total_demand += $student_demand;
-                $total_collection += $student_collection;
-                $total_awaiting += $student_awaiting;
-            }
-        }
-        $data['fees_overview']['total_demand'] = $total_demand;
-        $data['fees_overview']['total_collection'] = $total_collection;
-        $data['fees_overview']['total_awaiting'] = $total_awaiting;
-        $data['fees_awaiting_progress'] = ($total_demand > 0) ? (($total_awaiting * 100) / $total_demand) : 0;
+        $data['fees_overview']['total_demand'] = 0;
+        $data['fees_overview']['total_collection'] = 0;
+        $data['fees_overview']['total_awaiting'] = 0;
+        $data['fees_awaiting_progress'] = 0;
 
         $total_enquiry = $enquiry['total'];
 
@@ -983,6 +905,86 @@ class Admin extends Admin_Controller
                 'amount' => $month_expense,
                 'amount_formatted' => $month_expense ? ($currency_symbol . amountFormat($month_expense)) : ''
             )
+        );
+
+        return $this->output
+            ->set_content_type('application/json')
+            ->set_output(json_encode($response));
+    }
+
+    public function income_donut_widget()
+    {
+        if (!$this->rbac->hasPrivilege('income_donut_graph', 'can_view')) {
+            access_denied();
+        }
+
+        $this->load->helper('custom');
+        $this->load->model('income_model');
+
+        $start_date = date('Y-m-01');
+        $end_date = date('Y-m-t');
+        $incomegraph = $this->income_model->getIncomeHeadsData($start_date, $end_date);
+
+        $labels = [];
+        $data = [];
+        $colors = [];
+        $i = 1;
+        foreach ($incomegraph as $value) {
+            $labels[] = $value['income_category'];
+            $data[] = (float)$value['total'];
+            $colors[] = incomegraphColors($i++);
+            if ($i == 8) {
+                $i = 1;
+            }
+        }
+
+        $response = array(
+            'status' => 'success',
+            'data' => array(
+                'labels' => $labels,
+                'values' => $data,
+                'colors' => $colors,
+            ),
+        );
+
+        return $this->output
+            ->set_content_type('application/json')
+            ->set_output(json_encode($response));
+    }
+
+    public function expense_donut_widget()
+    {
+        if (!$this->rbac->hasPrivilege('expense_donut_graph', 'can_view')) {
+            access_denied();
+        }
+
+        $this->load->helper('custom');
+        $this->load->model('expense_model');
+
+        $start_date = date('Y-m-01');
+        $end_date = date('Y-m-t');
+        $expensegraph = $this->expense_model->getExpenseHeadData($start_date, $end_date);
+
+        $labels = [];
+        $data = [];
+        $colors = [];
+        $i = 1;
+        foreach ($expensegraph as $value) {
+            $labels[] = $value['exp_category'];
+            $data[] = (float)$value['total'];
+            $colors[] = expensegraphColors($i++);
+            if ($i == 8) {
+                $i = 1;
+            }
+        }
+
+        $response = array(
+            'status' => 'success',
+            'data' => array(
+                'labels' => $labels,
+                'values' => $data,
+                'colors' => $colors,
+            ),
         );
 
         return $this->output
