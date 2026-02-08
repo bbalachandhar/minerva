@@ -338,7 +338,13 @@ class Payroll_model extends MY_Model
 
     public function getSalaryDetails($id)
     {
-        $query = $this->db->select("sum(net_salary) as net_salary, sum(total_allowance) as earnings, sum(total_deduction) as deduction, sum(basic) as basic_salary, sum(tax) as tax")->where(array('staff_id' => $id, 'status' => 'paid'))->get("staff_payslip");
+        $query = $this->db->select("net_salary, total_allowance as earnings, total_deduction as deduction, basic as basic_salary, tax, leave_deduction")
+            ->where('staff_id', $id)
+            ->where_in('status', ['paid', 'generated'])
+            ->order_by('year', 'DESC')
+            ->order_by('FIELD(month, "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December")', 'DESC', false)
+            ->limit(1)
+            ->get("staff_payslip");
         return $query->row_array();
     }
 
@@ -436,6 +442,280 @@ class Payroll_model extends MY_Model
         
         $query = $this->db->get("staff");         
         return $query->result_array(); 
+    }
+
+    /**
+     * Get staff available paid leaves (where is_lop = 0)
+     * 
+     * @param int $staff_id Staff ID
+     * @return array Array of available paid leaves
+     */
+    public function getStaffPaidLeaves($staff_id)
+    {
+        $this->db->select('staff_leave_details.*, leave_types.type, leave_types.is_lop');
+        $this->db->from('staff_leave_details');
+        $this->db->join('leave_types', 'leave_types.id = staff_leave_details.leave_type_id');
+        $this->db->where('staff_leave_details.staff_id', $staff_id);
+        $this->db->where('leave_types.is_lop', 0); // Only paid leaves (not LOP type)
+        $this->db->order_by('leave_types.type', 'ASC'); // Alphabetical order
+        $query = $this->db->get();
+        
+        return $query->result_array();
+    }
+
+    /**
+     * Get approved leave days for a staff member in a specific month/year
+     * 
+     * @param int $staff_id Staff ID
+     * @param string $month Month (01-12)
+     * @param string $year Year (YYYY)
+     * @return array Array of approved leaves by leave type
+     */
+    public function getApprovedLeavesByMonth($staff_id, $month, $year)
+    {
+        $month_num = intval($month);
+        $year_num = intval($year);
+        
+        // Get approved leaves for the given month/year
+        $this->db->select('staff_leave_request.*, leave_types.type, leave_types.is_lop');
+        $this->db->from('staff_leave_request');
+        $this->db->join('leave_types', 'leave_types.id = staff_leave_request.leave_type_id');
+        $this->db->where('staff_leave_request.staff_id', $staff_id);
+        $this->db->where('staff_leave_request.status', 'approve');
+        $this->db->where('MONTH(staff_leave_request.leave_from)', $month_num);
+        $this->db->where('YEAR(staff_leave_request.leave_from)', $year_num);
+        $query = $this->db->get();
+        
+        return $query->result_array();
+    }
+
+    /**
+     * Auto-adjust LOP with available paid leaves (where is_lop = 0)
+     * 
+     * @param int $staff_id Staff ID
+     * @param float $lop_days Total LOP days to be adjusted
+     * @param string $month Month (01-12)
+     * @param string $year Year (YYYY)
+     * @param int|null $payslip_id Optional payslip ID for logging
+     * @return array Adjustment details [adjusted_lop, remaining_lop, adjustments]
+     */
+    public function autoAdjustLOPWithLeaves($staff_id, $lop_days, $month, $year, $payslip_id = null)
+    {
+        if ($lop_days <= 0) {
+            return [
+                'adjusted_lop' => 0,
+                'remaining_lop' => 0,
+                'adjustments' => []
+            ];
+        }
+
+        // Get available paid leaves (where is_lop = 0)
+        $paid_leaves = $this->getStaffPaidLeaves($staff_id);
+        
+        $remaining_lop = $lop_days;
+        $adjustments = [];
+        
+        // Iterate through all paid leave types
+        foreach ($paid_leaves as $leave) {
+            if ($remaining_lop <= 0) {
+                break; // No more LOP to adjust
+            }
+            
+            $available_leave = floatval($leave['alloted_leave']);
+            
+            if ($available_leave <= 0) {
+                continue; // No leaves available in this category
+            }
+            
+            // Calculate how much to adjust from this leave type
+            $to_adjust = min($available_leave, $remaining_lop);
+            
+            // Update staff_leave_details - deduct the adjusted amount
+            $new_balance = $available_leave - $to_adjust;
+            $this->db->where('id', $leave['id']);
+            $this->db->update('staff_leave_details', ['alloted_leave' => $new_balance]);
+            
+            // Track adjustment
+            $adjustments[] = [
+                'leave_type_id' => $leave['leave_type_id'],
+                'leave_type' => $leave['type'],
+                'available_before' => $available_leave,
+                'days_adjusted' => $to_adjust,
+                'balance_after' => $new_balance
+            ];
+            
+            $remaining_lop -= $to_adjust;
+        }
+        
+        $total_adjusted = $lop_days - $remaining_lop;
+        
+        // Log the adjustment
+        if ($payslip_id && $total_adjusted > 0) {
+            $this->logLOPAdjustment($staff_id, $payslip_id, $month, $year, $lop_days, $remaining_lop, $adjustments);
+        }
+        
+        return [
+            'adjusted_lop' => $total_adjusted,
+            'remaining_lop' => $remaining_lop,
+            'adjustments' => $adjustments
+        ];
+    }
+
+    /**
+     * Adjust LOP based on approved leave applications
+     * 
+     * @param int $staff_id Staff ID
+     * @param float $lop_days Total LOP days to be adjusted
+     * @param string $month Month (01-12)
+     * @param string $year Year (YYYY)
+     * @param int|null $payslip_id Optional payslip ID for logging
+     * @return array Adjustment details [adjusted_lop, remaining_lop, adjustments]
+     */
+    public function adjustLOPWithApprovedLeaves($staff_id, $lop_days, $month, $year, $payslip_id = null)
+    {
+        if ($lop_days <= 0) {
+            return [
+                'adjusted_lop' => 0,
+                'remaining_lop' => 0,
+                'adjustments' => []
+            ];
+        }
+
+        // Get approved leaves for this month
+        $approved_leaves = $this->getApprovedLeavesByMonth($staff_id, $month, $year);
+        
+        $remaining_lop = $lop_days;
+        $adjustments = [];
+        
+        foreach ($approved_leaves as $leave_request) {
+            if ($remaining_lop <= 0) {
+                break;
+            }
+            
+            $leave_days = floatval($leave_request['leave_days']);
+            
+            if ($leave_days <= 0) {
+                continue;
+            }
+            
+            // Calculate adjustment
+            $to_adjust = min($leave_days, $remaining_lop);
+            
+            // Track adjustment
+            $adjustments[] = [
+                'leave_type_id' => $leave_request['leave_type_id'],
+                'leave_type' => $leave_request['type'],
+                'leave_request_id' => $leave_request['id'],
+                'days_adjusted' => $to_adjust,
+                'leave_from' => $leave_request['leave_from'],
+                'leave_to' => $leave_request['leave_to']
+            ];
+            
+            $remaining_lop -= $to_adjust;
+        }
+        
+        $total_adjusted = $lop_days - $remaining_lop;
+        
+        // Log the adjustment
+        if ($payslip_id && $total_adjusted > 0) {
+            $this->logLOPAdjustment($staff_id, $payslip_id, $month, $year, $lop_days, $remaining_lop, $adjustments);
+        }
+        
+        return [
+            'adjusted_lop' => $total_adjusted,
+            'remaining_lop' => $remaining_lop,
+            'adjustments' => $adjustments
+        ];
+    }
+
+    /**
+     * Log LOP adjustment for audit trail
+     * 
+     * @param int $staff_id Staff ID
+     * @param int $payslip_id Payslip ID
+     * @param string $month Month
+     * @param string $year Year
+     * @param float $original_lop Original LOP days
+     * @param float $adjusted_lop Final LOP days after adjustment
+     * @param array $adjustments Adjustment details
+     * @return bool Success
+     */
+    private function logLOPAdjustment($staff_id, $payslip_id, $month, $year, $original_lop, $adjusted_lop, $adjustments)
+    {
+        $log_data = [
+            'staff_id' => $staff_id,
+            'payslip_id' => $payslip_id,
+            'month' => $month,
+            'year' => $year,
+            'original_lop_days' => $original_lop,
+            'adjusted_lop_days' => $adjusted_lop,
+            'adjustment_details' => json_encode($adjustments),
+            'created_at' => date('Y-m-d H:i:s')
+        ];
+        
+        return $this->db->insert('staff_lop_adjustment_log', $log_data);
+    }
+
+    /**
+     * Process LOP adjustment based on system settings
+     * 
+     * @param int $staff_id Staff ID
+     * @param float $lop_days LOP days to adjust
+     * @param string $month Month (01-12)
+     * @param string $year Year (YYYY)
+     * @param int|null $payslip_id Optional payslip ID
+     * @return array Adjustment result
+     */
+    public function processLOPAdjustment($staff_id, $lop_days, $month, $year, $payslip_id = null)
+    {
+        // Get system setting
+        $settings = $this->setting_model->getSetting();
+        $auto_adjust = isset($settings->auto_adjust_lop_with_leaves) ? $settings->auto_adjust_lop_with_leaves : 0;
+        
+        if ($auto_adjust == 1) {
+            // Auto-adjust from available paid leaves
+            return $this->autoAdjustLOPWithLeaves($staff_id, $lop_days, $month, $year, $payslip_id);
+        } else {
+            // Adjust based on approved leave applications
+            return $this->adjustLOPWithApprovedLeaves($staff_id, $lop_days, $month, $year, $payslip_id);
+        }
+    }
+
+    /**
+     * Get LOP adjustment history for a staff member
+     * 
+     * @param int $staff_id Staff ID
+     * @param string|null $month Optional month filter
+     * @param string|null $year Optional year filter
+     * @return array Adjustment history
+     */
+    public function getLOPAdjustmentHistory($staff_id, $month = null, $year = null)
+    {
+        $this->db->select('staff_lop_adjustment_log.*');
+        $this->db->from('staff_lop_adjustment_log');
+        $this->db->where('staff_id', $staff_id);
+        
+        if ($month !== null) {
+            $this->db->where('month', $month);
+        }
+        
+        if ($year !== null) {
+            $this->db->where('year', $year);
+        }
+        
+        $this->db->order_by('created_at', 'DESC');
+        $query = $this->db->get();
+        
+        $results = $query->result_array();
+        
+        // Decode JSON adjustment details
+        foreach ($results as &$result) {
+            if (isset($result['adjustment_details'])) {
+                $result['adjustment_details'] = json_decode($result['adjustment_details'], true);
+            }
+        }
+        
+        return $results;
     }
 
 }

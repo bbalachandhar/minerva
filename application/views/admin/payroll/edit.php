@@ -51,12 +51,15 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                         </div>
                     </div><!--./box-header-->
                     <div class="box-body" style="padding-top:0;">
-                        <div class="row">
-                            <div class="col-md-8 col-sm-12">
-                                <div class="sfborder" style="padding: 10px 12px;">
-                                    <div class="col-md-2">
-                                        <div class="row">
-                                                                 <?php
+                        <div class="row" style="display: flex; align-items: stretch;">
+                            <div class="col-md-6 col-sm-12" style="display: flex;">
+                                <div class="sfborder" style="padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; width: 100%; display: flex; flex-direction: column; position: relative;">
+                                    <div style="position: absolute; top: 10px; right: 10px; background: rgba(255,255,255,0.9); padding: 8px 16px; border-radius: 20px; font-weight: 600; color: #667eea; box-shadow: 0 2px 8px rgba(0,0,0,0.1); font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">
+                                        STAFF INFO
+                                    </div>
+                                    <div style="display: flex; gap: 20px; align-items: flex-start; margin-top: 40px;">
+                                        <div style="flex-shrink: 0; display: flex; align-items: center; justify-content: center; width: 120px; height: 120px; background: rgba(255,255,255,0.15); border-radius: 12px; border: 3px solid rgba(255,255,255,0.3); box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+                                            <?php
 $image = $result['image'];
 if (!empty($image)) {
 
@@ -67,43 +70,41 @@ if (!empty($image)) {
 }
 $image=$this->media_storage->getImageURL("uploads/staff_images/" . $file);
 ?>
-    <img width="115" height="115" class="round5" src="<?php echo $image ?>" alt="No Image">
+                                            <img width="120" height="120" style="border-radius: 10px; object-fit: cover;" src="<?php echo $image ?>" alt="Staff Image">
                                         </div>
-                                    </div>
 
-                                    <div class="col-md-10">
-                                        <div class="row">
-                                            <table class="table mb0 font13">
+                                        <div style="flex: 1; min-width: 0; overflow: hidden;">
+                                            <table class="table mb0" style="background: rgba(255,255,255,0.95); border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); width: 100%; min-height: 250px;">
                                                 <tbody>
-                                                    <tr>
-                                                        <th class="bozero"><?php echo $this->lang->line("name"); ?></th>
-                                                        <td class="bozero"><?php echo $result["name"] . " " . $result["surname"] ?></td>
-                                                        <th class="bozero"><?php echo $this->lang->line('staff_id'); ?></th>
-                                                        <td class="bozero"><?php echo $result["employee_id"] ?></td>
+                                                    <tr style="background: #f8f9fa;">
+                                                        <th style="padding: 10px 8px; font-size: 11px; color: #495057; border: none; font-weight: 600;"><?php echo $this->lang->line("name"); ?></th>
+                                                        <td style="padding: 10px 8px; font-size: 12px; color: #667eea; border: none; font-weight: 600; word-break: break-word;"><?php echo $result["name"] . " " . $result["surname"] ?></td>
+                                                        <th style="padding: 10px 8px; font-size: 11px; color: #495057; border: none; font-weight: 600;"><?php echo $this->lang->line('staff_id'); ?></th>
+                                                        <td style="padding: 10px 8px; font-size: 12px; color: #667eea; border: none; font-weight: 600; word-break: break-word;"><?php echo $result["employee_id"] ?></td>
                                                     </tr>
-                                                    <tr>
+                                                    <tr style="background: #ffffff;">
                                                         <?php if ($sch_setting->staff_phone) {?>
-                                                            <th><?php echo $this->lang->line('phone'); ?></th>
+                                                            <th style="padding: 10px 8px; font-size: 11px; color: #495057; border: none; font-weight: 600;"><?php echo $this->lang->line('phone'); ?></th>
                                                         <?php }?>
-                                                        <td><?php echo $result["contact_no"] ?></td>
-                                                        <th><?php echo $this->lang->line('email'); ?></th>
-                                                        <td><?php echo $result["email"] ?></td>
+                                                        <td style="padding: 10px 8px; font-size: 12px; color: #17a2b8; border: none; font-weight: 600; word-break: break-word;"><?php echo $result["contact_no"] ?></td>
+                                                        <th style="padding: 10px 8px; font-size: 11px; color: #495057; border: none; font-weight: 600;"><?php echo $this->lang->line('email'); ?></th>
+                                                        <td style="padding: 10px 8px; font-size: 12px; color: #17a2b8; border: none; font-weight: 600; word-break: break-word;"><?php echo $result["email"] ?></td>
                                                     </tr>
-                                                    <tr>
+                                                    <tr style="background: #f8f9fa;">
                                                         <?php if ($sch_setting->staff_epf_no) {?>
-                                                            <th><?php echo $this->lang->line('epf_no'); ?></th>
-                                                            <td><?php echo $result["epf_no"] ?></td>
+                                                            <th style="padding: 10px 8px; font-size: 11px; color: #495057; border: none; font-weight: 600;"><?php echo $this->lang->line('epf_no'); ?></th>
+                                                            <td style="padding: 10px 8px; font-size: 12px; color: #28a745; border: none; font-weight: 600; word-break: break-word;"><?php echo $result["epf_no"] ?></td>
                                                         <?php }?>
-                                                        <th><?php echo $this->lang->line('role'); ?></th>
-                                                        <td><?php echo $result["user_type"] ?></td>
+                                                        <th style="padding: 10px 8px; font-size: 11px; color: #495057; border: none; font-weight: 600;"><?php echo $this->lang->line('role'); ?></th>
+                                                        <td style="padding: 10px 8px; font-size: 12px; color: #fd7e14; border: none; font-weight: 600; word-break: break-word;"><?php echo $result["user_type"] ?></td>
                                                     </tr>
-                                                    <tr>
+                                                    <tr style="background: #ffffff;">
                                                         <?php if ($sch_setting->staff_department) {?>
-                                                            <th><?php echo $this->lang->line('department'); ?></th>
-                                                            <td><?php echo $result["department"] ?></td>
+                                                            <th style="padding: 10px 8px; font-size: 11px; color: #495057; border: none; font-weight: 600;"><?php echo $this->lang->line('department'); ?></th>
+                                                            <td style="padding: 10px 8px; font-size: 12px; color: #6f42c1; border: none; font-weight: 600; word-break: break-word;"><?php echo $result["department"] ?></td>
                                                         <?php }if ($sch_setting->staff_designation) {?>
-                                                            <th><?php echo $this->lang->line('designation'); ?></th>
-                                                            <td><?php echo $result["designation"] ?>   </td>
+                                                            <th style="padding: 10px 8px; font-size: 11px; color: #495057; border: none; font-weight: 600;"><?php echo $this->lang->line('designation'); ?></th>
+                                                            <td style="padding: 10px 8px; font-size: 12px; color: #e83e8c; border: none; font-weight: 600; word-break: break-word;"><?php echo $result["designation"] ?>   </td>
                                                         <?php }?>
                                                     </tr>
                                                 </tbody>
@@ -111,31 +112,34 @@ $image=$this->media_storage->getImageURL("uploads/staff_images/" . $file);
                                         </div>
                                     </div>
                                 </div>
-                            </div><!--./col-md-8-->
-                            <div class="col-md-4 col-sm-12">
-                                <div class="sfborder relative overvisible">
-                                    <div class="letest">
-                                        <div class="rotatetest"><?php echo $this->lang->line("attendance") ?></div>
+                            </div><!--./col-md-6-->
+                            <div class="col-md-6 col-sm-12" style="display: flex;">
+                                <div class="sfborder relative" style="width: 100%; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); border-radius: 8px; padding: 20px; overflow: visible;">
+                                    <div style="position: absolute; top: 10px; right: 10px; background: rgba(255,255,255,0.9); padding: 8px 16px; border-radius: 20px; font-weight: 600; color: #e91e63; box-shadow: 0 2px 8px rgba(0,0,0,0.1); font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">
+                                        <?php echo $this->lang->line("attendance") ?>
                                     </div>
-                                    <div class="padd-en-rtl33">
-                                        <div class="text-muted" style="font-size:11px; margin-bottom:6px;">
-                                            P*: Present incl. half-day and approved paid leave on absent days. A*: Absent incl. half-day and late/permission penalty beyond limits. L: Late count. PR: Permission count. APR: Approved paid leaves. LOP: Loss Of Pay days.
-                                        </div>
-                                        <table class="table mb0 font13" >
-                                            <tr>
-                                                <th  class="bozero"><?php echo $this->lang->line('month'); ?></th>
-                                                <th class="bozero"><span data-toggle="tooltip" title="Total Working Days">WD</span></th>
-                                                <th class="bozero"><span data-toggle="tooltip" title="Total Present (Including Half Day)">P*</span></th>
-                                                <th class="bozero"><span data-toggle="tooltip" title="Total Absent (Including Half Day)">A*</span></th>
-                                                <th class="bozero"><span data-toggle="tooltip" title="Half Day">HD</span></th>
-                                                <th class="bozero"><span data-toggle="tooltip" title="Total Holidays">H</span></th>
-                                                <th class="bozero"><span data-toggle="tooltip" title="Total Late">L</span></th>
-                                                <th class="bozero"><span data-toggle="tooltip" title="Total Permissions">PR</span></th>
-                                                <th class="bozero"><span data-toggle="tooltip" title="Approved Paid Leaves">APR</span></th>
-                                                <th class="bozero"><span data-toggle="tooltip" title="Loss Of Pay Days">LOP</span></th>
-                                                <th class="bozero"><span data-toggle="tooltip" title="Weekends">WE</span></th>
-                                            </tr>
+                                    <div style="background: rgba(255,255,255,0.95); border-radius: 8px; padding: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); overflow-x: auto; margin-top: 40px; min-height: 250px;">
+                                        <table class="table mb0" style="font-size: 11px; margin-bottom: 0; table-layout: auto; border-collapse: separate; border-spacing: 0;">
+                                            <thead style="position: sticky; top: 0; z-index: 10;">
+                                                <tr style="background: #2c3e50 !important;">
+                                                    <th style="padding: 10px 6px !important; color: #ffffff !important; border: none !important; font-weight: 700 !important; text-align: center !important; background: #2c3e50 !important;"><?php echo $this->lang->line('month'); ?></th>
+                                                    <th style="padding: 10px 6px !important; color: #ffffff !important; border: none !important; font-weight: 700 !important; text-align: center !important; background: #2c3e50 !important;"><span data-toggle="tooltip" title="Total Working Days">WD</span></th>
+                                                    <th style="padding: 10px 6px !important; color: #ffffff !important; border: none !important; font-weight: 700 !important; text-align: center !important; background: #2c3e50 !important;"><span data-toggle="tooltip" title="Total Present (Including Half Day)">P*</span></th>
+                                                    <th style="padding: 10px 6px !important; color: #ffffff !important; border: none !important; font-weight: 700 !important; text-align: center !important; background: #2c3e50 !important;"><span data-toggle="tooltip" title="Total Absent (Including Half Day)">A*</span></th>
+                                                    <th style="padding: 10px 6px !important; color: #ffffff !important; border: none !important; font-weight: 700 !important; text-align: center !important; background: #2c3e50 !important;"><span data-toggle="tooltip" title="Half Day">HD</span></th>
+                                                    <th style="padding: 10px 6px !important; color: #ffffff !important; border: none !important; font-weight: 700 !important; text-align: center !important; background: #2c3e50 !important;"><span data-toggle="tooltip" title="Total Holidays">H</span></th>
+                                                    <th style="padding: 10px 6px !important; color: #ffffff !important; border: none !important; font-weight: 700 !important; text-align: center !important; background: #2c3e50 !important;"><span data-toggle="tooltip" title="Total Late">L</span></th>
+                                                    <th style="padding: 10px 6px !important; color: #ffffff !important; border: none !important; font-weight: 700 !important; text-align: center !important; background: #2c3e50 !important;"><span data-toggle="tooltip" title="Total Permissions">PR</span></th>
+                                                    <th style="padding: 10px 6px !important; color: #ffffff !important; border: none !important; font-weight: 700 !important; text-align: center !important; background: #2c3e50 !important;"><span data-toggle="tooltip" title="Approved Paid Leaves">APR</span></th>
+                                                    <th style="padding: 10px 6px !important; color: #ffffff !important; border: none !important; font-weight: 700 !important; text-align: center !important; background: #2c3e50 !important;"><span data-toggle="tooltip" title="Actual Loss Of Pay Days">LOP</span></th>
+                                                    <th style="padding: 10px 6px !important; color: #ffffff !important; border: none !important; font-weight: 700 !important; text-align: center !important; background: #2c3e50 !important;"><span data-toggle="tooltip" title="Adjusted LOP Days">AdjLOP</span></th>
+                                                    <th style="padding: 10px 6px !important; color: #ffffff !important; border: none !important; font-weight: 700 !important; text-align: center !important; background: #2c3e50 !important;"><span data-toggle="tooltip" title="Net LOP Days (Used for Deduction)">NetLOP</span></th>
+                                                    <th style="padding: 10px 6px !important; color: #ffffff !important; border: none !important; font-weight: 700 !important; text-align: center !important; background: #2c3e50 !important;"><span data-toggle="tooltip" title="Weekends">WE</span></th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
                                                 <?php
+                                            $attendence_key_index = 0;
                                             foreach ($monthAttendance as $attendence_key => $attendence_value) {
                                             ?>
                                             <?php
@@ -171,30 +175,46 @@ $total_present = max(0, $total_present - $late_permission_penalty + $paid_leave_
 $total_absent = $total_absent + $late_permission_penalty;
 $lop_days = $total_absent + (($first_half_absent + $second_half_absent) * $half_day_weight);
 ?>
-                                            <tr>
-                                                <td><?php echo date("F", strtotime($attendence_key)); ?></td>
-                                                <td><?php echo $working_days; ?></td>
-                                                <td><?php echo rtrim(rtrim(number_format((float) $total_present, 1, '.', ''), '0'), '.'); ?></td>
-                                                <td><?php echo rtrim(rtrim(number_format((float) $total_absent, 1, '.', ''), '0'), '.'); ?></td>
-                                                <td><?php echo $half_day; ?></td>
-                                                <td><?php echo $holiday_count; ?></td>
-                                                <td><?php echo $late_count; ?></td>
-                                                <td><?php echo $permission_count; ?></td>
-                                                <td><?php echo $approved_leave; ?></td>
-                                                <td><?php echo rtrim(rtrim(number_format((float) $lop_days, 1, '.', ''), '0'), '.'); ?></td>
-                                                <td><?php echo $weekend_count; ?></td>
+                                            <tr style="background: <?php echo ($attendence_key_index % 2 == 0) ? '#f8f9fa' : '#ffffff'; ?>; transition: all 0.2s;" onmouseover="this.style.background='#e3f2fd';" onmouseout="this.style.background='<?php echo ($attendence_key_index % 2 == 0) ? '#f8f9fa' : '#ffffff'; ?>';">
+                                                <td style="padding: 8px 6px; text-align: center; border: none; font-weight: 600; color: #495057;"><?php echo date("F", strtotime($attendence_key)); ?></td>
+                                                <td style="padding: 8px 6px; text-align: center; border: none; color: #212529;"><?php echo $working_days; ?></td>
+                                                <td style="padding: 8px 6px; text-align: center; border: none; color: #28a745; font-weight: 600;"><?php echo rtrim(rtrim(number_format((float) $total_present, 1, '.', ''), '0'), '.'); ?></td>
+                                                <td style="padding: 8px 6px; text-align: center; border: none; color: #dc3545; font-weight: 600;"><?php echo rtrim(rtrim(number_format((float) $total_absent, 1, '.', ''), '0'), '.'); ?></td>
+                                                <td style="padding: 8px 6px; text-align: center; border: none; color: #fd7e14;"><?php echo $half_day; ?></td>
+                                                <td style="padding: 8px 6px; text-align: center; border: none; color: #6c757d;"><?php echo $holiday_count; ?></td>
+                                                <td style="padding: 8px 6px; text-align: center; border: none; color: #ffc107; font-weight: 600;"><?php echo $late_count; ?></td>
+                                                <td style="padding: 8px 6px; text-align: center; border: none; color: #17a2b8;"><?php echo $permission_count; ?></td>
+                                                <td style="padding: 8px 6px; text-align: center; border: none; color: #20c997; font-weight: 600;"><?php echo $approved_leave; ?></td>
+                                                <td style="padding: 8px 6px; text-align: center; border: none; color: #dc3545; font-weight: 600; background: rgba(220, 53, 69, 0.1);"><?php echo rtrim(rtrim(number_format((float) $lop_days, 1, '.', ''), '0'), '.'); ?></td>
+                                                <td style="padding: 8px 6px; text-align: center; border: none; color: #6c757d;">-</td>
+                                                <td style="padding: 8px 6px; text-align: center; border: none; color: #6c757d;">-</td>
+                                                <td style="padding: 8px 6px; text-align: center; border: none; color: #6c757d;"><?php echo $weekend_count; ?></td>
                                             </tr>
                                             <?php
+                                            $attendence_key_index++;
                                             }
-                                            ?>                                            <tr>
-                                            </tr>
+                                            ?>
+                                            </tbody>
                                         </table>
                                     </div>
                                 </div>
-                            </div><!--./col-md-8-->
+                            </div><!--./col-md-6-->
                         </div>
                     </div>
                     <!-- /.box-body -->
+                    <div class="box-body" style="padding: 15px; background-color: #f9fafb; border-top: 1px solid #e5e7eb;">
+                        <div class="text-muted" style="font-size: 12px; line-height: 1.6;">
+                            <strong>Legend:</strong> 
+                            P*: Present incl. half-day and approved paid leave on absent days. 
+                            A*: Absent incl. half-day and late/permission penalty beyond limits. 
+                            L: Late count. 
+                            PR: Permission count. 
+                            APR: Approved paid leaves. 
+                            LOP: Actual Loss Of Pay days. 
+                            AdjLOP: Days adjusted with paid leaves. 
+                            NetLOP: Final LOP for salary deduction.
+                        </div>
+                    </div>
                     <form class="form-horizontal" action="<?php echo site_url('admin/payroll/editpayroll') ?>" method="post"  id="employeeform">
                         <input type="hidden" name="role" value="<?php echo $result["user_type"] ?>">
                         <input type="hidden" name="id" value="<?php echo $employee_payroll["id"] ?>">

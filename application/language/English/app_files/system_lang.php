@@ -2450,6 +2450,7 @@ $lang['total_negative_marks'] = "Total Negative Marks";
 $lang['total_net_salary_paid'] = "Total Net Salary Paid";	
 $lang['total_obtain_marks'] = "Total Obtain Marks";	
 $lang['total_pay'] = "Total Pay";	
+$lang['total_permission'] = "Total Permission";	
 $lang['total_present'] = "Total Present";	
 $lang['total_quantity'] = "Total Quantity";	
 $lang['total_questions'] = "Total Questions";	

@@ -996,10 +996,24 @@ class Payroll extends Admin_Controller
             $monthLeaves = $this->monthLeaves($newdate, 3, $staff['id']);
             $lop_summary = $this->getPayrollLopSummary($monthAttendanceData, $monthLeaves, $month, $year, $staff['id']);
 
+            // Track LOP values: Actual, Adjusted, and Net
+            $actual_lop_days = !empty($lop_summary['lop_days']) ? (float) $lop_summary['lop_days'] : 0;
+            $adjusted_lop_days = 0;
+            $net_lop_days = $actual_lop_days;
+
+            // Auto adjust LOP with available paid leaves if setting is enabled
+            if ($actual_lop_days > 0) {
+                $adjusted_result = $this->payroll_model->processLOPAdjustment($staff['id'], $actual_lop_days, $month, $year);
+                if ($adjusted_result !== false && is_array($adjusted_result)) {
+                    $net_lop_days = (float) $adjusted_result['remaining_lop'];
+                    $adjusted_lop_days = $actual_lop_days - $net_lop_days;
+                }
+            }
+
             $gross_salary = (float) $basic + (float) $total_allowance;
             $lop_deduction = 0;
-            if (!empty($lop_summary['working_days']) && !empty($lop_summary['lop_days'])) {
-                $lop_deduction = ($gross_salary / (float) $lop_summary['working_days']) * (float) $lop_summary['lop_days'];
+            if (!empty($lop_summary['working_days']) && $net_lop_days > 0) {
+                $lop_deduction = ($gross_salary / (float) $lop_summary['working_days']) * $net_lop_days;
             }
 
             $net_salary = $gross_salary - (float) $total_deduction - (float) $lop_deduction - (float) $tax;
@@ -1016,6 +1030,9 @@ class Payroll extends Admin_Controller
                 'year' => $year,
                 'tax' => $tax,
                 'leave_deduction' => $lop_deduction,
+                'actual_lop_days' => $actual_lop_days,
+                'adjusted_lop_days' => $adjusted_lop_days,
+                'net_lop_days' => $net_lop_days,
             );
 
             if (!empty($staff['payslip_id']) && $overwrite) {

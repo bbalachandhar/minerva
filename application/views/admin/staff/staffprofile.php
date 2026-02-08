@@ -641,7 +641,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                         <div class="tab-pane" id="payroll">
                             <div class="row row-flex">
                                 <div class="col-lg-3 col-md-4 col-sm-6 col-xs-12">
-                                    <div class="staffprofile">
+                                    <div class="staffprofile" style="background: linear-gradient(135deg, #667eea, #764ba2);">
                                         <h5><?php echo $this->lang->line('total_net_salary_paid'); ?></h5>
                                         <h4><?php
                                             if (!empty($salary["net_salary"])) {
@@ -656,12 +656,13 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                     </div>
                                 </div><!--./col-md-3-->
                                 <div class="col-lg-3 col-md-4 col-sm-6 col-xs-12">
-                                    <div class="staffprofile">
+                                    <div class="staffprofile" style="background: linear-gradient(135deg, #2ecc71, #27ae60);">
                                         <h5><?php echo $this->lang->line('total_gross_salary'); ?></h5>
                                         <h4><?php
-                                            if (!empty($salary["basic_salary"])) {
-                                                $basic_salary = $salary["basic_salary"] + $salary["earnings"] - $salary["deduction"];
-                                                echo $currency_symbol . amountFormat($basic_salary);
+                                            if (!empty($salary["earnings"])) {
+                                                // Gross Salary = Total Earnings - Total Deduction (Basic is already included in earnings)
+                                                $gross_salary = $salary["earnings"] - $salary["deduction"];
+                                                echo $currency_symbol . amountFormat($gross_salary);
                                             } else {
                                                 echo $currency_symbol . "0.00";
                                             }
@@ -672,7 +673,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                     </div>
                                 </div><!--./col-md-3-->
                                 <div class="col-lg-3 col-md-4 col-sm-6 col-xs-12">
-                                    <div class="staffprofile">
+                                    <div class="staffprofile" style="background: linear-gradient(135deg, #3498db, #2980b9);">
                                         <h5><?php echo $this->lang->line('total_earning'); ?></h5>
                                         <h4><?php
                                             if (!empty($salary["earnings"])) {
@@ -687,8 +688,8 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                     </div>
                                 </div><!--./col-md-3-->
                                 <div class="col-lg-3 col-md-4 col-sm-6 col-xs-12">
-                                    <div class="staffprofile">
-                                        <h5><?php echo $this->lang->line('total_deduction'); ?></h5>
+                                    <div class="staffprofile" style="background: linear-gradient(135deg, #f39c12, #e67e22);">
+                                        <h5>Deduction</h5>
                                         <h4><?php
                                             $deduction = $salary["deduction"] + $salary["tax"];
 
@@ -698,7 +699,38 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                                 echo $currency_symbol . "0.00";
                                             } ?> </h4>
                                         <div class="icon mt12font40">
-                                            <i class="fa fa-money"></i>
+                                            <i class="fa fa-minus-circle"></i>
+                                        </div>
+                                    </div>
+                                </div><!--./col-md-3-->
+                                <div class="col-lg-3 col-md-4 col-sm-6 col-xs-12">
+                                    <div class="staffprofile" style="background: linear-gradient(135deg, #e74c3c, #c0392b);">
+                                        <h5>LOP Deduction</h5>
+                                        <h4><?php
+                                            if (!empty($salary["leave_deduction"])) {
+                                                echo $currency_symbol . amountFormat($salary["leave_deduction"]);
+                                            } else {
+                                                echo $currency_symbol . "0.00";
+                                            } ?> </h4>
+                                        <div class="icon mt12font40">
+                                            <i class="fa fa-calendar-times-o"></i>
+                                        </div>
+                                    </div>
+                                </div><!--./col-md-3-->
+                                <div class="col-lg-3 col-md-4 col-sm-6 col-xs-12">
+                                    <div class="staffprofile" style="background: linear-gradient(135deg, #95a5a6, #7f8c8d);">
+                                        <h5>Total Deduction</h5>
+                                        <h4><?php
+                                            $deduction = $salary["deduction"] + $salary["tax"];
+                                            $total_deduction = $deduction + $salary["leave_deduction"];
+
+                                            if (!empty($total_deduction)) {
+                                                echo $currency_symbol . amountFormat($total_deduction);
+                                            } else {
+                                                echo $currency_symbol . "0.00";
+                                            } ?> </h4>
+                                        <div class="icon mt12font40">
+                                            <i class="fa fa-calculator"></i>
                                         </div>
                                     </div>
                                 </div><!--./col-md-3-->
@@ -937,12 +969,18 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                     bottom: 8px;
                                     opacity: 0.45;
                                     color: #fff;
+                                    font-size: 40px;
                                 }
-                                .att-present { background: linear-gradient(135deg, #2ecc71, #27ae60); }
-                                .att-absent { background: linear-gradient(135deg, #e74c3c, #c0392b); }
-                                .att-late { background: linear-gradient(135deg, #f1c40f, #f39c12); }
-                                .att-halfday { background: linear-gradient(135deg, #9b59b6, #8e44ad); }
-                                .att-holiday { background: linear-gradient(135deg, #3498db, #2980b9); }
+                                .att-card h5 {
+                                    color: #fff;
+                                    font-weight: 600;
+                                    margin-bottom: 10px;
+                                }
+                                .att-card h4 {
+                                    color: #fff;
+                                    font-weight: 700;
+                                    font-size: 28px;
+                                }
                                 .att-cell {
                                     color: #fff;
                                     font-weight: 600;
@@ -968,6 +1006,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                 'half_day' => 0,
                                 'absent' => 0,
                                 'late' => 0,
+                                'permission' => 0,
                             ];
                             $total_present = $summary['present'] + ($summary['half_day'] * 0.5);
                             $total_absent = $summary['absent'] + ($summary['half_day'] * 0.5);
@@ -975,79 +1014,99 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                 return rtrim(rtrim(number_format((float)$value, 1, '.', ''), '0'), '.');
                             };
                             ?>
-                            <div class="row">
-                                <div class="col-lg-3 col-md-4 col-sm-6 col20per">
-                                    <div class="staffprofile att-card att-present">
+                            <div class="row row-flex">
+                                <div class="col-lg-3 col-md-4 col-sm-6 col-xs-12">
+                                    <div class="staffprofile" style="background: linear-gradient(135deg, #2ecc71, #27ae60);">
                                         <h5><?php echo $this->lang->line('total_present'); ?> (P*)</h5>
                                         <h4 class="total_present"><?php echo $format_count($total_present); ?></h4>
-                                        <div class="icon">
-                                            <i class="fa  fa-check-square-o"></i>
-                                        </div>
-                                    </div>
-                                </div><!--./col-md-3-->
-                                <div class="col-lg-3 col-md-4 col-sm-6 col20per">
-                                    <div class="staffprofile att-card att-absent">
-                                        <h5><?php echo $this->lang->line('total_absent'); ?> (A*)</h5>
-                                        <h4 class="total_absent"><?php echo $format_count($total_absent); ?></h4>
-                                        <div class="icon">
-                                            <i class="fa  fa-check-square-o"></i>
-                                        </div>
-                                    </div>
-                                </div><!--./col-md-3-->
-                                <div class="col-lg-3 col-md-4 col-sm-6 col20per">
-                                    <div class="staffprofile att-card att-late">
-                                        <h5><?php echo $this->lang->line('total_late'); ?></h5>
-                                        <h4 class="total_late"><?php echo $summary['late']; ?></h4>
-                                        <div class="icon">
-                                            <i class="fa  fa-check-square-o"></i>
-                                        </div>
-                                    </div>
-                                </div><!--./col-md-3-->
-                                <div class="col-lg-3 col-md-4 col-sm-6 col20per">
-                                    <div class="staffprofile att-card att-halfday">
-                                        <h5><?php echo $this->lang->line('total_half_day'); ?></h5>
-                                        <h4 class="total_half_day"><?php echo $summary['half_day']; ?></h4>
-                                        <div class="icon">
+                                        <div class="icon mt12font40">
                                             <i class="fa fa-check-square-o"></i>
                                         </div>
                                     </div>
                                 </div><!--./col-md-3-->
-
-                                <div class="col-lg-3 col-md-4 col-sm-6 col20per">
-                                    <div class="staffprofile att-card att-holiday">
-                                        <h5><?php echo $this->lang->line('total_holiday'); ?></h5>
-                                        <h4 class="total_holiday"><?php echo $summary['holidays']; ?></h4>
-                                        <div class="icon">
-                                            <i class="fa  fa-check-square-o"></i>
+                                <div class="col-lg-3 col-md-4 col-sm-6 col-xs-12">
+                                    <div class="staffprofile" style="background: linear-gradient(135deg, #e74c3c, #c0392b);">
+                                        <h5><?php echo $this->lang->line('total_absent'); ?> (A*)</h5>
+                                        <h4 class="total_absent"><?php echo $format_count($total_absent); ?></h4>
+                                        <div class="icon mt12font40">
+                                            <i class="fa fa-times-circle"></i>
                                         </div>
                                     </div>
                                 </div><!--./col-md-3-->
-                                <div class="col-lg-3 col-md-4 col-sm-6 col20per">
-                                    <div class="staffprofile att-card" style="background: linear-gradient(135deg, #16a085, #1abc9c);">
-                                        <h5>Working Days</h5>
-                                        <h4><?php echo $summary['working_days']; ?></h4>
-                                        <div class="icon">
+                                <div class="col-lg-3 col-md-4 col-sm-6 col-xs-12">
+                                    <div class="staffprofile" style="background: linear-gradient(135deg, #f1c40f, #f39c12); position: relative;">
+                                        <h5><?php echo $this->lang->line('total_late'); ?> 
+                                            <?php if ((int)$summary['late'] > 0) { ?>
+                                                <i class="fa fa-eye" style="cursor: pointer; font-size: 14px; margin-left: 5px;" onclick="showAttendanceDetails('late', <?php echo $staff['id']; ?>)" title="View Details"></i>
+                                            <?php } ?>
+                                        </h5>
+                                        <h4 class="total_late"><?php echo $summary['late']; ?></h4>
+                                        <div class="icon mt12font40">
+                                            <i class="fa fa-clock-o"></i>
+                                        </div>
+                                    </div>
+                                </div><!--./col-md-3-->
+                                <div class="col-lg-3 col-md-4 col-sm-6 col-xs-12">
+                                    <div class="staffprofile" style="background: linear-gradient(135deg, #17a2b8, #138496); position: relative;">
+                                        <h5><?php echo $this->lang->line('total_permission'); ?> 
+                                            <?php if ((int)(isset($summary['permission']) ? $summary['permission'] : 0) > 0) { ?>
+                                                <i class="fa fa-eye" style="cursor: pointer; font-size: 14px; margin-left: 5px;" onclick="showAttendanceDetails('permission', <?php echo $staff['id']; ?>)" title="View Details"></i>
+                                            <?php } ?>
+                                        </h5>
+                                        <h4 class="total_permission"><?php echo isset($summary['permission']) ? $summary['permission'] : 0; ?></h4>
+                                        <div class="icon mt12font40">
+                                            <i class="fa fa-user-plus"></i>
+                                        </div>
+                                    </div>
+                                </div><!--./col-md-3-->
+                                <div class="col-lg-3 col-md-4 col-sm-6 col-xs-12">
+                                    <div class="staffprofile" style="background: linear-gradient(135deg, #9b59b6, #8e44ad); position: relative;">
+                                        <h5><?php echo $this->lang->line('total_half_day'); ?> 
+                                            <?php if ((int)$summary['half_day'] > 0) { ?>
+                                                <i class="fa fa-eye" style="cursor: pointer; font-size: 14px; margin-left: 5px;" onclick="showAttendanceDetails('halfday', <?php echo $staff['id']; ?>)" title="View Details"></i>
+                                            <?php } ?>
+                                        </h5>
+                                        <h4 class="total_half_day"><?php echo $summary['half_day']; ?></h4>
+                                        <div class="icon mt12font40">
+                                            <i class="fa fa-adjust"></i>
+                                        </div>
+                                    </div>
+                                </div><!--./col-md-3-->
+                                <div class="col-lg-3 col-md-4 col-sm-6 col-xs-12">
+                                    <div class="staffprofile" style="background: linear-gradient(135deg, #3498db, #2980b9);">
+                                        <h5><?php echo $this->lang->line('total_holiday'); ?></h5>
+                                        <h4 class="total_holiday"><?php echo $summary['holidays']; ?></h4>
+                                        <div class="icon mt12font40">
                                             <i class="fa fa-calendar"></i>
                                         </div>
                                     </div>
                                 </div><!--./col-md-3-->
-                                <div class="col-lg-3 col-md-4 col-sm-6 col20per">
-                                    <div class="staffprofile att-card" style="background: linear-gradient(135deg, #34495e, #2c3e50);">
+                                <div class="col-lg-3 col-md-4 col-sm-6 col-xs-12">
+                                    <div class="staffprofile" style="background: linear-gradient(135deg, #16a085, #1abc9c);">
+                                        <h5>Working Days</h5>
+                                        <h4><?php echo $summary['working_days']; ?></h4>
+                                        <div class="icon mt12font40">
+                                            <i class="fa fa-briefcase"></i>
+                                        </div>
+                                    </div>
+                                </div><!--./col-md-3-->
+                                <div class="col-lg-3 col-md-4 col-sm-6 col-xs-12">
+                                    <div class="staffprofile" style="background: linear-gradient(135deg, #34495e, #2c3e50);">
                                         <h5>Weekends</h5>
                                         <h4><?php echo $summary['weekends']; ?></h4>
-                                        <div class="icon">
-                                            <i class="fa fa-calendar-times-o"></i>
+                                        <div class="icon mt12font40">
+                                            <i class="fa fa-bed"></i>
                                         </div>
                                     </div>
                                 </div><!--./col-md-3-->
                             </div>
-                            <div class="row">
+                            <div class="row" style="margin-top: 20px;">
                                 <div class="col-md-3 col-sm-3">
                                     <form id="" action="" method="">
                                         <div class="form-group">
                                             <label class="sess18"><?php echo $this->lang->line('year'); ?></label>
                                             <div class="sessyearbox">
-                                                <select class="form-control" style="margin-top: -5px;" name="year" onchange="ajax_attendance('<?php echo $staff["id"]; ?>', this.value)">
+                                                <select class="form-control" id="attendance_year" style="margin-top: -5px;" name="year" onchange="ajax_attendance('<?php echo $staff["id"]; ?>', this.value)">
                                                     <?php foreach ($yearlist as $yearkey => $yearvalue) {
                                                     ?>
                                                         <option <?php
@@ -1958,4 +2017,78 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
             }
         });
     }));
+
+    function showAttendanceDetails(type, staff_id) {
+        var year = $('#attendance_year').val() || new Date().getFullYear();
+        var month = new Date().getMonth() + 1; // Current month (1-12)
+        
+        $('#attendance_detail_body').html('<tr><td colspan="4" class="text-center">Loading...</td></tr>');
+        $('#attendance_detail_modal').modal('show');
+
+        var typeMap = {
+            'late': 'TL',
+            'permission': 'TP',
+            'halfday': 'HD'
+        };
+
+        $.ajax({
+            url: baseurl + 'attendencereports/staffAttendanceDetail',
+            type: 'POST',
+            dataType: 'json',
+            data: {
+                staff_id: staff_id,
+                month: month,
+                year: year,
+                type: typeMap[type] || type
+            },
+            success: function (response) {
+                if (!response || response.status !== 'success' || !response.rows || response.rows.length === 0) {
+                    $('#attendance_detail_body').html('<tr><td colspan="4" class="text-center">No records found.</td></tr>');
+                    return;
+                }
+
+                var rowsHtml = '';
+                $.each(response.rows, function (i, row) {
+                    rowsHtml += '<tr>'
+                        + '<td>' + row.date + '</td>'
+                        + '<td>' + row.session + '</td>'
+                        + '<td>' + row.in_time + '</td>'
+                        + '<td>' + row.out_time + '</td>'
+                        + '</tr>';
+                });
+
+                $('#attendance_detail_body').html(rowsHtml);
+            },
+            error: function () {
+                $('#attendance_detail_body').html('<tr><td colspan="4" class="text-center">Failed to load data.</td></tr>');
+            }
+        });
+    }
 </script>
+
+<div id="attendance_detail_modal" class="modal fade" role="dialog">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title">Attendance Details</h4>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Session</th>
+                                <th>Punch In</th>
+                                <th>Punch Out</th>
+                            </tr>
+                        </thead>
+                        <tbody id="attendance_detail_body">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

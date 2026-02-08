@@ -1058,6 +1058,7 @@ class Schsettings extends Admin_Controller
                 'max_late_allowed' => $this->input->post('max_late_allowed'),
                 'max_permission_allowed' => $this->input->post('max_permission_allowed'),
                 'payroll_cutoff_day' => $cutoff_day,
+                'auto_adjust_lop_with_leaves' => $this->input->post('auto_adjust_lop_with_leaves') ? 1 : 0,
             );
             
             $this->setting_model->add($data);

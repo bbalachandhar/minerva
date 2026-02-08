@@ -206,6 +206,24 @@
                                             </div>
                                         </div>
                                     </div>
+
+                                    <div class="col-md-12">
+                                        <div class="form-group row">
+                                            <label class="col-sm-2">Auto Adjust LOP with Paid Leaves</label>
+                                            <div class="col-sm-10">
+                                                <div class="material-switch">
+                                                    <input id="auto_adjust_lop_with_leaves" name="auto_adjust_lop_with_leaves" type="checkbox" class="chk" value="1" <?php echo (isset($result->auto_adjust_lop_with_leaves) && $result->auto_adjust_lop_with_leaves == 1) ? 'checked="checked"' : ''; ?>>
+                                                    <label for="auto_adjust_lop_with_leaves" class="label-success"></label>
+                                                </div>
+                                                <div style="margin-top: 5px;">
+                                                    <small class="text-muted">
+                                                        <strong>When Enabled (ON):</strong> System automatically deducts LOP days from available paid leaves (CL, CPL, SL, etc.) without requiring leave applications.<br>
+                                                        <strong>When Disabled (OFF):</strong> Staff must apply for leaves through Leave Management and get approval before LOP is adjusted.
+                                                    </small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                
                                 </div><!--./row--> 
                             </div><!-- /.box-body -->
@@ -760,10 +778,27 @@ function get_student_input_value($array, $find_time)
     $(".edit_attendancetype").on('click', function (e) {
         var $this = $(this);
         $this.button('loading');
+        
+        // Manually handle checkbox value - serialize doesn't include unchecked checkboxes
+        var formData = $('#attendancetype_form').serializeArray();
+        
+        // Check if auto_adjust_lop_with_leaves checkbox exists in form data
+        var hasAutoAdjust = formData.some(function(item) {
+            return item.name === 'auto_adjust_lop_with_leaves';
+        });
+        
+        // If checkbox is not in the data (unchecked), add it with value 0
+        if (!hasAutoAdjust) {
+            formData.push({
+                name: 'auto_adjust_lop_with_leaves',
+                value: '0'
+            });
+        }
+        
         $.ajax({
             url: '<?php echo site_url("schsettings/saveattendancetype") ?>',
             type: 'POST',
-            data: $('#attendancetype_form').serialize(),
+            data: $.param(formData),
             dataType: 'json',
 
             success: function (data) {
