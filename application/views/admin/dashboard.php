@@ -636,9 +636,10 @@ if ($this->module_lib->hasActive('expense')) {
         if ($this->module_lib->hasActive('fees_collection')) {
             if ($this->rbac->hasPrivilege('fees_overview_widegts', 'can_view')) {
                 ?>
+                <!-- First Widget: Payment Status -->
                 <div class="col-md-3 col-sm-6 mb10">
-                    <div class="topprograssstart flex-card" id="fees-overview-widget" data-url="<?php echo site_url('admin/admin/fees_overview_widget'); ?>">
-                        <h5 class="pro-border"><?php echo $this->lang->line('fees_overview'); ?></h5>
+                    <div class="topprograssstart flex-card" id="fees-overview-widget-payment" data-url="<?php echo site_url('admin/admin/fees_overview_widget'); ?>">
+                        <h5 class="pro-border">Payment Status</h5>
                         <p class="text-uppercase mt10 clearfix">
                             <strong><?php echo $this->lang->line('unpaid'); ?>:</strong> <span class="fo-total-unpaid fo-skeleton">0</span>
                             <span class="pull-right"><span class="fo-unpaid-progress fo-skeleton">0</span>%</span><br/>
@@ -669,7 +670,13 @@ if ($this->module_lib->hasActive('expense')) {
                                 <div class="progress-bar progress-bar-aqua fo-paid-bar" style="width: 0%"></div>
                             </div>
                         </div>
-                        <hr/>
+                    </div><!--./topprograssstart-->
+                </div><!--./col-md-3-->
+                
+                <!-- Second Widget: Collection Overview -->
+                <div class="col-md-3 col-sm-6 mb10">
+                    <div class="topprograssstart flex-card" id="fees-overview-widget-collection" data-url="<?php echo site_url('admin/admin/fees_overview_widget'); ?>">
+                        <h5 class="pro-border">Collection Overview</h5>
                         <p class="text-uppercase mt10 clearfix">
                             <strong>Total Demand:</strong> <span class="fo-total-demand-count fo-skeleton">0</span>
                             <span class="pull-right"><span class="fo-demand-progress fo-skeleton">0</span>%</span><br>
@@ -700,6 +707,13 @@ if ($this->module_lib->hasActive('expense')) {
                                 <div class="progress-bar fo-awaiting-bar fo-skeleton progress-bar-yellow" style="width: 0%"></div>
                             </div>
                         </div>
+                    </div><!--./topprograssstart-->
+                </div><!--./col-md-3-->
+                
+                <!-- Third Widget: Last Year Pending -->
+                <div class="col-md-3 col-sm-6 mb10">
+                    <div class="topprograssstart flex-card" id="fees-overview-widget-pending" data-url="<?php echo site_url('admin/admin/fees_overview_widget'); ?>">
+                        <h5 class="pro-border">Last Year Pending</h5>
                         <p class="text-uppercase mt10 clearfix">
                             <strong>Last Year Pending Demand:</strong> <span class="fo-total-cfdemand-count fo-skeleton">0</span>
                             <span class="pull-right"><span class="fo-cfdemand-progress fo-skeleton">0</span>%</span><br>
@@ -742,46 +756,10 @@ if ($this->module_lib->hasActive('expense')) {
             }
         }
         
-        if ($this->rbac->hasPrivilege('student_head_count_widget', 'can_view')) {
-        ?>
-            <div class="col-md-2 col-sm-6 mb10">
-                <div class="topprograssstart flex-card" id="student-headcount-widget" data-url="<?php echo site_url('admin/admin/student_head_count_widget'); ?>">
-                    <h5 class="pro-border"><?php echo $this->lang->line('student_head_count'); ?> <span class="pull-right shc-total fo-skeleton" style="font-size: 18px; font-weight: bold;">0</span></h5>
-                    <p class="text-uppercase mt10 clearfix" style="font-size: 12px;">
-                        <i class="fa fa-male" style="color: #3c8dbc;"></i> Male: <span class="shc-male-count fo-skeleton">0</span> <span class="pull-right"><span class="shc-male-percent fo-skeleton">0</span>%</span>
-                    </p>
-                    <div class="progress-group">
-                        <div class="progress progress-minibar">
-                            <div class="progress-bar shc-male-bar" style="width: 0%"></div>
-                        </div>
-                    </div>
-                    <p class="text-uppercase mt10 clearfix" style="font-size: 12px;">
-                        <i class="fa fa-female" style="color: #dd4b39;"></i> Female: <span class="shc-female-count fo-skeleton">0</span> <span class="pull-right"><span class="shc-female-percent fo-skeleton">0</span>%</span>
-                    </p>
-                    <div class="progress-group">
-                        <div class="progress progress-minibar">
-                            <div class="progress-bar progress-bar-red shc-female-bar" style="width: 0%"></div>
-                        </div>
-                    </div>
-                    <div class="widget-others-under-female shc-others" style="margin-top: 10px; display: none;">
-                        <p class="text-uppercase mt10 clearfix" style="font-size: 12px;">
-                            <i class="fa fa-genderless" style="color: #f39c12;"></i> Others: <span class="shc-other-count">0</span>
-                            <span class="pull-right"><span class="shc-other-percent">0</span>%</span>
-                        </p>
-                        <div class="progress-group">
-                            <div class="progress progress-minibar">
-                                <div class="progress-bar progress-bar-yellow shc-other-bar" style="width: 0%"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div><!--./topprograssstart-->
-            </div><!--./col-md-2-->
-        <?php } ?>
-        
-        <?php if ($this->module_lib->hasActive('library')) {
+        if ($this->module_lib->hasActive('library')) {
             if ($this->rbac->hasPrivilege('book_overview_widegts', 'can_view')) {
                 ?>
-                            <div class="col-md-2 col-sm-6 mb10">
+                            <div class="col-md-3 col-sm-6 mb10">
                                 <div class="topprograssstart flex-card" id="library-overview-widget" data-url="<?php echo site_url('admin/admin/library_overview_widget'); ?>">
                                     <h5 class="pro-border"><?php echo $this->lang->line('library_overview'); ?></h5>
                                     <p class="text-uppercase mt10 clearfix"><span class="lib-dueforreturn fo-skeleton">0</span> <?php echo $this->lang->line('due_for_return'); ?><span class="pull-right"></span>
@@ -813,12 +791,60 @@ if ($this->module_lib->hasActive('expense')) {
                                         </div>
                                     </div>
                                 </div><!--./topprograssstart-->
-                            </div><!--./col-md-2-->
+                            </div><!--./col-md-3-->
                 <?php
         }
         }
+        
+        if ($this->rbac->hasPrivilege('student_head_count_widget', 'can_view')) {
+        ?>
+            <div class="col-md-12 col-sm-12 mb10">
+                <div class="topprograssstart flex-card" id="student-headcount-widget" data-url="<?php echo site_url('admin/admin/student_head_count_widget'); ?>">
+                    <h5 class="pro-border"><?php echo $this->lang->line('student_head_count'); ?> <span class="pull-right shc-total fo-skeleton" style="font-size: 18px; font-weight: bold;">0</span></h5>
+                    <div class="row" style="margin: 0;">
+                        <div class="col-xs-6" style="padding-left: 0; padding-right: 5px; border-right: 1px solid #e0e0e0;">
+                            <p class="text-uppercase mt10 clearfix" style="font-size: 12px;">
+                                <i class="fa fa-male" style="color: #3c8dbc;"></i> Male: <span class="shc-male-count fo-skeleton">0</span>
+                            </p>
+                            <p class="text-center" style="font-size: 11px; margin: 5px 0;">
+                                <span class="shc-male-percent fo-skeleton">0</span>%
+                            </p>
+                            <div class="progress-group">
+                                <div class="progress progress-minibar">
+                                    <div class="progress-bar shc-male-bar" style="width: 0%"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-xs-6" style="padding-left: 5px; padding-right: 0;">
+                            <p class="text-uppercase mt10 clearfix" style="font-size: 12px;">
+                                <i class="fa fa-female" style="color: #dd4b39;"></i> Female: <span class="shc-female-count fo-skeleton">0</span>
+                            </p>
+                            <p class="text-center" style="font-size: 11px; margin: 5px 0;">
+                                <span class="shc-female-percent fo-skeleton">0</span>%
+                            </p>
+                            <div class="progress-group">
+                                <div class="progress progress-minibar">
+                                    <div class="progress-bar progress-bar-red shc-female-bar" style="width: 0%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="widget-others-under-female shc-others" style="margin-top: 10px; display: none; padding-top: 10px; border-top: 1px solid #e0e0e0;">
+                        <p class="text-uppercase clearfix" style="font-size: 12px;">
+                            <i class="fa fa-genderless" style="color: #f39c12;"></i> Others: <span class="shc-other-count">0</span>
+                            <span class="pull-right"><span class="shc-other-percent">0</span>%</span>
+                        </p>
+                        <div class="progress-group">
+                            <div class="progress progress-minibar">
+                                <div class="progress-bar progress-bar-yellow shc-other-bar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div><!--./topprograssstart-->
+            </div><!--./col-md-3-->
+        <?php } ?>
 
-
+<?php
         $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
         
         $div_col    = 12;
@@ -1532,85 +1558,91 @@ if (($this->module_lib->hasActive('fees_collection')) || ($this->module_lib->has
 </script>
 <script type="text/javascript">
     $(document).ready(function() {
-        var $widget = $('#fees-overview-widget');
-        if (!$widget.length) {
-            return;
-        }
-
-        var url = $widget.data('url');
-        if (!url) {
-            return;
-        }
-
-        $.ajax({
-            url: url,
-            method: 'GET',
-            dataType: 'json'
-        }).done(function(resp) {
-            if (!resp || resp.status !== 'success' || !resp.data) {
+        // Load data for all three fees overview widgets
+        var widgetIds = ['#fees-overview-widget-payment', '#fees-overview-widget-collection', '#fees-overview-widget-pending'];
+        
+        $.each(widgetIds, function(index, widgetId) {
+            var $widget = $(widgetId);
+            if (!$widget.length) {
                 return;
             }
 
-            var d = resp.data;
-            $widget.find('.fo-total-unpaid').text(d.total_unpaid);
-            $widget.find('.fo-unpaid-progress').text(d.unpaid_progress);
-            $widget.find('.fo-unpaid-sum').text(d.unpaid_sum_formatted);
-            $widget.find('.fo-unpaid-bar').css('width', d.unpaid_progress + '%');
-
-            $widget.find('.fo-total-partial').text(d.total_partial);
-            $widget.find('.fo-partial-progress').text(d.partial_progress);
-            $widget.find('.fo-partial-sum').text(d.partial_sum_formatted);
-            $widget.find('.fo-partial-bar').css('width', d.partial_progress + '%');
-
-            $widget.find('.fo-total-paid').text(d.total_paid);
-            $widget.find('.fo-paid-progress').text(d.paid_progress);
-            $widget.find('.fo-paid-sum').text(d.paid_sum_formatted);
-            $widget.find('.fo-paid-bar').css('width', d.paid_progress + '%');
-
-
-            // Use new backend fields for each card
-            $widget.find('.fo-total-demand-count').text(d.demand_count || 0);
-            $widget.find('.fo-demand-progress').text(d.demand_progress);
-            $widget.find('.fo-demand-sum').text(d.demand_sum_formatted);
-            $widget.find('.fo-demand-bar').css('width', d.demand_progress + '%');
-
-            $widget.find('.fo-total-collection-count').text(d.collection_count || 0);
-            $widget.find('.fo-collection-progress').text(d.collection_progress);
-            $widget.find('.fo-collection-sum').text(d.collection_sum_formatted);
-            $widget.find('.fo-collection-bar').css('width', d.collection_progress + '%');
-
-            $widget.find('.fo-total-awaiting-count').text(d.awaiting_count || 0);
-            $widget.find('.fo-awaiting-progress').text(d.awaiting_progress);
-            $widget.find('.fo-awaiting-sum').text(d.awaiting_sum_formatted);
-            $widget.find('.fo-awaiting-bar').css('width', d.awaiting_progress + '%');
-
-            $widget.find('.fo-total-cfdemand-count').text(d.cfdemand_count || 0);
-            $widget.find('.fo-cfdemand-progress').text(d.cfdemand_progress);
-            $widget.find('.fo-cfdemand-sum').text(d.cfdemand_sum_formatted);
-            $widget.find('.fo-cfdemand-bar').css('width', d.cfdemand_progress + '%');
-
-            $widget.find('.fo-total-cfcollection-count').text(d.cfcollection_count || 0);
-            $widget.find('.fo-cfcollection-progress').text(d.cfcollection_progress);
-            $widget.find('.fo-cfcollection-sum').text(d.cfcollection_sum_formatted);
-            $widget.find('.fo-cfcollection-bar').css('width', d.cfcollection_progress + '%');
-
-            $widget.find('.fo-total-cfbalance-count').text(d.cfbalance_count || 0);
-            $widget.find('.fo-cfbalance-progress').text(d.cfbalance_progress);
-            $widget.find('.fo-cfbalance-sum').text(d.cfbalance_sum_formatted);
-            $widget.find('.fo-cfbalance-bar').css('width', d.cfbalance_progress + '%');
-
-            $('.fees-awaiting-amount').text(d.fees_awaiting_total_net_balance_formatted);
-
-            $widget.find('.fo-skeleton').removeClass('fo-skeleton');
-
-            $('.fees-awaiting-amount').removeClass('fo-skeleton');
-
-            var $awaitingBar = $('.fees-awaiting-progress-bar');
-            if ($awaitingBar.length && typeof d.fees_awaiting_progress !== 'undefined') {
-                $awaitingBar.css('width', d.fees_awaiting_progress + '%');
+            var url = $widget.data('url');
+            if (!url) {
+                return;
             }
-        }).fail(function() {
-            $widget.find('.fo-skeleton').removeClass('fo-skeleton');
+
+            $.ajax({
+                url: url,
+                method: 'GET',
+                dataType: 'json'
+            }).done(function(resp) {
+                if (!resp || resp.status !== 'success' || !resp.data) {
+                    return;
+                }
+
+                var d = resp.data;
+                
+                // Update all widgets with the same data
+                $widget.find('.fo-total-unpaid').text(d.total_unpaid);
+                $widget.find('.fo-unpaid-progress').text(d.unpaid_progress);
+                $widget.find('.fo-unpaid-sum').text(d.unpaid_sum_formatted);
+                $widget.find('.fo-unpaid-bar').css('width', d.unpaid_progress + '%');
+
+                $widget.find('.fo-total-partial').text(d.total_partial);
+                $widget.find('.fo-partial-progress').text(d.partial_progress);
+                $widget.find('.fo-partial-sum').text(d.partial_sum_formatted);
+                $widget.find('.fo-partial-bar').css('width', d.partial_progress + '%');
+
+                $widget.find('.fo-total-paid').text(d.total_paid);
+                $widget.find('.fo-paid-progress').text(d.paid_progress);
+                $widget.find('.fo-paid-sum').text(d.paid_sum_formatted);
+                $widget.find('.fo-paid-bar').css('width', d.paid_progress + '%');
+
+                // Use new backend fields for each card
+                $widget.find('.fo-total-demand-count').text(d.demand_count || 0);
+                $widget.find('.fo-demand-progress').text(d.demand_progress);
+                $widget.find('.fo-demand-sum').text(d.demand_sum_formatted);
+                $widget.find('.fo-demand-bar').css('width', d.demand_progress + '%');
+
+                $widget.find('.fo-total-collection-count').text(d.collection_count || 0);
+                $widget.find('.fo-collection-progress').text(d.collection_progress);
+                $widget.find('.fo-collection-sum').text(d.collection_sum_formatted);
+                $widget.find('.fo-collection-bar').css('width', d.collection_progress + '%');
+
+                $widget.find('.fo-total-awaiting-count').text(d.awaiting_count || 0);
+                $widget.find('.fo-awaiting-progress').text(d.awaiting_progress);
+                $widget.find('.fo-awaiting-sum').text(d.awaiting_sum_formatted);
+                $widget.find('.fo-awaiting-bar').css('width', d.awaiting_progress + '%');
+
+                $widget.find('.fo-total-cfdemand-count').text(d.cfdemand_count || 0);
+                $widget.find('.fo-cfdemand-progress').text(d.cfdemand_progress);
+                $widget.find('.fo-cfdemand-sum').text(d.cfdemand_sum_formatted);
+                $widget.find('.fo-cfdemand-bar').css('width', d.cfdemand_progress + '%');
+
+                $widget.find('.fo-total-cfcollection-count').text(d.cfcollection_count || 0);
+                $widget.find('.fo-cfcollection-progress').text(d.cfcollection_progress);
+                $widget.find('.fo-cfcollection-sum').text(d.cfcollection_sum_formatted);
+                $widget.find('.fo-cfcollection-bar').css('width', d.cfcollection_progress + '%');
+
+                $widget.find('.fo-total-cfbalance-count').text(d.cfbalance_count || 0);
+                $widget.find('.fo-cfbalance-progress').text(d.cfbalance_progress);
+                $widget.find('.fo-cfbalance-sum').text(d.cfbalance_sum_formatted);
+                $widget.find('.fo-cfbalance-bar').css('width', d.cfbalance_progress + '%');
+
+                $('.fees-awaiting-amount').text(d.fees_awaiting_total_net_balance_formatted);
+
+                $widget.find('.fo-skeleton').removeClass('fo-skeleton');
+
+                $('.fees-awaiting-amount').removeClass('fo-skeleton');
+
+                var $awaitingBar = $('.fees-awaiting-progress-bar');
+                if ($awaitingBar.length && typeof d.fees_awaiting_progress !== 'undefined') {
+                    $awaitingBar.css('width', d.fees_awaiting_progress + '%');
+                }
+            }).fail(function() {
+                $widget.find('.fo-skeleton').removeClass('fo-skeleton');
+            });
         });
     });
 </script>
