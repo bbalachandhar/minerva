@@ -18,7 +18,7 @@ class Studentfee_model extends MY_Model {
     }
 
     public function getCollectBy() {       
-        return $this->db->select('id,name,surname')->from('staff')->get()->result_array();       
+        return $this->db->select('id,name,surname')->from('staff')->where('is_active', 1)->get()->result_array();       
     }
 
     public function getTotalCollectionBydate($date) {

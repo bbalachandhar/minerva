@@ -71,7 +71,9 @@ class Staff_model extends MY_Model
 
         $this->db->select('staff_attendance_type_id, count(*) as count');
         $this->db->from('staff_attendance');
-        $this->db->where('date', $today_date);
+        $this->db->join('staff', 'staff.id = staff_attendance.staff_id', 'inner');
+        $this->db->where('staff_attendance.date', $today_date);
+        $this->db->where('staff.is_active', 1);
         $this->db->group_by('staff_attendance_type_id');
         $query = $this->db->get();
         $attendance_data = $query->result_array();
@@ -729,6 +731,7 @@ class Staff_model extends MY_Model
         $this->db->join('roles', "roles.id = staff_roles.role_id", "left");
         $this->db->join('department', "department.id = staff.department", "left");
         $this->db->where('staff.is_active', 1);
+        $this->db->where('staff.is_active', 1);
         $this->db->where('staff.department', $department_id);
         if ($exclude_staff_id !== null) {
             $this->db->where('staff.id !=', $exclude_staff_id);
@@ -764,7 +767,7 @@ class Staff_model extends MY_Model
 
         $field_var = count($field_k_array) > 0 ? "," . implode(',', $field_k_array) : "";
 
-        $query = "SELECT `staff`.*, `staff_designation`.`designation` as `designation`, `department`.`department_name` as `department`,`roles`.`name` as user_type " . $field_var . ",GROUP_CONCAT(leave_type_id,'@',alloted_leave) as leaves  FROM `staff` " . $join_array . " LEFT JOIN `staff_designation` ON `staff_designation`.`id` = `staff`.`designation` LEFT JOIN `staff_roles` ON `staff_roles`.`staff_id` = `staff`.`id` LEFT JOIN `roles` ON `staff_roles`.`role_id` = `roles`.`id` LEFT JOIN `department` ON `department`.`id` = `staff`.`department` left join staff_leave_details ON staff_leave_details.staff_id=staff.id WHERE 1  " . $condition . " group by staff.id";
+        $query = "SELECT `staff`.*, `staff_designation`.`designation` as `designation`, `department`.`department_name` as `department`,`roles`.`name` as user_type " . $field_var . ",GROUP_CONCAT(leave_type_id,'@',alloted_leave) as leaves  FROM `staff` " . $join_array . " LEFT JOIN `staff_designation` ON `staff_designation`.`id` = `staff`.`designation` LEFT JOIN `staff_roles` ON `staff_roles`.`staff_id` = `staff`.`id` LEFT JOIN `roles` ON `staff_roles`.`role_id` = `roles`.`id` LEFT JOIN `department` ON `department`.`id` = `staff`.`department` left join staff_leave_details ON staff_leave_details.staff_id=staff.id WHERE staff.is_active = " . $this->db->escape($active) . "  " . $condition . " group by staff.id";
 
         $query = $this->db->query($query);
         return $query->result_array();
@@ -1081,6 +1084,7 @@ class Staff_model extends MY_Model
         $this->db->select('staff.id, CONCAT(staff.name, " (", staff.employee_id, ")") as name');
         $this->db->from('staff');
         $this->db->where_in('staff.id', $ids);
+        $this->db->where('staff.is_active', 1);
         $query = $this->db->get();
         return $query->result_array();
     }
@@ -1127,7 +1131,7 @@ class Staff_model extends MY_Model
 
         $field_var = count($field_k_array) > 0 ? "," . implode(',', $field_k_array) : "";
 
-        $query = "SELECT `staff`.*, `staff_designation`.`designation` as `designation`, `department`.`department_name` as `department`,`roles`.`name` as user_type " . $field_var . ",GROUP_CONCAT(leave_type_id,'@',alloted_leave) as leaves  FROM `staff` " . $join_array . " LEFT JOIN `staff_designation` ON `staff_designation`.`id` = `staff`.`designation` LEFT JOIN `staff_roles` ON `staff_roles`.`staff_id` = `staff`.`id` LEFT JOIN `roles` ON `staff_roles`.`role_id` = `roles`.`id` LEFT JOIN `department` ON `department`.`id` = `staff`.`department` left join staff_leave_details ON staff_leave_details.staff_id=staff.id WHERE 1  " . $condition .    $rolescondition . " group by staff.id";
+        $query = "SELECT `staff`.*, `staff_designation`.`designation` as `designation`, `department`.`department_name` as `department`,`roles`.`name` as user_type " . $field_var . ",GROUP_CONCAT(leave_type_id,'@',alloted_leave) as leaves  FROM `staff` " . $join_array . " LEFT JOIN `staff_designation` ON `staff_designation`.`id` = `staff`.`designation` LEFT JOIN `staff_roles` ON `staff_roles`.`staff_id` = `staff`.`id` LEFT JOIN `roles` ON `staff_roles`.`role_id` = `roles`.`id` LEFT JOIN `department` ON `department`.`id` = `staff`.`department` left join staff_leave_details ON staff_leave_details.staff_id=staff.id WHERE staff.is_active = 1  " . $condition .    $rolescondition . " group by staff.id";
 
         $query = $this->db->query($query);
         return $query->result_array();
@@ -1135,6 +1139,7 @@ class Staff_model extends MY_Model
 
     public function inventry_staff()
     {
+        $this->db->where('staff.is_active', 1);
         if ($this->superadmin_visible == 'disabled' && $this->staffrole->id != 7) {
                 $this->db->where("staff_roles.role_id !=", 7);
         }

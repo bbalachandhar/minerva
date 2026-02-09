@@ -1720,6 +1720,12 @@ if (($this->module_lib->hasActive('fees_collection')) || ($this->module_lib->has
                     }
 
                     var d = resp.data;
+                    
+                    // Update header with total student count
+                    if (d.total_students) {
+                        $studentAttendance.find('h5').html($studentAttendance.find('h5').text().split(' - ')[0] + ' - ' + d.total_students);
+                    }
+                    
                     $studentAttendance.find('.sta-present-count').text(d.total_present || 0);
                     $studentAttendance.find('.sta-present-percent').text(d.present || '0%');
                     $studentAttendance.find('.sta-present-bar').css('width', d.present || '0%');
@@ -1757,6 +1763,12 @@ if (($this->module_lib->hasActive('fees_collection')) || ($this->module_lib->has
                     }
 
                     var d = resp.data;
+                    
+                    // Update header with total staff count
+                    if (d.total_staff) {
+                        $staffAttendance.find('h5').html($staffAttendance.find('h5').text().split(' - ')[0] + ' - ' + d.total_staff);
+                    }
+                    
                     $staffAttendance.find('.sfa-present-count').text(d.total_present || 0);
                     $staffAttendance.find('.sfa-present-percent').text(d.present || 0);
                     $staffAttendance.find('.sfa-present-bar').css('width', (d.present || 0) + '%');

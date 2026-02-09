@@ -635,11 +635,15 @@ class Admin extends Admin_Controller
             access_denied();
         }
 
-        $total_students = 0;
-        $tot_students = $this->studentsession_model->getTotalStudentBySession();
-        if (!empty($tot_students)) {
-            $total_students = (int)$tot_students->total_student;
-        }
+        // Use same logic as Student Head Count widget for accurate count
+        $current_session = $this->setting_model->getCurrentSession();
+        $gender_counts = $this->Student_model->getStudentCountByGender($current_session);
+        
+        $male_students = isset($gender_counts['Male']) ? (int)$gender_counts['Male'] : 0;
+        $female_students = isset($gender_counts['Female']) ? (int)$gender_counts['Female'] : 0;
+        $other_students = isset($gender_counts['Other/Unspecified']) ? (int)$gender_counts['Other/Unspecified'] : 0;
+        
+        $total_students = $male_students + $female_students + $other_students;
 
         if ($total_students <= 0) {
             $attendance = array(
@@ -650,7 +654,8 @@ class Admin extends Admin_Controller
                 'total_absent' => 0,
                 'absent' => '0%',
                 'total_half_day' => 0,
-                'half_day' => '0%'
+                'half_day' => '0%',
+                'total_students' => 0
             );
         } else {
             $attendance = $this->stuattendence_model->getTodayDayAttendance($total_students);
@@ -663,8 +668,11 @@ class Admin extends Admin_Controller
                     'total_absent' => 0,
                     'absent' => '0%',
                     'total_half_day' => 0,
-                    'half_day' => '0%'
+                    'half_day' => '0%',
+                    'total_students' => $total_students
                 );
+            } else {
+                $attendance['total_students'] = $total_students;
             }
         }
 
