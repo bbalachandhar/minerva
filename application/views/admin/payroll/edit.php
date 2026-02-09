@@ -178,7 +178,8 @@ $lop_days = $total_absent + (($first_half_absent + $second_half_absent) * $half_
 // Check if this is the current payroll month
 $month_num = date('m', strtotime($attendence_key));
 $year_num = date('Y', strtotime($attendence_key));
-$is_current_payroll_month = ($month_num == $employee_payroll['month'] && $year_num == $employee_payroll['year']);
+$month_name = date('F', strtotime($attendence_key));
+$is_current_payroll_month = (($month_name == $employee_payroll['month'] || $month_num == $employee_payroll['month']) && $year_num == $employee_payroll['year']);
 
 // For current payroll month, use values from payslip; for other months, query monthly balance
 if ($is_current_payroll_month) {
