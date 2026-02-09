@@ -155,8 +155,9 @@ class LeaveTypes extends Admin_Controller
             
             $processed_count = 0;
             $skipped_count = 0;
+            $skipped_records = [];
 
-            foreach ($result as $row) {
+            foreach ($result as $row_index => $row) {
                 $employee_no = $row['employee_no'] ?? null;
                 $leave_type_id = $row['leavetype_id'] ?? null;
                 $days = $row['balance_days'] ?? null;
@@ -165,12 +166,22 @@ class LeaveTypes extends Admin_Controller
 
                 if ($employee_no === null || $leave_type_id === null || $days === null || $employee_no === '' || $leave_type_id === '' || $days === '') {
                     $skipped_count++;
+                    $skipped_records[] = [
+                        'row' => $row_index + 2, // +2 because CSV starts at line 1 (header) and array is 0-indexed
+                        'employee_no' => $employee_no ?: 'N/A',
+                        'reason' => 'Missing required fields (employee_no, leavetype_id, or balance_days)'
+                    ];
                     continue;
                 }
 
                 $staff = $this->staff_model->get_by_employee_id($employee_no);
                 if (empty($staff) || empty($staff['id'])) {
                     $skipped_count++;
+                    $skipped_records[] = [
+                        'row' => $row_index + 2,
+                        'employee_no' => $employee_no,
+                        'reason' => 'Employee not found in system'
+                    ];
                     continue;
                 }
 
@@ -213,7 +224,27 @@ class LeaveTypes extends Admin_Controller
                 $processed_count++;
             }
 
-            $this->session->set_flashdata('msg', '<div class="alert alert-success">Records Processed: ' . $processed_count . ' | Skipped: ' . $skipped_count . '</div>');
+            // Build message with skip details
+            $message = '<div class="alert alert-success"><strong>Upload Complete!</strong><br>';
+            $message .= 'Records Processed: ' . $processed_count . ' | Skipped: ' . $skipped_count;
+            
+            if (!empty($skipped_records)) {
+                $message .= '<br><br><strong>Skipped Records Details:</strong>';
+                $message .= '<table class="table table-sm table-bordered" style="margin-top:10px; background:#fff;">';
+                $message .= '<thead><tr><th>Row #</th><th>Employee No</th><th>Reason</th></tr></thead><tbody>';
+                foreach ($skipped_records as $skip) {
+                    $message .= '<tr>';
+                    $message .= '<td>' . $skip['row'] . '</td>';
+                    $message .= '<td>' . htmlspecialchars($skip['employee_no']) . '</td>';
+                    $message .= '<td>' . htmlspecialchars($skip['reason']) . '</td>';
+                    $message .= '</tr>';
+                }
+                $message .= '</tbody></table>';
+            }
+            
+            $message .= '</div>';
+            
+            $this->session->set_flashdata('msg', $message);
             redirect("admin/leavetypes/bulk_upload");
         } else {
             $this->session->set_flashdata('msg', '<div class="alert alert-danger">' . $this->lang->line('please_upload_a_csv_file') . '</div>');
