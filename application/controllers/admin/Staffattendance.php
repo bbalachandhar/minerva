@@ -557,6 +557,9 @@ class Staffattendance extends Admin_Controller
         if ($last_processed_attendance_date === null || $last_processed_attendance_date === '') {
             // First time processing, process from the beginning of the current month
             $from_date = $this_month_first_day;
+        } elseif ($last_processed_attendance_date === $today) {
+            // Allow reprocessing today's attendance
+            $from_date = $today;
         } else {
             // Process from the day after the last processed date
             $from_date = date('Y-m-d', strtotime($last_processed_attendance_date . ' +1 day'));
