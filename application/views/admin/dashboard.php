@@ -1366,12 +1366,13 @@ if (($this->module_lib->hasActive('fees_collection')) || ($this->module_lib->has
 
                     var labels = resp.data.labels || [];
                     var collection = resp.data.collection || [];
+                    var incidental = resp.data.incidental || [];
                     var expense = resp.data.expense || [];
 
                     var datasets = [];
                     if (hasIncome) {
                         datasets.push({
-                            label: "Electronics",
+                            label: "Fees Collection",
                             fillColor: "rgba(102, 170, 24, 0.6)",
                             strokeColor: "rgba(102, 170, 24, 0.6)",
                             pointColor: "rgba(102, 170, 24, 0.6)",
@@ -1380,10 +1381,20 @@ if (($this->module_lib->hasActive('fees_collection')) || ($this->module_lib->has
                             pointHighlightStroke: "rgba(220,220,220,1)",
                             data: collection
                         });
+                        datasets.push({
+                            label: "Incidental Fees",
+                            fillColor: "rgba(0, 166, 251, 0.7)",
+                            strokeColor: "rgba(0, 166, 251, 0.7)",
+                            pointColor: "rgba(0, 166, 251, 0.7)",
+                            pointStrokeColor: "#c1c7d1",
+                            pointHighlightFill: "#fff",
+                            pointHighlightStroke: "rgba(0, 166, 251, 1)",
+                            data: incidental
+                        });
                     }
                     if (hasExpense) {
                         datasets.push({
-                            label: "Digital Goods",
+                            label: "Expenses",
                             fillColor: "rgba(233, 30, 99, 0.9)",
                             strokeColor: "rgba(233, 30, 99, 0.9)",
                             pointColor: "rgba(233, 30, 99, 0.9)",

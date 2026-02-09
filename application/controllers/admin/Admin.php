@@ -1108,6 +1108,7 @@ class Admin extends Admin_Controller
             $month_days = array();
             $days_collection = array();
             $days_expense = array();
+            $days_incidental = array();
 
             while ($currentdate <= $end) {
                 $cur_date = date('Y-m-d', $currentdate);
@@ -1115,6 +1116,12 @@ class Admin extends Admin_Controller
                 $coll_amt = $this->whatever($getDepositeAmount, $cur_date, $cur_date);
                 $tranport_amt = $this->whatever($student_transport_fee, $cur_date, $cur_date);
                 $days_collection[] = convertBaseAmountCurrencyFormat($coll_amt + $tranport_amt);
+                
+                // Get incidental fee collection for this day
+                $this->load->model('Incidental_fee_collection_model');
+                $incidental_amt = $this->Incidental_fee_collection_model->getTotalCollectionBetweenDate($cur_date, $cur_date);
+                $days_incidental[] = convertBaseAmountCurrencyFormat($incidental_amt ?: 0);
+                
                 $ct = $this->getExpensebyday($cur_date);
                 $days_expense[] = convertBaseAmountCurrencyFormat($ct);
                 $currentdate = strtotime('+1 day', $currentdate);
@@ -1125,6 +1132,7 @@ class Admin extends Admin_Controller
                 'data' => array(
                     'labels' => $month_days,
                     'collection' => $days_collection,
+                    'incidental' => $days_incidental,
                     'expense' => $days_expense,
                 )
             );

@@ -127,7 +127,13 @@
                                                 <td><?php echo $collection['receipt_no']; ?></td>
                                                 <td><?php echo date($this->customlib->getSchoolDateFormat(), strtotime($collection['date_collected'])); ?></td>
                                                 <td><?php echo $collection['session_name']; ?></td>
-                                                <td><?php echo $this->customlib->getFullName($collection['firstname'],'',$collection['lastname'], $sch_setting->middlename, $sch_setting->lastname); ?></td>
+                                                <td><?php 
+                                                    if (!empty($collection['student_id'])) {
+                                                        echo $this->customlib->getFullName($collection['firstname'],'',$collection['lastname'], $sch_setting->middlename, $sch_setting->lastname);
+                                                    } else {
+                                                        echo $collection['non_student_name'];
+                                                    }
+                                                ?></td>
                                                 <td><?php echo $collection['admission_no']; ?></td>
                                                 <td><?php echo $collection['class_name'] . ' (' . $collection['section'] . ')'; ?></td>
                                                 <td><?php echo $collection['fee_type_title']; ?></td>

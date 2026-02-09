@@ -118,4 +118,14 @@ class Incidental_fee_collection_model extends CI_Model {
         $this->db->where('incidental_fee_collections.id', $id);
         return $this->db->get()->row_array();
     }
+
+    public function getTotalCollectionBetweenDate($start_date, $end_date) {
+        $start_date = $this->db->escape($start_date);
+        $end_date = $this->db->escape($end_date);
+        
+        $this->db->select('COALESCE(SUM(amount_collected), 0) as total', FALSE);
+        $this->db->where("DATE(date_collected) BETWEEN {$start_date} AND {$end_date}", NULL, FALSE);
+        $result = $this->db->get('incidental_fee_collections')->row();
+        return $result ? $result->total : 0;
+    }
 }
