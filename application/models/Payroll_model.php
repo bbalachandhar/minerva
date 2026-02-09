@@ -526,7 +526,13 @@ class Payroll_model extends MY_Model
             'year' => $year,
             'month' => $month,
             'opening_balance' => $opening_balance,
+            'earned_in_month' => 0,
+            'used_for_lop_adjustment' => 0,
+            'used_for_leave_application' => 0,
+            'other_deductions' => 0,
             'closing_balance' => $opening_balance,
+            'created_at' => date('Y-m-d H:i:s'),
+            'updated_at' => date('Y-m-d H:i:s'),
             'notes' => 'Auto-created on ' . date('Y-m-d H:i:s')
         ];
         
