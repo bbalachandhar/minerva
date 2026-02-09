@@ -159,6 +159,21 @@ $weekend_count = (int) ($attendence_value['sunday'] ?? 0);
 $first_half_absent = (int) ($attendence_value['first_half_absent'] ?? 0);
 $second_half_absent = (int) ($attendence_value['second_half_absent'] ?? 0);
 $paid_leave_absent = $month_paid_leave_absent[$attendence_key] ?? 0;
+
+// Get adjusted LOP and net LOP from monthly balance for this month
+$month_num = date('m', strtotime($attendence_key));
+$year_num = date('Y', strtotime($attendence_key));
+$CI =& get_instance();
+$CI->db->select('SUM(used_for_lop_adjustment) as total_adjusted_lop');
+$CI->db->from('staff_monthly_leave_balance');
+$CI->db->where('staff_id', $result['id']);
+$CI->db->where('month', $month_num);
+$CI->db->where('year', $year_num);
+$lop_query = $CI->db->get();
+$lop_data = $lop_query->row_array();
+$adjusted_lop = floatval($lop_data['total_adjusted_lop'] ?? 0);
+$net_lop = max(0, $lop_days - $adjusted_lop);
+
 $days_in_period = (int) ($attendence_value['days_in_period'] ?? 0);
 if ($days_in_period <= 0) {
     $days_in_period = cal_days_in_month(CAL_GREGORIAN, (int) date("m", strtotime($attendence_key)), (int) date("Y", strtotime($attendence_key)));
@@ -186,8 +201,8 @@ $lop_days = $total_absent + (($first_half_absent + $second_half_absent) * $half_
                                                 <td style="padding: 8px 6px; text-align: center; border: none; color: #17a2b8;"><?php echo $permission_count; ?></td>
                                                 <td style="padding: 8px 6px; text-align: center; border: none; color: #20c997; font-weight: 600;"><?php echo $approved_leave; ?></td>
                                                 <td style="padding: 8px 6px; text-align: center; border: none; color: #dc3545; font-weight: 600; background: rgba(220, 53, 69, 0.1);"><?php echo rtrim(rtrim(number_format((float) $lop_days, 1, '.', ''), '0'), '.'); ?></td>
-                                                <td style="padding: 8px 6px; text-align: center; border: none; color: #6c757d;">-</td>
-                                                <td style="padding: 8px 6px; text-align: center; border: none; color: #6c757d;">-</td>
+                                                <td style="padding: 8px 6px; text-align: center; border: none; color: #28a745; font-weight: 600;"><?php echo rtrim(rtrim(number_format((float) $adjusted_lop, 1, '.', ''), '0'), '.'); ?></td>
+                                                <td style="padding: 8px 6px; text-align: center; border: none; color: <?php echo $net_lop > 0 ? '#dc3545' : '#6c757d'; ?>; font-weight: 600;"><?php echo rtrim(rtrim(number_format((float) $net_lop, 1, '.', ''), '0'), '.'); ?></td>
                                                 <td style="padding: 8px 6px; text-align: center; border: none; color: #6c757d;"><?php echo $weekend_count; ?></td>
                                             </tr>
                                             <?php
