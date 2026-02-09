@@ -150,26 +150,70 @@ class LeaveTypes extends Admin_Controller
     {
         if (isset($_FILES['file']) && $_FILES['file']['error'] == 0) {
             $this->load->library('CSVReader');
+            $this->load->model('Payroll_model');
             $result = $this->csvreader->parse_file($_FILES['file']['tmp_name']);
+            
+            $processed_count = 0;
+            $skipped_count = 0;
 
             foreach ($result as $row) {
                 $employee_no = $row['employee_no'] ?? null;
                 $leave_type_id = $row['leavetype_id'] ?? null;
                 $days = $row['balance_days'] ?? null;
+                $month = $row['month'] ?? date('n'); // Default to current month
+                $year = $row['year'] ?? date('Y'); // Default to current year
 
                 if ($employee_no === null || $leave_type_id === null || $days === null || $employee_no === '' || $leave_type_id === '' || $days === '') {
+                    $skipped_count++;
                     continue;
                 }
 
                 $staff = $this->staff_model->get_by_employee_id($employee_no);
                 if (empty($staff) || empty($staff['id'])) {
+                    $skipped_count++;
                     continue;
                 }
 
+                // Update yearly allocation in staff_leave_details
                 $this->leavetypes_model->update_staff_leave_details((int) $staff['id'], (int) $leave_type_id, $days, true);
+                
+                // Initialize or update monthly balance for the specified month/year
+                $this->db->where('staff_id', $staff['id']);
+                $this->db->where('leave_type_id', $leave_type_id);
+                $this->db->where('year', $year);
+                $this->db->where('month', $month);
+                $existing_balance = $this->db->get('staff_monthly_leave_balance')->row();
+                
+                if ($existing_balance) {
+                    // Update existing record
+                    $this->db->where('id', $existing_balance->id);
+                    $this->db->update('staff_monthly_leave_balance', [
+                        'opening_balance' => $days,
+                        'closing_balance' => $days,
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]);
+                } else {
+                    // Create new monthly balance record
+                    $this->db->insert('staff_monthly_leave_balance', [
+                        'staff_id' => $staff['id'],
+                        'leave_type_id' => $leave_type_id,
+                        'year' => $year,
+                        'month' => $month,
+                        'opening_balance' => $days,
+                        'earned_in_month' => 0,
+                        'used_for_lop_adjustment' => 0,
+                        'used_for_leave_application' => 0,
+                        'other_deductions' => 0,
+                        'closing_balance' => $days,
+                        'created_at' => date('Y-m-d H:i:s'),
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]);
+                }
+                
+                $processed_count++;
             }
 
-            $this->session->set_flashdata('msg', '<div class="alert alert-success">' . $this->lang->line('bulk_upload_successfully') . '</div>');
+            $this->session->set_flashdata('msg', '<div class="alert alert-success">Records Processed: ' . $processed_count . ' | Skipped: ' . $skipped_count . '</div>');
             redirect("admin/leavetypes/bulk_upload");
         } else {
             $this->session->set_flashdata('msg', '<div class="alert alert-danger">' . $this->lang->line('please_upload_a_csv_file') . '</div>');

@@ -48,10 +48,22 @@
                             <div class="row">
                                 <div class="col-md-12">
                                     <div class="well">
-                                        <h4><?php echo $this->lang->line('instructions'); ?></h4>
-                                        <p><?php echo $this->lang->line('the_csv_file_should_be_in_the_following_format'); ?>:</p>
-                                        <p><code>employee_no,leavetype_id,balance_days</code></p>
-                                        <p>Ensure the employee number and leave type id are correct.</p>
+                                        <h4><i class="fa fa-info-circle"></i> <?php echo $this->lang->line('instructions'); ?></h4>
+                                        <p><strong>CSV Format:</strong></p>
+                                        <p><code>employee_no,leavetype_id,balance_days,month,year</code></p>
+                                        <ul style="margin-top: 10px;">
+                                            <li><strong>employee_no:</strong> Staff Employee ID (e.g., EMP001)</li>
+                                            <li><strong>leavetype_id:</strong> Leave Type ID - Check Leave Types page for IDs (e.g., 1 for Casual Leave, 2 for Sick Leave)</li>
+                                            <li><strong>balance_days:</strong> Opening balance for the specified month (e.g., 12)</li>
+                                            <li><strong>month:</strong> Month number 1-12 (e.g., 2 for February) - Optional, defaults to current month</li>
+                                            <li><strong>year:</strong> 4-digit year (e.g., 2026) - Optional, defaults to current year</li>
+                                        </ul>
+                                        <p><strong>Note:</strong> This sets the opening balance for monthly leave tracking. The system will:</p>
+                                        <ul>
+                                            <li>Update yearly allocation in staff leave details</li>
+                                            <li>Create/update monthly balance record for the specified month</li>
+                                            <li>Track monthly deductions during payroll processing</li>
+                                        </ul>
                                     </div>
                                 </div>
                             </div>

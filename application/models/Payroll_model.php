@@ -464,6 +464,252 @@ class Payroll_model extends MY_Model
     }
 
     /**
+     * Get or create monthly leave balance for a staff member
+     * If record doesn't exist, create from previous month's closing balance
+     * 
+     * @param int $staff_id Staff ID
+     * @param int $leave_type_id Leave type ID
+     * @param int $year Year (YYYY)
+     * @param int $month Month (1-12)
+     * @return array|null Monthly balance record
+     */
+    public function getOrCreateMonthlyBalance($staff_id, $leave_type_id, $year, $month)
+    {
+        // Check if record exists
+        $this->db->where('staff_id', $staff_id);
+        $this->db->where('leave_type_id', $leave_type_id);
+        $this->db->where('year', $year);
+        $this->db->where('month', $month);
+        $query = $this->db->get('staff_monthly_leave_balance');
+        
+        if ($query->num_rows() > 0) {
+            return $query->row_array();
+        }
+        
+        // Record doesn't exist - create from previous month or staff_leave_details
+        $opening_balance = 0;
+        
+        // Try to get previous month's closing balance
+        $prev_month = $month - 1;
+        $prev_year = $year;
+        
+        if ($prev_month < 1) {
+            $prev_month = 12;
+            $prev_year = $year - 1;
+        }
+        
+        $this->db->where('staff_id', $staff_id);
+        $this->db->where('leave_type_id', $leave_type_id);
+        $this->db->where('year', $prev_year);
+        $this->db->where('month', $prev_month);
+        $prev_query = $this->db->get('staff_monthly_leave_balance');
+        
+        if ($prev_query->num_rows() > 0) {
+            $prev_balance = $prev_query->row_array();
+            $opening_balance = $prev_balance['closing_balance'];
+        } else {
+            // No previous month - get from staff_leave_details
+            $this->db->where('staff_id', $staff_id);
+            $this->db->where('leave_type_id', $leave_type_id);
+            $leave_query = $this->db->get('staff_leave_details');
+            
+            if ($leave_query->num_rows() > 0) {
+                $leave_data = $leave_query->row_array();
+                $opening_balance = floatval($leave_data['alloted_leave']);
+            }
+        }
+        
+        // Create new record
+        $data = [
+            'staff_id' => $staff_id,
+            'leave_type_id' => $leave_type_id,
+            'year' => $year,
+            'month' => $month,
+            'opening_balance' => $opening_balance,
+            'closing_balance' => $opening_balance,
+            'notes' => 'Auto-created on ' . date('Y-m-d H:i:s')
+        ];
+        
+        $this->db->insert('staff_monthly_leave_balance', $data);
+        $data['id'] = $this->db->insert_id();
+        
+        return $data;
+    }
+
+    /**
+     * Validate if month/year can be processed (not future month)
+     * 
+     * @param int $year Year
+     * @param int $month Month
+     * @return array ['valid' => bool, 'message' => string]
+     */
+    public function validateProcessingMonth($year, $month)
+    {
+        $current_year = intval(date('Y'));
+        $current_month = intval(date('m'));
+        
+        if ($year > $current_year || ($year == $current_year && $month > $current_month)) {
+            return [
+                'valid' => false,
+                'message' => 'Cannot process payroll for future months'
+            ];
+        }
+        
+        return [
+            'valid' => true,
+            'message' => 'Month is valid for processing'
+        ];
+    }
+
+    /**
+     * Process LOP adjustment using monthly balance tracking
+     * 
+     * @param int $staff_id Staff ID  
+     * @param float $lop_days LOP days
+     * @param string $month Month (01-12)
+     * @param string $year Year (YYYY)
+     * @param int|null $payslip_id Payslip ID
+     * @return array Adjustment result
+     */
+    public function processLOPWithMonthlyBalance($staff_id, $lop_days, $month, $year, $payslip_id = null)
+    {
+        $month_int = intval($month);
+        $year_int = intval($year);
+        
+        // Validate month/year
+        $validation = $this->validateProcessingMonth($year_int, $month_int);
+        if (!$validation['valid']) {
+            return [
+                'success' => false,
+                'error' => $validation['message'],
+                'actual_lop_days' => $lop_days,
+                'adjusted_lop_days' => 0,
+                'net_lop_days' => $lop_days
+            ];
+        }
+        
+        if ($lop_days <= 0) {
+            return [
+                'success' => true,
+                'actual_lop_days' => 0,
+                'adjusted_lop_days' => 0,
+                'net_lop_days' => 0,
+                'adjustments' => []
+            ];
+        }
+        
+        // Get system setting
+        $settings = $this->setting_model->getSetting();
+        $auto_adjust = isset($settings->auto_adjust_lop_with_leaves) ? $settings->auto_adjust_lop_with_leaves : 0;
+        
+        // Get all paid leave types for this staff
+        $paid_leaves = $this->getStaffPaidLeaves($staff_id);
+        
+        $remaining_lop = $lop_days;
+        $adjustments = [];
+        
+        foreach ($paid_leaves as $leave) {
+            if ($remaining_lop <= 0) {
+                break;
+            }
+            
+            // Get or create monthly balance
+            $balance = $this->getOrCreateMonthlyBalance($staff_id, $leave['leave_type_id'], $year_int, $month_int);
+            
+            // Calculate available balance
+            $available = $balance['opening_balance'] + $balance['earned_in_month'] 
+                       - $balance['used_for_leave_application'] - $balance['other_deductions'];
+            
+            if ($available <= 0) {
+                continue;
+            }
+            
+            // Calculate adjustment
+            $to_adjust = min($available, $remaining_lop);
+            
+            // Update monthly balance
+            $new_used_lop = $balance['used_for_lop_adjustment'] + $to_adjust;
+            $new_closing = $balance['opening_balance'] + $balance['earned_in_month'] 
+                         - $new_used_lop - $balance['used_for_leave_application'] - $balance['other_deductions'];
+            
+            $update_data = [
+                'used_for_lop_adjustment' => $new_used_lop,
+                'closing_balance' => $new_closing,
+                'last_processed_date' => date('Y-m-d H:i:s')
+            ];
+            
+            if ($payslip_id) {
+                $update_data['payslip_id'] = $payslip_id;
+            }
+            
+            $this->db->where('id', $balance['id']);
+            $this->db->update('staff_monthly_leave_balance', $update_data);
+            
+            // Log to audit table
+            $this->logBalanceAudit($balance['id'], $staff_id, $leave['leave_type_id'], 'LOP_ADJUSTMENT', 
+                                  $to_adjust, $available, $new_closing, $payslip_id, 'payslip', 
+                                  'LOP adjustment for payroll');
+            
+            // Track adjustment
+            $adjustments[] = [
+                'leave_type_id' => $leave['leave_type_id'],
+                'leave_type' => $leave['type'],
+                'balance_before' => $available,
+                'days_adjusted' => $to_adjust,
+                'balance_after' => $new_closing
+            ];
+            
+            $remaining_lop -= $to_adjust;
+        }
+        
+        $total_adjusted = $lop_days - $remaining_lop;
+        
+        return [
+            'success' => true,
+            'actual_lop_days' => $lop_days,
+            'adjusted_lop_days' => $total_adjusted,
+            'net_lop_days' => $remaining_lop,
+            'adjustments' => $adjustments
+        ];
+    }
+
+    /**
+     * Log balance change to audit table
+     * 
+     * @param int $balance_id Monthly balance ID
+     * @param int $staff_id Staff ID
+     * @param int $leave_type_id Leave type ID
+     * @param string $action_type Action type
+     * @param float $amount Amount
+     * @param float $balance_before Balance before
+     * @param float $balance_after Balance after
+     * @param int|null $reference_id Reference ID
+     * @param string|null $reference_type Reference type
+     * @param string|null $reason Reason
+     * @return bool Success
+     */
+    private function logBalanceAudit($balance_id, $staff_id, $leave_type_id, $action_type, $amount, 
+                                    $balance_before, $balance_after, $reference_id = null, 
+                                    $reference_type = null, $reason = null)
+    {
+        $data = [
+            'balance_id' => $balance_id,
+            'staff_id' => $staff_id,
+            'leave_type_id' => $leave_type_id,
+            'action_type' => $action_type,
+            'amount' => $amount,
+            'balance_before' => $balance_before,
+            'balance_after' => $balance_after,
+            'reference_id' => $reference_id,
+            'reference_type' => $reference_type,
+            'reason' => $reason,
+            'performed_by' => $this->session->userdata('admin')['id'] ?? null
+        ];
+        
+        return $this->db->insert('staff_leave_balance_audit', $data);
+    }
+
+    /**
      * Get approved leave days for a staff member in a specific month/year
      * 
      * @param int $staff_id Staff ID

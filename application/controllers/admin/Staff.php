@@ -2121,7 +2121,7 @@ class Staff extends Admin_Controller
                         } ///Result loop
                     } //Not emprty l
 
-                    $array = array('status' => 'success', 'error' => '', 'message' => $this->lang->line('records_found_in_CSV_file_total') . (count($result) - 1) . $this->lang->line('records_imported_successfully')); // Adjusted for header row
+                    $array = array('status' => 'success', 'error' => '', 'message' => $this->lang->line('records_found_in_CSV_file_total') . count($result) . $this->lang->line('records_imported_successfully')); // CSVReader already excludes header
                 }
             } else {
                 $msg = array(
@@ -2130,7 +2130,8 @@ class Staff extends Admin_Controller
                 $array = array('status' => 'fail', 'error' => $msg, 'message' => '');
             }
 
-            $this->session->set_flashdata('msg', '<div class="alert alert-success text-center">' . $this->lang->line('total') . ' ' . (count($result) - 1) . " " . $this->lang->line('records_found_in_CSV_file_total') . ' ' . $inserted_count . ' ' . $this->lang->line('records_inserted_successfully') . '. ' . $skipped_count . ' records were skipped because they already exist.</div>');
+            $total_in_csv = count($result); // CSVReader already excludes header row
+            $this->session->set_flashdata('msg', '<div class="alert alert-success text-center">Records Found In CSV File Total: ' . $total_in_csv . ' | Records Inserted Successfully: ' . $inserted_count . ' | Skipped: ' . $skipped_count . '</div>');
             redirect('admin/staff/import');
         }
     }

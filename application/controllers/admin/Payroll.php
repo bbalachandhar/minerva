@@ -1001,12 +1001,12 @@ class Payroll extends Admin_Controller
             $adjusted_lop_days = 0;
             $net_lop_days = $actual_lop_days;
 
-            // Auto adjust LOP with available paid leaves if setting is enabled
+            // Process LOP adjustment with monthly balance tracking
             if ($actual_lop_days > 0) {
-                $adjusted_result = $this->payroll_model->processLOPAdjustment($staff['id'], $actual_lop_days, $month, $year);
-                if ($adjusted_result !== false && is_array($adjusted_result)) {
-                    $net_lop_days = (float) $adjusted_result['remaining_lop'];
-                    $adjusted_lop_days = $actual_lop_days - $net_lop_days;
+                $adjusted_result = $this->payroll_model->processLOPWithMonthlyBalance($staff['id'], $actual_lop_days, $month, $year);
+                if ($adjusted_result !== false && is_array($adjusted_result) && $adjusted_result['success']) {
+                    $net_lop_days = (float) $adjusted_result['net_lop_days'];
+                    $adjusted_lop_days = (float) $adjusted_result['adjusted_lop_days'];
                 }
             }
 
@@ -1040,6 +1040,15 @@ class Payroll extends Admin_Controller
             }
 
             $payslipid = $this->payroll_model->createPayslip($data);
+
+            // Update monthly balance with payslip reference if LOP was adjusted
+            if ($adjusted_lop_days > 0 && $payslipid) {
+                $this->db->where('staff_id', $staff['id']);
+                $this->db->where('year', (int)$year);
+                $this->db->where('month', (int)$month);
+                $this->db->where('used_for_lop_adjustment >', 0);
+                $this->db->update('staff_monthly_leave_balance', ['payslip_id' => $payslipid]);
+            }
 
             if (!empty($staff['payslip_id']) && $overwrite) {
                 $this->db->where('payslip_id', $payslipid)->delete('payslip_allowance');
