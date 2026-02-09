@@ -175,19 +175,28 @@ $total_present = max(0, $total_present - $late_permission_penalty + $paid_leave_
 $total_absent = $total_absent + $late_permission_penalty;
 $lop_days = $total_absent + (($first_half_absent + $second_half_absent) * $half_day_weight);
 
-// Get adjusted LOP and net LOP from monthly balance for this month
+// Check if this is the current payroll month
 $month_num = date('m', strtotime($attendence_key));
 $year_num = date('Y', strtotime($attendence_key));
-$CI =& get_instance();
-$CI->db->select('SUM(used_for_lop_adjustment) as total_adjusted_lop');
-$CI->db->from('staff_monthly_leave_balance');
-$CI->db->where('staff_id', $result['id']);
-$CI->db->where('month', $month_num);
-$CI->db->where('year', $year_num);
-$lop_query = $CI->db->get();
-$lop_data = $lop_query->row_array();
-$adjusted_lop = floatval($lop_data['total_adjusted_lop'] ?? 0);
-$net_lop = max(0, $lop_days - $adjusted_lop);
+$is_current_payroll_month = ($month_num == $employee_payroll['month'] && $year_num == $employee_payroll['year']);
+
+// For current payroll month, use values from payslip; for other months, query monthly balance
+if ($is_current_payroll_month) {
+    $adjusted_lop = floatval($employee_payroll['adjusted_lop_days'] ?? 0);
+    $net_lop = floatval($employee_payroll['net_lop_days'] ?? 0);
+} else {
+    // Get adjusted LOP from monthly balance for historical months
+    $CI =& get_instance();
+    $CI->db->select('SUM(used_for_lop_adjustment) as total_adjusted_lop');
+    $CI->db->from('staff_monthly_leave_balance');
+    $CI->db->where('staff_id', $result['id']);
+    $CI->db->where('month', $month_num);
+    $CI->db->where('year', $year_num);
+    $lop_query = $CI->db->get();
+    $lop_data = $lop_query->row_array();
+    $adjusted_lop = floatval($lop_data['total_adjusted_lop'] ?? 0);
+    $net_lop = max(0, $lop_days - $adjusted_lop);
+}
 ?>
                                             <tr style="background: <?php echo ($attendence_key_index % 2 == 0) ? '#f8f9fa' : '#ffffff'; ?>; transition: all 0.2s;" onmouseover="this.style.background='#e3f2fd';" onmouseout="this.style.background='<?php echo ($attendence_key_index % 2 == 0) ? '#f8f9fa' : '#ffffff'; ?>';">
                                                 <td style="padding: 8px 6px; text-align: center; border: none; font-weight: 600; color: #495057;"><?php echo date("F", strtotime($attendence_key)); ?></td>

@@ -1017,9 +1017,13 @@ class Payroll extends Admin_Controller
             // Process LOP adjustment with monthly balance tracking
             if ($actual_lop_days > 0) {
                 $adjusted_result = $this->payroll_model->processLOPWithMonthlyBalance($staff['id'], $actual_lop_days, $month, $year);
+                log_message('debug', 'LOP Adjustment Result for Staff ' . $staff['id'] . ': ' . json_encode($adjusted_result));
                 if ($adjusted_result !== false && is_array($adjusted_result) && $adjusted_result['success']) {
                     $net_lop_days = (float) $adjusted_result['net_lop_days'];
                     $adjusted_lop_days = (float) $adjusted_result['adjusted_lop_days'];
+                    log_message('debug', 'Staff ' . $staff['id'] . ' - Adjusted: ' . $adjusted_lop_days . ', Net: ' . $net_lop_days);
+                } else {
+                    log_message('error', 'LOP Adjustment Failed for Staff ' . $staff['id'] . ': ' . json_encode($adjusted_result));
                 }
             }
 
