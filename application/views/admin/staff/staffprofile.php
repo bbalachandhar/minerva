@@ -1260,12 +1260,18 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                                 <h5><?php echo $ldvalue["type"] . " (" . $ldvalue["alloted_leave"] . ")"; ?></h5>
                                                 <p><?php echo $this->lang->line('used'); ?>: <?php
                                                                                                 if (!empty($ldvalue["approve_leave"])) {
-                                                                                                    echo $ldvalue["approve_leave"];
+                                                                                                    echo number_format($ldvalue["approve_leave"], 2);
                                                                                                 } else {
                                                                                                     echo "0";
                                                                                                 }
                                                                                                 ?></p>
-                                                <p><?php echo $this->lang->line('available'); ?>: <?php echo $ldvalue["alloted_leave"] - $ldvalue["approve_leave"] ?></p>
+                                                <p><?php echo $this->lang->line('available'); ?>: <?php 
+                                                    if (isset($ldvalue["available"])) {
+                                                        echo number_format($ldvalue["available"], 2);
+                                                    } else {
+                                                        echo number_format($ldvalue["alloted_leave"] - $ldvalue["approve_leave"], 2);
+                                                    }
+                                                ?></p>
                                                 <div class="icon">
                                                     <i class="fa fa-plane"></i>
                                                 </div>

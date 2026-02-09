@@ -163,11 +163,41 @@ class Staff extends Admin_Controller
         $data['attendencetypeslist'] = $attendencetypes;
         $i                           = 0;
         $leaveDetail                 = array();
+        
         foreach ($alloted_leavetype as $key => $value) {
             $count_leaves[]                   = $this->leaverequest_model->countLeavesData($id, $value["leave_type_id"]);
+            
+            // Get the most recent monthly balance for this leave type
+            $monthly_balance = $this->db->select('opening_balance, used_for_lop_adjustment, used_for_leave_application, closing_balance, year, month')
+                ->where('staff_id', $id)
+                ->where('leave_type_id', $value["leave_type_id"])
+                ->order_by('year', 'DESC')
+                ->order_by('month', 'DESC')
+                ->limit(1)
+                ->get('staff_monthly_leave_balance')
+                ->row_array();
+            
             $leaveDetail[$i]['type']          = $value["type"];
             $leaveDetail[$i]['alloted_leave'] = $value["alloted_leave"];
-            $leaveDetail[$i]['approve_leave'] = $count_leaves[$i]['approve_leave'];
+            
+            // If monthly balance exists, show cumulative used and current closing balance
+            if (!empty($monthly_balance)) {
+                // Sum all LOP adjustments and leave applications up to the latest processed month
+                $cumulative = $this->db->select('SUM(used_for_lop_adjustment) as total_lop_used, SUM(used_for_leave_application) as total_leave_used')
+                    ->where('staff_id', $id)
+                    ->where('leave_type_id', $value["leave_type_id"])
+                    ->where('(year < ' . $monthly_balance['year'] . ' OR (year = ' . $monthly_balance['year'] . ' AND month <= ' . $monthly_balance['month'] . '))', NULL, FALSE)
+                    ->get('staff_monthly_leave_balance')
+                    ->row_array();
+                
+                $total_used = (float)($cumulative['total_lop_used'] ?? 0) + (float)($cumulative['total_leave_used'] ?? 0);
+                $leaveDetail[$i]['approve_leave'] = $total_used;
+                $leaveDetail[$i]['available'] = $monthly_balance['closing_balance'];
+            } else {
+                // No monthly balance yet, use leave applications count only
+                $leaveDetail[$i]['approve_leave'] = $count_leaves[$i]['approve_leave'];
+                $leaveDetail[$i]['available'] = $value["alloted_leave"] - $count_leaves[$i]['approve_leave'];
+            }
             $i++;
         }
         $data["leavedetails"]  = $leaveDetail;

@@ -956,6 +956,9 @@ class Payroll extends Admin_Controller
             $this->session->set_flashdata('msg', '<div class="alert alert-warning text-center">Please select month and year for bulk calculation.</div>');
             redirect('admin/payroll');
         }
+        
+        // Convert month name to numeric for monthly balance tracking
+        $month_numeric = date('n', strtotime($year . '-' . $month . '-01'));
 
         $staff_list = $this->payroll_model->searchEmployee($month, $year, '', $role);
         $generated = 0;
@@ -1011,7 +1014,7 @@ class Payroll extends Admin_Controller
             if (!empty($staff['payslip_id']) && $overwrite) {
                 $this->db->where('staff_id', $staff['id']);
                 $this->db->where('year', (int)$year);
-                $this->db->where('month', (int)$month);
+                $this->db->where('month', (int)$month_numeric);
                 // Reset LOP adjustment and recalculate closing balance
                 $this->db->set('used_for_lop_adjustment', 0);
                 $this->db->set('closing_balance', 'opening_balance + earned_in_month - used_for_leave_application - other_deductions', FALSE);
@@ -1022,7 +1025,7 @@ class Payroll extends Admin_Controller
 
             // Process LOP adjustment with monthly balance tracking
             if ($actual_lop_days > 0) {
-                $adjusted_result = $this->payroll_model->processLOPWithMonthlyBalance($staff['id'], $actual_lop_days, $month, $year);
+                $adjusted_result = $this->payroll_model->processLOPWithMonthlyBalance($staff['id'], $actual_lop_days, $month_numeric, $year);
                 log_message('debug', 'LOP Adjustment Result for Staff ' . $staff['id'] . ': ' . json_encode($adjusted_result));
                 if ($adjusted_result !== false && is_array($adjusted_result) && $adjusted_result['success']) {
                     $net_lop_days = (float) $adjusted_result['net_lop_days'];
@@ -1072,7 +1075,7 @@ class Payroll extends Admin_Controller
             if ($adjusted_lop_days > 0 && $payslipid) {
                 $this->db->where('staff_id', $staff['id']);
                 $this->db->where('year', (int)$year);
-                $this->db->where('month', (int)$month);
+                $this->db->where('month', (int)$month_numeric);
                 $this->db->where('used_for_lop_adjustment >', 0);
                 $this->db->update('staff_monthly_leave_balance', ['payslip_id' => $payslipid]);
             }
