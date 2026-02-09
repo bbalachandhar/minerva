@@ -71,6 +71,21 @@ class Attendencereports extends Admin_Controller
             $data['date_selected'] = $date;
             $resultlist                  = $this->staffattendancemodel->searchAttendenceUserTypeWithMode($role, date('Y-m-d', $this->customlib->datetostrtotime($date)),$attendance_mode);
             $data['resultlist']          = $resultlist;
+            
+            // Load attendance settings to determine late/permission times
+            $this->load->model('staffAttendaceSetting_model');
+            $attendance_settings = $this->staffAttendaceSetting_model->getRoleAttendanceSetting();
+            $settings_by_role = [];
+            foreach ($attendance_settings as $setting) {
+                if (!isset($settings_by_role[$setting->role_id])) {
+                    $settings_by_role[$setting->role_id] = [];
+                }
+                $settings_by_role[$setting->role_id][$setting->staff_attendence_type_id] = [
+                    'from' => $setting->entry_time_from,
+                    'to' => $setting->entry_time_to
+                ];
+            }
+            $data['attendance_settings'] = $settings_by_role;
         }
         $this->load->view('layout/header', $data);
         $this->load->view('attendencereports/staffdaywiseattendancereport', $data);

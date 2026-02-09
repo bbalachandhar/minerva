@@ -420,7 +420,19 @@ class Staffattendance extends Admin_Controller
                 $first_half_present = in_array($morning_session_status, [1, 2, 5], true);
                 $second_half_present = in_array($afternoon_session_status, [1, 6, 7], true);
 
-                if ($first_half_present && $second_half_present) {
+                // Check for Late status (prioritize late over present)
+                if ($morning_session_status === 2 || $afternoon_session_status === 6) {
+                    // First Half Late or Second Half Late - mark as Late overall
+                    if ($morning_session_status === 2 && $second_half_present) {
+                        $overall_attendance_type_id = 2; // First Half Late
+                    } elseif ($first_half_present && $afternoon_session_status === 6) {
+                        $overall_attendance_type_id = 6; // Second Half Late
+                    } elseif ($morning_session_status === 2 && !$second_half_present) {
+                        $overall_attendance_type_id = 4; // Half Day (late + absent afternoon)
+                    } elseif (!$first_half_present && $afternoon_session_status === 6) {
+                        $overall_attendance_type_id = 4; // Half Day (absent morning + late afternoon)
+                    }
+                } elseif ($first_half_present && $second_half_present) {
                     $overall_attendance_type_id = 1; // Present
                 } elseif ($first_half_present || $second_half_present) {
                     $overall_attendance_type_id = 4; // Half Day

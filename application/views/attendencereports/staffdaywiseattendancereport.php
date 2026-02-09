@@ -106,6 +106,14 @@
                                             </div>
                                         </div>
                                         <div class="download_label"><?php echo $this->lang->line('staff_day_wise_attendance_report'); ?></div>
+                                        <div class="alert alert-info no-print" style="margin-top: 10px;">
+                                            <strong><i class="fa fa-info-circle"></i> <?php echo $this->lang->line('color_legend'); ?>:</strong>
+                                            <span style="display: inline-block; margin-left: 10px; padding: 3px 8px; background-color: #d4edda; border: 1px solid #c3e6cb; border-radius: 3px;"><?php echo $this->lang->line('present'); ?></span>
+                                            <span style="display: inline-block; margin-left: 10px; padding: 3px 8px; background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 3px;"><?php echo $this->lang->line('late'); ?></span>
+                                            <span style="display: inline-block; margin-left: 10px; padding: 3px 8px; background-color: #cce5ff; border: 1px solid #66afe9; border-radius: 3px;"><?php echo $this->lang->line('permission'); ?></span>
+                                            <span style="display: inline-block; margin-left: 10px; padding: 3px 8px; background-color: #f8d7da; border: 1px solid #f5c6cb; border-radius: 3px;"><?php echo $this->lang->line('absent'); ?></span>
+                                            <span style="display: inline-block; margin-left: 10px; padding: 3px 8px; background-color: #e2e3e5; border: 1px solid #d6d8db; border-radius: 3px;"><?php echo $this->lang->line('half_day'); ?></span>
+                                        </div>
                                         <table class="table table-hover table-striped example">
                                             <thead>
                                                 <tr>
@@ -114,12 +122,13 @@
                                                     <th><?php echo $this->lang->line('role'); ?></th>
                                                     <th><?php echo $this->lang->line('name'); ?></th>
                                                     <th width="10%" class="text text-center"><?php echo $this->lang->line('attendance'); ?></th>
+                                                    <th><?php echo $this->lang->line('punch_in'); ?></th>
+                                                    <th><?php echo $this->lang->line('punch_out'); ?></th>
+                                                    <th><?php echo $this->lang->line('total_hours'); ?></th>
                                                     <?php
                                                     if ($sch_setting->staff_biometric) {
                                                     ?>
-                                                        <th><?php echo $this->lang->line('ip_address'); ?></th>
-                                                        <th><?php echo $this->lang->line('agent'); ?></th>
-                                                        <th><?php echo $this->lang->line('scan_location'); ?></th>
+                                                        <th><?php echo $this->lang->line('source'); ?></th>
                                                     <?php
                                                     }
                                                     ?>
@@ -165,66 +174,97 @@
                                                             }
                                                             ?>
                                                         </td>
-                                                        <?php
-                                                        if ($sch_setting->staff_biometric) {
-                                                        ?>
-                                                            <td>
-                                                                <?php
-                                                                if ($value['biometric_attendence'] || $value['qrcode_attendance']) {
-
-                                                                    echo $this->customlib->dateyyyymmddToDateTimeformat($value['attendence_dt']);
-                                                                }
-                                                                ?>
-                                                            </td>
-
-                                                        <?php
-                                                        }
-                                                        ?>
-
-                                                        <td>
-                                                            <?php
-
-                                                            if (IsNullOrEmptyString($value['biometric_attendence']) && IsNullOrEmptyString($value['qrcode_attendance'])) {
-                                                                echo $this->lang->line('n_a');
-                                                            } elseif (($value['biometric_attendence'] == 0) && ($value['qrcode_attendance']  == 0)) {
-                                                                echo $this->lang->line('manual');
-                                                            } elseif ($value['biometric_attendence']) {
-                                                                echo $this->lang->line('biometric');
-                                                            } elseif ($value['qrcode_attendance']) {
-                                                                echo $this->lang->line('qrcode') . " / " . $this->lang->line('barcode');
-                                                            }
-
-                                                            ?>
-                                                        </td>
-
-                                                        <?php
-                                                        if ($sch_setting->staff_biometric) {
-                                                        ?>
-                                                            <td>
-                                                                <?php
-                                                                if ($value['biometric_attendence'] || $value['qrcode_attendance']) {
-                                                                    if (isJSON($value['biometric_device_data'])) {
-                                                                        $json_data = json_decode($value['biometric_device_data']);
-                                                                        echo ($json_data->ip);
+                                                        <td style="<?php
+                                                            // Color code based on both attendance status AND actual in time
+                                                            $bg_color = '';
+                                                            $key = isset($value['key']) ? strtoupper(trim($value['key'])) : '';
+                                                            
+                                                            // Only apply color if attendance is marked
+                                                            if (!empty($value['in_time'])) {
+                                                                // Get role-based attendance settings
+                                                                $role_id = isset($value['role_id']) ? $value['role_id'] : null;
+                                                                $is_late = false;
+                                                                
+                                                                // Check if this staff arrived late based on their role's "Present" time configuration
+                                                                if ($role_id && !empty($attendance_settings[$role_id][1])) {
+                                                                    $present_time_to = strtotime($attendance_settings[$role_id][1]['to']);
+                                                                    $in_time = strtotime($value['in_time']);
+                                                                    if ($in_time > $present_time_to) {
+                                                                        $is_late = true;
                                                                     }
                                                                 }
+                                                                
+                                                                // Apply colors based on attendance status or late arrival
+                                                                if ($is_late && in_array($key, ['P', 'FHL', 'SHL', ''])) {
+                                                                    // Late arrival - yellow background
+                                                                    $bg_color = 'background-color: #fff3cd;';
+                                                                } elseif (in_array($key, ['FHL', 'SHL'])) {
+                                                                    $bg_color = 'background-color: #fff3cd;'; // Yellow for late
+                                                                } elseif (in_array($key, ['FHP', 'SHP'])) {
+                                                                    $bg_color = 'background-color: #cce5ff;'; // Blue for permission
+                                                                } elseif (in_array($key, ['A', 'FHA', 'SHA'])) {
+                                                                    $bg_color = 'background-color: #f8d7da;'; // Red for absent
+                                                                } elseif ($key == 'HD') {
+                                                                    $bg_color = 'background-color: #e2e3e5;'; // Gray for half day
+                                                                } elseif ($key == 'P') {
+                                                                    $bg_color = 'background-color: #d4edda;'; // Green for present
+                                                                }
+                                                            }
+                                                            echo $bg_color;
+                                                            ?>">
+                                                            <?php
+                                                            if (!empty($value['in_time'])) {
+                                                                echo date('h:i A', strtotime($value['in_time']));
+                                                            } else {
+                                                                echo '-';
+                                                            }
+                                                            ?>
+                                                        </td>
+                                                        <td>
+                                                            <?php
+                                                            if (!empty($value['out_time'])) {
+                                                                echo date('h:i A', strtotime($value['out_time']));
+                                                            } else {
+                                                                echo '-';
+                                                            }
+                                                            ?>
+                                                        </td>
+                                                        <td>
+                                                            <?php
+                                                            if (!empty($value['in_time']) && !empty($value['out_time'])) {
+                                                                $in = strtotime($value['in_time']);
+                                                                $out = strtotime($value['out_time']);
+                                                                $diff_seconds = $out - $in;
+                                                                if ($diff_seconds > 0) {
+                                                                    $hours = floor($diff_seconds / 3600);
+                                                                    $minutes = floor(($diff_seconds % 3600) / 60);
+                                                                    echo sprintf('%02d:%02d hrs', $hours, $minutes);
+                                                                } else {
+                                                                    echo '-';
+                                                                }
+                                                            } else {
+                                                                echo '-';
+                                                            }
+                                                            ?>
+                                                        </td>
+                                                        <?php
+                                                        if ($sch_setting->staff_biometric) {
+                                                        ?>
+                                                            <td>
+                                                                <?php
+
+                                                                if (IsNullOrEmptyString($value['biometric_attendence']) && IsNullOrEmptyString($value['qrcode_attendance'])) {
+                                                                    echo $this->lang->line('n_a');
+                                                                } elseif (($value['biometric_attendence'] == 0) && ($value['qrcode_attendance']  == 0)) {
+                                                                    echo $this->lang->line('manual');
+                                                                } elseif ($value['biometric_attendence']) {
+                                                                    echo $this->lang->line('biometric');
+                                                                } elseif ($value['qrcode_attendance']) {
+                                                                    echo $this->lang->line('qrcode') . " / " . $this->lang->line('barcode');
+                                                                }
+
                                                                 ?>
                                                             </td>
-                                                            <td class="text-rtl-left"><?php echo $value['user_agent'];; ?></td>
-                                                            <td class="text-rtl-left"><?php
-
-                                                                                        if (isJSON($value['biometric_device_data'])) {
-                                                                                            $json_data = json_decode($value['biometric_device_data']);
-                                                                                            echo $json_data->country."/ ". $json_data->region."/ ". $json_data->city;
-                                                                                            echo "<br/>";
-                                                                                        echo    "<a target='_blank' href='http://maps.google.com/?q=". $json_data->latitude.", ". $json_data->longitude."'>".$json_data->latitude.", ". $json_data->longitude."</a>";
-                                                                                            
-                                                                                        }
-
-
-
-                                                                                        ?></td>
-
                                                         <?php
                                                         }
                                                         ?>

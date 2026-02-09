@@ -2636,6 +2636,12 @@ $lang['manual']= "Manual";
 $lang['staff_day_wise_attendance_report']= "Staff Day Wise Attendance Report";
 $lang['student_day_wise_attendance_report']= "Student Day Wise Attendance Report";
 $lang['scan_location']= "Scan Location";
+$lang['punch_in']= "Punch In";
+$lang['punch_out']= "Punch Out";
+$lang['total_hours']= "Total Hours";
+$lang['color_legend']= "Color Legend";
+$lang['late']= "Late";
+$lang['permission']= "Permission";
 $lang['half_day'] = "Half Day";
 $lang['changing_the_session_name_format_may_cause_issues_on_some_pages_or_features_so_it_is_recommended_not_to_change_the_session_name_format']= "Changing the session name format may cause issues on some pages or features, so it is recommended not to change the session name format.";
 
