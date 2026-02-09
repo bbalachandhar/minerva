@@ -1005,7 +1005,7 @@ class Staff extends Admin_Controller
                 }
 
                 $upload_dir = './uploads/staff_documents/' . $staff_id . '/';
-                if (!is_dir($upload_dir) && !mkdir($upload_dir)) {
+                if (!is_dir($upload_dir) && !mkdir($upload_dir, 0755, true)) {
                     die("Error creating folder $upload_dir");
                 }
                     
@@ -1405,7 +1405,7 @@ class Staff extends Admin_Controller
             }
 
             $upload_dir = './uploads/staff_documents/' . $id . '/';
-            if (!is_dir($upload_dir) && !mkdir($upload_dir)) {
+            if (!is_dir($upload_dir) && !mkdir($upload_dir, 0755, true)) {
                 die("Error creating folder $upload_dir");
             }
 
@@ -1754,7 +1754,7 @@ class Staff extends Admin_Controller
             }
 
             $upload_dir = './uploads/staff_documents/' . $id . '/';
-            if (!is_dir($upload_dir) && !mkdir($upload_dir)) {
+            if (!is_dir($upload_dir) && !mkdir($upload_dir, 0755, true)) {
                 die("Error creating folder $upload_dir");
             }
 
