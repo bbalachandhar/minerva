@@ -1001,6 +1001,19 @@ class Payroll extends Admin_Controller
             $adjusted_lop_days = 0;
             $net_lop_days = $actual_lop_days;
 
+            // If overwriting, reset the monthly balance LOP adjustments for this staff/month
+            if (!empty($staff['payslip_id']) && $overwrite) {
+                $this->db->where('staff_id', $staff['id']);
+                $this->db->where('year', (int)$year);
+                $this->db->where('month', (int)$month);
+                // Reset LOP adjustment and recalculate closing balance
+                $this->db->set('used_for_lop_adjustment', 0);
+                $this->db->set('closing_balance', 'opening_balance + earned_in_month - used_for_leave_application - other_deductions', FALSE);
+                $this->db->set('last_processed_date', NULL);
+                $this->db->set('payslip_id', NULL);
+                $this->db->update('staff_monthly_leave_balance');
+            }
+
             // Process LOP adjustment with monthly balance tracking
             if ($actual_lop_days > 0) {
                 $adjusted_result = $this->payroll_model->processLOPWithMonthlyBalance($staff['id'], $actual_lop_days, $month, $year);
