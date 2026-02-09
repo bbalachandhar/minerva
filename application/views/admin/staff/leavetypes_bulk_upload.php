@@ -13,7 +13,7 @@
                     <div class="box-header with-border">
                         <h3 class="box-title"><?php echo $this->lang->line('bulk_upload_leave_allotment'); ?></h3>
                         <div class="box-tools pull-right">
-                             <a href="<?php echo site_url('admin/leavetypes/download_sample'); ?>" class="btn btn-primary btn-sm">
+                             <a href="<?php echo site_url('admin/leavetypes/download_sample'); ?>?v=<?php echo time(); ?>" class="btn btn-primary btn-sm">
                                 <i class="fa fa-download"></i> <?php echo $this->lang->line('download_sample_csv'); ?>
                             </a>
                             <a href="<?php echo site_url('admin/leavetypes'); ?>" class="btn btn-primary btn-sm">
