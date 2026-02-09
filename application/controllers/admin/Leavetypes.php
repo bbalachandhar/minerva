@@ -227,11 +227,17 @@ class LeaveTypes extends Admin_Controller
         $filepath = FCPATH . "uploads/sample_leave_allotment.csv";
         
         if (!file_exists($filepath)) {
-            show_error('Sample file not found');
+            show_error('Sample file not found at: ' . $filepath);
             return;
         }
         
         $data = file_get_contents($filepath);
+        
+        if ($data === false || empty($data)) {
+            show_error('Unable to read file or file is empty. Path: ' . $filepath . ', Size: ' . filesize($filepath));
+            return;
+        }
+        
         $name = 'sample_leave_allotment.csv';
         force_download($name, $data);
     }
