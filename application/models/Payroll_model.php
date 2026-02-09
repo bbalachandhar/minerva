@@ -616,9 +616,18 @@ class Payroll_model extends MY_Model
             // Get or create monthly balance
             $balance = $this->getOrCreateMonthlyBalance($staff_id, $leave['leave_type_id'], $year_int, $month_int);
             
+            // Ensure we have an array and set defaults for missing keys
+            if (!is_array($balance)) {
+                continue;
+            }
+            
+            $opening_balance = floatval($balance['opening_balance'] ?? 0);
+            $earned_in_month = floatval($balance['earned_in_month'] ?? 0);
+            $used_for_leave_application = floatval($balance['used_for_leave_application'] ?? 0);
+            $other_deductions = floatval($balance['other_deductions'] ?? 0);
+            
             // Calculate available balance
-            $available = $balance['opening_balance'] + $balance['earned_in_month'] 
-                       - $balance['used_for_leave_application'] - $balance['other_deductions'];
+            $available = $opening_balance + $earned_in_month - $used_for_leave_application - $other_deductions;
             
             if ($available <= 0) {
                 continue;
@@ -628,9 +637,9 @@ class Payroll_model extends MY_Model
             $to_adjust = min($available, $remaining_lop);
             
             // Update monthly balance
-            $new_used_lop = $balance['used_for_lop_adjustment'] + $to_adjust;
-            $new_closing = $balance['opening_balance'] + $balance['earned_in_month'] 
-                         - $new_used_lop - $balance['used_for_leave_application'] - $balance['other_deductions'];
+            $used_for_lop_adjustment = floatval($balance['used_for_lop_adjustment'] ?? 0);
+            $new_used_lop = $used_for_lop_adjustment + $to_adjust;
+            $new_closing = $opening_balance + $earned_in_month - $new_used_lop - $used_for_leave_application - $other_deductions;
             
             $update_data = [
                 'used_for_lop_adjustment' => $new_used_lop,
