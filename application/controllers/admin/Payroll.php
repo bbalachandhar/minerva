@@ -982,6 +982,12 @@ class Payroll extends Admin_Controller
                 $tax = !empty($last_payslip['tax']) ? $last_payslip['tax'] : 0;
                 $allowances = $this->payroll_model->getAllowance($last_payslip['id']);
                 foreach ($allowances as $allowance) {
+                    // Skip "BASIC PAY" or "BASIC SALARY" to avoid double counting with $basic field
+                    $allowance_label = strtolower(trim($allowance['allowance_type']));
+                    if ($allowance_label === 'basic pay' || $allowance_label === 'basic salary') {
+                        continue;
+                    }
+                    
                     if ($allowance['cal_type'] === 'positive') {
                         $total_allowance += (float) $allowance['amount'];
                     } else {
@@ -1029,8 +1035,12 @@ class Payroll extends Admin_Controller
 
             $gross_salary = (float) $basic + (float) $total_allowance;
             $lop_deduction = 0;
-            if (!empty($lop_summary['working_days']) && $net_lop_days > 0) {
-                $lop_deduction = ($gross_salary / (float) $lop_summary['working_days']) * $net_lop_days;
+            if ($net_lop_days > 0) {
+                // Calculate total days in the month
+                $month_num = date('n', strtotime($year . '-' . $month . '-01'));
+                $total_days_of_month = cal_days_in_month(CAL_GREGORIAN, $month_num, (int)$year);
+                
+                $lop_deduction = ($gross_salary / $total_days_of_month) * $net_lop_days;
             }
 
             $net_salary = $gross_salary - (float) $total_deduction - (float) $lop_deduction - (float) $tax;
@@ -1073,6 +1083,12 @@ class Payroll extends Admin_Controller
 
             if (!empty($allowances)) {
                 foreach ($allowances as $allowance) {
+                    // Skip "BASIC PAY" or "BASIC SALARY" as it's stored in the basic field
+                    $allowance_label = strtolower(trim($allowance['allowance_type']));
+                    if ($allowance_label === 'basic pay' || $allowance_label === 'basic salary') {
+                        continue;
+                    }
+                    
                     $allowance_data = array(
                         'payslip_id' => $payslipid,
                         'allowance_type' => $allowance['allowance_type'],

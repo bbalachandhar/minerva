@@ -465,8 +465,15 @@ $deduction_count++;
 
         var gross_salary = parseFloat(basic_pay) + parseFloat(total_allowance);
         var lop_deduction = 0;
-        if (working_days > 0 && lop_days > 0) {
-            lop_deduction = (gross_salary / working_days) * lop_days;
+        if (lop_days > 0) {
+            // Get total days in the month from the attendance key format: YYYY-MM
+            var attendanceKey = $("#attendence_key").val() || '';
+            var dateParts = attendanceKey.split('-');
+            var year = parseInt(dateParts[0]) || new Date().getFullYear();
+            var month = parseInt(dateParts[1]) || new Date().getMonth() + 1;
+            var total_days_of_month = new Date(year, month, 0).getDate();
+            
+            lop_deduction = (gross_salary / total_days_of_month) * lop_days;
         }
 
         var tax = $("#tax_percent").val();
