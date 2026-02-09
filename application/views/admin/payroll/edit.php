@@ -159,21 +159,6 @@ $weekend_count = (int) ($attendence_value['sunday'] ?? 0);
 $first_half_absent = (int) ($attendence_value['first_half_absent'] ?? 0);
 $second_half_absent = (int) ($attendence_value['second_half_absent'] ?? 0);
 $paid_leave_absent = $month_paid_leave_absent[$attendence_key] ?? 0;
-
-// Get adjusted LOP and net LOP from monthly balance for this month
-$month_num = date('m', strtotime($attendence_key));
-$year_num = date('Y', strtotime($attendence_key));
-$CI =& get_instance();
-$CI->db->select('SUM(used_for_lop_adjustment) as total_adjusted_lop');
-$CI->db->from('staff_monthly_leave_balance');
-$CI->db->where('staff_id', $result['id']);
-$CI->db->where('month', $month_num);
-$CI->db->where('year', $year_num);
-$lop_query = $CI->db->get();
-$lop_data = $lop_query->row_array();
-$adjusted_lop = floatval($lop_data['total_adjusted_lop'] ?? 0);
-$net_lop = max(0, $lop_days - $adjusted_lop);
-
 $days_in_period = (int) ($attendence_value['days_in_period'] ?? 0);
 if ($days_in_period <= 0) {
     $days_in_period = cal_days_in_month(CAL_GREGORIAN, (int) date("m", strtotime($attendence_key)), (int) date("Y", strtotime($attendence_key)));
@@ -189,6 +174,20 @@ $late_permission_penalty = ($excess_late + $excess_permission) * $half_day_weigh
 $total_present = max(0, $total_present - $late_permission_penalty + $paid_leave_absent);
 $total_absent = $total_absent + $late_permission_penalty;
 $lop_days = $total_absent + (($first_half_absent + $second_half_absent) * $half_day_weight);
+
+// Get adjusted LOP and net LOP from monthly balance for this month
+$month_num = date('m', strtotime($attendence_key));
+$year_num = date('Y', strtotime($attendence_key));
+$CI =& get_instance();
+$CI->db->select('SUM(used_for_lop_adjustment) as total_adjusted_lop');
+$CI->db->from('staff_monthly_leave_balance');
+$CI->db->where('staff_id', $result['id']);
+$CI->db->where('month', $month_num);
+$CI->db->where('year', $year_num);
+$lop_query = $CI->db->get();
+$lop_data = $lop_query->row_array();
+$adjusted_lop = floatval($lop_data['total_adjusted_lop'] ?? 0);
+$net_lop = max(0, $lop_days - $adjusted_lop);
 ?>
                                             <tr style="background: <?php echo ($attendence_key_index % 2 == 0) ? '#f8f9fa' : '#ffffff'; ?>; transition: all 0.2s;" onmouseover="this.style.background='#e3f2fd';" onmouseout="this.style.background='<?php echo ($attendence_key_index % 2 == 0) ? '#f8f9fa' : '#ffffff'; ?>';">
                                                 <td style="padding: 8px 6px; text-align: center; border: none; font-weight: 600; color: #495057;"><?php echo date("F", strtotime($attendence_key)); ?></td>
