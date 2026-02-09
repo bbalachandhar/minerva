@@ -602,6 +602,18 @@ class Payroll_model extends MY_Model
         $settings = $this->setting_model->getSetting();
         $auto_adjust = isset($settings->auto_adjust_lop_with_leaves) ? $settings->auto_adjust_lop_with_leaves : 0;
         
+        // If auto adjust is disabled, return with no adjustments
+        if ($auto_adjust != 1) {
+            return [
+                'success' => true,
+                'actual_lop_days' => $lop_days,
+                'adjusted_lop_days' => 0,
+                'net_lop_days' => $lop_days,
+                'adjustments' => [],
+                'message' => 'Auto LOP adjustment is disabled'
+            ];
+        }
+        
         // Get all paid leave types for this staff
         $paid_leaves = $this->getStaffPaidLeaves($staff_id);
         
