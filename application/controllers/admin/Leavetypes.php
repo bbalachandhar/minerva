@@ -224,9 +224,15 @@ class LeaveTypes extends Admin_Controller
     public function download_sample()
     {
         $this->load->helper('download');
-        $filepath = "uploads/sample_leave_allotment.csv";
-        $data     = file_get_contents($filepath);
-        $name     = 'sample_leave_allotment.csv';
+        $filepath = FCPATH . "uploads/sample_leave_allotment.csv";
+        
+        if (!file_exists($filepath)) {
+            show_error('Sample file not found');
+            return;
+        }
+        
+        $data = file_get_contents($filepath);
+        $name = 'sample_leave_allotment.csv';
         force_download($name, $data);
     }
 }
