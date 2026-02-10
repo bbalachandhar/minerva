@@ -110,6 +110,7 @@ class Enquiry extends Admin_Controller
             $userdata   = $this->customlib->getUserData();
             $created_by = $userdata["id"];
 
+            $reference_no = 'ENQ-' . date('YmdHis') . rand(100, 999);
             $enquiry = array(
                 'name'           => $this->input->post('name'),
                 'contact'        => $this->input->post('contact'),
@@ -125,6 +126,7 @@ class Enquiry extends Admin_Controller
                 'class_id' => IsNullOrEmptyString($this->input->post('class')) ? NULL :$this->input->post('class'),
                 'status'         => 'active',
                 'created_by'     => $created_by,
+                'ref_no'         => $reference_no,
             );
             $this->enquiry_model->add($enquiry);
             $array = array('status' => 'success', 'error' => '', 'message' => $this->lang->line('success_message'));

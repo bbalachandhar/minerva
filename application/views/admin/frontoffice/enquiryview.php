@@ -162,7 +162,9 @@ if (empty($enquiry_list)) {
         }
         ?>
                                                         <tr <?php echo $class ?>>
-                                                            <td class="mailbox-name"><?php echo date('Y') . str_pad($value['id'], 6, '0', STR_PAD_LEFT); ?></td>
+                                                            <td class="mailbox-name">
+                                                                <?php echo !empty($value['ref_no']) ? $value['ref_no'] : date('Y') . str_pad($value['id'], 6, '0', STR_PAD_LEFT); ?>
+                                                            </td>
                                                             <td class="mailbox-name"><?php echo $value['name']; ?> </td>
                                                             <td class="mailbox-name"><?php echo $value['contact']; ?> </td>
                                                             <td class="mailbox-name"><?php echo $value['source']; ?></td>
