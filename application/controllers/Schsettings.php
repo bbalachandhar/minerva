@@ -53,6 +53,12 @@ class Schsettings extends Admin_Controller
         
         $this->load->model('staff_model');
         $data['staff_list'] = $this->staff_model->get(null, 1);
+        
+        $this->load->model('leavetypes_model');
+        $data['leave_types'] = $this->leavetypes_model->getLeaveType();
+        
+        // Fetch monthly leave increment rules
+        $data['leave_increment_rules'] = $this->get_leave_increment_rules();
 	 
         $this->load->view('layout/header', $data);
         $this->load->view('setting/settingList', $data);
@@ -311,6 +317,10 @@ class Schsettings extends Admin_Controller
                 'leave_approver_id' => $this->input->post('leave_approver_id'),
                 'weekend_days'    => implode(',', $this->input->post('weekend_days') ?? ['0']),
                 'isSecondSaturdayHoliday' => $this->input->post('isSecondSaturdayHoliday') ? 1 : 0,
+                'monthly_leave_increment_enabled' => $this->input->post('monthly_leave_increment_enabled') ? 1 : 0,
+                'monthly_increment_leave_type_id' => $this->input->post('monthly_increment_leave_type_id') ?: null,
+                'monthly_increment_days' => $this->input->post('monthly_increment_days') ?: 1.00,
+                'leave_reset_month' => $this->input->post('leave_reset_month') ?: 1,
             );
             
             if (isset($_FILES["admission_logo_left"]) && !empty($_FILES['admission_logo_left']['name'])) {
@@ -1416,6 +1426,115 @@ class Schsettings extends Admin_Controller
         $this->load->view('layout/header');
         $this->load->view('setting/hiddenforms');
         $this->load->view('layout/footer');
+    }
+    
+
+    // ========================================================================
+    // Monthly Leave Increment Rules Management
+    // ========================================================================
+    
+    /**
+     * Get all leave increment rules
+     */
+    private function get_leave_increment_rules()
+    {
+        return $this->db
+            ->select('mlr.*, lt.type as leave_type_name')
+            ->from('monthly_leave_increment_rules mlr')
+            ->join('leave_types lt', 'mlr.leave_type_id = lt.id', 'left')
+            ->order_by('lt.type', 'asc')
+            ->get()
+            ->result_array();
+    }
+    
+    /**
+     * AJAX: Get leave increment rules (for datatable)
+     */
+    public function ajax_get_leave_rules()
+    {
+        $rules = $this->get_leave_increment_rules();
+        echo json_encode(['status' => 'success', 'data' => $rules]);
+    }
+    
+    /**
+     * AJAX: Save/Update leave increment rule
+     */
+    public function ajax_save_leave_rule()
+    {
+        $id = $this->input->post('id');
+        $leave_type_id = $this->input->post('leave_type_id');
+        $increment_days = $this->input->post('increment_days');
+        $enabled = $this->input->post('enabled') ? 1 : 0;
+        
+        if ($id) {
+            // Update existing rule - only update increment_days and enabled
+            $data = [
+                'increment_days' => $increment_days,
+                'enabled' => $enabled
+            ];
+            $this->db->where('id', $id);
+            $this->db->update('monthly_leave_increment_rules', $data);
+            $message = 'Rule updated successfully';
+        } else {
+            // Check if rule already exists for this leave type
+            $existing = $this->db->where('leave_type_id', $leave_type_id)
+                ->get('monthly_leave_increment_rules')
+                ->row();
+            
+            if ($existing) {
+                echo json_encode(['status' => 'fail', 'message' => 'Rule already exists for this leave type']);
+                return;
+            }
+            
+            // Insert new rule - include all fields
+            $data = [
+                'leave_type_id' => $leave_type_id,
+                'increment_days' => $increment_days,
+                'enabled' => $enabled
+            ];
+            $this->db->insert('monthly_leave_increment_rules', $data);
+            $message = 'Rule added successfully';
+        }
+        
+        echo json_encode(['status' => 'success', 'message' => $message]);
+    }
+    
+    /**
+     * AJAX: Delete leave increment rule
+     */
+    public function ajax_delete_leave_rule()
+    {
+        $id = $this->input->post('id');
+        
+        if (!$id) {
+            echo json_encode(['status' => 'fail', 'message' => 'Invalid rule ID']);
+            return;
+        }
+        
+        $this->db->where('id', $id);
+        $this->db->delete('monthly_leave_increment_rules');
+        
+        echo json_encode(['status' => 'success', 'message' => 'Rule deleted successfully']);
+    }
+    
+    /**
+     * AJAX: Toggle rule status (enable/disable)
+     */
+    public function ajax_toggle_leave_rule()
+    {
+        $id = $this->input->post('id');
+        $enabled = $this->input->post('enabled') ? 1 : 0;
+        
+        if (!$id) {
+            echo json_encode(['status' => 'fail', 'message' => 'Invalid rule ID']);
+            return;
+        }
+        
+        $this->db->where('id', $id);
+        $this->db->update('monthly_leave_increment_rules', ['enabled' => $enabled]);
+        
+        $status_text = $enabled ? 'enabled' : 'disabled';
+        echo json_encode(['status' => 'success', 'message' => "Rule {$status_text} successfully"]);
     }
     
 }

@@ -326,6 +326,172 @@
                                         </div>
                                     </div>
                                 </div><!--./row-->
+                                
+                                <div class="row">
+                                    <div class="col-md-12">
+                                        <div class="settinghr"></div>
+                                        <h4 class="session-head">Monthly Leave Increment Automation</h4>
+                                    </div><!--./col-md-12-->
+                                    <div class="col-md-12">
+                                        <div class="alert alert-info">
+                                            <strong>Note:</strong> This feature automatically increments specified leave type by configured days each month and resets it to 0 at specified month.
+                                            <br><strong>Example:</strong> CL (Casual Leave) can be set to increase by 1 day each month and reset to 0 in January.
+                                        </div>
+                                    </div>
+                                    <div class="col-md-12">
+                                        <div class="form-group row">
+                                            <label class="col-sm-3">Enable Monthly Leave Increment</label>
+                                            <div class="col-sm-9">
+                                                <div class="material-switch">
+                                                    <input id="monthly_leave_increment_enabled" name="monthly_leave_increment_enabled" type="checkbox" class="chk" value="1" <?php echo (isset($result->monthly_leave_increment_enabled) && $result->monthly_leave_increment_enabled == 1) ? 'checked="checked"' : ''; ?>>
+                                                    <label for="monthly_leave_increment_enabled" class="label-success"></label>
+                                                </div>
+                                                <small class="text-muted">Enable automatic monthly leave increment and annual reset</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div><!--./row-->
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group row">
+                                            <label class="col-sm-4">Leave Type to Increment</label>
+                                            <div class="col-sm-8">
+                                                <select id="monthly_increment_leave_type_id" name="monthly_increment_leave_type_id" class="form-control">
+                                                    <option value="">Select Leave Type</option>
+                                                    <?php foreach ($leave_types as $leave_type): ?>
+                                                        <option value="<?php echo $leave_type['id']; ?>" <?php echo (isset($result->monthly_increment_leave_type_id) && $result->monthly_increment_leave_type_id == $leave_type['id']) ? 'selected' : ''; ?>>
+                                                            <?php echo $leave_type['type']; ?>
+                                                        </option>
+                                                    <?php endforeach; ?>
+                                                </select>
+                                                <small class="text-muted">Choose which leave type should be incremented monthly (e.g., Casual Leave)</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group row">
+                                            <label class="col-sm-4 text-lg-end">Days to Increment per Month</label>
+                                            <div class="col-sm-8">
+                                                <input type="number" step="0.5" min="0" max="31" class="form-control" id="monthly_increment_days" name="monthly_increment_days" value="<?php echo isset($result->monthly_increment_days) ? $result->monthly_increment_days : 1.00; ?>">
+                                                <small class="text-muted">Number of days to add each month (e.g., 1 for 1 day/month)</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div><!--./row-->
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group row">
+                                            <label class="col-sm-4">Reset Month</label>
+                                            <div class="col-sm-8">
+                                                <select id="leave_reset_month" name="leave_reset_month" class="form-control">
+                                                    <?php
+                                                    $months = array(1 => 'January', 2 => 'February', 3 => 'March', 4 => 'April', 5 => 'May', 6 => 'June', 
+                                                                   7 => 'July', 8 => 'August', 9 => 'September', 10 => 'October', 11 => 'November', 12 => 'December');
+                                                    foreach ($months as $month_num => $month_name):
+                                                    ?>
+                                                        <option value="<?php echo $month_num; ?>" <?php echo (isset($result->leave_reset_month) && $result->leave_reset_month == $month_num) ? 'selected' : ''; ?>>
+                                                            <?php echo $month_name; ?>
+                                                        </option>
+                                                    <?php endforeach; ?>
+                                                </select>
+                                                <small class="text-muted">Month when leave count resets to 0 (typically start of financial/academic year)</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group row">
+                                            <label class="col-sm-4 text-lg-end">Last Processed</label>
+                                            <div class="col-sm-8">
+                                                <input type="text" class="form-control" value="<?php echo isset($result->last_leave_increment_processed) && $result->last_leave_increment_processed ? date('d-M-Y', strtotime($result->last_leave_increment_processed)) : 'Never'; ?>" readonly>
+                                                <small class="text-muted">Last date when monthly increment was processed</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div><!--./row-->
+                                <div class="row">
+                                    <div class="col-md-12">
+                                        <div class="alert alert-warning">
+                                            <strong>Important:</strong> After enabling this feature, set up a cron job to run daily:
+                                            <br><code>0 2 * * * curl "<?php echo base_url(); ?>cron_leave_increment/process?secret_key=<?php echo $result->cron_secret_key; ?>"</code>
+                                            <br>Or manually trigger: <a href="<?php echo base_url('cron_leave_increment/manual_process'); ?>" target="_blank">Run Manual Process</a>
+                                        </div>
+                                    </div>
+                                </div><!--./row-->
+                                
+                                <!-- Monthly Leave Increment Rules Table -->
+                                <div class="row">
+                                    <div class="col-md-12">
+                                        <div class="settinghr"></div>
+                                        <h4 class="session-head">
+                                            Configured Leave Types for Auto Increment
+                                            <button type="button" class="btn btn-sm btn-success pull-right" id="addLeaveRuleBtn">
+                                                <i class="fa fa-plus"></i> Add New Rule
+                                            </button>
+                                        </h4>
+                                    </div>
+                                    <div class="col-md-12">
+                                        <div class="table-responsive">
+                                            <table class="table table-striped table-bordered" id="leaveRulesTable">
+                                                <thead>
+                                                    <tr>
+                                                        <th width="5%">#</th>
+                                                        <th width="35%">Leave Type</th>
+                                                        <th width="20%">Days/Month</th>
+                                                        <th width="15%">Status</th>
+                                                        <th width="25%">Actions</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <?php if (empty($leave_increment_rules)): ?>
+                                                        <tr>
+                                                            <td colspan="5" class="text-center text-muted">
+                                                                <i class="fa fa-info-circle"></i> No rules configured yet. Click "Add New Rule" to configure a leave type for auto increment.
+                                                            </td>
+                                                        </tr>
+                                                    <?php else: ?>
+                                                        <?php foreach ($leave_increment_rules as $index => $rule): ?>
+                                                            <tr data-rule-id="<?php echo $rule['id']; ?>">
+                                                                <td><?php echo $index + 1; ?></td>
+                                                                <td>
+                                                                    <strong><?php echo htmlspecialchars($rule['leave_type_name']); ?></strong>
+                                                                </td>
+                                                                <td>
+                                                                    <span class="days-display"><?php echo number_format($rule['increment_days'], 2); ?></span>
+                                                                    <input type="number" class="form-control form-control-sm days-edit" style="display:none; width: 100px;" 
+                                                                           value="<?php echo $rule['increment_days']; ?>" step="0.5" min="0" max="31">
+                                                                </td>
+                                                                <td>
+                                                                    <span class="label <?php echo $rule['enabled'] ? 'label-success' : 'label-danger'; ?> status-badge">
+                                                                        <?php echo $rule['enabled'] ? 'Enabled' : 'Disabled'; ?>
+                                                                    </span>
+                                                                </td>
+                                                                <td>
+                                                                    <button type="button" class="btn btn-xs btn-primary editRuleBtn" title="Edit">
+                                                                        <i class="fa fa-pencil"></i>
+                                                                    </button>
+                                                                    <button type="button" class="btn btn-xs btn-success saveRuleBtn" style="display:none;" title="Save">
+                                                                        <i class="fa fa-check"></i>
+                                                                    </button>
+                                                                    <button type="button" class="btn btn-xs btn-default cancelRuleBtn" style="display:none;" title="Cancel">
+                                                                        <i class="fa fa-times"></i>
+                                                                    </button>
+                                                                    <button type="button" class="btn btn-xs btn-<?php echo $rule['enabled'] ? 'warning' : 'info'; ?> toggleRuleBtn" 
+                                                                            data-enabled="<?php echo $rule['enabled']; ?>" title="<?php echo $rule['enabled'] ? 'Disable' : 'Enable'; ?>">
+                                                                        <i class="fa fa-<?php echo $rule['enabled'] ? 'ban' : 'check'; ?>"></i>
+                                                                    </button>
+                                                                    <button type="button" class="btn btn-xs btn-danger deleteRuleBtn" title="Delete">
+                                                                        <i class="fa fa-trash"></i>
+                                                                    </button>
+                                                                </td>
+                                                            </tr>
+                                                        <?php endforeach; ?>
+                                                    <?php endif; ?>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div><!--./row-->
+                                
                                 <input type="hidden" id="folder_path" name="folder_path" value="<?php echo FCPATH; ?>">                               
                             </div><!-- /.box-body -->
                             <div class="box-footer">
@@ -380,4 +546,4 @@
             }
         });
     });
-</script>
+</script><?php $this->load->view("setting/_leave_rules_scripts"); ?>

@@ -101,6 +101,9 @@ $route['admin/staff/delete_biometric_device/(:num)'] = 'admin/staff/delete_biome
 $route['admin/specialattendance'] = 'admin/specialattendance/index';
 $route['admin/specialattendance/(:any)'] = 'admin/specialattendance/$1';
 
+$route['admin/leave_balance_setup'] = 'admin/leave_balance_setup/index';
+$route['admin/leave_balance_setup/(:any)'] = 'admin/leave_balance_setup/$1';
+
 $route['studentfee/do_bulk_upload_by_feetype'] = 'studentfee/do_bulk_upload_by_feetype';
 $route['admin/staff/activate_biometric_device/(:num)'] = 'admin/staff/activate_biometric_device/$1';
 $route['admin/timetable/bulk']         = 'admin/timetable/bulk';

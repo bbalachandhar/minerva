@@ -219,7 +219,8 @@ if (!function_exists('main_menu_array')) {
                 'leavetypes'        => array('index','leaveedit','createleavetype'),  
                 'department'        => array('department','departmentedit'),  
                 'designation'       => array('designation','designationedit'),
-                'specialattendance' => array('index','search','generate_attendance','get_employees_by_department'),            
+                'specialattendance' => array('index','search','generate_attendance','get_employees_by_department'),
+                'leave_balance_setup' => array('index','ajax_save_balances','ajax_get_staff_balances'),            
             ), 
             
             'communicate' => array(          

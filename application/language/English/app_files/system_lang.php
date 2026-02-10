@@ -180,6 +180,7 @@ $lang['apply_discount'] = "Apply Discount";
 $lang['apply_leave'] = "Apply Leave";	
 $lang['apply_leave_notification_email'] = "Apply Leave Notification Email";	
 $lang['approve'] = "Approve";	
+$lang['initial_leave_balance'] = "Initial Leave Balance";	
 $lang['approve_by'] = "Approve By";	
 $lang['approve_disapprove_by'] = "Approve Disapprove By";	
 $lang['approve_leave'] = "Approve Leave";	
