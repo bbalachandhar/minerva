@@ -66,6 +66,8 @@ class Enquiry extends CI_Controller
                 'name'           => $this->input->post('name'),
                 'contact'        => $this->input->post('contact'),
                 'address'        => $this->input->post('address'),
+                'state'          => $this->input->post('state'),
+                'city'           => $this->input->post('city'),
                 'reference'      => $this->input->post('reference'),
                 'date'           => date('Y-m-d'),
                 'description'    => $this->input->post('description'),

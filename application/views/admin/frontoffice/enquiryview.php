@@ -250,6 +250,22 @@ if (!empty($next_date) && $next_date != '0000-00-00') {
                                             <input type="text" value="<?php echo set_value('email'); ?>" name="email" class="form-control">
                                         </div>
                                     </div>
+                                    <div class="col-sm-4">
+                                        <div class="form-group">
+                                            <label>State</label>
+                                            <select name="state" id="state_add" class="form-control">
+                                                <option value="">Select State</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-4">
+                                        <div class="form-group">
+                                            <label>City</label>
+                                            <select name="city" id="city_add" class="form-control">
+                                                <option value="">Select City</option>
+                                            </select>
+                                        </div>
+                                    </div>
                                     <div class="col-sm-6">
                                         <div class="form-group">
                                             <label for="email"><?php echo $this->lang->line('address'); ?></label>
@@ -629,6 +645,44 @@ foreach ($class_list as $key => $value) {
                     });
                 }
             });
+        }
+    });
+
+    // Load state and city data for Add modal
+    var statesData = [];
+    $.ajax({
+        url: '<?php echo base_url(); ?>backend/json-files/india_states_cities.json',
+        dataType: 'json',
+        success: function(data) {
+            statesData = data.states;
+            // Sort states alphabetically
+            statesData.sort(function(a, b) {
+                return a.name.localeCompare(b.name);
+            });
+            // Populate state dropdown
+            $.each(statesData, function(index, state) {
+                $('#state_add').append('<option value="' + state.name + '">' + state.name + '</option>');
+            });
+        }
+    });
+
+    // Handle state change for Add modal
+    $(document).on('change', '#state_add', function() {
+        var selectedState = $(this).val();
+        $('#city_add').html('<option value="">Select City</option>');
+        
+        if (selectedState) {
+            var state = statesData.find(function(s) {
+                return s.name === selectedState;
+            });
+            
+            if (state && state.cities) {
+                // Sort cities alphabetically
+                var sortedCities = state.cities.slice().sort();
+                $.each(sortedCities, function(index, city) {
+                    $('#city_add').append('<option value="' + city + '">' + city + '</option>');
+                });
+            }
         }
     });
 </script>

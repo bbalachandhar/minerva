@@ -42,6 +42,24 @@ if (validation_errors()) {
     <div class="row">
         <div class="col-md-6">
             <div class="form-group">
+                <label for="state">State</label>
+                <select name="state" id="state" class="form-control">
+                    <option value="">Select State</option>
+                </select>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="form-group">
+                <label for="city">City</label>
+                <select name="city" id="city" class="form-control">
+                    <option value="">Select City</option>
+                </select>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-6">
+            <div class="form-group">
                 <label for="address">Address</label>
                 <textarea class="form-control" name="address"><?php echo set_value('address'); ?></textarea>
             </div>
@@ -89,4 +107,49 @@ if (validation_errors()) {
     <button type="submit" class="btn btn-primary">Submit Enquiry</button>
 </form>
 
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+<script>
+$(document).ready(function() {
+    // Load India states and cities
+    let statesData = {};
+    
+    $.ajax({
+        url: '<?php echo base_url("backend/json-files/india_states_cities.json"); ?>',
+        type: 'GET',
+        dataType: 'json',
+        success: function(data) {
+            const stateSelect = document.getElementById('state');
+            
+            // Sort states alphabetically
+            data.states.sort((a, b) => a.name.localeCompare(b.name));
+            
+            data.states.forEach(function(state) {
+                // Sort cities alphabetically
+                state.cities.sort((a, b) => a.localeCompare(b));
+                statesData[state.name] = state.cities;
+                
+                const option = document.createElement('option');
+                option.value = state.name;
+                option.textContent = state.name;
+                stateSelect.appendChild(option);
+            });
+        }
+    });
 
+    // Populate cities when state is selected
+    document.getElementById('state').addEventListener('change', function() {
+        const selectedState = this.value;
+        const citySelect = document.getElementById('city');
+        citySelect.innerHTML = '<option value="">Select City</option>';
+        
+        if (statesData[selectedState]) {
+            statesData[selectedState].forEach(function(city) {
+                const option = document.createElement('option');
+                option.value = city;
+                option.textContent = city;
+                citySelect.appendChild(option);
+            });
+        }
+    });
+});
+</script>

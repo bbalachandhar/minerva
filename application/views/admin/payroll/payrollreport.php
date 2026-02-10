@@ -138,7 +138,11 @@ $basic     = 0;
 
             $basic += $value["basic"];
             $gross += $value["basic"] + $value["total_allowance"];
-            $net += $value["net_salary"];
+            // Only add to net total if net salary is positive or zero
+            $netSalaryValue = $value["net_salary"];
+            if ($netSalaryValue >= 0) {
+                $net += $netSalaryValue;
+            }
             $earnings += $value["total_allowance"];
             $deduction += $value["total_deduction"];
             $tax += $value["tax"];
@@ -195,7 +199,12 @@ $t = ($value['tax']);
                                                     <td class="text text-right">
             <?php
 $t = ($value['net_salary']);
-            echo amountFormat($t);
+            // Display net salary only if it's not negative
+            if ($t >= 0) {
+                echo amountFormat($t);
+            } else {
+                echo '-';
+            }
             ?>
                                                     </td>
                                                 </tr>

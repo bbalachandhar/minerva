@@ -22,6 +22,22 @@
                         <span class="text-danger"><?php echo form_error('email'); ?></span>
                     </div>
                 </div>
+                <div class="col-sm-4">
+                    <div class="form-group">
+                        <label>State</label>
+                        <select name="state" id="state_edit" class="form-control">
+                            <option value="">Select State</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-sm-4">
+                    <div class="form-group">
+                        <label>City</label>
+                        <select name="city" id="city_edit" class="form-control">
+                            <option value="">Select City</option>
+                        </select>
+                    </div>
+                </div>
                 <div class="col-sm-6">
                     <div class="form-group">
                         <label for="email"><?php echo $this->lang->line('address'); ?></label> 
@@ -125,3 +141,62 @@
                 </div>  
             
         </form>
+<script>
+    // Load state and city data for Edit modal
+    var statesDataEdit = [];
+    var currentState = "<?php echo isset($enquiry_data['state']) ? $enquiry_data['state'] : ''; ?>";
+    var currentCity = "<?php echo isset($enquiry_data['city']) ? $enquiry_data['city'] : ''; ?>";
+    
+    $.ajax({
+        url: '<?php echo base_url(); ?>backend/json-files/india_states_cities.json',
+        dataType: 'json',
+        success: function(data) {
+            statesDataEdit = data.states;
+            // Sort states alphabetically
+            statesDataEdit.sort(function(a, b) {
+                return a.name.localeCompare(b.name);
+            });
+            // Populate state dropdown
+            $.each(statesDataEdit, function(index, state) {
+                var selected = (state.name === currentState) ? 'selected' : '';
+                $('#state_edit').append('<option value="' + state.name + '" ' + selected + '>' + state.name + '</option>');
+            });
+            
+            // If there's a current state, load its cities
+            if (currentState) {
+                var state = statesDataEdit.find(function(s) {
+                    return s.name === currentState;
+                });
+                
+                if (state && state.cities) {
+                    // Sort cities alphabetically
+                    var sortedCities = state.cities.slice().sort();
+                    $.each(sortedCities, function(index, city) {
+                        var selected = (city === currentCity) ? 'selected' : '';
+                        $('#city_edit').append('<option value="' + city + '" ' + selected + '>' + city + '</option>');
+                    });
+                }
+            }
+        }
+    });
+
+    // Handle state change for Edit modal
+    $(document).on('change', '#state_edit', function() {
+        var selectedState = $(this).val();
+        $('#city_edit').html('<option value="">Select City</option>');
+        
+        if (selectedState) {
+            var state = statesDataEdit.find(function(s) {
+                return s.name === selectedState;
+            });
+            
+            if (state && state.cities) {
+                // Sort cities alphabetically
+                var sortedCities = state.cities.slice().sort();
+                $.each(sortedCities, function(index, city) {
+                    $('#city_edit').append('<option value="' + city + '">' + city + '</option>');
+                });
+            }
+        }
+    });
+</script>
