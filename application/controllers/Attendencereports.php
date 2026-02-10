@@ -57,19 +57,23 @@ class Attendencereports extends Admin_Controller
         $data["role_selected"]       = "";
         $attendencetypes             = $this->attendencetype_model->getStaffAttendanceType();
         $data['attendencetypeslist'] = $attendencetypes;      
-        $data['date']           = "";
+        $data['from_date']           = "";
+        $data['to_date']             = "";
         $this->form_validation->set_rules('role', $this->lang->line('role'), 'trim|required|xss_clean');
-        $this->form_validation->set_rules('date', $this->lang->line('date'), 'trim|required|xss_clean');
+        $this->form_validation->set_rules('from_date', 'From Date', 'trim|required|xss_clean');
+        $this->form_validation->set_rules('to_date', 'To Date', 'trim|required|xss_clean');
 
         if ($this->form_validation->run() == true) {
 
             $resultlist             = array();
             $role                  = $this->input->post('role');
-            $date                  = $this->input->post('date');
-            $attendance_mode                  = $this->input->post('attendance_mode');
+            $from_date             = $this->input->post('from_date');
+            $to_date               = $this->input->post('to_date');
+            $attendance_mode       = $this->input->post('attendance_mode');
             $data['role_selected']       = $role;
-            $data['date_selected'] = $date;
-            $resultlist                  = $this->staffattendancemodel->searchAttendenceUserTypeWithMode($role, date('Y-m-d', $this->customlib->datetostrtotime($date)),$attendance_mode);
+            $data['from_date_selected'] = $from_date;
+            $data['to_date_selected'] = $to_date;
+            $resultlist                  = $this->staffattendancemodel->searchAttendenceUserTypeWithModeRange($role, date('Y-m-d', $this->customlib->datetostrtotime($from_date)), date('Y-m-d', $this->customlib->datetostrtotime($to_date)), $attendance_mode);
             $data['resultlist']          = $resultlist;
             
             // Load attendance settings to determine late/permission times

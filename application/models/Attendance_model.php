@@ -529,6 +529,8 @@ class Attendance_model extends CI_Model {
                 'out_time'                 => $out_time_final,
                 'total_hours_worked'       => $total_hours_worked,
                 'session_attendance_data'  => isset($session_attendance_data) ? $session_attendance_data : null,
+                'biometric_attendence'     => 1,
+                'qrcode_attendance'        => 0,
                 'updated_at'               => date('Y-m-d H:i:s'),
             ];
 

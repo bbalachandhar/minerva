@@ -104,6 +104,9 @@ $route['admin/specialattendance/(:any)'] = 'admin/specialattendance/$1';
 $route['admin/leave_balance_setup'] = 'admin/leave_balance_setup/index';
 $route['admin/leave_balance_setup/(:any)'] = 'admin/leave_balance_setup/$1';
 
+$route['admin/attendance_exceptions'] = 'admin/attendance_exceptions/index';
+$route['admin/attendance_exceptions/(:any)'] = 'admin/attendance_exceptions/$1';
+
 $route['studentfee/do_bulk_upload_by_feetype'] = 'studentfee/do_bulk_upload_by_feetype';
 $route['admin/staff/activate_biometric_device/(:num)'] = 'admin/staff/activate_biometric_device/$1';
 $route['admin/timetable/bulk']         = 'admin/timetable/bulk';

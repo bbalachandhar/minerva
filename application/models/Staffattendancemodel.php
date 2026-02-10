@@ -92,6 +92,35 @@ class Staffattendancemodel extends MY_Model {
         return $query->result_array();
     }
 
+    public function searchAttendenceUserTypeWithModeRange($user_type, $from_date, $to_date, $mode) {
+        $condition = '';
+
+        if ($mode == 1) {
+            $condition = " and staff_attendance.biometric_attendence= 0 and staff_attendance.qrcode_attendance=0";
+        } elseif ($mode == 2) {
+            $condition = " and staff_attendance.biometric_attendence= 0 and staff_attendance.qrcode_attendance=1";
+        } elseif ($mode == 3) {
+            $condition = " and staff_attendance.biometric_attendence= 1 and staff_attendance.qrcode_attendance=0";
+        }
+
+        if ($this->session->has_userdata('admin')) {
+            $getStaffRole     = $this->customlib->getStaffRole();
+            $staffrole   =   json_decode($getStaffRole);       
+            $superadmin_visible = $this->customlib->superadmin_visible(); 
+            if ($superadmin_visible == 'disabled' && $staffrole->id != 7) {                 
+                $condition .= " and roles.id != 7";
+            } 
+        }
+        
+        if ($user_type == "select") { 
+            $query = $this->db->query("select staff_attendance.in_time,staff_attendance.out_time,staff_attendance.id,staff_attendance.created_at as attendence_dt, staff_attendance.staff_attendance_type_id,staff_attendance.biometric_attendence,staff_attendance.qrcode_attendance,staff_attendance.user_agent,staff_attendance.biometric_device_data,staff_attendance.remark,staff.name,staff.surname,staff.employee_id,staff.contact_no,staff.email,roles.name as user_type,roles.id as role_id,staff_attendance.date as date,staff.id as staff_id, staff_attendance_type.type as `att_type`,staff_attendance_type.key_value as `key`,staff_attendance_type.long_lang_name,staff_attendance_type.long_name_style  from staff_attendance inner join staff on staff_attendance.staff_id = staff.id left join staff_roles on staff_roles.staff_id = staff.id left join roles on staff_roles.role_id = roles.id left join staff_attendance_type on staff_attendance_type.id = staff_attendance.staff_attendance_type_id where staff_attendance.date >= " . $this->db->escape($from_date) . " and staff_attendance.date <= " . $this->db->escape($to_date) . " and staff.is_active = 1 $condition order by staff_attendance.date asc, staff_attendance.created_at asc");
+        } else {
+            $query = $this->db->query("select staff_attendance.in_time,staff_attendance.out_time,staff_attendance.staff_attendance_type_id,staff_attendance.created_at as attendence_dt,staff_attendance.biometric_attendence,staff_attendance.qrcode_attendance,staff_attendance.user_agent,staff_attendance.biometric_device_data,staff_attendance.remark,staff.name,staff.surname,staff.employee_id,staff.contact_no,staff.email,roles.name as user_type,roles.id as role_id,staff_attendance.date as date, staff_attendance.id as id, staff.id as staff_id ,staff_attendance_type.type as `att_type`,staff_attendance_type.key_value as `key`,staff_attendance_type.long_lang_name,staff_attendance_type.long_name_style from staff_attendance inner join staff on staff_attendance.staff_id = staff.id left join staff_roles on staff_roles.staff_id = staff.id left join roles on staff_roles.role_id = roles.id left join staff_attendance_type on staff_attendance_type.id = staff_attendance.staff_attendance_type_id where roles.name = " . $this->db->escape($user_type) . " and staff_attendance.date >= " . $this->db->escape($from_date) . " and staff_attendance.date <= " . $this->db->escape($to_date) . " and staff.is_active = 1 $condition order by staff_attendance.date asc, staff_attendance.created_at asc");
+            
+        }
+        return $query->result_array();
+    }
+
     public function searchAttendenceUserType($user_type, $date) {
         $condition = '';
         if ($this->session->has_userdata('admin')) {

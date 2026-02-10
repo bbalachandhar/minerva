@@ -275,14 +275,45 @@ class Staffattendance extends Admin_Controller
             }
             
             $inserted_count = 0;
+            $exception_count = 0;
+            
             foreach ($raw_punches as $punch) {
                 $staff_id = $punch['staff_id'];
                 $punch_time = $punch['punch_time'];
                 $punch_date = date('Y-m-d', strtotime($punch_time));
 
+                // Check if punch is too early (earlier than 3 hours before morning window)
+                $staff_member = $this->staff_model->getStaffDetails($staff_id);
+                $is_exception = 0;
+                $exception_reason = null;
+
+                if ($staff_member) {
+                    $role_id = $staff_member['role'];
+                    // Get morning "Present" window start time
+                    $present_type_id = 1; // Present
+                    $present_setting = $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($role_id, $present_type_id);
+
+                    if ($present_setting && !empty($present_setting->entry_time_from)) {
+                        $morning_window_start = $present_setting->entry_time_from;
+                        $three_hour_buffer = date('H:i:s', strtotime($morning_window_start) - (3 * 60 * 60));
+                        
+                        $punch_time_only = date('H:i:s', strtotime($punch_time));
+                        
+                        // If punch is earlier than 3 hours before morning window, mark as exception
+                        if (strtotime($punch_time_only) < strtotime($three_hour_buffer)) {
+                            $is_exception = 1;
+                            $exception_reason = "Punch at {$punch_time_only} is earlier than 3-hour buffer ({$three_hour_buffer}) before morning window ({$morning_window_start})";
+                            $exception_count++;
+                            log_message('info', "Exception flagged: Staff {$staff_id} - {$exception_reason}");
+                        }
+                    }
+                }
+
                 $this->staff_biometric_punches_model->add([
                     'staff_id' => $staff_id,
                     'punch_time' => $punch_time,
+                    'is_exception' => $is_exception,
+                    'exception_reason' => $exception_reason,
                     'created_at' => date('Y-m-d H:i:s'),
                 ]);
                 $inserted_count++;
@@ -290,9 +321,13 @@ class Staffattendance extends Admin_Controller
 
             $this->setting_model->update(array('last_biometric_sync_datetime' => $toDateTime));
 
-            $msg = '<div class="alert alert-success">Biometric raw punches synchronized successfully. ' . $inserted_count . ' new punches recorded.</div>';
+            $msg = '<div class="alert alert-success">Biometric raw punches synchronized successfully. ' . $inserted_count . ' new punches recorded.';
+            if ($exception_count > 0) {
+                $msg .= ' <strong>' . $exception_count . ' exceptions flagged for review.</strong>';
+            }
+            $msg .= '</div>';
             $this->session->set_flashdata('msg', $msg);
-            log_message('info', 'Staffattendance::sync_biometric_attendance - Raw punches synced. Redirecting to index.');
+            log_message('info', 'Staffattendance::sync_biometric_attendance - Raw punches synced. Exceptions: ' . $exception_count . '. Redirecting to index.');
             redirect('admin/staffattendance/index');
         }
     }
@@ -449,6 +484,8 @@ class Staffattendance extends Admin_Controller
                     'in_time' => $in_time ?? null,
                     'out_time' => $out_time ?? null,
                     'date' => $date,
+                    'biometric_attendence' => 1,
+                    'qrcode_attendance' => 0,
                     'updated_at' => date('Y-m-d H:i:s'),
                 ];
 
@@ -469,6 +506,8 @@ class Staffattendance extends Admin_Controller
                         'staff_attendance_type_id' => 3, // 3 is for 'Absent'
                         'remark' => 'No punch found',
                         'date' => $date_to_process,
+                        'biometric_attendence' => 1,
+                        'qrcode_attendance' => 0,
                         'updated_at' => date('Y-m-d H:i:s'),
                     ];
                     $this->staffattendancemodel->add($attendance_record);

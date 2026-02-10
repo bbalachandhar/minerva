@@ -220,7 +220,8 @@ if (!function_exists('main_menu_array')) {
                 'department'        => array('department','departmentedit'),  
                 'designation'       => array('designation','designationedit'),
                 'specialattendance' => array('index','search','generate_attendance','get_employees_by_department'),
-                'leave_balance_setup' => array('index','ajax_save_balances','ajax_get_staff_balances'),            
+                'leave_balance_setup' => array('index','ajax_save_balances','ajax_get_staff_balances'),
+                'attendance_exceptions' => array('index','resolve','get_punch_context'),
             ), 
             
             'communicate' => array(          

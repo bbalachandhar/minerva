@@ -54,11 +54,16 @@
 
                                 <div class="col-md-3">
                                     <div class="form-group">
-
-                                        <label for="exampleInputEmail1"><?php echo $this->lang->line('date'); ?></label>
-
-                                        <input name="date" placeholder="" type="text" class="form-control date" value="<?php echo set_value('date', date($this->customlib->getSchoolDateFormat())); ?>" readonly="readonly" />
-                                        <span class="text-danger"><?php echo form_error('date'); ?></span>
+                                        <label for="exampleInputEmail1">From Date</label>
+                                        <input name="from_date" placeholder="" type="text" class="form-control date" value="<?php echo set_value('from_date', date($this->customlib->getSchoolDateFormat())); ?>" readonly="readonly" />
+                                        <span class="text-danger"><?php echo form_error('from_date'); ?></span>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-group">
+                                        <label for="exampleInputEmail1">To Date</label>
+                                        <input name="to_date" placeholder="" type="text" class="form-control date" value="<?php echo set_value('to_date', date($this->customlib->getSchoolDateFormat())); ?>" readonly="readonly" />
+                                        <span class="text-danger"><?php echo form_error('to_date'); ?></span>
                                     </div>
                                 </div>
                                 <div class="col-md-3">
@@ -121,6 +126,7 @@
                                                     <th><?php echo $this->lang->line('staff_id'); ?></th>
                                                     <th><?php echo $this->lang->line('role'); ?></th>
                                                     <th><?php echo $this->lang->line('name'); ?></th>
+                                                    <th><?php echo $this->lang->line('date'); ?></th>
                                                     <th width="10%" class="text text-center"><?php echo $this->lang->line('attendance'); ?></th>
                                                     <th><?php echo $this->lang->line('punch_in'); ?></th>
                                                     <th><?php echo $this->lang->line('punch_out'); ?></th>
@@ -156,6 +162,15 @@
                                                         <td>
 
                                                             <?php echo $value['name'] . " " . $value['surname']; ?>
+                                                        </td>
+                                                        <td>
+                                                            <?php 
+                                                            if (!empty($value['date']) && $value['date'] != 'xxx') {
+                                                                echo date($this->customlib->getSchoolDateFormat(), strtotime($value['date']));
+                                                            } else {
+                                                                echo '-';
+                                                            }
+                                                            ?>
                                                         </td>
                                                         <td class="text text-center">
                                                             <?php
