@@ -466,15 +466,15 @@ foreach ($notifications as $notice_key => $notice_value) {
             if ($this->module_lib->hasActive('fees_collection') && $this->rbac->hasPrivilege('fees_awaiting_payment_widegts', 'can_view')) {
             ?>
                 <div class="col-md-3 col-sm-6">
-                    <div class="topprograssstart">
-                        <p class="mt5 clearfix font14"><i class="fa fa-money ftlayer"></i><?php echo $this->lang->line('fees_awaiting_payment'); ?>
+                    <div class="topprograssstart" style="background: linear-gradient(135deg, #ff9800 0%, #ff6d00 100%); color: white; border-radius: 5px;">
+                        <p class="mt5 clearfix font14" style="color: white;"><i class="fa fa-money ftlayer" style="color: white;"></i><?php echo $this->lang->line('fees_awaiting_payment'); ?>
                             <span class="pull-right">
-                                <span class="fees-awaiting-amount fo-skeleton fo-line">0</span>
+                                <span class="fees-awaiting-amount fo-skeleton fo-line" style="color: white;">0</span>
                             </span>
                         </p>
                         <div class="progress-group">
-                            <div class="progress progress-minibar">
-                                <div class="progress-bar progress-bar-red fees-awaiting-progress-bar" style="width: <?php echo round(isset($fees_awaiting_progress) ? $fees_awaiting_progress : 0, 2); ?>%"></div>
+                            <div class="progress progress-minibar" style="background-color: rgba(255, 255, 255, 0.3);">
+                                <div class="progress-bar fees-awaiting-progress-bar" style="width: <?php echo round(isset($fees_awaiting_progress) ? $fees_awaiting_progress : 0, 2); ?>%; background-color: #fff;"></div>
                             </div>
                         </div>
                     </div><!--./topprograssstart-->
@@ -486,12 +486,12 @@ foreach ($notifications as $notice_key => $notice_value) {
                                             if ($this->rbac->hasPrivilege('staff_approved_leave_widegts', 'can_view')) {
                                                 ?>
                                                             <div class="col-md-3 col-sm-6">
-                                                                <div class="topprograssstart shadow" id="staff-approved-leave-widget" data-url="<?php echo site_url('admin/admin/staff_approved_leave_widget'); ?>">
-                                                                    <p class="mt5 font14"><i class="fa fa-ioxhost ftlayer"></i><?php echo $this->lang->line('staff_approved_leave'); ?><span class="pull-right"><span class="sal-approved fo-skeleton">0</span>/<span class="sal-total fo-skeleton">0</span></span>
+                                                                <div class="topprograssstart shadow" id="staff-approved-leave-widget" data-url="<?php echo site_url('admin/admin/staff_approved_leave_widget'); ?>" style="background: linear-gradient(135deg, #2196f3 0%, #1565c0 100%); color: white; border-radius: 5px;">
+                                                                    <p class="mt5 font14" style="color: white;"><i class="fa fa-ioxhost ftlayer" style="color: white;"></i><?php echo $this->lang->line('staff_approved_leave'); ?><span class="pull-right"><span class="sal-approved fo-skeleton" style="color: white;">0</span>/<span class="sal-total fo-skeleton" style="color: white;">0</span></span>
                                                                     </p>
                                                                     <div class="progress-group">
-                                                                        <div class="progress progress-minibar">
-                                                                            <div class="progress-bar progress-bar-lris-blue sal-progress" style="width: 0%"></div>
+                                                                        <div class="progress progress-minibar" style="background-color: rgba(255, 255, 255, 0.3);">
+                                                                            <div class="progress-bar sal-progress" style="width: 0%; background-color: #fff;"></div>
                                                                         </div>
                                                                     </div>
                                                                 </div><!--./topprograssstart-->
@@ -504,12 +504,12 @@ foreach ($notifications as $notice_key => $notice_value) {
     if ($this->rbac->hasPrivilege('student_approved_leave_widegts', 'can_view')) {
         ?>
                     <div class="col-md-3 col-sm-6">
-                        <div class="topprograssstart shadow" id="student-approved-leave-widget" data-url="<?php echo site_url('admin/admin/student_approved_leave_widget'); ?>">
-                            <p class="mt5 font14"><i class="fa fa-ioxhost ftlayer"></i><?php echo $this->lang->line('student_approved_leave'); ?><span class="pull-right"><span class="stl-approved fo-skeleton">0</span>/<span class="stl-total fo-skeleton">0</span></span>
+                        <div class="topprograssstart shadow" id="student-approved-leave-widget" data-url="<?php echo site_url('admin/admin/student_approved_leave_widget'); ?>" style="background: linear-gradient(135deg, #4caf50 0%, #2e7d32 100%); color: white; border-radius: 5px;">
+                            <p class="mt5 font14" style="color: white;"><i class="fa fa-ioxhost ftlayer" style="color: white;"></i><?php echo $this->lang->line('student_approved_leave'); ?><span class="pull-right"><span class="stl-approved fo-skeleton" style="color: white;">0</span>/<span class="stl-total fo-skeleton" style="color: white;">0</span></span>
                             </p>
                             <div class="progress-group">
-                                <div class="progress progress-minibar">
-                                    <div class="progress-bar stl-progress" style="width: 0%"></div>
+                                <div class="progress progress-minibar" style="background-color: rgba(255, 255, 255, 0.3);">
+                                    <div class="progress-bar stl-progress" style="width: 0%; background-color: #fff;"></div>
                                 </div>
                             </div>
                         </div><!--./topprograssstart-->
@@ -523,12 +523,12 @@ if ($this->module_lib->hasActive('front_office')) {
     if ($this->rbac->hasPrivilege('conveted_leads_widegts', 'can_view')) {
         ?>
                     <div class="col-md-3 col-sm-6">
-                        <div class="topprograssstart" id="converted-leads-widget" data-url="<?php echo site_url('admin/admin/converted_leads_widget'); ?>">
-                            <p class="mt5 clearfix font14"><i class="fa fa-ioxhost ftlayer"></i><?php echo $this->lang->line('converted_leads'); ?><span class="pull-right"><span class="cl-complete fo-skeleton">0</span>/<span class="cl-total fo-skeleton">0</span></span>
+                        <div class="topprograssstart" id="converted-leads-widget" data-url="<?php echo site_url('admin/admin/converted_leads_widget'); ?>" style="background: linear-gradient(135deg, #9c27b0 0%, #6a1b9a 100%); color: white; border-radius: 5px;">
+                            <p class="mt5 clearfix font14" style="color: white;"><i class="fa fa-ioxhost ftlayer" style="color: white;"></i><?php echo $this->lang->line('converted_leads'); ?><span class="pull-right"><span class="cl-complete fo-skeleton" style="color: white;">0</span>/<span class="cl-total fo-skeleton" style="color: white;">0</span></span>
                             </p>
                             <div class="progress-group">
-                                <div class="progress progress-minibar">
-                                    <div class="progress-bar progress-bar-red cl-progress" style="width: 0%"></div>
+                                <div class="progress progress-minibar" style="background-color: rgba(255, 255, 255, 0.3);">
+                                    <div class="progress-bar cl-progress" style="width: 0%; background-color: #fff;"></div>
                                 </div>
                             </div>
                         </div><!--./topprograssstart-->

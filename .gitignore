@@ -26,9 +26,14 @@ nbproject/
 .DS_Store
 Thumbs.db
 
-# Ignore backend captcha images
+# Track backend folder but ignore specific dynamic content
+!/backend/
+
+# Ignore dynamically generated files in backend
 /backend/captcha_images/
-/backend
+/backend/plugins/ckeditor/plugins/ckeditor_wiris/cache/
+/backend/report/
+
 /.github
 uploads/
 index.php
