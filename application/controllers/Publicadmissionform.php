@@ -2020,6 +2020,7 @@ class PublicAdmissionForm extends CI_Controller
             if ($this->sch_setting_detail->online_admission_payment != 'yes' || $this->sch_setting_detail->online_admission_amount <= 0 || $payment_option == 'pay_later') {
                 $this->onlinestudent_model->edit(['id' => $online_admission_id, 'paid_status' => ($payment_option == 'pay_later') ? 2 : 0]);
                 $this->mailsmsconf->mailsms('online_admission_form_submission', $sender_details);
+                $this->session->set_userdata('validlogin', $reference_no);
                 echo json_encode(['status' => 'success', 'redirect_url' => site_url('publicadmissionform/pay_later_confirmation/' . $reference_no)]);
             } else {
                 $total_admission_amount = $this->sch_setting_detail->online_admission_amount;
@@ -2035,6 +2036,7 @@ class PublicAdmissionForm extends CI_Controller
                 $payment_params = ['online_admission_id' => $online_admission_id, 'reference_no' => $reference_no, 'total' => $final_amount_to_pay, 'admission_amount' => $total_admission_amount, 'processing_charge' => $processing_charge, 'name' => $data['user_name'], 'guardian_phone' => $data['father_mobile'], 'email' => $data['student_email'], 'item_type' => 'online_admission_fee', 'sch_setting_detail' => $this->sch_setting_detail];
                 $this->session->set_userdata('online_admission_payment_params', $payment_params);
                 $this->session->set_userdata('online_admission_id', $online_admission_id);
+                $this->session->set_userdata('validlogin', $reference_no);
                 $this->onlinestudent_model->edit(['id' => $online_admission_id, 'paid_status' => 0]);
                 echo json_encode(['status' => 'success', 'redirect_url' => site_url('publicadmissionform/confirm_payment')]);
             }

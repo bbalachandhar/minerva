@@ -520,9 +520,9 @@ class Onlinestudent_model extends MY_Model
 
     public function getidbyrefno($reference_no)
     {
-        $query  = $this->db->query("select id from online_admissions where reference_no=" . $reference_no . "   ");
+        $query  = $this->db->query("SELECT id FROM online_admissions WHERE reference_no = ?", array($reference_no));
         $result = $query->row_array();
-        return $result['id'];
+        return $result ? $result['id'] : null;
     }
 
     public function gethousename($id)
