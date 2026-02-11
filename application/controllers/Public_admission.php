@@ -608,8 +608,13 @@ class Public_admission extends Front_Controller
                 $this->data['categorylist']     = $category;
                 $result                         = $this->onlinestudent_model->get($id);
                 $classresult                    = $this->onlinestudent_model->getclassbyclasssectionid($result['class_section_id']);
-                $class_id                       = $classresult['class_id'];
-                $class_name                     = $classresult['class'];
+                if ($classresult) {
+                    $class_id   = $classresult['class_id'];
+                    $class_name = $classresult['class'];
+                } else {
+                    $class_id   = "";
+                    $class_name = "";
+                }
                 $this->data['class_name']       = $class_name;
                 $this->data['class_section_id'] = $result['section_id'];
                 $this->data['firstname']        = $result['firstname'];

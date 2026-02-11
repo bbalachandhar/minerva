@@ -220,7 +220,45 @@
 <script>
 $(document).ready(function() {
     $('.incidental-report-table').DataTable({
-        "destroy": true // Add this to allow re-initialization
+        "destroy": true,
+        "dom": 'Bfrtip',
+        "buttons": [
+            {
+                extend: 'excelHtml5',
+                text: '<i class="fa fa-file-excel-o"></i> Excel',
+                titleAttr: 'Export to Excel',
+                title: 'Incidental Fee Report',
+                exportOptions: {
+                    columns: ':not(:last-child)' // Exclude action column
+                }
+            },
+            {
+                extend: 'pdfHtml5',
+                text: '<i class="fa fa-file-pdf-o"></i> PDF',
+                titleAttr: 'Export to PDF',
+                title: 'Incidental Fee Report',
+                exportOptions: {
+                    columns: ':not(:last-child)' // Exclude action column
+                }
+            },
+            {
+                extend: 'print',
+                text: '<i class="fa fa-print"></i> Print',
+                titleAttr: 'Print',
+                title: 'Incidental Fee Report',
+                exportOptions: {
+                    columns: ':not(:last-child)' // Exclude action column
+                }
+            },
+            {
+                extend: 'copy',
+                text: '<i class="fa fa-copy"></i> Copy',
+                titleAttr: 'Copy to Clipboard',
+                exportOptions: {
+                    columns: ':not(:last-child)' // Exclude action column
+                }
+            }
+        ]
     });
 });
 </script>

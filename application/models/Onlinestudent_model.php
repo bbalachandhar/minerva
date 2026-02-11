@@ -626,4 +626,31 @@ class Onlinestudent_model extends MY_Model
         $this->db->from('online_admissions');
         return $this->db->count_all_results();
     }
+
+    /**
+     * Update payment status specifically
+     * This is a simpler, direct update that bypasses complex transaction logic
+     */
+    public function update_payment_status($online_admission_id, $transaction_id, $note, $payment_updated_by, $payment_updated_at) {
+        $data = array(
+            'paid_status' => 1,
+            'transaction_id' => $transaction_id,
+            'note' => $note,
+            'payment_updated_by' => $payment_updated_by,
+            'payment_updated_at' => $payment_updated_at,
+        );
+        
+        $this->db->where('id', $online_admission_id);
+        $result = $this->db->update('online_admissions', $data);
+        
+        if ($result) {
+            // Log the action
+            $message = "Payment status updated for online admission id " . $online_admission_id;
+            $action = "Update";
+            $this->log($message, $online_admission_id, $action);
+            return true;
+        }
+        return false;
+    }
 }
+

@@ -612,6 +612,64 @@ if ($currencie_value->id == $this->customlib->getSchoolCurrency()) {
                         </div>
                        <?php }?>
                    </form>
+
+                   <!-- Declaration and Signature Section -->
+                   <div class="printcontent" style="margin-top: 30px;">
+                       <div class="row">
+                           <div class="col-md-12">
+                               <div style="border: 2px solid #ddd; padding: 20px; margin-bottom: 20px;">
+                                   <h4 style="text-transform: uppercase; margin-bottom: 20px; border-bottom: 2px solid #333; padding-bottom: 10px;">Declaration</h4>
+                                   
+                                   <div style="margin-bottom: 30px;">
+                                       <p style="margin-bottom: 5px;"><strong>SIGNATURE OF STUDENT</strong> ________________________</p>
+                                       <ol style="margin-top: 15px; line-height: 1.8;">
+                                           <li>I hereby declare that I myself responsible for the timely payment of all fees payable to the College, as per the rules of the Management amended from time to time in respect of my ward Mr./Ms.__________________ during the period of his / her study at the Institution.</li>
+                                           <li>I assure you my ward will not discontinue the studies at the Institution under any circumstances after joining the course.</li>
+                                           <li>I hold myself responsible for the good behaviour of my ward and ensure he / she adheres to the rules and regulations of the college.</li>
+                                       </ol>
+                                   </div>
+
+                                   <div style="margin-bottom: 30px;">
+                                       <p><strong>SIGNATURE OF THE PARENT</strong> ________________________</p>
+                                   </div>
+
+                                   <div style="background-color: #2c3e50; color: white; padding: 10px 20px; text-align: center; margin: 30px 0;">
+                                       <h4 style="margin: 0; color: white; text-transform: uppercase; font-weight: bold;">JOINT DECLARATION BY THE APPLICANT AND PARENT</h4>
+                                   </div>
+
+                                   <div style="margin-top: 20px;">
+                                       <p style="text-align: justify; line-height: 1.8; margin-bottom: 30px;">
+                                           The information furnished above is true and correct to the best of our knowledge. The original certificate will be produced at the time of admission or on demand. In case of any information furnished above, is found to be incorrect or false at later date on verification, we agree to forfeit the admission and shall not claim any compensation / refund.
+                                       </p>
+
+                                       <div class="row" style="margin-top: 30px;">
+                                           <div class="col-md-6">
+                                               <p><strong>Signature of the Student</strong></p>
+                                               <p style="border-bottom: 1px solid #000; padding-bottom: 30px; margin-bottom: 20px;">&nbsp;</p>
+                                           </div>
+                                           <div class="col-md-6">
+                                               <p><strong>Signature of the Parent</strong></p>
+                                               <p style="border-bottom: 1px solid #000; padding-bottom: 30px; margin-bottom: 20px;">&nbsp;</p>
+                                           </div>
+                                       </div>
+
+                                       <div class="row" style="margin-top: 20px;">
+                                           <div class="col-md-6">
+                                               <p><strong>Date</strong></p>
+                                               <p style="border-bottom: 1px solid #000; padding-bottom: 30px; margin-bottom: 20px;">&nbsp;</p>
+                                           </div>
+                                           <div class="col-md-6">
+                                               <p><strong>Place</strong></p>
+                                               <p style="border-bottom: 1px solid #000; padding-bottom: 30px; margin-bottom: 20px;">&nbsp;</p>
+                                           </div>
+                                       </div>
+                                   </div>
+                               </div>
+                           </div>
+                       </div>
+                   </div>
+                   <!-- End Declaration and Signature Section -->
+
                   <div class ="printcontent" id="printfooter">
                     <?php $this->setting_model->get_onlineadmissionfooter();?>
                  </div>

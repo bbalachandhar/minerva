@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Application Form Review</title>
+    <title>Application Form Review - <?php echo isset($reference_no) ? $reference_no : 'N/A'; ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body {
@@ -136,9 +136,10 @@
                 <div class="row">
                     <div class="col-md-9">
                         <h5 class="text-center mb-4 fw-bold">APPLICATION FORM FOR ADMISSION</h5>
-                         <p><span class="data-label">Course Level:</span> <span class="data-value text-uppercase"><?php echo $course_level; ?></span></p>
+                         <p><span class="data-label">Course Level:</span> <span class="data-value text-uppercase"><?php echo isset($course_level) ? $course_level : 'N/A'; ?></span></p>
                          <p><span class="data-label">Academic Year:</span> <span class="data-value">2026-2027</span></p>
-                         <p><span class="data-label">Application Ref No:</span> <span class="data-value"><?php echo $reference_no; ?></span></p>
+                         <p><span class="data-label">Application Ref No:</span> <span class="data-value"><?php echo isset($reference_no) ? $reference_no : 'N/A'; ?></span></p>
+                         <p><span class="data-label">Application Fee Status:</span> <span class="data-value"><?php echo (isset($paid_status) && $paid_status == 1) ? '<span style="color: #28a745; font-weight: bold;">PAID</span>' : '<span style="color: #dc3545; font-weight: bold;">PENDING</span>'; ?></span></p>
                     </div>
                     <div class="col-md-3">
                          <?php if (isset($student_pic) && !empty($student_pic)): ?>
@@ -153,26 +154,26 @@
             <div class="section-card">
                 <h5 class="mb-2">PERSONAL DETAILS</h5>
                 <div class="row">
-                    <div class="col-md-4"><p><span class="data-label">Name:</span> <span class="data-value"><?php echo $firstname; ?></span></p></div>
-                    <div class="col-md-4"><p><span class="data-label">Father's Name:</span> <span class="data-value"><?php echo $father_name; ?></span></p></div>
-                    <div class="col-md-4"><p><span class="data-label">Father's Mobile:</span> <span class="data-value"><?php echo $father_phone; ?></span></p></div>
-                    <div class="col-md-4"><p><span class="data-label">Father's Occupation:</span> <span class="data-value"><?php echo $father_occupation; ?></span></p></div>
-                    <div class="col-md-4"><p><span class="data-label">Mother's Name:</span> <span class="data-value"><?php echo $mother_name; ?></span></p></div>
-                    <div class="col-md-4"><p><span class="data-label">Mother's Mobile:</span> <span class="data-value"><?php echo $mother_phone; ?></span></p></div>
-                    <div class="col-md-4"><p><span class="data-label">Mother's Occupation:</span> <span class="data-value"><?php echo $mother_occupation; ?></span></p></div>
-                    <div class="col-md-4"><p><span class="data-label">Gender:</span> <span class="data-value"><?php echo $gender; ?></span></p></div>
-                    <div class="col-md-4"><p><span class="data-label">Email ID:</span> <span class="data-value"><?php echo $email; ?></span></p></div>
-                    <div class="col-md-4"><p><span class="data-label">Student's Mobile:</span> <span class="data-value"><?php echo $mobileno; ?></span></p></div>
-                    <div class="col-md-4"><p><span class="data-label">Date of Birth:</span> <span class="data-value"><?php echo date($this->customlib->getSchoolDateFormat(), strtotime($dob)); ?></span></p></div>
-                    <div class="col-md-4"><p><span class="data-label">Aadhaar Number:</span> <span class="data-value"><?php echo $adhar_no; ?></span></p></div>
-                    <div class="col-md-4"><p><span class="data-label">Communication Address:</span> <span class="data-value"><?php echo $current_address; ?></span></p></div>
-                    <div class="col-md-4"><p><span class="data-label">Permanent Address:</span> <span class="data-value"><?php echo $permanent_address; ?></span></p></div>
-                    <div class="col-md-4"><p><span class="data-label">State:</span> <span class="data-value"><?php echo $state; ?></span></p></div>
-                    <div class="col-md-4"><p><span class="data-label">City:</span> <span class="data-value"><?php echo $city; ?></span></p></div>
+                    <div class="col-md-4"><p><span class="data-label">Name:</span> <span class="data-value"><?php echo isset($firstname) ? $firstname : 'N/A'; ?></span></p></div>
+                    <div class="col-md-4"><p><span class="data-label">Father's Name:</span> <span class="data-value"><?php echo isset($father_name) ? $father_name : 'N/A'; ?></span></p></div>
+                    <div class="col-md-4"><p><span class="data-label">Father's Mobile:</span> <span class="data-value"><?php echo isset($father_phone) ? $father_phone : 'N/A'; ?></span></p></div>
+                    <div class="col-md-4"><p><span class="data-label">Father's Occupation:</span> <span class="data-value"><?php echo isset($father_occupation) ? $father_occupation : 'N/A'; ?></span></p></div>
+                    <div class="col-md-4"><p><span class="data-label">Mother's Name:</span> <span class="data-value"><?php echo isset($mother_name) ? $mother_name : 'N/A'; ?></span></p></div>
+                    <div class="col-md-4"><p><span class="data-label">Mother's Mobile:</span> <span class="data-value"><?php echo isset($mother_phone) ? $mother_phone : 'N/A'; ?></span></p></div>
+                    <div class="col-md-4"><p><span class="data-label">Mother's Occupation:</span> <span class="data-value"><?php echo isset($mother_occupation) ? $mother_occupation : 'N/A'; ?></span></p></div>
+                    <div class="col-md-4"><p><span class="data-label">Gender:</span> <span class="data-value"><?php echo isset($gender) ? $gender : 'N/A'; ?></span></p></div>
+                    <div class="col-md-4"><p><span class="data-label">Email ID:</span> <span class="data-value"><?php echo isset($email) ? $email : 'N/A'; ?></span></p></div>
+                    <div class="col-md-4"><p><span class="data-label">Student's Mobile:</span> <span class="data-value"><?php echo isset($mobileno) ? $mobileno : 'N/A'; ?></span></p></div>
+                    <div class="col-md-4"><p><span class="data-label">Date of Birth:</span> <span class="data-value"><?php echo (isset($dob) && !empty($dob)) ? date($this->customlib->getSchoolDateFormat(), strtotime($dob)) : 'N/A'; ?></span></p></div>
+                    <div class="col-md-4"><p><span class="data-label">Aadhaar Number:</span> <span class="data-value"><?php echo isset($adhar_no) ? $adhar_no : 'N/A'; ?></span></p></div>
+                    <div class="col-md-4"><p><span class="data-label">Communication Address:</span> <span class="data-value"><?php echo isset($current_address) ? $current_address : 'N/A'; ?></span></p></div>
+                    <div class="col-md-4"><p><span class="data-label">Permanent Address:</span> <span class="data-value"><?php echo isset($permanent_address) ? $permanent_address : 'N/A'; ?></span></p></div>
+                    <div class="col-md-4"><p><span class="data-label">State:</span> <span class="data-value"><?php echo isset($state) ? $state : 'N/A'; ?></span></p></div>
+                    <div class="col-md-4"><p><span class="data-label">City:</span> <span class="data-value"><?php echo isset($city) ? $city : 'N/A'; ?></span></p></div>
                 </div>
             </div>
 
-            <?php if ($reference_details): ?>
+            <?php if (isset($reference_details) && $reference_details): ?>
             <div class="section-card">
                 <h5 class="mb-2">REFERENCES DETAILS</h5>
                 <div class="row">
@@ -189,7 +190,7 @@
             </div>
             <?php endif; ?>
 
-            <?php if ($course_level == 'ug' && ($ug_details || $total_maths !== null || $total_physics !== null || $total_chemistry !== null)): ?>
+            <?php if (isset($course_level) && $course_level == 'ug' && (isset($ug_details) && $ug_details || isset($total_maths) && $total_maths !== null || isset($total_physics) && $total_physics !== null || isset($total_chemistry) && $total_chemistry !== null)): ?>
             <div class="section-card">
                 <h5 class="mb-3">COURSE DETAILS</h5>
                 <div class="row">
@@ -207,7 +208,7 @@
             <div class="section-card">
                 <h5 class="mb-3">HSC Examination Details</h5>
                 <?php
-                $hsc_details = ($ug_details && !empty($ug_details)) ? $ug_details : array(
+                $hsc_details = (isset($ug_details) && $ug_details && !empty($ug_details)) ? $ug_details : array(
                     'maths_marks' => isset($maths_marks) ? $maths_marks : '',
                     'total_maths' => isset($total_maths) ? $total_maths : '',
                     'maths_perc' => isset($maths_perc) ? $maths_perc : '',
@@ -241,7 +242,7 @@
                     </div>
                 </div>
             </div>
-                <?php if ($nata_details): ?>
+                <?php if (isset($nata_details) && $nata_details): ?>
                 <div class="section-card">
                     <h5 class="mb-2">NATA Details</h5>
                     <p><span class="data-label">Score:</span> <span class="data-value"><?php echo $nata_details['nata_score']; ?></span></p>
@@ -251,7 +252,7 @@
                 <?php endif; ?>
             <?php endif; ?>
 
-            <?php if ($course_level == 'lateral' && $lateral_details): ?>
+            <?php if (isset($course_level) && $course_level == 'lateral' && isset($lateral_details) && $lateral_details): ?>
             <div class="section-card">
                 <h5 class="mb-3">LATERAL ENTRY DETAILS</h5>
                 <?php
@@ -303,7 +304,7 @@
             </div>
             <?php endif; ?>
 
-            <?php if ($course_level == 'pg' && $pg_details): ?>
+            <?php if (isset($course_level) && $course_level == 'pg' && isset($pg_details) && $pg_details): ?>
             <div class="section-card">
                  <h5 class="mb-3">POSTGRADUATE DETAILS</h5>
                 <?php
@@ -322,6 +323,59 @@
                  
             </div>
             <?php endif; ?>
+            
+            <!-- Declaration and Signature Section -->
+            <div class="section-card" style="margin-top: 30px;">
+                <div style="border: 2px solid #ddd; padding: 20px;">
+                    <h4 style="text-transform: uppercase; margin-bottom: 20px; border-bottom: 2px solid #333; padding-bottom: 10px;">Declaration</h4>
+                    
+                    <div style="margin-bottom: 30px;">
+                        <p style="margin-bottom: 5px;"><strong>SIGNATURE OF STUDENT</strong> ________________________</p>
+                        <ol style="margin-top: 15px; line-height: 1.8;">
+                            <li>I hereby declare that I myself responsible for the timely payment of all fees payable to the College, as per the rules of the Management amended from time to time in respect of my ward Mr./Ms.__________________ during the period of his / her study at the Institution.</li>
+                            <li>I assure you my ward will not discontinue the studies at the Institution under any circumstances after joining the course.</li>
+                            <li>I hold myself responsible for the good behaviour of my ward and ensure he / she adheres to the rules and regulations of the college.</li>
+                        </ol>
+                    </div>
+
+                    <div style="margin-bottom: 30px;">
+                        <p><strong>SIGNATURE OF THE PARENT</strong> ________________________</p>
+                    </div>
+
+                    <div style="background-color: #2c3e50; color: white; padding: 10px 20px; text-align: center; margin: 30px 0;">
+                        <h4 style="margin: 0; color: white; text-transform: uppercase; font-weight: bold;">JOINT DECLARATION BY THE APPLICANT AND PARENT</h4>
+                    </div>
+
+                    <div style="margin-top: 20px;">
+                        <p style="text-align: justify; line-height: 1.8; margin-bottom: 30px;">
+                            The information furnished above is true and correct to the best of our knowledge. The original certificate will be produced at the time of admission or on demand. In case of any information furnished above, is found to be incorrect or false at later date on verification, we agree to forfeit the admission and shall not claim any compensation / refund.
+                        </p>
+
+                        <div class="row" style="margin-top: 30px;">
+                            <div class="col-md-6">
+                                <p><strong>Signature of the Student</strong></p>
+                                <p style="border-bottom: 1px solid #000; padding-bottom: 30px; margin-bottom: 20px;">&nbsp;</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>Signature of the Parent</strong></p>
+                                <p style="border-bottom: 1px solid #000; padding-bottom: 30px; margin-bottom: 20px;">&nbsp;</p>
+                            </div>
+                        </div>
+
+                        <div class="row" style="margin-top: 20px;">
+                            <div class="col-md-6">
+                                <p><strong>Date</strong></p>
+                                <p style="border-bottom: 1px solid #000; padding-bottom: 30px; margin-bottom: 20px;">&nbsp;</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>Place</strong></p>
+                                <p style="border-bottom: 1px solid #000; padding-bottom: 30px; margin-bottom: 20px;">&nbsp;</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- End Declaration and Signature Section -->
             
             <div class="text-center mt-4 no-print">
                 <button onclick="window.print()" class="btn btn-primary">Print Application</button>

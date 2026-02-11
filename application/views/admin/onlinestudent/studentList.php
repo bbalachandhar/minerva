@@ -73,12 +73,12 @@
                         <input type="text" class="form-control" id="reference_no" name="reference_no" readonly>
                     </div>
                     <div class="form-group">
-                        <label for="transaction_id"><?php echo $this->lang->line('transaction_id'); ?></label>
-                        <input type="text" class="form-control" id="transaction_id" name="transaction_id">
+                        <label for="transaction_id"><?php echo $this->lang->line('transaction_id'); ?> <span style="color: red;">*</span></label>
+                        <input type="text" class="form-control" id="transaction_id" name="transaction_id" required>
                     </div>
                     <div class="form-group">
-                        <label for="note"><?php echo $this->lang->line('note'); ?></label>
-                        <textarea class="form-control" id="note" name="note"></textarea>
+                        <label for="note"><?php echo $this->lang->line('note'); ?> <span style="color: red;">*</span></label>
+                        <textarea class="form-control" id="note" name="note" required></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">

@@ -599,18 +599,25 @@ class Onlinestudent extends Admin_Controller
         } else {
             $admin_session = $this->session->userdata('admin');
             $updated_by_staff_id = $admin_session['id'];
+            $online_admission_id = $this->input->post('online_admission_id');
+            $transaction_id = $this->input->post('transaction_id');
+            $note = $this->input->post('note');
+            $payment_updated_at = date('Y-m-d H:i:s');
 
-            $data = array(
-                'id'                   => $this->input->post('online_admission_id'),
-                'paid_status'          => 1,
-                'transaction_id'       => $this->input->post('transaction_id'),
-                'note'                 => $this->input->post('note'),
-                'payment_updated_by'   => $updated_by_staff_id,
-                'payment_updated_at'   => date('Y-m-d H:i:s'),
+            // Use the new simple update method for payment status
+            $update_result = $this->onlinestudent_model->update_payment_status(
+                $online_admission_id,
+                $transaction_id,
+                $note,
+                $updated_by_staff_id,
+                $payment_updated_at
             );
 
-            $this->onlinestudent_model->update($data, null, null, null, null);
-            $array = array('status' => 'success', 'error' => '', 'message' => $this->lang->line('success_message'));
+            if ($update_result) {
+                $array = array('status' => 'success', 'error' => '', 'message' => $this->lang->line('success_message'));
+            } else {
+                $array = array('status' => 'fail', 'error' => array('Payment update failed'), 'message' => 'Failed to update payment status');
+            }
             echo json_encode($array);
         }
     }
