@@ -3032,6 +3032,7 @@ $lang['your_application_has_been_submitted_successfully'] = "Your application ha
 $lang['payment_will_be_processed_offline'] = "Payment will be processed offline";
 $lang['your_reference_number'] = "Your Reference Number";
 $lang['please_note_this_reference_number_for_future_communication'] = "Please note this reference number for future communication";
+$lang['view_application'] = "View Application";
 $lang['go_to_home'] = "Go to Home";
 $lang['processing_charge_type'] = "Processing Charge Type";
 $lang['processing_charge'] = "Processing Charge";
