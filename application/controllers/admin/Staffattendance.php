@@ -24,6 +24,7 @@ class Staffattendance extends Admin_Controller
         $this->load->model("staff_biometric_punches_model"); // Load the new model
         $this->load->library('biometric_api_client'); // Load the new library
         $this->load->model("staffpermission_model");
+        $this->load->model("holiday_model"); // Load holiday model to check for official holidays
         $this->load->library('logger');
     }
 
@@ -496,15 +497,29 @@ class Staffattendance extends Admin_Controller
                 $this->staffattendancemodel->add($attendance_record);
 
             } else {
-                // Staff has NO punches for this day. Mark as Absent.
+                // Staff has NO punches for this day. Check if it's a holiday first, then mark as Absent.
                 $existing_attendance = $this->staffattendancemodel->getAttendanceByStaffIdAndDate($staff_id, $date_to_process);
 
                 if (!$existing_attendance) {
-                    $this->logger->log("--- No punches found for Staff ID: {$staff_id}, Date: {$date_to_process}. Marking as Absent. ---");
+                    // Check if the date is an official holiday
+                    $is_holiday = $this->_is_official_holiday($date_to_process);
+                    
+                    if ($is_holiday) {
+                        // Mark as Holiday
+                        $attendance_type_id = $this->staff_attendance['holiday']; // Type ID 5
+                        $remark = 'Official Holiday';
+                        $this->logger->log("--- No punches found for Staff ID: {$staff_id}, Date: {$date_to_process}. Marking as Holiday. ---");
+                    } else {
+                        // Mark as Absent
+                        $attendance_type_id = 3; // 3 is for 'Absent'
+                        $remark = 'No punch found';
+                        $this->logger->log("--- No punches found for Staff ID: {$staff_id}, Date: {$date_to_process}. Marking as Absent. ---");
+                    }
+                    
                     $attendance_record = [
                         'staff_id' => $staff_id,
-                        'staff_attendance_type_id' => 3, // 3 is for 'Absent'
-                        'remark' => 'No punch found',
+                        'staff_attendance_type_id' => $attendance_type_id,
+                        'remark' => $remark,
                         'date' => $date_to_process,
                         'biometric_attendence' => 1,
                         'qrcode_attendance' => 0,
@@ -655,6 +670,32 @@ class Staffattendance extends Admin_Controller
         $this->session->set_flashdata('msg', $final_msg);
 
         redirect('admin/staffattendance/index');
+    }
+
+    /**
+     * Check if a given date is an official holiday
+     * @param string $date Date in Y-m-d format
+     * @return bool True if the date is an official holiday, false otherwise
+     */
+    private function _is_official_holiday($date)
+    {
+        try {
+            $holidays = $this->holiday_model->get();
+            
+            foreach ($holidays as $holiday) {
+                $from_date = new DateTime($holiday['from_date']);
+                $to_date = new DateTime($holiday['to_date']);
+                $check_date = new DateTime($date);
+                
+                if ($check_date >= $from_date && $check_date <= $to_date) {
+                    return true;
+                }
+            }
+        } catch (Exception $e) {
+            $this->logger->log("Error checking holiday for date {$date}: " . $e->getMessage());
+        }
+        
+        return false;
     }
 
 }

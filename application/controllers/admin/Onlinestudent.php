@@ -472,7 +472,11 @@ class Onlinestudent extends Admin_Controller
 
                 if ($this->rbac->hasPrivilege('online_admission', 'can_edit')) {
                     if (!$value->is_enroll) {
-                        $editbtn = "<a  class='btn btn-default btn-xs mt-5 pull-right' data-toggle='tooltip' title='" . $this->lang->line('edit_and_enroll') . "' onclick='return checkpaymentstatus(" . '"' . $value->id . '"' . "  )'><i class='fa fa-pencil'></i></a>";
+                        // Edit Application Only button
+                        $editbtn = "<a href='" . base_url() . 'admin/onlinestudent/edit_application/' . $value->id . "' class='btn btn-info btn-xs mt-5 pull-right' data-toggle='tooltip' title='Edit Application Details'><i class='fa fa-edit'></i></a>";
+                        
+                        // Edit & Enroll button
+                        $editbtn .= " <a class='btn btn-warning btn-xs mt-5 pull-right' data-toggle='tooltip' title='Edit & Enroll' onclick='return checkpaymentstatus(" . '"' . $value->id . '"' . ")'><i class='fa fa-graduation-cap'></i></a>";
                     }
                 }
 
@@ -683,6 +687,133 @@ class Onlinestudent extends Admin_Controller
             return true;
         }
         return true;
+    }
+
+    /**
+     * Edit application form details only (not enrollment)
+     */
+    public function edit_application($id = null)
+    {
+        if (!$this->rbac->hasPrivilege('online_admission', 'can_edit')) {
+            access_denied();
+        }
+
+        if (is_null($id)) {
+            $this->show_404();
+            return;
+        }
+
+        $student = $this->onlinestudent_model->get($id);
+        if (!$student) {
+            $this->show_404();
+            return;
+        }
+
+        // Load related data
+        $this->load->model('Online_admission_ug_details_model');
+        $this->load->model('Online_admission_references_model');
+        $ug_details = $this->Online_admission_ug_details_model->get_by_online_admission_id($id);
+        $reference_details = $this->Online_admission_references_model->get_by_online_admission_id($id);
+
+        // Set validation rules for essential fields only
+        $this->form_validation->set_rules('user_name', 'Name', 'trim|xss_clean|min_length[3]');
+        $this->form_validation->set_rules('student_email', 'Email', 'trim|xss_clean|valid_email');
+        $this->form_validation->set_rules('student_mobile', 'Student Mobile', 'trim|xss_clean|exact_length[10]|numeric');
+
+        if ($this->form_validation->run() == false) {
+            // Show edit form with validation errors
+            $data['student'] = $student;
+            $data['id'] = $id;
+            $data['ug_details'] = $ug_details;
+            $data['reference_details'] = $reference_details;
+            $data['title'] = 'Edit Application';
+            
+            $this->session->set_userdata('top_menu', 'Student Information');
+            $this->session->set_userdata('sub_menu', 'onlinestudent');
+
+            $this->load->view('layout/header', $data);
+            $this->load->view('admin/onlinestudent/edit_application', $data);
+            $this->load->view('layout/footer', $data);
+        } else {
+            // Prepare update data for online_admissions table
+            $update_data = array(
+                'id' => $id,
+                'firstname' => htmlspecialchars($this->input->post('user_name')),
+                'gender' => $this->input->post('gender'),
+                'email' => $this->input->post('student_email'),
+                'mobileno' => $this->input->post('student_mobile'),
+                'dob' => $this->input->post('dob'),
+                'adhar_no' => $this->input->post('aadhaar'),
+                'current_address' => htmlspecialchars($this->input->post('current_address')),
+                'permanent_address' => htmlspecialchars($this->input->post('permanent_address')),
+                'state' => htmlspecialchars($this->input->post('state')),
+                'city' => htmlspecialchars($this->input->post('city')),
+                'father_name' => htmlspecialchars($this->input->post('father_name')),
+                'father_phone' => $this->input->post('father_mobile'),
+                'father_occupation' => htmlspecialchars($this->input->post('father_occupation')),
+                'mother_name' => htmlspecialchars($this->input->post('mother_name')),
+                'mother_phone' => $this->input->post('mother_mobile'),
+                'mother_occupation' => htmlspecialchars($this->input->post('mother_occupation')),
+                'total_maths' => $this->input->post('total_maths'),
+                'maths_marks' => $this->input->post('maths_marks'),
+                'maths_perc' => $this->input->post('maths_perc'),
+                'total_physics' => $this->input->post('total_physics'),
+                'physics_marks' => $this->input->post('physics_marks'),
+                'physics_perc' => $this->input->post('physics_perc'),
+                'total_chemistry' => $this->input->post('total_chemistry'),
+                'chemistry_marks' => $this->input->post('chemistry_marks'),
+                'chemistry_perc' => $this->input->post('chemistry_perc'),
+                'average_marks' => $this->input->post('average_marks'),
+                'cutoff_marks' => $this->input->post('cutoff_marks'),
+                'updated_at' => date('Y-m-d H:i:s'),
+            );
+
+            // Update online_admissions table
+            $this->onlinestudent_model->edit($update_data);
+
+            // Update UG details if exists
+            if ($ug_details) {
+                $ug_data = array(
+                    'id' => $ug_details['id'],
+                    'school_name' => htmlspecialchars($this->input->post('school_name')),
+                    'tenth_passing' => $this->input->post('tenth_passing'),
+                );
+                $this->db->where('id', $ug_data['id']);
+                $this->db->update('online_admission_ug_details', $ug_data);
+            }
+
+            // Update reference details if provided
+            if ($this->input->post('referral_name') || $this->input->post('relationship') || $this->input->post('phone_no')) {
+                if ($reference_details) {
+                    $ref_data = array(
+                        'id' => $reference_details['id'],
+                        'referrer_name' => htmlspecialchars($this->input->post('referral_name')),
+                        'relationship' => htmlspecialchars($this->input->post('relationship')),
+                        'phone_no' => $this->input->post('phone_no'),
+                    );
+                    $this->db->where('id', $ref_data['id']);
+                    $this->db->update('online_admission_references', $ref_data);
+                } else {
+                    // Create new reference record
+                    $ref_data = array(
+                        'online_admission_id' => $id,
+                        'referrer_name' => htmlspecialchars($this->input->post('referral_name')),
+                        'relationship' => htmlspecialchars($this->input->post('relationship')),
+                        'phone_no' => $this->input->post('phone_no'),
+                    );
+                    $this->db->insert('online_admission_references', $ref_data);
+                }
+            }
+            
+            // Log the action
+            $message = "Application details updated for online admission id " . $id;
+            $action = "Update";
+            $this->onlinestudent_model->log($message, $id, $action);
+
+            // Set success message and redirect
+            $this->session->set_userdata('msg', '<div class="alert alert-success alert-dismissible"><button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button><i class="fa fa-check-circle"></i> Application updated successfully!</div>');
+            redirect('admin/onlinestudent');
+        }
     }
 
 }

@@ -427,7 +427,24 @@ class Staff extends Admin_Controller
         ];
 
         // Year-wide weekend/holiday dates for attendance grid
-        $holiday_dates_year = [];
+        // Using same logic as staffattendancereport controller
+        $all_holidays_year = $this->holiday_model->get();
+        $official_holiday_dates_year = [];
+        foreach ($all_holidays_year as $holiday_value) {
+            $from_date = new DateTime($holiday_value['from_date']);
+            $to_date = new DateTime($holiday_value['to_date']);
+            $current = clone $from_date;
+            while ($current <= $to_date) {
+                if ($current->format('Y') == $current_year) {
+                    $official_holiday_dates_year[] = $current->format('Y-m-d');
+                }
+                $current->modify('+1 day');
+            }
+        }
+        // Include ALL holidays (not filtered)
+        $data['holiday_dates_year'] = array_values(array_unique($official_holiday_dates_year));
+        
+        $holiday_dates_year = $data['holiday_dates_year'];
         $weekend_day_dates_year = [];
         for ($m = 1; $m <= 12; $m++) {
             $days_in_month = cal_days_in_month(CAL_GREGORIAN, $m, (int)$current_year);
@@ -456,14 +473,7 @@ class Staff extends Admin_Controller
             }
         }
 
-        foreach ($official_holiday_dates as $dateStr) {
-            if (!in_array($dateStr, $weekend_day_dates_year, true)) {
-                $holiday_dates_year[] = $dateStr;
-            }
-        }
-
         $data['weekend_day_dates_year'] = array_values(array_unique($weekend_day_dates_year));
-        $data['holiday_dates_year'] = array_values(array_unique($holiday_dates_year));
 
         $this->load->view('layout/header', $data);
         $this->load->view('admin/staff/staffprofile', $data);
@@ -697,9 +707,8 @@ class Staff extends Admin_Controller
             }
             $weekend_day_dates_year = array_values(array_unique($weekend_day_dates_year));
 
-            $holiday_dates_year = array_values(array_unique(array_filter($official_holiday_dates, function ($dateStr) use ($weekend_day_dates_year) {
-                return !in_array($dateStr, $weekend_day_dates_year, true);
-            })));
+            // Include all official holidays (don't filter out those on weekends)
+            $holiday_dates_year = array_values(array_unique($official_holiday_dates));
 
             $data['weekend_day_dates_year'] = $weekend_day_dates_year;
             $data['holiday_dates_year'] = $holiday_dates_year;

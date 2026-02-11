@@ -1169,13 +1169,15 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                                         $att_dates = date("Y") . "-" . $datemonth . "-" . sprintf("%02d", $i);
                                                         $display_key = '';
                                                         $display_class = '';
-                                                        if (!empty($weekend_day_dates_year) && in_array($att_dates, $weekend_day_dates_year, true)) {
-                                                            $display_key = 'W';
-                                                            $display_class = 'att-cell-weekend';
-                                                        } elseif (!empty($holiday_dates_year) && in_array($att_dates, $holiday_dates_year, true)) {
+                                                        // Check holidays first (to prioritize 'H' over 'W' if a date is both)
+                                                        if (!empty($holiday_dates_year) && in_array($att_dates, $holiday_dates_year, true)) {
                                                             $display_key = 'H';
                                                             $display_class = 'att-cell-holiday';
-                                                        } elseif (array_key_exists($att_dates, $resultlist) && !empty($resultlist[$att_dates]["key"])) {
+                                                        } elseif (!empty($weekend_day_dates_year) && in_array($att_dates, $weekend_day_dates_year, true)) {
+                                                            $display_key = 'W';
+                                                            $display_class = 'att-cell-weekend';
+                                                        } elseif (array_key_exists($att_dates, $resultlist) && !empty($resultlist[$att_dates]["key"]) && !in_array($att_dates, $holiday_dates_year, true)) {
+                                                            // Only show database record if it's NOT a holiday
                                                             $display_key = $resultlist[$att_dates]["key"];
                                                             if ($display_key === 'P') {
                                                                 $display_class = 'att-cell-present';
