@@ -207,25 +207,25 @@
                 <h5 class="mb-3">HSC Examination Details</h5>
                 <?php
                 $hsc_details = $ug_details ? $ug_details : array(
-                    'maths_marks' => $maths_marks,
-                    'total_maths' => $total_maths,
-                    'maths_perc' => $maths_perc,
-                    'physics_marks' => $physics_marks,
-                    'total_physics' => $total_physics,
-                    'physics_perc' => $physics_perc,
-                    'chemistry_marks' => $chemistry_marks,
-                    'total_chemistry' => $total_chemistry,
-                    'chemistry_perc' => $chemistry_perc,
-                    'average_marks' => $average_marks,
-                    'cutoff_marks' => $cutoff_marks,
+                    'maths_marks' => isset($maths_marks) ? $maths_marks : '',
+                    'total_maths' => isset($total_maths) ? $total_maths : '',
+                    'maths_perc' => isset($maths_perc) ? $maths_perc : '',
+                    'physics_marks' => isset($physics_marks) ? $physics_marks : '',
+                    'total_physics' => isset($total_physics) ? $total_physics : '',
+                    'physics_perc' => isset($physics_perc) ? $physics_perc : '',
+                    'chemistry_marks' => isset($chemistry_marks) ? $chemistry_marks : '',
+                    'total_chemistry' => isset($total_chemistry) ? $total_chemistry : '',
+                    'chemistry_perc' => isset($chemistry_perc) ? $chemistry_perc : '',
+                    'average_marks' => isset($average_marks) ? $average_marks : '',
+                    'cutoff_marks' => isset($cutoff_marks) ? $cutoff_marks : '',
                 );
                 ?>
                 <table class="table table-bordered">
                     <thead><tr><th>Subject</th><th>Marks Obtained</th><th>Maximum Marks</th><th>Percentage</th></tr></thead>
                     <tbody>
-                        <tr><td>Maths (M)</td><td><?php echo $hsc_details['maths_marks']; ?></td><td><?php echo $hsc_details['total_maths']; ?></td><td><?php echo $hsc_details['maths_perc']; ?>%</td></tr>
-                        <tr><td>Physics (P)</td><td><?php echo $hsc_details['physics_marks']; ?></td><td><?php echo $hsc_details['total_physics']; ?></td><td><?php echo $hsc_details['physics_perc']; ?>%</td></tr>
-                        <tr><td>Chemistry (C)</td><td><?php echo $hsc_details['chemistry_marks']; ?></td><td><?php echo $hsc_details['total_chemistry']; ?></td><td><?php echo $hsc_details['chemistry_perc']; ?>%</td></tr>
+                        <tr><td>Maths (M)</td><td><?php echo isset($hsc_details['maths_marks']) ? $hsc_details['maths_marks'] : ''; ?></td><td><?php echo isset($hsc_details['total_maths']) ? $hsc_details['total_maths'] : ''; ?></td><td><?php echo isset($hsc_details['maths_perc']) ? $hsc_details['maths_perc'] : ''; ?><?php if(isset($hsc_details['maths_perc']) && $hsc_details['maths_perc'] != '') echo '%'; ?></td></tr>
+                        <tr><td>Physics (P)</td><td><?php echo isset($hsc_details['physics_marks']) ? $hsc_details['physics_marks'] : ''; ?></td><td><?php echo isset($hsc_details['total_physics']) ? $hsc_details['total_physics'] : ''; ?></td><td><?php echo isset($hsc_details['physics_perc']) ? $hsc_details['physics_perc'] : ''; ?><?php if(isset($hsc_details['physics_perc']) && $hsc_details['physics_perc'] != '') echo '%'; ?></td></tr>
+                        <tr><td>Chemistry (C)</td><td><?php echo isset($hsc_details['chemistry_marks']) ? $hsc_details['chemistry_marks'] : ''; ?></td><td><?php echo isset($hsc_details['total_chemistry']) ? $hsc_details['total_chemistry'] : ''; ?></td><td><?php echo isset($hsc_details['chemistry_perc']) ? $hsc_details['chemistry_perc'] : ''; ?><?php if(isset($hsc_details['chemistry_perc']) && $hsc_details['chemistry_perc'] != '') echo '%'; ?></td></tr>
                     </tbody>
                 </table>
             </div>
@@ -233,10 +233,10 @@
                 <h5 class="mb-3">Calculated Values</h5>
                 <div class="row">
                     <div class="col-md-6">
-                        <p><span class="data-label">Average Marks (P+C+M)/3:</span> <span class="data-value"><?php echo $hsc_details['average_marks']; ?></span></p>
+                        <p><span class="data-label">Average Marks (P+C+M)/3:</span> <span class="data-value"><?php echo isset($hsc_details['average_marks']) ? $hsc_details['average_marks'] : ''; ?></span></p>
                     </div>
                     <div class="col-md-6">
-                        <p><span class="data-label">Cut Off Marks (P+C)/2 + M:</span> <span class="data-value"><?php echo $hsc_details['cutoff_marks']; ?></span></p>
+                        <p><span class="data-label">Cut Off Marks (P+C)/2 + M:</span> <span class="data-value"><?php echo isset($hsc_details['cutoff_marks']) ? $hsc_details['cutoff_marks'] : ''; ?></span></p>
                     </div>
                 </div>
             </div>
