@@ -1326,18 +1326,33 @@ class PublicAdmissionForm extends CI_Controller
         $courseLevel = $this->input->post('courseLevel');
 
         if ($courseLevel == 'ug') {
-            $this->form_validation->set_rules('ug_course', 'UG Course', 'trim|required|xss_clean');
-            $this->form_validation->set_rules('school_name', 'Name of the school of X std', 'trim|required|xss_clean');
-            $this->form_validation->set_rules('tenth_passing', 'Year of passing of X std', 'trim|required|min_length[4]|max_length[4]|xss_clean');
             $this->form_validation->set_rules('maths_marks', 'Maths Marks', 'trim|required|numeric|less_than_equal_to[total_maths]|xss_clean');
             $this->form_validation->set_rules('total_maths', 'Total Maths Marks', 'trim|required|numeric|less_than_equal_to[100]|xss_clean');
-            $this->form_validation->set_rules('physics_marks', 'Physics & Chemistry Marks', 'trim|required|numeric|less_than_equal_to[total_physics]|xss_clean');
-            $this->form_validation->set_rules('total_physics', 'Total Physics & Chemistry Marks', 'trim|required|numeric|less_than_equal_to[100]|xss_clean');
+            $this->form_validation->set_rules('physics_marks', 'Physics Marks', 'trim|required|numeric|less_than_equal_to[total_physics]|xss_clean');
+            $this->form_validation->set_rules('total_physics', 'Total Physics Marks', 'trim|required|numeric|less_than_equal_to[100]|xss_clean');
             $this->form_validation->set_rules('chemistry_marks', 'Chemistry Marks', 'trim|required|numeric|less_than_equal_to[total_chemistry]|xss_clean');
             $this->form_validation->set_rules('total_chemistry', 'Total Chemistry Marks', 'trim|required|numeric|less_than_equal_to[100]|xss_clean');
             $this->form_validation->set_rules('chemistry_perc', 'Chemistry Percentage', 'trim|numeric|xss_clean');
             $this->form_validation->set_rules('average_marks', 'Average Marks', 'trim|numeric|xss_clean');
             $this->form_validation->set_rules('cutoff_marks', 'Cut Off Marks', 'trim|numeric|xss_clean');
+        }
+
+        if ($courseLevel == 'ug') {
+            $this->form_validation->set_rules('maths_marks', 'Maths Marks', 'trim|required|numeric|less_than_equal_to[total_maths]|xss_clean');
+            $this->form_validation->set_rules('total_maths', 'Total Maths Marks', 'trim|required|numeric|less_than_equal_to[100]|xss_clean');
+            $this->form_validation->set_rules('physics_marks', 'Physics Marks', 'trim|required|numeric|less_than_equal_to[total_physics]|xss_clean');
+            $this->form_validation->set_rules('total_physics', 'Total Physics Marks', 'trim|required|numeric|less_than_equal_to[100]|xss_clean');
+            $this->form_validation->set_rules('chemistry_marks', 'Chemistry Marks', 'trim|required|numeric|less_than_equal_to[total_chemistry]|xss_clean');
+            $this->form_validation->set_rules('total_chemistry', 'Total Chemistry Marks', 'trim|required|numeric|less_than_equal_to[100]|xss_clean');
+            $this->form_validation->set_rules('chemistry_perc', 'Chemistry Percentage', 'trim|numeric|xss_clean');
+            $this->form_validation->set_rules('average_marks', 'Average Marks', 'trim|numeric|xss_clean');
+            $this->form_validation->set_rules('cutoff_marks', 'Cut Off Marks', 'trim|numeric|xss_clean');
+        }
+
+        if ($courseLevel == 'ug') {
+            $this->form_validation->set_rules('ug_course', 'UG Course', 'trim|required|xss_clean');
+            $this->form_validation->set_rules('school_name', 'Name of the school of X std', 'trim|required|xss_clean');
+            $this->form_validation->set_rules('tenth_passing', 'Year of passing of X std', 'trim|required|min_length[4]|max_length[4]|xss_clean');
             if ($this->input->post('ug_course') == 1) { // B.Arch course ID
                 $this->form_validation->set_rules('nata_score', 'NATA Score', 'trim|required|xss_clean');
                 $this->form_validation->set_rules('application_number', 'NATA Application Form', 'trim|required|xss_clean');
@@ -1428,6 +1443,22 @@ class PublicAdmissionForm extends CI_Controller
                 }
             }
 
+            $existing_email = $this->onlinestudent_model->get_admission_by_field('email', $data['student_email']);
+            if ($existing_email) {
+                $ref_no = !empty($existing_email->reference_no) ? ' (Ref No: ' . $existing_email->reference_no . ')' : '';
+                $array = array('status' => 'fail', 'error' => array('student_email' => 'Email ID already exists' . $ref_no . '.'));
+                echo json_encode($array);
+                return;
+            }
+
+            $existing_email = $this->onlinestudent_model->get_admission_by_field('email', $data['student_email']);
+            if ($existing_email) {
+                $ref_no = !empty($existing_email->reference_no) ? ' (Ref No: ' . $existing_email->reference_no . ')' : '';
+                $array = array('status' => 'fail', 'error' => array('student_email' => 'Email ID already exists' . $ref_no . '.'));
+                echo json_encode($array);
+                return;
+            }
+
             do {
                 $reference_no   = mt_rand(100000, 999999);
                 $refence_status = $this->onlinestudent_model->checkreferenceno($reference_no);
@@ -1456,19 +1487,11 @@ class PublicAdmissionForm extends CI_Controller
                 'paid_status' => 0, // 0 for unpaid, 1 for paid
             );
 
-            // Add HSC marks for UG applicants (coming from school)
             if ($courseLevel == 'ug') {
-                $insert_data_online_admission['total_maths'] = $data['total_maths'];
-                $insert_data_online_admission['maths_marks'] = $data['maths_marks'];
-                $insert_data_online_admission['maths_perc'] = $data['maths_perc'];
-                $insert_data_online_admission['total_physics'] = $data['total_physics'];
-                $insert_data_online_admission['physics_marks'] = $data['physics_marks'];
-                $insert_data_online_admission['physics_perc'] = $data['physics_perc'];
-                $insert_data_online_admission['total_chemistry'] = $data['total_chemistry'];
-                $insert_data_online_admission['chemistry_marks'] = $data['chemistry_marks'];
-                $insert_data_online_admission['chemistry_perc'] = $data['chemistry_perc'];
-                $insert_data_online_admission['average_marks'] = $data['average_marks'];
-                $insert_data_online_admission['cutoff_marks'] = $data['cutoff_marks'];
+                $insert_data_online_admission = array_merge(
+                    $insert_data_online_admission,
+                    $this->build_hsc_payload($data)
+                );
                 $insert_data_online_admission['ug_course_id'] = $data['ug_course'];
             }
 
@@ -1667,6 +1690,59 @@ class PublicAdmissionForm extends CI_Controller
         return true;
     }
 
+    private function calculate_percentage($marks, $total)
+    {
+        if (!is_numeric($marks) || !is_numeric($total)) {
+            return null;
+        }
+
+        $total = (float)$total;
+        if ($total <= 0) {
+            return null;
+        }
+
+        return round(((float)$marks / $total) * 100, 2);
+    }
+
+    private function build_hsc_payload($data)
+    {
+        $normalize = function ($value) {
+            return ($value === '' || $value === null) ? null : $value;
+        };
+
+        $total_maths = $normalize($data['total_maths'] ?? null);
+        $maths_marks = $normalize($data['maths_marks'] ?? null);
+        $total_physics = $normalize($data['total_physics'] ?? null);
+        $physics_marks = $normalize($data['physics_marks'] ?? null);
+        $total_chemistry = $normalize($data['total_chemistry'] ?? null);
+        $chemistry_marks = $normalize($data['chemistry_marks'] ?? null);
+
+        $maths_perc = $this->calculate_percentage($maths_marks, $total_maths);
+        $physics_perc = $this->calculate_percentage($physics_marks, $total_physics);
+        $chemistry_perc = $this->calculate_percentage($chemistry_marks, $total_chemistry);
+
+        $average_marks = null;
+        $cutoff_marks = null;
+        if (is_numeric($maths_perc) && is_numeric($physics_perc) && is_numeric($chemistry_perc)) {
+            $average_marks = round(((float)$maths_perc + (float)$physics_perc + (float)$chemistry_perc) / 3, 2);
+            $cutoff_marks = round((((float)$physics_perc + (float)$chemistry_perc) / 2) + (float)$maths_perc, 2);
+        }
+
+        return array(
+            'total_maths' => $total_maths,
+            'maths_marks' => $maths_marks,
+            'maths_perc' => $maths_perc,
+            'total_physics' => $total_physics,
+            'physics_marks' => $physics_marks,
+            'physics_perc' => $physics_perc,
+            'total_chemistry' => $total_chemistry,
+            'chemistry_marks' => $chemistry_marks,
+            'chemistry_perc' => $chemistry_perc,
+            'average_marks' => $average_marks,
+            'cutoff_marks' => $cutoff_marks,
+        );
+    }
+
     public function check_duplicate_mobile($mobile)
     {
         $existing = $this->onlinestudent_model->get_admission_by_field('mobileno', $mobile);
@@ -1807,15 +1883,6 @@ class PublicAdmissionForm extends CI_Controller
             $this->form_validation->set_rules('ug_course', 'UG Course', 'trim|required|xss_clean');
             $this->form_validation->set_rules('school_name', 'Name of the school of X std', 'trim|required|xss_clean');
             $this->form_validation->set_rules('tenth_passing', 'Year of passing of X std', 'trim|required|min_length[4]|max_length[4]|xss_clean');
-            $this->form_validation->set_rules('maths_marks', 'Maths Marks', 'trim|required|numeric|xss_clean');
-            $this->form_validation->set_rules('total_maths', 'Total Maths Marks', 'trim|required|numeric|xss_clean');
-            $this->form_validation->set_rules('physics_marks', 'Physics & Chemistry Marks', 'trim|required|numeric|xss_clean');
-            $this->form_validation->set_rules('total_physics', 'Total Physics & Chemistry Marks', 'trim|required|numeric|xss_clean');
-            $this->form_validation->set_rules('chemistry_marks', 'Chemistry Marks', 'trim|required|numeric|less_than_equal_to[total_chemistry]|xss_clean');
-            $this->form_validation->set_rules('total_chemistry', 'Total Chemistry Marks', 'trim|required|numeric|less_than_equal_to[100]|xss_clean');
-            $this->form_validation->set_rules('chemistry_perc', 'Chemistry Percentage', 'trim|numeric|xss_clean');
-            $this->form_validation->set_rules('average_marks', 'Average Marks', 'trim|numeric|xss_clean');
-            $this->form_validation->set_rules('cutoff_marks', 'Cut Off Marks', 'trim|numeric|xss_clean');
             if ($this->input->post('ug_course') == 1) { // B.Arch course ID
                 $this->form_validation->set_rules('nata_score', 'NATA Score', 'trim|required|xss_clean');
                 $this->form_validation->set_rules('application_number', 'NATA Application Form', 'trim|required|xss_clean');
@@ -1890,19 +1957,12 @@ class PublicAdmissionForm extends CI_Controller
                 'paid_status' => 0, // 0 for unpaid, 1 for paid
             ); // Correct closing of array
 
-            // Add HSC marks for UG applicants (coming from school)
             if ($courseLevel == 'ug') {
-                $insert_data_online_admission['total_maths'] = $data['total_maths'];
-                $insert_data_online_admission['maths_marks'] = $data['maths_marks'];
-                $insert_data_online_admission['maths_perc'] = $data['maths_perc'];
-                $insert_data_online_admission['total_physics'] = $data['total_physics'];
-                $insert_data_online_admission['physics_marks'] = $data['physics_marks'];
-                $insert_data_online_admission['physics_perc'] = $data['physics_perc'];
-                $insert_data_online_admission['total_chemistry'] = $data['total_chemistry'];
-                $insert_data_online_admission['chemistry_marks'] = $data['chemistry_marks'];
-                $insert_data_online_admission['chemistry_perc'] = $data['chemistry_perc'];
-                $insert_data_online_admission['average_marks'] = $data['average_marks'];
-                $insert_data_online_admission['cutoff_marks'] = $data['cutoff_marks'];
+                $insert_data_online_admission = array_merge(
+                    $insert_data_online_admission,
+                    $this->build_hsc_payload($data)
+                );
+                $insert_data_online_admission['ug_course_id'] = $data['ug_course'];
             }
 
             $online_admission_id = $this->onlinestudent_model->add($insert_data_online_admission);

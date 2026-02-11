@@ -122,7 +122,8 @@
          <div class="row justify-content-center align-items-center flex-wrap d-flex">
             <div class="col-md-7 col-lg-7 col-sm-8">
               <ul class="reflist">
-                <li><?php echo $this->lang->line('reference_no')  ?><span><?php echo $reference_no; ?></span></li>
+                <li>Academic Year<span>2026-2027</span></li>
+                <li>Application Ref No<span><?php echo $reference_no; ?></span></li>
 
                 <?php if($form_status==0){ ?>
                 <li><?php echo $this->lang->line('form_status') ?><span class="text-danger"><?php echo $this->lang->line('not_submitted') ?></span></li>

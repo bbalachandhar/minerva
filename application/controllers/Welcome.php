@@ -798,6 +798,7 @@ class Welcome extends Front_Controller
             $this->data['previous_school'] = $result['previous_school'];
             $this->data['note']            = $result['note'];
             $this->data['rte']             = $result['rte'];
+            $this->data['ug_course_id'] = isset($result['ug_course_id']) ? $result['ug_course_id'] : null;
             $this->data['total_maths'] = isset($result['total_maths']) ? $result['total_maths'] : null;
             $this->data['maths_marks'] = isset($result['maths_marks']) ? $result['maths_marks'] : null;
             $this->data['maths_perc'] = isset($result['maths_perc']) ? $result['maths_perc'] : null;
@@ -814,6 +815,7 @@ class Welcome extends Front_Controller
             $this->data['transaction_paid_amount']  = $this->customlib->gettransactionpaidamount($result['id']);
             $this->data['form_status']  = $result['form_status'];
             $this->data['paid_status']  = $result['paid_status'];
+            $this->data['academic_year'] = $this->setting_model->getCurrentSessionName();
             $this->data['admission_id'] = $id;
             $this->data['reference_no'] = $result['reference_no'];
             $this->data['id']           = $id;
@@ -864,7 +866,7 @@ class Welcome extends Front_Controller
                 12 => 'B.E. Cybersecurity and Bachelor of Design (B.Des)',
             );
 
-            if($this->data['ug_details']){
+            if($this->data['ug_details'] || !empty($this->data['ug_course_id'])){
                 $this->data['course_level'] = 'ug';
             } elseif($this->data['pg_details']){
                 $this->data['course_level'] = 'pg';
@@ -874,8 +876,66 @@ class Welcome extends Front_Controller
                 $this->data['course_level'] = '';
             }
 
-            if ($this->data['course_level'] === '' && ($this->data['total_maths'] !== null || $this->data['total_physics'] !== null || $this->data['total_chemistry'] !== null)) {
+            if (!empty($this->data['ug_details'])) {
+                $ug_details = $this->data['ug_details'];
+                $use_ug_value = function ($current, $key) use ($ug_details) {
+                    if (!isset($ug_details[$key])) {
+                        return $current;
+                    }
+                    $ug_value = $ug_details[$key];
+                    $has_ug_value = ($ug_value !== null && $ug_value !== '' && $ug_value !== 0 && $ug_value !== '0' && $ug_value !== '0.00');
+                    $is_missing = ($current === null || $current === '' || $current === 0 || $current === '0' || $current === '0.00');
+                    return ($has_ug_value && $is_missing) ? $ug_value : $current;
+                };
+
+                $this->data['total_maths'] = $use_ug_value($this->data['total_maths'], 'total_maths');
+                $this->data['maths_marks'] = $use_ug_value($this->data['maths_marks'], 'maths_marks');
+                $this->data['maths_perc'] = $use_ug_value($this->data['maths_perc'], 'maths_perc');
+                $this->data['total_physics'] = $use_ug_value($this->data['total_physics'], 'total_physics');
+                $this->data['physics_marks'] = $use_ug_value($this->data['physics_marks'], 'physics_marks');
+                $this->data['physics_perc'] = $use_ug_value($this->data['physics_perc'], 'physics_perc');
+                $this->data['total_chemistry'] = $use_ug_value($this->data['total_chemistry'], 'total_chemistry');
+                $this->data['chemistry_marks'] = $use_ug_value($this->data['chemistry_marks'], 'chemistry_marks');
+                $this->data['chemistry_perc'] = $use_ug_value($this->data['chemistry_perc'], 'chemistry_perc');
+                $this->data['average_marks'] = $use_ug_value($this->data['average_marks'], 'average_marks');
+                $this->data['cutoff_marks'] = $use_ug_value($this->data['cutoff_marks'], 'cutoff_marks');
+            }
+
+            if (empty($this->data['maths_perc']) && is_numeric($this->data['maths_marks']) && is_numeric($this->data['total_maths']) && (float)$this->data['total_maths'] > 0) {
+                $this->data['maths_perc'] = number_format(((float)$this->data['maths_marks'] * 100) / (float)$this->data['total_maths'], 2, '.', '');
+            }
+            if (empty($this->data['physics_perc']) && is_numeric($this->data['physics_marks']) && is_numeric($this->data['total_physics']) && (float)$this->data['total_physics'] > 0) {
+                $this->data['physics_perc'] = number_format(((float)$this->data['physics_marks'] * 100) / (float)$this->data['total_physics'], 2, '.', '');
+            }
+            if (empty($this->data['chemistry_perc']) && is_numeric($this->data['chemistry_marks']) && is_numeric($this->data['total_chemistry']) && (float)$this->data['total_chemistry'] > 0) {
+                $this->data['chemistry_perc'] = number_format(((float)$this->data['chemistry_marks'] * 100) / (float)$this->data['total_chemistry'], 2, '.', '');
+            }
+            if (empty($this->data['average_marks']) && is_numeric($this->data['maths_marks']) && is_numeric($this->data['physics_marks']) && is_numeric($this->data['chemistry_marks'])) {
+                $this->data['average_marks'] = number_format((((float)$this->data['maths_marks'] + (float)$this->data['physics_marks'] + (float)$this->data['chemistry_marks']) / 3), 2, '.', '');
+            }
+            if (empty($this->data['cutoff_marks']) && is_numeric($this->data['maths_marks']) && is_numeric($this->data['physics_marks']) && is_numeric($this->data['chemistry_marks'])) {
+                $this->data['cutoff_marks'] = number_format(((((float)$this->data['physics_marks'] + (float)$this->data['chemistry_marks']) / 2) + (float)$this->data['maths_marks']), 2, '.', '');
+            }
+
+            if ($this->data['course_level'] === '' && !empty($this->data['ug_course_id'])) {
                 $this->data['course_level'] = 'ug';
+            }
+
+            if ($this->data['course_level'] === '' && empty($this->data['pg_details']) && empty($this->data['lateral_details'])) {
+                $has_hsc_value = function ($value) {
+                    return ($value !== null && $value !== '' && $value !== 0 && $value !== '0' && $value !== '0.00');
+                };
+
+                if (
+                    $has_hsc_value($this->data['total_maths']) ||
+                    $has_hsc_value($this->data['maths_marks']) ||
+                    $has_hsc_value($this->data['total_physics']) ||
+                    $has_hsc_value($this->data['physics_marks']) ||
+                    $has_hsc_value($this->data['total_chemistry']) ||
+                    $has_hsc_value($this->data['chemistry_marks'])
+                ) {
+                    $this->data['course_level'] = 'ug';
+                }
             }
             
             if ($this->module_lib->hasModule('online_course')) {

@@ -137,7 +137,8 @@
                     <div class="col-md-9">
                         <h5 class="text-center mb-4 fw-bold">APPLICATION FORM FOR ADMISSION</h5>
                          <p><span class="data-label">Course Level:</span> <span class="data-value text-uppercase"><?php echo $course_level; ?></span></p>
-                         <p><span class="data-label">Academic Year:</span> <span class="data-value">2025-2026</span></p>
+                         <p><span class="data-label">Academic Year:</span> <span class="data-value">2026-2027</span></p>
+                         <p><span class="data-label">Application Ref No:</span> <span class="data-value"><?php echo $reference_no; ?></span></p>
                     </div>
                     <div class="col-md-3">
                          <?php if (isset($student_pic) && !empty($student_pic)): ?>
@@ -206,7 +207,7 @@
             <div class="section-card">
                 <h5 class="mb-3">HSC Examination Details</h5>
                 <?php
-                $hsc_details = $ug_details ? $ug_details : array(
+                $hsc_details = ($ug_details && !empty($ug_details)) ? $ug_details : array(
                     'maths_marks' => isset($maths_marks) ? $maths_marks : '',
                     'total_maths' => isset($total_maths) ? $total_maths : '',
                     'maths_perc' => isset($maths_perc) ? $maths_perc : '',

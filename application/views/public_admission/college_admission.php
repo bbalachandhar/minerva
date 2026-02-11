@@ -303,7 +303,7 @@
                             <span id="dob_error" class="text-danger"></span>
                         </div>
                         <div class="mb-3 col-md-6">
-                            <label class="form-label">Student's Mob Number*</label>
+                            <label class="form-label">Aadhaar Number*</label>
                             <input type="text" step="any" class="form-control" placeholder="Enter your Aadhar Number" id="aadhaar" name="aadhaar" required minlength="12" maxlength="12" onKeyPress="return checkIt(event);" tabindex="16">
                             <span id="aadhaar_error" class="text-danger"></span>
                         </div>
@@ -373,6 +373,49 @@
                         </table>
                     </div>
                 </div>
+                <div class="section-card" id="hscDetails">
+                    <h5 class="mb-3">HSC Examination Details</h5>
+                    <div class="table-responsive">
+                        <table class="table table-bordered text-center align-middle">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Subject</th>
+                                    <th>Maximum Marks</th>
+                                    <th>Marks Obtained</th>
+                                    <th>Percentage</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Maths (M)</td>
+                                    <td><input type="number" step="1" min="0" max="100" value="0" class="form-control text-center" name="total_maths" id="total_maths" onKeyPress="return checkIt(event);" onfocus="if(this.value=='0') this.value='';" onblur="if(this.value=='') this.value='0';" tabindex="25"></td>
+                                    <td><input type="number" step="1" min="0" max="100" value="0" class="form-control text-center" name="maths_marks" id="maths_marks" onKeyPress="return checkIt(event);" onfocus="if(this.value=='0') this.value='';" onblur="if(this.value=='') this.value='0';" tabindex="26"></td>
+                                    <td><input type="number" step="1" min="0" max="100" value="0" class="form-control text-center" name="maths_perc" id="maths_perc" readonly tabindex="-1"></td>
+                                </tr>
+                                <tr>
+                                    <td>Physics (P)</td>
+                                    <td><input type="number" step="1" min="0" max="100" value="0" class="form-control text-center" name="total_physics" id="total_physics" onKeyPress="return checkIt(event);" onfocus="if(this.value=='0') this.value='';" onblur="if(this.value=='') this.value='0';" tabindex="27"></td>
+                                    <td><input type="number" step="1" min="0" max="100" value="0" class="form-control text-center" name="physics_marks" id="physics_marks" onKeyPress="return checkIt(event);" onfocus="if(this.value=='0') this.value='';" onblur="if(this.value=='') this.value='0';" tabindex="28"></td>
+                                    <td><input type="number" step="1" min="0" max="100" value="0" class="form-control text-center" name="physics_perc" id="physics_perc" readonly tabindex="-1"></td>
+                                </tr>
+                                <tr>
+                                    <td>Chemistry (C)</td>
+                                    <td><input type="number" step="1" min="0" max="100" value="0" class="form-control text-center" name="total_chemistry" id="total_chemistry" onKeyPress="return checkIt(event);" onfocus="if(this.value=='0') this.value='';" onblur="if(this.value=='') this.value='0';" tabindex="29"></td>
+                                    <td><input type="number" step="1" min="0" max="100" value="0" class="form-control text-center" name="chemistry_marks" id="chemistry_marks" onKeyPress="return checkIt(event);" onfocus="if(this.value=='0') this.value='';" onblur="if(this.value=='') this.value='0';" tabindex="30"></td>
+                                    <td><input type="number" step="1" min="0" max="100" value="0" class="form-control text-center" name="chemistry_perc" id="chemistry_perc" readonly tabindex="-1"></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Average: (P+C+M)/3</strong></td>
+                                    <td colspan="3"><input type="number" step="0.01" min="0" max="100" value="0" class="form-control text-center" name="average_marks" id="average_marks" readonly tabindex="-1"></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Cut Off: (P+C)/2 + M</strong></td>
+                                    <td colspan="3"><input type="number" step="0.01" min="0" max="200" value="0" class="form-control text-center" name="cutoff_marks" id="cutoff_marks" readonly tabindex="-1"></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
                 <div class="">
 
                     <div id="ugDetails">
@@ -407,49 +450,6 @@
                                         <input  type="text" class="form-control" placeholder="Enter your year" name="tenth_passing" id="tenth_passing" minlength="4" maxlength="4" onKeyPress="return checkIt(event);" tabindex="24">
                                     </div>
                                 </div>
-                            </div>
-                        </div>
-                        <div class="section-card">
-                            <h5 class="mb-3">HSC Examination Details</h5>
-                            <div class="table-responsive">
-                                <table class="table table-bordered text-center align-middle">
-                                    <thead class="table-dark">
-                                        <tr>
-                                            <th>Subject</th>
-                                            <th>Maximum Marks</th>
-                                            <th>Marks Obtained</th>
-                                            <th>Percentage</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr>
-                                            <td>Maths (M)</td>
-                                            <td><input type="number" step="1" min="0" max="100" value="0" class="form-control text-center" name="total_maths" id="total_maths" onKeyPress="return checkIt(event);" onfocus="if(this.value=='0') this.value='';" onblur="if(this.value=='') this.value='0';" tabindex="25"></td>
-                                            <td><input type="number" step="1" min="0" max="100" value="0" class="form-control text-center" name="maths_marks" id="maths_marks" onKeyPress="return checkIt(event);" onfocus="if(this.value=='0') this.value='';" onblur="if(this.value=='') this.value='0';" tabindex="26"></td>
-                                            <td><input type="number" step="1" min="0" max="100" value="0" class="form-control text-center" name="maths_perc" id="maths_perc" readonly tabindex="-1"></td>
-                                        </tr>
-                                        <tr>
-                                            <td>Physics (P)</td>
-                                            <td><input type="number" step="1" min="0" max="100" value="0" class="form-control text-center" name="total_physics" id="total_physics" onKeyPress="return checkIt(event);" onfocus="if(this.value=='0') this.value='';" onblur="if(this.value=='') this.value='0';" tabindex="27"></td>
-                                            <td><input type="number" step="1" min="0" max="100" value="0" class="form-control text-center" name="physics_marks" id="physics_marks" onKeyPress="return checkIt(event);" onfocus="if(this.value=='0') this.value='';" onblur="if(this.value=='') this.value='0';" tabindex="28"></td>
-                                            <td><input type="number" step="1" min="0" max="100" value="0" class="form-control text-center" name="physics_perc" id="physics_perc" readonly tabindex="-1"></td>
-                                        </tr>
-                                        <tr>
-                                            <td>Chemistry (C)</td>
-                                            <td><input type="number" step="1" min="0" max="100" value="0" class="form-control text-center" name="total_chemistry" id="total_chemistry" onKeyPress="return checkIt(event);" onfocus="if(this.value=='0') this.value='';" onblur="if(this.value=='') this.value='0';" tabindex="29"></td>
-                                            <td><input type="number" step="1" min="0" max="100" value="0" class="form-control text-center" name="chemistry_marks" id="chemistry_marks" onKeyPress="return checkIt(event);" onfocus="if(this.value=='0') this.value='';" onblur="if(this.value=='') this.value='0';" tabindex="30"></td>
-                                            <td><input type="number" step="1" min="0" max="100" value="0" class="form-control text-center" name="chemistry_perc" id="chemistry_perc" readonly tabindex="-1"></td>
-                                        </tr>
-                                        <tr>
-                                            <td><strong>Average: (P+C+M)/3</strong></td>
-                                            <td colspan="3"><input type="number" step="0.01" min="0" max="100" value="0" class="form-control text-center" name="average_marks" id="average_marks" readonly tabindex="-1"></td>
-                                        </tr>
-                                        <tr>
-                                            <td><strong>Cut Off: (P+C)/2 + M</strong></td>
-                                            <td colspan="3"><input type="number" step="0.01" min="0" max="200" value="0" class="form-control text-center" name="cutoff_marks" id="cutoff_marks" readonly tabindex="-1"></td>
-                                        </tr>
-                                    </tbody>
-                                </table>
                             </div>
                         </div>
                     </div>
@@ -808,33 +808,42 @@
         const ugDetails = document.getElementById("ugDetails");
         const lateralDetails = document.getElementById("lateralDetails");
         const pgDetails = document.getElementById("pgDetails");
+        const hscDetails = document.getElementById("hscDetails");
         
         if(ugRadio.checked) {
             // Show UG details, hide others
             ugDetails.style.display = "block";
             lateralDetails.style.display = "none";
             pgDetails.style.display = "none";
+            hscDetails.style.display = "block";
             
             // Set required fields for UG
             setRequiredFields(true, false, false);
+            setHscRequired(true);
         } 
         else if(lateralRadio.checked) {
             // Show Lateral details, hide others
             ugDetails.style.display = "none";
             lateralDetails.style.display = "block";
             pgDetails.style.display = "none";
+            hscDetails.style.display = "none";
             
             // Set required fields for Lateral
             setRequiredFields(false, true, false);
+            setHscRequired(false);
+            clearHscFields();
         }
         else if(pgRadio.checked) {
             // Show PG details, hide others
             ugDetails.style.display = "none";
             lateralDetails.style.display = "none";
             pgDetails.style.display = "block";
+            hscDetails.style.display = "none";
             
             // Set required fields for PG
             setRequiredFields(false, false, true);
+            setHscRequired(false);
+            clearHscFields();
         }
     }
 
@@ -843,10 +852,6 @@
         $("#ug_course").prop("required", ugRequired);
         $("#school_name").prop("required", ugRequired);
         $("#tenth_passing").prop("required", ugRequired);
-        $("#maths_marks").prop("required", ugRequired);
-        $("#total_maths").prop("required", ugRequired);
-        $("#physics_marks").prop("required", ugRequired);
-        $("#total_physics").prop("required", ugRequired);
         
         // Lateral fields
         $("#lateral_course").prop("required", lateralRequired);
@@ -871,6 +876,38 @@
         $("#exam_score").prop("required", pgRequired);
         $("#exam_year").prop("required", pgRequired);
         $("#pg_app_num").prop("required", pgRequired);
+    }
+
+    function setHscRequired(isRequired) {
+        $("#maths_marks").prop("required", isRequired);
+        $("#total_maths").prop("required", isRequired);
+        $("#physics_marks").prop("required", isRequired);
+        $("#total_physics").prop("required", isRequired);
+        $("#chemistry_marks").prop("required", isRequired);
+        $("#total_chemistry").prop("required", isRequired);
+    }
+
+    function clearHscFields() {
+        const hscFieldIds = [
+            "total_maths",
+            "maths_marks",
+            "maths_perc",
+            "total_physics",
+            "physics_marks",
+            "physics_perc",
+            "total_chemistry",
+            "chemistry_marks",
+            "chemistry_perc",
+            "average_marks",
+            "cutoff_marks"
+        ];
+
+        hscFieldIds.forEach((fieldId) => {
+            const field = document.getElementById(fieldId);
+            if (field) {
+                field.value = "";
+            }
+        });
     }
 
     // Add event listeners to all radio buttons
