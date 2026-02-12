@@ -238,29 +238,29 @@ $reference_details = isset($reference_details) && !empty($reference_details) ? $
                                     <tbody>
                                         <tr>
                                             <td><strong>Maths (M)</strong></td>
-                                            <td><input type="number" step="1" class="form-control text-center" name="total_maths" value="<?php echo set_value('total_maths', $student['total_maths']); ?>" oncalcchange="calculatePercentage('maths')"></td>
-                                            <td><input type="number" step="1" class="form-control text-center" name="maths_marks" value="<?php echo set_value('maths_marks', $student['maths_marks']); ?>" oncalcchange="calculatePercentage('maths')"></td>
-                                            <td><input type="number" step="0.01" class="form-control text-center" name="maths_perc" value="<?php echo set_value('maths_perc', $student['maths_perc']); ?>" readonly></td>
+                                            <td><input type="number" step="1" class="form-control text-center" id="total_maths" name="total_maths" value="<?php echo set_value('total_maths', $student['total_maths']); ?>"></td>
+                                            <td><input type="number" step="1" class="form-control text-center" id="maths_marks" name="maths_marks" value="<?php echo set_value('maths_marks', $student['maths_marks']); ?>"></td>
+                                            <td><input type="number" step="0.01" class="form-control text-center" id="maths_perc" name="maths_perc" value="<?php echo set_value('maths_perc', $student['maths_perc']); ?>" readonly></td>
                                         </tr>
                                         <tr>
                                             <td><strong>Physics (P)</strong></td>
-                                            <td><input type="number" step="1" class="form-control text-center" name="total_physics" value="<?php echo set_value('total_physics', $student['total_physics']); ?>" oncalcchange="calculatePercentage('physics')"></td>
-                                            <td><input type="number" step="1" class="form-control text-center" name="physics_marks" value="<?php echo set_value('physics_marks', $student['physics_marks']); ?>" oncalcchange="calculatePercentage('physics')"></td>
-                                            <td><input type="number" step="0.01" class="form-control text-center" name="physics_perc" value="<?php echo set_value('physics_perc', $student['physics_perc']); ?>" readonly></td>
+                                            <td><input type="number" step="1" class="form-control text-center" id="total_physics" name="total_physics" value="<?php echo set_value('total_physics', $student['total_physics']); ?>"></td>
+                                            <td><input type="number" step="1" class="form-control text-center" id="physics_marks" name="physics_marks" value="<?php echo set_value('physics_marks', $student['physics_marks']); ?>"></td>
+                                            <td><input type="number" step="0.01" class="form-control text-center" id="physics_perc" name="physics_perc" value="<?php echo set_value('physics_perc', $student['physics_perc']); ?>" readonly></td>
                                         </tr>
                                         <tr>
                                             <td><strong>Chemistry (C)</strong></td>
-                                            <td><input type="number" step="1" class="form-control text-center" name="total_chemistry" value="<?php echo set_value('total_chemistry', $student['total_chemistry']); ?>" oncalcchange="calculatePercentage('chemistry')"></td>
-                                            <td><input type="number" step="1" class="form-control text-center" name="chemistry_marks" value="<?php echo set_value('chemistry_marks', $student['chemistry_marks']); ?>" oncalcchange="calculatePercentage('chemistry')"></td>
-                                            <td><input type="number" step="0.01" class="form-control text-center" name="chemistry_perc" value="<?php echo set_value('chemistry_perc', $student['chemistry_perc']); ?>" readonly></td>
+                                            <td><input type="number" step="1" class="form-control text-center" id="total_chemistry" name="total_chemistry" value="<?php echo set_value('total_chemistry', $student['total_chemistry']); ?>"></td>
+                                            <td><input type="number" step="1" class="form-control text-center" id="chemistry_marks" name="chemistry_marks" value="<?php echo set_value('chemistry_marks', $student['chemistry_marks']); ?>"></td>
+                                            <td><input type="number" step="0.01" class="form-control text-center" id="chemistry_perc" name="chemistry_perc" value="<?php echo set_value('chemistry_perc', $student['chemistry_perc']); ?>" readonly></td>
                                         </tr>
                                         <tr class="bg-light">
                                             <td><strong>Average: (P+C+M)/3</strong></td>
-                                            <td colspan="3"><input type="number" step="0.01" class="form-control text-center" name="average_marks" value="<?php echo set_value('average_marks', $student['average_marks']); ?>" readonly></td>
+                                            <td colspan="3"><input type="number" step="0.01" class="form-control text-center" id="average_marks" name="average_marks" value="<?php echo set_value('average_marks', $student['average_marks']); ?>" readonly></td>
                                         </tr>
                                         <tr class="bg-light">
                                             <td><strong>Cut Off: (P+C)/2 + M</strong></td>
-                                            <td colspan="3"><input type="number" step="0.01" class="form-control text-center" name="cutoff_marks" value="<?php echo set_value('cutoff_marks', $student['cutoff_marks']); ?>" readonly></td>
+                                            <td colspan="3"><input type="number" step="0.01" class="form-control text-center" id="cutoff_marks" name="cutoff_marks" value="<?php echo set_value('cutoff_marks', $student['cutoff_marks']); ?>" readonly></td>
                                         </tr>
                                     </tbody>
                                 </table>
@@ -333,48 +333,65 @@ function allowAlphabets(event) {
     }
 }
 
-function calculatePercentage(subject) {
-    var totalId = 'total_' + subject;
-    var marksId = subject + '_marks';
-    var percId = subject + '_perc';
-    
-    var total = parseFloat($('#' + totalId).val()) || 0;
-    var marks = parseFloat($('#' + marksId).val()) || 0;
-    
-    if (total > 0) {
-        var percentage = (marks * 100) / total;
-        $('#' + percId).val(percentage.toFixed(2));
-    } else {
-        $('#' + percId).val('0.00');
+function calculatePercentage(marksId, totalId, percId) {
+    var marks = parseFloat($(marksId).val());
+    var total = parseFloat($(totalId).val());
+
+    if (total > 100) {
+        alert("Maximum Marks cannot exceed 100.");
+        $(totalId).val(100);
+        total = 100;
     }
-    
-    // Recalculate average and cutoff
-    calculateAverageAndCutoff();
+    if (total < 0) {
+        alert("Maximum Marks cannot be negative.");
+        $(totalId).val(0);
+        total = 0;
+    }
+
+    if (marks > total) {
+        alert("Marks Obtained cannot exceed Maximum Marks.");
+        $(marksId).val(total);
+        marks = total;
+    }
+    if (marks < 0) {
+        alert("Marks Obtained cannot be negative.");
+        $(marksId).val(0);
+        marks = 0;
+    }
+
+    if (!total) {
+        $(percId).val("0.00");
+        return 0;
+    }
+    var percentage = (marks / total) * 100;
+    $(percId).val(percentage.toFixed(2));
+    return marks;
 }
 
-function calculateAverageAndCutoff() {
-    var mathsPerc = parseFloat($('#maths_perc').val()) || 0;
-    var physicsPerc = parseFloat($('#physics_perc').val()) || 0;
-    var chemistryPerc = parseFloat($('#chemistry_perc').val()) || 0;
-    
-    var average = (mathsPerc + physicsPerc + chemistryPerc) / 3;
-    $('#average_marks').val(average.toFixed(2));
-    
-    var cutoff = ((physicsPerc + chemistryPerc) / 2) + mathsPerc;
-    $('#cutoff_marks').val(cutoff.toFixed(2));
+function calculateTotal() {
+    calculatePercentage("#maths_marks", "#total_maths", "#maths_perc");
+    calculatePercentage("#physics_marks", "#total_physics", "#physics_perc");
+    calculatePercentage("#chemistry_marks", "#total_chemistry", "#chemistry_perc");
+
+    setTimeout(function() {
+        var mathsPerc = parseFloat($("#maths_perc").val() || 0);
+        var physicsPerc = parseFloat($("#physics_perc").val() || 0);
+        var chemistryPerc = parseFloat($("#chemistry_perc").val() || 0);
+
+        var cutoff = ((physicsPerc + chemistryPerc) / 2) + mathsPerc;
+        $("#cutoff_marks").val(cutoff.toFixed(2));
+
+        var average = (physicsPerc + chemistryPerc + mathsPerc) / 3;
+        $("#average_marks").val(average.toFixed(2));
+    }, 10);
 }
 
 $(document).ready(function() {
-    // Attach change events to HSC fields
-    $('[name="total_maths"], [name="maths_marks"]').on('change', function() {
-        calculatePercentage('maths');
+    $("#maths_marks, #total_maths, #physics_marks, #total_physics, #chemistry_marks, #total_chemistry").on("input", function() {
+        calculateTotal();
     });
-    $('[name="total_physics"], [name="physics_marks"]').on('change', function() {
-        calculatePercentage('physics');
-    });
-    $('[name="total_chemistry"], [name="chemistry_marks"]').on('change', function() {
-        calculatePercentage('chemistry');
-    });
+
+    calculateTotal();
 });
 </script>
 

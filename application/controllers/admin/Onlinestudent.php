@@ -771,15 +771,25 @@ class Onlinestudent extends Admin_Controller
             // Update online_admissions table
             $this->onlinestudent_model->edit($update_data);
 
-            // Update UG details if exists
+            // Update UG details if exists, otherwise create a new row
+            $school_name = htmlspecialchars($this->input->post('school_name'));
+            $tenth_passing = $this->input->post('tenth_passing');
+
             if ($ug_details) {
                 $ug_data = array(
                     'id' => $ug_details['id'],
-                    'school_name' => htmlspecialchars($this->input->post('school_name')),
-                    'tenth_passing' => $this->input->post('tenth_passing'),
+                    'school_name' => $school_name,
+                    'tenth_passing' => $tenth_passing,
                 );
                 $this->db->where('id', $ug_data['id']);
                 $this->db->update('online_admission_ug_details', $ug_data);
+            } elseif ($school_name !== '' || $tenth_passing !== '') {
+                $ug_data = array(
+                    'online_admission_id' => $id,
+                    'school_name' => $school_name,
+                    'tenth_passing' => $tenth_passing,
+                );
+                $this->db->insert('online_admission_ug_details', $ug_data);
             }
 
             // Update reference details if provided
