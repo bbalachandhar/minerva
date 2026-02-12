@@ -763,7 +763,7 @@ $(document).on('submit','#admissionform',function(e){
                   var admission_id= response.id;
                    var reference_no= response.reference_no;
                   sessionStorage.setItem("formsubmit", "done");
-                 window.location.href="<?php echo base_url() . 'public_admission/online_admission_review/' ?>"+reference_no ;
+                 window.location.href="<?php echo base_url() . 'welcome/online_admission_review/' ?>"+reference_no ;
                 }
               },
              error: function() { // your error handler

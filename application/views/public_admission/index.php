@@ -794,7 +794,7 @@ $(document).on('submit','#checkstatusform',function(e){
                     $('#invaliderror').html(response.error);
                 } else{
                     var refno =response.refno ;
-                    window.location.href="<?php echo base_url() . 'public_admission/online_admission_review/' ?>"+refno ;
+                    window.location.href="<?php echo base_url() . 'welcome/online_admission_review/' ?>"+refno ;
                 }
               },
              error: function() { // your error handler

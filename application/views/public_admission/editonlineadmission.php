@@ -728,7 +728,7 @@ $(document).on('submit','#checkstatusform',function(e){
                     $('#invaliderror').html(response.error);
                 } else{
                     var admission_id= response.id;
-                    window.location.href="<?php echo base_url() . 'public_admission/online_admission_review/' ?>"+admission_id ;
+                    window.location.href="<?php echo base_url() . 'welcome/online_admission_review/' ?>"+admission_id ;
                 }
               },
              error: function() { // your error handler

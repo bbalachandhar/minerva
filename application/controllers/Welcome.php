@@ -751,6 +751,7 @@ class Welcome extends Front_Controller
             $this->data['category']    = $result['category'];
             $this->data['religion']    = $result['religion'];
             $this->data['cast']        = $result['cast'];
+            $this->data['community']   = isset($result['community']) ? $result['community'] : 'N/A';
             if ($result['school_house_id'] != 0) {
                 $this->data['house_name'] = $this->customlib->gethousename($result['school_house_id']);
             } else {
@@ -872,6 +873,9 @@ class Welcome extends Front_Controller
                 $this->data['course_level'] = 'pg';
             } elseif($this->data['lateral_details']){
                 $this->data['course_level'] = 'lateral';
+            } elseif (isset($result['total_maths']) && $result['total_maths'] !== null || isset($result['total_physics']) && $result['total_physics'] !== null || isset($result['total_chemistry']) && $result['total_chemistry'] !== null) {
+                // If there are HSC marks but no explicit course details, assume UG
+                $this->data['course_level'] = 'ug';
             } else {
                 $this->data['course_level'] = '';
             }

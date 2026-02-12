@@ -286,10 +286,22 @@
                     </div>
                     <div class="row">
                         <div class="mb-3 col-md-6">
+                            <label class="form-label">Community*</label>
+                            <select class="form-control" id="community" name="community" required tabindex="12a">
+                                <option value="">Select Community</option>
+                                <option value="General">General</option>
+                                <option value="OBC">OBC</option>
+                                <option value="SC">SC</option>
+                                <option value="ST">ST</option>
+                            </select>
+                        </div>
+                        <div class="mb-3 col-md-6">
                             <label class="form-label">Student's Email ID*</label>
                             <input type="email" class="form-control" placeholder="Enter your Email"  id="student_email" name="student_email" required tabindex="13" value="<?php echo isset($email) ? htmlspecialchars($email) : ''; ?>">
                             <span id="email_error" class="text-danger"></span>
                         </div>
+                    </div>
+                    <div class="row">
                         <div class="mb-3 col-md-6">
                             <label class="form-label">Student's Mobile Number*</label>
                             <input type="text" step="any" class="form-control" placeholder="Enter Student's Mobile Number" id="student_mobile" onchange="validateMobile(this)" onKeyPress="return checkIt(event);" name="student_mobile" required minlength="10" maxlength="10" tabindex="14" value="<?php echo isset($mobileno) ? htmlspecialchars($mobileno) : ''; ?>">
@@ -420,7 +432,7 @@
 
                     <div id="ugDetails">
                         <div class="section-card">
-                            <h5 class="mb-3">Courses Offered*</h5>
+                            <h5 class="mb-3">Course apply*</h5>
                                                         <select class="form-control" name="ug_course" id="ug_course" tabindex="22">
                                                             <option value="">Select a Course</option>
                                                                                                 <option value="1">B.Arch - Bachelor of Architecture</option>
@@ -456,7 +468,7 @@
                     
                     <div id="lateralDetails" style="display:none">
                         <div class="section-card">
-                            <h5 class="mb-3">Courses Offered*</h5>
+                            <h5 class="mb-3">Course apply*</h5>
                             <select class="form-control" name="lateral_course" id="lateral_course" tabindex="29">
                                 <option value="">Select a Course</option>
                                                                     <option value="2">B.E. CIVIL - Civil Engineering</option>
@@ -600,7 +612,7 @@
                     
                     <div id="pgDetails" style="display: none;">
                         <div class="section-card">
-                            <h5 class="mb-3">Courses Offered</h5>
+                            <h5 class="mb-3">Course apply</h5>
                             <select class="form-control" name="pg_course" id="pg_course" tabindex="71">
                                 <option value="">Select a Course</option>
                                                                     <option value="12">M. Arch. - Master of Architecture</option>

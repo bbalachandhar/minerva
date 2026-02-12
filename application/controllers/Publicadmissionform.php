@@ -153,6 +153,7 @@ class PublicAdmissionForm extends CI_Controller
         $this->form_validation->set_rules('dob', $this->lang->line('date_of_birth'), 'trim|required|xss_clean');          
         $this->form_validation->set_rules('section_id', $this->lang->line('section'), 'trim|required|xss_clean');
         $this->form_validation->set_rules('gender', $this->lang->line('gender'), 'trim|required|xss_clean');
+        $this->form_validation->set_rules('community', 'Community', 'trim|required|xss_clean');
 
         //remove script from other fields (these are just form validation rules)
             $this->form_validation->set_rules('middlename', $this->lang->line('middlename'), 'trim|xss_clean');
@@ -162,6 +163,7 @@ class PublicAdmissionForm extends CI_Controller
             $this->form_validation->set_rules('category_id', $this->lang->line('category_id'), 'trim|xss_clean');
             $this->form_validation->set_rules('religion', $this->lang->line('religion'), 'trim|xss_clean');
             $this->form_validation->set_rules('cast', $this->lang->line('cast'), 'trim|xss_clean');;
+            $this->form_validation->set_rules('community', 'Community', 'trim|required|xss_clean');
             $this->form_validation->set_rules('house', $this->lang->line('house'), 'trim|xss_clean');
             $this->form_validation->set_rules('blood_group', $this->lang->line('blood_group'), 'trim|xss_clean');
             $this->form_validation->set_rules('height', $this->lang->line('height'), 'trim|xss_clean');
@@ -312,6 +314,7 @@ class PublicAdmissionForm extends CI_Controller
                             $category_id      = $this->input->post('category_id');
                             $religion         = $this->input->post('religion');
                             $cast             = $this->input->post('cast');
+                            $community        = $this->input->post('community');
                             $house            = empty2null($this->input->post('house'));
                             $blood_group      = $this->input->post('blood_group');
                             $height           = $this->input->post('height');
@@ -360,6 +363,9 @@ class PublicAdmissionForm extends CI_Controller
                             }
                             if (isset($cast)) {
                                 $data_db['cast'] = $this->input->post('cast');
+                            }
+                            if (isset($community)) {
+                                $data_db['community'] = $this->input->post('community');
                             }
                             if (isset($house)) {
                                 $data_db['school_house_id'] = $this->input->post('house');
@@ -1311,6 +1317,7 @@ class PublicAdmissionForm extends CI_Controller
         $this->form_validation->set_rules('mother_mobile', 'Mother\'s Mobile Number', 'trim|required|min_length[10]|max_length[10]|xss_clean');
         $this->form_validation->set_rules('mother_occupation', 'Mother\'s Occupation', 'trim|required|xss_clean');
         $this->form_validation->set_rules('gender', 'Gender', 'trim|required|xss_clean');
+        $this->form_validation->set_rules('community', 'Community', 'trim|required|xss_clean');
         $this->form_validation->set_rules('student_email', 'Email ID', 'trim|required|valid_email|xss_clean|callback_check_duplicate_email');
         $this->form_validation->set_rules('student_mobile', 'Student\'s Mobile Number', 'trim|required|min_length[10]|max_length[10]|xss_clean|callback_check_duplicate_mobile');
         $this->form_validation->set_rules('dob', 'D.O.B', 'trim|required|xss_clean');
@@ -1471,6 +1478,7 @@ class PublicAdmissionForm extends CI_Controller
                 'email' => $data['student_email'],
                 'dob' => date('Y-m-d', strtotime($data['dob'])),
                 'gender' => $data['gender'],
+                'community' => $data['community'],
                 'father_name' => $data['father_name'],
                 'father_phone' => $data['father_mobile'],
                 'father_occupation' => $data['father_occupation'],
@@ -1864,6 +1872,7 @@ class PublicAdmissionForm extends CI_Controller
         $this->form_validation->set_rules('mother_mobile', 'Mother\'s Mobile Number', 'trim|required|min_length[10]|max_length[10]|xss_clean');
         $this->form_validation->set_rules('mother_occupation', 'Mother\'s Occupation', 'trim|required|xss_clean');
         $this->form_validation->set_rules('gender', 'Gender', 'trim|required|xss_clean');
+        $this->form_validation->set_rules('community', 'Community', 'trim|required|xss_clean');
         $this->form_validation->set_rules('student_email', 'Email ID', 'trim|required|valid_email|xss_clean|callback_check_duplicate_email');
         $this->form_validation->set_rules('student_mobile', 'Student\'s Mobile Number', 'trim|required|min_length[10]|max_length[10]|xss_clean|callback_check_duplicate_mobile');
         $this->form_validation->set_rules('dob', 'D.O.B', 'trim|required|xss_clean');
@@ -1941,6 +1950,7 @@ class PublicAdmissionForm extends CI_Controller
                 'email' => $data['student_email'],
                 'dob' => date('Y-m-d', strtotime($data['dob'])),
                 'gender' => $data['gender'],
+                'community' => $data['community'],
                 'father_name' => $data['father_name'],
                 'father_phone' => $data['father_mobile'],
                 'father_occupation' => $data['father_occupation'],

@@ -136,14 +136,14 @@
                 <div class="row">
                     <div class="col-md-9">
                         <h5 class="text-center mb-4 fw-bold">APPLICATION FORM FOR ADMISSION</h5>
-                         <p><span class="data-label">Course Level:</span> <span class="data-value text-uppercase"><?php echo isset($course_level) ? $course_level : 'N/A'; ?></span></p>
+                         <p><span class="data-label">Course Level:</span> <span class="data-value text-uppercase"><?php echo (isset($course_level) && !empty($course_level)) ? $course_level : 'N/A'; ?></span></p>
                          <p><span class="data-label">Academic Year:</span> <span class="data-value">2026-2027</span></p>
                          <p><span class="data-label">Application Ref No:</span> <span class="data-value"><?php echo isset($reference_no) ? $reference_no : 'N/A'; ?></span></p>
                          <p><span class="data-label">Application Fee Status:</span> <span class="data-value"><?php echo (isset($paid_status) && $paid_status == 1) ? '<span style="color: #28a745; font-weight: bold;">PAID</span>' : '<span style="color: #dc3545; font-weight: bold;">PENDING</span>'; ?></span></p>
                     </div>
                     <div class="col-md-3">
                          <?php if (isset($student_pic) && !empty($student_pic)): ?>
-                            <img src="<?php echo base_url() . $student_pic; ?>" alt="Student Photo" style="width: 150px; height: auto; border: 1px solid #ddd; padding: 5px;">
+                            <img src="<?php echo base_url() . $student_pic; ?>" alt="Student Photo" style="width: 120px; height: 150px; border: 1px solid #ddd; padding: 5px; object-fit: cover;">
                         <?php else: ?>
                             <p>No Photo</p>
                         <?php endif; ?>
@@ -162,6 +162,7 @@
                     <div class="col-md-4"><p><span class="data-label">Mother's Mobile:</span> <span class="data-value"><?php echo isset($mother_phone) ? $mother_phone : 'N/A'; ?></span></p></div>
                     <div class="col-md-4"><p><span class="data-label">Mother's Occupation:</span> <span class="data-value"><?php echo isset($mother_occupation) ? $mother_occupation : 'N/A'; ?></span></p></div>
                     <div class="col-md-4"><p><span class="data-label">Gender:</span> <span class="data-value"><?php echo isset($gender) ? $gender : 'N/A'; ?></span></p></div>
+                    <div class="col-md-4"><p><span class="data-label">Community:</span> <span class="data-value"><?php echo isset($community) ? $community : 'N/A'; ?></span></p></div>
                     <div class="col-md-4"><p><span class="data-label">Email ID:</span> <span class="data-value"><?php echo isset($email) ? $email : 'N/A'; ?></span></p></div>
                     <div class="col-md-4"><p><span class="data-label">Student's Mobile:</span> <span class="data-value"><?php echo isset($mobileno) ? $mobileno : 'N/A'; ?></span></p></div>
                     <div class="col-md-4"><p><span class="data-label">Date of Birth:</span> <span class="data-value"><?php echo (isset($dob) && !empty($dob)) ? date($this->customlib->getSchoolDateFormat(), strtotime($dob)) : 'N/A'; ?></span></p></div>
@@ -190,7 +191,15 @@
             </div>
             <?php endif; ?>
 
-            <?php if (isset($course_level) && $course_level == 'ug' && (isset($ug_details) && $ug_details || isset($total_maths) && $total_maths !== null || isset($total_physics) && $total_physics !== null || isset($total_chemistry) && $total_chemistry !== null)): ?>
+            <?php 
+            // Show course details if: (1) course_level is UG with HSC marks/details, OR (2) ug_course_id is set, OR (3) there are HSC marks
+            $show_course_details = (isset($course_level) && $course_level == 'ug' && (isset($ug_details) && $ug_details || isset($total_maths) && $total_maths !== null || isset($total_physics) && $total_physics !== null || isset($total_chemistry) && $total_chemistry !== null)) 
+                                   || (isset($ug_course_id) && $ug_course_id) 
+                                   || (isset($total_maths) && $total_maths !== null) 
+                                   || (isset($total_physics) && $total_physics !== null) 
+                                   || (isset($total_chemistry) && $total_chemistry !== null);
+            ?>
+            <?php if ($show_course_details): ?>
             <div class="section-card">
                 <h5 class="mb-3">COURSE DETAILS</h5>
                 <div class="row">
@@ -259,7 +268,7 @@
                 $course_id = $lateral_details['lateral_course_id'];
                 $course_name = isset($courses[$course_id]) ? $courses[$course_id] : 'Unknown Course';
                 ?>
-                 <p><span class="data-label">Courses Offered:</span> <span class="data-value"><?php echo $course_name; ?></span></p>
+                 <p><span class="data-label">Course apply:</span> <span class="data-value"><?php echo $course_name; ?></span></p>
                 <p><span class="data-label">Name of the school of X std:</span> <span class="data-value"><?php echo $lateral_details['school_name_x']; ?></span></p>
                 <p><span class="data-label">Year of passing of X std:</span> <span class="data-value"><?php echo $lateral_details['passing_year_x']; ?></span></p>
 
@@ -311,7 +320,7 @@
                 $course_id = $pg_details['pg_course_id'];
                 $course_name = isset($courses[$course_id]) ? $courses[$course_id] : 'Unknown Course';
                 ?>
-                 <p><span class="data-label">Courses Offered:</span> <span class="data-value"><?php echo $course_name; ?></span></p>
+                 <p><span class="data-label">Course apply:</span> <span class="data-value"><?php echo $course_name; ?></span></p>
                  <p><span class="data-label">Qualifying Exam:</span> <span class="data-value"><?php echo $pg_details['qualifying_exam']; ?></span></p>
                  <p><span class="data-label">Branch:</span> <span class="data-value"><?php echo $pg_details['branch']; ?></span></p>
                  <p><span class="data-label">Year of Passing:</span> <span class="data-value"><?php echo $pg_details['year_of_passing']; ?></span></p>

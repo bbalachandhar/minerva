@@ -59,7 +59,7 @@
         </div>
         <p><?php echo $this->lang->line('please_note_this_reference_number_for_future_communication'); ?>.</p>
 
-        <a href="<?php echo site_url('public_admission/online_admission_review/' . $reference_no); ?>" class="btn btn-home"><?php echo $this->lang->line('view_application'); ?></a>
+        <a href="<?php echo site_url('welcome/online_admission_review/' . $reference_no); ?>" class="btn btn-home"><?php echo $this->lang->line('view_application'); ?></a>
         <a href="<?php echo site_url('publicadmissionform'); ?>" class="btn btn-home btn-secondary"><?php echo $this->lang->line('go_to_home'); ?></a>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
