@@ -129,8 +129,13 @@ if (!function_exists('main_menu_array')) {
     {  
         $array = array(
 
-            'front_office' => array(
+            'admissions' => array(
                 'enquiry'         => array('index'),
+                'onlineadmission' => array('index','edit'),
+                'onlinestudent'   => array('index','edit'),
+            ),
+            
+            'front_office' => array(
                 'visitors'        => array('index'),
                 'generalcall'     => array('index','edit'),
                 'dispatch'        => array('index','editdispatch'),
@@ -141,7 +146,6 @@ if (!function_exists('main_menu_array')) {
             
             'student_information' => array(                
                 'student'         => array('search','create','import','disablestudentslist','multiclass','bulkdelete','view','edit','birthdays'),       
-                'onlinestudent'   => array('index','edit'),               
                 'category'        => array('index','edit'),               
                 'schoolhouse'     => array('index','edit'),               
                 'disable_reason'  => array('index','edit'),

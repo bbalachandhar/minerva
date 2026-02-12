@@ -287,18 +287,55 @@ $j++;
                             <td class="text-right"><?php $basic = $result["basic"];
 echo amountFormat($basic);?></td>
                         </tr>
+                        <?php if (!empty($result["da"])) { ?>
+                        <tr>
+                            <th width="20%">Dearness Allowance (<?php echo $currency_symbol; ?>)</th>
+                            <td class="text-right"><?php echo amountFormat($result["da"]); ?></td>
+                        </tr>
+                        <?php } ?>
                         <tr>
                             <th width="20%"><?php echo $this->lang->line('gross_salary'); ?> (<?php echo $currency_symbol; ?>)</th>
-                            <td class="text-right"><?php $gross_salary = $result["basic"] + $result["total_allowance"] - $result["total_deduction"];
+                            <td class="text-right"><?php $gross_salary = $result["basic"] + $result["total_allowance"];
 echo amountFormat($gross_salary);?></td>
                         </tr>
-                        <?php if (!empty($result["tax"])) {?>
+                        
+                        <!-- EPF Deduction Breakdown -->
+                        <?php if (!empty($result["epf_wage"])) { ?>
+                        <tr>
+                            <th colspan="2" style="background-color: #f9f9f9; font-weight: bold;">Provident Fund (EPF) Details</th>
+                        </tr>
+                        <tr>
+                            <th width="20%">EPF Wage (Basic + DA capped at ₹15,000) (<?php echo $currency_symbol; ?>)</th>
+                            <td class="text-right"><?php echo amountFormat($result["epf_wage"]); ?></td>
+                        </tr>
+                        <tr>
+                            <th width="20%">Employee Contribution - EPF 12% (<?php echo $currency_symbol; ?>)</th>
+                            <td class="text-right"><?php echo amountFormat($result["employee_epf"]); ?></td>
+                        </tr>
+                        <tr>
+                            <th width="20%">Employer Contribution - PF 3.67% (<?php echo $currency_symbol; ?>)</th>
+                            <td class="text-right"><?php echo amountFormat($result["employer_pf"]); ?></td>
+                        </tr>
+                        <tr>
+                            <th width="20%">Employer Contribution - EPS 8.33% (<?php echo $currency_symbol; ?>)</th>
+                            <td class="text-right"><?php echo amountFormat($result["employer_eps"]); ?></td>
+                        </tr>
+                        <?php } ?>
+                        
+                        <!-- TDS Deduction -->
+                        <?php if (!empty($result["tds"])) {?>
+                            <tr>
+                                <th width="20%">TDS - Tax Deducted at Source (<?php echo $currency_symbol; ?>)</th>
+                                <td class="text-right"><?php echo amountFormat($result["tds"]); ?></td>
+                            </tr>
+                        <?php } elseif (!empty($result["tax"])) {?>
                             <tr>
                                 <th width="20%"><?php echo $this->lang->line('tax'); ?> (<?php echo $currency_symbol; ?>)</th>
                                 <td class="text-right"><?php echo amountFormat($result["tax"]); ?></td>
                             </tr>
                         <?php }
 ?>
+                        
                         <tr>
                             <th width="20%"><?php echo $this->lang->line('net_salary'); ?> (<?php echo $currency_symbol; ?>)</th>
                             <td class="text-right"><?php echo amountFormat($result["net_salary"]); ?>

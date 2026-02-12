@@ -28,6 +28,50 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
     .payroll-summary-row .payroll-summary-card {
         flex: 1 1 180px;
     }
+
+    /* Modern Summary Styling */
+    .payrollbox {
+        background: white;
+        box-shadow: none;
+    }
+    
+    .modern-summary-section {
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        transition: all 0.3s ease;
+    }
+    
+    .modern-summary-section:hover {
+        box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+    }
+    
+    .section-title {
+        font-weight: 800 !important;
+        padding: 10px 12px !important;
+    }
+    
+    .modern-summary-row input {
+        transition: all 0.2s ease;
+    }
+    
+    .modern-summary-row input:focus {
+        color: inherit !important;
+        font-weight: 700 !important;
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .modern-summary-label {
+            font-size: 11px;
+        }
+        .modern-summary-value {
+            font-size: 13px;
+        }
+        .modern-summary-row {
+            padding: 8px 10px !important;
+        }
+    }
 </style>
 <div class="content-wrapper" style="min-height: 393px;">
     <!-- Main content -->
@@ -43,6 +87,9 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                             </div>
                             <div class="col-md-8 ">
                                 <div class="btn-group pull-right">
+                                    <a href="<?php echo site_url('admin/payroll/settings'); ?>" type="button" class="btn btn-info btn-xs" title="EPF & TDS Settings">
+                                        <i class="fa fa-gear"></i> Settings
+                                    </a>
                                     <a href="<?php echo base_url() ?>admin/payroll" type="button" class="btn btn-primary btn-xs">
                                         <i class="fa fa-arrow-left"></i>
                                     </a>
@@ -246,140 +293,368 @@ if ($is_current_payroll_month) {
                         <div class="box-header">
                             <div class="row display-flex">
                                 <div class="col-md-4 col-sm-4">
-                                    <h3 class="box-title"><?php echo $this->lang->line('earning'); ?></h3>
-                                    <button type="button" onclick="add_more()" class="plusign"><i class="fa fa-plus"></i></button>
+                                    <h3 class="box-title">📊 <?php echo $this->lang->line('earning'); ?></h3>
+                                    <button type="button" onclick="add_more()" class="plusign"><i class="fa fa-plus"></i> Add</button>
                                     <div class="sameheight">
-                                        <div class="feebox">
-                                            <table class="table3" id="tableID">
+                                        <div class="feebox" style="padding: 0; background: white; border-radius: 6px; overflow: hidden;">
+                                            <style>
+                                                .modern-item-list {
+                                                    list-style: none;
+                                                    padding: 0;
+                                                    margin: 0;
+                                                }
+                                                .modern-item-row {
+                                                    display: flex;
+                                                    gap: 8px;
+                                                    padding: 12px;
+                                                    background: linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 100%);
+                                                    border-bottom: 1px solid rgba(0,0,0,0.05);
+                                                    align-items: center;
+                                                    transition: all 0.3s ease;
+                                                }
+                                                .modern-item-row:last-child {
+                                                    border-bottom: none;
+                                                }
+                                                .modern-item-row:hover {
+                                                    background: linear-gradient(135deg, #dcedc8 0%, #e6f0e8 100%);
+                                                    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                                                }
+                                                .modern-item-type {
+                                                    flex: 0 0 35%;
+                                                }
+                                                .modern-item-amount {
+                                                    flex: 0 0 50%;
+                                                }
+                                                .modern-item-action {
+                                                    flex: 0 0 15%;
+                                                    text-align: right;
+                                                }
+                                                .modern-item-row input {
+                                                    border: 1px solid rgba(46, 125, 50, 0.3);
+                                                    background: white;
+                                                    border-radius: 4px;
+                                                    padding: 6px 8px;
+                                                    font-size: 12px;
+                                                }
+                                                .modern-item-row input:focus {
+                                                    border-color: #2e7d32;
+                                                    box-shadow: 0 0 0 2px rgba(46, 125, 50, 0.1);
+                                                }
+                                                .modern-item-delete {
+                                                    background: #dc3545;
+                                                    color: white;
+                                                    border: none;
+                                                    border-radius: 3px;
+                                                    padding: 4px 6px;
+                                                    cursor: pointer;
+                                                    font-size: 12px;
+                                                    transition: all 0.2s ease;
+                                                }
+                                                .modern-item-delete:hover {
+                                                    background: #bb2d3b;
+                                                    transform: scale(1.05);
+                                                }
+                                            </style>
+                                            <div class="modern-item-list" id="tableID">
                                                 <?php
 if (!empty($earnings)) {
     $earning_count = 0;
     foreach ($earnings as $earning_key => $earning_value) {
         ?>
-                                                        <input type="hidden" name="allowance_prev_id[]" value="<?php echo $earning_value['id'] ?>" />
-  <tr id="row<?php echo $earning_count; ?>">
-                                                    <td>
-                                                        <input type="text" class="form-control" value="<?php echo $earning_value['allowance_type'] ?>" id="allowance_type" name="allowance_type[]" placeholder="<?php echo $this->lang->line('type'); ?>"></td>
-                                                    <td><input type="text" id="allowance_amount" name="allowance_amount[]" class="form-control" value="<?php echo convertBaseAmountCurrencyFormat($earning_value['amount']) ?>"></td>
-<td><button type="button" onclick="delete_row(<?php echo $earning_count ?>)" class="closebtn" autocomplete="off"><i class="fa fa-remove"></i></button></td>
-                                                </tr>
+                                                <div class="modern-item-row" id="row<?php echo $earning_count; ?>">
+                                                    <input type="hidden" name="allowance_prev_id[]" value="<?php echo $earning_value['id'] ?>" />
+                                                    <input type="text" class="form-control modern-item-type" value="<?php echo $earning_value['allowance_type'] ?>" id="allowance_type" name="allowance_type[]" placeholder="Type">
+                                                    <input type="text" id="allowance_amount" name="allowance_amount[]" class="form-control modern-item-amount" value="<?php echo convertBaseAmountCurrencyFormat($earning_value['amount']) ?>" placeholder="Amount">
+                                                    <button type="button" onclick="delete_row(<?php echo $earning_count ?>)" class="modern-item-delete" autocomplete="off"><i class="fa fa-trash"></i></button>
+                                                </div>
   <?php
 $earning_count++;
     }
 } else {
     ?>
-  <tr id="row0">
-                                                    <td>
-                                                         <input type="hidden" name="allowance_prev_id[]" value="0" />
-                                                         <input type="text" class="form-control" id="allowance_type" name="allowance_type[]" placeholder="<?php echo $this->lang->line('type'); ?>"></td>
-                                                    <td><input type="text" id="allowance_amount" name="allowance_amount[]" class="form-control" value="0"></td>
-<td><button type="button" onclick="delete_row(0)" class="closebtn" autocomplete="off"><i class="fa fa-remove"></i></button></td>
-                                                </tr>
+                                                <div class="modern-item-row" id="row0">
+                                                    <input type="hidden" name="allowance_prev_id[]" value="0" />
+                                                    <input type="text" class="form-control modern-item-type" id="allowance_type" name="allowance_type[]" placeholder="Type">
+                                                    <input type="text" id="allowance_amount" name="allowance_amount[]" class="form-control modern-item-amount" value="0" placeholder="Amount">
+                                                    <button type="button" onclick="delete_row(0)" class="modern-item-delete" autocomplete="off"><i class="fa fa-trash"></i></button>
+                                                </div>
     <?php
 }
 ?>
-
-                                            </table>
+                                            </div>
                                         </div>
                                     </div>
                                 </div><!--./col-md-4-->
                                 <div class="col-md-4 col-sm-4">
-                                    <h3 class="box-title"><?php echo $this->lang->line('deduction'); ?></h3>
-                                    <button type="button" onclick="add_more_deduction()" class="plusign"><i class="fa fa-plus"></i></button>
+                                    <h3 class="box-title">💸 <?php echo $this->lang->line('deduction'); ?></h3>
+                                    <button type="button" onclick="add_more_deduction()" class="plusign"><i class="fa fa-plus"></i> Add</button>
                                     <div class="sameheight">
-                                        <div class="feebox">
-                                            <table class="table3" id="tableID2">
+                                        <div class="feebox" style="padding: 0; background: white; border-radius: 6px; overflow: hidden;">
+                                            <style>
+                                                .modern-deduction-row {
+                                                    display: flex;
+                                                    gap: 8px;
+                                                    padding: 12px;
+                                                    background: linear-gradient(135deg, #ffebee 0%, #ffe0b2 100%);
+                                                    border-bottom: 1px solid rgba(0,0,0,0.05);
+                                                    align-items: center;
+                                                    transition: all 0.3s ease;
+                                                }
+                                                .modern-deduction-row:last-child {
+                                                    border-bottom: none;
+                                                }
+                                                .modern-deduction-row:hover {
+                                                    background: linear-gradient(135deg, #ffcdd2 0%, #ffe0b2 100%);
+                                                    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                                                }
+                                                .modern-deduction-type {
+                                                    flex: 0 0 35%;
+                                                }
+                                                .modern-deduction-amount {
+                                                    flex: 0 0 50%;
+                                                }
+                                                .modern-deduction-action {
+                                                    flex: 0 0 15%;
+                                                    text-align: right;
+                                                }
+                                                .modern-deduction-row input {
+                                                    border: 1px solid rgba(220, 53, 69, 0.3);
+                                                    background: white;
+                                                    border-radius: 4px;
+                                                    padding: 6px 8px;
+                                                    font-size: 12px;
+                                                }
+                                                .modern-deduction-row input:focus {
+                                                    border-color: #dc3545;
+                                                    box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.1);
+                                                }
+                                            </style>
+                                            <div class="modern-item-list" id="tableID2">
                                                   <?php
 if (!empty($deductions)) {
     $deduction_count = 0;
     foreach ($deductions as $deduction_key => $deduction_value) {
         ?>
-                                                        <input type="hidden" name="deduction_prev_id[]" value="<?php echo $deduction_value['id'] ?>" />
-
-                                                <tr id="deduction_row<?php echo $deduction_count; ?>">
-                                                    <td>
-                                                        <input type="text" id="deduction_type" name="deduction_type[]" class="form-control" value="<?php echo $deduction_value['allowance_type'] ?>"  placeholder="<?php echo $this->lang->line('type'); ?>"></td>
-                                                    <td>
-                                                        <input type="text" id="deduction_amount" name="deduction_amount[]" class="form-control" value="<?php echo convertBaseAmountCurrencyFormat($deduction_value['amount']) ?>">
-                                                    </td>
-
-<td><button type="button" onclick="delete_deduction_row(<?php echo $deduction_count ?>)" class="closebtn" autocomplete="off"><i class="fa fa-remove"></i></button></td>
-                                                </tr>
+                                                <div class="modern-deduction-row" id="deduction_row<?php echo $deduction_count; ?>">
+                                                    <input type="hidden" name="deduction_prev_id[]" value="<?php echo $deduction_value['id'] ?>" />
+                                                    <input type="text" id="deduction_type" name="deduction_type[]" class="form-control modern-deduction-type" value="<?php echo $deduction_value['allowance_type'] ?>" placeholder="Type">
+                                                    <input type="text" id="deduction_amount" name="deduction_amount[]" class="form-control modern-deduction-amount" value="<?php echo convertBaseAmountCurrencyFormat($deduction_value['amount']) ?>" placeholder="Amount">
+                                                    <button type="button" onclick="delete_deduction_row(<?php echo $deduction_count ?>)" class="modern-item-delete" autocomplete="off"><i class="fa fa-trash"></i></button>
+                                                </div>
   <?php
 $deduction_count++;
     }
 } else {
     ?>
-                                                <tr id="deduction_row0">
-                                                    <td>
-                                                          <input type="hidden" name="deduction_prev_id[]" value="0" />
-                                                        <input type="text" id="deduction_type" name="deduction_type[]" class="form-control" placeholder="<?php echo $this->lang->line('type'); ?>"></td>
-                                                    <td><input type="text" id="deduction_amount" name="deduction_amount[]" class="form-control" value="0"></td>
-<td><button type="button" onclick="delete_deduction_row(0)" class="closebtn" autocomplete="off"><i class="fa fa-remove"></i></button></td>
-                                                </tr>
+                                                <div class="modern-deduction-row" id="deduction_row0">
+                                                    <input type="hidden" name="deduction_prev_id[]" value="0" />
+                                                    <input type="text" id="deduction_type" name="deduction_type[]" class="form-control modern-deduction-type" placeholder="Type">
+                                                    <input type="text" id="deduction_amount" name="deduction_amount[]" class="form-control modern-deduction-amount" value="0" placeholder="Amount">
+                                                    <button type="button" onclick="delete_deduction_row(0)" class="modern-item-delete" autocomplete="off"><i class="fa fa-trash"></i></button>
+                                                </div>
     <?php
 }
 ?>
-                                            </table>
+                                            </div>
                                         </div>
                                     </div>
                                 </div><!--./col-md-4-->
                                 <div class="col-md-4 col-sm-4">
-                                    <h3 class="box-title"><?php echo $this->lang->line('payroll_summary'); ?>(<?php echo $currency_symbol ?>)</h3>
+                                    <h3 class="box-title"><?php echo $this->lang->line('payroll_summary'); ?> (<?php echo $currency_symbol ?>)</h3>
                                     <button type="button" onclick="add_allowance()" class="plusign"><i class="fa fa-calculator"></i> <?php echo $this->lang->line('calculate'); ?></button>
                                     <div class="sameheight">
-                                        <div class="payrollbox feebox">
-                                            <div class="form-group">
-                                                <label class="col-sm-4 control-label"><?php echo $this->lang->line('basic_salary'); ?></label>
-                                                <div class="col-sm-8">
-                                                    <input class="form-control" name="basic" value="<?php echo $employee_payroll['basic']; ?>" id="basic"  type="text" />
+                                        <div class="payrollbox feebox" style="padding: 0; background: white;">
+                                            <style>
+                                                .modern-summary-section {
+                                                    margin-bottom: 12px;
+                                                    border-radius: 6px;
+                                                    overflow: hidden;
+                                                }
+                                                .modern-summary-row {
+                                                    display: flex;
+                                                    justify-content: space-between;
+                                                    align-items: center;
+                                                    padding: 10px 12px;
+                                                    border-bottom: 1px solid #f0f0f0;
+                                                }
+                                                .modern-summary-row:last-child {
+                                                    border-bottom: none;
+                                                }
+                                                .modern-summary-label {
+                                                    font-size: 12px;
+                                                    color: #666;
+                                                    font-weight: 500;
+                                                    text-transform: uppercase;
+                                                    letter-spacing: 0.3px;
+                                                }
+                                                .modern-summary-value {
+                                                    font-size: 15px;
+                                                    font-weight: 700;
+                                                    color: #1a1a1a;
+                                                    text-align: right;
+                                                }
+                                                .modern-summary-value input {
+                                                    border: none;
+                                                    background: transparent;
+                                                    text-align: right;
+                                                    font-size: 15px;
+                                                    font-weight: 700;
+                                                    padding: 0;
+                                                    color: #1a1a1a;
+                                                }
+                                                .modern-summary-value input:focus {
+                                                    outline: none;
+                                                    background: transparent;
+                                                }
+                                                .section-title {
+                                                    font-size: 11px;
+                                                    font-weight: 700;
+                                                    text-transform: uppercase;
+                                                    letter-spacing: 0.5px;
+                                                    color: #999;
+                                                    padding: 8px 12px;
+                                                    background: #fafafa;
+                                                    margin: 0;
+                                                }
+                                                /* Earnings Section */
+                                                .earnings-section { background: linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 100%); }
+                                                /* Deductions Section */
+                                                .deductions-section { background: linear-gradient(135deg, #ffebee 0%, #ffe0b2 100%); }
+                                                /* EPF Section */
+                                                .epf-section { background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%); }
+                                                /* Tax Section */
+                                                .tax-section { background: linear-gradient(135deg, #fff3e0 0%, #fce4ec 100%); }
+                                                /* Net Section */
+                                                .net-section { background: linear-gradient(135deg, #c8e6c9 0%, #a5d6a7 100%); }
+                                                .net-value {
+                                                    color: #1b5e20 !important;
+                                                    font-size: 18px !important;
+                                                }
+                                                .deduction-value {
+                                                    color: #c62828 !important;
+                                                }
+                                            </style>
+
+                                            <!-- EARNINGS SECTION -->
+                                            <div class="modern-summary-section earnings-section">
+                                                <div class="section-title">📊 Income Breakdown</div>
+                                                <div class="modern-summary-row">
+                                                    <span class="modern-summary-label"><?php echo $this->lang->line('basic_salary'); ?></span>
+                                                    <span class="modern-summary-value">
+                                                        <input type="text" name="basic" value="<?php echo $employee_payroll['basic']; ?>" id="basic" />
+                                                    </span>
                                                 </div>
-                                            </div><!--./form-group-->
-                                            <div class="form-group">
-                                                <label class="col-sm-4 control-label"><?php echo $this->lang->line('earning'); ?></label>
-                                                <div class="col-sm-8">
-                                                    <input class="form-control" name="total_allowance" id="total_allowance"  type="text" value="<?php echo convertBaseAmountCurrencyFormat($employee_payroll['total_allowance']); ?>" />
+                                                <div class="modern-summary-row">
+                                                    <span class="modern-summary-label"><?php echo $this->lang->line('earning'); ?></span>
+                                                    <span class="modern-summary-value">
+                                                        <input type="text" name="total_allowance" id="total_allowance" value="<?php echo convertBaseAmountCurrencyFormat($employee_payroll['total_allowance']); ?>" />
+                                                    </span>
                                                 </div>
-                                            </div><!--./form-group-->
-                                            <div class="form-group">
-                                                <label class="col-sm-4 control-label"><?php echo $this->lang->line('gross_salary'); ?></label>
-                                                <div class="col-sm-8">
-                    <input class="form-control" name="gross_salary" id="gross_salary" type="text" value="<?php echo convertBaseAmountCurrencyFormat(($employee_payroll['basic'] + $employee_payroll['total_allowance']) - $employee_payroll['total_deduction']); ?>"/>
+                                                <div class="modern-summary-row" style="background: rgba(0,0,0,0.02); border-top: 2px solid rgba(0,0,0,0.1); font-weight: 700;">
+                                                    <span class="modern-summary-label">Gross Salary</span>
+                                                    <span class="modern-summary-value" style="color: #2e7d32; font-size: 16px;">
+                                                        <input type="text" name="gross_salary" id="gross_salary" value="<?php echo convertBaseAmountCurrencyFormat(($employee_payroll['basic'] + $employee_payroll['total_allowance']) - $employee_payroll['total_deduction']); ?>" />
+                                                    </span>
                                                 </div>
-                                            </div><!--./form-group-->
-                                            <div class="form-group">
-                                                <label class="col-sm-4 control-label"><?php echo $this->lang->line('deduction'); ?></label>
-                                                <div class="col-sm-8 deductiondred">
-                                                    <input class="form-control" name="total_deduction" id="total_deduction" type="text" style="color:#f50000" value="<?php echo convertBaseAmountCurrencyFormat($employee_payroll['total_deduction']); ?>"/>
+                                            </div>
+
+                                            <!-- DEDUCTIONS SECTION -->
+                                            <div class="modern-summary-section deductions-section">
+                                                <div class="section-title">💸 Deductions Applied</div>
+                                                <div class="modern-summary-row">
+                                                    <span class="modern-summary-label">Other Deductions</span>
+                                                    <span class="modern-summary-value deduction-value">
+                                                        <input type="text" name="total_deduction" id="total_deduction" value="<?php echo convertBaseAmountCurrencyFormat($employee_payroll['total_deduction']); ?>" />
+                                                    </span>
                                                 </div>
-                                            </div><!--./form-group-->
-                                            <div class="form-group">
-                                                <label class="col-sm-4 control-label">LOP</label>
-                                                <div class="col-sm-8 deductiondred">
-                                                    <input class="form-control" name="leave_deduction" id="lop_deduction" type="text" style="color:#f50000" value="<?php echo convertBaseAmountCurrencyFormat($employee_payroll['leave_deduction']); ?>" readonly />
+                                                <div class="modern-summary-row">
+                                                    <span class="modern-summary-label">Loss of Pay (LOP)</span>
+                                                    <span class="modern-summary-value deduction-value">
+                                                        <input type="text" name="leave_deduction" id="lop_deduction" value="<?php echo convertBaseAmountCurrencyFormat($employee_payroll['leave_deduction']); ?>" readonly />
+                                                    </span>
                                                 </div>
-                                            </div><!--./form-group-->
-                                            <div class="form-group">
-                                                <label class="col-sm-4 control-label"><?php echo $this->lang->line('tax'); ?></label>
-                                                <div class="col-sm-8 deductiondred">
-                                                    <input class="form-control" name="tax_percent" id="tax_percent"  type="text" value="<?php echo convertBaseAmountCurrencyFormat($employee_payroll['tax']); ?>"/>
+                                            </div>
+
+                                            <!-- EPF SECTION -->
+                                            <?php if (!empty($employee_payroll['epf_wage']) || !empty($employee_payroll['employee_epf'])) { ?>
+                                            <div class="modern-summary-section epf-section">
+                                                <div class="section-title">🏦 Employees Provident Fund (EPF)</div>
+                                                <?php if (!empty($employee_payroll['epf_wage'])) { ?>
+                                                <div class="modern-summary-row">
+                                                    <span class="modern-summary-label">EPF Wage Base</span>
+                                                    <span class="modern-summary-value">
+                                                        <input type="text" id="epf_wage" value="<?php echo convertBaseAmountCurrencyFormat($employee_payroll['epf_wage']); ?>" readonly />
+                                                    </span>
                                                 </div>
-                                            </div><!--./form-group-->
-                                            <hr/>
-                                            <div class="form-group">
-                                                <label class="col-sm-4 control-label"><?php echo $this->lang->line('net_salary'); ?></label>
-                                                <div class="col-sm-8 net_green">
-                                                    <input class="form-control greentest"  name="net_salary" id="net_salary"  type="text" value="<?php echo convertBaseAmountCurrencyFormat($employee_payroll['net_salary']); ?>"/>
-                                                    <span class="text-danger" id="err"><?php echo form_error('net_salary'); ?></span>
-                                                    <input class="form-control" name="staff_id" value="<?php echo $result["id"]; ?>"  type="hidden" />
-                                                    <input class="form-control" name="month" value="<?php echo $month; ?>"  type="hidden" />
-                                                    <input class="form-control" name="year" value="<?php echo $year; ?>"  type="hidden" />
-                                                    <input class="form-control" name="status" value="generated"  type="hidden" />
-                                                    <input class="form-control" id="working_days" value="<?php echo $payroll_lop_summary['working_days']; ?>" type="hidden" />
-                                                    <input class="form-control" id="paid_days" value="<?php echo $payroll_lop_summary['paid_days']; ?>" type="hidden" />
-                                                    <input class="form-control" id="lop_days" value="<?php echo $payroll_lop_summary['lop_days']; ?>" type="hidden" />
+                                                <?php } ?>
+                                                <?php if (!empty($employee_payroll['employee_epf'])) { ?>
+                                                <div class="modern-summary-row">
+                                                    <span class="modern-summary-label">Employee Contribution (12%)</span>
+                                                    <span class="modern-summary-value deduction-value" style="color: #1565c0 !important;">
+                                                        <input type="text" id="employee_epf" value="<?php echo convertBaseAmountCurrencyFormat($employee_payroll['employee_epf']); ?>" readonly />
+                                                    </span>
                                                 </div>
-                                            </div><!--./form-group-->
+                                                <?php } ?>
+                                                <?php if (!empty($employee_payroll['employer_pf'])) { ?>
+                                                <div class="modern-summary-row">
+                                                    <span class="modern-summary-label">Employer PF (3.67%)</span>
+                                                    <span class="modern-summary-value" style="color: #558b2f;">
+                                                        <input type="text" id="employer_pf" value="<?php echo convertBaseAmountCurrencyFormat($employee_payroll['employer_pf']); ?>" readonly />
+                                                    </span>
+                                                </div>
+                                                <?php } ?>
+                                                <?php if (!empty($employee_payroll['employer_eps'])) { ?>
+                                                <div class="modern-summary-row">
+                                                    <span class="modern-summary-label">Employer EPS (8.33%)</span>
+                                                    <span class="modern-summary-value" style="color: #6a1b9a;">
+                                                        <input type="text" id="employer_eps" value="<?php echo convertBaseAmountCurrencyFormat($employee_payroll['employer_eps']); ?>" readonly />
+                                                    </span>
+                                                </div>
+                                                <?php } ?>
+                                            </div>
+                                            <?php } ?>
+
+                                            <!-- TAX SECTION -->
+                                            <?php if (!empty($employee_payroll['tds']) || !empty($employee_payroll['tax'])) { ?>
+                                            <div class="modern-summary-section tax-section">
+                                                <div class="section-title">📋 Income Tax Deduction</div>
+                                                <?php if (!empty($employee_payroll['tds'])) { ?>
+                                                <div class="modern-summary-row">
+                                                    <span class="modern-summary-label">TDS (New Regime FY 2025-26)</span>
+                                                    <span class="modern-summary-value deduction-value">
+                                                        <input type="text" name="tax_percent" id="tax_percent" value="<?php echo convertBaseAmountCurrencyFormat($employee_payroll['tds']); ?>" />
+                                                    </span>
+                                                </div>
+                                                <?php } else if (!empty($employee_payroll['tax'])) { ?>
+                                                <div class="modern-summary-row">
+                                                    <span class="modern-summary-label"><?php echo $this->lang->line('tax'); ?></span>
+                                                    <span class="modern-summary-value deduction-value">
+                                                        <input type="text" name="tax_percent" id="tax_percent" value="<?php echo convertBaseAmountCurrencyFormat($employee_payroll['tax']); ?>" />
+                                                    </span>
+                                                </div>
+                                                <?php } ?>
+                                            </div>
+                                            <?php } ?>
+
+                                            <!-- NET SALARY SECTION -->
+                                            <div class="modern-summary-section net-section">
+                                                <div class="modern-summary-row" style="padding: 14px 12px; font-weight: 700;">
+                                                    <span class="modern-summary-label" style="color: #1b5e20;">💰 Net Salary</span>
+                                                    <span class="modern-summary-value net-value">
+                                                        <input type="text" name="net_salary" id="net_salary" value="<?php echo convertBaseAmountCurrencyFormat($employee_payroll['net_salary']); ?>" />
+                                                    </span>
+                                                </div>
+                                                <span class="text-danger" id="err" style="display: block; padding: 0 12px 8px; font-size: 11px;"><?php echo form_error('net_salary'); ?></span>
+                                            </div>
+
+                                            <!-- Hidden Fields -->
+                                            <input class="form-control" name="staff_id" value="<?php echo $result["id"]; ?>" type="hidden" />
+                                            <input class="form-control" name="month" value="<?php echo $month; ?>" type="hidden" />
+                                            <input class="form-control" name="year" value="<?php echo $year; ?>" type="hidden" />
+                                            <input class="form-control" name="status" value="generated" type="hidden" />
+                                            <input class="form-control" id="working_days" value="<?php echo $payroll_lop_summary['working_days']; ?>" type="hidden" />
+                                            <input class="form-control" id="paid_days" value="<?php echo $payroll_lop_summary['paid_days']; ?>" type="hidden" />
+                                            <input class="form-control" id="lop_days" value="<?php echo $payroll_lop_summary['lop_days']; ?>" type="hidden" />
                                         </div>
                                     </div>
                                 </div><!--./col-md-4-->
@@ -397,6 +672,18 @@ $deduction_count++;
 </div>
 
 <script type="text/javascript">
+    function parseAmount(value) {
+        if (value === null || value === undefined) {
+            return 0;
+        }
+        var normalized = String(value).replace(/,/g, '').trim();
+        if (normalized === '') {
+            return 0;
+        }
+        var parsed = parseFloat(normalized);
+        return isNaN(parsed) ? 0 : parsed;
+    }
+
     function findBasicPayRow() {
         var allowance_type = document.getElementsByName('allowance_type[]');
         var allowance_amount = document.getElementsByName('allowance_amount[]');
@@ -427,97 +714,86 @@ $deduction_count++;
         $("#net_salary").val('');
         $("#gross_salary").val('');
         syncBasicFromEarnings();
-        var basic_pay = $("#basic").val();
-       if(basic_pay > 0){ 
-        var allowance_type = document.getElementsByName('allowance_type[]');
-        var allowance_amount = document.getElementsByName('allowance_amount[]');
-        var total_allowance = 0;
-        var deduction_type = document.getElementsByName('deduction_type[]');
-        var deduction_amount = document.getElementsByName('deduction_amount[]');
-        var total_deduction = 0;
-        for (var i = 0; i < allowance_amount.length; i++) {
-            var inp = allowance_amount[i];
-            if (inp.value == '') {
-                var inpvalue = 0;
-            } else {
-                var inpvalue = inp.value;
+
+        var payload = {
+            staff_id: $("input[name='staff_id']").val(),
+            month: $("input[name='month']").val(),
+            year: $("input[name='year']").val(),
+            basic: $("#basic").val(),
+            allowance_type: $("input[name='allowance_type[]']").map(function () { return $(this).val(); }).get(),
+            allowance_amount: $("input[name='allowance_amount[]']").map(function () { return $(this).val(); }).get(),
+            deduction_type: $("input[name='deduction_type[]']").map(function () { return $(this).val(); }).get(),
+            deduction_amount: $("input[name='deduction_amount[]']").map(function () { return $(this).val(); }).get()
+        };
+
+        $.ajax({
+            url: "<?php echo site_url('admin/payroll/calculatepreview'); ?>",
+            method: "POST",
+            dataType: "json",
+            data: payload
+        }).done(function (response) {
+            if (!response || response.success !== true) {
+                return;
             }
 
-            var label = (allowance_type[i].value || '').trim().toLowerCase();
-            if (label === 'basic pay' || label === 'basic salary') {
-                continue;
+            syncEarningsFromBasic();
+            $("#total_allowance").val(parseAmount(response.total_allowance).toFixed(2));
+            $("#total_deduction").val(parseAmount(response.total_deduction).toFixed(2));
+            $("#gross_salary").val(parseAmount(response.gross_salary).toFixed(2));
+            $("#lop_deduction").val(parseAmount(response.leave_deduction).toFixed(2));
+            $("#net_salary").val(parseAmount(response.net_salary).toFixed(2));
+
+            if ($("#tax_percent").length) {
+                $("#tax_percent").val(parseAmount(response.tds).toFixed(2));
             }
-            total_allowance += parseFloat(inpvalue);
-        }
 
-        for (var j = 0; j < deduction_amount.length; j++) {
-            var inpd = deduction_amount[j];
-            if (inpd.value == '') {
-                var inpdvalue = 0;
-            } else {
-                var inpdvalue = inpd.value;
+            if ($("#epf_wage").length) {
+                $("#epf_wage").val(parseAmount(response.epf_wage).toFixed(2));
             }
-            total_deduction += parseFloat(inpdvalue);
-        }
-
-        var working_days = parseFloat($("#working_days").val()) || 0;
-        var lop_days = parseFloat($("#lop_days").val()) || 0;
-
-        var gross_salary = parseFloat(basic_pay) + parseFloat(total_allowance);
-        var lop_deduction = 0;
-        if (lop_days > 0) {
-            // Get total days in the month from the attendance key format: YYYY-MM
-            var attendanceKey = $("#attendence_key").val() || '';
-            var dateParts = attendanceKey.split('-');
-            var year = parseInt(dateParts[0]) || new Date().getFullYear();
-            var month = parseInt(dateParts[1]) || new Date().getMonth() + 1;
-            var total_days_of_month = new Date(year, month, 0).getDate();
-            
-            lop_deduction = (gross_salary / total_days_of_month) * lop_days;
-        }
-
-        var tax = $("#tax_percent").val();
-        if (tax == '') {
-            var tax = 0;
-        }
-
-        var net_salary = gross_salary - parseFloat(total_deduction) - lop_deduction - parseFloat(tax);
-
-        syncEarningsFromBasic();
-        $("#total_allowance").val(total_allowance.toFixed(2));
-        $("#total_deduction").val(total_deduction.toFixed(2));
-        $("#total_allow").html(total_allowance.toFixed(2));
-        $("#total_deduc").html(total_deduction.toFixed(2));
-        $("#gross_salary").val(gross_salary.toFixed(2));
-        $("#lop_deduction").val(lop_deduction.toFixed(2));
-        $("#net_salary").val(net_salary.toFixed(2));
-    }
+            if ($("#employee_epf").length) {
+                $("#employee_epf").val(parseAmount(response.employee_epf).toFixed(2));
+            }
+            if ($("#employer_pf").length) {
+                $("#employer_pf").val(parseAmount(response.employer_pf).toFixed(2));
+            }
+            if ($("#employer_eps").length) {
+                $("#employer_eps").val(parseAmount(response.employer_eps).toFixed(2));
+            }
+        });
     }
 
     function add_more() {
         var table = document.getElementById("tableID");
-        var table_len = (table.rows.length);
+        var table_len = (table.children.length);
         var id = parseInt(table_len);
-        var row = table.insertRow(table_len).outerHTML = "<tr id='row" + id + "'><td><input type='hidden' name='allowance_prev_id[]' value='0' /><input type='text' class='form-control' id='allowance_type' name='allowance_type[]' placeholder='<?php echo $this->lang->line("type"); ?>'></td><td><input type='text' class='form-control' id='allowance_amount' name='allowance_amount[]'  value='0'></td><td><button type='button' onclick='delete_row(" + id + ")' class='closebtn'><i class='fa fa-remove'></i></button></td></tr>";
+        var row_html = "<div class='modern-item-row' id='row" + id + "'>" +
+            "<input type='hidden' name='allowance_prev_id[]' value='0' />" +
+            "<input type='text' class='form-control modern-item-type' id='allowance_type' name='allowance_type[]' placeholder='Type'>" +
+            "<input type='text' class='form-control modern-item-amount' id='allowance_amount' name='allowance_amount[]' value='0' placeholder='Amount'>" +
+            "<button type='button' onclick='delete_row(" + id + ")' class='modern-item-delete'><i class='fa fa-trash'></i></button>" +
+            "</div>";
+        table.insertAdjacentHTML('beforeend', row_html);
     }
 
     function delete_row(id) {
-        var table = document.getElementById("tableID");
-        var rowCount = table.rows.length;
         $("#row" + id).remove();
     }
 
     function add_more_deduction() {
         var table = document.getElementById("tableID2");
-        var table_len = (table.rows.length);
+        var table_len = (table.children.length);
         var id = parseInt(table_len);
-        var row = table.insertRow(table_len).outerHTML = "<tr id='deduction_row" + id + "'><td><input type='hidden' name='deduction_prev_id[]' value='0' /><input type='text' class='form-control' id='deduction_type' name='deduction_type[]' placeholder='<?php echo $this->lang->line("type"); ?>'></td><td><input type='text' id='deduction_amount' name='deduction_amount[]' class='form-control' value='0'></td><td><button type='button' onclick='delete_deduction_row(" + id + ")' class='closebtn'><i class='fa fa-remove'></i></button></td></tr>";
+        var row_html = "<div class='modern-deduction-row' id='deduction_row" + id + "'>" +
+            "<input type='hidden' name='deduction_prev_id[]' value='0' />" +
+            "<input type='text' class='form-control modern-deduction-type' id='deduction_type' name='deduction_type[]' placeholder='Type'>" +
+            "<input type='text' class='form-control modern-deduction-amount' id='deduction_amount' name='deduction_amount[]' value='0' placeholder='Amount'>" +
+            "<button type='button' onclick='delete_deduction_row(" + id + ")' class='modern-item-delete'><i class='fa fa-trash'></i></button>" +
+            "</div>";
+        table.insertAdjacentHTML('beforeend', row_html);
     }
 
     function delete_deduction_row(id) {
-        var table = document.getElementById("tableID2");
-        var rowCount = table.rows.length;
-        $("#deduction_row" + id).html("");
+        $("#deduction_row" + id).remove();
     }
 
     $("#basic").on("input", function () {

@@ -621,6 +621,13 @@ class Payroll extends Admin_Controller
                     $update_payslip_allowance = array();
                     foreach ($allowance_type as $key => $all) {
                         
+                        // Skip EPF CONTRIBUTION - now stored in staff_payslip table columns
+                        $allowance_label = strtolower(trim($all));
+                        if (strpos($allowance_label, 'epf') !== false || strpos($allowance_label, 'provident') !== false) {
+                            $i++;
+                            continue;
+                        }
+                        
                         if($allowance_amount[$i]){
                                 $allowanceamount = convertCurrencyFormatToBaseAmount($allowance_amount[$i]);
                         }else{
@@ -662,6 +669,13 @@ class Payroll extends Admin_Controller
                     $update_payslip_allowance = array();
 
                     foreach ($deduction_type as $key => $type) {
+                        
+                        // Skip EPF CONTRIBUTION - now stored in staff_payslip table columns
+                        $deduction_label = strtolower(trim($type));
+                        if (strpos($deduction_label, 'epf') !== false || strpos($deduction_label, 'provident') !== false) {
+                            $j++;
+                            continue;
+                        }
                         
                                 if($deduction_amount[$j]){
                                         $deductionamount = convertCurrencyFormatToBaseAmount($deduction_amount[$j]);
@@ -947,6 +961,9 @@ class Payroll extends Admin_Controller
             access_denied();
         }
 
+        // Load tax and EPF calculator library
+        $this->load->library('tax_epf_calculator');
+
         $month = $this->input->post('month');
         $year = $this->input->post('year');
         $role = $this->input->post('role');
@@ -976,6 +993,7 @@ class Payroll extends Admin_Controller
             $allowances = [];
             $total_allowance = 0;
             $total_deduction = 0;
+            $da = 0;  // Initialize DA variable
             $tax = 0;
 
             if (!empty($last_payslip)) {
@@ -989,6 +1007,11 @@ class Payroll extends Admin_Controller
                     $allowance_label = strtolower(trim($allowance['allowance_type']));
                     if ($allowance_label === 'basic pay' || $allowance_label === 'basic salary') {
                         continue;
+                    }
+                    
+                    // Extract DA from allowances if applicable
+                    if (stripos($allowance_label, 'dearness') !== false || $allowance_label === 'da') {
+                        $da = (float) $allowance['amount'];
                     }
                     
                     if ($allowance['cal_type'] === 'positive') {
@@ -1046,11 +1069,40 @@ class Payroll extends Admin_Controller
                 $lop_deduction = ($gross_salary / $total_days_of_month) * $net_lop_days;
             }
 
-            $net_salary = $gross_salary - (float) $total_deduction - (float) $lop_deduction - (float) $tax;
+            // Calculate EPF and TDS using the new library
+            $epf_wage = $this->tax_epf_calculator->calculate_epf_wage($basic, $da);
+            $employee_epf = $this->tax_epf_calculator->calculate_employee_epf($epf_wage);
+            $employer_pf = $this->tax_epf_calculator->calculate_employer_pf($epf_wage);
+            $employer_eps = $this->tax_epf_calculator->calculate_employer_eps($epf_wage);
+            
+            // Calculate TDS using YTD (Year-To-Date) approach for accurate mid-year increment handling
+            $month_num = date('n', strtotime($year . '-' . $month . '-01'));
+            $ytd_data = $this->payroll_model->getYTDIncome($staff['id'], $year, $month_num - 1); // -1 because current month hasn't been paid yet
+            
+            // Use YTD TDS calculation
+            if ($ytd_data['gross'] > 0 && $month_num > 1) {
+                // Employee has prior income this year - use YTD projection
+                $tds_result = $this->tax_epf_calculator->calculate_tds_ytd(
+                    $ytd_income = $ytd_data['gross'],
+                    $current_month_gross = $gross_salary,
+                    $current_month = $month_num,
+                    $total_months = 12
+                );
+                $monthly_tds = $tds_result['monthly_tds'];
+            } else {
+                // First month of year or no prior payslips - use simple annualized approach
+                $monthly_tds = $this->tax_epf_calculator->calculate_monthly_tds($gross_salary);
+            }
+            
+            // Total deductions now include employee EPF and TDS
+            $total_with_epf_tds = (float) $employee_epf + (float) $monthly_tds + (float) $total_deduction + (float) $lop_deduction;
+            
+            $net_salary = $gross_salary - $total_with_epf_tds;
 
             $data = array(
                 'staff_id' => $staff['id'],
                 'basic' => $basic,
+                'da' => $da,
                 'total_allowance' => $total_allowance,
                 'total_deduction' => $total_deduction,
                 'net_salary' => $net_salary,
@@ -1058,11 +1110,17 @@ class Payroll extends Admin_Controller
                 'status' => 'generated',
                 'month' => $month,
                 'year' => $year,
-                'tax' => $tax,
+                'tax' => round($monthly_tds, 2),  // Store TDS instead of hardcoded tax
                 'leave_deduction' => $lop_deduction,
                 'actual_lop_days' => $actual_lop_days,
                 'adjusted_lop_days' => $adjusted_lop_days,
                 'net_lop_days' => $net_lop_days,
+                // New EPF fields
+                'epf_wage' => $epf_wage,
+                'employee_epf' => round($employee_epf, 2),
+                'employer_pf' => round($employer_pf, 2),
+                'employer_eps' => round($employer_eps, 2),
+                'tax_regime' => 'new',
             );
 
             if (!empty($staff['payslip_id']) && $overwrite) {
@@ -1089,6 +1147,11 @@ class Payroll extends Admin_Controller
                     // Skip "BASIC PAY" or "BASIC SALARY" as it's stored in the basic field
                     $allowance_label = strtolower(trim($allowance['allowance_type']));
                     if ($allowance_label === 'basic pay' || $allowance_label === 'basic salary') {
+                        continue;
+                    }
+                    
+                    // Skip EPF CONTRIBUTION - now stored in staff_payslip table columns
+                    if (strpos($allowance_label, 'epf') !== false || strpos($allowance_label, 'provident') !== false) {
                         continue;
                     }
                     
@@ -1134,6 +1197,127 @@ class Payroll extends Admin_Controller
         $data["month"]      = $data['monthlist'][$month];
         $data["year"]       = $year;
         echo json_encode($data);
+    }
+
+    public function calculatepreview()
+    {
+        $this->load->library('tax_epf_calculator');
+
+        $staff_id = (int) $this->input->post('staff_id');
+        $month = $this->input->post('month');
+        $year = $this->input->post('year');
+        $basic = $this->input->post('basic');
+        $basic = $basic ? convertCurrencyFormatToBaseAmount($basic) : 0;
+
+        $allowance_type = $this->input->post('allowance_type');
+        $allowance_amount = $this->input->post('allowance_amount');
+        $deduction_type = $this->input->post('deduction_type');
+        $deduction_amount = $this->input->post('deduction_amount');
+
+        $total_allowance = 0;
+        $total_deduction = 0;
+        $da = 0;
+
+        if (!empty($allowance_type)) {
+            foreach ($allowance_type as $i => $type) {
+                $label = strtolower(trim($type));
+                $amount = isset($allowance_amount[$i]) ? convertCurrencyFormatToBaseAmount($allowance_amount[$i]) : 0;
+
+                if ($label === 'basic pay' || $label === 'basic salary') {
+                    continue;
+                }
+
+                if (stripos($label, 'dearness') !== false || $label === 'da') {
+                    $da = (float) $amount;
+                }
+
+                if (strpos($label, 'epf') !== false || strpos($label, 'provident') !== false) {
+                    continue;
+                }
+
+                $total_allowance += (float) $amount;
+            }
+        }
+
+        if (!empty($deduction_type)) {
+            foreach ($deduction_type as $j => $type) {
+                $label = strtolower(trim($type));
+                $amount = isset($deduction_amount[$j]) ? convertCurrencyFormatToBaseAmount($deduction_amount[$j]) : 0;
+
+                if (strpos($label, 'epf') !== false || strpos($label, 'provident') !== false) {
+                    continue;
+                }
+
+                $total_deduction += (float) $amount;
+            }
+        }
+
+        $month_num = date('n', strtotime($year . '-' . $month . '-01'));
+        $newdate = date('Y-m-d', strtotime($year . '-' . $month . ' +1 month'));
+        $monthAttendanceData = $this->monthAttendance($newdate, 3, $staff_id);
+        $monthLeaves = $this->monthLeaves($newdate, 3, $staff_id);
+        $lop_summary = $this->getPayrollLopSummary($monthAttendanceData, $monthLeaves, $month, $year, $staff_id);
+
+        $actual_lop_days = !empty($lop_summary['lop_days']) ? (float) $lop_summary['lop_days'] : 0;
+        $adjusted_lop_days = 0;
+        $net_lop_days = $actual_lop_days;
+
+        if ($actual_lop_days > 0) {
+            $adjusted_result = $this->payroll_model->previewLOPWithMonthlyBalance($staff_id, $actual_lop_days, $month_num, $year);
+            if (!empty($adjusted_result['success'])) {
+                $net_lop_days = (float) $adjusted_result['net_lop_days'];
+                $adjusted_lop_days = (float) $adjusted_result['adjusted_lop_days'];
+            }
+        }
+
+        $gross_salary = (float) $basic + (float) $total_allowance;
+        $lop_deduction = 0;
+        if ($net_lop_days > 0) {
+            $total_days_of_month = cal_days_in_month(CAL_GREGORIAN, (int) $month_num, (int) $year);
+            $lop_deduction = ($gross_salary / $total_days_of_month) * $net_lop_days;
+        }
+
+        $epf_wage = $this->tax_epf_calculator->calculate_epf_wage($basic, $da);
+        $employee_epf = $this->tax_epf_calculator->calculate_employee_epf($epf_wage);
+        $employer_pf = $this->tax_epf_calculator->calculate_employer_pf($epf_wage);
+        $employer_eps = $this->tax_epf_calculator->calculate_employer_eps($epf_wage);
+
+        $ytd_data = $this->payroll_model->getYTDIncome($staff_id, $year, $month_num - 1);
+        if ($ytd_data['gross'] > 0 && $month_num > 1) {
+            $tds_result = $this->tax_epf_calculator->calculate_tds_ytd(
+                $ytd_income = $ytd_data['gross'],
+                $current_month_gross = $gross_salary,
+                $current_month = $month_num,
+                $total_months = 12
+            );
+            $monthly_tds = $tds_result['monthly_tds'];
+        } else {
+            $monthly_tds = $this->tax_epf_calculator->calculate_monthly_tds($gross_salary);
+        }
+
+        $total_with_epf_tds = (float) $employee_epf + (float) $monthly_tds + (float) $total_deduction + (float) $lop_deduction;
+        $net_salary = $gross_salary - $total_with_epf_tds;
+
+        $response = [
+            'success' => true,
+            'total_allowance' => round($total_allowance, 2),
+            'total_deduction' => round($total_deduction, 2),
+            'gross_salary' => round($gross_salary, 2),
+            'leave_deduction' => round($lop_deduction, 2),
+            'net_salary' => round($net_salary, 2),
+            'epf_wage' => round($epf_wage, 2),
+            'employee_epf' => round($employee_epf, 2),
+            'employer_pf' => round($employer_pf, 2),
+            'employer_eps' => round($employer_eps, 2),
+            'tds' => round($monthly_tds, 2),
+            'actual_lop_days' => round($actual_lop_days, 2),
+            'adjusted_lop_days' => round($adjusted_lop_days, 2),
+            'net_lop_days' => round($net_lop_days, 2),
+        ];
+
+        $this->output
+            ->set_content_type('application/json')
+            ->set_output(json_encode($response));
     }
 
     public function paymentStatus($status)
@@ -1425,4 +1609,28 @@ class Payroll extends Admin_Controller
             return false;
         }
     }
+
+    /**
+     * EPF and TDS Settings page
+     */
+    public function settings()
+    {
+        if (!$this->rbac->hasPrivilege('staff_payroll', 'can_view')) {
+            access_denied();
+        }
+
+        // Load tax and EPF configuration
+        $this->config->load('tax_epf');
+        
+        $data['page_title'] = 'EPF & TDS Settings';
+        $data['new_tax_regime'] = $this->config->item('new_tax_regime');
+        $data['old_tax_regime'] = $this->config->item('old_tax_regime');
+        $data['epf'] = $this->config->item('epf');
+        $data['tax_regime'] = $this->config->item('tax_regime');
+        
+        $this->load->view("layout/header", $data);
+        $this->load->view("admin/payroll/settings", $data);
+        $this->load->view("layout/footer", $data);
+    }
 }
+

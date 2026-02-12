@@ -134,6 +134,7 @@ $lang['admission_no_digit'] = "Admission No. Digit";
 $lang['admission_no_must_be'] = "Admission No. Must Be";	
 $lang['admission_no_prefix'] = "Admission No. Prefix";	
 $lang['admission_report'] = "Admission Report";	
+$lang['admissions'] = "Admissions";
 $lang['admission_start_from'] = "Admission Start From";	
 $lang['admission_year'] = "Admission Year";	
 $lang['admit_card_list'] = "Admit Card List";	

@@ -323,6 +323,72 @@ class Payroll_model extends MY_Model
         return false;
     }
 
+    /**
+     * Get Year-To-Date (YTD) gross income for a staff member
+     * Useful for mid-year increment TDS calculations
+     * 
+     * @param int $staff_id Staff ID
+     * @param int $year Financial year
+     * @param int $current_month Current month number (1-12)
+     * @return array ['gross' => total_ytd_gross, 'payslips' => count, 'months' => array of month data]
+     */
+    public function getYTDIncome($staff_id, $year = null, $current_month = null)
+    {
+        if ($year === null) {
+            $year = date('Y');
+        }
+        if ($current_month === null) {
+            $current_month = date('n');
+        }
+        
+        $this->db->select('id, basic, total_allowance, total_deduction, month, net_salary, (basic + total_allowance - total_deduction) as gross_salary');
+        $this->db->from('staff_payslip');
+        $this->db->where('staff_id', $staff_id);
+        $this->db->where('year', $year);
+        
+        // Get month indices for the months up to current month
+        $month_names = array('', 'January', 'February', 'March', 'April', 'May', 'June', 
+                            'July', 'August', 'September', 'October', 'November', 'December');
+        
+        // Build WHERE IN clause for months from January to current month
+        $months_to_include = array_slice($month_names, 1, $current_month);
+        
+        if (!empty($months_to_include)) {
+            $this->db->where_in('month', $months_to_include);
+        }
+        
+        $this->db->order_by('month', 'ASC');
+        $query = $this->db->get();
+        
+        $ytd_gross = 0;
+        $payslip_count = 0;
+        $month_data = array();
+        
+        if ($query->num_rows() > 0) {
+            foreach ($query->result() as $payslip) {
+                $gross = $payslip->basic + $payslip->total_allowance - $payslip->total_deduction;
+                $ytd_gross += $gross;
+                $payslip_count++;
+                
+                $month_data[] = array(
+                    'payslip_id' => $payslip->id,
+                    'month' => $payslip->month,
+                    'basic' => $payslip->basic,
+                    'gross_salary' => $gross,
+                    'net_salary' => $payslip->net_salary,
+                );
+            }
+        }
+        
+        return array(
+            'gross' => $ytd_gross,
+            'payslips' => $payslip_count,
+            'months' => $month_data,
+            'current_month' => $current_month,
+            'year' => $year,
+        );
+    }
+
     public function getAllowance($id, $type = null)
     {
         if (!empty($type)) {
@@ -543,6 +609,71 @@ class Payroll_model extends MY_Model
     }
 
     /**
+     * Get monthly leave balance snapshot without creating records
+     *
+     * @param int $staff_id Staff ID
+     * @param int $leave_type_id Leave type ID
+     * @param int $year Year (YYYY)
+     * @param int $month Month (1-12)
+     * @return array|null Monthly balance snapshot
+     */
+    public function getMonthlyBalanceSnapshot($staff_id, $leave_type_id, $year, $month)
+    {
+        $this->db->where('staff_id', $staff_id);
+        $this->db->where('leave_type_id', $leave_type_id);
+        $this->db->where('year', $year);
+        $this->db->where('month', $month);
+        $query = $this->db->get('staff_monthly_leave_balance');
+
+        if ($query->num_rows() > 0) {
+            return $query->row_array();
+        }
+
+        $opening_balance = 0;
+        $prev_month = $month - 1;
+        $prev_year = $year;
+
+        if ($prev_month < 1) {
+            $prev_month = 12;
+            $prev_year = $year - 1;
+        }
+
+        $this->db->where('staff_id', $staff_id);
+        $this->db->where('leave_type_id', $leave_type_id);
+        $this->db->where('year', $prev_year);
+        $this->db->where('month', $prev_month);
+        $prev_query = $this->db->get('staff_monthly_leave_balance');
+
+        if ($prev_query->num_rows() > 0) {
+            $prev_balance = $prev_query->row_array();
+            $opening_balance = $prev_balance['closing_balance'];
+        } else {
+            $this->db->where('staff_id', $staff_id);
+            $this->db->where('leave_type_id', $leave_type_id);
+            $leave_query = $this->db->get('staff_leave_details');
+
+            if ($leave_query->num_rows() > 0) {
+                $leave_data = $leave_query->row_array();
+                $opening_balance = floatval($leave_data['alloted_leave']);
+            }
+        }
+
+        return [
+            'id' => null,
+            'staff_id' => $staff_id,
+            'leave_type_id' => $leave_type_id,
+            'year' => $year,
+            'month' => $month,
+            'opening_balance' => $opening_balance,
+            'earned_in_month' => 0,
+            'used_for_lop_adjustment' => 0,
+            'used_for_leave_application' => 0,
+            'other_deductions' => 0,
+            'closing_balance' => $opening_balance,
+        ];
+    }
+
+    /**
      * Validate if month/year can be processed (not future month)
      * 
      * @param int $year Year
@@ -577,7 +708,7 @@ class Payroll_model extends MY_Model
      * @param int|null $payslip_id Payslip ID
      * @return array Adjustment result
      */
-    public function processLOPWithMonthlyBalance($staff_id, $lop_days, $month, $year, $payslip_id = null)
+    public function processLOPWithMonthlyBalance($staff_id, $lop_days, $month, $year, $payslip_id = null, $simulate = false)
     {
         $month_int = intval($month);
         $year_int = intval($year);
@@ -632,7 +763,11 @@ class Payroll_model extends MY_Model
             }
             
             // Get or create monthly balance
-            $balance = $this->getOrCreateMonthlyBalance($staff_id, $leave['leave_type_id'], $year_int, $month_int);
+            if ($simulate) {
+                $balance = $this->getMonthlyBalanceSnapshot($staff_id, $leave['leave_type_id'], $year_int, $month_int);
+            } else {
+                $balance = $this->getOrCreateMonthlyBalance($staff_id, $leave['leave_type_id'], $year_int, $month_int);
+            }
             
             // Ensure we have an array and set defaults for missing keys
             if (!is_array($balance)) {
@@ -669,13 +804,15 @@ class Payroll_model extends MY_Model
                 $update_data['payslip_id'] = $payslip_id;
             }
             
-            $this->db->where('id', $balance['id']);
-            $this->db->update('staff_monthly_leave_balance', $update_data);
-            
-            // Log to audit table
-            $this->logBalanceAudit($balance['id'], $staff_id, $leave['leave_type_id'], 'LOP_ADJUSTMENT', 
-                                  $to_adjust, $available, $new_closing, $payslip_id, 'payslip', 
-                                  'LOP adjustment for payroll');
+            if (!$simulate) {
+                $this->db->where('id', $balance['id']);
+                $this->db->update('staff_monthly_leave_balance', $update_data);
+
+                // Log to audit table
+                $this->logBalanceAudit($balance['id'], $staff_id, $leave['leave_type_id'], 'LOP_ADJUSTMENT', 
+                                      $to_adjust, $available, $new_closing, $payslip_id, 'payslip', 
+                                      'LOP adjustment for payroll');
+            }
             
             // Track adjustment
             $adjustments[] = [
@@ -698,6 +835,20 @@ class Payroll_model extends MY_Model
             'net_lop_days' => $remaining_lop,
             'adjustments' => $adjustments
         ];
+    }
+
+    /**
+     * Preview LOP adjustment without persisting changes
+     *
+     * @param int $staff_id Staff ID
+     * @param float $lop_days LOP days
+     * @param string $month Month (01-12)
+     * @param string $year Year (YYYY)
+     * @return array Adjustment result
+     */
+    public function previewLOPWithMonthlyBalance($staff_id, $lop_days, $month, $year)
+    {
+        return $this->processLOPWithMonthlyBalance($staff_id, $lop_days, $month, $year, null, true);
     }
 
     /**

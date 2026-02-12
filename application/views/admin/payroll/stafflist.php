@@ -13,6 +13,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                     <div class="box-header with-border">
                         <h3 class="box-title"><i class="fa fa-search"></i> <?php echo $this->lang->line('select_criteria'); ?></h3>
                         <div class="box-tools pull-right">
+                            <a href="<?php echo site_url('admin/payroll/settings'); ?>" class="btn btn-info btn-sm" title="View EPF & TDS Settings"><i class="fa fa-gear"></i> EPF & TDS Settings</a>
                             <a href="<?php echo site_url('admin/payroll/bulkupload'); ?>" class="btn btn-primary btn-sm"><i class="fa fa-upload"></i> <?php echo $this->lang->line('bulk_upload'); ?>(<?php echo $this->lang->line('earning'); ?>/<?php echo $this->lang->line('deduction'); ?>)</a>
                         </div>
                     </div>
