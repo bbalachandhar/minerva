@@ -157,6 +157,21 @@
                     </div>
 
                     <div class="form-group">
+                        <label for="payment_mode"><?php echo $this->lang->line('mode_of_payment'); ?></label>
+                        <select id="payment_mode" name="payment_mode" class="form-control">
+                            <option value="cash" selected><?php echo $this->lang->line('cash'); ?></option>
+                            <option value="online"><?php echo $this->lang->line('online'); ?></option>
+                            <option value="cheque"><?php echo $this->lang->line('cheque'); ?></option>
+                            <option value="dd"><?php echo $this->lang->line('demand_draft'); ?></option>
+                            <option value="neft"><?php echo $this->lang->line('neft'); ?></option>
+                            <option value="rtgs"><?php echo $this->lang->line('rtgs'); ?></option>
+                            <option value="upi"><?php echo $this->lang->line('upi'); ?></option>
+                            <option value="other"><?php echo $this->lang->line('other'); ?></option>
+                        </select>
+                        <span class="text-danger"></span>
+                    </div>
+
+                    <div class="form-group">
                         <label for="notes"><?php echo $this->lang->line('notes'); ?></label>
                         <textarea id="notes" name="notes" class="form-control"></textarea>
                     </div>
@@ -265,6 +280,25 @@
                         <span class="text-danger"></span>
                     </div>
                     <div class="form-group">
+                        <label for="payment_mode_non_student"><?php echo $this->lang->line('mode_of_payment'); ?></label>
+                        <select id="payment_mode_non_student" name="payment_mode" class="form-control">
+                            <option value="cash" selected><?php echo $this->lang->line('cash'); ?></option>
+                            <option value="online"><?php echo $this->lang->line('online'); ?></option>
+                            <option value="cheque"><?php echo $this->lang->line('cheque'); ?></option>
+                            <option value="dd"><?php echo $this->lang->line('demand_draft'); ?></option>
+                            <option value="neft"><?php echo $this->lang->line('neft'); ?></option>
+                            <option value="rtgs"><?php echo $this->lang->line('rtgs'); ?></option>
+                            <option value="upi"><?php echo $this->lang->line('upi'); ?></option>
+                            <option value="other"><?php echo $this->lang->line('other'); ?></option>
+                        </select>
+                        <span class="text-danger"></span>
+                    </div>
+                    <div class="form-group" id="application_ref_no_non_student_group" style="display: none;">
+                        <label for="application_ref_no_non_student"><span class="text-danger">*</span> <?php echo $this->lang->line('application_ref_no'); ?></label>
+                        <input id="application_ref_no_non_student" name="application_ref_no" type="text" class="form-control" placeholder="Enter application reference number" />
+                        <span class="text-danger"></span>
+                    </div>
+                    <div class="form-group">
                         <label for="notes_non_student"><?php echo $this->lang->line('notes'); ?></label>
                         <textarea id="notes_non_student" name="notes" class="form-control"></textarea>
                     </div>
@@ -317,6 +351,9 @@
             $('#amount_collected').val('');
             $('#notes').val('');
             $('#fee_type_id_modal').val('');
+            $('#payment_mode').val('cash'); // Reset to default
+            $('#application_ref_no_group').hide(); // Hide application ref no field initially
+            $('#application_ref_no').val('').attr('data-required', 'false');
 
 
             // Fetch student details and outstanding assignments
@@ -354,35 +391,6 @@
                     $('#outstanding_assignments_list').html(assignments_html);
 
                     $('#feeCollectionModal').modal('show');
-                }
-            });
-        });
-
-
-
-        // Handle form submission
-        $('#form_add_incidental_fee').on('submit', function (e) {
-            e.preventDefault();
-            var form = $(this);
-            var url = form.attr('action');
-            var data = form.serialize();
-
-            $.ajax({
-                url: url,
-                type: "POST",
-                data: data,
-                dataType: 'json',
-                success: function (response) {
-                    if (response.status === 'success') {
-                        successMsg(response.message);
-                        $('#feeCollectionModal').modal('hide');
-                        window.open(baseurl + 'admin/collect_incidental_fee/receipt/' + response.collection_id, '_blank');
-                    } else {
-                        errorMsg(response.message);
-                    }
-                },
-                error: function (xhr, status, error) {
-                    errorMsg("An error occurred: " + error);
                 }
             });
         });
@@ -563,38 +571,163 @@
         });
     });
 
-    // Non-Student Fee Collection Modal - Form submission
-    $('#form_add_non_student_incidental_fee').on('submit', function (e) {
-        e.preventDefault();
-        var form = $(this);
-        var url = baseurl + 'admin/collect_incidental_fee/collectNonStudentFee';
-        var data = form.serialize();
-
-        $.ajax({
-            url: url,
-            type: "POST",
-            data: data,
-            dataType: 'json',
-            beforeSend: function() {
-                // You might want to show a loading indicator here
-            },
-            success: function (response) {
-                if (response.status === 'success') {
-                    successMsg(response.message);
-                    $('#nonStudentFeeCollectionModal').modal('hide');
-                    window.open(baseurl + 'admin/collect_incidental_fee/receipt/' + response.collection_id, '_blank');
-                } else {
-                    errorMsg(response.message);
+        // Handle fee type change for showing/hiding application ref no field
+        function checkIfApplicationRefNoRequired(feeTypeName) {
+            var requiredFeeTypes = ['APPLICATION FEE', 'TUITION FEE', 'Other fee'];
+            for (var i = 0; i < requiredFeeTypes.length; i++) {
+                if (feeTypeName.toUpperCase().includes(requiredFeeTypes[i].toUpperCase())) {
+                    return true;
                 }
-            },
-            error: function (xhr, status, error) {
-                errorMsg("An error occurred: " + error);
-            },
-            complete: function() {
-                // You might want to hide a loading indicator here
+            }
+            return false;
+        }
+
+        // Application Reference Number is only for non-students
+        // Student fee collection modal does not use application_ref_no
+
+        // Monitor fee type change in non-student fee collection modal
+        $('#fee_type_id_non_student').on('change', function() {
+            var selectedFeeTypeId = $(this).val();
+            var selectedOption = $(this).find('option:selected').text();
+            
+            if (selectedFeeTypeId && checkIfApplicationRefNoRequired(selectedOption)) {
+                $('#application_ref_no_non_student_group').show();
+                $('#application_ref_no_non_student').attr('readonly', false).attr('data-required', 'true');
+            } else {
+                $('#application_ref_no_non_student_group').hide();
+                $('#application_ref_no_non_student').val('').attr('data-required', 'false');
             }
         });
-    });
+
+        // Handle form submission
+        var isSubmittingStudentFee = false; // Flag to prevent duplicate submissions
+        
+        $('#form_add_incidental_fee').on('submit', function (e) {
+            e.preventDefault();
+            
+            // Prevent duplicate submissions
+            if (isSubmittingStudentFee) {
+                return false;
+            }
+            
+            isSubmittingStudentFee = true;
+            var $submitBtn = $(this).find('button[type="submit"]');
+            $submitBtn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> ' + $submitBtn.text());
+            
+            var form = $(this);
+            var url = form.attr('action');
+            var data = form.serialize();
+
+            $.ajax({
+                url: url,
+                type: "POST",
+                data: data,
+                dataType: 'json',
+                timeout: 30000, // 30 second timeout
+                success: function (response) {
+                    if (response.status === 'success') {
+                        var alertMsg = response.message + '\n\n' +
+                            'Receipt No: ' + response.receipt_no + '\n' +
+                            'Amount: ₹' + parseFloat(response.amount_collected).toFixed(2) + '\n' +
+                            'Payment Mode: ' + response.payment_mode;
+                        successMsg(alertMsg);
+                        
+                        // Reset form
+                        form[0].reset();
+                        $('#feeCollectionModal').modal('hide');
+                        
+                        // Open receipt in new tab
+                        setTimeout(function() {
+                            window.open(baseurl + 'admin/collect_incidental_fee/receipt/' + response.collection_id, '_blank');
+                        }, 500);
+                    } else {
+                        errorMsg(response.message);
+                    }
+                },
+                error: function (xhr, status, error) {
+                    if (status === 'timeout') {
+                        errorMsg('Request timeout. Please try again.');
+                    } else {
+                        errorMsg("An error occurred: " + error);
+                    }
+                },
+                complete: function() {
+                    // Re-enable button and reset flag
+                    isSubmittingStudentFee = false;
+                    $submitBtn.prop('disabled', false).html('<?php echo $this->lang->line('collect_fee'); ?>');
+                }
+            });
+        });
+
+        // Validate application ref no before form submission (non-student fee collection modal)
+        var isSubmittingNonStudentFee = false; // Flag to prevent duplicate submissions
+        
+        $('#form_add_non_student_incidental_fee').on('submit', function (e) {
+            e.preventDefault();
+            
+            // Prevent duplicate submissions
+            if (isSubmittingNonStudentFee) {
+                return false;
+            }
+            
+            // Check if application ref no is required and empty
+            if ($('#application_ref_no_non_student_group').is(':visible') && $('#application_ref_no_non_student').val().trim() === '') {
+                errorMsg('<?php echo $this->lang->line('application_ref_no'); ?> is required for this fee type');
+                return false;
+            }
+            
+            isSubmittingNonStudentFee = true;
+            var $submitBtn = $(this).find('button[type="submit"]');
+            $submitBtn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> ' + $submitBtn.text());
+            
+            var form = $(this);
+            var url = form.attr('action');
+            var data = form.serialize();
+
+            $.ajax({
+                url: url,
+                type: "POST",
+                data: data,
+                dataType: 'json',
+                timeout: 30000, // 30 second timeout
+                beforeSend: function() {
+                    // You might want to show a loading indicator here
+                },
+                success: function (response) {
+                    if (response.status === 'success') {
+                        var alertMsg = response.message + '\n\n' +
+                            'Receipt No: ' + response.receipt_no + '\n' +
+                            'Amount: ₹' + parseFloat(response.amount_collected).toFixed(2) + '\n' +
+                            'Payment Mode: ' + response.payment_mode;
+                        successMsg(alertMsg);
+                        
+                        $('#nonStudentFeeCollectionModal').modal('hide');
+                        // Reset form
+                        form[0].reset();
+                        $('#application_ref_no_non_student_group').hide();
+                        
+                        // Open receipt in new tab
+                        setTimeout(function() {
+                            window.open(baseurl + 'admin/collect_incidental_fee/receipt/' + response.collection_id, '_blank');
+                        }, 500);
+                    } else {
+                        errorMsg(response.message);
+                    }
+                },
+                error: function (xhr, status, error) {
+                    if (status === 'timeout') {
+                        errorMsg('Request timeout. Please try again.');
+                    } else {
+                        errorMsg("An error occurred: " + error);
+                    }
+                },
+                complete: function() {
+                    // Re-enable button and reset flag
+                    isSubmittingNonStudentFee = false;
+                    $submitBtn.prop('disabled', false).html('<?php echo $this->lang->line('collect_fee'); ?>');
+                }
+            });
+        });
 </script>
 
 

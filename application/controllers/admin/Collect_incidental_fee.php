@@ -35,12 +35,17 @@ class Collect_incidental_fee extends Admin_Controller {
         $this->form_validation->set_rules('session_id', $this->lang->line('session'), 'required|trim|xss_clean');
         $this->form_validation->set_rules('fee_type_id', $this->lang->line('fee_type'), 'required|trim|xss_clean');
         $this->form_validation->set_rules('amount_collected', $this->lang->line('amount_collected'), 'required|numeric|trim|xss_clean');
+        $this->form_validation->set_rules('payment_mode', 'Payment Mode', 'required|trim|xss_clean');
+        $this->form_validation->set_rules('application_ref_no', 'Application Ref No', 'trim|xss_clean');
 
         if ($this->form_validation->run() == FALSE) {
             $this->load->view('layout/header');
             $this->load->view('admin/incidental_fee_collection/collect_incidental_fee', $data);
             $this->load->view('layout/footer');
         } else {
+            // Start database transaction for data consistency
+            $this->db->trans_start();
+            
             $student_id = $this->input->post('student_id');
             $session_id = $this->input->post('session_id');
             $fee_type_id = $this->input->post('fee_type_id');
@@ -48,6 +53,8 @@ class Collect_incidental_fee extends Admin_Controller {
             $incidental_fee_assignment_id = $this->input->post('incidental_fee_assignment_id'); // Can be NULL for ad-hoc
             $collected_by = $this->customlib->getStaffID();
             $receipt_no = $this->incidental_fee_collection_model->get_receipt_no();
+            $payment_mode = $this->input->post('payment_mode');
+            $application_ref_no = $this->input->post('application_ref_no');
 
             $insert_data = array(
                 'incidental_fee_type_id' => $fee_type_id,
@@ -57,6 +64,8 @@ class Collect_incidental_fee extends Admin_Controller {
                 'amount_collected' => $amount_collected,
                 'collected_by' => $collected_by,
                 'receipt_no' => $receipt_no,
+                'payment_mode' => $payment_mode,
+                'application_ref_no' => $application_ref_no ? $application_ref_no : NULL,
                 'notes' => $this->input->post('notes'),
             );
 
@@ -73,8 +82,25 @@ class Collect_incidental_fee extends Admin_Controller {
                         }
                     }
                 }
-                echo json_encode(array('status' => 'success', 'message' => $this->lang->line('fee_collected_successfully'), 'collection_id' => $collection_id));
+                
+                // Complete transaction
+                $this->db->trans_complete();
+                
+                if ($this->db->trans_status() === FALSE) {
+                    echo json_encode(array('status' => 'error', 'message' => $this->lang->line('error_collecting_fee')));
+                } else {
+                    $response = array(
+                        'status' => 'success',
+                        'message' => $this->lang->line('fee_collected_successfully'),
+                        'collection_id' => $collection_id,
+                        'receipt_no' => $receipt_no,
+                        'payment_mode' => $payment_mode,
+                        'amount_collected' => $amount_collected
+                    );
+                    echo json_encode($response);
+                }
             } else {
+                $this->db->trans_rollback();
                 echo json_encode(array('status' => 'error', 'message' => $this->lang->line('error_collecting_fee')));
             }
         }
@@ -138,14 +164,21 @@ class Collect_incidental_fee extends Admin_Controller {
         $this->form_validation->set_rules('non_student_name', $this->lang->line('name'), 'required|trim|xss_clean');
         $this->form_validation->set_rules('fee_type_id', $this->lang->line('fee_type'), 'required|trim|xss_clean');
         $this->form_validation->set_rules('amount_collected', $this->lang->line('amount_collected'), 'required|numeric|trim|xss_clean');
+        $this->form_validation->set_rules('payment_mode', 'Payment Mode', 'required|trim|xss_clean');
+        $this->form_validation->set_rules('application_ref_no', 'Application Ref No', 'trim|xss_clean');
         // Notes is optional, so no rule needed unless specific validation is required
 
         if ($this->form_validation->run() == FALSE) {
             echo json_encode(array('status' => 'error', 'message' => validation_errors()));
         } else {
+            // Start database transaction for data consistency
+            $this->db->trans_start();
+            
             $session_id = $this->setting_model->getCurrentSession();
             $collected_by = $this->customlib->getStaffID();
             $receipt_no = $this->incidental_fee_collection_model->get_receipt_no();
+            $payment_mode = $this->input->post('payment_mode');
+            $application_ref_no = $this->input->post('application_ref_no');
 
             $insert_data = array(
                 'student_id'                   => NULL, // Explicitly NULL for non-students
@@ -156,6 +189,8 @@ class Collect_incidental_fee extends Admin_Controller {
                 'amount_collected'             => $this->input->post('amount_collected'),
                 'collected_by'                 => $collected_by,
                 'receipt_no'                   => $receipt_no,
+                'payment_mode'                 => $payment_mode,
+                'application_ref_no'           => $application_ref_no ? $application_ref_no : NULL,
                 'notes'                        => $this->input->post('notes'),
                 'date_collected'               => date('Y-m-d H:i:s'),
             );
@@ -163,8 +198,25 @@ class Collect_incidental_fee extends Admin_Controller {
             $collection_id = $this->incidental_fee_collection_model->add($insert_data);
 
             if ($collection_id) {
-                echo json_encode(array('status' => 'success', 'message' => $this->lang->line('fee_collected_successfully'), 'collection_id' => $collection_id));
+                // Complete transaction
+                $this->db->trans_complete();
+                
+                if ($this->db->trans_status() === FALSE) {
+                    echo json_encode(array('status' => 'error', 'message' => $this->lang->line('error_collecting_fee')));
+                } else {
+                    $amount_collected = $this->input->post('amount_collected');
+                    $response = array(
+                        'status' => 'success',
+                        'message' => $this->lang->line('fee_collected_successfully'),
+                        'collection_id' => $collection_id,
+                        'receipt_no' => $receipt_no,
+                        'payment_mode' => $payment_mode,
+                        'amount_collected' => $amount_collected
+                    );
+                    echo json_encode($response);
+                }
             } else {
+                $this->db->trans_rollback();
                 echo json_encode(array('status' => 'error', 'message' => $this->lang->line('error_collecting_fee')));
             }
         }

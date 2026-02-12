@@ -28,7 +28,6 @@
                                     <div class="form-group">
                                         <label for="search_type"><?php echo $this->lang->line('search_duration'); ?></label>
                                         <select class="form-control" name="search_type" onchange="showdate(this.value)">
-                                            <option value=""><?php echo $this->lang->line('select'); ?></option>
                                             <?php foreach ($searchlist as $key => $search) { ?>
                                                 <option value="<?php echo $key ?>" <?php if ((isset($search_type)) && ($search_type == $key)) { echo "selected"; } ?>><?php echo $search ?></option>
                                             <?php } ?>
