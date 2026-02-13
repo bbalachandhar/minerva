@@ -116,6 +116,7 @@
                                         <th><?php echo $this->lang->line('class'); ?></th>
                                         <th><?php echo $this->lang->line('fee_type'); ?></th>
                                         <th><?php echo $this->lang->line('incidental_report_amount_collected'); ?></th>
+                                        <th><?php echo $this->lang->line('payment_mode'); ?></th>
                                             <th><?php echo $this->lang->line('collected_by'); ?></th>
                                             <th class="text-right"><?php echo $this->lang->line('action'); ?></th>
                                         </tr>
@@ -137,6 +138,7 @@
                                                 <td><?php echo $collection['class_name'] . ' (' . $collection['section'] . ')'; ?></td>
                                                 <td><?php echo $collection['fee_type_title']; ?></td>
                                                 <td><?php echo $collection['amount_collected']; ?></td>
+                                                <td><?php echo !empty($collection['payment_mode']) ? $collection['payment_mode'] : 'N/A'; ?></td>
                                                 <td><?php echo $collection['collected_by_name']; ?></td>
                                                 <td class="text-right">
                                                     <a href="<?php echo site_url('financereports/print_incidental_receipt/' . $collection['id']); ?>" class="btn btn-default btn-xs" data-toggle="tooltip" title="<?php echo $this->lang->line('print'); ?>" target="_blank">
@@ -153,7 +155,7 @@
                                     <tr>
                                         <th colspan="7" class="text-right"><?php echo $this->lang->line('total_amount_collected'); ?>:</th>
                                         <th><?php echo $total_amount_collected; ?></th>
-                                        <th colspan="2"></th>
+                                        <th colspan="3"></th>
                                     </tr>
                                 </tfoot>
                             </table>
