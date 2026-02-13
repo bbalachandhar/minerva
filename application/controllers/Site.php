@@ -348,6 +348,8 @@ class Site extends Public_Controller
                 $change = $this->user_model->saveNewPass($update_record);
                 if ($change) {
                     //if the password was successfully changed
+                    // Destroy session before redirecting to ensure fresh login
+                    $this->session->sess_destroy();
                     $this->session->set_flashdata('message', $this->lang->line('password_reset_successfully'));
                     redirect('site/userlogin', 'refresh');
                 } else {
