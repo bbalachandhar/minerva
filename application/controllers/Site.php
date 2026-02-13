@@ -352,7 +352,7 @@ class Site extends Public_Controller
                     redirect('site/userlogin', 'refresh');
                 } else {
                     $this->session->set_flashdata('message', $this->lang->line("something_went_wrong"));
-                    redirect('user/resetpassword/' . $role . '/' . $verification_code, 'refresh');
+                    redirect('site/resetpassword/' . $role . '/' . $verification_code, 'refresh');
                 }
             }
         } else {
@@ -393,7 +393,7 @@ class Site extends Public_Controller
                     $username = $result->username;
                 }
 
-                $resetPassLink  = site_url('user/resetpassword') . '/' . $usertype[0] . "/" . $verification_code;
+                $resetPassLink  = site_url('site/resetpassword') . '/' . $usertype[0] . "/" . $verification_code;
                 $sender_details = array('resetPassLink' => $resetPassLink, 'name' => $name, 'username' => $username);
                 if ($usertype[0] == "student") {
                     $sender_details['email'] = $email;
