@@ -32,9 +32,41 @@ function modal_loader_div(){
         $(selector +" select option").prop("selected", false);
     }
 
+function ensureBootstrap(callback) {
+    if ($.fn.modal) {
+        callback();
+        return;
+    }
+    var scriptId = 'bootstrap-js';
+    if (!document.getElementById(scriptId)) {
+        var script = document.createElement('script');
+        script.id = scriptId;
+        script.src = (typeof baseurl === 'string' ? baseurl : '/') + 'backend/bootstrap/js/bootstrap.min.js';
+        document.head.appendChild(script);
+    }
+    var tries = 0;
+    var timer = setInterval(function() {
+        tries += 1;
+        if ($.fn.modal) {
+            clearInterval(timer);
+            callback();
+        } else if (tries > 50) {
+            clearInterval(timer);
+        }
+    }, 100);
+}
+
+function initModal($el, options) {
+    if ($.fn.modal) {
+        $el.modal(options);
+    }
+}
+
 
  $(document).ready(function() {
-
+     console.log('school-custom.js ready. $.fn.modal exists:', typeof $.fn.modal);
+     console.log('sessionModal element found:', $('#sessionModal').length);
+     
        $('body').popover({
     selector: '[data-toggle="popover"]',
     trigger: 'hover',
@@ -44,12 +76,29 @@ function modal_loader_div(){
          return $(this).closest('td').find('.fee_detail_popover').html();
     }
 });
-     $('#sessionModal').modal({
+     initModal($('#sessionModal'), {
          backdrop: 'static',
          keyboard: false,
          show: false
-     })
-     $('#activelicmodal').modal({
+     });
+     console.log('Session modal initialized. Click handlers attached.');
+     
+     $(document).on('click', '[data-target="#sessionModal"]', function(e) {
+         console.log('Pencil icon clicked!');
+         e.preventDefault();
+         console.log('Showing modal. $.fn.modal:', typeof $.fn.modal);
+         $('#sessionModal').modal('show');
+     });
+     $(document).on('click', '.drop5', function(e) {
+         e.preventDefault();
+         var $trigger = $(this);
+         ensureBootstrap(function() {
+             if ($.fn.dropdown) {
+                 $trigger.dropdown('toggle');
+             }
+         });
+     });
+     initModal($('#activelicmodal'), {
          backdrop: false,
          keyboard: false,
          show: false
@@ -123,11 +172,11 @@ function modal_loader_div(){
      })
      //========================================
      //==============User Quick session============
-     $('#user_sessionModal').modal({
+     initModal($('#user_sessionModal'), {
          backdrop: 'static',
          keyboard: false,
          show: false
-     })
+     });
      $('#user_sessionModal').on('show.bs.modal', function(event) {
          var $modalDiv = $(event.delegateTarget);
          $('.user_sessionmodal_body').html("");
@@ -177,7 +226,7 @@ function modal_loader_div(){
          });
      });
      //====================
-     $('#commanSessionModal').modal({
+     initModal($('#commanSessionModal'), {
          backdrop: 'static',
          keyboard: false,
          show: false
@@ -285,11 +334,11 @@ function modal_loader_div(){
 
  
  $(document).ready(function () {
-         $('#andappModal').modal({
+     initModal($('#andappModal'), {
          backdrop: 'static',
          keyboard: false,
          show: false
-     })
+     });
        $('#andappModal').on('hidden.bs.modal', function(e) { 
          $('#andappModal .andapp_modal-body .alert-danger').remove();
          $('#andappModal .input-error').html("");        
@@ -345,11 +394,11 @@ function modal_loader_div(){
 
         });
     }));
-$('#addonModal').modal({
-             backdrop: 'static',
-             keyboard: false,
-             show: false
-         });
+    initModal($('#addonModal'), {
+        backdrop: 'static',
+        keyboard: false,
+        show: false
+    });
         $('#addonModal').on('shown.bs.modal', function(e) { 
         $('.addon_type',this).val($(e.relatedTarget).data('addon'));
         $('.addon_version',this).val($(e.relatedTarget).data('addonVersion'));

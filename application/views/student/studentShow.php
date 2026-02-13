@@ -42,19 +42,23 @@ $currency_symbol = $admin_session['currency_symbol'];
                                             <a class="" href="<?php echo base_url() . "student/view/" . $stvalue["id"] ?>">
                                                 <div class="icon">
                                                     <?php if ($sch_setting->student_photo) {
-                                                    ?>
-                                                        <img src="<?php
-                                                                    if (!empty($stvalue["image"])) {
-                                                                        echo $this->media_storage->getImageURL($stvalue["image"]);
-                                                                    } else {
-                                                                        if ($student['gender'] == 'Female') {
-                                                                            echo $this->media_storage->getImageURL("uploads/student_images/default_female.jpg");
-                                                                        } elseif ($student['gender'] == 'Male') {
-                                                                            echo $this->media_storage->getImageURL("uploads/student_images/default_male.jpg");
-                                                                        }
-                                                                    }
-                                                                    ?>" alt="">
-                                                    <?php } ?>
+                                                        $gender_icon = 'fa-user';
+                                                        if (!empty($stvalue["gender"])) {
+                                                            if (strtolower($stvalue["gender"]) === 'male') {
+                                                                $gender_icon = 'fa-male';
+                                                            } elseif (strtolower($stvalue["gender"]) === 'female') {
+                                                                $gender_icon = 'fa-female';
+                                                            }
+                                                        }
+                                                        
+                                                        if (!empty($stvalue["image"])) {
+                                                            echo '<img src="' . $this->media_storage->getImageURL($stvalue["image"]) . '" alt="">';
+                                                        } else {
+                                                            echo '<div style="display: inline-block; width: 50px; height: 50px; background: #f8f9fa; border-radius: 50%; text-align: center; line-height: 50px;">';
+                                                            echo '<i class="fa ' . $gender_icon . '" style="font-size: 24px; color: #999;"></i>';
+                                                            echo '</div>';
+                                                        }
+                                                    } ?>
                                                 </div>
                                                 <div class="student-tittle"><?php echo $this->customlib->getFullName($stvalue['firstname'], $stvalue['middlename'], $stvalue['lastname'], $sch_setting->middlename, $sch_setting->lastname); ?></div>
                                             </a>
@@ -84,23 +88,24 @@ $currency_symbol = $admin_session['currency_symbol'];
                         <div class="widget-user-header bg-gray-light overflow-hidden">
                             <div class="widget-user-image">
                                 <?php if ($sch_setting->student_photo) {
-
-
-                                    if (!empty($student["image"])) {
-
-                                        $image_url = $this->media_storage->getImageURL($student["image"]);
-                                    } else {
-
-                                        if ($student['gender'] == 'Female') {
-                                            $image_url = $this->media_storage->getImageURL("uploads/student_images/default_female.jpg");
-                                        } else {
-                                            $image_url = $this->media_storage->getImageURL("uploads/student_images/default_male.jpg");
+                                    $gender_icon = 'fa-user';
+                                    if (!empty($student["gender"])) {
+                                        if (strtolower($student["gender"]) === 'male') {
+                                            $gender_icon = 'fa-male';
+                                        } elseif (strtolower($student["gender"]) === 'female') {
+                                            $gender_icon = 'fa-female';
                                         }
                                     }
 
-                                ?>
-                                    <img class="profile-user-img img-responsive img-rounded" src="<?php echo $image_url; ?>" alt="User profile picture">
-                                <?php } ?>
+                                    if (!empty($student["image"])) {
+                                        $image_url = $this->media_storage->getImageURL($student["image"]);
+                                        echo '<img class="profile-user-img img-responsive img-rounded" src="' . $image_url . '" alt="User profile picture">';
+                                    } else {
+                                        echo '<div style="display: flex; align-items: center; justify-content: center; width: 90px; height: 90px; background: #f8f9fa; border-radius: 50%;margin: 20px auto;">';
+                                        echo '<i class="fa ' . $gender_icon . '" style="font-size: 45px; color: #999;"></i>';
+                                        echo '</div>';
+                                    }
+                                } ?>
                             </div>
                             <h3 class="widget-user-username"><?php echo $this->customlib->getFullName($student['firstname'], $student['middlename'], $student['lastname'], $sch_setting->middlename, $sch_setting->lastname); ?></h3>
                             <h5 class="widget-user-desc mb5"><?php echo $this->lang->line('admission_no'); ?> <span class="text-aqua"><?php echo $student['admission_no']; ?></span></h5>

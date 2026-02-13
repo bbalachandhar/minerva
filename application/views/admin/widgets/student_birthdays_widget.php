@@ -8,13 +8,24 @@
                             <div class="staffinfo-box">
                                 <div class="staffleft-box">
                                     <?php
+                                    $gender_icon = 'fa-user';
+                                    if (!empty($student["gender"])) {
+                                        if (strtolower($student["gender"]) === 'male') {
+                                            $gender_icon = 'fa-male';
+                                        } elseif (strtolower($student["gender"]) === 'female') {
+                                            $gender_icon = 'fa-female';
+                                        }
+                                    }
+                                    
                                     if (!empty($student["image"])) {
                                         $image = "uploads/student_images/" . $student["image"];
+                                        echo '<img src="' . base_url() . $image . '" alt="User Image">';
                                     } else {
-                                        $image = "uploads/student_images/no_image.png";
+                                        echo '<div style="display: inline-block; width: 60px; height: 60px; background: #f8f9fa; border-radius: 50%; text-align: center; line-height: 60px;">';
+                                        echo '<i class="fa ' . $gender_icon . '" style="font-size: 30px; color: #999;"></i>';
+                                        echo '</div>';
                                     }
                                     ?>
-                                    <img src="<?php echo base_url() . $image; ?>" alt="User Image">
                                 </div>
                                 <div class="staffleft-content">
                                     <h5><span><?php echo $student["firstname"] . " " . $student["lastname"]; ?></span></h5>

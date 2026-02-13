@@ -22,7 +22,7 @@ $feesinbackdate = $this->customlib->getfeesinbackdate();
 
 <link href="<?php echo base_url(); ?>backend/toast-alert/toastr.css" rel="stylesheet"/>
 <script src="<?php echo base_url(); ?>backend/toast-alert/toastr.js"></script>
-<script src="<?php echo base_url(); ?>backend/bootstrap/js/bootstrap.min.js"></script>
+<!-- Bootstrap JS removed from here - now loads in header.php before school-custom.js -->
 
 <script type="text/javascript">
     (function () {
@@ -279,6 +279,10 @@ if ($this->session->flashdata('success_msg')) {
 <?php $this->load->view('layout/addon_update');?>
 <?php  if (($this->module_lib->hasModule('multi_branch') && $this->module_lib->hasActive('multi_branch')) || $this->db->multi_branch)  { ?>
 <?php $this->load->view('layout/multi_branch');?>
+<?php } ?>
+<!-- Current Session Modal - Header version -->
+<?php if ($this->rbac->hasPrivilege('quick_session_change', 'can_view')) { ?>
+<?php $this->load->view('layout/multi_session');?>
 <?php } ?>
 
 <script type="text/javascript">

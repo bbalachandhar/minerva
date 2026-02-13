@@ -5,13 +5,17 @@ if (!empty($students->data)) {
 
     foreach ($students->data as $student_key => $student) {
 
-        if (empty($student->image)) {
-            if ($student->gender == 'Female') {
-                $image = "uploads/student_images/default_female.jpg";
-            } else {
-                $image = "uploads/student_images/default_male.jpg";
+        $gender_icon = 'fa-user';
+        if (!empty($student->gender)) {
+            if (strtolower($student->gender) === 'male') {
+                $gender_icon = 'fa-male';
+            } elseif (strtolower($student->gender) === 'female') {
+                $gender_icon = 'fa-female';
             }
-        } else {
+        }
+        
+        $has_image = !empty($student->image);
+        if ($has_image) {
             $image = $student->image;
         }
         ?>
@@ -22,9 +26,13 @@ if (!empty($students->data)) {
                                  <div class="item active">
              <a href="<?php echo base_url(); ?>student/view/<?php echo $student->id ?>">
            <?php if ($sch_setting->student_photo) {
-            ?>
-           <img class="img-responsive img-thumbnail width150" alt="<?php echo $student->firstname . " " . $student->lastname ?>" src="<?php echo $this->media_storage->getImageURL($image); ?>" alt="Image">
-           <?php
+                if ($has_image) {
+                    echo '<img class="img-responsive img-thumbnail width150" alt="' . $student->firstname . ' ' . $student->lastname . '" src="' . $this->media_storage->getImageURL($image) . '" alt="Image">';
+                } else {
+                    echo '<div style="display: flex; align-items: center; justify-content: center; width: 150px; height: 150px; background: #f8f9fa; border-radius: 5px; margin: 0 auto;">';
+                    echo '<i class="fa ' . $gender_icon . '" style="font-size: 60px; color: #999;"></i>';
+                    echo '</div>';
+                }
 }
         ?></a>
                       </div>

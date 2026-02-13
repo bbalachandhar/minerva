@@ -49,6 +49,8 @@ $this->load->view('layout/theme');
         <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/0.8.2/css/flag-icon.min.css">
         <link rel="stylesheet" type="text/css" href="<?php echo base_url(); ?>backend/dist/css/bootstrap-select.min.css">
         <script src="<?php echo base_url(); ?>backend/custom/jquery.min.js"></script>
+        <!-- Load Bootstrap JS early so it's available for school-custom.js -->
+        <script src="<?php echo base_url(); ?>backend/bootstrap/js/bootstrap.min.js"></script>
         <script src="<?php echo base_url(); ?>backend/dist/js/moment.min.js"></script>
         <script type="text/javascript">
             var currentLanguage = <?php echo json_encode(isset($language_name) ? $language_name : 'en'); ?>;
@@ -130,7 +132,6 @@ $this->load->view('layout/theme');
                     <div class="col-lg-7 col-md-9 col-sm-10 col-xs-8">
                         <div class="pull-right">
                             <?php if ($this->rbac->hasPrivilege('student', 'can_view')) {?>
-
                                 <form id="header_search_form" class="navbar-form navbar-left search-form" role="search"  action="<?php echo site_url('admin/admin/search'); ?>" method="POST">
                                     <?php echo $this->customlib->getCSRF(); ?>
                                     <div class="input-group">
@@ -175,6 +176,11 @@ $this->load->view('layout/theme');
                                     <?php } 
                                     }?>
                                     
+                                    <!-- Current Session Switcher -->
+                                    <?php if ($this->rbac->hasPrivilege('quick_session_change', 'can_view')) { ?>
+                                    <li class="cal15" data-placement="bottom" data-toggle="tooltip" title="<?php echo $this->lang->line('current_session'); ?>"><a href="#" data-toggle="modal" data-target="#currentSessionModal"><i class="fa fa-calendar-check-o" aria-hidden="true"></i></a></li>
+                                    <?php } ?>
+                                    
  <?php
 if ($this->module_lib->hasActive('calendar_to_do_list')) {
     if ($this->rbac->hasPrivilege('calendar_to_do_list', 'can_view')) {
@@ -190,7 +196,7 @@ if ($this->module_lib->hasActive('calendar_to_do_list')) {
 if ($this->module_lib->hasActive('calendar_to_do_list')) {
     if ($this->rbac->hasPrivilege('calendar_to_do_list', 'can_view')) {
         ?>
-                                            <li class="dropdown" data-placement="bottom" data-toggle="tooltip" title="<?php echo $this->lang->line('task') ?>">
+                                            <li class="dropdown cal15" data-placement="bottom" data-toggle="tooltip" title="<?php echo $this->lang->line('task') ?>">
                                                 <a href="#"  class="dropdown-toggle todoicon" data-toggle="dropdown">
                                                     <i class="fa fa-check-square-o"></i>
                                                     <?php
@@ -290,16 +296,21 @@ $role = $this->customlib->getStaffRole();
 $image = $result["image"];
 $role  = json_decode($role)->name;
 $id    = $result["id"];
-if (!empty($image)) {
 
+// Determine gender-based icon for fallback
+$gender_icon = 'fa-user'; // Default
+if (!empty($result['gender'])) {
+    if (strtolower($result['gender']) === 'male') {
+        $gender_icon = 'fa-male';
+    } elseif (strtolower($result['gender']) === 'female') {
+        $gender_icon = 'fa-female';
+    }
+}
+
+if (!empty($image)) {
     $file = "uploads/staff_images/" . $image . img_time();
 } else {
-    if ($result['gender'] == 'Female') {
-        $file = "uploads/staff_images/default_female.jpg" . img_time();
-    } else {
-        $file = "uploads/staff_images/default_male.jpg" . img_time();
-    }
-
+    $file = null; // No image, will use icon instead
 }
 ?>                              
 
@@ -344,15 +355,29 @@ if (!empty($image)) {
 
 <?php } } ?>   
 
-                                    <li class="dropdown user-menu">
-                                        <a class="dropdown-toggle" style="padding: 15px 12px;" data-toggle="dropdown" href="#" aria-expanded="false">
-                                            <img src="<?php echo base_url($file); ?>" class="topuser-image" alt="User Image">
+                                    <li class="dropdown user-menu cal15">
+                                        <a class="dropdown-toggle" data-toggle="dropdown" href="#" aria-expanded="false">
+                                            <?php if ($file) { ?>
+                                                <img src="<?php echo base_url($file); ?>" class="topuser-image" alt="User Image">
+                                            <?php } else { ?>
+                                                <div style="display: inline-block; width: 36px; height: 36px; background: #007bff; border-radius: 50%; text-align: center; line-height: 36px; border: 2px solid #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+                                                    <i class="fa <?php echo $gender_icon; ?>" style="font-size: 20px; color: #fff;"></i>
+                                                </div>
+                                            <?php } ?>
                                         </a>
                                         <ul class="dropdown-menu dropdown-user menuboxshadow">
                                             <li>
                                                 <div class="sstopuser">
                                                     <div class="ssuserleft">
-                                                        <a href="<?php echo base_url() . "admin/staff/profile/" . $id ?>"><img src="<?php echo base_url($file); ?>" alt="User Image"></a>
+                                                        <a href="<?php echo base_url() . "admin/staff/profile/" . $id ?>">
+                                                            <?php if ($file) { ?>
+                                                                <img src="<?php echo base_url($file); ?>" alt="User Image">
+                                                            <?php } else { ?>
+                                                                <div style="display: inline-block; width: 56px; height: 56px; background: #f8f9fa; border-radius: 50%; text-align: center; line-height: 56px;">
+                                                                    <i class="fa <?php echo $gender_icon; ?>" style="font-size: 28px; color: #999;"></i>
+                                                                </div>
+                                                            <?php } ?>
+                                                        </a>
                                                     </div>
                                                     <div class="sstopuser-test">
                                                         <h4 class="text-capitalize"><?php echo $this->customlib->getAdminSessionUserName(); ?></h4>

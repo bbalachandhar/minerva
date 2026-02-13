@@ -8,17 +8,24 @@
                             <div class="staffinfo-box">
                                 <div class="staffleft-box">
                                     <?php
-                                    if (!empty($staff["image"])) {
-                                        $image = "uploads/staff_images/" . $staff["image"];
-                                    } else {
-                                        if ($staff['gender'] == 'Male') {
-                                            $image = "uploads/staff_images/default_male.jpg";
-                                        } else {
-                                            $image = "uploads/staff_images/default_female.jpg";
+                                    $gender_icon = 'fa-user';
+                                    if (!empty($staff["gender"])) {
+                                        if (strtolower($staff["gender"]) === 'male') {
+                                            $gender_icon = 'fa-male';
+                                        } elseif (strtolower($staff["gender"]) === 'female') {
+                                            $gender_icon = 'fa-female';
                                         }
                                     }
+                                    
+                                    if (!empty($staff["image"])) {
+                                        $image = "uploads/staff_images/" . $staff["image"];
+                                        echo '<img src="' . base_url() . $image . '" alt="User Image">';
+                                    } else {
+                                        echo '<div style="display: inline-block; width: 60px; height: 60px; background: #f8f9fa; border-radius: 50%; text-align: center; line-height: 60px;">';
+                                        echo '<i class="fa ' . $gender_icon . '" style="font-size: 30px; color: #999;"></i>';
+                                        echo '</div>';
+                                    }
                                     ?>
-                                    <img src="<?php echo base_url() . $image; ?>" alt="User Image">
                                     <div class="birthday-date">
                                         <?php echo date('d M', strtotime($staff['dob'])); ?>
                                     </div>
