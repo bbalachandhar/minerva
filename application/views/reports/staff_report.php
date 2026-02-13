@@ -107,6 +107,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                 <thead>
                                     <tr>
                                         <th><?php echo $this->lang->line('staff_id'); ?></th>
+                                        <th>Biometric ID</th>
                                         <th><?php echo $this->lang->line('role'); ?></th>
                                         <th><?php echo $this->lang->line('designation'); ?></th>
                                         <th><?php echo $this->lang->line('department'); ?></th>
@@ -160,6 +161,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                             ?>
                                             <tr>
                                                 <td><?php echo $staff['employee_id']; ?></td>
+                                                <td><?php echo isset($staff['biometric_id']) ? $staff['biometric_id'] : '-'; ?></td>
                                                 <td><?php echo $staff['user_type']; ?></td>
                                                 <td><?php echo $staff['designation']; ?></td>
                                                 <td><?php echo $staff['department']; ?></td>

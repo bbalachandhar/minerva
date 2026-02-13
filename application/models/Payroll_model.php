@@ -1142,4 +1142,135 @@ class Payroll_model extends MY_Model
         return $results;
     }
 
+    /**
+     * ==============================================================
+     * SALARY INCREMENT HANDLING METHODS (NEW)
+     * ==============================================================
+     */
+
+    /**
+     * Check if staff has an approved increment effective in this month
+     * 
+     * @param int $staff_id Staff ID
+     * @param int $month Month number (1-12)
+     * @param int $year Year
+     * @return array|null Increment data or null
+     */
+    public function getIncrementForMonth($staff_id, $month, $year)
+    {
+        $this->load->model('payroll_increment_model');
+        return $this->payroll_increment_model->getApprovedIncrementForMonth($staff_id, $month, $year);
+    }
+
+    /**
+     * Check if payslip month is first month of increment
+     * (Used to determine if we show "Increment" line item)
+     * 
+     * @param int $staff_id Staff ID
+     * @param int $month Month number (1-12)
+     * @param int $year Year
+     * @return bool
+     */
+    public function isIncrementMonth($staff_id, $month, $year)
+    {
+        $increment = $this->getIncrementForMonth($staff_id, $month, $year);
+        return ($increment !== null);
+    }
+
+    /**
+     * Get list of all staff with approved increments effective this month
+     * 
+     * @param int $month Month number (1-12)
+     * @param int $year Year
+     * @return array List of staff with increments
+     */
+    public function getStaffWithIncrementThisMonth($month, $year)
+    {
+        $first_day = date('Y-m-d', mktime(0, 0, 0, $month, 1, $year));
+        $last_day = date('Y-m-d', mktime(0, 0, 0, $month + 1, 0, $year));
+        
+        $query = $this->db
+            ->select('DISTINCT staff_id, increment_amount, increment_percentage, merge_with')
+            ->from('staff_increment_history')
+            ->where('approval_status', 'Approved')
+            ->where('effective_date >=', $first_day)
+            ->where('effective_date <=', $last_day)
+            ->get();
+        
+        return $query->result_array();
+    }
+
+    /**
+     * Mark increment line item as temporary in payslip
+     * (This is called when creating payslip for increment month)
+     * 
+     * @param int $payslip_id Payslip ID
+     * @param int $increment_history_id Increment history ID
+     * @return bool
+     */
+    public function markIncrementAsTemporary($payslip_id, $increment_history_id)
+    {
+        $this->db->where(array(
+            'payslip_id' => $payslip_id,
+            'allowance_type' => 'Increment'
+        ));
+        $this->db->update('payslip_allowance', array(
+            'is_temporary' => true,
+            'increment_history_id' => $increment_history_id
+        ));
+        
+        return ($this->db->affected_rows() > 0);
+    }
+
+    /**
+     * Mark increment line as merged (after first month)
+     * 
+     * @param int $payslip_id Payslip ID
+     * @param string $merged_into Where increment was merged (basic or special_allowance)
+     * @return bool
+     */
+    public function markIncrementAsMerged($payslip_id, $merged_into = 'basic')
+    {
+        $this->db->where(array(
+            'payslip_id' => $payslip_id,
+            'allowance_type' => 'Increment'
+        ));
+        $this->db->update('payslip_allowance', array(
+            'is_temporary' => false,
+            'merged_into' => $merged_into
+        ));
+        
+        return ($this->db->affected_rows() > 0);
+    }
+
+    /**
+     * Get total increment for staff (sum of all approved increments up to date)
+     * 
+     * @param int $staff_id Staff ID
+     * @param string $up_to_date Date in Y-m-d format
+     * @return float Total increment amount
+     */
+    public function getTotalIncrementUpToDate($staff_id, $up_to_date = null)
+    {
+        if ($up_to_date === null) {
+            $up_to_date = date('Y-m-d');
+        }
+        
+        $query = $this->db
+            ->select('SUM(COALESCE(increment_amount, 0)) as total_fixed, 
+                      GROUP_CONCAT(increment_percentage) as percentages')
+            ->from('staff_increment_history')
+            ->where('staff_id', $staff_id)
+            ->where('approval_status', 'Approved')
+            ->where('effective_date <=', $up_to_date)
+            ->get();
+        
+        if ($query->num_rows() > 0) {
+            $result = $query->row_array();
+            return (float) $result['total_fixed'];
+        }
+        
+        return 0;
+    }
+
 }

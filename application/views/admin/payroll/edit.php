@@ -87,6 +87,12 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                             </div>
                             <div class="col-md-8 ">
                                 <div class="btn-group pull-right">
+                                    <a href="<?php echo site_url('admin/payroll/bulk_add_increment'); ?>" type="button" class="btn btn-success btn-xs" title="Bulk Add Salary Increment">
+                                        <i class="fa fa-users"></i> Bulk Increment
+                                    </a>
+                                    <a href="<?php echo site_url('admin/payroll/add_increment/' . $result['id']); ?>" type="button" class="btn btn-default btn-xs" title="Add Salary Increment for <?php echo $result['name']; ?>">
+                                        <i class="fa fa-plus-circle"></i> Add Increment
+                                    </a>
                                     <a href="<?php echo site_url('admin/payroll/settings'); ?>" type="button" class="btn btn-info btn-xs" title="EPF & TDS Settings">
                                         <i class="fa fa-gear"></i> Settings
                                     </a>
@@ -355,7 +361,7 @@ if ($is_current_payroll_month) {
                                                     transform: scale(1.05);
                                                 }
                                             </style>
-                                            <div class="modern-item-list" id="tableID">
+                                                <div class="modern-item-list" id="tableID">
                                                 <?php
 if (!empty($earnings)) {
     $earning_count = 0;
@@ -381,6 +387,54 @@ $earning_count++;
     <?php
 }
 ?>
+                                                <!-- Increment/Bonus Display (if applicable) -->
+                                                <?php if (!empty($employee_payroll['is_increment_month']) && !empty($employee_payroll['increment_amount']) && $employee_payroll['increment_amount'] > 0): 
+                                                    $is_bonus = isset($employee_payroll['is_recurring']) && $employee_payroll['is_recurring'] == 0;
+                                                    $label = $is_bonus ? 'Bonus (One-Time)' : 'Increment (Temporary)';
+                                                    $badge_text = $is_bonus ? 'BONUS' : 'TEMP';
+                                                    $badge_color = $is_bonus ? 'label-info' : 'label-warning';
+                                                    $border_color = $is_bonus ? '#ff9800' : '#ffc107';
+                                                    $bg_gradient = $is_bonus ? 'linear-gradient(135deg, #e3f2fd 0%, #f0f9ff 100%)' : 'linear-gradient(135deg, #fff9e6 0%, #fffbf0 100%)';
+                                                    $text_color = $is_bonus ? '#0288d1' : '#ff9800';
+                                                    $merge_info = $is_bonus ? 'This bonus applies only to this month and will NOT be merged into salary.' : 'This increment will appear only this month. From next month, it will be merged into ' . (isset($employee_payroll['merge_with']) ? ucfirst(str_replace('_', ' ', $employee_payroll['merge_with'])) : 'Basic Salary') . '.';
+                                                ?>
+                                                <style>
+                                                    .increment-row-highlight {
+                                                        display: flex;
+                                                        gap: 8px;
+                                                        padding: 12px;
+                                                        background: <?php echo $bg_gradient; ?> !important;
+                                                        border-bottom: 1px solid rgba(0,0,0,0.05);
+                                                        border-left: 4px solid <?php echo $border_color; ?> !important;
+                                                        align-items: center;
+                                                        transition: all 0.3s ease;
+                                                    }
+                                                    .increment-row-highlight:hover {
+                                                        box-shadow: 0 2px 8px rgba(255, 193, 7, 0.2);
+                                                    }
+                                                </style>
+                                                <div class="increment-row-highlight">
+                                                    <div style="flex: 0 0 35%; display: flex; align-items: center;">
+                                                        <strong style="color: <?php echo $text_color; ?>; font-weight: 700;">
+                                                            <i class="fa fa-<?php echo $is_bonus ? 'gift' : 'star'; ?>"></i> <?php echo $label; ?>
+                                                        </strong>
+                                                    </div>
+                                                    <div style="flex: 0 0 50%;">
+                                                        <div style="background: white; padding: 6px 8px; border-radius: 4px; border: 1px solid <?php echo $border_color; ?>; font-weight: 600; color: <?php echo $text_color; ?>;">
+                                                            <?php echo $currency_symbol . number_format($employee_payroll['increment_amount'], 2); ?>
+                                                        </div>
+                                                    </div>
+                                                    <div style="flex: 0 0 15%; text-align: center;">
+                                                        <span class="label <?php echo $badge_color; ?>" style="font-size: 11px; padding: 4px 6px;">
+                                                            <?php echo $badge_text; ?>
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <div style="padding: 8px 12px; background: <?php echo $is_bonus ? '#e3f2fd' : '#fff9e6'; ?>; font-size: 11px; color: <?php echo $text_color; ?>; border-bottom: 1px solid rgba(255, 193, 7, 0.3);">
+                                                    <i class="fa fa-info-circle"></i> 
+                                                    <?php echo $merge_info; ?>
+                                                </div>
+                                                <?php endif; ?>
                                             </div>
                                         </div>
                                     </div>

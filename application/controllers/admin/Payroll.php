@@ -6,6 +6,12 @@ class Payroll extends Admin_Controller
     public function __construct()
     {
         parent::__construct();
+        
+        // Increase execution time for payroll operations (bulk processing may take longer)
+        ini_set('max_execution_time', 600); // 10 minutes
+        set_time_limit(600);
+        ini_set('memory_limit', '512M');
+        
         $this->load->helper('file');
         $this->config->load("mailsms");
         $this->config->load("payroll");
@@ -15,6 +21,7 @@ class Payroll extends Admin_Controller
         $this->staff_attendance  = $this->config->item('staffattendance');
         $this->payment_mode      = $this->config->item('payment_mode');
         $this->load->model("payroll_model");
+        $this->load->model("payroll_increment_model");
         $this->load->model("staff_model");
         $this->load->model('staffattendancemodel');
         $this->payroll_status     = $this->config->item('payroll_status');
@@ -168,6 +175,30 @@ class Payroll extends Admin_Controller
         if(empty($employee_payroll['basic']) || $employee_payroll['basic'] == 0){
             $employee_payroll['basic'] = $searchEmployee['basic_salary'];
         }
+        
+        // ==========================================
+        // Check for Salary Increments (NEW)
+        // ==========================================
+        $month_num = date('n', strtotime($employee_payroll['year'] . '-' . $employee_payroll['month'] . '-01'));
+        $increment = $this->payroll_increment_model->getApprovedIncrementForMonth($employee_payroll['staff_id'], $month_num, $employee_payroll['year']);
+        
+        if ($increment) {
+            if ($increment['increment_type'] === 'Fixed') {
+                $increment_amount = (float) $increment['increment_amount'];
+            } else {
+                $increment_amount = round($employee_payroll['basic'] * ($increment['increment_percentage'] / 100), 2);
+            }
+            $employee_payroll['is_increment_month'] = true;
+            $employee_payroll['increment_amount'] = $increment_amount;
+            $employee_payroll['merge_with'] = $increment['merge_with'];
+            $employee_payroll['increment_type'] = $increment['increment_type'];
+            $employee_payroll['increment_effective_date'] = $increment['effective_date'];
+            $employee_payroll['is_recurring'] = isset($increment['is_recurring']) ? (int)$increment['is_recurring'] : 1;
+        } else {
+            $employee_payroll['is_increment_month'] = false;
+            $employee_payroll['increment_amount'] = 0;
+        }
+        
         $data['employee_payroll'] = $employee_payroll;
         $date                     = $employee_payroll['year'] . "-" . $employee_payroll['month'];
         $data['result']           = $searchEmployee;
@@ -1202,6 +1233,7 @@ class Payroll extends Admin_Controller
     public function calculatepreview()
     {
         $this->load->library('tax_epf_calculator');
+        $this->load->model('payroll_increment_model');
 
         $staff_id = (int) $this->input->post('staff_id');
         $month = $this->input->post('month');
@@ -1217,6 +1249,19 @@ class Payroll extends Admin_Controller
         $total_allowance = 0;
         $total_deduction = 0;
         $da = 0;
+        $increment_amount = 0;
+        $is_increment_month = false;
+
+        // Check if this is an increment month
+        $increment = $this->payroll_increment_model->getApprovedIncrementForMonth($staff_id, $month, $year);
+        if ($increment) {
+            $is_increment_month = true;
+            if ($increment['increment_type'] === 'Fixed') {
+                $increment_amount = (float) $increment['increment_amount'];
+            } elseif ($increment['increment_type'] === 'Percentage') {
+                $increment_amount = round($basic * ($increment['increment_percentage'] / 100), 2);
+            }
+        }
 
         if (!empty($allowance_type)) {
             foreach ($allowance_type as $i => $type) {
@@ -1235,8 +1280,18 @@ class Payroll extends Admin_Controller
                     continue;
                 }
 
+                // Skip increment if manually added (we handle it separately)
+                if (stripos($label, 'increment') !== false) {
+                    continue;
+                }
+
                 $total_allowance += (float) $amount;
             }
+        }
+
+        // Add increment to total_allowance if it's increment month
+        if ($is_increment_month && $increment_amount > 0) {
+            $total_allowance += $increment_amount;
         }
 
         if (!empty($deduction_type)) {
@@ -1313,6 +1368,8 @@ class Payroll extends Admin_Controller
             'actual_lop_days' => round($actual_lop_days, 2),
             'adjusted_lop_days' => round($adjusted_lop_days, 2),
             'net_lop_days' => round($net_lop_days, 2),
+            'is_increment_month' => $is_increment_month,
+            'increment_amount' => round($increment_amount, 2),
         ];
 
         $this->output
@@ -1631,6 +1688,370 @@ class Payroll extends Admin_Controller
         $this->load->view("layout/header", $data);
         $this->load->view("admin/payroll/settings", $data);
         $this->load->view("layout/footer", $data);
+    }
+
+    /**
+     * =====================================================================
+     * SALARY INCREMENT MANAGEMENT SECTION
+     * =====================================================================
+     */
+
+    /**
+     * List all salary increments (management interface)
+     */
+    public function increments()
+    {
+        if (!$this->rbac->hasPrivilege('staff_payroll', 'can_view')) {
+            access_denied();
+        }
+
+        $this->session->set_userdata('top_menu', 'HR');
+        $this->session->set_userdata('sub_menu', 'admin/payroll');
+
+        $this->load->model('payroll_increment_model');
+
+        $data['page_title'] = 'Salary Increment Management';
+        $data['staff_id'] = $this->input->post('staff_id');
+        $data['status_filter'] = $this->input->post('status_filter');
+
+        // Get list of increments based on filters
+        if ($data['staff_id']) {
+            $data['increments'] = $this->payroll_increment_model->getStaffIncrements($data['staff_id'], $data['status_filter']);
+        } elseif ($data['status_filter'] === 'Pending') {
+            $data['increments'] = $this->payroll_increment_model->getPendingIncrements();
+        } else {
+            $data['increments'] = array();
+        }
+
+        $user_type = $this->staff_model->getStaffRole();
+        $data['classlist'] = $user_type;
+        $data['stafflist'] = $this->staff_model->getAll(null, 1);
+
+        $this->load->view("layout/header", $data);
+        $this->load->view("admin/payroll/increment_list", $data);
+        $this->load->view("layout/footer", $data);
+    }
+
+    /**
+     * Show form to add new salary increment
+     */
+    public function add_increment($staff_id = null)
+    {
+        if (!$this->rbac->hasPrivilege('staff_payroll', 'can_create')) {
+            access_denied();
+        }
+
+        $this->session->set_userdata('top_menu', 'HR');
+        $this->session->set_userdata('sub_menu', 'admin/payroll');
+
+        $this->load->model('payroll_increment_model');
+
+        $data['page_title'] = 'Add Salary Increment';
+        $data['staff_id'] = $staff_id;
+
+        if ($staff_id) {
+            $staff = $this->staff_model->get($staff_id);
+            $data['staff'] = $staff;
+            $data['current_salary'] = isset($staff['basic_salary']) ? $staff['basic_salary'] : 0;
+            $data['last_increment'] = $this->payroll_increment_model->getLatestApprovedIncrement($staff_id);
+        }
+
+        // Fetch only active staff for increment addition
+        $all_staff = $this->staff_model->getAll(null, 1);
+        $active_staff = array();
+        if (!empty($all_staff)) {
+            foreach ($all_staff as $staff) {
+                if (isset($staff['is_active']) && $staff['is_active'] == 1) {
+                    $active_staff[] = $staff;
+                }
+            }
+        }
+        $data['stafflist'] = $active_staff;
+
+        $this->load->view("layout/header", $data);
+        $this->load->view("admin/payroll/add_increment", $data);
+        $this->load->view("layout/footer", $data);
+    }
+
+    /**
+     * Save salary increment record
+     */
+    public function save_increment()
+    {
+        if (!$this->rbac->hasPrivilege('staff_payroll', 'can_create')) {
+            access_denied();
+        }
+
+        $this->form_validation->set_rules('staff_id', 'Staff Member', 'required|integer');
+        $this->form_validation->set_rules('effective_date', 'Effective Date', 'required|valid_date');
+        $this->form_validation->set_rules('increment_type', 'Increment Type', 'required|in_list[Fixed,Percentage]');
+        $this->form_validation->set_rules('merge_with', 'Merge With', 'required|in_list[basic,special_allowance]');
+
+        if ($this->input->post('increment_type') === 'Fixed') {
+            $this->form_validation->set_rules('increment_amount', 'Increment Amount', 'required|numeric');
+        } else {
+            $this->form_validation->set_rules('increment_percentage', 'Increment Percentage', 'required|numeric|less_than_equal_to[100]|greater_than[0]');
+        }
+
+        if ($this->form_validation->run() === false) {
+            $this->session->set_flashdata('error', validation_errors());
+            redirect('admin/payroll/add_increment/' . $this->input->post('staff_id'));
+        } else {
+            $this->load->model('payroll_increment_model');
+
+            $staff_id = $this->input->post('staff_id');
+            $effective_date = $this->input->post('effective_date');
+
+            // Check if staff already has increment or bonus in same month
+            $existing = $this->payroll_increment_model->checkExistingForMonth($staff_id, $effective_date);
+            if ($existing) {
+                $type_label = $existing['is_recurring'] == 1 ? 'Increment' : 'Bonus';
+                $this->session->set_flashdata('error', "Staff already has a {$type_label} in this month. Only one increment or bonus allowed per month.");
+                redirect('admin/payroll/add_increment/' . $staff_id);
+                return;
+            }
+
+            $increment_data = array(
+                'staff_id' => $staff_id,
+                'effective_date' => $effective_date,
+                'increment_type' => $this->input->post('increment_type'),
+                'merge_with' => $this->input->post('merge_with'),
+                'is_recurring' => $this->input->post('is_recurring') ? intval($this->input->post('is_recurring')) : 1,
+                'remarks' => $this->input->post('remarks'),
+            );
+
+            if ($this->input->post('increment_type') === 'Fixed') {
+                $increment_data['increment_amount'] = convertCurrencyFormatToBaseAmount($this->input->post('increment_amount'));
+            } else {
+                $increment_data['increment_percentage'] = $this->input->post('increment_percentage');
+            }
+
+            $result = $this->payroll_increment_model->addIncrement($increment_data);
+
+            if ($result) {
+                $type_label = $increment_data['is_recurring'] == 1 ? 'increment' : 'bonus';
+                $this->session->set_flashdata('success', "Salary {$type_label} added successfully. Awaiting HR approval.");
+                redirect('admin/payroll/increments?status_filter=Pending');
+            } else {
+                $this->session->set_flashdata('error', 'Failed to add salary increment.');
+                redirect('admin/payroll/add_increment/' . $staff_id);
+            }
+        }
+    }
+
+    /**
+     * List pending increments for approval
+     */
+    public function pending_increments()
+    {
+        if (!$this->rbac->hasPrivilege('staff_payroll', 'can_view')) {
+            access_denied();
+        }
+
+        $this->session->set_userdata('top_menu', 'HR');
+        $this->session->set_userdata('sub_menu', 'admin/payroll');
+
+        $this->load->model('payroll_increment_model');
+
+        $data['page_title'] = 'Pending Salary Increments';
+        $data['increments'] = $this->payroll_increment_model->getPendingIncrements();
+
+        $this->load->view("layout/header", $data);
+        $this->load->view("admin/payroll/pending_increments", $data);
+        $this->load->view("layout/footer", $data);
+    }
+
+    /**
+     * Approve salary increment
+     */
+    public function approve_increment($increment_id)
+    {
+        if (!$this->rbac->hasPrivilege('staff_payroll', 'can_edit')) {
+            access_denied();
+        }
+
+        $this->load->model('payroll_increment_model');
+
+        $admin_id = $this->session->userdata['staff_id'];
+        $result = $this->payroll_increment_model->approveIncrement($increment_id, $admin_id);
+
+        if ($result) {
+            $this->session->set_flashdata('success', 'Salary increment approved successfully.');
+        } else {
+            $this->session->set_flashdata('error', 'Failed to approve salary increment.');
+        }
+
+        redirect('admin/payroll/pending_increments');
+    }
+
+    /**
+     * Reject salary increment
+     */
+    public function reject_increment($increment_id)
+    {
+        if (!$this->rbac->hasPrivilege('staff_payroll', 'can_edit')) {
+            access_denied();
+        }
+
+        $this->load->model('payroll_increment_model');
+
+        $result = $this->payroll_increment_model->rejectIncrement($increment_id);
+
+        if ($result) {
+            $this->session->set_flashdata('success', 'Salary increment rejected.');
+        } else {
+            $this->session->set_flashdata('error', 'Failed to reject salary increment.');
+        }
+
+        redirect('admin/payroll/pending_increments');
+    }
+
+    /**
+     * Delete salary increment (only pending records)
+     */
+    public function delete_increment($increment_id)
+    {
+        if (!$this->rbac->hasPrivilege('staff_payroll', 'can_delete')) {
+            access_denied();
+        }
+
+        $this->load->model('payroll_increment_model');
+
+        $result = $this->payroll_increment_model->deleteIncrement($increment_id);
+
+        if ($result) {
+            $this->session->set_flashdata('success', 'Salary increment deleted successfully.');
+        } else {
+            $this->session->set_flashdata('error', 'Failed to delete salary increment. (Can only delete pending records)');
+        }
+
+        redirect('admin/payroll/increments');
+    }
+
+    /**
+     * Show form to add bulk salary increments for multiple staff
+     */
+    public function bulk_add_increment()
+    {
+        if (!$this->rbac->hasPrivilege('staff_payroll', 'can_create')) {
+            access_denied();
+        }
+
+        $this->session->set_userdata('top_menu', 'HR');
+        $this->session->set_userdata('sub_menu', 'admin/payroll');
+
+        $this->load->model('payroll_increment_model');
+
+        $data['page_title'] = 'Bulk Add Salary Increment';
+        
+        // Get only active staff with basic salary
+        $all_staff = $this->staff_model->getAll(null, 1);
+        $active_staff = array();
+        
+        // Explicitly filter for active staff (is_active = 1)
+        if (!empty($all_staff)) {
+            foreach ($all_staff as $staff) {
+                if (isset($staff['is_active']) && $staff['is_active'] == 1) {
+                    $active_staff[] = $staff;
+                }
+            }
+        }
+        
+        $data['stafflist'] = $active_staff;
+        
+        // Get roles for filtering
+        $user_type = $this->staff_model->getStaffRole();
+        $data['roles'] = $user_type;
+
+        $this->load->view("layout/header", $data);
+        $this->load->view("admin/payroll/bulk_add_increment", $data);
+        $this->load->view("layout/footer", $data);
+    }
+
+    /**
+     * Save bulk salary increment records
+     */
+    public function save_bulk_increment()
+    {
+        if (!$this->rbac->hasPrivilege('staff_payroll', 'can_create')) {
+            access_denied();
+        }
+
+        $this->form_validation->set_rules('staff_ids[]', 'Staff Members', 'required');
+        $this->form_validation->set_rules('effective_date', 'Effective Date', 'required|valid_date');
+        $this->form_validation->set_rules('merge_with', 'Merge With', 'required|in_list[basic,special_allowance]');
+
+        if ($this->form_validation->run() === false) {
+            $this->session->set_flashdata('error', validation_errors());
+            redirect('admin/payroll/bulk_add_increment');
+        } else {
+            $this->load->model('payroll_increment_model');
+
+            $staff_ids = $this->input->post('staff_ids');
+            $effective_date = $this->input->post('effective_date');
+            $merge_with = $this->input->post('merge_with');
+            $remarks = $this->input->post('remarks');
+            $increment_types = $this->input->post('increment_type') ?? array();
+            $increment_amounts = $this->input->post('increment_amount') ?? array();
+            $is_recurring_values = $this->input->post('is_recurring') ?? array();
+
+            $success_count = 0;
+            $error_messages = array();
+
+            foreach ($staff_ids as $staff_id) {
+                // Check if staff already has increment or bonus in same month
+                $existing = $this->payroll_increment_model->checkExistingForMonth($staff_id, $effective_date);
+                if ($existing) {
+                    $type_label = $existing['is_recurring'] == 1 ? 'Increment' : 'Bonus';
+                    $error_messages[] = "Staff ID {$staff_id}: Already has {$type_label} in this month";
+                    continue;
+                }
+
+                // Get increment type and amount for this staff
+                $increment_type = isset($increment_types[$staff_id]) ? $increment_types[$staff_id] : 'Fixed';
+                $increment_value = isset($increment_amounts[$staff_id]) ? $increment_amounts[$staff_id] : 0;
+                $is_recurring = isset($is_recurring_values[$staff_id]) ? intval($is_recurring_values[$staff_id]) : 1;
+
+                // Validate increment value
+                if (empty($increment_value) || floatval($increment_value) <= 0) {
+                    $error_messages[] = "Staff ID {$staff_id}: Invalid increment amount";
+                    continue;
+                }
+
+                $increment_data = array(
+                    'staff_id' => $staff_id,
+                    'effective_date' => $effective_date,
+                    'increment_type' => $increment_type,
+                    'merge_with' => $merge_with,
+                    'is_recurring' => $is_recurring,
+                    'remarks' => $remarks,
+                );
+
+                if ($increment_type === 'Fixed') {
+                    $increment_data['increment_amount'] = convertCurrencyFormatToBaseAmount($increment_value);
+                } else {
+                    $increment_data['increment_percentage'] = floatval($increment_value);
+                }
+
+                $result = $this->payroll_increment_model->addIncrement($increment_data);
+
+                if ($result) {
+                    $success_count++;
+                } else {
+                    $error_messages[] = "Staff ID {$staff_id}: Failed to add increment";
+                }
+            }
+
+            if ($success_count > 0) {
+                $this->session->set_flashdata('success', "Successfully added {$success_count} increment(s)/bonus(es). Awaiting HR approval.");
+            }
+            
+            if (!empty($error_messages)) {
+                $this->session->set_flashdata('error', "Errors: " . implode(" | ", $error_messages));
+            }
+
+            redirect('admin/payroll/pending_increments');
+        }
     }
 }
 

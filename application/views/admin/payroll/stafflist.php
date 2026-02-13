@@ -13,6 +13,10 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                     <div class="box-header with-border">
                         <h3 class="box-title"><i class="fa fa-search"></i> <?php echo $this->lang->line('select_criteria'); ?></h3>
                         <div class="box-tools pull-right">
+                            <a href="<?php echo site_url('admin/payroll/bulk_add_increment'); ?>" class="btn btn-success btn-sm" title="Add Salary Increment for Multiple Staff"><i class="fa fa-users"></i> Bulk Add Increment</a>
+                            <a href="<?php echo site_url('admin/payroll/add_increment'); ?>" class="btn btn-default btn-sm" title="Add New Salary Increment"><i class="fa fa-plus-circle"></i> Add Increment</a>
+                            <a href="<?php echo site_url('admin/payroll/pending_increments'); ?>" class="btn btn-warning btn-sm" title="View Pending Increment Approvals"><i class="fa fa-clock-o"></i> Pending Approvals</a>
+                            <a href="<?php echo site_url('admin/payroll/increments'); ?>" class="btn btn-default btn-sm" title="View All Increments"><i class="fa fa-list"></i> All Increments</a>
                             <a href="<?php echo site_url('admin/payroll/settings'); ?>" class="btn btn-info btn-sm" title="View EPF & TDS Settings"><i class="fa fa-gear"></i> EPF & TDS Settings</a>
                             <a href="<?php echo site_url('admin/payroll/bulkupload'); ?>" class="btn btn-primary btn-sm"><i class="fa fa-upload"></i> <?php echo $this->lang->line('bulk_upload'); ?>(<?php echo $this->lang->line('earning'); ?>/<?php echo $this->lang->line('deduction'); ?>)</a>
                         </div>
