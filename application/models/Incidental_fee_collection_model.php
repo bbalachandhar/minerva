@@ -73,7 +73,7 @@ class Incidental_fee_collection_model extends CI_Model {
             $this->db->where('incidental_fee_collections.date_collected <=', $filters['end_date'] . ' 23:59:59');
         }
 
-        $this->db->order_by('incidental_fee_collections.date_collected', 'DESC');
+        $this->db->order_by('incidental_fee_collections.id', 'DESC');
         return $this->db->get()->result_array();
     }
 
