@@ -223,6 +223,7 @@ $(document).ready(function() {
     $('.incidental-report-table').DataTable({
         "destroy": true,
         "dom": 'Bfrtip',
+        "order": [], // Preserve database order (no default sorting)
         "buttons": [
             {
                 extend: 'excelHtml5',
