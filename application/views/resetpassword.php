@@ -43,7 +43,7 @@ if (isset($error_message)) {
     echo "<div class='alert alert-danger'>" . $error_message . "</div>";
 }
 ?>
-                                        <form action="<?php echo site_url('user/resetpassword/' . $role . '/' . $verification_code) ?>" method="post">
+                                        <form action="<?php echo site_url('site/resetpassword/' . $role . '/' . $verification_code) ?>" method="post">
                                             <?php echo $this->customlib->getCSRF(); ?>
                                             <div class="form-group has-feedback">
                                                 <label class="sr-only"><?php echo $this->lang->line('password'); ?></label>
