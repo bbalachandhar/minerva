@@ -915,20 +915,19 @@ class Report extends Admin_Controller
         }
 
         if (isset($_POST['staff_status']) && $_POST['staff_status'] != '') {
-            if ($_POST['staff_status'] == 'both') {
-
-                $search_status = "1,2";
-            } elseif ($_POST['staff_status'] == '2') {
-
+            $status_filter = $_POST['staff_status'];
+            if ($status_filter === 'both') {
+                $search_status = "0,1";
+            } elseif ($status_filter === '2') {
                 $search_status = "0";
             } else {
-
                 $search_status = "1";
             }
             $condition .= " and `staff`.`is_active` in (" . $search_status . ")";
-            $data['status_val'] = $_POST['staff_status'];
+            $data['status_val'] = $status_filter;
         } else {
-            $data['status_val'] = 1;
+            $condition .= " and `staff`.`is_active` in (1)";
+            $data['status_val'] = '1';
         }
 
         if (isset($_POST['role']) && $_POST['role'] != '') {
