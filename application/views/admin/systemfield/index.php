@@ -5,7 +5,7 @@
 <div class="content-wrapper" style="min-height: 946px;">
     <section class="content-header">
         <h1>
-            <i class="fa fa-gears"></i> <?php //echo $this->lang->line('system_settings'); ?>
+            <?php echo $this->lang->line('system_fields'); ?>
         </h1>
     </section>
     <!-- Main content -->
@@ -755,19 +755,10 @@
                                         </td>
                                     </tr>
                                     <tr>
-                                        <td class="text-rtl-right" width="100%"><?php echo $this->lang->line('epf_no'); ?></td>
-                                        <td>
-                                            <div class="material-switch pull-right">
-                                                <input id="staff_epf_no" name="staff_epf_no" type="checkbox" data-role="staff_epf_no" class="chk" data-rowid="1" value="checked" <?php if ($result->staff_epf_no == "1") {
-    echo "checked='checked'";
-}
-?> />
-                                                <label for="staff_epf_no" class="label-success"></label>
-                                            </div>
+                                        <td class="text-rtl-right" width="100%">
+                                            <?php echo $this->lang->line('contract_basic_salary') ?: ($this->lang->line('basic_salary') . ' (Contract)'); ?> 
+                                            <small class="text-muted">- Contracted basic from employment letter</small>
                                         </td>
-                                    </tr>
-                                    <tr>
-                                        <td class="text-rtl-right" width="100%"><?php echo $this->lang->line('basic_salary'); ?></td>
                                         <td>
                                             <div class="material-switch pull-right">
                                                 <input id="staff_basic_salary" name="staff_basic_salary" type="checkbox" data-role="staff_basic_salary" class="chk" data-rowid="1" value="checked" <?php if ($result->staff_basic_salary == "1") {

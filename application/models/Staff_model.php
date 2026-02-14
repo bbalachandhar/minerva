@@ -1215,7 +1215,7 @@ class Staff_model extends MY_Model
             'higher_qualification', 'qualified_exam', 'subject_specialization', 'additional_qualification',
             'work_exp', 'date_of_joining', 'date_of_leaving', 'shift', 'location',
             'account_title', 'bank_account_no', 'bank_name', 'ifsc_code', 'bank_branch',
-            'payscale', 'basic_salary', 'epf_no', 'contract_type',
+            'payscale', 'basic_salary', 'uan_no', 'esi_no', 'contract_type', 'is_epf_enabled', 'is_esi_enabled',
             'facebook', 'twitter', 'linkedin', 'instagram', 'note',
         ];
 

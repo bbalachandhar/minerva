@@ -4,7 +4,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
 <div class="content-wrapper">
     <section class="content-header">
         <h1>
-            <i class="fa fa-gear"></i> EPF & TDS Configuration
+            <i class="fa fa-gear"></i> EPF, ESI & TDS Configuration
             <small>India FY 2025-26</small>
         </h1>
     </section>
@@ -82,88 +82,68 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                 </div>
             </div>
 
-            <!-- Tax Settings -->
+            <!-- ESI Settings -->
             <div class="col-md-6">
-                <div class="box box-success">
+                <div class="box box-info">
                     <div class="box-header with-border">
                         <h3 class="box-title">
-                            <i class="fa fa-calculator"></i> New Tax Regime Settings (FY 2025-26)
+                            <i class="fa fa-heartbeat"></i> Employee State Insurance (ESI) Settings
                         </h3>
                     </div>
                     <div class="box-body">
-                        <div style="margin-bottom: 15px; padding: 10px; background: #f0f8ff; border-radius: 4px;">
-                            <strong>Current Tax Regime:</strong>
-                            <span style="background: #0056b3; color: white; padding: 4px 12px; border-radius: 20px; font-weight: 600;">
-                                <?php echo strtoupper($tax_regime); ?>
-                            </span>
-                        </div>
-
-                        <h4 style="color: #28a745; margin-top: 20px;">Tax Slabs:</h4>
-                        <table class="table table-striped table-hover" style="font-size: 12px;">
+                        <table class="table table-striped table-hover">
                             <thead>
-                                <tr style="background: #e8f5e9;">
-                                    <th style="color: #2e7d32;">Income Range</th>
-                                    <th style="color: #2e7d32; text-align: right;">Tax Rate</th>
+                                <tr style="background: #e0f7fa;">
+                                    <th style="font-weight: 600; color: #00695c;">Parameter</th>
+                                    <th style="font-weight: 600; color: #00695c;">Value</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <?php
-$income_from = 0;
-foreach ($new_tax_regime['slabs'] as $i => $slab) {
-    $from = number_format($slab['from']);
-    $to = ($slab['to'] == PHP_INT_MAX) ? 'Above' : number_format($slab['to']);
-    $is_last = ($slab['to'] == PHP_INT_MAX);
-    ?>
-                                    <tr>
-                                        <td>
-                                            <?php if ($is_last) { ?>
-                                                ₹<?php echo $from; ?> and above
-                                            <?php } else { ?>
-                                                ₹<?php echo $from; ?> - ₹<?php echo $to; ?>
-                                            <?php } ?>
-                                        </td>
-                                        <td style="text-align: right; font-weight: 600; color: #0056b3;">
-                                            <?php echo $slab['rate']; ?>%
-                                        </td>
-                                    </tr>
-                                <?php } ?>
-                            </tbody>
-                        </table>
-
-                        <h4 style="color: #28a745; margin-top: 20px;">Deductions & Rebates:</h4>
-                        <table class="table table-striped">
-                            <tbody>
                                 <tr>
-                                    <td><strong>Standard Deduction</strong></td>
-                                    <td style="text-align: right; color: #0056b3; font-weight: 600;">₹<?php echo number_format($new_tax_regime['standard_deduction']); ?></td>
+                                    <td><strong>Employee Contribution Rate</strong></td>
+                                    <td style="color: #00796b; font-weight: 600;"><?php echo $esi['employee_contribution_rate']; ?>%</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Employer Contribution Rate</strong></td>
+                                    <td style="color: #00796b; font-weight: 600;"><?php echo $esi['employer_contribution_rate']; ?>%</td>
+                                </tr>
+                                <tr style="background: #fff9c4;">
+                                    <td><strong>Total ESI Contribution</strong></td>
+                                    <td style="color: #f57c00; font-weight: 600;"><?php echo ($esi['employee_contribution_rate'] + $esi['employer_contribution_rate']); ?>%</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Monthly Wage Ceiling</strong></td>
+                                    <td style="color: #0056b3; font-weight: 600;">₹<?php echo number_format($esi['wage_ceiling']); ?></td>
                                 </tr>
                                 <tr style="background: #e8f5e9;">
-                                    <td><strong>Section 87A Rebate (Income ≤ ₹<?php echo number_format($new_tax_regime['section_87a_rebate']['income_limit']); ?>)</strong></td>
-                                    <td style="text-align: right; color: #2e7d32; font-weight: 600;">₹<?php echo number_format($new_tax_regime['section_87a_rebate']['rebate_amount']); ?></td>
+                                    <td><strong>Minimum Wage Threshold</strong></td>
+                                    <td style="color: #2e7d32; font-weight: 600;">
+                                        <?php echo $esi['minimum_wage'] > 0 ? '₹' . number_format($esi['minimum_wage']) : 'No Minimum'; ?>
+                                    </td>
                                 </tr>
-                                <tr>
-                                    <td><strong>Health & Education Cess</strong></td>
-                                    <td style="text-align: right; color: #d32f2f; font-weight: 600;">4%</td>
+                                <tr style="background: #e8f5e9;">
+                                    <td><strong>ESI Enabled</strong></td>
+                                    <td style="color: #2e7d32; font-weight: 600;"><?php echo $esi['enabled'] ? 'YES' : 'NO'; ?></td>
                                 </tr>
                             </tbody>
                         </table>
-
-                        <div style="margin-top: 20px; padding: 15px; background: #f3e5f5; border-left: 4px solid #9c27b0; border-radius: 4px;">
-                            <h4 style="margin-top: 0; color: #6a1b9a;">Tax Calculation Formula:</h4>
-                            <p style="margin: 8px 0; font-size: 11px; color: #555;">
-                                1. Taxable Income = Gross - Standard Deduction (₹<?php echo number_format($new_tax_regime['standard_deduction']); ?>)
+                        
+                        <div style="margin-top: 20px; padding: 15px; background: #e0f7fa; border-left: 4px solid #00ACC1; border-radius: 4px;">
+                            <h4 style="margin-top: 0; color: #00695c;">ESI Contribution Calculation:</h4>
+                            <p style="margin: 8px 0; color: #555;">
+                                <strong>Applicable Wages</strong> = Gross Salary (if ≤ ₹<?php echo number_format($esi['wage_ceiling']); ?>)
                             </p>
-                            <p style="margin: 8px 0; font-size: 11px; color: #555;">
-                                2. Tax = Apply slab rates to taxable income
+                            <p style="margin: 8px 0; color: #555;">
+                                <strong>Employee ESI</strong> = <?php echo $esi['employee_contribution_rate']; ?>% × Gross Salary
                             </p>
-                            <p style="margin: 8px 0; font-size: 11px; color: #555;">
-                                3. Rebate (87A) = Up to ₹<?php echo number_format($new_tax_regime['section_87a_rebate']['rebate_amount']); ?> if income ≤ ₹<?php echo number_format($new_tax_regime['section_87a_rebate']['income_limit']); ?>
+                            <p style="margin: 8px 0; color: #555;">
+                                <strong>Employer ESI</strong> = <?php echo $esi['employer_contribution_rate']; ?>% × Gross Salary
                             </p>
-                            <p style="margin: 8px 0; font-size: 11px; color: #555;">
-                                4. Cess = 4% of (Tax - Rebate)
+                            <p style="margin: 8px 0; color: #555;">
+                                <strong>Total ESI</strong> = <?php echo ($esi['employee_contribution_rate'] + $esi['employer_contribution_rate']); ?>% × Gross Salary
                             </p>
-                            <p style="margin: 8px 0; font-size: 11px; color: #555;">
-                                5. Total TDS = Tax - Rebate + Cess
+                            <p style="margin: 12px 0 0 0; padding: 10px; background: #fff9c4; border-radius: 4px; color: #f57c00; font-weight: 600;">
+                                ⚠️ ESI is not applicable if monthly gross wage exceeds ₹<?php echo number_format($esi['wage_ceiling']); ?>
                             </p>
                         </div>
                     </div>
@@ -171,33 +151,160 @@ foreach ($new_tax_regime['slabs'] as $i => $slab) {
             </div>
         </div>
 
-        <!-- YTD TDS Calculation Section -->
+        <div class="row">
+            <div class="col-md-12">
+                <div class="box box-primary">
+                    <div class="box-header with-border">
+                        <h3 class="box-title">
+                            <i class="fa fa-calculator"></i> Tax Settings & YTD Calculation (FY 2025-26)
+                        </h3>
+                    </div>
+                    <div class="box-body">
+                        <div class="row">
+                            <!-- Tax Regime Settings -->
+                            <div class="col-md-6">
+                                <h4 style="color: #0056b3; margin-top: 0;">
+                                    <i class="fa fa-calculator"></i> New Tax Regime Settings
+                                </h4>
+                                <div style="margin-bottom: 15px; padding: 10px; background: #f0f8ff; border-radius: 4px;">
+                                    <strong>Current Tax Regime:</strong>
+                                    <span style="background: #0056b3; color: white; padding: 4px 12px; border-radius: 20px; font-weight: 600;">
+                                        <?php echo strtoupper($tax_regime); ?>
+                                    </span>
+                                </div>
+
+                                <h5 style="color: #28a745; margin-top: 20px;">Tax Slabs:</h5>
+                                <table class="table table-striped table-hover" style="font-size: 12px;">
+                                    <thead>
+                                        <tr style="background: #e8f5e9;">
+                                            <th style="color: #2e7d32;">Income Range</th>
+                                            <th style="color: #2e7d32; text-align: right;">Tax Rate</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php
+$income_from = 0;
+foreach ($new_tax_regime['slabs'] as $i => $slab) {
+    $from = number_format($slab['from']);
+    $to = ($slab['to'] == PHP_INT_MAX) ? 'Above' : number_format($slab['to']);
+    $is_last = ($slab['to'] == PHP_INT_MAX);
+    ?>
+                                            <tr>
+                                                <td>
+                                                    <?php if ($is_last) { ?>
+                                                        ₹<?php echo $from; ?> and above
+                                                    <?php } else { ?>
+                                                        ₹<?php echo $from; ?> - ₹<?php echo $to; ?>
+                                                    <?php } ?>
+                                                </td>
+                                                <td style="text-align: right; font-weight: 600; color: #0056b3;">
+                                                    <?php echo $slab['rate']; ?>%
+                                                </td>
+                                            </tr>
+                                        <?php } ?>
+                                    </tbody>
+                                </table>
+
+                                <h5 style="color: #28a745; margin-top: 20px;">Deductions & Rebates:</h5>
+                                <table class="table table-striped">
+                                    <tbody>
+                                        <tr>
+                                            <td><strong>Standard Deduction</strong></td>
+                                            <td style="text-align: right; color: #0056b3; font-weight: 600;">₹<?php echo number_format($new_tax_regime['standard_deduction']); ?></td>
+                                        </tr>
+                                        <tr style="background: #e8f5e9;">
+                                            <td><strong>Section 87A Rebate (Income ≤ ₹<?php echo number_format($new_tax_regime['section_87a_rebate']['income_limit']); ?>)</strong></td>
+                                            <td style="text-align: right; color: #2e7d32; font-weight: 600;">₹<?php echo number_format($new_tax_regime['section_87a_rebate']['rebate_amount']); ?></td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Health & Education Cess</strong></td>
+                                            <td style="text-align: right; color: #d32f2f; font-weight: 600;">4%</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+
+                                <div style="margin-top: 20px; padding: 15px; background: #f3e5f5; border-left: 4px solid #9c27b0; border-radius: 4px;">
+                                    <h5 style="margin-top: 0; color: #6a1b9a;">Tax Calculation Formula:</h5>
+                                    <p style="margin: 8px 0; font-size: 11px; color: #555;">
+                                        1. Taxable Income = Gross - Standard Deduction (₹<?php echo number_format($new_tax_regime['standard_deduction']); ?>)
+                                    </p>
+                                    <p style="margin: 8px 0; font-size: 11px; color: #555;">
+                                        2. Tax = Apply slab rates to taxable income
+                                    </p>
+                                    <p style="margin: 8px 0; font-size: 11px; color: #555;">
+                                        3. Rebate (87A) = Up to ₹<?php echo number_format($new_tax_regime['section_87a_rebate']['rebate_amount']); ?> if income ≤ ₹<?php echo number_format($new_tax_regime['section_87a_rebate']['income_limit']); ?>
+                                    </p>
+                                    <p style="margin: 8px 0; font-size: 11px; color: #555;">
+                                        4. Cess = 4% of (Tax - Rebate)
+                                    </p>
+                                    <p style="margin: 8px 0; font-size: 11px; color: #555;">
+                                        5. Total TDS = Tax - Rebate + Cess
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- YTD TDS Calculation -->
+                            <div class="col-md-6">
+                                <h4 style="color: #ff6b00; margin-top: 0;">
+                                    <i class="fa fa-calendar"></i> Year-To-Date (YTD) TDS Calculation
+                                </h4>
+                                <p style="margin: 8px 0; color: #666; font-size: 12px;">
+                                    <strong>Method Used:</strong> Dynamic calculation based on actual income earned till current month
+                                </p>
+
+                                <!-- WHY YTD -->
+                                <div style="margin-bottom: 20px; padding: 15px; background: #fffbea; border-left: 4px solid #ffa500; border-radius: 4px;">
+                                    <h5 style="margin-top: 0; color: #ff6b00;">Why YTD Calculation?</h5>
+                                    <p style="margin: 8px 0; color: #555; font-size: 12px;">
+                                        <strong>Problem with Simple Method:</strong> If an employee gets a salary increment mid-year, the simple method assumes they earned that higher salary for all 12 months, resulting in <span style="background: #ffe6e6; padding: 2px 4px;">OVERCHARGING of TDS</span>.
+                                    </p>
+                                    <p style="margin: 8px 0; color: #555; font-size: 12px;">
+                                        <strong>YTD Solution:</strong> Uses actual income earned from January to current month, providing <span style="background: #e6ffe6; padding: 2px 4px;">ACCURATE TDS</span> based on real earnings.
+                                    </p>
+                                </div>
+
+                                <!-- HOW IT WORKS -->
+                                <div style="margin-top: 20px; padding: 15px; background: #e3f2fd; border-left: 4px solid #2196F3; border-radius: 4px;">
+                                    <h5 style="margin-top: 0; color: #1565c0;">How YTD Calculation Works:</h5>
+                                    <ol style="margin: 0; padding-left: 20px; color: #555; font-size: 12px;">
+                                        <li style="margin: 8px 0;"><strong>Step 1:</strong> Fetch all payslips from January to previous month</li>
+                                        <li style="margin: 8px 0;"><strong>Step 2:</strong> Calculate total YTD gross income</li>
+                                        <li style="margin: 8px 0;"><strong>Step 3:</strong> Add projected income for remaining months (at current salary)</li>
+                                        <li style="margin: 8px 0;"><strong>Step 4:</strong> Calculate tax on projected annual income</li>
+                                        <li style="margin: 8px 0;"><strong>Step 5:</strong> Apply Section 87A rebate if eligible</li>
+                                        <li style="margin: 8px 0;"><strong>Step 6:</strong> Divide by 12 to get monthly TDS</li>
+                                    </ol>
+                                </div>
+
+                                <!-- BENEFITS -->
+                                <div style="margin-top: 15px; padding: 15px; background: #e8f5e9; border-left: 4px solid #4caf50; border-radius: 4px;">
+                                    <h5 style="margin-top: 0; color: #2e7d32;"><i class="fa fa-check-circle"></i> Benefits of YTD Method:</h5>
+                                    <ul style="margin: 0; padding-left: 20px; color: #555; font-size: 12px;">
+                                        <li style="margin: 8px 0;">✅ Handles mid-year salary increments correctly</li>
+                                        <li style="margin: 8px 0;">✅ Prevents overcharging of TDS</li>
+                                        <li style="margin: 8px 0;">✅ Automatically applies Section 87A rebate when eligible</li>
+                                        <li style="margin: 8px 0;">✅ Accurate for promotions and transfers with salary changes</li>
+                                        <li style="margin: 8px 0;">✅ Compliant with Indian tax regulation</li>
+                                        <li style="margin: 8px 0;">✅ No manual adjustments needed</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- YTD Example -->
         <div class="row">
             <div class="col-md-12">
                 <div class="box box-warning">
                     <div class="box-header with-border">
                         <h3 class="box-title">
-                            <i class="fa fa-calendar"></i> Year-To-Date (YTD) TDS Calculation
+                            <i class="fa fa-line-chart"></i> Real-World Example: Mid-Year Salary Increment
                         </h3>
-                        <p style="margin: 8px 0; color: #666; font-size: 12px;">
-                            <strong>Method Used:</strong> Dynamic calculation based on actual income earned till current month
-                        </p>
                     </div>
                     <div class="box-body">
-                        <!-- WHY YTD -->
-                        <div style="margin-bottom: 20px; padding: 15px; background: #fffbea; border-left: 4px solid #ffa500; border-radius: 4px;">
-                            <h4 style="margin-top: 0; color: #ff6b00;">Why YTD Calculation?</h4>
-                            <p style="margin: 8px 0; color: #555; font-size: 12px;">
-                                <strong>Problem with Simple Method:</strong> If an employee gets a salary increment mid-year, the simple method assumes they earned that higher salary for all 12 months, resulting in <span style="background: #ffe6e6; padding: 2px 4px;">OVERCHARGING of TDS</span>.
-                            </p>
-                            <p style="margin: 8px 0; color: #555; font-size: 12px;">
-                                <strong>YTD Solution:</strong> Uses actual income earned from January to current month, providing <span style="background: #e6ffe6; padding: 2px 4px;">ACCURATE TDS</span> based on real earnings.
-                            </p>
-                        </div>
-
-                        <!-- REAL EXAMPLE -->
-                        <h4 style="color: #1565c0; margin-top: 20px;">Real-World Example: Mid-Year Salary Increment</h4>
-                        
                         <table class="table table-bordered" style="margin-top: 15px;">
                             <thead>
                                 <tr style="background: #e8f4f8;">

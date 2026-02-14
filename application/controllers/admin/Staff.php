@@ -852,7 +852,9 @@ class Staff extends Admin_Controller
             $surname           = $this->input->post("surname");
             $mother_name       = $this->input->post("mother_name");
             $note              = $this->input->post("note");
-            $epf_no            = $this->input->post("epf_no");
+            $esi_no            = $this->input->post("esi_no");
+            $is_epf_enabled    = $this->input->post("is_epf_enabled") ? 1 : 0;
+            $is_esi_enabled    = $this->input->post("is_esi_enabled") ? 1 : 0;
 
             $aadhaar_no = $this->input->post('aadhaar_no');
             $religion = $this->input->post('religion');
@@ -949,9 +951,12 @@ class Staff extends Admin_Controller
                 $data_insert['note'] = $note;
             }
 
-            if (isset($epf_no)) {
-                $data_insert['epf_no'] = $epf_no;
+            if (isset($esi_no)) {
+                $data_insert['esi_no'] = $esi_no;
             }
+
+            $data_insert['is_epf_enabled'] = $is_epf_enabled;
+            $data_insert['is_esi_enabled'] = $is_esi_enabled;
 
             if (isset($basic_salary)) {
                 $data_insert['basic_salary'] = $basic_salary;
@@ -1285,7 +1290,9 @@ class Staff extends Admin_Controller
             $previous_institution = $this->input->post("previous_institution");
             $subject_expertise = $this->input->post("subject_expertise");
             $note = $this->input->post("note");
-            $epf_no = $this->input->post("epf_no");
+            $esi_no = $this->input->post("esi_no");
+            $is_epf_enabled = $this->input->post("is_epf_enabled") ? 1 : 0;
+            $is_esi_enabled = $this->input->post("is_esi_enabled") ? 1 : 0;
             $payscale = $this->input->post("payscale");
             $aadhaar_no = $this->input->post("aadhaar_no");
             $religion = $this->input->post("religion");
@@ -1329,6 +1336,8 @@ class Staff extends Admin_Controller
                 'pan_no' => $pan_no,
                 'previous_institution' => $previous_institution,
                 'subject_expertise' => $subject_expertise,
+                'is_epf_enabled' => $is_epf_enabled,
+                'is_esi_enabled' => $is_esi_enabled,
             );
 
             if (isset($surname)) {
@@ -1383,8 +1392,8 @@ class Staff extends Admin_Controller
                 $data_update['note'] = $note;
             }
 
-            if (isset($epf_no)) {
-                $data_update['epf_no'] = $epf_no;
+            if (isset($esi_no)) {
+                $data_update['esi_no'] = $esi_no;
             }
 
             if (isset($basic_salary)) {
@@ -1659,7 +1668,9 @@ class Staff extends Admin_Controller
             $surname = $this->input->post("surname");
             $mother_name = $this->input->post("mother_name");
             $note = $this->input->post("note");
-            $epf_no = $this->input->post("epf_no");
+            $esi_no = $this->input->post("esi_no");
+            $is_epf_enabled = $this->input->post("is_epf_enabled") ? 1 : 0;
+            $is_esi_enabled = $this->input->post("is_esi_enabled") ? 1 : 0;
 
             $data_update = array(
                 'id' => $id,
@@ -1731,73 +1742,16 @@ class Staff extends Admin_Controller
                 $data_update['note'] = $note;
             }
 
-            if (isset($epf_no)) {
-                $data_update['epf_no'] = $epf_no;
+            if (isset($esi_no)) {
+                $data_update['esi_no'] = $esi_no;
             }
+
+            $data_update['is_epf_enabled'] = $is_epf_enabled;
+            $data_update['is_esi_enabled'] = $is_esi_enabled;
 
             if (isset($basic_salary)) {
                 $data_update['basic_salary'] = $basic_salary;
             }
-
-            if (isset($contract_type)) {
-                $data_update['contract_type'] = $contract_type;
-            }
-
-            if (isset($shift)) {
-                $data_update['shift'] = $shift;
-            }
-
-            if (isset($location)) {
-                $data_update['location'] = $location;
-            }
-
-            if (isset($bank_account_no)) {
-                $data_update['bank_account_no'] = $bank_account_no;
-            }
-
-            if (isset($bank_name)) {
-                $data_update['bank_name'] = $bank_name;
-            }
-
-            if (isset($account_title)) {
-                $data_update['account_title'] = $account_title;
-            }
-
-            if (isset($ifsc_code)) {
-                $data_update['ifsc_code'] = $ifsc_code;
-            }
-
-            if (isset($bank_branch)) {
-                $data_update['bank_branch'] = $bank_branch;
-            }
-
-            if (isset($facebook)) {
-                $data_update['facebook'] = $facebook;
-            }
-
-            if (isset($twitter)) {
-                $data_update['twitter'] = $twitter;
-            }
-
-            if (isset($linkedin)) {
-                $data_update['linkedin'] = $linkedin;
-            }
-
-            if (isset($instagram)) {
-                $data_update['instagram'] = $instagram;
-            }
-
-            if ($date_of_joining != "") {
-                $data_update['date_of_joining'] = $this->customlib->dateFormatToYYYYMMDD($date_of_joining);
-            }
-
-            if ($date_of_leaving != "") {
-                $data_update['date_of_leaving'] = $this->customlib->dateFormatToYYYYMMDD($date_of_leaving);
-            } else {
-                $data_update['date_of_leaving'] = null;
-            }
-
-            // Role and leave types should not be editable by self
             // $leave_type = $this->input->post('leave_type');
             // $leave_array = array();
             // if (!empty($leave_type)) {
@@ -2035,7 +1989,9 @@ class Staff extends Admin_Controller
             "bank_branch"              => "bank_branch",
             "payscale"                 => "payscale",
             "basic_salary"             => "basic_salary",
-            "epf_no"                   => "epf_no",
+            "esi_no"                   => "esi_no",
+            "is_epf_enabled"           => "is_epf_enabled",
+            "is_esi_enabled"           => "is_esi_enabled",
             "contract_type"            => "contract_type",
             "shift"                    => "shift",
             "location"                 => "location",

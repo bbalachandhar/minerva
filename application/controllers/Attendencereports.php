@@ -497,19 +497,26 @@ class Attendencereports extends Admin_Controller
             $this->load->model("setting_model");
             $holidays = $this->holiday_model->get();
             $official_holiday_dates = [];
+            $compensation_dates = [];
             foreach ($holidays as $holiday_key => $holiday_value) {
                 $from_date = new DateTime($holiday_value['from_date']);
                 $to_date = new DateTime($holiday_value['to_date']);
+                $type_label = strtolower(trim($holiday_value['type'] ?? ''));
                 
                 $current = clone $from_date;
                 while ($current <= $to_date) {
                     if ($current->format('m') == $month_number && $current->format('Y') == $searchyear) {
-                        $official_holiday_dates[] = $current->format('Y-m-d');
+                        if ($type_label === 'compensation') {
+                            $compensation_dates[] = $current->format('Y-m-d');
+                        } else {
+                            $official_holiday_dates[] = $current->format('Y-m-d');
+                        }
                     }
                     $current->modify('+1 day');
                 }
             }
             $data['holiday_dates'] = array_unique($official_holiday_dates);
+            $data['compensation_dates'] = array_values(array_unique($compensation_dates));
 
             $settings = $this->setting_model->getSetting();
             $weekendDaysStr = isset($settings->weekend_days) && !empty($settings->weekend_days) ? $settings->weekend_days : '0';
@@ -540,6 +547,12 @@ class Attendencereports extends Admin_Controller
                 }
             }
             $weekend_day_dates = array_values(array_unique($weekend_day_dates));
+            
+            // Remove compensation dates from weekend display (they won't show 'W' in the report)
+            if (!empty($data['compensation_dates'])) {
+                $weekend_day_dates = array_values(array_diff($weekend_day_dates, $data['compensation_dates']));
+            }
+            
             $data['weekend_day_dates'] = $weekend_day_dates;
             $data['weekend_count'] = count($weekend_day_dates);
 
@@ -1040,6 +1053,7 @@ class Attendencereports extends Admin_Controller
             
             $weekend_days_in_month = [];
             $official_holiday_dates = [];
+            $compensation_dates = [];
             $num_of_days = cal_days_in_month(CAL_GREGORIAN, $month, $year);
 
             $settings = $this->setting_model->getSetting();
@@ -1074,18 +1088,30 @@ class Attendencereports extends Admin_Controller
 
             // Collect official holiday dates from annual_calendar
             foreach ($holidays as $holiday_key => $holiday_value) {
+                $type_label = strtolower(trim($holiday_value['type'] ?? ''));
                 $from_date = new DateTime($holiday_value['from_date']);
                 $to_date = new DateTime($holiday_value['to_date']);
                 
                 $current = clone $from_date;
                 while ($current <= $to_date) {
                     if ($current->format('m') == $month && $current->format('Y') == $year) {
-                        $official_holiday_dates[] = $current->format('Y-m-d');
+                        if ($type_label === 'compensation') {
+                            $compensation_dates[] = $current->format('Y-m-d');
+                        } else {
+                            $official_holiday_dates[] = $current->format('Y-m-d');
+                        }
                     }
                     $current->modify('+1 day');
                 }
             }
-            $official_holiday_dates = array_unique($official_holiday_dates);
+            $official_holiday_dates = array_values(array_unique($official_holiday_dates));
+            $compensation_dates = array_values(array_unique($compensation_dates));
+
+            // Remove compensation dates from weekend/holiday counts
+            if (!empty($compensation_dates)) {
+                $weekend_days_in_month = array_values(array_diff($weekend_days_in_month, $compensation_dates));
+                $official_holiday_dates = array_values(array_diff($official_holiday_dates, $compensation_dates));
+            }
 
             $holidays_for_H_column = array_diff($official_holiday_dates, $weekend_days_in_month);
 

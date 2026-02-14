@@ -126,7 +126,8 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                         <th><?php echo $this->lang->line('qualification'); ?></th>
                                         <th><?php echo $this->lang->line('work_experience'); ?></th>
                                         <th><?php echo $this->lang->line('note'); ?></th>
-                                        <th><?php echo $this->lang->line('epf_no'); ?></th>
+                                        <th><?php echo $this->lang->line('uan_no') ?: 'UAN No.'; ?></th>
+                                        <th><?php echo $this->lang->line('esi_no') ?: ($this->lang->line('epf_no') ?: 'ESI No.'); ?></th>
                                         <th><?php echo $this->lang->line('basic_salary'); ?></th>
                                         <th><?php echo $this->lang->line('contract_type'); ?></th>
                                         <th><?php echo $this->lang->line('work_shift'); ?></th>
@@ -180,7 +181,8 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                                 <td><?php echo $staff['qualification']; ?></td>
                                                 <td><?php echo isset($staff['work_experience']) ? $staff['work_experience'] : ''; ?></td>
                                                 <td><?php echo $staff['note'] ?></td>
-                                                <td><?php echo $staff['epf_no']; ?></td>
+                                                <td><?php echo isset($staff['uan_no']) ? $staff['uan_no'] : ''; ?></td>
+                                                <td><?php echo isset($staff['esi_no']) ? $staff['esi_no'] : ''; ?></td>
                                                 <td><?php if(!empty($staff['basic_salary'])){ echo amountFormat($staff['basic_salary']); } ?></td>
                                                 <td><?php echo $staff['contract_type']; ?></td>
                                                 <td><?php echo $staff['shift'] ?></td>

@@ -394,12 +394,6 @@ class Systemfield extends Admin_Controller
             } else {
                 $data['staff_note'] = 0;
             }
-        } else if ($role == 'staff_epf_no') {
-            if ($status == "yes") {
-                $data['staff_epf_no'] = 1;
-            } else {
-                $data['staff_epf_no'] = 0;
-            }
         } else if ($role == 'staff_basic_salary') {
             if ($status == "yes") {
                 $data['staff_basic_salary'] = 1;

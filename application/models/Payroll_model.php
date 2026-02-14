@@ -391,16 +391,66 @@ class Payroll_model extends MY_Model
 
     public function getAllowance($id, $type = null)
     {
+        $this->db->select(
+            "payslip_allowance.id,
+            payslip_allowance.allowance_type_id,
+            payroll_allowance_types.allowance_name as allowance_type,
+            payroll_allowance_types.allowance_code as allowance_code,
+            payslip_allowance.amount,
+            payslip_allowance.cal_type"
+        );
+        $this->db->from("payslip_allowance");
+        $this->db->join(
+            "payroll_allowance_types",
+            "payroll_allowance_types.id = payslip_allowance.allowance_type_id",
+            "left"
+        );
+        $this->db->where("payslip_allowance.payslip_id", $id);
+
         if (!empty($type)) {
-
-            $query = $this->db->select("id,allowance_type,amount,cal_type")->where(array('payslip_id' => $id, 'cal_type' => $type))->get("payslip_allowance");
-        } else {
-
-            $query = $this->db->select("id,allowance_type,amount,cal_type")->where("payslip_id", $id)->get("payslip_allowance");
+            $this->db->where("payslip_allowance.cal_type", $type);
         }
 
+        $query = $this->db->get();
+
         return $query->result_array();
-    }     
+    }
+
+    /**
+     * Get all active allowance types from master table
+     * @param string $category Optional - 'earning' or 'deduction'
+     * @param bool $exclude_statutory If true, excludes auto-calculated items (EPF, ESI, TDS)
+     * @return array List of allowance types
+     */
+    public function getAllowanceTypes($category = null, $exclude_statutory = true)
+    {
+        $this->db->select('id, allowance_code, allowance_name, category, is_taxable, is_statutory, display_order');
+        $this->db->where('is_active', 1);
+        
+        if (!empty($category)) {
+            $this->db->where('category', $category);
+        }
+        
+        if ($exclude_statutory) {
+            $this->db->where('is_statutory', 0); // Exclude EPF, ESI, TDS (auto-calculated)
+        }
+        
+        $this->db->order_by('display_order', 'ASC');
+        $query = $this->db->get('payroll_allowance_types');
+        
+        return $query->result_array();
+    }
+
+    /**
+     * Get single allowance type by ID
+     * @param int $id Allowance type ID
+     * @return array|null Allowance type details
+     */
+    public function getAllowanceTypeById($id)
+    {
+        $query = $this->db->where('id', $id)->get('payroll_allowance_types');
+        return $query->row_array();
+    }
 
     public function getSalaryDetails($id)
     {
@@ -1271,6 +1321,38 @@ class Payroll_model extends MY_Model
         }
         
         return 0;
+    }
+
+    /**
+     * Calculate EPF and ESI deductions based on dual checkpoint validation
+     * EPF: Requires uan_no NOT EMPTY AND is_epf_enabled == 1
+     * ESI: Requires esi_no NOT EMPTY AND is_esi_enabled == 1
+     * 
+     * @param array $staff - Staff record with uan_no, esi_no, is_epf_enabled, is_esi_enabled, basic_salary
+     * @param float $epf_rate - EPF deduction rate (default 12% employee contribution)
+     * @param float $esi_rate - ESI deduction rate (default 0.75% employee contribution)
+     * @return array - Array with 'epf_deduction' and 'esi_deduction' keys
+     */
+    public function calculateStatutoryDeductions($staff, $epf_rate = 0.12, $esi_rate = 0.0075)
+    {
+        $deductions = [
+            'epf_deduction' => 0,
+            'esi_deduction' => 0,
+        ];
+
+        $basic_salary = isset($staff['basic_salary']) ? (float) $staff['basic_salary'] : 0;
+
+        // EPF DEDUCTION: Check dual checkpoints
+        if (!empty($staff['uan_no']) && isset($staff['is_epf_enabled']) && $staff['is_epf_enabled'] == 1) {
+            $deductions['epf_deduction'] = round($basic_salary * $epf_rate, 2);
+        }
+
+        // ESI DEDUCTION: Check dual checkpoints
+        if (!empty($staff['esi_no']) && isset($staff['is_esi_enabled']) && $staff['is_esi_enabled'] == 1) {
+            $deductions['esi_deduction'] = round($basic_salary * $esi_rate, 2);
+        }
+
+        return $deductions;
     }
 
 }

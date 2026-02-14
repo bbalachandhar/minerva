@@ -17,6 +17,15 @@ $config['epf'] = array(
     'basic_applicable' => true,              // Whether Basic is included in EPF wage
 );
 
+// ESI Configuration
+$config['esi'] = array(
+    'enabled' => true,
+    'employee_contribution_rate' => 0.75,    // 0.75% of Employee's Gross Wages
+    'employer_contribution_rate' => 3.25,    // 3.25% of Employee's Gross Wages
+    'wage_ceiling' => 21000,                 // Monthly wage ceiling for ESI applicability
+    'minimum_wage' => 0,                     // Minimum wage for ESI (typically no minimum)
+);
+
 // New Tax Regime FY 2025-26
 $config['new_tax_regime'] = array(
     'standard_deduction' => 75000,           // Standard deduction for new regime

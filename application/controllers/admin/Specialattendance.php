@@ -80,9 +80,10 @@ class Specialattendance extends Admin_Controller
         $weekendDays = array_map('intval', explode(',', $weekendDaysStr));
         $isSecondSaturdayHoliday = isset($settings->isSecondSaturdayHoliday) ? (int)$settings->isSecondSaturdayHoliday : 0;
         
-        // Get holidays from annual_calendar
-        $this->db->select('from_date, to_date');
+        // Get holidays from annual_calendar (exclude compensation from holiday list)
+        $this->db->select('annual_calendar.from_date, annual_calendar.to_date, holiday_type.type');
         $this->db->from('annual_calendar');
+        $this->db->join('holiday_type', 'holiday_type.id = annual_calendar.holiday_type', 'left');
         $this->db->where('is_active', 1);
         $this->db->where('(MONTH(from_date) = ' . date('n', strtotime("$month 1, $year")) . ' AND YEAR(from_date) = ' . $year . ') 
                          OR (MONTH(to_date) = ' . date('n', strtotime("$month 1, $year")) . ' AND YEAR(to_date) = ' . $year . ')
@@ -105,6 +106,7 @@ class Specialattendance extends Admin_Controller
         $daysInMonth = (int)$firstDay->format('t');
         $workingDays = 0;
         $holidayDates = [];
+        $compensationDates = [];
         
         // Collect all holiday dates
         foreach ($holidays as $holiday) {
@@ -115,7 +117,12 @@ class Specialattendance extends Admin_Controller
             
             foreach ($period as $date) {
                 if ($date->format('n') == ($monthIndex + 1) && $date->format('Y') == $year) {
-                    $holidayDates[] = $date->format('Y-m-d');
+                    $type_label = strtolower(trim($holiday['type'] ?? ''));
+                    if ($type_label === 'compensation') {
+                        $compensationDates[] = $date->format('Y-m-d');
+                    } else {
+                        $holidayDates[] = $date->format('Y-m-d');
+                    }
                 }
             }
         }
@@ -132,7 +139,7 @@ class Specialattendance extends Admin_Controller
                     $saturdayCount++;
                     if ($saturdayCount == 2) { // Second Saturday
                         $dateStr = $date->format('Y-m-d');
-                        if (!in_array($dateStr, $holidayDates)) {
+                        if (!in_array($dateStr, $holidayDates, true)) {
                             $holidayDates[] = $dateStr;
                         }
                         break;
@@ -140,6 +147,9 @@ class Specialattendance extends Admin_Controller
                 }
             }
         }
+
+        $compensationDates = array_values(array_unique($compensationDates));
+        $holidayDates = array_values(array_diff(array_unique($holidayDates), $compensationDates));
         
         // Count working days (exclude configured weekend days and holidays)
         for ($i = 1; $i <= $daysInMonth; $i++) {
@@ -147,8 +157,14 @@ class Specialattendance extends Admin_Controller
             $dayOfWeek = (int)$date->format('w');
             $dateStr = $date->format('Y-m-d');
             
+            // Treat compensation days as working days, even if weekend
+            if (in_array($dateStr, $compensationDates, true)) {
+                $workingDays++;
+                continue;
+            }
+
             // Check if day is a weekend or holiday
-            if (!in_array($dayOfWeek, $weekendDays) && !in_array($dateStr, $holidayDates)) {
+            if (!in_array($dayOfWeek, $weekendDays, true) && !in_array($dateStr, $holidayDates, true)) {
                 $workingDays++;
             }
         }

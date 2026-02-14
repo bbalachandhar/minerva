@@ -67,7 +67,46 @@ class Holiday extends Admin_Controller
             // IF THERE IS SINGLE DATE THEN IT WILL BE SAME FOR BOTH COLUMNS - FROM_DATE AND TO_DATE //
                  
             $from_date   =    $this->input->post('from_date');
-            $to_date     =    $this->input->post('to_date');              
+            $to_date     =    $this->input->post('to_date');
+
+            $holiday_color = '#008000';
+            $comp_type = $this->holiday_model->get_holiday_type_by_name('Compensation');
+            if (!empty($comp_type) && (int)$holiday_type === (int)$comp_type['id']) {
+                $settings = $this->setting_model->getSetting();
+                $weekendDaysStr = isset($settings->weekend_days) && !empty($settings->weekend_days) ? $settings->weekend_days : '0';
+                $weekendDays = array_map('intval', explode(',', $weekendDaysStr));
+                $isSecondSaturdayWeekend = isset($settings->isSecondSaturdayHoliday) ? (int)$settings->isSecondSaturdayHoliday : 0;
+
+                $from_dt = new DateTime(date('Y-m-d', $this->customlib->datetostrtotime($from_date)));
+                $to_dt = new DateTime(date('Y-m-d', $this->customlib->datetostrtotime($to_date)));
+                $current = clone $from_dt;
+                $invalid_date = null;
+
+                while ($current <= $to_dt) {
+                    $dayOfWeek = (int)$current->format('w');
+                    $is_second_saturday = $isSecondSaturdayWeekend && $dayOfWeek === 6 && $this->isSecondSaturday($current);
+                    $is_weekend = in_array($dayOfWeek, $weekendDays, true) || $is_second_saturday;
+                    if (!$is_weekend) {
+                        $invalid_date = $current->format('Y-m-d');
+                        break;
+                    }
+                    $current->modify('+1 day');
+                }
+
+                if ($invalid_date !== null) {
+                    $msg = array(
+                        'holiday_type'   => $this->lang->line('compensation_weekend_only'),
+                        'from_date'      => '',
+                        'to_date'        => '',
+                        'description'    => ''
+                    );
+                    $array = array('status' => 'fail', 'error' => $msg, 'message' => '');
+                    echo json_encode($array);
+                    return;
+                }
+
+                $holiday_color = '#ff9800';
+            }
 
 			if($this->input->post('front_site')){
 				$front_site	=	1;
@@ -83,7 +122,7 @@ class Holiday extends Admin_Controller
                 'description'       =>     $this->input->post('description'),
                 'front_site'        =>     $front_site,
                 'created_by'        =>     $this->customlib->getStaffID(),
-                'holiday_color'     =>     '#008000',              
+                'holiday_color'     =>     $holiday_color,
                 'session_id'    	=>     $this->setting_model->getCurrentSession()                
             );
 
@@ -110,6 +149,22 @@ class Holiday extends Admin_Controller
         $this->holiday_model->delete_holiday($_POST['id']);
         $array = array('status' => 1, 'success' => $this->lang->line('delete_message'));
         echo json_encode($array);
+    }
+
+    private function isSecondSaturday(DateTime $dateObj)
+    {
+        $month_start = new DateTime($dateObj->format('Y-m-01'));
+        $count = 0;
+        while ($month_start <= $dateObj) {
+            if ((int) $month_start->format('w') === 6) {
+                $count++;
+            }
+            if ($month_start->format('Y-m-d') === $dateObj->format('Y-m-d')) {
+                break;
+            }
+            $month_start->modify('+1 day');
+        }
+        return $count === 2;
     }
 	
 	public function getholiday()

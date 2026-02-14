@@ -93,20 +93,41 @@ $image=$this->media_storage->getImageURL("uploads/staff_images/" . $file);
                                                         <td><?php echo $result["email"] ?></td>
                                                     </tr>
                                                     <tr>
-                                                        <?php if ($sch_setting->staff_epf_no) {?>
-                                                            <th><?php echo $this->lang->line('epf_no'); ?></th>
-                                                            <td><?php echo $result["epf_no"] ?></td>
-                                                        <?php }?>
+                                                        <th><?php echo $this->lang->line('uan_no') ?: 'UAN No.'; ?></th>
+                                                        <td><?php echo isset($result['uan_no']) ? $result['uan_no'] : ''; ?></td>
                                                         <th><?php echo $this->lang->line('role'); ?></th>
                                                         <td><?php echo $result["user_type"] ?></td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th><?php echo $this->lang->line('esi_no') ?: ($this->lang->line('epf_no') ?: 'ESI No.'); ?></th>
+                                                        <td><?php echo isset($result['esi_no']) ? $result['esi_no'] : ''; ?></td>
+                                                        <th><?php echo $this->lang->line('role'); ?></th>
+                                                        <td>
+                                                            <?php
+                                                            $epf_status = (!empty($result['uan_no']) && isset($result['is_epf_enabled']) && $result['is_epf_enabled'] == 1) 
+                                                                ? '<span style="color: #28a745;">✓ EPF Active</span>' 
+                                                                : '<span style="color: #dc3545;">✗ EPF Inactive</span>';
+                                                            $esi_status = (!empty($result['esi_no']) && isset($result['is_esi_enabled']) && $result['is_esi_enabled'] == 1) 
+                                                                ? '<span style="color: #28a745;">✓ ESI Active</span>' 
+                                                                : '<span style="color: #dc3545;">✗ ESI Inactive</span>';
+                                                            echo $epf_status . ' | ' . $esi_status;
+                                                            ?>
+                                                        </td>
                                                     </tr>
                                                     <tr>
                                                         <?php if ($sch_setting->staff_department) {?>
                                                             <th><?php echo $this->lang->line('department'); ?></th>
                                                             <td><?php echo $result["department"] ?></td>
-                                                        <?php }if ($sch_setting->staff_designation) {?>
+                                                        <?php } else { ?>
+                                                            <th>&nbsp;</th>
+                                                            <td>&nbsp;</td>
+                                                        <?php }
+                                                        if ($sch_setting->staff_designation) {?>
                                                             <th><?php echo $this->lang->line('designation'); ?></th>
                                                             <td><?php echo $result["designation"] ?>   </td>
+                                                        <?php } else { ?>
+                                                            <th>&nbsp;</th>
+                                                            <td>&nbsp;</td>
                                                         <?php }?>
                                                     </tr>
                                                 </tbody>
@@ -217,7 +238,15 @@ foreach ($monthAttendance as $attendence_key => $attendence_value) {
                                             ?>
                                                                                             <tr id="row<?php echo $count; ?>">
                                                                                                 <td>
-                                                                                                    <input type="text" class="form-control" name="allowance_type[]" id="allowance_type_<?php echo $count; ?>" placeholder="<?php echo $this->lang->line('type'); ?>" value="<?php echo $earning['allowance_type']; ?>">
+                                                                                                    <select class="form-control" name="allowance_type_id[]" id="allowance_type_<?php echo $count; ?>">
+                                                                                                        <option value=""><?php echo $this->lang->line('type'); ?></option>
+                                                                                                        <?php foreach($earning_types as $type): ?>
+                                                                                                            <option value="<?php echo $type['id']; ?>" data-code="<?php echo $type['allowance_code']; ?>"
+                                                                                                                <?php echo ($type['id'] == $earning['allowance_type_id']) ? 'selected' : ''; ?>>
+                                                                                                                <?php echo $type['allowance_name']; ?> (<?php echo $type['allowance_code']; ?>)
+                                                                                                            </option>
+                                                                                                        <?php endforeach; ?>
+                                                                                                    </select>
                                                                                                 </td>
                                                                                                 <td>
                                                                                                     <input type="text" name="allowance_amount[]" id="allowance_amount_<?php echo $count; ?>" class="form-control" value="<?php echo $earning['amount']; ?>">
@@ -232,7 +261,16 @@ foreach ($monthAttendance as $attendence_key => $attendence_value) {
                                     } else {
                                         ?>
                                                                                         <tr id="row0">
-                                                                                            <td><input type="text" class="form-control" id="allowance_type" name="allowance_type[]" placeholder="<?php echo $this->lang->line('type'); ?>"></td>
+                                                                                            <td>
+                                                                                                <select class="form-control" id="allowance_type" name="allowance_type_id[]">
+                                                                                                    <option value=""><?php echo $this->lang->line('type'); ?></option>
+                                                                                                    <?php foreach($earning_types as $type): ?>
+                                                                                                        <option value="<?php echo $type['id']; ?>" data-code="<?php echo $type['allowance_code']; ?>">
+                                                                                                            <?php echo $type['allowance_name']; ?> (<?php echo $type['allowance_code']; ?>)
+                                                                                                        </option>
+                                                                                                    <?php endforeach; ?>
+                                                                                                </select>
+                                                                                            </td>
                                                                                             <td><input type="text" id="allowance_amount" name="allowance_amount[]" class="form-control" value="0"></td>
                                     
                                                                                         </tr>
@@ -255,7 +293,15 @@ foreach ($monthAttendance as $attendence_key => $attendence_value) {
                                             ?>
                                                                                             <tr id="deduction_row<?php echo $count; ?>">
                                                                                                 <td>
-                                                                                                    <input type="text" id="deduction_type_<?php echo $count; ?>" name="deduction_type[]" class="form-control" placeholder="<?php echo $this->lang->line('type'); ?>" value="<?php echo $deduction['allowance_type']; ?>">
+                                                                                                    <select class="form-control" id="deduction_type_<?php echo $count; ?>" name="deduction_type_id[]">
+                                                                                                        <option value=""><?php echo $this->lang->line('type'); ?></option>
+                                                                                                        <?php foreach($deduction_types as $type): ?>
+                                                                                                            <option value="<?php echo $type['id']; ?>" data-code="<?php echo $type['allowance_code']; ?>"
+                                                                                                                <?php echo ($type['id'] == $deduction['allowance_type_id']) ? 'selected' : ''; ?>>
+                                                                                                                <?php echo $type['allowance_name']; ?> (<?php echo $type['allowance_code']; ?>)
+                                                                                                            </option>
+                                                                                                        <?php endforeach; ?>
+                                                                                                    </select>
                                                                                                 </td>
                                                                                                 <td>
                                                                                                     <input type="text" id="deduction_amount_<?php echo $count; ?>" name="deduction_amount[]" class="form-control" value="<?php echo $deduction['amount']; ?>">
@@ -270,7 +316,16 @@ foreach ($monthAttendance as $attendence_key => $attendence_value) {
                                     } else {
                                         ?>
                                                                                      <tr id="deduction_row0">
-                                                                                        <td><input type="text" class="form-control" id="deduction_type" name="deduction_type[]" placeholder="<?php echo $this->lang->line('type'); ?>"></td>
+                                                                                        <td>
+                                                                                            <select class="form-control" id="deduction_type" name="deduction_type_id[]">
+                                                                                                <option value=""><?php echo $this->lang->line('type'); ?></option>
+                                                                                                <?php foreach($deduction_types as $type): ?>
+                                                                                                    <option value="<?php echo $type['id']; ?>" data-code="<?php echo $type['allowance_code']; ?>">
+                                                                                                        <?php echo $type['allowance_name']; ?> (<?php echo $type['allowance_code']; ?>)
+                                                                                                    </option>
+                                                                                                <?php endforeach; ?>
+                                                                                            </select>
+                                                                                        </td>
                                                                                         <td><input type="text" id="deduction_amount" name="deduction_amount[]" class="form-control" value="0"></td>
                                                                                     </tr>
                                                                                     <?php
@@ -285,7 +340,10 @@ foreach ($monthAttendance as $attendence_key => $attendence_value) {
                                     <div class="sameheight">
                                         <div class="payrollbox feebox">
                                             <div class="form-group">
-                                                <label class="col-sm-4 control-label"><?php echo $this->lang->line('basic_salary'); ?></label>
+                                                <label class="col-sm-4 control-label">
+                                                    <?php echo $this->lang->line('basic_salary'); ?>
+                                                    <small class="text-muted" style="font-size: 10px; display: block;">(This month's basic - may differ from contract)</small>
+                                                </label>
                                                 <div class="col-sm-8">
                                                     <input class="form-control" name="basic" value="<?php
 if (!empty($result["basic_salary"])) {
@@ -359,12 +417,17 @@ if (!empty($result["basic_salary"])) {
 </div>
 
 <script type="text/javascript">
+    // Convert PHP arrays to JavaScript for dynamic row generation
+    var earning_types = <?php echo json_encode($earning_types); ?>;
+    var deduction_types = <?php echo json_encode($deduction_types); ?>;
+
     function findBasicPayRow() {
-        var allowance_type = document.getElementsByName('allowance_type[]');
+        var allowance_type = document.getElementsByName('allowance_type_id[]');
         var allowance_amount = document.getElementsByName('allowance_amount[]');
         for (var i = 0; i < allowance_type.length; i++) {
-            var label = (allowance_type[i].value || '').trim().toLowerCase();
-            if (label === 'basic pay' || label === 'basic salary') {
+            var selected = allowance_type[i].options[allowance_type[i].selectedIndex];
+            var code = (selected && selected.getAttribute('data-code')) ? selected.getAttribute('data-code').toUpperCase() : '';
+            if (code === 'BASIC') {
                 return { typeEl: allowance_type[i], amountEl: allowance_amount[i] };
             }
         }
@@ -388,7 +451,7 @@ if (!empty($result["basic_salary"])) {
     function add_allowance() {
         syncBasicFromEarnings();
         var basic_pay = $("#basic").val();
-        var allowance_type = document.getElementsByName('allowance_type[]');
+        var allowance_type = document.getElementsByName('allowance_type_id[]');
         var allowance_amount = document.getElementsByName('allowance_amount[]');
         var tax = $("#tax").val();
         if (tax == '') {
@@ -396,7 +459,7 @@ if (!empty($result["basic_salary"])) {
         }
 
         var total_allowance = 0;
-        var deduction_type = document.getElementsByName('deduction_type[]');
+        var deduction_type = document.getElementsByName('deduction_type_id[]');
         var deduction_amount = document.getElementsByName('deduction_amount[]');
         var total_deduction = 0;
         for (var i = 0; i < allowance_amount.length; i++) {
@@ -407,8 +470,9 @@ if (!empty($result["basic_salary"])) {
                 var inpvalue = inp.value;
             }
 
-            var label = (allowance_type[i].value || '').trim().toLowerCase();
-            if (label === 'basic pay' || label === 'basic salary') {
+            var selected = allowance_type[i].options[allowance_type[i].selectedIndex];
+            var code = (selected && selected.getAttribute('data-code')) ? selected.getAttribute('data-code').toUpperCase() : '';
+            if (!allowance_type[i].value || code === 'BASIC') {
                 continue;
             }
             total_allowance += parseFloat(inpvalue);
@@ -420,6 +484,9 @@ if (!empty($result["basic_salary"])) {
                 var inpdvalue = 0;
             } else {
                 var inpdvalue = inpd.value;
+            }
+            if (!deduction_type[j].value) {
+                continue;
             }
             total_deduction += parseFloat(inpdvalue);
         }
@@ -450,7 +517,11 @@ if (!empty($result["basic_salary"])) {
         var table = document.getElementById("tableID");
         var table_len = (table.rows.length);
         var id = parseInt(table_len);
-        var row = table.insertRow(table_len).outerHTML = "<tr id='row" + id + "'><td><input type='text' class='form-control' id='allowance_type' name='allowance_type[]' placeholder='<?php echo $this->lang->line("type"); ?>'></td><td><input type='text' class='form-control' id='allowance_amount' name='allowance_amount[]'  value='0'></td><td><button type='button' onclick='delete_row(" + id + ")' class='closebtn'><i class='fa fa-remove'></i></button></td></tr>";
+        var options = "<option value=''><?php echo $this->lang->line('type'); ?></option>";
+        earning_types.forEach(function (type) {
+            options += "<option value='" + type.id + "' data-code='" + type.allowance_code + "'>" + type.allowance_name + " (" + type.allowance_code + ")</option>";
+        });
+        var row = table.insertRow(table_len).outerHTML = "<tr id='row" + id + "'><td><select class='form-control' id='allowance_type' name='allowance_type_id[]'>" + options + "</select></td><td><input type='text' class='form-control' id='allowance_amount' name='allowance_amount[]'  value='0'></td><td><button type='button' onclick='delete_row(" + id + ")' class='closebtn'><i class='fa fa-remove'></i></button></td></tr>";
     }
 
     function delete_row(id) {
@@ -463,7 +534,11 @@ if (!empty($result["basic_salary"])) {
         var table = document.getElementById("tableID2");
         var table_len = (table.rows.length);
         var id = parseInt(table_len);
-        var row = table.insertRow(table_len).outerHTML = "<tr id='deduction_row" + id + "'><td><input type='text' class='form-control' id='deduction_type' name='deduction_type[]' placeholder='<?php echo $this->lang->line("type"); ?>'></td><td><input type='text' id='deduction_amount' name='deduction_amount[]' class='form-control' value='0'></td><td><button type='button' onclick='delete_deduction_row(" + id + ")' class='closebtn'><i class='fa fa-remove'></i></button></td></tr>";
+        var options = "<option value=''><?php echo $this->lang->line('type'); ?></option>";
+        deduction_types.forEach(function (type) {
+            options += "<option value='" + type.id + "' data-code='" + type.allowance_code + "'>" + type.allowance_name + " (" + type.allowance_code + ")</option>";
+        });
+        var row = table.insertRow(table_len).outerHTML = "<tr id='deduction_row" + id + "'><td><select class='form-control' id='deduction_type' name='deduction_type_id[]'>" + options + "</select></td><td><input type='text' id='deduction_amount' name='deduction_amount[]' class='form-control' value='0'></td><td><button type='button' onclick='delete_deduction_row(" + id + ")' class='closebtn'><i class='fa fa-remove'></i></button></td></tr>";
     }
 
     function delete_deduction_row(id) {

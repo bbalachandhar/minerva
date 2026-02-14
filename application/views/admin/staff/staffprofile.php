@@ -162,14 +162,14 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                 <li class="list-group-item listnoback">
                                     <b><?php echo $this->lang->line('department'); ?></b> <a class="pull-right text-aqua"><?php echo $staff['department']; ?></a>
                                 </li>
-                            <?php }
-                            if ($sch_setting->staff_epf_no) { ?>
-                                <li class="list-group-item listnoback">
-                                    <b><?php echo $this->lang->line('epf_no'); ?></b> <a class="pull-right text-aqua"><?php echo $staff['epf_no']; ?></a>
-                                </li>
                             <?php } ?>
                             <li class="list-group-item listnoback">
-                                <b><?php echo $this->lang->line('basic_salary'); ?></b> <a class="pull-right text-aqua"><?php if (!empty($staff['basic_salary'])) {
+                                <b><?php echo $this->lang->line('esi_no') ?: ($this->lang->line('epf_no') ?: 'ESI No.'); ?></b> <a class="pull-right text-aqua"><?php echo $staff['esi_no']; ?></a>
+                            </li>
+                            <li class="list-group-item listnoback">
+                                <b><?php echo $this->lang->line('contract_basic_salary') ?: ($this->lang->line('basic_salary') . ' (Contract)'); ?></b> 
+                                <small class="text-muted" style="font-size: 10px;"><i class="fa fa-info-circle" title="This is the contracted basic salary. Actual monthly salary may vary with increments."></i></small>
+                                <a class="pull-right text-aqua"><?php if (!empty($staff['basic_salary'])) {
                                                                                                                             echo amountFormat($staff['basic_salary']);
                                                                                                                         } ?></a>
                             </li>

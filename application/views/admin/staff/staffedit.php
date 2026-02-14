@@ -480,19 +480,44 @@ if ($staff["marital_status"] == $mavalue) {
                                             <h4 class="pagetitleh2"><?php echo $this->lang->line('payroll'); ?>
                                             </h4>
                                             <div class="row around10">
-                                                <?php if ($sch_setting->staff_epf_no) {?>
-                                                    <div class="col-md-4">
-                                                        <div class="form-group">
-                                                            <label for="exampleInputEmail1"><?php echo $this->lang->line('epf_no'); ?></label>
-                                                            <input id="epf_no" name="epf_no" placeholder="" type="text" class="form-control"  value="<?php echo $staff["epf_no"] ?>"  />
-                                                            <span class="text-danger"><?php echo form_error('epf_no'); ?></span>
+                                                <div class="col-md-4">
+                                                    <div class="form-group">
+                                                        <label for="esi_no"><?php echo $this->lang->line('esi_no') ?: 'ESI No.'; ?></label>
+                                                        <input id="esi_no" name="esi_no" placeholder="" type="text" class="form-control"  value="<?php echo $staff["esi_no"] ?>"  />
+                                                        <span class="text-danger"><?php echo form_error('esi_no'); ?></span>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <div class="form-group">
+                                                        <label><?php echo $this->lang->line('epf_enabled') ?? 'EPF Enabled'; ?></label>
+                                                        <div class="checkbox">
+                                                            <label>
+                                                                <input type="checkbox" name="is_epf_enabled" value="1" <?php echo ($staff["is_epf_enabled"] ? 'checked' : ''); ?> />
+                                                                <?php echo $this->lang->line('enable') ?? 'Enable'; ?>
+                                                            </label>
                                                         </div>
                                                     </div>
-                                                <?php } // Closing for if ($sch_setting->staff_epf_no) ?>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <div class="form-group">
+                                                        <label><?php echo $this->lang->line('esi_enabled') ?? 'ESI Enabled'; ?></label>
+                                                        <div class="checkbox">
+                                                            <label>
+                                                                <input type="checkbox" name="is_esi_enabled" value="1" <?php echo ($staff["is_esi_enabled"] ? 'checked' : ''); ?> />
+                                                                <?php echo $this->lang->line('enable') ?? 'Enable'; ?>
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="row around10">
                                                 <?php if ($sch_setting->staff_basic_salary) {?>
                                                     <div class="col-md-4">
                                                         <div class="form-group">
-                                                            <label for="exampleInputEmail1"><?php echo $this->lang->line('basic_salary'); ?></label>
+                                                            <label for="exampleInputEmail1">
+                                                                <?php echo $this->lang->line('contract_basic_salary') ?: ($this->lang->line('basic_salary') . ' (Contract)'); ?>
+                                                                <small class="text-muted"><i class="fa fa-info-circle" data-toggle="tooltip" title="Contracted/appointed basic salary from employment letter. Monthly payslip may vary with increments/bonuses."></i></small>
+                                                            </label>
                                                             <input type="text" value="<?php echo $staff["basic_salary"] ?>" class="form-control" name="basic_salary" >
                                                         </div>
                                                     </div>

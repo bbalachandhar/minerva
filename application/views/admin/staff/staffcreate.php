@@ -467,19 +467,54 @@ echo display_custom_fields('staff');
                                             <h4 class="pagetitleh2"><?php echo $this->lang->line('payroll'); ?>
                                             </h4>
                                             <div class="row around10">
-                                                <?php if ($sch_setting->staff_epf_no) {?>
-                                                    <div class="col-md-4">
-                                                        <div class="form-group">
-                                                            <label for="exampleInputEmail1"><?php echo $this->lang->line('epf_no'); ?></label>
-                                                            <input id="epf_no" name="epf_no" placeholder="" type="text" class="form-control"  value="<?php echo set_value('epf_no') ?>"  />
-                                                            <span class="text-danger"><?php echo form_error('epf_no'); ?></span>
-                                                        </div>
+                                                <div class="col-md-4">
+                                                    <div class="form-group">
+                                                        <label for="uan_no">UAN Number</label>
+                                                        <input id="uan_no" name="uan_no" placeholder="" type="text" class="form-control"  value="<?php echo set_value('uan_no') ?>" />
+                                                        <span class="text-danger"><?php echo form_error('uan_no'); ?></span>
                                                     </div>
-                                                <?php } if ($sch_setting->staff_basic_salary) {?>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <div class="form-group">
+                                                        <label for="esi_no"><?php echo $this->lang->line('esi_no') ?: 'ESI No.'; ?></label>
+                                                        <input id="esi_no" name="esi_no" placeholder="" type="text" class="form-control"  value="<?php echo set_value('esi_no') ?>"  />
+                                                        <span class="text-danger"><?php echo form_error('esi_no'); ?></span>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <div class="form-group">
+                                                        <label><?php echo $this->lang->line('epf_enabled') ?? 'EPF Enabled'; ?></label>
+                                                        <div class="checkbox">
+                                                            <label>
+                                                                <input type="checkbox" name="is_epf_enabled" value="1" <?php echo (set_value('is_epf_enabled') ? 'checked' : 'checked'); ?> />
+                                                                <?php echo $this->lang->line('enable') ?? 'Enable'; ?>
+                                                            </label>
+                                                        </div>
+                                                        <span class="text-danger"><?php echo form_error('is_epf_enabled'); ?></span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="row around10">
+                                                <div class="col-md-4">
+                                                    <div class="form-group">
+                                                        <label><?php echo $this->lang->line('esi_enabled') ?? 'ESI Enabled'; ?></label>
+                                                        <div class="checkbox">
+                                                            <label>
+                                                                <input type="checkbox" name="is_esi_enabled" value="1" <?php echo (set_value('is_esi_enabled') ? 'checked' : 'checked'); ?> />
+                                                                <?php echo $this->lang->line('enable') ?? 'Enable'; ?>
+                                                            </label>
+                                                        </div>
+                                                        <span class="text-danger"><?php echo form_error('is_esi_enabled'); ?></span>
+                                                    </div>
+                                                </div>
+                                                <?php if ($sch_setting->staff_basic_salary) {?>
                                                     <div class="col-md-4">
                                                         <div class="form-group">
-                                                            <label for="exampleInputEmail1"><?php echo $this->lang->line('basic_salary'); ?></label>
-                                                            <input type="text" class="form-control" name="basic_salary" value="<?php echo set_value('basic_salary') ?>" >
+                                                            <label for="exampleInputEmail1">
+                                                                <?php echo $this->lang->line('contract_basic_salary') ?: ($this->lang->line('basic_salary') . ' (Contract)'); ?>
+                                                                <small class="text-muted"><i class="fa fa-info-circle" data-toggle="tooltip" title="Contracted/appointed basic salary from employment letter. This is used as the starting point for first payslip."></i></small>
+                                                            </label>
+                                                            <input type="text" class="form-control" name="basic_salary" value="<?php echo set_value('basic_salary') ?>" placeholder="Enter contract basic salary">
                                                         </div>
                                                     </div>
                                                 <?php } ?>

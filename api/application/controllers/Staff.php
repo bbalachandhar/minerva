@@ -104,7 +104,7 @@ class Staff extends CI_Controller
         $this->form_validation->set_rules('bank_branch', 'Bank Branch', 'trim|xss_clean');
         $this->form_validation->set_rules('payscale', 'Payscale', 'trim|xss_clean');
         $this->form_validation->set_rules('basic_salary', 'Basic Salary', 'trim|xss_clean');
-        $this->form_validation->set_rules('epf_no', 'EPF No', 'trim|xss_clean');
+        $this->form_validation->set_rules('esi_no', 'ESI No', 'trim|xss_clean');
         $this->form_validation->set_rules('contract_type', 'Contract Type', 'trim|xss_clean');
 
         // Stage 5: Social Media & Other
@@ -131,7 +131,7 @@ class Staff extends CI_Controller
             'higher_qualification', 'qualified_exam', 'subject_specialization', 'additional_qualification',
             'work_exp', 'date_of_joining', 'date_of_leaving', 'shift', 'location',
             'account_title', 'bank_account_no', 'bank_name', 'ifsc_code', 'bank_branch',
-            'payscale', 'basic_salary', 'epf_no', 'contract_type',
+            'payscale', 'basic_salary', 'esi_no', 'contract_type',
             'facebook', 'twitter', 'linkedin', 'instagram', 'note',
             // Files (image, resume, etc.) handled by separate upload endpoints
         ];
@@ -279,7 +279,7 @@ class Staff extends CI_Controller
                 'higher_qualification', 'qualified_exam', 'subject_specialization', 'additional_qualification',
                 'work_exp', 'date_of_joining', 'date_of_leaving', 'shift', 'location',
                 'account_title', 'bank_account_no', 'bank_name', 'ifsc_code', 'bank_branch',
-                'payscale', 'basic_salary', 'epf_no', 'contract_type',
+                'payscale', 'basic_salary', 'esi_no', 'contract_type',
                 'facebook', 'twitter', 'linkedin', 'instagram', 'note',
                 // Exclude 'id', 'employee_id', 'biometric_id' if system-generated and not editable
                 // Exclude 'image' as it's handled separately

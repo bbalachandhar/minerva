@@ -103,91 +103,98 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                             </div>
                         </div>
                     </div><!--./box-header-->
-                    <div class="box-body" style="padding-top:0;">
-                        <div class="row" style="display: flex; align-items: stretch;">
-                            <div class="col-md-6 col-sm-12" style="display: flex;">
-                                <div class="sfborder" style="padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; width: 100%; display: flex; flex-direction: column; position: relative;">
-                                    <div style="position: absolute; top: 10px; right: 10px; background: rgba(255,255,255,0.9); padding: 8px 16px; border-radius: 20px; font-weight: 600; color: #667eea; box-shadow: 0 2px 8px rgba(0,0,0,0.1); font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">
-                                        STAFF INFO
-                                    </div>
-                                    <div style="display: flex; gap: 20px; align-items: flex-start; margin-top: 40px;">
-                                        <div style="flex-shrink: 0; display: flex; align-items: center; justify-content: center; width: 120px; height: 120px; background: rgba(255,255,255,0.15); border-radius: 12px; border: 3px solid rgba(255,255,255,0.3); box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+                    <div class="box-body" style="padding: 15px;">
+                        <!-- STAFF INFO Section -->
+                        <div class="row" style="margin-bottom: 20px;">
+                            <div class="col-md-12">
+                                <div style="background: #ffffff; border: 1px solid #e0e0e0; border-radius: 6px; padding: 15px;">
+                                    <h5 style="margin: 0 0 15px 0; font-weight: 600; color: #333;">STAFF INFO</h5>
+                                    <div style="display: flex; gap: 20px;">
+                                        <!-- Staff Image -->
+                                        <div style="flex-shrink: 0;">
                                             <?php
 $image = $result['image'];
 if (!empty($image)) {
-
     $file = $result['image'];
 } else {
-
     $file = "no_image.png";
 }
 $image=$this->media_storage->getImageURL("uploads/staff_images/" . $file);
 ?>
-                                            <img width="120" height="120" style="border-radius: 10px; object-fit: cover;" src="<?php echo $image ?>" alt="Staff Image">
+                                            <img width="100" height="100" style="border-radius: 6px; object-fit: cover; border: 1px solid #e0e0e0;" src="<?php echo $image ?>" alt="Staff Image">
                                         </div>
-
-                                        <div style="flex: 1; min-width: 0; overflow: hidden;">
-                                            <table class="table mb0" style="background: rgba(255,255,255,0.95); border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); width: 100%; min-height: 250px;">
+                                        <!-- Staff Details -->
+                                        <div style="flex: 1;">
+                                            <table style="width: 100%; border-collapse: collapse;">
                                                 <tbody>
-                                                    <tr style="background: #f8f9fa;">
-                                                        <th style="padding: 10px 8px; font-size: 11px; color: #495057; border: none; font-weight: 600;"><?php echo $this->lang->line("name"); ?></th>
-                                                        <td style="padding: 10px 8px; font-size: 12px; color: #667eea; border: none; font-weight: 600; word-break: break-word;"><?php echo $result["name"] . " " . $result["surname"] ?></td>
-                                                        <th style="padding: 10px 8px; font-size: 11px; color: #495057; border: none; font-weight: 600;"><?php echo $this->lang->line('staff_id'); ?></th>
-                                                        <td style="padding: 10px 8px; font-size: 12px; color: #667eea; border: none; font-weight: 600; word-break: break-word;"><?php echo $result["employee_id"] ?></td>
+                                                    <tr>
+                                                        <td style="padding: 6px 8px; width: 25%; font-size: 12px; color: #666; font-weight: 600;"><?php echo $this->lang->line("name"); ?></td>
+                                                        <td style="padding: 6px 8px; font-size: 13px; color: #333; font-weight: 600;"><?php echo $result["name"] . " " . $result["surname"] ?></td>
+                                                        <td style="padding: 6px 8px; width: 25%; font-size: 12px; color: #666; font-weight: 600;"><?php echo $this->lang->line('staff_id'); ?></td>
+                                                        <td style="padding: 6px 8px; font-size: 13px; color: #333; font-weight: 600;"><?php echo $result["employee_id"] ?></td>
                                                     </tr>
-                                                    <tr style="background: #ffffff;">
-                                                        <?php if ($sch_setting->staff_phone) {?>
-                                                            <th style="padding: 10px 8px; font-size: 11px; color: #495057; border: none; font-weight: 600;"><?php echo $this->lang->line('phone'); ?></th>
-                                                        <?php }?>
-                                                        <td style="padding: 10px 8px; font-size: 12px; color: #17a2b8; border: none; font-weight: 600; word-break: break-word;"><?php echo $result["contact_no"] ?></td>
-                                                        <th style="padding: 10px 8px; font-size: 11px; color: #495057; border: none; font-weight: 600;"><?php echo $this->lang->line('email'); ?></th>
-                                                        <td style="padding: 10px 8px; font-size: 12px; color: #17a2b8; border: none; font-weight: 600; word-break: break-word;"><?php echo $result["email"] ?></td>
+                                                    <tr style="background: #f9f9f9;">
+                                                        <td style="padding: 6px 8px; font-size: 12px; color: #666; font-weight: 600;"><?php echo $this->lang->line('phone'); ?></td>
+                                                        <td style="padding: 6px 8px; font-size: 13px; color: #333;"><?php echo $result["contact_no"] ?></td>
+                                                        <td style="padding: 6px 8px; font-size: 12px; color: #666; font-weight: 600;"><?php echo $this->lang->line('email'); ?></td>
+                                                        <td style="padding: 6px 8px; font-size: 13px; color: #333;"><?php echo $result["email"] ?></td>
                                                     </tr>
-                                                    <tr style="background: #f8f9fa;">
-                                                        <?php if ($sch_setting->staff_epf_no) {?>
-                                                            <th style="padding: 10px 8px; font-size: 11px; color: #495057; border: none; font-weight: 600;"><?php echo $this->lang->line('epf_no'); ?></th>
-                                                            <td style="padding: 10px 8px; font-size: 12px; color: #28a745; border: none; font-weight: 600; word-break: break-word;"><?php echo $result["epf_no"] ?></td>
-                                                        <?php }?>
-                                                        <th style="padding: 10px 8px; font-size: 11px; color: #495057; border: none; font-weight: 600;"><?php echo $this->lang->line('role'); ?></th>
-                                                        <td style="padding: 10px 8px; font-size: 12px; color: #fd7e14; border: none; font-weight: 600; word-break: break-word;"><?php echo $result["user_type"] ?></td>
+                                                    <tr>
+                                                        <td style="padding: 6px 8px; font-size: 12px; color: #666; font-weight: 600;"><?php echo $this->lang->line('uan_no') ?: 'UAN No.'; ?></td>
+                                                        <td style="padding: 6px 8px; font-size: 13px; color: #333; font-weight: 600;"><?php echo isset($result['uan_no']) ? $result['uan_no'] : ''; ?></td>
+                                                        <td style="padding: 6px 8px; font-size: 12px; color: #666; font-weight: 600;"><?php echo $this->lang->line('role'); ?></td>
+                                                        <td style="padding: 6px 8px; font-size: 13px; color: #333;"><?php echo $result["user_type"] ?></td>
                                                     </tr>
-                                                    <tr style="background: #ffffff;">
-                                                        <?php if ($sch_setting->staff_department) {?>
-                                                            <th style="padding: 10px 8px; font-size: 11px; color: #495057; border: none; font-weight: 600;"><?php echo $this->lang->line('department'); ?></th>
-                                                            <td style="padding: 10px 8px; font-size: 12px; color: #6f42c1; border: none; font-weight: 600; word-break: break-word;"><?php echo $result["department"] ?></td>
-                                                        <?php }if ($sch_setting->staff_designation) {?>
-                                                            <th style="padding: 10px 8px; font-size: 11px; color: #495057; border: none; font-weight: 600;"><?php echo $this->lang->line('designation'); ?></th>
-                                                            <td style="padding: 10px 8px; font-size: 12px; color: #e83e8c; border: none; font-weight: 600; word-break: break-word;"><?php echo $result["designation"] ?>   </td>
-                                                        <?php }?>
+                                                    <tr style="background: #f9f9f9;">
+                                                        <td style="padding: 6px 8px; font-size: 12px; color: #666; font-weight: 600;"><?php echo $this->lang->line('esi_no') ?: 'ESI No.'; ?></td>
+                                                        <td style="padding: 6px 8px; font-size: 13px; color: #333;"><?php echo isset($result['esi_no']) ? $result['esi_no'] : ''; ?></td>
+                                                        <td style="padding: 6px 8px; font-size: 12px; color: #666; font-weight: 600;"><?php echo $this->lang->line('department'); ?></td>
+                                                        <td style="padding: 6px 8px; font-size: 13px; color: #333;"><?php echo $result["department"] ?></td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td style="padding: 6px 8px; font-size: 12px; color: #666; font-weight: 600;"><?php echo $this->lang->line('designation'); ?></td>
+                                                        <td colspan="3" style="padding: 6px 8px; font-size: 13px; color: #333;"><?php echo $result["designation"] ?></td>
+                                                    </tr>
+                                                    <tr style="background: #f9f9f9;">
+                                                        <td colspan="4" style="padding: 8px; font-size: 12px; color: #666;">
+                                                            <strong>Statutory Deductions Status:</strong> 
+                                                            <?php
+                                                            $epf_status = (!empty($result['uan_no']) && isset($result['is_epf_enabled']) && $result['is_epf_enabled'] == 1) ? '<span style="color: #28a745;">✓ EPF Active</span>' : '<span style="color: #dc3545;">✗ EPF Inactive</span>';
+                                                            $esi_status = (!empty($result['esi_no']) && isset($result['is_esi_enabled']) && $result['is_esi_enabled'] == 1) ? '<span style="color: #28a745;">✓ ESI Active</span>' : '<span style="color: #dc3545;">✗ ESI Inactive</span>';
+                                                            echo $epf_status . ' | ' . $esi_status;
+                                                            ?>
+                                                        </td>
                                                     </tr>
                                                 </tbody>
                                             </table>
                                         </div>
                                     </div>
                                 </div>
-                            </div><!--./col-md-6-->
-                            <div class="col-md-6 col-sm-12" style="display: flex;">
-                                <div class="sfborder relative" style="width: 100%; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); border-radius: 8px; padding: 20px; overflow: visible;">
-                                    <div style="position: absolute; top: 10px; right: 10px; background: rgba(255,255,255,0.9); padding: 8px 16px; border-radius: 20px; font-weight: 600; color: #e91e63; box-shadow: 0 2px 8px rgba(0,0,0,0.1); font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">
-                                        <?php echo $this->lang->line("attendance") ?>
-                                    </div>
-                                    <div style="background: rgba(255,255,255,0.95); border-radius: 8px; padding: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); overflow-x: auto; margin-top: 40px; min-height: 250px;">
-                                        <table class="table mb0" style="font-size: 11px; margin-bottom: 0; table-layout: auto; border-collapse: separate; border-spacing: 0;">
-                                            <thead style="position: sticky; top: 0; z-index: 10;">
-                                                <tr style="background: #2c3e50 !important;">
-                                                    <th style="padding: 10px 6px !important; color: #ffffff !important; border: none !important; font-weight: 700 !important; text-align: center !important; background: #2c3e50 !important;"><?php echo $this->lang->line('month'); ?></th>
-                                                    <th style="padding: 10px 6px !important; color: #ffffff !important; border: none !important; font-weight: 700 !important; text-align: center !important; background: #2c3e50 !important;"><span data-toggle="tooltip" title="Total Working Days">WD</span></th>
-                                                    <th style="padding: 10px 6px !important; color: #ffffff !important; border: none !important; font-weight: 700 !important; text-align: center !important; background: #2c3e50 !important;"><span data-toggle="tooltip" title="Total Present (Including Half Day)">P*</span></th>
-                                                    <th style="padding: 10px 6px !important; color: #ffffff !important; border: none !important; font-weight: 700 !important; text-align: center !important; background: #2c3e50 !important;"><span data-toggle="tooltip" title="Total Absent (Including Half Day)">A*</span></th>
-                                                    <th style="padding: 10px 6px !important; color: #ffffff !important; border: none !important; font-weight: 700 !important; text-align: center !important; background: #2c3e50 !important;"><span data-toggle="tooltip" title="Half Day">HD</span></th>
-                                                    <th style="padding: 10px 6px !important; color: #ffffff !important; border: none !important; font-weight: 700 !important; text-align: center !important; background: #2c3e50 !important;"><span data-toggle="tooltip" title="Total Holidays">H</span></th>
-                                                    <th style="padding: 10px 6px !important; color: #ffffff !important; border: none !important; font-weight: 700 !important; text-align: center !important; background: #2c3e50 !important;"><span data-toggle="tooltip" title="Total Late">L</span></th>
-                                                    <th style="padding: 10px 6px !important; color: #ffffff !important; border: none !important; font-weight: 700 !important; text-align: center !important; background: #2c3e50 !important;"><span data-toggle="tooltip" title="Total Permissions">PR</span></th>
-                                                    <th style="padding: 10px 6px !important; color: #ffffff !important; border: none !important; font-weight: 700 !important; text-align: center !important; background: #2c3e50 !important;"><span data-toggle="tooltip" title="Approved Paid Leaves">APR</span></th>
-                                                    <th style="padding: 10px 6px !important; color: #ffffff !important; border: none !important; font-weight: 700 !important; text-align: center !important; background: #2c3e50 !important;"><span data-toggle="tooltip" title="Actual Loss Of Pay Days">LOP</span></th>
-                                                    <th style="padding: 10px 6px !important; color: #ffffff !important; border: none !important; font-weight: 700 !important; text-align: center !important; background: #2c3e50 !important;"><span data-toggle="tooltip" title="Adjusted LOP Days">AdjLOP</span></th>
-                                                    <th style="padding: 10px 6px !important; color: #ffffff !important; border: none !important; font-weight: 700 !important; text-align: center !important; background: #2c3e50 !important;"><span data-toggle="tooltip" title="Net LOP Days (Used for Deduction)">NetLOP</span></th>
-                                                    <th style="padding: 10px 6px !important; color: #ffffff !important; border: none !important; font-weight: 700 !important; text-align: center !important; background: #2c3e50 !important;"><span data-toggle="tooltip" title="Weekends">WE</span></th>
+                            </div>
+                        </div>
+
+                        <!-- ATTENDANCE Section -->
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div style="background: #ffffff; border: 1px solid #e0e0e0; border-radius: 6px; padding: 15px;">
+                                    <h5 style="margin: 0 0 15px 0; font-weight: 600; color: #333;"><?php echo $this->lang->line("attendance") ?></h5>
+                                    <div style="overflow-x: auto;">
+                                        <table class="table table-bordered" style="font-size: 11px; margin-bottom: 0; border-collapse: collapse;">
+                                            <thead>
+                                                <tr style="background: #f8f9fa;">
+                                                    <th style="padding: 8px 6px; text-align: center; border: 1px solid #e0e0e0; font-weight: 600; color: #495057;"><?php echo $this->lang->line('month'); ?></th>
+                                                    <th style="padding: 8px 6px; text-align: center; border: 1px solid #e0e0e0; font-weight: 600; color: #495057;"><span data-toggle="tooltip" title="Total Working Days">WD</span></th>
+                                                    <th style="padding: 8px 6px; text-align: center; border: 1px solid #e0e0e0; font-weight: 600; color: #495057;"><span data-toggle="tooltip" title="Total Present (Including Half Day)">P*</span></th>
+                                                    <th style="padding: 8px 6px; text-align: center; border: 1px solid #e0e0e0; font-weight: 600; color: #495057;"><span data-toggle="tooltip" title="Total Absent (Including Half Day)">A*</span></th>
+                                                    <th style="padding: 8px 6px; text-align: center; border: 1px solid #e0e0e0; font-weight: 600; color: #495057;"><span data-toggle="tooltip" title="Half Day">HD</span></th>
+                                                    <th style="padding: 8px 6px; text-align: center; border: 1px solid #e0e0e0; font-weight: 600; color: #495057;"><span data-toggle="tooltip" title="Total Holidays">H</span></th>
+                                                    <th style="padding: 8px 6px; text-align: center; border: 1px solid #e0e0e0; font-weight: 600; color: #495057;"><span data-toggle="tooltip" title="Total Late">L</span></th>
+                                                    <th style="padding: 8px 6px; text-align: center; border: 1px solid #e0e0e0; font-weight: 600; color: #495057;"><span data-toggle="tooltip" title="Total Permissions">PR</span></th>
+                                                    <th style="padding: 8px 6px; text-align: center; border: 1px solid #e0e0e0; font-weight: 600; color: #495057;"><span data-toggle="tooltip" title="Approved Paid Leaves">APR</span></th>
+                                                    <th style="padding: 8px 6px; text-align: center; border: 1px solid #e0e0e0; font-weight: 600; color: #495057;"><span data-toggle="tooltip" title="Actual Loss Of Pay Days">LOP</span></th>
+                                                    <th style="padding: 8px 6px; text-align: center; border: 1px solid #e0e0e0; font-weight: 600; color: #495057;"><span data-toggle="tooltip" title="Adjusted LOP Days">AdjLOP</span></th>
+                                                    <th style="padding: 8px 6px; text-align: center; border: 1px solid #e0e0e0; font-weight: 600; color: #495057;"><span data-toggle="tooltip" title="Net LOP Days (Used for Deduction)">NetLOP</span></th>
+                                                    <th style="padding: 8px 6px; text-align: center; border: 1px solid #e0e0e0; font-weight: 600; color: #495057;"><span data-toggle="tooltip" title="Weekends">WE</span></th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -252,20 +259,20 @@ if ($is_current_payroll_month) {
     $net_lop = max(0, $lop_days - $adjusted_lop);
 }
 ?>
-                                            <tr style="background: <?php echo ($attendence_key_index % 2 == 0) ? '#f8f9fa' : '#ffffff'; ?>; transition: all 0.2s;" onmouseover="this.style.background='#e3f2fd';" onmouseout="this.style.background='<?php echo ($attendence_key_index % 2 == 0) ? '#f8f9fa' : '#ffffff'; ?>';">
-                                                <td style="padding: 8px 6px; text-align: center; border: none; font-weight: 600; color: #495057;"><?php echo date("F", strtotime($attendence_key)); ?></td>
-                                                <td style="padding: 8px 6px; text-align: center; border: none; color: #212529;"><?php echo $working_days; ?></td>
-                                                <td style="padding: 8px 6px; text-align: center; border: none; color: #28a745; font-weight: 600;"><?php echo rtrim(rtrim(number_format((float) $total_present, 1, '.', ''), '0'), '.'); ?></td>
-                                                <td style="padding: 8px 6px; text-align: center; border: none; color: #dc3545; font-weight: 600;"><?php echo rtrim(rtrim(number_format((float) $total_absent, 1, '.', ''), '0'), '.'); ?></td>
-                                                <td style="padding: 8px 6px; text-align: center; border: none; color: #fd7e14;"><?php echo $half_day; ?></td>
-                                                <td style="padding: 8px 6px; text-align: center; border: none; color: #6c757d;"><?php echo $holiday_count; ?></td>
-                                                <td style="padding: 8px 6px; text-align: center; border: none; color: #ffc107; font-weight: 600;"><?php echo $late_count; ?></td>
-                                                <td style="padding: 8px 6px; text-align: center; border: none; color: #17a2b8;"><?php echo $permission_count; ?></td>
-                                                <td style="padding: 8px 6px; text-align: center; border: none; color: #20c997; font-weight: 600;"><?php echo $approved_leave; ?></td>
-                                                <td style="padding: 8px 6px; text-align: center; border: none; color: #dc3545; font-weight: 600; background: rgba(220, 53, 69, 0.1);"><?php echo rtrim(rtrim(number_format((float) $lop_days, 1, '.', ''), '0'), '.'); ?></td>
-                                                <td style="padding: 8px 6px; text-align: center; border: none; color: #28a745; font-weight: 600;"><?php echo rtrim(rtrim(number_format((float) $adjusted_lop, 1, '.', ''), '0'), '.'); ?></td>
-                                                <td style="padding: 8px 6px; text-align: center; border: none; color: <?php echo $net_lop > 0 ? '#dc3545' : '#6c757d'; ?>; font-weight: 600;"><?php echo rtrim(rtrim(number_format((float) $net_lop, 1, '.', ''), '0'), '.'); ?></td>
-                                                <td style="padding: 8px 6px; text-align: center; border: none; color: #6c757d;"><?php echo $weekend_count; ?></td>
+                                            <tr style="background: <?php echo ($attendence_key_index % 2 == 0) ? '#f9f9f9' : '#ffffff'; ?>;">
+                                                <td style="padding: 8px 6px; text-align: center; border: 1px solid #e0e0e0; font-weight: 600; color: #333;"><?php echo date("F", strtotime($attendence_key)); ?></td>
+                                                <td style="padding: 8px 6px; text-align: center; border: 1px solid #e0e0e0; color: #666;"><?php echo $working_days; ?></td>
+                                                <td style="padding: 8px 6px; text-align: center; border: 1px solid #e0e0e0; color: #666;"><?php echo rtrim(rtrim(number_format((float) $total_present, 1, '.', ''), '0'), '.'); ?></td>
+                                                <td style="padding: 8px 6px; text-align: center; border: 1px solid #e0e0e0; color: #666;"><?php echo rtrim(rtrim(number_format((float) $total_absent, 1, '.', ''), '0'), '.'); ?></td>
+                                                <td style="padding: 8px 6px; text-align: center; border: 1px solid #e0e0e0; color: #666;"><?php echo $half_day; ?></td>
+                                                <td style="padding: 8px 6px; text-align: center; border: 1px solid #e0e0e0; color: #666;"><?php echo $holiday_count; ?></td>
+                                                <td style="padding: 8px 6px; text-align: center; border: 1px solid #e0e0e0; color: #666;"><?php echo $late_count; ?></td>
+                                                <td style="padding: 8px 6px; text-align: center; border: 1px solid #e0e0e0; color: #666;"><?php echo $permission_count; ?></td>
+                                                <td style="padding: 8px 6px; text-align: center; border: 1px solid #e0e0e0; color: #666;"><?php echo $approved_leave; ?></td>
+                                                <td style="padding: 8px 6px; text-align: center; border: 1px solid #e0e0e0; color: #666;"><?php echo rtrim(rtrim(number_format((float) $lop_days, 1, '.', ''), '0'), '.'); ?></td>
+                                                <td style="padding: 8px 6px; text-align: center; border: 1px solid #e0e0e0; color: #666;"><?php echo rtrim(rtrim(number_format((float) $adjusted_lop, 1, '.', ''), '0'), '.'); ?></td>
+                                                <td style="padding: 8px 6px; text-align: center; border: 1px solid #e0e0e0; color: #666;"><?php echo rtrim(rtrim(number_format((float) $net_lop, 1, '.', ''), '0'), '.'); ?></td>
+                                                <td style="padding: 8px 6px; text-align: center; border: 1px solid #e0e0e0; color: #666;"><?php echo $weekend_count; ?></td>
                                             </tr>
                                             <?php
                                             $attendence_key_index++;
@@ -275,7 +282,7 @@ if ($is_current_payroll_month) {
                                         </table>
                                     </div>
                                 </div>
-                            </div><!--./col-md-6-->
+                            </div>
                         </div>
                     </div>
                     <!-- /.box-body -->
@@ -369,7 +376,15 @@ if (!empty($earnings)) {
         ?>
                                                 <div class="modern-item-row" id="row<?php echo $earning_count; ?>">
                                                     <input type="hidden" name="allowance_prev_id[]" value="<?php echo $earning_value['id'] ?>" />
-                                                    <input type="text" class="form-control modern-item-type" value="<?php echo $earning_value['allowance_type'] ?>" id="allowance_type" name="allowance_type[]" placeholder="Type">
+                                                    <select class="form-control modern-item-type" name="allowance_type_id[]" required>
+                                                        <option value="">Select Type</option>
+                                                        <?php foreach($earning_types as $type): ?>
+                                                            <option value="<?php echo $type['id']; ?>" data-code="<?php echo $type['allowance_code']; ?>" 
+                                                                <?php echo ($type['id'] == $earning_value['allowance_type_id']) ? 'selected' : ''; ?>>
+                                                                <?php echo $type['allowance_name']; ?> (<?php echo $type['allowance_code']; ?>)
+                                                            </option>
+                                                        <?php endforeach; ?>
+                                                    </select>
                                                     <input type="text" id="allowance_amount" name="allowance_amount[]" class="form-control modern-item-amount" value="<?php echo convertBaseAmountCurrencyFormat($earning_value['amount']) ?>" placeholder="Amount">
                                                     <button type="button" onclick="delete_row(<?php echo $earning_count ?>)" class="modern-item-delete" autocomplete="off"><i class="fa fa-trash"></i></button>
                                                 </div>
@@ -380,7 +395,14 @@ $earning_count++;
     ?>
                                                 <div class="modern-item-row" id="row0">
                                                     <input type="hidden" name="allowance_prev_id[]" value="0" />
-                                                    <input type="text" class="form-control modern-item-type" id="allowance_type" name="allowance_type[]" placeholder="Type">
+                                                    <select class="form-control modern-item-type" name="allowance_type_id[]">
+                                                        <option value="">Select Type</option>
+                                                        <?php foreach($earning_types as $type): ?>
+                                                            <option value="<?php echo $type['id']; ?>" data-code="<?php echo $type['allowance_code']; ?>">
+                                                                <?php echo $type['allowance_name']; ?> (<?php echo $type['allowance_code']; ?>)
+                                                            </option>
+                                                        <?php endforeach; ?>
+                                                    </select>
                                                     <input type="text" id="allowance_amount" name="allowance_amount[]" class="form-control modern-item-amount" value="0" placeholder="Amount">
                                                     <button type="button" onclick="delete_row(0)" class="modern-item-delete" autocomplete="off"><i class="fa fa-trash"></i></button>
                                                 </div>
@@ -491,7 +513,15 @@ if (!empty($deductions)) {
         ?>
                                                 <div class="modern-deduction-row" id="deduction_row<?php echo $deduction_count; ?>">
                                                     <input type="hidden" name="deduction_prev_id[]" value="<?php echo $deduction_value['id'] ?>" />
-                                                    <input type="text" id="deduction_type" name="deduction_type[]" class="form-control modern-deduction-type" value="<?php echo $deduction_value['allowance_type'] ?>" placeholder="Type">
+                                                    <select class="form-control modern-deduction-type" name="deduction_type_id[]" required>
+                                                        <option value="">Select Type</option>
+                                                        <?php foreach($deduction_types as $type): ?>
+                                                            <option value="<?php echo $type['id']; ?>" data-code="<?php echo $type['allowance_code']; ?>" 
+                                                                <?php echo ($type['id'] == $deduction_value['allowance_type_id']) ? 'selected' : ''; ?>>
+                                                                <?php echo $type['allowance_name']; ?> (<?php echo $type['allowance_code']; ?>)
+                                                            </option>
+                                                        <?php endforeach; ?>
+                                                    </select>
                                                     <input type="text" id="deduction_amount" name="deduction_amount[]" class="form-control modern-deduction-amount" value="<?php echo convertBaseAmountCurrencyFormat($deduction_value['amount']) ?>" placeholder="Amount">
                                                     <button type="button" onclick="delete_deduction_row(<?php echo $deduction_count ?>)" class="modern-item-delete" autocomplete="off"><i class="fa fa-trash"></i></button>
                                                 </div>
@@ -502,7 +532,14 @@ $deduction_count++;
     ?>
                                                 <div class="modern-deduction-row" id="deduction_row0">
                                                     <input type="hidden" name="deduction_prev_id[]" value="0" />
-                                                    <input type="text" id="deduction_type" name="deduction_type[]" class="form-control modern-deduction-type" placeholder="Type">
+                                                    <select class="form-control modern-deduction-type" name="deduction_type_id[]">
+                                                        <option value="">Select Type</option>
+                                                        <?php foreach($deduction_types as $type): ?>
+                                                            <option value="<?php echo $type['id']; ?>" data-code="<?php echo $type['allowance_code']; ?>">
+                                                                <?php echo $type['allowance_name']; ?> (<?php echo $type['allowance_code']; ?>)
+                                                            </option>
+                                                        <?php endforeach; ?>
+                                                    </select>
                                                     <input type="text" id="deduction_amount" name="deduction_amount[]" class="form-control modern-deduction-amount" value="0" placeholder="Amount">
                                                     <button type="button" onclick="delete_deduction_row(0)" class="modern-item-delete" autocomplete="off"><i class="fa fa-trash"></i></button>
                                                 </div>
@@ -593,7 +630,10 @@ $deduction_count++;
                                             <div class="modern-summary-section earnings-section">
                                                 <div class="section-title">📊 Income Breakdown</div>
                                                 <div class="modern-summary-row">
-                                                    <span class="modern-summary-label"><?php echo $this->lang->line('basic_salary'); ?></span>
+                                                    <span class="modern-summary-label">
+                                                        <?php echo $this->lang->line('basic_salary'); ?>
+                                                        <i class="fa fa-info-circle text-muted" style="font-size: 11px; margin-left: 4px;" data-toggle="tooltip" title="This month's actual basic pay (may differ from contract basic due to increments)"></i>
+                                                    </span>
                                                     <span class="modern-summary-value">
                                                         <input type="text" name="basic" value="<?php echo $employee_payroll['basic']; ?>" id="basic" />
                                                     </span>
@@ -726,6 +766,10 @@ $deduction_count++;
 </div>
 
 <script type="text/javascript">
+    // Convert PHP arrays to JavaScript for dynamic row generation
+    var earning_types = <?php echo json_encode($earning_types); ?>;
+    var deduction_types = <?php echo json_encode($deduction_types); ?>;
+
     function parseAmount(value) {
         if (value === null || value === undefined) {
             return 0;
@@ -739,11 +783,12 @@ $deduction_count++;
     }
 
     function findBasicPayRow() {
-        var allowance_type = document.getElementsByName('allowance_type[]');
+        var allowance_type = document.getElementsByName('allowance_type_id[]');
         var allowance_amount = document.getElementsByName('allowance_amount[]');
         for (var i = 0; i < allowance_type.length; i++) {
-            var label = (allowance_type[i].value || '').trim().toLowerCase();
-            if (label === 'basic pay' || label === 'basic salary') {
+            var selected = allowance_type[i].options[allowance_type[i].selectedIndex];
+            var code = (selected && selected.getAttribute('data-code')) ? selected.getAttribute('data-code').toUpperCase() : '';
+            if (code === 'BASIC') {
                 return { typeEl: allowance_type[i], amountEl: allowance_amount[i] };
             }
         }
@@ -774,9 +819,9 @@ $deduction_count++;
             month: $("input[name='month']").val(),
             year: $("input[name='year']").val(),
             basic: $("#basic").val(),
-            allowance_type: $("input[name='allowance_type[]']").map(function () { return $(this).val(); }).get(),
+            allowance_type_id: $("select[name='allowance_type_id[]']").map(function () { return $(this).val(); }).get(),
             allowance_amount: $("input[name='allowance_amount[]']").map(function () { return $(this).val(); }).get(),
-            deduction_type: $("input[name='deduction_type[]']").map(function () { return $(this).val(); }).get(),
+            deduction_type_id: $("select[name='deduction_type_id[]']").map(function () { return $(this).val(); }).get(),
             deduction_amount: $("input[name='deduction_amount[]']").map(function () { return $(this).val(); }).get()
         };
 
@@ -820,9 +865,16 @@ $deduction_count++;
         var table = document.getElementById("tableID");
         var table_len = (table.children.length);
         var id = parseInt(table_len);
+        
+        // Build dropdown options for earning types
+        var options = "<option value=''>Select Type</option>";
+        earning_types.forEach(function(type) {
+            options += "<option value='" + type.id + "' data-code='" + type.allowance_code + "'>" + type.allowance_name + " (" + type.allowance_code + ")</option>";
+        });
+        
         var row_html = "<div class='modern-item-row' id='row" + id + "'>" +
             "<input type='hidden' name='allowance_prev_id[]' value='0' />" +
-            "<input type='text' class='form-control modern-item-type' id='allowance_type' name='allowance_type[]' placeholder='Type'>" +
+            "<select class='form-control modern-item-type' name='allowance_type_id[]'>" + options + "</select>" +
             "<input type='text' class='form-control modern-item-amount' id='allowance_amount' name='allowance_amount[]' value='0' placeholder='Amount'>" +
             "<button type='button' onclick='delete_row(" + id + ")' class='modern-item-delete'><i class='fa fa-trash'></i></button>" +
             "</div>";
@@ -837,9 +889,16 @@ $deduction_count++;
         var table = document.getElementById("tableID2");
         var table_len = (table.children.length);
         var id = parseInt(table_len);
+        
+        // Build dropdown options for deduction types
+        var options = "<option value=''>Select Type</option>";
+        deduction_types.forEach(function(type) {
+            options += "<option value='" + type.id + "' data-code='" + type.allowance_code + "'>" + type.allowance_name + " (" + type.allowance_code + ")</option>";
+        });
+        
         var row_html = "<div class='modern-deduction-row' id='deduction_row" + id + "'>" +
             "<input type='hidden' name='deduction_prev_id[]' value='0' />" +
-            "<input type='text' class='form-control modern-deduction-type' id='deduction_type' name='deduction_type[]' placeholder='Type'>" +
+            "<select class='form-control modern-deduction-type' name='deduction_type_id[]'>" + options + "</select>" +
             "<input type='text' class='form-control modern-deduction-amount' id='deduction_amount' name='deduction_amount[]' value='0' placeholder='Amount'>" +
             "<button type='button' onclick='delete_deduction_row(" + id + ")' class='modern-item-delete'><i class='fa fa-trash'></i></button>" +
             "</div>";
