@@ -105,7 +105,6 @@ class Staffattendance extends Admin_Controller
                         'in_time'                  => $in_time,
                         'out_time'                 => $out_time, 
                         'date'                     => date('Y-m-d', $this->customlib->datetostrtotime($date)),
-                        'updated_at'               => date('Y-m-d', $this->customlib->datetostrtotime($date)),
                     );
                 }
                

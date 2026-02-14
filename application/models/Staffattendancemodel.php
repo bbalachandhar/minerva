@@ -19,13 +19,24 @@ class Staffattendancemodel extends MY_Model {
                 $this->db->where('date', $attendance_value['date']);
                 $query = $this->db->get('staff_attendance');
                 
+                $timestamp = date('Y-m-d H:i:s');
+
                 if ($query->num_rows() > 0) {
-                    // Record exists, update it
-                    $this->db->where('id', $query->row()->id);
-                    $this->db->update('staff_attendance', $attendance_value);
+                    // Record exists, update it and refresh updated_at
+                    $existing_id = $query->row()->id;
+                    $update_data = $attendance_value;
+                    $update_data['updated_at'] = $timestamp;
+                    unset($update_data['created_at']);
+
+                    $this->db->where('id', $existing_id);
+                    $this->db->update('staff_attendance', $update_data);
                 } else {
-                    // Record does not exist, insert a new one
-                    $this->db->insert('staff_attendance', $attendance_value);
+                    // Record does not exist, insert a new one with timestamps
+                    $insert_data = $attendance_value;
+                    $insert_data['created_at'] = $timestamp;
+                    $insert_data['updated_at'] = $timestamp;
+
+                    $this->db->insert('staff_attendance', $insert_data);
                 }
 
                 }

@@ -376,11 +376,15 @@
                                                         ?>
                                                             <td>
                                                             <?php
-                                                                if ($value['biometric_attendence'] || $value['qrcode_attendance']) {
+                                                            $formatted_date = '';
+                                                            if (!empty($value['attendence_dt']) && $value['attendence_dt'] !== '0000-00-00 00:00:00') {
+                                                                $formatted_date = $this->customlib->dateyyyymmddToDateTimeformat($value['attendence_dt']);
+                                                            } elseif (!empty($value['date']) && $value['date'] !== 'xxx') {
+                                                                $formatted_date = date($this->customlib->getSchoolDateFormat(), strtotime($value['date']));
+                                                            }
 
-                                                                    echo $this->customlib->dateyyyymmddToDateTimeformat($value['attendence_dt']);
-                                                                }
-                                                                ?>
+                                                            echo $formatted_date !== '' ? $formatted_date : $this->lang->line('n_a');
+                                                            ?>
                                                             </td>
                                                         <?php
                                                         }
