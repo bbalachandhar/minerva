@@ -122,6 +122,17 @@
         }
     }
 
+    /* Inline evaluator spinner + total-hours display styling */
+    .eval-spinner { display: inline-block; margin-left: 6px; vertical-align: middle; }
+    .eval-spinner i { font-size: 13px; color: #888; }
+    .total-hours-display { font-weight: 500; }
+
+    /* Note textarea styling */
+    .note-textarea { min-height: 48px; resize: vertical; }
+    .note-cell { vertical-align: top; }
+    .session-cell { white-space: normal; }
+    .raw-punches-cell ul { margin: 0; padding: 0; }
+
 </style>
 
 <div class="content-wrapper">
@@ -139,12 +150,6 @@
                     </div>
                     <form id='form1' action="<?php echo site_url('admin/staffattendance/index') ?>" method="post" accept-charset="utf-8">
                         <div class="box-body">
-                            <?php
-                            if ($this->session->flashdata('msg')) {
-                                echo $this->session->flashdata('msg');
-                                $this->session->unset_userdata('msg');
-                            }
-                            ?>
                             <?php echo $this->customlib->getCSRF(); ?>
                             <div class="row">
                                 <div class="col-md-6">
@@ -245,18 +250,17 @@
                                                     <th>#</th>
                                                     <th><?php echo $this->lang->line('staff_id'); ?></th>
                                                     <th><?php echo $this->lang->line('name'); ?></th>
-                                                    <th><?php echo $this->lang->line('role'); ?></th>
                                                                                                         <th><?php echo $this->lang->line('attendance'); ?></th>
-                                                                                                        <th><?php echo $this->lang->line('session_attendance'); ?></th>
+                                                                                                        <th class="session-header"><?php echo $this->lang->line('session_attendance'); ?></th>
                                                     <?php  if ($sch_setting->staff_biometric) {  ?>
                                                         <th width="10%"><?php echo $this->lang->line('date'); ?></th>
                                                     <?php  }  ?>
-                                                    <th width="8%" ><?php echo $this->lang->line('source'); ?></th>
+                                                    <!-- role and source columns removed to make Note wider -->
                                                     <th class="white-space-nowrap"><?php echo $this->lang->line('entry_time'); ?></th>
                                                     <th class="white-space-nowrap"><?php echo $this->lang->line('exit_time'); ?></th>
                                                     <th><?php echo $this->lang->line('total_hours'); ?></th>
                                                     <th><?php echo $this->lang->line('raw_punches'); ?></th>
-                                                    <th class="text-right"><?php echo $this->lang->line('note'); ?></th>
+                                                    <th class="text-right note-header" style="width:22%;"><?php echo $this->lang->line('note'); ?></th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -279,7 +283,7 @@
                                                         <td>
                                                             <?php echo $value['name'] . " " . $value['surname']; ?>
                                                         </td>
-                                                        <td><?php echo $value['user_type']; ?></td>
+                                                        <!-- role column removed -->
                                                         <td>
                                                             <?php
                                                             $c     = 1;
@@ -337,7 +341,7 @@
                                                                 }
                                                                             ?>
                                                         </td>
-                                                    <td>
+                                                    <td class="session-cell">
                                                         <?php
                                                         if (!empty($value['session_attendance_data'])) {
                                                             $session_data = json_decode($value['session_attendance_data'], true);
@@ -389,21 +393,7 @@
                                                         <?php
                                                         }
                                                         ?>
-                                                        <td>
-                                                            <?php
 
-                                                            if (IsNullOrEmptyString($value['biometric_attendence']) && IsNullOrEmptyString($value['qrcode_attendance'])) {
-                                                                echo $this->lang->line('n_a');
-                                                            } elseif (($value['biometric_attendence'] == 0) && ($value['qrcode_attendance']  == 0)) {
-                                                                echo $this->lang->line('manual');
-                                                            } elseif ($value['biometric_attendence']) {
-                                                                echo $this->lang->line('biometric');
-                                                            } elseif ($value['qrcode_attendance']) {
-                                                                echo $this->lang->line('qrcode')." / ".$this->lang->line('barcode');
-                                                            }
-
-                                                            ?>
-                                                        </td>
 
                                                         <?php
                                                         if($value['staff_attendance_type_id']==3 || $value['staff_attendance_type_id']==5){
@@ -419,9 +409,10 @@
                                                         <input  <?php echo $disable_input_attr;?>  type="text" value="<?php if($value["out_time"]!="00:00:00"){ echo $value["out_time"]; }else{ echo "";} ?>"  name="out_time_<?php echo $value["staff_id"] ?>"  id="out_time_<?php echo $value["staff_id"] ?>" class="form-control datetime out_time time out_time_<?php echo $value['role_id']; ?>">
                                                     </td>  
                                                     <td>
-                                                        <?php echo isset($value['total_hours_worked']) ? $value['total_hours_worked'] : 'N/A'; ?>
+                                                        <span class="total-hours-display"><?php echo isset($value['total_hours_worked']) ? $value['total_hours_worked'] : 'N/A'; ?></span>
+                                                        <span class="eval-spinner" style="display:none;"><i class="fa fa-spinner fa-pulse"></i></span>
                                                     </td>
-                                                    <td>
+                                                    <td class="raw-punches-cell">
                                                         <?php if (!empty($value['biometric_raw_punches'])) { ?>
                                                             <ul style="list-style: none; padding: 0; margin: 0;">
                                                                 <?php foreach ($value['biometric_raw_punches'] as $punch) { ?>
@@ -433,9 +424,9 @@
                                                         <?php } ?>
                                                     </td>
                                                         <?php if ($value["date"] == 'xxx') { ?>
-                                                            <td class="text-right"><input type="text"  class="form-control"  name="remark<?php echo $value["staff_id"] ?>"></td>
+                                                            <td class="text-right note-cell"><textarea class="form-control note-textarea" rows="2" name="remark<?php echo $value["staff_id"] ?>"></textarea></td>
                                                         <?php } else { ?>
-                                                            <td class="text-right"><input type="text"  class="form-control" name="remark<?php echo $value["staff_id"] ?>" value="<?php echo $value["remark"]; ?>"></td>
+                                                            <td class="text-right note-cell"><textarea class="form-control note-textarea" rows="2" name="remark<?php echo $value["staff_id"] ?>"><?php echo $value["remark"]; ?></textarea></td>
                                                         <?php } ?>
                                                     </tr>
                                                 <?php
@@ -463,6 +454,8 @@
 
 <script type="text/javascript">
     $(document).on('submit', '#save_attendance', function(e) {
+        // mark bulk save in progress so per-row auto-save handlers ignore transient events
+        window._staffAttendanceBulkSave = true;
         $('#load').button('loading');
     });
 
@@ -595,8 +588,9 @@ var attendance_setting = <?php echo json_encode($staff_settings) ?>;
 function getatten(atten_type){
     //3 for absent 5 for holiday
     if(atten_type==3 || atten_type==5){
-      $('.in_time').val('');
-      $('.out_time').val('');  
+      // do NOT clear existing in/out times when marking absent/holiday; only disable inputs
+      $('.in_time').attr("disabled", true);
+      $('.out_time').attr("disabled", true);
       return false;
     }else{
         var role_id = $("input[name='staff_role[]']").map(function(){return $(this).val();}).get();
@@ -606,10 +600,9 @@ function getatten(atten_type){
         $.each(nm, function(key, value) {
             if (value.staff_attendence_type_id == atten_type  &&  value.role_id==role_id[i]) {                
                 returnValue = [tConvert(value.entry_time_from), tConvert(value.entry_time_to)];
-                $('.in_time_'+role_id[i]).val(returnValue[0]);
-                $('.out_time_'+role_id[i]).val(returnValue[1]);                
-            }else{
-                            
+                // only set default times if the field is empty (do not overwrite manual edits)
+                $('.in_time_'+role_id[i]).each(function(){ if($(this).val().trim() === '') { $(this).val(returnValue[0]); } });
+                $('.out_time_'+role_id[i]).each(function(){ if($(this).val().trim() === '') { $(this).val(returnValue[1]); } });
             }
         }); 
     }
@@ -618,16 +611,154 @@ function getatten(atten_type){
 
 let disable_enable=(type,staff_id)=>{
     if(type==3 || type==5){
-        $("#in_time_"+staff_id).val("");
-        $("#out_time_"+staff_id).val("");
+        // do NOT clear any manually entered times; just disable the inputs
         $("#in_time_"+staff_id).attr("disabled",true);
         $("#out_time_"+staff_id).attr("disabled",true);
     }else{
-        $("#in_time_"+staff_id).val("");
-        $("#out_time_"+staff_id).val("");
+        // enable inputs without clearing existing values
         $("#in_time_"+staff_id).attr("disabled",false);
         $("#out_time_"+staff_id).attr("disabled",false);
     }
 }
+
+// Map attendance type IDs to human readable labels (used to update session cell client-side)
+var attendanceTypeLabels = <?php
+    $attendance_type_labels = array();
+    foreach ($attendencetypeslist as $type) {
+        $attendance_type_labels[$type['id']] = $this->lang->line($type['long_lang_name']);
+    }
+    echo json_encode($attendance_type_labels);
+?>;
+var evaluateUrl = '<?php echo site_url('admin/staffattendance/ajax_evaluate_attendance'); ?>';
+var saveProcessUrl = '<?php echo site_url('admin/staffattendance/ajax_save_and_process_attendance'); ?>';
+var csrfName = '<?php echo $this->security->get_csrf_token_name(); ?>';
+var csrfHash = '<?php echo $this->security->get_csrf_hash(); ?>';
+
+// AJAX auto‑save + process with debounce and per-row loading spinner
+var evalTimers = {}; // keyed by staffId
+// global flag to ignore per-row autosaves during full (bulk) save
+window._staffAttendanceBulkSave = window._staffAttendanceBulkSave || false;
+
+// initialize "last sent" values to avoid duplicate autosaves on harmless blur/submit
+$('.in_time, .out_time').each(function(){
+    $(this).data('last', $(this).val() || '');
+});
+
+function scheduleEvalForRow($row, staffId, dateRaw, inTime, outTime, showToast) {
+    // ignore if bulk save in progress
+    if (window._staffAttendanceBulkSave) { return; }
+    if (!staffId) { return; }
+
+    // debounce (500ms)
+    if (evalTimers[staffId]) {
+        clearTimeout(evalTimers[staffId]);
+    }
+    evalTimers[staffId] = setTimeout(function() {
+        var $spinner = $row.find('.eval-spinner');
+        $spinner.show();
+
+        // CALL the save+process endpoint (auto‑persist + reprocess)
+        $.post(saveProcessUrl, {
+            staff_id: staffId,
+            date: dateRaw,
+            in_time: inTime,
+            out_time: outTime,
+            [csrfName]: csrfHash
+        }, function(resp) {
+            if (!resp || resp.status !== 'success') {
+                return;
+            }
+
+            // resp.data.evaluated contains the computed attendance info
+            var d = resp.data.evaluated || {};
+
+            // update inputs' last-sent values so future blurs don't re-trigger for unchanged values
+            $row.find('#in_time_' + staffId).data('last', ($row.find('#in_time_' + staffId).val() || ''));
+            $row.find('#out_time_' + staffId).data('last', ($row.find('#out_time_' + staffId).val() || ''));
+
+            // prefer processor (DB) result for attendance type and session (authoritative)
+            var dbAtt = resp.data.db_attendance || {};
+            var attTypeId = (dbAtt.staff_attendance_type_id) ? dbAtt.staff_attendance_type_id : (d.attendance_type_id || null);
+            if (attTypeId) {
+                var $radio = $row.find('input[name="attendencetype' + staffId + '"][value="' + attTypeId + '"]');
+                if ($radio.length) { $radio.prop('checked', true); }
+                // enable/disable inputs based on authoritative type
+                disable_enable(attTypeId, staffId);
+            } else if (d.attendance_type_id) {
+                var $radio2 = $row.find('input[name="attendencetype' + staffId + '"][value="' + d.attendance_type_id + '"]');
+                if ($radio2.length) { $radio2.prop('checked', true); disable_enable(d.attendance_type_id, staffId); }
+            }
+
+            // update total hours display (use evaluated calculation)
+            var $totalHoursTd = $row.find('#out_time_' + staffId).closest('td').next('td');
+            $totalHoursTd.find('.total-hours-display').text(d.total_hours_worked && d.total_hours_worked !== 0 ? d.total_hours_worked : 'N/A');
+
+            // update session attendance cell (prefer DB session_attendance_data if available)
+            var sessionData = null;
+            if (dbAtt.session_attendance_data) {
+                try { sessionData = JSON.parse(dbAtt.session_attendance_data); } catch (e) { sessionData = d.session || null; }
+            } else {
+                sessionData = d.session || null;
+            }
+            var morningLabel = (sessionData && attendanceTypeLabels[sessionData.morning_session]) || 'N/A';
+            var afternoonLabel = (sessionData && attendanceTypeLabels[sessionData.afternoon_session]) || 'N/A';
+            var sessionHtml = 'Morning: ' + morningLabel + '<br>Afternoon: ' + afternoonLabel;
+            if ((sessionData && sessionData.pending_out_punch) || d.pending_out_punch) { sessionHtml += '<br><span class="text-warning">Pending out punch</span>'; }
+            $row.find('.session-cell').html(sessionHtml);
+
+            // update raw punches list
+            if (resp.data.raw_punches && resp.data.raw_punches.length) {
+                var ul = '<ul style="list-style:none;padding:0;margin:0;">';
+                resp.data.raw_punches.forEach(function(p){ ul += '<li>' + p.punch_time.substring(11) + '</li>'; });
+                ul += '</ul>';
+                $row.find('.raw-punches-cell').html(ul);
+            }
+
+            // update remark input with appended audit text from DB (if present)
+            if (resp.data.db_attendance && typeof resp.data.db_attendance.remark !== 'undefined') {
+                $row.find('input[name="remark' + staffId + '"]').val(resp.data.db_attendance.remark || '');
+            }
+
+            // show short success toast only when caller requested it (we show toast on blur/focusout only)
+            if (showToast) {
+                try {
+                    var staffName = $row.find('td').eq(2).text().trim();
+                    var displayDate = dateRaw; // already in school's display format
+                    var toastMsg = staffName + ' — ' + displayDate + ': ' + '<?php echo addslashes($this->lang->line("attendance_saved_successfully")); ?>';
+                    toastr.clear();
+                    toastr.success(toastMsg, '', { timeOut: 1800, positionClass: 'toast-top-right' });
+                } catch (e) {
+                    // ignore
+                }
+            }
+
+        }, 'json').fail(function() {
+            // optional: show error toast
+        }).always(function() {
+            $spinner.hide();
+        });
+
+    }, 500);
+}
+
+// handle changes, datetimepicker changes AND manual blur/focusout. Skip if bulk save in progress.
+$(document).on('change dp.change blur focusout', '.in_time, .out_time', function(e) {
+    if (window._staffAttendanceBulkSave) { return; }
+    var $row = $(this).closest('tr');
+    var staffId = $row.find("input[name='student_session[]']").val();
+    var dateRaw = $("input[name='date']").val();
+    var $in = $row.find('#in_time_' + staffId);
+    var $out = $row.find('#out_time_' + staffId);
+    var inTime = $in.val();
+    var outTime = $out.val();
+
+    // only trigger autosave if values actually changed compared to last-sent value
+    var changed = ($in.data('last') !== (inTime || '')) || ($out.data('last') !== (outTime || ''));
+    if (!changed) { return; }
+
+    // show toast only when the user leaves the field (blur/focusout)
+    var showToast = (e.type === 'blur' || e.type === 'focusout');
+    scheduleEvalForRow($row, staffId, dateRaw, inTime, outTime, showToast);
+});
 
 </script>

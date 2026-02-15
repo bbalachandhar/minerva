@@ -109,6 +109,68 @@ class Staffattendance extends Admin_Controller
                 }
                
                 $this->staffattendancemodel->addorUpdate($attendance_array);
+
+                // Ensure manual in/out punches are recorded in raw punches table so UI & processing reflect manual edits
+                $dateStr = date('Y-m-d', $this->customlib->datetostrtotime($date));
+                foreach ($attendance_array as $attRec) {
+                    $staff_id = $attRec['staff_id'];
+                    $in_time = $attRec['in_time'];
+                    $out_time = $attRec['out_time'];
+
+                    // fetch existing punches for the staff on that date
+                    $existing = $this->staff_biometric_punches_model->get_punches_by_staff_and_date($staff_id, $dateStr);
+                    $existing_times = array_map(function($r){ return date('Y-m-d H:i:s', strtotime($r['punch_time'])); }, $existing);
+
+                    if (!empty($in_time)) {
+                        $punch_dt = $dateStr . ' ' . $in_time;
+                        if (!in_array($punch_dt, $existing_times, true)) {
+                            $this->staff_biometric_punches_model->add([
+                                'staff_id'   => $staff_id,
+                                'punch_time' => $punch_dt,
+                                'created_at' => date('Y-m-d H:i:s'),
+                            ]);
+                        }
+                    }
+
+                    if (!empty($out_time)) {
+                        $punch_dt = $dateStr . ' ' . $out_time;
+                        if (!in_array($punch_dt, $existing_times, true)) {
+                            $this->staff_biometric_punches_model->add([
+                                'staff_id'   => $staff_id,
+                                'punch_time' => $punch_dt,
+                                'created_at' => date('Y-m-d H:i:s'),
+                            ]);
+                        }
+                    }
+                }
+
+                // Re-run attendance processing from raw punches for this date so attendance type auto-updates
+                // this will overwrite attendance_type based on punch-derived logic (desired behavior)
+                $this->_process_staff_attendance_from_punches($dateStr);
+
+                // Append audit remark (who & when) for each manually updated attendance row
+                try {
+                    $current_user = $this->customlib->getUserData();
+                    $auditor_name = isset($current_user['name']) ? $current_user['name'] : (isset($current_user['firstname']) ? $current_user['firstname'] : '');
+                    $auditor_role = isset($current_user['user_type']) ? $current_user['user_type'] : '';
+                    $timestamp = date('d/m/Y h:i:s a');
+                    $audit_text = $auditor_name . '(' . $auditor_role . ') updated on ' . $timestamp . '.';
+
+                    foreach ($attendance_array as $attRec) {
+                        $s_id = $attRec['staff_id'];
+                        $db_att = $this->staffattendancemodel->getAttendanceByStaffIdAndDate($s_id, $dateStr);
+                        if ($db_att && isset($db_att['id'])) {
+                            $existing_remark = trim(isset($db_att['remark']) ? $db_att['remark'] : '');
+                            $new_remark = $existing_remark !== '' ? $existing_remark . ' | ' . $audit_text : $audit_text;
+                            $this->staffattendancemodel->add(['id' => $db_att['id'], 'remark' => $new_remark]);
+                        } else {
+                            $this->staffattendancemodel->add(['staff_id' => $s_id, 'remark' => $audit_text, 'date' => $dateStr]);
+                        }
+                    }
+                } catch (Exception $e) {
+                    log_message('error', 'Failed to append audit remarks during bulk staffattendance save: ' . $e->getMessage());
+                }
+
                 //added mail sms code //
                 if (!empty($absent_staff_list)) {
                     $this->mailsmsconf->mailsms('staff_absent_attendence', $absent_staff_list, $date);
@@ -332,7 +394,7 @@ class Staffattendance extends Admin_Controller
         }
     }
 
-    private function _process_staff_attendance_from_punches($date_to_process)
+    private function _process_staff_attendance_from_punches($date_to_process, $target_staff_id = null)
     {
         $all_role_settings_raw = $this->staffAttendaceSetting_model->getRoleAttendanceSetting();
         $role_settings = [];
@@ -352,6 +414,11 @@ class Staffattendance extends Admin_Controller
         foreach ($all_active_staff as $staff_member) {
             $staff_id = $staff_member['id'];
             $role_id = $staff_member['role_id'];
+
+            // If a target staff id is provided, skip all other staff for performance and correctness
+            if ($target_staff_id !== null && (int)$staff_id !== (int)$target_staff_id) {
+                continue;
+            }
 
             if (isset($staff_punches_by_day[$staff_id])) {
                 $dates = $staff_punches_by_day[$staff_id];
@@ -695,6 +762,151 @@ class Staffattendance extends Admin_Controller
         }
         
         return false;
+    }
+
+    /**
+     * AJAX endpoint - evaluate attendance for a single staff/date using supplied in/out times (non-persistent).
+     * Returns JSON: { status: 'success', data: { attendance_type_id, in_time, out_time, total_hours_worked, session, remark, pending_out_punch } }
+     */
+    public function ajax_evaluate_attendance()
+    {
+        if (!($this->rbac->hasPrivilege('staff_attendance', 'can_view'))) {
+            echo json_encode(['status' => 'fail', 'message' => 'Access Denied']);
+            return;
+        }
+
+        $staff_id = $this->input->post('staff_id');
+        $date     = $this->input->post('date');
+        $in_time  = $this->input->post('in_time');
+        $out_time = $this->input->post('out_time');
+        $is_final = $this->input->post('is_final') ? true : false;
+
+        if (empty($staff_id) || empty($date)) {
+            echo json_encode(['status' => 'fail', 'message' => 'Invalid request']);
+            return;
+        }
+
+        // normalize date (accepts UI date format) to YYYY-MM-DD
+        try {
+            $dateStr = date('Y-m-d', $this->customlib->datetostrtotime($date));
+        } catch (Exception $e) {
+            $dateStr = $date;
+        }
+
+        $this->load->model('attendance_model');
+        $result = $this->attendance_model->evaluate_attendance_for_times($staff_id, $dateStr, $in_time, $out_time, $is_final);
+
+        if ($result === null) {
+            echo json_encode(['status' => 'fail', 'message' => 'Unable to evaluate attendance']);
+        } else {
+            echo json_encode(['status' => 'success', 'data' => $result]);
+        }
+    }
+
+    /**
+     * AJAX endpoint — persist manual in/out punches for a staff/date, reprocess attendance for that date,
+     * and return the updated attendance data for UI refresh. (Used by auto‑save on time change.)
+     */
+    public function ajax_save_and_process_attendance()
+    {
+        if (!($this->rbac->hasPrivilege('staff_attendance', 'can_add') || $this->rbac->hasPrivilege('staff_attendance', 'can_edit'))) {
+            echo json_encode(['status' => 'fail', 'message' => 'Access Denied']);
+            return;
+        }
+
+        $staff_id = $this->input->post('staff_id');
+        $date     = $this->input->post('date');
+        $in_time  = $this->input->post('in_time');
+        $out_time = $this->input->post('out_time');
+
+        if (empty($staff_id) || empty($date)) {
+            echo json_encode(['status' => 'fail', 'message' => 'Invalid request']);
+            return;
+        }
+
+        // normalize date to YYYY-MM-DD
+        try {
+            $dateStr = date('Y-m-d', $this->customlib->datetostrtotime($date));
+        } catch (Exception $e) {
+            $dateStr = $date;
+        }
+
+        // ensure times are saved as H:i:s or null
+        $in_time_val = (!isset($in_time) || trim($in_time) === '') ? null : date('H:i:s', strtotime($in_time));
+        $out_time_val = (!isset($out_time) || trim($out_time) === '') ? null : date('H:i:s', strtotime($out_time));
+
+        // fetch existing punches for the staff/date
+        $existing = $this->staff_biometric_punches_model->get_punches_by_staff_and_date($staff_id, $dateStr);
+        $existing_times = array_map(function($r){ return date('Y-m-d H:i:s', strtotime($r['punch_time'])); }, $existing);
+
+        // insert manual punches if they do not exist
+        if (!empty($in_time_val)) {
+            $punch_dt = $dateStr . ' ' . $in_time_val;
+            if (!in_array($punch_dt, $existing_times, true)) {
+                $this->staff_biometric_punches_model->add([
+                    'staff_id' => $staff_id,
+                    'punch_time' => $punch_dt,
+                    'created_at' => date('Y-m-d H:i:s'),
+                ]);
+            }
+        }
+        if (!empty($out_time_val)) {
+            $punch_dt = $dateStr . ' ' . $out_time_val;
+            if (!in_array($punch_dt, $existing_times, true)) {
+                $this->staff_biometric_punches_model->add([
+                    'staff_id' => $staff_id,
+                    'punch_time' => $punch_dt,
+                    'created_at' => date('Y-m-d H:i:s'),
+                ]);
+            }
+        }
+
+        // Re-run the attendance processor for this date — only for the target staff (faster & isolated)
+        $this->_process_staff_attendance_from_punches($dateStr, $staff_id);
+
+        // Load updated data for UI
+        $this->load->model('attendance_model');
+        $evaluated = $this->attendance_model->evaluate_attendance_for_times($staff_id, $dateStr, $in_time_val, $out_time_val, false);
+        $raw_punches = $this->attendance_model->get_raw_biometric_punches_by_staff_id_and_date($staff_id, $dateStr);
+        $db_attendance = $this->staffattendancemodel->getAttendanceByStaffIdAndDate($staff_id, $dateStr);
+
+        // Append audit remark (who & when) to staff_attendance.remark for manual punch saves
+        try {
+            $current_user = $this->customlib->getUserData();
+            $auditor_name = isset($current_user['name']) ? $current_user['name'] : (isset($current_user['firstname']) ? $current_user['firstname'] : '');
+            $auditor_role = isset($current_user['user_type']) ? $current_user['user_type'] : '';
+            $timestamp = date('d/m/Y h:i:s a'); // matches example: 15/02/2026 04:42:33 pm
+            $audit_text = $auditor_name . '(' . $auditor_role . ') updated on ' . $timestamp . '.';
+
+            if ($db_attendance && isset($db_attendance['id'])) {
+                $existing_remark = trim(isset($db_attendance['remark']) ? $db_attendance['remark'] : '');
+                $new_remark = $existing_remark !== '' ? $existing_remark . ' | ' . $audit_text : $audit_text;
+                // persist updated remark
+                $this->staffattendancemodel->add(['id' => $db_attendance['id'], 'remark' => $new_remark]);
+                // refresh local copy
+                $db_attendance = $this->staffattendancemodel->getAttendanceByStaffIdAndDate($staff_id, $dateStr);
+            } else {
+                // No attendance row exists (unlikely after processing) - create one with remark
+                $insert = [
+                    'staff_id' => $staff_id,
+                    'remark' => $audit_text,
+                    'date' => $dateStr,
+                ];
+                $this->staffattendancemodel->add($insert);
+                $db_attendance = $this->staffattendancemodel->getAttendanceByStaffIdAndDate($staff_id, $dateStr);
+            }
+        } catch (Exception $e) {
+            // do not block the main flow if remark append fails; just log
+            log_message('error', 'Failed to append audit remark for staffattendance: ' . $e->getMessage());
+        }
+
+        $response = [
+            'evaluated' => $evaluated,
+            'raw_punches' => $raw_punches,
+            'db_attendance' => $db_attendance,
+        ];
+
+        echo json_encode(['status' => 'success', 'data' => $response]);
     }
 
 }

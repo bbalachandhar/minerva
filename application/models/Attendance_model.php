@@ -546,6 +546,187 @@ class Attendance_model extends CI_Model {
     }
 
     /**
+     * Evaluate attendance for a single staff based on provided in/out times (non-persistent - used for AJAX evaluation).
+     * Returns array with attendance_type_id, in_time, out_time, total_hours_worked, session (morning/afternoon ids), remark, pending_out_punch
+     */
+    public function evaluate_attendance_for_times($staff_id, $date, $in_time = null, $out_time = null, $is_final = false) {
+        $this->load->model('staff_model');
+        $this->load->model('staffAttendaceSetting_model');
+
+        $present_id = 1;
+        $first_half_late_id = 2;
+        $absent_id = 3;
+        $half_day_id = 4;
+        $permission_first_session_id = 5;
+        $second_half_late_id = 6;
+        $permission_second_session_id = 7;
+        $first_half_absent_id = 8;
+        $second_half_absent_id = 9;
+
+        $setting = $this->setting_model->getSetting();
+        $morning_session_end_time = $setting->morning_session_end_time;
+        $evening_session_end_time = $setting->evening_session_end_time;
+
+        $staff_detail = $this->staff_model->get($staff_id);
+        if (!$staff_detail) {
+            return null;
+        }
+        $role_id = isset($staff_detail['role_id']) ? $staff_detail['role_id'] : null;
+        if (!$role_id) {
+            return null;
+        }
+
+        // Normalize times
+        $in_time_final = null;
+        $out_time_final = null;
+        $timestamps = [];
+        if (!empty($in_time)) {
+            $in_time_final = date('H:i:s', strtotime($in_time));
+            $timestamps[] = strtotime($date . ' ' . $in_time_final);
+        }
+        if (!empty($out_time)) {
+            $out_time_final = date('H:i:s', strtotime($out_time));
+            $timestamps[] = strtotime($date . ' ' . $out_time_final);
+        }
+
+        $total_hours_worked = 0;
+        if (empty($timestamps)) {
+            $attendance_type_id = $absent_id;
+            $remark = 'No punch found';
+            $session_data = [
+                'morning_session' => $first_half_absent_id,
+                'afternoon_session' => $second_half_absent_id,
+                'pending_out_punch' => false,
+                'is_final' => $is_final,
+            ];
+        } else {
+            sort($timestamps);
+            if (empty($in_time_final) && isset($timestamps[0])) {
+                $in_time_final = date('H:i:s', $timestamps[0]);
+            }
+            if (empty($out_time_final) && isset($timestamps[1])) {
+                $out_time_final = date('H:i:s', end($timestamps));
+            }
+
+            $total_seconds_worked = 0;
+            for ($i = 0; $i < count($timestamps); $i += 2) {
+                if (isset($timestamps[$i + 1])) {
+                    $total_seconds_worked += ($timestamps[$i + 1] - $timestamps[$i]);
+                }
+            }
+            $total_hours_worked = round($total_seconds_worked / 3600, 2);
+
+            // Default to present and then evaluate rules
+            $attendance_type_id = $present_id;
+            $remark = '';
+
+            $present_settings = $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($role_id, $present_id);
+            $first_half_late_settings = $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($role_id, $first_half_late_id);
+            $fhp_settings = $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($role_id, $permission_first_session_id);
+            $half_day_settings = $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($role_id, $half_day_id);
+            $second_half_late_settings = $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($role_id, $second_half_late_id);
+            $shp_settings = $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($role_id, $permission_second_session_id);
+
+            // Morning session
+            $first_half_status = $first_half_absent_id;
+            $second_half_status = $second_half_absent_id;
+            $arrival_second_half_status = null;
+            $pending_out_punch = false;
+
+            if ($half_day_settings && $this->time_in_range($in_time_final, $half_day_settings->entry_time_from, $half_day_settings->entry_time_to)) {
+                $first_half_status = $first_half_absent_id;
+                $arrival_second_half_status = $present_id;
+                $remark = 'Second half attendance';
+            } elseif ($second_half_late_settings && $this->time_in_range($in_time_final, $second_half_late_settings->entry_time_from, $second_half_late_settings->entry_time_to)) {
+                $first_half_status = $first_half_absent_id;
+                $arrival_second_half_status = $second_half_late_id;
+            } else {
+                if ($present_settings && $this->time_in_range($in_time_final, $present_settings->entry_time_from, $present_settings->entry_time_to)) {
+                    $first_half_status = $present_id;
+                } elseif ($first_half_late_settings && $this->time_in_range($in_time_final, $first_half_late_settings->entry_time_from, $first_half_late_settings->entry_time_to)) {
+                    $first_half_status = $first_half_late_id;
+                } elseif ($fhp_settings && $this->time_in_range($in_time_final, $fhp_settings->entry_time_from, $fhp_settings->entry_time_to)) {
+                    $first_half_status = $permission_first_session_id;
+                } else {
+                    $first_half_status = $first_half_absent_id;
+                }
+
+                if ($second_half_late_settings && !empty($second_half_late_settings->entry_time_to)) {
+                    if (strtotime($in_time_final) > strtotime($second_half_late_settings->entry_time_to)) {
+                        $arrival_second_half_status = $second_half_absent_id;
+                    }
+                }
+            }
+
+            // Evening session
+            if ($arrival_second_half_status !== null) {
+                $second_half_status = $arrival_second_half_status;
+            } elseif ($out_time_final) {
+                if ($shp_settings && $this->time_in_range($out_time_final, $shp_settings->entry_time_from, $shp_settings->entry_time_to)) {
+                    $second_half_status = $permission_second_session_id;
+                } else {
+                    $second_half_cutoff = !empty($morning_session_end_time) ? $morning_session_end_time : null;
+
+                    if ($second_half_cutoff && strtotime($out_time_final) < strtotime($second_half_cutoff)) {
+                        $second_half_status = $second_half_absent_id;
+                    } else {
+                        $present_cutoff = null;
+                        if (!empty($evening_session_end_time)) {
+                            $present_cutoff = $evening_session_end_time;
+                        } elseif ($shp_settings && !empty($shp_settings->entry_time_to)) {
+                            $present_cutoff = $shp_settings->entry_time_to;
+                        }
+
+                        if ($present_cutoff && strtotime($out_time_final) >= strtotime($present_cutoff)) {
+                            $second_half_status = $present_id;
+                        } else {
+                            $second_half_status = $second_half_absent_id;
+                        }
+                    }
+                }
+            } else {
+                if (!$is_final) {
+                    $second_half_status = $present_id;
+                    $pending_out_punch = true;
+                    $remark = 'Pending out punch';
+                } else {
+                    $first_half_status = $first_half_absent_id;
+                    $second_half_status = $second_half_absent_id;
+                    $remark = 'No closing punch found';
+                }
+            }
+
+            $first_half_present = in_array($first_half_status, [$present_id, $first_half_late_id, $permission_first_session_id], true);
+            $second_half_present = in_array($second_half_status, [$present_id, $second_half_late_id, $permission_second_session_id], true);
+
+            if ($first_half_present && $second_half_present) {
+                $attendance_type_id = $present_id;
+            } elseif ($first_half_present || $second_half_present) {
+                $attendance_type_id = $half_day_id;
+            } else {
+                $attendance_type_id = $absent_id;
+            }
+
+            $session_data = [
+                'morning_session' => $first_half_status,
+                'afternoon_session' => $second_half_status,
+                'pending_out_punch' => (!empty($pending_out_punch) && !$is_final) ? true : false,
+                'is_final' => $is_final,
+            ];
+        }
+
+        return [
+            'attendance_type_id' => $attendance_type_id,
+            'in_time' => $in_time_final,
+            'out_time' => $out_time_final,
+            'total_hours_worked' => $total_hours_worked,
+            'session' => $session_data,
+            'remark' => isset($remark) ? $remark : '',
+            'pending_out_punch' => isset($pending_out_punch) ? (bool)$pending_out_punch : false,
+        ];
+    }
+
+    /**
      * Retrieves raw biometric punches for a specific staff ID and date.
      *
      * @param int $staff_id The ID of the staff member.
