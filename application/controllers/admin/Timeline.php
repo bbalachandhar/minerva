@@ -106,9 +106,7 @@ class Timeline extends Admin_Controller
 
             if (isset($_FILES["timeline_doc"]) && !empty($_FILES['timeline_doc']['name'])) {
                 $uploaddir = './uploads/staff_timeline/';
-                if (!is_dir($uploaddir) && !mkdir($uploaddir)) {
-                    die("Error creating folder $uploaddir");
-                }
+                $this->customlib->ensureDirectoryExists($uploaddir);
              
                $upload_result = $this->media_storage->fileupload("timeline_doc", $uploaddir);
                 if ($upload_result['status'] === false) {
@@ -264,9 +262,7 @@ class Timeline extends Admin_Controller
 
             if (isset($_FILES["timeline_doc"]) && !empty($_FILES['timeline_doc']['name'])) {
                 $uploaddir = './uploads/student_timeline/';
-                if (!is_dir($uploaddir) && !mkdir($uploaddir)) {
-                    die("Error creating folder $uploaddir");
-                }
+                $this->customlib->ensureDirectoryExists($uploaddir);
                 $fileInfo = pathinfo($_FILES["timeline_doc"]["name"]);
                 $document = 'uploads/student_timeline/' . basename($_FILES['timeline_doc']['name']);
                 $img_name = $this->input->post('id') . '.' . $fileInfo['extension'];
@@ -333,9 +329,7 @@ class Timeline extends Admin_Controller
 
             if (isset($_FILES["timeline_doc"]) && !empty($_FILES['timeline_doc']['name'])) {
                 $uploaddir = './uploads/staff_timeline/';
-                if (!is_dir($uploaddir) && !mkdir($uploaddir)) {
-                    die("Error creating folder $uploaddir");
-                }
+                $this->customlib->ensureDirectoryExists($uploaddir);
                 $fileInfo = pathinfo($_FILES["timeline_doc"]["name"]);
                 $document = 'uploads/staff_timeline/' . basename($_FILES['timeline_doc']['name']);
                 $img_name = $this->input->post('id') . '.' . $fileInfo['extension'];

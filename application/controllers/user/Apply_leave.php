@@ -113,6 +113,7 @@ class Apply_leave extends Student_Controller
                         $img_name = time() . "-" . uniqid(rand()) . "!" . $_FILES["files"]["name"][0];
                         
                         
+                        $this->customlib->ensureDirectoryExists('./uploads/student_leavedocuments/');
                         move_uploaded_file($_FILES["files"]["tmp_name"][0], "./uploads/student_leavedocuments/" . $img_name);
                         
                         $data = array('id' => $leave_id, 'docs' => $img_name);

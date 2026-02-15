@@ -274,9 +274,7 @@ class Onlinestudent extends Admin_Controller
                 //to upload document from online student to main firl
                 if (isset($student['document']) && !empty($student['document'])) {
                     $uploaddir = './uploads/student_documents/' . $response->student_id . '/';
-                    if (!is_dir($uploaddir) && !mkdir($uploaddir)) {
-                        die("Error creating folder $uploaddir");
-                    }
+                    $this->customlib->ensureDirectoryExists($uploaddir);
 
                     $file_name           = basename($student['document']);
                     $img_name            = $uploaddir . $file_name;
@@ -301,6 +299,7 @@ class Onlinestudent extends Admin_Controller
                     if (isset($_FILES["file"]) && !empty($_FILES['file']['name'])) {
                         $fileInfo = pathinfo($_FILES["file"]["name"]);
                         $img_name = $response->student_id . '.' . $fileInfo['extension'];
+                        $this->customlib->ensureDirectoryExists('./uploads/student_images/');
                         move_uploaded_file($_FILES["file"]["tmp_name"], "./uploads/student_images/" . $img_name);
                         $data_img = array('id' => $response->student_id, 'image' => 'uploads/student_images/' . $img_name);
                         $this->student_model->add($data_img);
@@ -380,10 +379,12 @@ class Onlinestudent extends Admin_Controller
 
                 } else {
                     // to update image in online student table
+                    $this->customlib->ensureDirectoryExists('./uploads/student_images/online_admission_image/');
 
                     if (isset($_FILES["file"]) && !empty($_FILES['file']['name'])) {
                         $fileInfo = pathinfo($_FILES["file"]["name"]);
                         $img_name = $student['id'] . '.' . $fileInfo['extension'];
+                        $this->customlib->ensureDirectoryExists('./uploads/student_images/online_admission_image/');
                         move_uploaded_file($_FILES["file"]["tmp_name"], "./uploads/student_images/online_admission_image/" . $img_name);
                         $data_img = array('id' => $student['id'], 'image' => 'uploads/student_images/online_admission_image/' . $img_name);
                         $this->onlinestudent_model->edit($data_img);

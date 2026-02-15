@@ -261,9 +261,7 @@ class Messages_model extends MY_Model
                         } else {
 
                             $uploaddir = './uploads/communicate/email_template_images/';
-                            if (!is_dir($uploaddir) && !mkdir($uploaddir)) {
-                                die("Error creating folder $uploaddir");
-                            }
+                            $this->customlib->ensureDirectoryExists($uploaddir);
                             $fileInfo = pathinfo($_FILES["files"]["name"][$i]);
                             $document = basename($_FILES['files']['name'][$i]);
 

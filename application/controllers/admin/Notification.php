@@ -377,6 +377,7 @@ class Notification extends Admin_Controller
                     $file_name = $_FILES['file']['name'][$key];
                     $fileInfo  = pathinfo($_FILES["file"]["name"][$key]);
                     $img_name  = time() . rand(99, 999) . '.' . $fileInfo['extension'];
+                    $this->customlib->ensureDirectoryExists('./uploads/notice_board_images/');
                     move_uploaded_file($_FILES["file"]["tmp_name"][$key], "./uploads/notice_board_images/" . $img_name);
                     $send_attachments[] = array('directory' => 'uploads/notice_board_images/', 'attachment' => $img_name, 'attachment_name' => $file_name);
                 }
@@ -564,6 +565,7 @@ class Notification extends Admin_Controller
             //upload attachment if uploaded
             if (isset($_FILES["file"]) && $_FILES['file']['name'] != '' && (!empty($_FILES['file']['name']))) {
               if (isset($_FILES['file']['name'][0]) && !empty($_FILES['file']['name'][0])) {
+                $this->customlib->ensureDirectoryExists('./uploads/notice_board_images/');
                 foreach ($_FILES['file']['name'] as $key => $files_value) {
                     $file_type = $_FILES['file']['type'][$key];
                     $file_size = $_FILES['file']["size"][$key];

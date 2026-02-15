@@ -170,6 +170,7 @@ class Webservice extends CI_Controller
                         }
 
                         $upload_path = $this->config->item('upload_path') . "/student_leavedocuments/";
+                        $this->customlib->ensureDirectoryExists($upload_path);
 
                         if (isset($_FILES["file"]) && !empty($_FILES['file']['name'])) {
                             $fileInfo = pathinfo($_FILES["file"]["name"]);
@@ -303,6 +304,7 @@ class Webservice extends CI_Controller
                             'reason' => $this->input->post('reason'),
                         );
                         $upload_path = $this->config->item('upload_path') . "/student_leavedocuments/";
+                        $this->customlib->ensureDirectoryExists($upload_path);
 
                         $this->leave_model->add($data);
                         if (isset($_FILES["file"]) && !empty($_FILES['file']['name'])) {
@@ -1021,6 +1023,7 @@ class Webservice extends CI_Controller
                     } else {
                         //==================
                         $upload_path = $this->config->item('upload_path') . "/homework/assignment/";
+                        $this->customlib->ensureDirectoryExists($upload_path);
 
                         if (isset($_FILES["file"]) && !empty($_FILES['file']['name'])) {
                             $time = md5($_FILES["file"]['name'] . microtime());
@@ -1261,6 +1264,7 @@ class Webservice extends CI_Controller
                                 $fileInfo = pathinfo($_FILES["attachment_" . $qid]["name"]);
                                 $upload_file_name = time() . uniqid(rand()) . '.' . $fileInfo['extension'];
                                 $upload_path = $this->config->item('upload_path') . "/onlinexam_images/";
+                                $this->customlib->ensureDirectoryExists($upload_path);
 
                                 move_uploaded_file($_FILES["attachment_" . $qid]["tmp_name"], $upload_path . $upload_file_name);
                                 $question_value->attachment_name = $file_name;
@@ -3221,6 +3225,7 @@ class Webservice extends CI_Controller
                         }
 
                         $this->student_model->add($data);
+                        $this->customlib->ensureDirectoryExists('./uploads/student_images/');
 
                         if (isset($_FILES["file"]) && !empty($_FILES['file']['name'])) {
                             $fileInfo = pathinfo($_FILES["file"]["name"]);
@@ -3364,9 +3369,7 @@ class Webservice extends CI_Controller
                         $student_id = $this->input->post('student_id');
                         $title = $this->input->post('title');
                         $upload_path = $this->config->item('upload_path') . "/student_documents/" . $student_id . "/";
-                        if (!is_dir($upload_path) && !mkdir($upload_path)) {
-                            die("Error creating folder $upload_path");
-                        }
+                        $this->customlib->ensureDirectoryExists($upload_path);
 
                         if (isset($_FILES["file"]) && !empty($_FILES['file']['name'])) {
                             $fileInfo = pathinfo($_FILES["file"]["name"]);
@@ -4056,6 +4059,7 @@ class Webservice extends CI_Controller
                         $student = $this->student_model->get($this->input->post('student_id'));
 
                         $upload_path = $this->config->item('upload_path') . "/homework/assignment/";
+                        $this->customlib->ensureDirectoryExists($upload_path);
 
                         if (isset($_FILES["file"]) && !empty($_FILES['file']['name'])) {
                             $time = md5($_FILES["file"]['name'] . microtime());
@@ -4206,6 +4210,7 @@ class Webservice extends CI_Controller
                         );
 
                         $upload_path = $this->config->item('upload_path') . "/homework/daily_assignment/";
+                        $this->customlib->ensureDirectoryExists($upload_path);
                         $insert_id = $this->homework_model->adddailyassignment($data);
 
                         if (isset($_FILES["file"]) && !empty($_FILES['file']['name'])) {
@@ -4344,6 +4349,7 @@ class Webservice extends CI_Controller
                     $insert_id = $this->timeline_model->addedittimeline($timeline);
 
                     $upload_path = $this->config->item('upload_path') . "/student_timeline/";
+                    $this->customlib->ensureDirectoryExists($upload_path);
 
                     if (isset($_FILES["timeline_doc"]) && !empty($_FILES['timeline_doc']['name'])) {
                         $fileInfo = pathinfo($_FILES["timeline_doc"]["name"]);
@@ -4811,6 +4817,7 @@ class Webservice extends CI_Controller
                         }
 
                         $upload_path = $this->config->item('upload_path') . "/offline_payments/";
+                        $this->customlib->ensureDirectoryExists($upload_path);
 
                         if (isset($_FILES["file"]) && !empty($_FILES['file']['name'])) {
                             $name = $_FILES["file"]["name"];
@@ -5992,6 +5999,7 @@ class Webservice extends CI_Controller
                                 $fileInfo = pathinfo($_FILES["attachment_" . $qid]["name"]);
                                 $upload_file_name = time() . uniqid(rand()) . '.' . $fileInfo['extension'];
                                 $upload_path = $this->config->item('upload_path') . "/course_content/online_course_exam_result/";
+                                $this->customlib->ensureDirectoryExists($upload_path);
 
                                 move_uploaded_file($_FILES["attachment_" . $qid]["tmp_name"], $upload_path . $upload_file_name);
                                 $question_value->attachment_name = $file_name;

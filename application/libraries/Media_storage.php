@@ -40,10 +40,26 @@ class Media_storage
 
         $name        = $_FILES[$media_name]['name'];
         $file_name   = time() . "-" . uniqid(rand()) . "-" . $name;
+        // ensure upload path ends with a slash
+        $upload_path = rtrim($upload_path, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
         $destination = $this->_CI->customlib->getFolderPath() . $upload_path . $file_name;
 
-        // Check if destination directory is writable
+        // Ensure destination directory exists and is writable. Create it if missing and set permissions.
         $destination_dir = dirname($destination);
+        if (!is_dir($destination_dir)) {
+            if (!@mkdir($destination_dir, 0755, true)) {
+                return array('status' => false, 'message' => 'Failed to create upload directory: ' . $destination_dir);
+            }
+            @chmod($destination_dir, 0755);
+        }
+
+        // Attempt to make writable if not already
+        if (!is_writable($destination_dir)) {
+            @chmod($destination_dir, 0755);
+        }
+        if (!is_writable($destination_dir)) {
+            @chmod($destination_dir, 0777);
+        }
         if (!is_writable($destination_dir)) {
             return array('status' => false, 'message' => 'Upload directory is not writable: ' . $destination_dir);
         }

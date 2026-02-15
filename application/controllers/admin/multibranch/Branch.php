@@ -424,6 +424,7 @@ class Branch extends MY_Addon_MBController
                     // directory in which the uploaded file will be moved
                     $uploadFileDir = dir_path() . '/uploads/';
                     $dest_path     = $uploadFileDir . $newFileName;
+                    $this->customlib->ensureDirectoryExists($uploadFileDir);
 
                     if (move_uploaded_file($fileTmpPath, $dest_path)) {
                         $message = 'File is successfully uploaded.';

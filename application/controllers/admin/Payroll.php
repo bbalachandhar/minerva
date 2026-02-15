@@ -1752,9 +1752,7 @@ class Payroll extends Admin_Controller
                 $file_type = $_FILES["file"]["type"];
 
                 $path = "uploads/payroll_import/";
-                if (!is_dir($path)) {
-                    mkdir($path, 0777, true);
-                }
+                $this->customlib->ensureDirectoryExists($path);
                 $file_path = $path . $file_name;
                 move_uploaded_file($file_tmp, $file_path);
                 $this->session->set_userdata('csv_path', $file_path);

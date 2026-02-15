@@ -924,11 +924,7 @@ class Student extends Admin_Controller
 
 						$upload_dir_path  = $this->customlib->getFolderPath() . './uploads/student_documents/' . $insert_id . '/';
 						$upload_directory = './uploads/student_documents/' . $insert_id . '/';
-						if (!is_dir($upload_dir_path) && !mkdir($upload_dir_path)) {
-							die("Error creating folder $upload_dir_path");
-						}
-
-						if (isset($_FILES["first_doc"]) && !empty($_FILES['first_doc']['name'])) {
+                        $this->customlib->ensureDirectoryExists($upload_directory);
 		
 							$first_title = $this->input->post('first_title');
 							                            $upload_result = $this->media_storage->fileupload("first_doc", $upload_directory);
@@ -1003,8 +999,7 @@ class Student extends Admin_Controller
 						$this->load->view('layout/footer', $data);
 					}
 				 }
-				 
-			 } catch (Exception $e) {
+catch (Exception $e) {
 					  // Print the exception message for debugging or logging purposes
 						// echo 'Error: ' . $e->getMessage();
 						// die;
@@ -1029,9 +1024,7 @@ class Student extends Admin_Controller
             if (isset($_FILES["first_doc"]) && !empty($_FILES['first_doc']['name'])) {
                 $upload_dir_path = $this->customlib->getFolderPath() . './uploads/student_documents/' . $student_id . '/';
 
-                if (!is_dir($upload_dir_path) && !mkdir($upload_dir_path)) {
-                    die("Error creating folder $upload_dir_path");
-                }
+                $this->customlib->ensureDirectoryExists('./uploads/student_documents/' . $student_id . '/');
 
                 $fileInfo    = pathinfo($_FILES["first_doc"]["name"]);
                 $first_title = $this->input->post('first_title');

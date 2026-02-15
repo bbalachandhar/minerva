@@ -197,7 +197,9 @@ class Schsettings extends Admin_Controller
             if (isset($_FILES["file"]) && !empty($_FILES['file']['name'])) {
                 $fileInfo = pathinfo($_FILES["file"]["name"]);
                 $img_name = $id . '.' . $fileInfo['extension'];
-                move_uploaded_file($_FILES["file"]["tmp_name"], "./uploads/school_content/logo/" . $img_name);
+                $upload_dir = "./uploads/school_content/logo/";
+                $this->customlib->ensureDirectoryExists($upload_dir);
+                move_uploaded_file($_FILES["file"]["tmp_name"], $upload_dir . $img_name);
             }
             $data_record = array('id' => $id, 'image' => $img_name);
             $this->setting_model->add($data_record);

@@ -178,7 +178,9 @@ class Teacher extends Student_Controller
             if (isset($_FILES["file"]) && !empty($_FILES['file']['name'])) {
                 $fileInfo = pathinfo($_FILES["file"]["name"]);
                 $img_name = $insert_id . '.' . $fileInfo['extension'];
-                move_uploaded_file($_FILES["file"]["tmp_name"], "./uploads/teacher_images/" . $img_name);
+                $upload_dir = "./uploads/teacher_images/";
+                $this->customlib->ensureDirectoryExists($upload_dir);
+                move_uploaded_file($_FILES["file"]["tmp_name"], $upload_dir . $img_name);
                 $data_img = array('id' => $insert_id, 'image' => 'uploads/teacher_images/' . $img_name);
                 $this->student_model->add($data_img);
             }
@@ -255,7 +257,9 @@ class Teacher extends Student_Controller
             if (isset($_FILES["file"]) && !empty($_FILES['file']['name'])) {
                 $fileInfo = pathinfo($_FILES["file"]["name"]);
                 $img_name = $id . '.' . $fileInfo['extension'];
-                move_uploaded_file($_FILES["file"]["tmp_name"], "./uploads/teacher_images/" . $img_name);
+                $upload_dir = "./uploads/teacher_images/";
+                $this->customlib->ensureDirectoryExists($upload_dir);
+                move_uploaded_file($_FILES["file"]["tmp_name"], $upload_dir . $img_name);
                 $data_img = array('id' => $id, 'image' => 'uploads/teacher_images/' . $img_name);
                 $this->student_model->add($data_img);
             }

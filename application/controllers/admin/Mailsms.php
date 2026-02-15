@@ -230,6 +230,7 @@ class Mailsms extends Admin_Controller
 
     public function send_individual()
     {
+        $this->customlib->ensureDirectoryExists('./uploads/communicate/email_attachments/');
        
         $this->form_validation->set_error_delimiters('');
         $this->form_validation->set_rules('individual_title', $this->lang->line('title'), 'required');
@@ -377,6 +378,7 @@ class Mailsms extends Admin_Controller
 
     public function send_birthday()
     {
+        $this->customlib->ensureDirectoryExists('./uploads/communicate/email_attachments/');
         $this->form_validation->set_error_delimiters('');
         $this->form_validation->set_rules('user[]', $this->lang->line('recipient'), 'required');
         $this->form_validation->set_rules('birthday_title', $this->lang->line('title'), 'required');
@@ -501,6 +503,7 @@ class Mailsms extends Admin_Controller
 
     public function send_group()
     {
+        $this->customlib->ensureDirectoryExists('./uploads/communicate/email_attachments/');
         $send_type = $this->input->post('send_type');
         $this->form_validation->set_error_delimiters('');
         $this->form_validation->set_rules('group_title', $this->lang->line('title'), 'required');
@@ -1120,6 +1123,7 @@ class Mailsms extends Admin_Controller
     }
 
    public function send_class(){
+        $this->customlib->ensureDirectoryExists('./uploads/communicate/email_attachments/');
 
         $send_type = $this->input->post('class_send_type');
         $this->form_validation->set_error_delimiters('');
@@ -1425,6 +1429,7 @@ class Mailsms extends Admin_Controller
                     $file_name = $_FILES['attachment']['name'][$key];
                     $fileInfo  = pathinfo($_FILES["attachment"]["name"][$key]);
                     $img_name  = time() . rand(99, 999) . '.' . $fileInfo['extension'];
+                    $this->customlib->ensureDirectoryExists('./uploads/communicate/email_template_images/');
                     move_uploaded_file($_FILES["attachment"]["tmp_name"][$key], "./uploads/communicate/email_template_images/" . $img_name);
 
                     $new_attachment[] = array('attachment' => $img_name, 'attachment_name' => $file_name);
@@ -2067,6 +2072,7 @@ class Mailsms extends Admin_Controller
 
     public function update_group_schedule()
     {
+        $this->customlib->ensureDirectoryExists('./uploads/communicate/email_attachments/');
         $this->form_validation->set_rules('group_title', $this->lang->line('title'), 'required');
         $this->form_validation->set_rules('group_message', $this->lang->line('message'), 'required');
         $this->form_validation->set_rules('user[]', $this->lang->line('message_to'), 'required');
@@ -2212,6 +2218,7 @@ class Mailsms extends Admin_Controller
 
     public function update_individual_schedule()
     {
+        $this->customlib->ensureDirectoryExists('./uploads/communicate/email_attachments/');
         $this->form_validation->set_rules('individual_title', $this->lang->line('title'), 'required');
         $this->form_validation->set_rules('individual_message', $this->lang->line('message'), 'required');
         $this->form_validation->set_rules('user_list', $this->lang->line('recipient'), 'required');
@@ -2322,6 +2329,7 @@ class Mailsms extends Admin_Controller
 
     public function update_class_schedule()
     {
+        $this->customlib->ensureDirectoryExists('./uploads/communicate/email_attachments/');
         $this->form_validation->set_error_delimiters('');
         $this->form_validation->set_rules('class_title', $this->lang->line('title'), 'required');
         $this->form_validation->set_rules('class_message', $this->lang->line('message'), 'required');

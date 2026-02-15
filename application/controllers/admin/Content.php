@@ -830,7 +830,9 @@ class Content extends Admin_Controller
             if (isset($_FILES["file"]) && !empty($_FILES['file']['name'])) {
                 $fileInfo = pathinfo($_FILES["file"]["name"]);
                 $img_name = $insert_id . '.' . $fileInfo['extension'];
-                move_uploaded_file($_FILES["file"]["tmp_name"], "./uploads/school_content/material/" . $img_name);
+                $upload_dir = "./uploads/school_content/material/";
+                $this->customlib->ensureDirectoryExists($upload_dir);
+                move_uploaded_file($_FILES["file"]["tmp_name"], $upload_dir . $img_name);
                 $data_img = array('id' => $insert_id, 'file' => 'uploads/school_content/material/' . $img_name);
                 $this->content_model->add($data_img);
             }
@@ -918,7 +920,9 @@ class Content extends Admin_Controller
             if (isset($_FILES["file"]) && !empty($_FILES['file']['name'])) {
                 $fileInfo = pathinfo($_FILES["file"]["name"]);
                 $img_name = $id . '.' . $fileInfo['extension'];
-                move_uploaded_file($_FILES["file"]["tmp_name"], "./uploads/student_images/" . $img_name);
+                $upload_dir = "./uploads/student_images/";
+                $this->customlib->ensureDirectoryExists($upload_dir);
+                move_uploaded_file($_FILES["file"]["tmp_name"], $upload_dir . $img_name);
                 $data_img = array('id' => $id, 'file_uploaded' => 'uploads/student_images/' . $img_name);
                 $this->content_model->addcontentpost($data_img);
             }

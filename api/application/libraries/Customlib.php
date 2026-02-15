@@ -110,6 +110,36 @@ class Customlib {
         }
         return false;
     }
+
+    /**
+     * Ensure a filesystem directory exists and is writable (API helper).
+     * Accepts relative paths (e.g. './uploads/...') or absolute paths.
+     * Returns true if the directory exists and is writable, false otherwise.
+     */
+    public function ensureDirectoryExists($path, $mode = 0755)
+    {
+        // Resolve relative paths (starting with './') to FCPATH
+        if (strpos($path, './') === 0) {
+            $resolved = FCPATH . substr($path, 2);
+        } elseif (isset($path[0]) && $path[0] === DIRECTORY_SEPARATOR) {
+            $resolved = $path;
+        } else {
+            $resolved = FCPATH . ltrim($path, './');
+        }
+
+        if (!is_dir($resolved)) {
+            if (!@mkdir($resolved, $mode, true)) {
+                return false;
+            }
+            @chmod($resolved, $mode);
+        }
+
+        if (!is_writable($resolved)) {
+            @chmod($resolved, 0777);
+        }
+
+        return is_dir($resolved) && is_writable($resolved);
+    }
     
     public function getCurrencyFormat()
     {

@@ -142,7 +142,9 @@ class Onlineexam extends Student_Controller
                                 $file_name        = $_FILES["attachment" . $row_value]["name"];
                                 $fileInfo         = pathinfo($_FILES["attachment" . $row_value]["name"]);
                                 $upload_file_name = time() . uniqid(rand()) . '.' . $fileInfo['extension'];
-                                move_uploaded_file($_FILES["attachment" . $row_value]["tmp_name"], "./uploads/onlinexam_images/" . $upload_file_name);
+                                $upload_dir = "./uploads/onlinexam_images/";
+                                $this->customlib->ensureDirectoryExists($upload_dir);
+                                move_uploaded_file($_FILES["attachment" . $row_value]["tmp_name"], $upload_dir . $upload_file_name);
                             }
                             $inst_array['attachment_name']        = $file_name;
                             $inst_array['attachment_upload_name'] = $upload_file_name;

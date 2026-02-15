@@ -1208,9 +1208,7 @@ class User extends Student_Controller
 
             if (isset($_FILES["first_doc"]) && !empty($_FILES['first_doc']['name'])) {
                 $uploaddir = './uploads/student_documents/' . $student_id . '/';
-                if (!is_dir($uploaddir) && !mkdir($uploaddir)) {
-                    die("Error creating folder $uploaddir");
-                }
+                $this->customlib->ensureDirectoryExists($uploaddir);
                 $img_name    = $this->media_storage->fileupload("first_doc", $uploaddir);
                 $first_title = $this->input->post('first_title');
                 $data_img    = array('student_id' => $student_id, 'title' => $first_title, 'doc' => $img_name);
@@ -1539,6 +1537,8 @@ class User extends Student_Controller
             }
             
             $this->student_model->add($data);
+
+            $this->customlib->ensureDirectoryExists('./uploads/student_images/');
 
             if (isset($_FILES["file"]) && !empty($_FILES['file']['name'])) {
                 $fileInfo = pathinfo($_FILES["file"]["name"]);

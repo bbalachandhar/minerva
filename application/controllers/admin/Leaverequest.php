@@ -537,10 +537,7 @@ class Leaverequest extends Admin_Controller
                 
                             if ($is_lop_leave || $total_remain >= $leave_days) {                    if (isset($_FILES["userfile"]) && !empty($_FILES['userfile']['name'])) {
                         $uploaddir = './uploads/staff_documents/' . $staff_id . '/';
-                        if (!is_dir($uploaddir) && !mkdir($uploaddir)) {
-                            log_message('error', 'Failed to create upload directory: ' . $uploaddir);
-                            die("Error creating folder $uploaddir");
-                        }
+                        $this->customlib->ensureDirectoryExists($uploaddir);
                         $document = $this->media_storage->fileupload("userfile", $uploaddir);
                     } else {
                         $document = '';

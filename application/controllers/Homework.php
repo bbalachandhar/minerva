@@ -509,9 +509,7 @@ class Homework extends Admin_Controller
 
             if (isset($_FILES["userfile"]) && !empty($_FILES['userfile']['name'])) {
                 $uploaddir = './uploads/homework/';
-                if (!is_dir($uploaddir) && !mkdir($uploaddir)) {
-                    die("Error creating folder $uploaddir");
-                }
+                $this->customlib->ensureDirectoryExists($uploaddir);
                 $fileInfo = pathinfo($_FILES["userfile"]["name"]);
                 $document = basename($_FILES['userfile']['name']);
                 $img_name = $id . '.' . $fileInfo['extension'];

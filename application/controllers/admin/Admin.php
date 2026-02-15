@@ -1292,7 +1292,9 @@ class Admin extends Admin_Controller
                     if (isset($_FILES["file"]) && !empty($_FILES['file']['name'])) {
                         $fileInfo  = pathinfo($_FILES["file"]["name"]);
                         $file_name = "db-" . date("Y-m-d_H-i-s") . ".sql";
-                        move_uploaded_file($_FILES["file"]["tmp_name"], "./backup/temp_uploaded/" . $file_name);
+                        $upload_dir = "./backup/temp_uploaded/";
+                        $this->customlib->ensureDirectoryExists($upload_dir);
+                        move_uploaded_file($_FILES["file"]["tmp_name"], $upload_dir . $file_name);
                         $folder_name  = 'temp_uploaded';
                         $path         = './backup/';
                         $filePath     = $path . $folder_name . '/' . $file_name;
@@ -1542,6 +1544,11 @@ class Admin extends Admin_Controller
     {
         $this->load->helper('download');
         $filepath = "./backup/database_backup/" . $file;
+        if (!file_exists($filepath) || !is_readable($filepath)) {
+            $this->session->set_flashdata('error', 'Backup file not found or not readable.');
+            redirect('admin/admin/backup');
+            return;
+        }
         $data     = file_get_contents($filepath);
         $name     = $file;
         force_download($name, $data);

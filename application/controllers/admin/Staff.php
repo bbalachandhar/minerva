@@ -1084,9 +1084,7 @@ class Staff extends Admin_Controller
                 }
 
                 $upload_dir = './uploads/staff_documents/' . $staff_id . '/';
-                if (!is_dir($upload_dir) && !mkdir($upload_dir, 0755, true)) {
-                    die("Error creating folder $upload_dir");
-                }
+                $this->customlib->ensureDirectoryExists($upload_dir);
                     
                 if (isset($_FILES["first_doc"]) && !empty($_FILES['first_doc']['name'])) {
                       $upload_result = $this->media_storage->fileupload("first_doc", $upload_dir);
@@ -1488,9 +1486,7 @@ class Staff extends Admin_Controller
             }
 
             $upload_dir = './uploads/staff_documents/' . $id . '/';
-            if (!is_dir($upload_dir) && !mkdir($upload_dir, 0755, true)) {
-                die("Error creating folder $upload_dir");
-            }
+            $this->customlib->ensureDirectoryExists($upload_dir);
 
             if (isset($_FILES["first_doc"]) && !empty($_FILES['first_doc']['name'])) {
                 $upload_result = $this->media_storage->fileupload("first_doc", $upload_dir);
@@ -1782,9 +1778,7 @@ class Staff extends Admin_Controller
             }
 
             $upload_dir = './uploads/staff_documents/' . $id . '/';
-            if (!is_dir($upload_dir) && !mkdir($upload_dir, 0755, true)) {
-                die("Error creating folder $upload_dir");
-            }
+            $this->customlib->ensureDirectoryExists($upload_dir);
 
             if (isset($_FILES["first_doc"]) && !empty($_FILES['first_doc']['name'])) {
                 $upload_result = $this->media_storage->fileupload("first_doc", $upload_dir);
