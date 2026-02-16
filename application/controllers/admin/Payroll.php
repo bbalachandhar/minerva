@@ -1318,6 +1318,19 @@ class Payroll extends Admin_Controller
     {
         $this->load->library('tax_epf_calculator');
         $this->load->model('payroll_increment_model');
+        $this->load->model('payroll_model');
+        $allowance_types = $this->payroll_model->getAllowanceTypes(null, false);
+        $special_allowance_type_id = 0;
+        if (!empty($allowance_types)) {
+            foreach ($allowance_types as $type) {
+                $code = strtoupper(trim($type['allowance_code'] ?? ''));
+                $name = strtolower(trim($type['allowance_name'] ?? ''));
+                if ($code === 'SA' || $name === 'special allowance') {
+                    $special_allowance_type_id = (int) $type['id'];
+                    break;
+                }
+            }
+        }
 
         $staff_id = (int) $this->input->post('staff_id');
         $month = $this->input->post('month');
@@ -1906,6 +1919,18 @@ class Payroll extends Admin_Controller
         if (!empty($all_staff)) {
             foreach ($all_staff as $staff) {
                 if (isset($staff['is_active']) && $staff['is_active'] == 1) {
+                    // Query SA directly by staff_id from payslip_allowance
+                    $staff['special_allowance'] = 0;
+                    $this->db->select('amount');
+                    $this->db->from('payslip_allowance');
+                    $this->db->where('staff_id', $staff['id']);
+                    $this->db->where('allowance_type', 'SA');
+                    $this->db->order_by('id', 'DESC');
+                    $this->db->limit(1);
+                    $sa_row = $this->db->get()->row_array();
+                    if (!empty($sa_row) && isset($sa_row['amount'])) {
+                        $staff['special_allowance'] = (float) $sa_row['amount'];
+                    }
                     $active_staff[] = $staff;
                 }
             }
@@ -2096,6 +2121,18 @@ class Payroll extends Admin_Controller
         if (!empty($all_staff)) {
             foreach ($all_staff as $staff) {
                 if (isset($staff['is_active']) && $staff['is_active'] == 1) {
+                    // Query SA directly by staff_id from payslip_allowance
+                    $staff['special_allowance'] = 0;
+                    $this->db->select('amount');
+                    $this->db->from('payslip_allowance');
+                    $this->db->where('staff_id', $staff['id']);
+                    $this->db->where('allowance_type', 'SA');
+                    $this->db->order_by('id', 'DESC');
+                    $this->db->limit(1);
+                    $sa_row = $this->db->get()->row_array();
+                    if (!empty($sa_row) && isset($sa_row['amount'])) {
+                        $staff['special_allowance'] = (float) $sa_row['amount'];
+                    }
                     $active_staff[] = $staff;
                 }
             }

@@ -10,6 +10,62 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
     </section>
 
     <section class="content">
+        <style>
+            .bulk-increment-csv-panel {
+                background: #f5f9ff;
+                border: 1px solid #d6e4ff;
+                border-radius: 6px;
+                padding: 12px 14px;
+                margin-bottom: 12px;
+            }
+            .bulk-increment-csv-panel .help-block {
+                margin: 6px 0 0;
+                font-size: 12px;
+                color: #6b7a90;
+            }
+            .bulk-increment-table-wrapper {
+                max-height: 600px;
+                overflow-y: auto;
+                border: 1px solid #ddd;
+                border-radius: 4px;
+                background: #f9f9f9;
+                position: relative;
+            }
+            .csv-loading-overlay {
+                position: absolute;
+                inset: 0;
+                background: rgba(255, 255, 255, 0.9);
+                display: none;
+                align-items: center;
+                justify-content: center;
+                flex-direction: column;
+                z-index: 20;
+            }
+            .csv-loading-spinner {
+                width: 44px;
+                height: 44px;
+                border: 4px solid #e0e0e0;
+                border-top: 4px solid #1e88e5;
+                border-radius: 50%;
+                animation: csv-spin 0.9s linear infinite;
+                margin-bottom: 10px;
+            }
+            .csv-loading-text {
+                font-size: 13px;
+                color: #34495e;
+                font-weight: 600;
+                text-align: center;
+            }
+            .csv-upload-status {
+                margin-top: 6px;
+                font-size: 12px;
+                color: #2c3e50;
+            }
+            @keyframes csv-spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+        </style>
         <!-- Flash Messages -->
         <?php if ($this->session->flashdata('error')): ?>
         <div class="alert alert-danger alert-dismissible">
@@ -85,6 +141,20 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                 </select>
                             </div>
 
+                            <!-- CSV Upload -->
+                            <div class="bulk-increment-csv-panel">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <label>Upload CSV (Employee ID, Increment Amount)</label>
+                                        <input type="file" id="csv_increment_file" class="form-control" accept=".csv">
+                                        <div class="help-block">Format: employee_id, increment_amount (first row can be header)</div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="csv-upload-status" id="csv_upload_status">No file uploaded.</div>
+                                    </div>
+                                </div>
+                            </div>
+
                             <!-- Staff Selection & Increment Table -->
                             <div class="form-group">
                                 <label>
@@ -93,7 +163,11 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                         <input type="checkbox" id="select_all"> <strong>Select All</strong>
                                     </span>
                                 </label>
-                                <div style="max-height: 600px; overflow-y: auto; border: 1px solid #ddd; border-radius: 4px; background: #f9f9f9;">
+                                <div class="bulk-increment-table-wrapper">
+                                    <div class="csv-loading-overlay" id="csv_loading_overlay">
+                                        <div class="csv-loading-spinner"></div>
+                                        <div class="csv-loading-text" id="csv_loading_text">Applying increments...</div>
+                                    </div>
                                     <table class="table table-striped table-hover table-condensed" id="staff_table" style="margin: 0;">
                                         <thead style="position: sticky; top: 0; background: #34495e; color: white; z-index: 10;">
                                             <tr>
@@ -117,8 +191,10 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                                     $role = isset($staff['role']) ? $staff['role'] : '';
                                                     $department = isset($staff['department']) ? $staff['department'] : '';
                                                     $staff_id = $staff['id'];
+                                                    $special_allowance = isset($staff['special_allowance']) ? $staff['special_allowance'] : 0;
                                                     ?>
-                                            <tr data-role="<?php echo htmlspecialchars($role); ?>" data-staff-id="<?php echo $staff_id; ?>" data-basic="<?php echo $basic_salary; ?>">
+                                            <!-- DEBUG: Staff ID <?php echo $staff_id; ?> SA: <?php echo $special_allowance; ?> -->
+                                            <tr data-role="<?php echo htmlspecialchars($role); ?>" data-staff-id="<?php echo $staff_id; ?>" data-employee-id="<?php echo htmlspecialchars($staff['employee_id']); ?>" data-basic="<?php echo $basic_salary; ?>" data-special-allowance="<?php echo $special_allowance; ?>">
                                                 <td class="text-center" style="padding-top: 10px;">
                                                     <input type="checkbox" name="staff_ids[]" value="<?php echo $staff_id; ?>" class="staff_checkbox" onchange="updateRowVisibility(<?php echo $staff_id; ?>)">
                                                 </td>
@@ -292,6 +368,8 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
         const amountInput = row.find('.increment-amount-input');
         const previewText = row.find('.preview-text');
         const basicSalary = parseFloat(row.data('basic')) || 0;
+        const specialAllowance = parseFloat(row.data('special-allowance')) || 0;
+        const mergeWith = $('select[name="merge_with"]').val();
         
         const incrementType = typeSelect.val();
         const incrementValue = parseFloat(amountInput.val()) || 0;
@@ -305,13 +383,19 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
         let newSalary = basicSalary;
         let displayText = '';
         
+        let incrementAmount = 0;
         if (incrementType === 'Fixed') {
-            newSalary = basicSalary + incrementValue;
-            displayText = `New: ${currencySymbol}${newSalary.toFixed(2)}`;
+            incrementAmount = incrementValue;
         } else {
-            const percentageAmount = (basicSalary * incrementValue / 100);
-            newSalary = basicSalary + percentageAmount;
-            displayText = `+${percentageAmount.toFixed(2)} = ${currencySymbol}${newSalary.toFixed(2)}`;
+            incrementAmount = (basicSalary * incrementValue / 100);
+        }
+
+        if (mergeWith === 'special_allowance') {
+            const newAllowance = specialAllowance + incrementAmount;
+            displayText = `Special Allowance: ${currencySymbol}${specialAllowance.toFixed(2)} → ${currencySymbol}${newAllowance.toFixed(2)}`;
+        } else {
+            newSalary = basicSalary + incrementAmount;
+            displayText = `New: ${currencySymbol}${newSalary.toFixed(2)}`;
         }
         
         previewText.html(displayText);
@@ -438,6 +522,160 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
     // Initialize
     updateSelectedCount();
     updateTotalIncrement();
+
+    function splitCsvLine(line) {
+        const result = [];
+        let current = '';
+        let inQuotes = false;
+
+        for (let i = 0; i < line.length; i++) {
+            const char = line[i];
+            if (char === '"') {
+                if (inQuotes && line[i + 1] === '"') {
+                    current += '"';
+                    i++;
+                } else {
+                    inQuotes = !inQuotes;
+                }
+            } else if (char === ',' && !inQuotes) {
+                result.push(current.trim());
+                current = '';
+            } else {
+                current += char;
+            }
+        }
+        result.push(current.trim());
+        return result;
+    }
+
+    function parseCsvText(text) {
+        const normalized = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+        const lines = normalized.split('\n').filter(line => line.trim() !== '');
+        const records = [];
+
+        lines.forEach((line, index) => {
+            const cols = splitCsvLine(line);
+            if (!cols.length) {
+                return;
+            }
+            const firstCol = (cols[0] || '').toLowerCase();
+            const secondCol = (cols[1] || '').toLowerCase();
+            if (index === 0 && (firstCol.includes('employee') || firstCol.includes('emp') || secondCol.includes('increment'))) {
+                return;
+            }
+
+            const employeeId = (cols[0] || '').trim();
+            const incrementRaw = (cols[1] || '').trim();
+            if (!employeeId) {
+                return;
+            }
+            const incrementValue = parseFloat(incrementRaw);
+            records.push({
+                employeeId,
+                incrementValue: isNaN(incrementValue) ? 0 : incrementValue
+            });
+        });
+
+        return records;
+    }
+
+    function buildEmployeeIdMap() {
+        const map = {};
+        $('tr[data-employee-id]').each(function() {
+            const key = String($(this).data('employee-id')).trim();
+            if (key) {
+                map[key] = $(this);
+            }
+        });
+        return map;
+    }
+
+    function showCsvOverlay(message) {
+        $('#csv_loading_text').text(message || 'Applying increments...');
+        $('#csv_loading_overlay').css('display', 'flex');
+    }
+
+    function hideCsvOverlay() {
+        $('#csv_loading_overlay').hide();
+    }
+
+    function applyCsvRecords(records) {
+        const staffMap = buildEmployeeIdMap();
+        let index = 0;
+        let applied = 0;
+        let skipped = 0;
+        let missing = 0;
+
+        showCsvOverlay('Applying increments...');
+
+        function processBatch() {
+            const batchEnd = Math.min(index + 50, records.length);
+            for (; index < batchEnd; index++) {
+                const record = records[index];
+                const row = staffMap[String(record.employeeId).trim()];
+                if (!row) {
+                    missing++;
+                    continue;
+                }
+                const staffId = row.data('staff-id');
+                const checkbox = row.find('input[name="staff_ids[]"]');
+                const incrementValue = parseFloat(record.incrementValue) || 0;
+
+                if (incrementValue > 0) {
+                    checkbox.prop('checked', true);
+                    updateRowVisibility(staffId);
+                    row.find('.increment-type-select').val('Fixed');
+                    row.find('.increment-amount-input').val(incrementValue.toFixed(2));
+                    updatePreview(staffId);
+                    applied++;
+                } else {
+                    checkbox.prop('checked', false);
+                    updateRowVisibility(staffId);
+                    skipped++;
+                }
+            }
+
+            $('#csv_loading_text').text(`Applying increments... ${index}/${records.length}`);
+
+            if (index < records.length) {
+                setTimeout(processBatch, 0);
+            } else {
+                hideCsvOverlay();
+                updateSelectedCount();
+                updateTotalIncrement();
+                $('#csv_upload_status').text(`Applied: ${applied}, Skipped: ${skipped}, Not found: ${missing}`);
+            }
+        }
+
+        processBatch();
+    }
+
+    $('#csv_increment_file').on('change', function() {
+        const file = this.files[0];
+        if (!file) {
+            return;
+        }
+
+        $('#csv_upload_status').text(`Reading ${file.name}...`);
+        showCsvOverlay('Reading CSV...');
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const content = e.target.result || '';
+            const records = parseCsvText(content);
+            if (!records.length) {
+                hideCsvOverlay();
+                $('#csv_upload_status').text('No valid rows found in CSV.');
+                return;
+            }
+            applyCsvRecords(records);
+        };
+        reader.onerror = function() {
+            hideCsvOverlay();
+            $('#csv_upload_status').text('Failed to read CSV. Please try again.');
+        };
+        reader.readAsText(file);
+    });
 </script>
     </section>
 </div>
