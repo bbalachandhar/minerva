@@ -255,6 +255,19 @@ class Staffattendancemodel extends MY_Model {
         return $this->db->get()->result_array();
     }
 
+    /**
+     * Delete processed (biometric) attendance rows between two dates inclusive.
+     * Returns number of rows affected.
+     */
+    public function delete_processed_attendance_between_dates($from_date, $to_date)
+    {
+        $this->db->where('date >=', $from_date);
+        $this->db->where('date <=', $to_date);
+        $this->db->where('biometric_attendence', 1);
+        $this->db->delete('staff_attendance');
+        return $this->db->affected_rows();
+    }
+
     public function onlineattendence($data) {
 
         $this->db->where('staff_id', $data['staff_id']);

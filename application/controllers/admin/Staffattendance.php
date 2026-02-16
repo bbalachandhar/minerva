@@ -46,7 +46,34 @@ class Staffattendance extends Admin_Controller
         $user_type_id         = $this->input->post('user_id');
         $data["user_type_id"] = $user_type_id;
         $staff_settings           = $this->staffAttendaceSetting_model->getRoleWiseAttendanceSetting($user_type_id);
-        $data['staff_settings']   = $staff_settings;   
+        $data['staff_settings']   = $staff_settings;
+
+        // Load attendance types (needed by the view for JavaScript rendering)
+        $attendencetypes = $this->attendencetype_model->getStaffAttendanceType();
+        $reordered_attendencetypes = [];
+        $half_day_item = null;
+        $late_index = -1;
+
+        foreach ($attendencetypes as $key => $type) {
+            if ($type['id'] == 6) { // Half Day Second Shift (now renamed to Half Day)
+                $half_day_item = $type;
+                $half_day_item['long_lang_name'] = 'half_day';
+                continue;
+            }
+            if ($type['id'] == 2) { // Late
+                $late_index = count($reordered_attendencetypes);
+            }
+            $reordered_attendencetypes[] = $type;
+        }
+
+        // Insert half_day_item after late_item
+        if ($half_day_item !== null && $late_index !== -1) {
+            array_splice($reordered_attendencetypes, $late_index + 1, 0, [$half_day_item]);
+        } elseif ($half_day_item !== null) {
+            $reordered_attendencetypes[] = $half_day_item;
+        }
+
+        $data['attendencetypeslist'] = $reordered_attendencetypes;
 
         if (!(isset($user_type_id))) {
             $this->load->view('layout/header', $data);
@@ -394,6 +421,136 @@ class Staffattendance extends Admin_Controller
         }
     }
 
+    /**
+     * Fetch raw biometric punches between two dates (inclusive), reset existing raw punches in that range,
+     * and insert fresh punches from the biometric device for the same range.
+     * POST params: from_date, to_date (UI date format accepted)
+     * Returns JSON { status: 'success'|'fail', message: '', inserted: int, exceptions: int }
+     */
+    public function fetch_punches_between_dates()
+    {
+        // Start output buffering and set proper JSON headers
+        ob_start();
+        header('Content-Type: application/json');
+        
+        if (!($this->rbac->hasPrivilege('biometric_attendance', 'can_view'))) {
+            ob_end_clean();
+            echo json_encode(['status' => 'fail', 'message' => 'Access Denied']);
+            return;
+        }
+
+        // allow long-running fetch for large date ranges
+        ignore_user_abort(true);
+        @set_time_limit(0);
+
+        $from_date_raw = $this->input->post('from_date');
+        $to_date_raw = $this->input->post('to_date');
+
+        if (empty($from_date_raw) || empty($to_date_raw)) {
+            ob_end_clean();
+            echo json_encode(['status' => 'fail', 'message' => 'Invalid date range']);
+            return;
+        }
+
+        // normalize dates to YYYY-MM-DD
+        try {
+            $from_date = date('Y-m-d', $this->customlib->datetostrtotime($from_date_raw));
+            $to_date = date('Y-m-d', $this->customlib->datetostrtotime($to_date_raw));
+            log_message('debug', "fetch_punches_between_dates: Raw dates from UI - From: {$from_date_raw}, To: {$to_date_raw}");
+            log_message('debug', "fetch_punches_between_dates: Normalized dates - From: {$from_date}, To: {$to_date}");
+        } catch (Exception $e) {
+            log_message('error', "fetch_punches_between_dates: Date parsing error - " . $e->getMessage());
+            ob_end_clean();
+            echo json_encode(['status' => 'fail', 'message' => 'Invalid date format']);
+            return;
+        }
+
+        if (strtotime($from_date) > strtotime($to_date)) {
+            ob_end_clean();
+            echo json_encode(['status' => 'fail', 'message' => 'From date must be earlier than To date']);
+            return;
+        }
+
+        $active_device = $this->biometric_device_model->getActiveDevice();
+        if (empty($active_device)) {
+            ob_end_clean();
+            echo json_encode(['status' => 'fail', 'message' => 'No active biometric device configured']);
+            return;
+        }
+
+        $fromDateTime = $from_date . ' 00:00:00';
+        $toDateTime = $to_date . ' 23:59:59';
+
+        $this->biometric_api_client->initialize([
+            'api_endpoint' => $active_device['api_endpoint'],
+            'serial_number' => $active_device['serial_number'],
+            'username' => $active_device['username'],
+            'password' => $active_device['password'],
+        ]);
+
+        // Reset existing raw punches in the range
+        $this->staff_biometric_punches_model->delete_punches_between_dates($from_date, $to_date);
+
+        log_message('debug', "fetch_punches_between_dates: Calling biometric API with FromDateTime: {$fromDateTime}, ToDateTime: {$toDateTime}");
+        $start_time = microtime(true);
+        
+        $raw_punches = $this->biometric_api_client->getAttendanceLogs($fromDateTime, $toDateTime);
+        
+        $elapsed_time = round(microtime(true) - $start_time, 2);
+        log_message('debug', "fetch_punches_between_dates: API call completed in {$elapsed_time} seconds");
+        
+        if ($raw_punches === false) {
+            log_message('error', "fetch_punches_between_dates: Failed to fetch logs from biometric device");
+            ob_end_clean();
+            echo json_encode(['status' => 'fail', 'message' => 'Failed to fetch logs from biometric device']);
+            return;
+        }
+
+        log_message('debug', "fetch_punches_between_dates: Received " . count($raw_punches) . " punches from API");
+
+        $inserted = 0;
+        $exceptions = 0;
+
+        foreach ($raw_punches as $punch) {
+            $staff_id = $punch['staff_id'];
+            $punch_time = $punch['punch_time'];
+
+            // same exception detection as sync_biometric_attendance
+            $staff_member = $this->staff_model->get($staff_id);
+            $is_exception = 0;
+            $exception_reason = null;
+
+            if ($staff_member) {
+                $role_id = $staff_member['role_id'];
+                $present_setting = $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($role_id, 1);
+                if ($present_setting && !empty($present_setting->entry_time_from)) {
+                    $morning_window_start = $present_setting->entry_time_from;
+                    $three_hour_buffer = date('H:i:s', strtotime($morning_window_start) - (3 * 60 * 60));
+                    $punch_time_only = date('H:i:s', strtotime($punch_time));
+                    if (strtotime($punch_time_only) < strtotime($three_hour_buffer)) {
+                        $is_exception = 1;
+                        $exception_reason = "Punch at {$punch_time_only} is earlier than 3-hour buffer ({$three_hour_buffer}) before morning window ({$morning_window_start})";
+                        $exceptions++;
+                    }
+                }
+            }
+
+            $this->staff_biometric_punches_model->add([
+                'staff_id' => $staff_id,
+                'punch_time' => $punch_time,
+                'is_exception' => $is_exception,
+                'exception_reason' => $exception_reason,
+                'created_at' => date('Y-m-d H:i:s'),
+            ]);
+            $inserted++;
+        }
+
+        log_message('debug', "fetch_punches_between_dates: Completed. Inserted: {$inserted}, Exceptions: {$exceptions}");
+        ob_end_clean();
+        echo json_encode(['status' => 'success', 'message' => 'Raw punches fetched and reset for selected range', 'inserted' => $inserted, 'exceptions' => $exceptions]);
+        return;
+    }
+
     private function _process_staff_attendance_from_punches($date_to_process, $target_staff_id = null)
     {
         $all_role_settings_raw = $this->staffAttendaceSetting_model->getRoleAttendanceSetting();
@@ -736,6 +893,75 @@ class Staffattendance extends Admin_Controller
         $this->session->set_flashdata('msg', $final_msg);
 
         redirect('admin/staffattendance/index');
+    }
+
+    /**
+     * Process attendance between two dates (inclusive). Existing processed (biometric) attendance
+     * in that date range will be removed and reprocessed from raw punches.
+     * POST params: from_date, to_date (UI date format accepted)
+     * Returns JSON { status:'success'|'fail', message:'', processed_days: int, deleted_rows: int }
+     */
+    public function process_attendance_between_dates()
+    {
+        // Start output buffering and set proper JSON headers
+        ob_start();
+        header('Content-Type: application/json');
+        
+        if (!($this->rbac->hasPrivilege('biometric_attendance', 'can_view'))) {
+            ob_end_clean();
+            echo json_encode(['status' => 'fail', 'message' => 'Access Denied']);
+            return;
+        }
+
+        // allow long-running processing for large date ranges
+        ignore_user_abort(true);
+        @set_time_limit(0);
+
+        $from_raw = $this->input->post('from_date');
+        $to_raw = $this->input->post('to_date');
+
+        if (empty($from_raw) || empty($to_raw)) {
+            ob_end_clean();
+            echo json_encode(['status' => 'fail', 'message' => 'Invalid date range']);
+            return;
+        }
+
+        try {
+            $from_date = date('Y-m-d', $this->customlib->datetostrtotime($from_raw));
+            $to_date = date('Y-m-d', $this->customlib->datetostrtotime($to_raw));
+        } catch (Exception $e) {
+            ob_end_clean();
+            echo json_encode(['status' => 'fail', 'message' => 'Invalid date format']);
+            return;
+        }
+
+        if (strtotime($from_date) > strtotime($to_date)) {
+            ob_end_clean();
+            echo json_encode(['status' => 'fail', 'message' => 'From date must be earlier than To date']);
+            return;
+        }
+
+        // delete existing processed (biometric) attendance in range
+        $deleted_rows = $this->staffattendancemodel->delete_processed_attendance_between_dates($from_date, $to_date);
+
+        // reprocess day by day
+        $current = $from_date;
+        $processed_days = 0;
+        while (strtotime($current) <= strtotime($to_date)) {
+            $this->_process_staff_attendance_from_punches($current);
+            $processed_days++;
+            $current = date('Y-m-d', strtotime($current . ' +1 day'));
+        }
+
+        // update last_processed_attendance_date to the to_date
+        $setting = $this->setting_model->getSetting();
+        if ($setting && isset($setting->id)) {
+            $this->setting_model->add(['id' => $setting->id, 'last_processed_attendance_date' => $to_date]);
+        }
+
+        ob_end_clean();
+        echo json_encode(['status' => 'success', 'message' => 'Attendance reprocessed for selected range', 'processed_days' => $processed_days, 'deleted_rows' => $deleted_rows]);
+        return;
     }
 
     /**

@@ -30,6 +30,16 @@ class Staff_biometric_punches_model extends MY_Model {
         $this->db->delete('staff_biometric_punches');
     }
 
+    /**
+     * Delete all punches between two dates (inclusive).
+     * Used for "reset and fetch between dates" functionality.
+     */
+    public function delete_punches_between_dates($from_date, $to_date) {
+        $this->db->where('DATE(punch_time) >=', $from_date);
+        $this->db->where('DATE(punch_time) <=', $to_date);
+        $this->db->delete('staff_biometric_punches');
+    }
+
     public function get_punches_by_date($date) {
         $this->db->select('staff_id, punch_time');
         $this->db->from('staff_biometric_punches');

@@ -136,16 +136,36 @@
 </style>
 
 <div class="content-wrapper">
+
+    <!-- Between-dates progress modal (used by Fetch/Process) -->
+    <div class="modal fade" id="betweenProgressModal" tabindex="-1" role="dialog" aria-hidden="true">
+      <div class="modal-dialog modal-sm modal-dialog-centered" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Working...</h5>
+          </div>
+          <div class="modal-body text-center">
+            <i class="fa fa-spinner fa-pulse fa-3x"></i>
+            <div id="betweenProgressMessage" class="mt-3">Please wait — this may take a few minutes.</div>
+            <div id="betweenProgressDetails" class="mt-2 text-muted small"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Main content -->
     <section class="content">
+        <?php if ($this->session->flashdata('msg')) { ?>
+            <div id="flashMessage" style="display:none;" data-type="html"><?php echo $this->session->flashdata('msg'); ?></div>
+        <?php } ?>
         <div class="row">
             <div class="col-md-12">
                 <div class="box box-primary">
                     <div class="box-header with-border">
                         <h3 class="box-title"><i class="fa fa-search"></i> <?php echo $this->lang->line('select_criteria'); ?></h3>
                         <div class="box-tools pull-right">
-                            <a href="<?php echo site_url('admin/staff/sync_biometric_attendance') ?>" class="btn btn-primary btn-sm"><i class="fa fa-refresh"></i> <?php echo $this->lang->line('sync_punches'); ?></a>
-                            <a href="<?php echo site_url('admin/staffattendance/trigger_process_biometric_attendance') ?>" class="btn btn-success btn-sm"><i class="fa fa-calculator"></i> <?php echo $this->lang->line('process_biometric_attendance'); ?></a>
+                            <button type="button" id="btnSyncPunches" class="btn btn-primary btn-sm"><i class="fa fa-refresh"></i> <?php echo $this->lang->line('sync_punches'); ?></button>
+                            <button type="button" id="btnProcessAttendance" class="btn btn-success btn-sm"><i class="fa fa-calculator"></i> <?php echo $this->lang->line('process_biometric_attendance'); ?></button>
                         </div>
                     </div>
                     <form id='form1' action="<?php echo site_url('admin/staffattendance/index') ?>" method="post" accept-charset="utf-8">
@@ -189,6 +209,56 @@
                             </div>
                         </div>
                     </form>
+
+                    <!-- FETCH / PROCESS BETWEEN DATES: new UI card -->
+                    <?php if ($this->rbac->hasPrivilege('biometric_attendance', 'can_view')) { ?>
+                    <div class="row" style="margin-top:10px;">
+                        <div class="col-md-6">
+                            <div class="box box-solid box-info">
+                                <div class="box-header"><h4 class="box-title"><i class="fa fa-refresh"></i> Fetch punches between dates</h4></div>
+                                <div class="box-body">
+                                    <div class="form-inline">
+                                        <div class="form-group">
+                                            <label><?php echo $this->lang->line('from'); ?></label>
+                                            <input type="text" class="form-control date" id="fetch_from_date" value="<?php echo date($this->customlib->getSchoolDateFormat(), strtotime('-7 days')); ?>" readonly>
+                                        </div>
+                                        &nbsp;
+                                        <div class="form-group">
+                                            <label><?php echo $this->lang->line('to'); ?></label>
+                                            <input type="text" class="form-control date" id="fetch_to_date" value="<?php echo date($this->customlib->getSchoolDateFormat()); ?>" readonly>
+                                        </div>
+                                        &nbsp;
+                                        <button id="btnFetchBetween" class="btn btn-primary"><?php echo $this->lang->line('fetch'); ?> &amp; Reset</button>
+                                    </div>
+                                    <p class="help-block text-muted" style="margin-top:6px;">This will delete existing raw punches between the selected dates and import fresh punches from the configured biometric device.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="box box-solid box-success">
+                                <div class="box-header"><h4 class="box-title"><i class="fa fa-calculator"></i> Process attendance between dates</h4></div>
+                                <div class="box-body">
+                                    <div class="form-inline">
+                                        <div class="form-group">
+                                            <label><?php echo $this->lang->line('from'); ?></label>
+                                            <input type="text" class="form-control date" id="process_from_date" value="<?php echo date($this->customlib->getSchoolDateFormat(), strtotime('-7 days')); ?>" readonly>
+                                        </div>
+                                        &nbsp;
+                                        <div class="form-group">
+                                            <label><?php echo $this->lang->line('to'); ?></label>
+                                            <input type="text" class="form-control date" id="process_to_date" value="<?php echo date($this->customlib->getSchoolDateFormat()); ?>" readonly>
+                                        </div>
+                                        &nbsp;
+                                        <button id="btnProcessBetween" class="btn btn-success"><?php echo $this->lang->line('process'); ?></button>
+                                    </div>
+                                    <p class="help-block text-muted" style="margin-top:6px;">Existing processed attendance (biometric) found in the range will be removed and recomputed from raw punches.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <?php } ?>
+
                     <?php
                     if (isset($resultlist)) {
                     ?>
@@ -475,6 +545,31 @@
 <script type="text/javascript">
   
     $(document).ready(function() {
+        // Convert flash messages to toast notifications
+        var $flash = $('#flashMessage');
+        if ($flash.length) {
+            var flashHtml = $flash.html().trim();
+            if (flashHtml) {
+                // Extract the text from the alert div
+                var $temp = $('<div>').html(flashHtml);
+                var message = $temp.find('.alert').text().trim();
+                var alertClass = $temp.find('.alert').attr('class');
+                
+                if (message) {
+                    if (alertClass && alertClass.indexOf('alert-success') !== -1) {
+                        toastr.success(message, '', { timeOut: 4000, positionClass: 'toast-top-right' });
+                    } else if (alertClass && alertClass.indexOf('alert-danger') !== -1) {
+                        toastr.error(message, '', { timeOut: 5000, positionClass: 'toast-top-right' });
+                    } else if (alertClass && alertClass.indexOf('alert-warning') !== -1) {
+                        toastr.warning(message, '', { timeOut: 4000, positionClass: 'toast-top-right' });
+                    } else {
+                        toastr.info(message, '', { timeOut: 4000, positionClass: 'toast-top-right' });
+                    }
+                }
+            }
+            $flash.remove(); // Remove the hidden div after converting to toast
+        }
+
         $('.default_radio').click(function() {
             let radio_default=($(this).val());
             var returnVal = confirm("<?php echo $this->lang->line('are_you_sure'); ?>");
@@ -629,10 +724,155 @@ var attendanceTypeLabels = <?php
     }
     echo json_encode($attendance_type_labels);
 ?>;
-var evaluateUrl = '<?php echo site_url('admin/staffattendance/ajax_evaluate_attendance'); ?>';
-var saveProcessUrl = '<?php echo site_url('admin/staffattendance/ajax_save_and_process_attendance'); ?>';
+var evaluateUrl = "<?php echo site_url('admin/staffattendance/ajax_evaluate_attendance'); ?>";
+var saveProcessUrl = "<?php echo site_url('admin/staffattendance/ajax_save_and_process_attendance'); ?>";
+var fetchBetweenUrl = "<?php echo site_url('admin/staffattendance/fetch_punches_between_dates'); ?>";
+var processBetweenUrl = "<?php echo site_url('admin/staffattendance/process_attendance_between_dates'); ?>";
+var syncPunchesUrl = "<?php echo site_url('admin/staff/sync_biometric_attendance'); ?>";
+var processAttendanceUrl = "<?php echo site_url('admin/staffattendance/trigger_process_biometric_attendance'); ?>";
 var csrfName = '<?php echo $this->security->get_csrf_token_name(); ?>';
 var csrfHash = '<?php echo $this->security->get_csrf_hash(); ?>';
+
+// Diagnostic: confirm the attendance JS loaded (check browser console)
+if (window && window.console && console.log) { console.log('staffattendance.js loaded — CSRF token name:', csrfName); }
+
+// Helper: show/hide progress modal used for between-dates operations
+function showBetweenModal(title, message, details) {
+    $('#betweenProgressModal .modal-title').text(title || 'Working...');
+    $('#betweenProgressMessage').text(message || 'Please wait...');
+    $('#betweenProgressDetails').text(details || '');
+    $('#betweenProgressModal').modal({ backdrop: 'static', keyboard: false });
+}
+function hideBetweenModal() { $('#betweenProgressModal').modal('hide'); }
+
+// Sync Punches button handler (fetch all raw punches from biometric device)
+$(document).on('click', '#btnSyncPunches', function(e) {
+    console.log('btnSyncPunches clicked!');
+    e.preventDefault();
+    if (!confirm('This will fetch all raw punches from the biometric device. This may take a few minutes. Continue?')) { return; }
+    
+    $('#btnSyncPunches, #btnProcessAttendance, #btnFetchBetween, #btnProcessBetween, #saveattendence').prop('disabled', true);
+    showBetweenModal('Syncing Punches', 'Fetching all raw punches from biometric device. Please do not close this window...', 'This operation may take several minutes.');
+    
+    // Navigate to the sync endpoint (it will process and redirect back with flash message)
+    setTimeout(function() {
+        window.location.href = syncPunchesUrl;
+    }, 500);
+});
+
+// Process Biometric Attendance button handler (process all raw punches into attendance records)
+$(document).on('click', '#btnProcessAttendance', function(e) {
+    console.log('btnProcessAttendance clicked!');
+    e.preventDefault();
+    if (!confirm('This will process all raw punches into attendance records. This may take a few minutes. Continue?')) { return; }
+    
+    $('#btnSyncPunches, #btnProcessAttendance, #btnFetchBetween, #btnProcessBetween, #saveattendence').prop('disabled', true);
+    showBetweenModal('Processing Attendance', 'Processing all raw punches into attendance records. Please do not close this window...', 'This operation may take several minutes.');
+    
+    // Navigate to the process endpoint (it will process and redirect back with flash message)
+    setTimeout(function() {
+        window.location.href = processAttendanceUrl;
+    }, 500);
+});
+
+// Fetch punches between two dates (reset raw punches + import) — show progress modal
+// Use delegated handler + immediate feedback (console + toast) to ensure responsiveness
+$(document).on('click', '#btnFetchBetween', function(e) {
+    try { console.log('btnFetchBetween clicked'); } catch (err) {}
+    e.preventDefault();
+    var from = $('#fetch_from_date').val();
+    var to = $('#fetch_to_date').val();
+    console.log('Fetch dates - From:', from, 'To:', to);
+    if (!from || !to) { toastr.error('Please select both From and To dates'); return; }
+    if (!confirm('This will remove existing raw punches between the selected dates and import fresh punches from the biometric device. Continue?')) { return; }
+
+    // immediate UI feedback
+    try { toastr.info('Starting fetch — please wait...'); } catch (err) {}
+    $('#btnFetchBetween, #btnProcessBetween, #saveattendence').prop('disabled', true);
+    showBetweenModal('Fetching punches', 'Fetching raw punches between ' + from + ' and ' + to + '. This may take some time...');
+
+    var postData = { from_date: from, to_date: to };
+    postData[csrfName] = csrfHash;
+    console.log('Sending fetch request with data:', postData);
+
+    $.ajax({
+        url: fetchBetweenUrl,
+        type: 'POST',
+        data: postData,
+        dataType: 'json',
+        timeout: 300000, // 5 minutes timeout for large date ranges
+        success: function(resp) {
+            console.log('Fetch response:', resp);
+            if (resp && resp.status === 'success') {
+                $('#betweenProgressDetails').text('Inserted: ' + (resp.inserted || 0) + ', Exceptions: ' + (resp.exceptions || 0));
+                $('#betweenProgressMessage').text(resp.message || 'Fetch completed');
+                toastr.success(resp.message || 'Raw punches fetched successfully!');
+                setTimeout(function(){ hideBetweenModal(); location.reload(); }, 1200);
+            } else {
+                hideBetweenModal();
+                toastr.error(resp && resp.message ? resp.message : 'Server error occurred');
+                $('#btnFetchBetween, #btnProcessBetween').prop('disabled', false);
+            }
+        },
+        error: function(xhr, status, error) {
+            console.error('Fetch request failed:', status, error, xhr.responseText);
+            hideBetweenModal();
+            if (status === 'timeout') {
+                toastr.error('Request timed out. The operation may still be running. Check logs or refresh the page.');
+            } else {
+                toastr.error('Request failed — check server logs.');
+            }
+            $('#btnFetchBetween, #btnProcessBetween').prop('disabled', false);
+        }
+    });
+});
+
+// Process attendance between two dates (delete existing processed rows + re-run processor) — show progress modal
+// Delegated handler with immediate feedback
+$(document).on('click', '#btnProcessBetween', function(e) {
+    try { console.log('btnProcessBetween clicked'); } catch (err) {}
+    e.preventDefault();
+    var from = $('#process_from_date').val();
+    var to = $('#process_to_date').val();
+    if (!from || !to) { toastr.error('Please select both From and To dates'); return; }
+    if (!confirm('This will remove existing processed (biometric) attendance rows between the selected dates and reprocess them from raw punches. Continue?')) { return; }
+
+    try { toastr.info('Starting processing — please wait...'); } catch (err) {}
+    $('#btnFetchBetween, #btnProcessBetween, #saveattendence').prop('disabled', true);
+    showBetweenModal('Processing attendance', 'Re-processing attendance between ' + from + ' and ' + to + '. This may take some time...');
+
+    var postData = { from_date: from, to_date: to };
+    postData[csrfName] = csrfHash;
+
+    $.ajax({
+        url: processBetweenUrl,
+        type: 'POST',
+        data: postData,
+        dataType: 'json',
+        timeout: 300000, // 5 minutes timeout for large date ranges
+        success: function(resp) {
+            if (resp && resp.status === 'success') {
+                $('#betweenProgressDetails').text('Processed days: ' + (resp.processed_days || 0) + ', Deleted rows: ' + (resp.deleted_rows || 0));
+                $('#betweenProgressMessage').text(resp.message || 'Processing completed');
+                toastr.success(resp.message || 'Attendance processed successfully!');
+                setTimeout(function(){ hideBetweenModal(); location.reload(); }, 1200);
+            } else {
+                hideBetweenModal();
+                toastr.error(resp && resp.message ? resp.message : 'Server error occurred');
+                $('#btnFetchBetween, #btnProcessBetween').prop('disabled', false);
+            }
+        },
+        error: function(xhr, status, error) {
+            hideBetweenModal();
+            if (status === 'timeout') {
+                toastr.error('Request timed out. The operation may still be running. Check logs or refresh the page.');
+            } else {
+                toastr.error('Request failed — check server logs.');
+            }
+            $('#btnFetchBetween, #btnProcessBetween').prop('disabled', false);
+        }
+    });
+});
 
 // AJAX auto‑save + process with debounce and per-row loading spinner
 var evalTimers = {}; // keyed by staffId
@@ -658,13 +898,10 @@ function scheduleEvalForRow($row, staffId, dateRaw, inTime, outTime, showToast) 
         $spinner.show();
 
         // CALL the save+process endpoint (auto‑persist + reprocess)
-        $.post(saveProcessUrl, {
-            staff_id: staffId,
-            date: dateRaw,
-            in_time: inTime,
-            out_time: outTime,
-            [csrfName]: csrfHash
-        }, function(resp) {
+        var dataToSend = { staff_id: staffId, date: dateRaw, in_time: inTime, out_time: outTime };
+        dataToSend[csrfName] = csrfHash;
+
+        $.post(saveProcessUrl, dataToSend, function(resp) {
             if (!resp || resp.status !== 'success') {
                 return;
             }

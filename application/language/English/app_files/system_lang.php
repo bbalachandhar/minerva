@@ -2496,7 +2496,6 @@ $lang['upcomming_class'] = "Upcomming Class";
 $lang['update'] = "Update";	
 $lang['update_message'] = "Record Updated Successfully";	
 $lang['update_now'] = "Update Now";	
-$lang['updater_instruction'] = "Would You Like Update Your System, This Procedure Is Irreversible. Before Proceed Please Take Complete Backup Of Your File And Database.";	
 $lang['upi'] = "UPI";	
 $lang['upload'] = "Upload";	
 $lang['upload_admission_application_form'] = "Upload Admission Application Form";	

@@ -1677,7 +1677,7 @@ class Admin extends Admin_Controller
                 $this->form_validation->set_message('handle_upload', $this->lang->line("extension_not_allowed"));
                 return false;
             }
-            if ($_FILES["file"]["size"] > 102400000) {
+            if ($_FILES["file"]["size"] > 104857600) { // 100MB = 104857600 bytes
                 // @phpstan-ignore-next-line
                 $this->form_validation->set_message('handle_upload', $this->lang->line("file_size_shoud_be_less_than") . ' 100 MB');
                 return false;

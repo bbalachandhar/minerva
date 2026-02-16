@@ -532,6 +532,13 @@ class Auth
     {
         $this->CI->session->unset_userdata('version');
         $url         = $this->CI->enc_lib->dycrypt(DEBUG_SYSTEM_CHECK_UPDATE);
+        // If update-check URL is not configured, provide a clear error and exit early.
+        if (empty($url)) {
+            $this->set_error('Update check is disabled or updater URL is not configured.');
+            log_message('debug', 'Auth::checkupdate - DEBUG_SYSTEM_CHECK_UPDATE is empty; skipping remote check.');
+            return false;
+        }
+
         $sslk        = $this->CI->config->item('SSLK');
         $app_version = $this->CI->customlib->getAppVersion();
         $post_data   = [

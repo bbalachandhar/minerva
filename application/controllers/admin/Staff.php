@@ -159,6 +159,25 @@ class Staff extends Admin_Controller
         $this->load->model("payroll_model");
         $salary = $this->payroll_model->getSalaryDetails($id);
 
+        // Ensure $salary is always an array with numeric defaults to avoid "Trying to access array offset on value of type null" in views
+        if (empty($salary)) {
+            $salary = [
+                'net_salary'     => 0,
+                'earnings'       => 0,
+                'deduction'      => 0,
+                'tax'            => 0,
+                'leave_deduction'=> 0,
+            ];
+        } elseif (is_object($salary)) {
+            $salary = (array) $salary;
+        }
+        // Normalize missing keys
+        $salary['net_salary']      = isset($salary['net_salary']) ? $salary['net_salary'] : 0;
+        $salary['earnings']        = isset($salary['earnings']) ? $salary['earnings'] : 0;
+        $salary['deduction']       = isset($salary['deduction']) ? $salary['deduction'] : 0;
+        $salary['tax']             = isset($salary['tax']) ? $salary['tax'] : 0;
+        $salary['leave_deduction'] = isset($salary['leave_deduction']) ? $salary['leave_deduction'] : 0;
+
         $attendencetypes             = $this->staffattendancemodel->getStaffAttendanceType();
         $data['attendencetypeslist'] = $attendencetypes;
         $i                           = 0;

@@ -11,6 +11,8 @@ class Payroll extends Admin_Controller
         ini_set('max_execution_time', 600); // 10 minutes
         set_time_limit(600);
         ini_set('memory_limit', '512M');
+        ini_set('upload_max_filesize', '50M');
+        ini_set('post_max_size', '50M');
         
         $this->load->helper('file');
         $this->config->load("mailsms");
@@ -1655,7 +1657,15 @@ class Payroll extends Admin_Controller
                 $skipped_count = 0;
                 $skipped_staff = [];
                 foreach ($result as $row) {
+                    // Try to find staff by employee_id first, then by biometric_id
                     $staff = $this->staff_model->get_by_employee_id(trim($row['staff_id']));
+                    if (!$staff) {
+                        $staff = $this->staff_model->get_by_biometric_id(trim($row['staff_id']));
+                        if ($staff) {
+                            $staff = (array) $staff; // Convert object to array for consistency
+                        }
+                    }
+                    
                     if ($staff) {
 
                         $existing_payslip = $this->payroll_model->getPayslipByStaffMonthYear($staff['id'], $month, $year);
@@ -1678,12 +1688,21 @@ class Payroll extends Admin_Controller
                             }
                         }
 
+                        // Update basic salary if BASIC column is provided
+                        $basic_salary = $staff['basic_salary'];
+                        if (isset($row['BASIC']) && is_numeric($row['BASIC']) && $row['BASIC'] > 0) {
+                            $basic_salary = $row['BASIC'];
+                            // Update staff table with new basic salary
+                            $this->db->where('id', $staff['id']);
+                            $this->db->update('staff', ['basic_salary' => $basic_salary]);
+                        }
+
                         $data = array(
                             'staff_id' => $staff['id'],
-                            'basic' => $staff['basic_salary'],
+                            'basic' => $basic_salary,
                             'total_allowance' => $total_allowance,
                             'total_deduction' => $total_deduction,
-                            'net_salary' => $staff['basic_salary'] + $total_allowance - $total_deduction,
+                            'net_salary' => $basic_salary + $total_allowance - $total_deduction,
                             'payment_date' => date("Y-m-d"),
                             'status' => 'generated',
                             'month' => $month,
@@ -1734,17 +1753,41 @@ class Payroll extends Admin_Controller
 
     public function handle_csv_upload()
     {
+        // Ensure PHP limits are set for large file uploads
+        ini_set('upload_max_filesize', '50M');
+        ini_set('post_max_size', '50M');
+        ini_set('memory_limit', '512M');
+        ini_set('max_execution_time', '600');
+        
         $error = "";
         if (isset($_FILES["file"]) && !empty($_FILES['file']['name'])) {
             $allowedExts = array('csv');
             $temp = explode(".", $_FILES["file"]["name"]);
             $extension = end($temp);
+            
+            // Check for upload errors
             if ($_FILES["file"]["error"] > 0) {
-                $error .= "Error: " . $_FILES["file"]["error"] . "<br>";
+                switch ($_FILES["file"]["error"]) {
+                    case 1:
+                    case 2:
+                        $error .= "The uploaded file exceeds the maximum allowed size (50MB). Please reduce the file size or contact administrator.";
+                        break;
+                    case 3:
+                        $error .= "The uploaded file was only partially uploaded.";
+                        break;
+                    case 4:
+                        $error .= "No file was uploaded.";
+                        break;
+                    default:
+                        $error .= "Error uploading file: " . $_FILES["file"]["error"];
+                        break;
+                }
             }
+            
             if (!in_array($extension, $allowedExts)) {
                 $error .= "Error: Please select CSV file only.";
             }
+            
             if ($error == "") {
                 $file_name = $_FILES["file"]["name"];
                 $file_size = $_FILES["file"]["size"];
