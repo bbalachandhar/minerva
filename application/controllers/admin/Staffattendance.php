@@ -547,7 +547,8 @@ class Staffattendance extends Admin_Controller
 
         log_message('debug', "fetch_punches_between_dates: Completed. Inserted: {$inserted}, Exceptions: {$exceptions}");
         ob_end_clean();
-        echo json_encode(['status' => 'success', 'message' => 'Raw punches fetched and reset for selected range', 'inserted' => $inserted, 'exceptions' => $exceptions]);
+        $message = $inserted . ' punch' . ($inserted != 1 ? 'es' : '') . ' fetched successfully!';
+        echo json_encode(['status' => 'success', 'message' => $message, 'inserted' => $inserted, 'exceptions' => $exceptions]);
         return;
     }
 

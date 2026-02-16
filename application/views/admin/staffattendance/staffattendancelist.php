@@ -804,10 +804,13 @@ $(document).on('click', '#btnFetchBetween', function(e) {
         success: function(resp) {
             console.log('Fetch response:', resp);
             if (resp && resp.status === 'success') {
-                $('#betweenProgressDetails').text('Inserted: ' + (resp.inserted || 0) + ', Exceptions: ' + (resp.exceptions || 0));
+                var inserted = resp.inserted || 0;
+                var exceptions = resp.exceptions || 0;
+                var detailText = exceptions > 0 ? ' (' + exceptions + ' exception' + (exceptions != 1 ? 's' : '') + ')' : '';
+                $('#betweenProgressDetails').text('Inserted: ' + inserted + ', Exceptions: ' + exceptions);
                 $('#betweenProgressMessage').text(resp.message || 'Fetch completed');
-                toastr.success(resp.message || 'Raw punches fetched successfully!');
-                setTimeout(function(){ hideBetweenModal(); location.reload(); }, 1200);
+                toastr.success((resp.message || inserted + ' punches fetched!') + detailText);
+                setTimeout(function(){ hideBetweenModal(); location.reload(); }, 3000);
             } else {
                 hideBetweenModal();
                 toastr.error(resp && resp.message ? resp.message : 'Server error occurred');
@@ -852,10 +855,12 @@ $(document).on('click', '#btnProcessBetween', function(e) {
         timeout: 300000, // 5 minutes timeout for large date ranges
         success: function(resp) {
             if (resp && resp.status === 'success') {
-                $('#betweenProgressDetails').text('Processed days: ' + (resp.processed_days || 0) + ', Deleted rows: ' + (resp.deleted_rows || 0));
+                var processedDays = resp.processed_days || 0;
+                var deletedRows = resp.deleted_rows || 0;
+                $('#betweenProgressDetails').text('Processed days: ' + processedDays + ', Deleted rows: ' + deletedRows);
                 $('#betweenProgressMessage').text(resp.message || 'Processing completed');
-                toastr.success(resp.message || 'Attendance processed successfully!');
-                setTimeout(function(){ hideBetweenModal(); location.reload(); }, 1200);
+                toastr.success((resp.message || 'Attendance processed successfully!') + ' (Days: ' + processedDays + ', Deleted rows: ' + deletedRows + ')');
+                setTimeout(function(){ hideBetweenModal(); location.reload(); }, 3000);
             } else {
                 hideBetweenModal();
                 toastr.error(resp && resp.message ? resp.message : 'Server error occurred');
