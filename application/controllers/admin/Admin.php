@@ -592,6 +592,177 @@ class Admin extends Admin_Controller
             ->set_output(json_encode($response));
     }
 
+    public function fees_classwise_summary_widget()
+    {
+        if (!$this->rbac->hasPrivilege('fees_classwise_summary_widget', 'can_view')) {
+            access_denied();
+        }
+
+        $current_session = $this->setting_model->getCurrentSession();
+        $this->load->model('Finalyearclass_model');
+        $final_year_ids = $this->Finalyearclass_model->getClassIds();
+        $final_hash = md5(implode(',', $final_year_ids));
+        $cache_key = 'dash_fees_classwise_' . $current_session . '_' . $final_hash;
+
+        $response = $this->getDashboardCache($cache_key, 300, function () use ($current_session, $final_year_ids) {
+            $students = $this->Student_model->getStudentsBySession($current_session);
+            $class_rows = array();
+
+            if (!empty($students)) {
+                foreach ($students as $student) {
+                    $class_id = (int)$student['class_id'];
+                    if (!isset($class_rows[$class_id])) {
+                        $class_rows[$class_id] = $this->initClasswiseRow($class_id, $student['class']);
+                    }
+
+                    $fees_data = $this->Customstudentfeemaster_model->getTransStudentFees($student['student_session_id']);
+                    if (empty($fees_data)) {
+                        continue;
+                    }
+
+                    $class_rows[$class_id]['tuition_demand'] += (float)$fees_data->tuition_demand;
+                    $class_rows[$class_id]['tuition_paid'] += (float)$fees_data->tuition_paid;
+                    $class_rows[$class_id]['transport_demand'] += (float)$fees_data->transport_demand;
+                    $class_rows[$class_id]['transport_paid'] += (float)$fees_data->transport_paid;
+                    $class_rows[$class_id]['hostel_demand'] += (float)$fees_data->hostel_demand;
+                    $class_rows[$class_id]['hostel_paid'] += (float)$fees_data->hostel_paid;
+                    $class_rows[$class_id]['other_demand'] += (float)$fees_data->other_demand;
+                    $class_rows[$class_id]['other_paid'] += (float)$fees_data->other_paid;
+                }
+            }
+
+            $rows = array_values($class_rows);
+            usort($rows, function ($a, $b) {
+                return strcasecmp($a['class_name'], $b['class_name']);
+            });
+
+            $all_rows = array();
+            foreach ($rows as $row) {
+                $this->finalizeClasswiseRow($row);
+                if ($this->rowHasAmounts($row)) {
+                    $all_rows[] = $row;
+                }
+            }
+
+            $exclude_rows = array();
+            foreach ($all_rows as $row) {
+                if (!in_array($row['class_id'], $final_year_ids, true)) {
+                    $exclude_rows[] = $row;
+                }
+            }
+
+            $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
+            $all_totals = $this->sumClasswiseRows($all_rows);
+            $exclude_totals = $this->sumClasswiseRows($exclude_rows);
+
+            $all_rows = $this->formatClasswiseRows($all_rows, $currency_symbol);
+            $exclude_rows = $this->formatClasswiseRows($exclude_rows, $currency_symbol);
+            $all_totals = $this->formatClasswiseRow($all_totals, $currency_symbol);
+            $exclude_totals = $this->formatClasswiseRow($exclude_totals, $currency_symbol);
+
+            return array(
+                'status' => 'success',
+                'data' => array(
+                    'all' => $all_rows,
+                    'exclude_final' => $exclude_rows,
+                    'totals' => array(
+                        'all' => $all_totals,
+                        'exclude_final' => $exclude_totals,
+                    ),
+                ),
+            );
+        });
+
+        return $this->output
+            ->set_content_type('application/json')
+            ->set_output(json_encode($response));
+    }
+
+    private function initClasswiseRow($class_id, $class_name)
+    {
+        return array(
+            'class_id' => $class_id,
+            'class_name' => $class_name,
+            'tuition_demand' => 0,
+            'tuition_paid' => 0,
+            'tuition_pending' => 0,
+            'transport_demand' => 0,
+            'transport_paid' => 0,
+            'transport_pending' => 0,
+            'hostel_demand' => 0,
+            'hostel_paid' => 0,
+            'hostel_pending' => 0,
+            'other_demand' => 0,
+            'other_paid' => 0,
+            'other_pending' => 0,
+        );
+    }
+
+    private function finalizeClasswiseRow(&$row)
+    {
+        $row['tuition_pending'] = max(0, $row['tuition_demand'] - $row['tuition_paid']);
+        $row['transport_pending'] = max(0, $row['transport_demand'] - $row['transport_paid']);
+        $row['hostel_pending'] = max(0, $row['hostel_demand'] - $row['hostel_paid']);
+        $row['other_pending'] = max(0, $row['other_demand'] - $row['other_paid']);
+    }
+
+    private function rowHasAmounts($row)
+    {
+        $total = $row['tuition_demand'] + $row['tuition_paid'] +
+            $row['transport_demand'] + $row['transport_paid'] +
+            $row['hostel_demand'] + $row['hostel_paid'] +
+            $row['other_demand'] + $row['other_paid'];
+        return $total > 0;
+    }
+
+    private function sumClasswiseRows($rows)
+    {
+        $total = $this->initClasswiseRow(0, 'Grand Total');
+        foreach ($rows as $row) {
+            $total['tuition_demand'] += $row['tuition_demand'];
+            $total['tuition_paid'] += $row['tuition_paid'];
+            $total['tuition_pending'] += $row['tuition_pending'];
+            $total['transport_demand'] += $row['transport_demand'];
+            $total['transport_paid'] += $row['transport_paid'];
+            $total['transport_pending'] += $row['transport_pending'];
+            $total['hostel_demand'] += $row['hostel_demand'];
+            $total['hostel_paid'] += $row['hostel_paid'];
+            $total['hostel_pending'] += $row['hostel_pending'];
+            $total['other_demand'] += $row['other_demand'];
+            $total['other_paid'] += $row['other_paid'];
+            $total['other_pending'] += $row['other_pending'];
+        }
+
+        return $total;
+    }
+
+    private function formatClasswiseRows($rows, $currency_symbol)
+    {
+        $formatted = array();
+        foreach ($rows as $row) {
+            $formatted[] = $this->formatClasswiseRow($row, $currency_symbol);
+        }
+        return $formatted;
+    }
+
+    private function formatClasswiseRow($row, $currency_symbol)
+    {
+        $row['tuition_demand_formatted'] = $currency_symbol . number_format($row['tuition_demand'], 2);
+        $row['tuition_paid_formatted'] = $currency_symbol . number_format($row['tuition_paid'], 2);
+        $row['tuition_pending_formatted'] = $currency_symbol . number_format($row['tuition_pending'], 2);
+        $row['transport_demand_formatted'] = $currency_symbol . number_format($row['transport_demand'], 2);
+        $row['transport_paid_formatted'] = $currency_symbol . number_format($row['transport_paid'], 2);
+        $row['transport_pending_formatted'] = $currency_symbol . number_format($row['transport_pending'], 2);
+        $row['hostel_demand_formatted'] = $currency_symbol . number_format($row['hostel_demand'], 2);
+        $row['hostel_paid_formatted'] = $currency_symbol . number_format($row['hostel_paid'], 2);
+        $row['hostel_pending_formatted'] = $currency_symbol . number_format($row['hostel_pending'], 2);
+        $row['other_demand_formatted'] = $currency_symbol . number_format($row['other_demand'], 2);
+        $row['other_paid_formatted'] = $currency_symbol . number_format($row['other_paid'], 2);
+        $row['other_pending_formatted'] = $currency_symbol . number_format($row['other_pending'], 2);
+
+        return $row;
+    }
+
     public function student_head_count_widget()
     {
         if (!$this->rbac->hasPrivilege('student_head_count_widget', 'can_view')) {

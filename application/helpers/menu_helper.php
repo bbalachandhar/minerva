@@ -325,6 +325,7 @@ if (!function_exists('main_menu_array')) {
             
             'system_settings' => array(  
                 'schsettings'           => array('index','logo','miscellaneous','backendtheme','mobileapp','studentguardianpanel','fees','idautogeneration','attendancetype','maintenance','whatsappsettings'),                     
+                'finalyearclasses'      => array('index','save'),
                 'sessions'              => array('index','edit'),                     
                 'notification'          => array('setting'),                     
                 'smsconfig'             => array('index'),                     

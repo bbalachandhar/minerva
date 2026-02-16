@@ -2672,6 +2672,7 @@ $lang['cv_fields']= "CV Fields";
 $lang['cv_other_fields']= "CV Other Fields";
 $lang['cv_setting']= "CV Setting";
 $lang['dashboard_setting']= "Dashboard Setting";
+$lang['set_final_years'] = "Set Final Years";
 $lang['day_wise_with_cron_setting'] = "Day Wise With Cron Setting";
 $lang['download_admit_card_in_student_parent_panel'] = "Download Admit Card In Student / Parent Panel";
 $lang['download_cv']= "Download CV";

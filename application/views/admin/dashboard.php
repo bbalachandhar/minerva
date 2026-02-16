@@ -41,6 +41,82 @@
         left: -100%;
         width: 100%;
         height: 100%;
+    }
+    
+    /* Class-wise fees widget styling */
+    #fees-classwise-widget .table-responsive {
+        max-height: 300px;
+        overflow-y: auto;
+        position: relative;
+    }
+    
+    .classwise-fees-table {
+        border-collapse: collapse !important;
+    }
+    
+    .classwise-fees-table td,
+    .classwise-fees-table th {
+        border: 1px solid #ddd !important;
+        padding: 8px !important;
+        text-align: center;
+    }
+    
+    .classwise-fees-table thead {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+    
+    .classwise-fees-table thead th {
+        font-weight: bold;
+        position: relative;
+    }
+    
+    /* First row headers (fee type groups) */
+    .classwise-fees-table thead tr:first-child th {
+        background-color: #f5f5f5 !important;
+    }
+    
+    /* Second row headers - Demand columns (blue) */
+    .classwise-fees-table thead tr:nth-child(2) th:nth-child(3n+1) {
+        background-color: #e3f2fd !important;
+    }
+    
+    /* Second row headers - Paid/Pending columns (green) */
+    .classwise-fees-table thead tr:nth-child(2) th:nth-child(3n+2),
+    .classwise-fees-table thead tr:nth-child(2) th:nth-child(3n) {
+        background-color: #f1f8e9 !important;
+    }
+    
+    .classwise-fees-table tfoot td {
+        font-weight: bold;
+        background-color: #fafafa !important;
+    }
+    
+    .classwise-fees-table tbody tr:first-child td {
+        text-align: left !important;
+    }
+    
+    /* Loading skeleton animation */
+    .classwise-fees-loading {
+        padding: 30px !important;
+    }
+    
+    .classwise-fees-loading .loading-spinner {
+        display: inline-block;
+        width: 40px;
+        height: 40px;
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #3498db;
+        border-radius: 50%;
+        animation: classwise-spin 1s linear infinite;
+        margin-bottom: 10px;
+    }
+    
+    @keyframes classwise-spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
         background: linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent);
         animation: fo-shimmer 1.2s infinite;
     }
@@ -842,6 +918,99 @@ if ($this->module_lib->hasActive('expense')) {
                     </div>
                 </div><!--./topprograssstart-->
             </div><!--./col-md-3-->
+        <?php } ?>
+
+<?php
+        if ($this->rbac->hasPrivilege('fees_classwise_summary_widget', 'can_view')) {
+            $class_label = ($this->sch_setting_detail->institution_type === 'college') ? 'Department' : 'Class';
+        ?>
+            <div class="col-md-12 col-sm-12 mb10">
+                <div class="topprograssstart flex-card" id="fees-classwise-widget" data-url="<?php echo site_url('admin/admin/fees_classwise_summary_widget'); ?>" style="position: relative; z-index: 1;">
+                    <h5 class="pro-border">Class Wise Fee Summary</h5>
+                    <ul class="nav nav-tabs" role="tablist">
+                        <li class="active"><a href="#classwise-all" role="tab" data-toggle="tab">All Classes</a></li>
+                        <li><a href="#classwise-exclude-final" role="tab" data-toggle="tab">Without Final Year</a></li>
+                    </ul>
+                    <div class="tab-content" style="margin-top: 10px;">
+                        <div class="tab-pane active" id="classwise-all">
+                            <div class="table-responsive">
+                                <table class="table table-striped table-bordered classwise-fees-table" data-scope="all">
+                                    <thead>
+                                        <tr>
+                                            <th rowspan="2" style="min-width: 140px;"><?php echo $class_label; ?></th>
+                                            <th colspan="3">Tuition Fee</th>
+                                            <th colspan="3">Transport Fee</th>
+                                            <th colspan="3">Hostel Fee</th>
+                                            <th colspan="3">Other Fee</th>
+                                        </tr>
+                                        <tr>
+                                            <th>Demand</th>
+                                            <th>Paid</th>
+                                            <th>Pending</th>
+                                            <th>Demand</th>
+                                            <th>Paid</th>
+                                            <th>Pending</th>
+                                            <th>Demand</th>
+                                            <th>Paid</th>
+                                            <th>Pending</th>
+                                            <th>Demand</th>
+                                            <th>Paid</th>
+                                            <th>Pending</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td colspan="13" class="text-center classwise-fees-loading">
+                                                <div class="loading-spinner"></div>
+                                                <div>Loading fee summary...</div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                    <tfoot></tfoot>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="tab-pane" id="classwise-exclude-final">
+                            <div class="table-responsive">
+                                <table class="table table-striped table-bordered classwise-fees-table" data-scope="exclude_final">
+                                    <thead>
+                                        <tr>
+                                            <th rowspan="2" style="min-width: 140px;"><?php echo $class_label; ?></th>
+                                            <th colspan="3">Tuition Fee</th>
+                                            <th colspan="3">Transport Fee</th>
+                                            <th colspan="3">Hostel Fee</th>
+                                            <th colspan="3">Other Fee</th>
+                                        </tr>
+                                        <tr>
+                                            <th>Demand</th>
+                                            <th>Paid</th>
+                                            <th>Pending</th>
+                                            <th>Demand</th>
+                                            <th>Paid</th>
+                                            <th>Pending</th>
+                                            <th>Demand</th>
+                                            <th>Paid</th>
+                                            <th>Pending</th>
+                                            <th>Demand</th>
+                                            <th>Paid</th>
+                                            <th>Pending</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td colspan="13" class="text-center classwise-fees-loading">
+                                                <div class="loading-spinner"></div>
+                                                <div>Loading fee summary...</div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                    <tfoot></tfoot>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         <?php } ?>
 
 <?php
@@ -1654,6 +1823,99 @@ if (($this->module_lib->hasActive('fees_collection')) || ($this->module_lib->has
             }).fail(function() {
                 $widget.find('.fo-skeleton').removeClass('fo-skeleton');
             });
+        });
+    });
+</script>
+<script type="text/javascript">
+    $(document).ready(function() {
+        var $classwiseWidget = $('#fees-classwise-widget');
+        if (!$classwiseWidget.length) {
+            return;
+        }
+
+        var url = $classwiseWidget.data('url');
+        if (!url) {
+            return;
+        }
+
+        function renderRows($table, rows, totals) {
+            var $tbody = $table.find('tbody');
+            var $tfoot = $table.find('tfoot');
+
+            if (!rows || !rows.length) {
+                $tbody.html('<tr><td colspan="13" class="text-center">No data available.</td></tr>');
+                $tfoot.empty();
+                return;
+            }
+
+            var bodyHtml = '';
+            $.each(rows, function(index, row) {
+                bodyHtml += '<tr>';
+                bodyHtml += '<td>' + row.class_name + '</td>';
+                bodyHtml += '<td>' + row.tuition_demand_formatted + '</td>';
+                bodyHtml += '<td>' + row.tuition_paid_formatted + '</td>';
+                bodyHtml += '<td>' + row.tuition_pending_formatted + '</td>';
+                bodyHtml += '<td>' + row.transport_demand_formatted + '</td>';
+                bodyHtml += '<td>' + row.transport_paid_formatted + '</td>';
+                bodyHtml += '<td>' + row.transport_pending_formatted + '</td>';
+                bodyHtml += '<td>' + row.hostel_demand_formatted + '</td>';
+                bodyHtml += '<td>' + row.hostel_paid_formatted + '</td>';
+                bodyHtml += '<td>' + row.hostel_pending_formatted + '</td>';
+                bodyHtml += '<td>' + row.other_demand_formatted + '</td>';
+                bodyHtml += '<td>' + row.other_paid_formatted + '</td>';
+                bodyHtml += '<td>' + row.other_pending_formatted + '</td>';
+                bodyHtml += '</tr>';
+            });
+            $tbody.html(bodyHtml);
+
+            if (totals) {
+                var footHtml = '<tr>';
+                footHtml += '<th>Grand Total</th>';
+                footHtml += '<th>' + totals.tuition_demand_formatted + '</th>';
+                footHtml += '<th>' + totals.tuition_paid_formatted + '</th>';
+                footHtml += '<th>' + totals.tuition_pending_formatted + '</th>';
+                footHtml += '<th>' + totals.transport_demand_formatted + '</th>';
+                footHtml += '<th>' + totals.transport_paid_formatted + '</th>';
+                footHtml += '<th>' + totals.transport_pending_formatted + '</th>';
+                footHtml += '<th>' + totals.hostel_demand_formatted + '</th>';
+                footHtml += '<th>' + totals.hostel_paid_formatted + '</th>';
+                footHtml += '<th>' + totals.hostel_pending_formatted + '</th>';
+                footHtml += '<th>' + totals.other_demand_formatted + '</th>';
+                footHtml += '<th>' + totals.other_paid_formatted + '</th>';
+                footHtml += '<th>' + totals.other_pending_formatted + '</th>';
+                footHtml += '</tr>';
+                $tfoot.html(footHtml);
+            } else {
+                $tfoot.empty();
+            }
+        }
+
+        $.ajax({
+            url: url,
+            method: 'GET',
+            dataType: 'json'
+        }).done(function(resp) {
+            if (!resp || resp.status !== 'success' || !resp.data) {
+                return;
+            }
+
+            var allRows = resp.data.all || [];
+            var excludeRows = resp.data.exclude_final || [];
+            var totalsAll = resp.data.totals ? resp.data.totals.all : null;
+            var totalsExclude = resp.data.totals ? resp.data.totals.exclude_final : null;
+
+            var $tables = $classwiseWidget.find('.classwise-fees-table');
+            $tables.each(function() {
+                var $table = $(this);
+                var scope = $table.data('scope');
+                if (scope === 'exclude_final') {
+                    renderRows($table, excludeRows, totalsExclude);
+                } else {
+                    renderRows($table, allRows, totalsAll);
+                }
+            });
+        }).fail(function() {
+            $classwiseWidget.find('tbody').html('<tr><td colspan="13" class="text-center">Unable to load data.</td></tr>');
         });
     });
 </script>
