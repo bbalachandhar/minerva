@@ -8,6 +8,11 @@
 /application/logs/
 /application/sessions/
 
+# Ignore API CodeIgniter runtime directories
+/api/application/cache/
+/api/application/logs/
+/api/application/sessions/
+
 # Ignore environment-specific configurations (contains sensitive data)
 /application/config/production/
 
@@ -41,5 +46,12 @@ application/config/config.php
 application/config/database.php
 application/config/autoload.php
 application/config/production/
+
+# API environment-specific configs
+/api/index.php
+api/application/config/config.php
+api/application/config/database.php
+api/application/config/autoload.php
+
 *.md
 *.sql
