@@ -175,12 +175,12 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                                     <input type="checkbox" id="select_all_header" style="margin: 0;">
                                                 </th>
                                                 <th style="width: 7%;">Emp ID</th>
-                                                <th style="width: 18%;">Staff Name</th>
-                                                <th style="width: 12%;">Role</th>
-                                                <th style="width: 12%;">Dept</th>
-                                                <th style="width: 12%;"><strong>Current Basic</strong></th>
+                                                <th style="width: 14%;">Staff Name</th>
+                                                <th style="width: 10%;">Role</th>
+                                                <th style="width: 10%;">Dept</th>
+                                                <th style="width: 10%;"><strong>Current Basic</strong></th>
                                                 <th style="width: 8%;"><strong>Type</strong></th>
-                                                <th style="width: 20%;"><strong>Amount</strong></th>
+                                                <th style="width: 24%;"><strong>Inc Amount</strong></th>
                                                 <th style="width: 8%;"><strong>Kind</strong></th>
                                             </tr>
                                         </thead>

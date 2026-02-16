@@ -1952,7 +1952,7 @@ class Payroll extends Admin_Controller
         }
 
         $this->form_validation->set_rules('staff_id', 'Staff Member', 'required|integer');
-        $this->form_validation->set_rules('effective_date', 'Effective Date', 'required|valid_date');
+        $this->form_validation->set_rules('effective_date', 'Effective Date', 'required');
         $this->form_validation->set_rules('increment_type', 'Increment Type', 'required|in_list[Fixed,Percentage]');
         $this->form_validation->set_rules('merge_with', 'Merge With', 'required|in_list[basic,special_allowance]');
 
@@ -2159,7 +2159,7 @@ class Payroll extends Admin_Controller
         }
 
         $this->form_validation->set_rules('staff_ids[]', 'Staff Members', 'required');
-        $this->form_validation->set_rules('effective_date', 'Effective Date', 'required|valid_date');
+        $this->form_validation->set_rules('effective_date', 'Effective Date', 'required');
         $this->form_validation->set_rules('merge_with', 'Merge With', 'required|in_list[basic,special_allowance]');
 
         if ($this->form_validation->run() === false) {
