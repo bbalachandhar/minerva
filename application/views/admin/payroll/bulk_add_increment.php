@@ -23,6 +23,27 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                 font-size: 12px;
                 color: #6b7a90;
             }
+            #csv_increment_file {
+                display: block !important;
+                visibility: visible !important;
+                opacity: 1 !important;
+                width: 100% !important;
+                cursor: pointer !important;
+                padding: 6px 8px !important;
+                height: 34px !important;
+                border: 1px solid #ddd !important;
+                border-radius: 4px !important;
+                background-color: white !important;
+                color: #333 !important;
+            }
+            #csv_increment_file::file-selector-button {
+                cursor: pointer;
+                background-color: #f0f0f0;
+                padding: 4px 8px;
+                border: 1px solid #ccc;
+                border-radius: 3px;
+                margin-right: 10px;
+            }
             .bulk-increment-table-wrapper {
                 max-height: 600px;
                 overflow-y: auto;
@@ -120,6 +141,19 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                 </div>
                             </div>
 
+                            <!-- Override Existing Increments -->
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <div class="form-group">
+                                        <label>
+                                            <input type="checkbox" name="override_checkbox" id="override_checkbox"> 
+                                            <strong>Override existing increments if any staff member already has one in this month</strong>
+                                        </label>
+                                        <small class="form-text text-muted">When checked, existing increments for the same month will be replaced with new values</small>
+                                    </div>
+                                </div>
+                            </div>
+
                             <!-- Remarks -->
                             <div class="form-group">
                                 <label>Remarks (Optional)</label>
@@ -145,8 +179,8 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                             <div class="bulk-increment-csv-panel">
                                 <div class="row">
                                     <div class="col-md-6">
-                                        <label>Upload CSV (Employee ID, Increment Amount)</label>
-                                        <input type="file" id="csv_increment_file" class="form-control" accept=".csv">
+                                        <label for="csv_increment_file">Upload CSV (Employee ID, Increment Amount)</label>
+                                        <input type="file" id="csv_increment_file" accept=".csv" style="cursor: pointer; width: 100%; padding: 6px 8px; border: 1px solid #ddd; border-radius: 4px;">
                                         <div class="help-block">Format: employee_id, increment_amount (first row can be header)</div>
                                     </div>
                                     <div class="col-md-6">
@@ -242,6 +276,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                         </div>
 
                         <div class="box-footer">
+                            <input type="hidden" name="override_existing" id="override_existing_field" value="0">
                             <button type="submit" class="btn btn-primary btn-lg" id="submit_btn" disabled>
                                 <i class="fa fa-save"></i> Save & Submit for Approval
                             </button>
@@ -494,8 +529,23 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
         updateSelectedCount();
     });
 
-    // Form validation before submit
+    // Form validation and override flag handler - COMBINED
     $('#bulk_increment_form').on('submit', function(e) {
+        console.log('Form submit handler triggered');
+        
+        // FIRST: Set the override flag based on checkbox state
+        const overrideCheckbox = $('#override_checkbox');
+        const overrideFlagField = $('#override_existing_field');
+        
+        if (overrideCheckbox.is(':checked')) {
+            overrideFlagField.val('1');
+            console.log('✓ Override flag SET TO 1 - will delete existing increments');
+        } else {
+            overrideFlagField.val('0');
+            console.log('✗ Override flag SET TO 0 - will reject duplicates');
+        }
+        
+        // SECOND: Validate form inputs
         let hasError = false;
         let errorMessage = '';
         
@@ -516,9 +566,16 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
         if (hasError) {
             e.preventDefault();
             alert('⚠️ ' + errorMessage);
+            return false;
         }
+        
+        console.log('Form validation passed, submitting with override_existing=' + overrideFlagField.val());
+        // Allow form to submit (don't prevent default)
+        return true;
     });
 
+    // Remove the duplicate override handler at the bottom - no longer needed
+    
     // Initialize
     updateSelectedCount();
     updateTotalIncrement();

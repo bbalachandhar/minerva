@@ -667,6 +667,14 @@ class Payroll extends Admin_Controller
                 $staff_data = $this->payroll_model->searchEmployeeById($staff_id);
                 $statutory_deductions = $this->payroll_model->calculateStatutoryDeductions($staff_data);
                 
+                // Load allowance type mapping
+                $allowance_types = $this->payroll_model->getAllowanceTypes(null, false);
+                $allowance_type_map = [];
+                foreach ($allowance_types as $type) {
+                    $allowance_type_map[(int) $type['id']] = $type['allowance_code'];
+                }
+                $deduction_type_map = $allowance_type_map; // Same mapping for deductions
+                
                 $allowance_type_id = $this->input->post("allowance_type_id");
                 $deduction_type_id = $this->input->post("deduction_type_id");
                 $allowance_prev_id = $this->input->post("allowance_prev_id");
@@ -691,7 +699,7 @@ class Payroll extends Admin_Controller
                             $update_payslip_allowance[] = array(
                                 'id'                => $allowance_prev_id[$i],
                                 'payslip_id'        => $payslipid,
-                                'allowance_type_id' => $allowance_type_id[$i],
+                                'allowance_type'    => $allowance_type_map[$allowance_type_id[$i]] ?? '',
                                 'amount'            => $allowanceamount,
                                 'staff_id'          => $staff_id,
                                 'cal_type'          => "positive",
@@ -700,7 +708,7 @@ class Payroll extends Admin_Controller
                             
                             $insert_payslip_allowance[] = array(
                                 'payslip_id'        => $payslipid,
-                                'allowance_type_id' => $allowance_type_id[$i],
+                                'allowance_type'    => $allowance_type_map[$allowance_type_id[$i]] ?? '',
                                 'amount'            => $allowanceamount,
                                 'staff_id'          => $staff_id,
                                 'cal_type'          => "positive",
@@ -736,7 +744,7 @@ class Payroll extends Admin_Controller
                             $update_payslip_allowance[] = array(
                                 'id'                => $deduction_prev_id[$j],
                                 'payslip_id'        => $payslipid,
-                                'allowance_type_id' => $deduction_type_id[$j],
+                                'allowance_type'    => $deduction_type_map[$deduction_type_id[$j]] ?? '',
                                 'amount'            => $deductionamount,
                                 'staff_id'          => $staff_id,
                                 'cal_type'          => "negative",
@@ -746,10 +754,10 @@ class Payroll extends Admin_Controller
                             
                             $insert_payslip_allowance[] = array(
                                 'payslip_id'        => $payslipid,
-                                'allowance_type_id' => $deduction_type_id[$j],
+                                'allowance_type'    => $deduction_type_map[$deduction_type_id[$j]] ?? '',
                                 'amount'            => $deductionamount,
                                 'staff_id'          => $staff_id,
-                                'cal_type'       => "negative",
+                                'cal_type'          => "negative",
                             );
                         }
                         $j++;
@@ -2041,7 +2049,8 @@ class Payroll extends Admin_Controller
 
         $this->load->model('payroll_increment_model');
 
-        $admin_id = $this->session->userdata['staff_id'];
+        $userdata = $this->customlib->getUserData();
+        $admin_id = (isset($userdata['id'])) ? $userdata['id'] : 0;
         $result = $this->payroll_increment_model->approveIncrement($increment_id, $admin_id);
 
         if ($result) {
@@ -2051,6 +2060,117 @@ class Payroll extends Admin_Controller
         }
 
         redirect('admin/payroll/pending_increments');
+    }
+
+    /**
+     * Bulk approve salary increments (AJAX)
+     */
+    public function bulk_approve_increments()
+    {
+        try {
+            if (!$this->input->is_ajax_request()) {
+                header('Content-Type: application/json');
+                echo json_encode(['success' => false, 'message' => 'Invalid request']);
+                exit;
+            }
+
+            if (!$this->rbac->hasPrivilege('staff_payroll', 'can_edit')) {
+                header('Content-Type: application/json');
+                echo json_encode(['success' => false, 'message' => 'Access denied']);
+                exit;
+            }
+
+            $this->load->model('payroll_increment_model');
+
+            // Get increment_ids - could come as array or via FormData as increment_ids[]
+            $increment_ids = $this->input->post('increment_ids');
+            
+            // Debug logging
+            error_log("=== BULK APPROVE DEBUG ===");
+            error_log("Post data received: " . print_r($_POST, true));
+            error_log("increment_ids from input->post(): " . print_r($increment_ids, true));
+            
+            if (empty($increment_ids)) {
+                header('Content-Type: application/json');
+                echo json_encode(['success' => false, 'message' => 'No increments selected']);
+                exit;
+            }
+
+            // Ensure increment_ids is an array
+            if (!is_array($increment_ids)) {
+                $increment_ids = [$increment_ids];
+            }
+
+            error_log("Total increments to process: " . count($increment_ids));
+            error_log("Increment IDs: " . implode(', ', $increment_ids));
+
+            $userdata = $this->customlib->getUserData();
+            $admin_id = (isset($userdata['id'])) ? $userdata['id'] : 0;
+            $approved_count = 0;
+            $failed_count = 0;
+            $errors = [];
+
+            error_log("Admin ID: " . $admin_id);
+            error_log("Starting loop with " . count($increment_ids) . " items");
+
+            foreach ($increment_ids as $key => $increment_id) {
+                $increment_id = (int) $increment_id;
+                error_log("Loop iteration $key: Processing ID=$increment_id");
+                
+                if ($increment_id > 0) {
+                    // Get increment details first for better error tracking
+                    $this->db->select('id, staff_id, approval_status, increment_amount');
+                    $this->db->where('id', $increment_id);
+                    $increment_details = $this->db->get('staff_increment_history')->row_array();
+                    
+                    if (!$increment_details) {
+                        error_log("  - Increment #$increment_id NOT FOUND");
+                        $failed_count++;
+                        $errors[] = 'Increment #' . $increment_id . ' not found';
+                        continue;
+                    }
+                    
+                    error_log("  - Found increment: Status={$increment_details['approval_status']}, Amount={$increment_details['increment_amount']}");
+                    
+                    $result = $this->payroll_increment_model->approveIncrement($increment_id, $admin_id);
+                    if ($result) {
+                        error_log("  - APPROVED ✓");
+                        $approved_count++;
+                    } else {
+                        error_log("  - FAILED");
+                        $failed_count++;
+                        $errors[] = 'Increment #' . $increment_id . ' (Status: ' . $increment_details['approval_status'] . ')';
+                    }
+                } else {
+                    error_log("  - Invalid ID: $increment_id");
+                    $failed_count++;
+                }
+            }
+
+            error_log("Loop complete - Approved: $approved_count, Failed: $failed_count");
+
+            header('Content-Type: application/json');
+            if ($approved_count > 0 || $failed_count > 0) {
+                $message = $approved_count . ' increment(s) approved successfully';
+                if ($failed_count > 0) {
+                    $message .= ' | ' . $failed_count . ' could not be approved';
+                }
+                $success = ($approved_count > 0);
+                
+                error_log("Sending response: " . json_encode(['success' => $success, 'message' => $message, 'approved' => $approved_count, 'failed' => $failed_count]));
+                
+                echo json_encode(['success' => $success, 'message' => $message, 'approved' => $approved_count, 'failed' => $failed_count, 'errors' => $errors]);
+            } else {
+                echo json_encode(['success' => false, 'message' => 'No increments were processed']);
+            }
+            exit;
+
+        } catch (Exception $e) {
+            header('Content-Type: application/json');
+            error_log('Bulk approve error: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Server error: ' . $e->getMessage()]);
+            exit;
+        }
     }
 
     /**
@@ -2175,6 +2295,28 @@ class Payroll extends Admin_Controller
             $increment_types = $this->input->post('increment_type') ?? array();
             $increment_amounts = $this->input->post('increment_amount') ?? array();
             $is_recurring_values = $this->input->post('is_recurring') ?? array();
+            
+            // Check override flag - can come from hidden field OR checkbox
+            $override_existing = false;
+            $override_field = $this->input->post('override_existing');
+            $override_checkbox = $this->input->post('override_checkbox');
+            
+            // Debug logging
+            error_log("=== BULK INCREMENT OVERRIDE DEBUG ===");
+            error_log("override_existing field: " . var_export($override_field, true));
+            error_log("override_checkbox field: " . var_export($override_checkbox, true));
+            error_log("String comparison override_field == '1': " . var_export(($override_field == '1'), true));
+            error_log("Int comparison override_field == 1: " . var_export(($override_field == 1), true));
+            error_log("Checkbox null check: " . var_export(($override_checkbox !== null), true));
+            
+            // If override_field is explicitly '1', or checkbox exists in POST, enable override
+            if ($override_field === '1' || $override_checkbox === 'on' || $override_checkbox === '1') {
+                $override_existing = true;
+                error_log("Override enabled - WILL DELETE EXISTING");
+            } else {
+                error_log("Override disabled - WILL REJECT DUPLICATES");
+            }
+            error_log("Final override_existing value: " . var_export($override_existing, true));
 
             $success_count = 0;
             $error_messages = array();
@@ -2183,9 +2325,14 @@ class Payroll extends Admin_Controller
                 // Check if staff already has increment or bonus in same month
                 $existing = $this->payroll_increment_model->checkExistingForMonth($staff_id, $effective_date);
                 if ($existing) {
-                    $type_label = $existing['is_recurring'] == 1 ? 'Increment' : 'Bonus';
-                    $error_messages[] = "Staff ID {$staff_id}: Already has {$type_label} in this month";
-                    continue;
+                    // If override flag is set, delete the existing increment
+                    if ($override_existing) {
+                        $this->payroll_increment_model->deleteIncrement($existing['id']);
+                    } else {
+                        $type_label = $existing['is_recurring'] == 1 ? 'Increment' : 'Bonus';
+                        $error_messages[] = "Staff ID {$staff_id}: Already has {$type_label} in this month";
+                        continue;
+                    }
                 }
 
                 // Get increment type and amount for this staff

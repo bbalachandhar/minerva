@@ -96,6 +96,14 @@ class Payroll_increment_model extends CI_Model
      */
     public function approveIncrement($increment_id, $approved_by)
     {
+        // Check if the increment exists first
+        $this->db->where('id', $increment_id);
+        $existing = $this->db->get('staff_increment_history')->row_array();
+        
+        if (!$existing) {
+            return false; // Record doesn't exist
+        }
+        
         $update_data = array(
             'approval_status' => 'Approved',
             'approved_by' => $approved_by,
@@ -105,7 +113,9 @@ class Payroll_increment_model extends CI_Model
         $this->db->where('id', $increment_id);
         $this->db->update('staff_increment_history', $update_data);
         
-        return ($this->db->affected_rows() > 0);
+        // Return true if record exists and was updated, regardless of affected_rows
+        // (affected_rows may be 0 if the values didn't change, but we still consider it successful)
+        return true;
     }
 
     /**
