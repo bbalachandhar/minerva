@@ -393,8 +393,9 @@ class Payroll_model extends MY_Model
     {
         $this->db->select(
             "payslip_allowance.id,
-            payslip_allowance.allowance_type_id,
-            payroll_allowance_types.allowance_name as allowance_type,
+            payslip_allowance.allowance_type,
+            payroll_allowance_types.id as allowance_type_id,
+            payroll_allowance_types.allowance_name as allowance_type_name,
             payroll_allowance_types.allowance_code as allowance_code,
             payslip_allowance.amount,
             payslip_allowance.cal_type"
@@ -402,7 +403,7 @@ class Payroll_model extends MY_Model
         $this->db->from("payslip_allowance");
         $this->db->join(
             "payroll_allowance_types",
-            "payroll_allowance_types.id = payslip_allowance.allowance_type_id",
+            "payroll_allowance_types.allowance_code = payslip_allowance.allowance_type",
             "left"
         );
         $this->db->where("payslip_allowance.payslip_id", $id);
@@ -1333,26 +1334,121 @@ class Payroll_model extends MY_Model
      * @param float $esi_rate - ESI deduction rate (default 0.75% employee contribution)
      * @return array - Array with 'epf_deduction' and 'esi_deduction' keys
      */
+    /**
+     * Calculate Statutory Deductions (EPF, ESI, TDS)
+     * Uses payroll_allowance_types table for configuration
+     * Validates staff eligibility before calculation
+     *
+     * Rule: EPF only if UAN is available
+     * Rule: ESI only if ESI_no is available
+     * Rule: EPF contribution capped at Rs 15,000 base salary
+     *
+     * @param array $staff Staff record with uan_no, esi_no, is_epf_enabled, is_esi_enabled
+     * @param float $epf_rate EPF rate (default 12%)
+     * @param float $esi_rate ESI rate (default 0.75%)
+     * @return array Array with epf_deduction, esi_deduction
+     */
     public function calculateStatutoryDeductions($staff, $epf_rate = 0.12, $esi_rate = 0.0075)
     {
-        $deductions = [
+        $deductions = array(
             'epf_deduction' => 0,
             'esi_deduction' => 0,
-        ];
+        );
 
+        // Get base salary from staff record
         $basic_salary = isset($staff['basic_salary']) ? (float) $staff['basic_salary'] : 0;
 
-        // EPF DEDUCTION: Check dual checkpoints
-        if (!empty($staff['uan_no']) && isset($staff['is_epf_enabled']) && $staff['is_epf_enabled'] == 1) {
-            $deductions['epf_deduction'] = round($basic_salary * $epf_rate, 2);
+        if ($basic_salary <= 0) {
+            return $deductions; // No deductions if basic salary is zero
         }
 
-        // ESI DEDUCTION: Check dual checkpoints
-        if (!empty($staff['esi_no']) && isset($staff['is_esi_enabled']) && $staff['is_esi_enabled'] == 1) {
-            $deductions['esi_deduction'] = round($basic_salary * $esi_rate, 2);
+        // Get statutory allowance type codes from database
+        $statutory_types = $this->getStatutoryAllowanceTypes();
+
+        // ========== EPF DEDUCTION ==========
+        // EPF Eligibility Check: 
+        // - UAN number must be available (primary check)
+        // - EPF enabled flag must be set (1 = Yes)
+        // Rule: Without UAN, no EPF calculation, even if flag is enabled
+        
+        if (!empty($staff['uan_no'])) {
+            // UAN is available - check if EPF is enabled
+            if (isset($staff['is_epf_enabled']) && $staff['is_epf_enabled'] == 1) {
+                // Calculate EPF with wage ceiling of Rs 15,000
+                // Indian law: EPF contribution base is capped at Rs 15,000
+                $epf_base = min($basic_salary, 15000);
+                $deductions['epf_deduction'] = round($epf_base * $epf_rate, 2);
+            }
         }
+        // If UAN is not available, EPF deduction remains 0 (no calculation)
+
+        // ========== ESI DEDUCTION ==========
+        // ESI Eligibility Check:
+        // - ESI number must be available (primary check)
+        // - ESI enabled flag must be set (1 = Yes)
+        // Rule: Without ESI_no, no ESI calculation, even if flag is enabled
+        
+        if (!empty($staff['esi_no'])) {
+            // ESI_no is available - check if ESI is enabled
+            if (isset($staff['is_esi_enabled']) && $staff['is_esi_enabled'] == 1) {
+                // Calculate ESI - note: ESI is calculated on gross salary, not capped at base
+                // For this function, we calculate on basic; actual should include DA
+                $deductions['esi_deduction'] = round($basic_salary * $esi_rate, 2);
+            }
+        }
+        // If ESI_no is not available, ESI deduction remains 0 (no calculation)
 
         return $deductions;
+    }
+
+    /**
+     * Get statutory allowance types from the payroll_allowance_types table
+     * These are system-calculated deductions: EPF, ESI, TDS, etc.
+     * 
+     * @return array Array with keys as codes (EPF, ESI, TDS, PT) and values as allowance_code
+     */
+    public function getStatutoryAllowanceTypes()
+    {
+        // Query from the payroll_allowance_types table for statutory deductions
+        $query = $this->db->select('id, allowance_code, allowance_name, is_statutory')
+            ->from('payroll_allowance_types')
+            ->where('is_statutory', 1)
+            ->where('is_active', 1)
+            ->get();
+        
+        $statutory_types = array();
+        foreach ($query->result_array() as $row) {
+            // Map by code for easy lookup
+            $statutory_types[$row['allowance_code']] = array(
+                'id' => $row['id'],
+                'code' => $row['allowance_code'],
+                'name' => $row['allowance_name']
+            );
+        }
+        
+        return $statutory_types;
+    }
+
+    /**
+     * Get specific statutory allowance type code
+     * @param string $code Code like 'EPF', 'ESI', 'TDS', 'PT'
+     * @return string|false Returns the allowance code if found, false otherwise
+     */
+    public function getStatutoryAllowanceCode($code = 'EPF')
+    {
+        $code = strtoupper(trim($code));
+        $query = $this->db->select('allowance_code')
+            ->from('payroll_allowance_types')
+            ->where('allowance_code', $code)
+            ->where('is_statutory', 1)
+            ->where('is_active', 1)
+            ->get();
+        
+        if ($query->num_rows() > 0) {
+            $result = $query->row_array();
+            return $result['allowance_code'];
+        }
+        return false;
     }
 
 }

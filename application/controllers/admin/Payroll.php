@@ -109,9 +109,12 @@ class Payroll extends Admin_Controller
         $data["year"]   = $year;
         $data["earnings"]   = array();
         $data["deductions"] = array();
+        $data["is_calculated"] = false; // Track if payslip is already calculated
         $last_payslip = $this->payroll_model->getLastPayslip($id);
 
         if(!empty($last_payslip)){
+            // Payslip already exists - it's calculated
+            $data["is_calculated"] = true;
             if($last_payslip['basic'] > 0){
                 $data['result']['basic_salary'] = $last_payslip['basic'];
             }
@@ -210,6 +213,7 @@ class Payroll extends Admin_Controller
         $data['result']           = $searchEmployee;
         $data["month"]            = $employee_payroll['month'];
         $data["year"]             = $employee_payroll['year'];
+        $data["is_calculated"]    = true; // Edit view is for existing calculated payslips
 
         $data["earnings"]   = $this->payroll_model->getAllowance($id, 'positive');
         $data["deductions"] = $this->payroll_model->getAllowance($id, 'negative');
@@ -962,6 +966,14 @@ class Payroll extends Admin_Controller
                 $staff_data = $this->payroll_model->searchEmployeeById($staff_id);
                 $statutory_deductions = $this->payroll_model->calculateStatutoryDeductions($staff_data);
                 
+                // Load allowance type mapping to convert IDs to codes
+                $allowance_types = $this->payroll_model->getAllowanceTypes(null, false);
+                $allowance_type_map = [];
+                foreach ($allowance_types as $type) {
+                    $allowance_type_map[(int) $type['id']] = $type['allowance_code'];
+                }
+                $deduction_type_map = $allowance_type_map; // Same mapping for deductions
+                
                 $allowance_type_id = $this->input->post("allowance_type_id");
                 $deduction_type_id = $this->input->post("deduction_type_id");
                 $allowance_amount = $this->input->post("allowance_amount");
@@ -979,7 +991,7 @@ class Payroll extends Admin_Controller
                         
                         $all_data = array(
                             'payslip_id'        => $payslipid,
-                            'allowance_type_id' => $allowance_type_id[$i],
+                            'allowance_type'    => $allowance_type_map[$allowance_type_id[$i]] ?? '',
                             'amount'            => $allowanceamount,
                             'staff_id'          => $staff_id,
                             'cal_type'          => "positive",
@@ -1002,7 +1014,7 @@ class Payroll extends Admin_Controller
                         }
                         
                         $type_data = array('payslip_id' => $payslipid,
-                            'allowance_type_id'         => $deduction_type_id[$j],
+                            'allowance_type'            => $deduction_type_map[$deduction_type_id[$j]] ?? '',
                             'amount'                    => $deductionamount,
                             'staff_id'                  => $staff_id,
                             'cal_type'                  => "negative",
@@ -1014,11 +1026,16 @@ class Payroll extends Admin_Controller
                     }
                 }
                 
+                // Delete existing statutory deductions (EPF/ESI) before adding new ones to prevent duplicates
+                $this->db->where('payslip_id', $payslipid)
+                    ->where_in('allowance_type', ['EPF', 'ESI', 'Employee Provident Fund (EPF)', 'Employee State Insurance (ESI)'])
+                    ->delete('payslip_allowance');
+                
                 // Add automatic EPF/ESI deductions based on dual checkpoint validation
                 if ($statutory_deductions['epf_deduction'] > 0) {
                     $epf_data = array(
                         'payslip_id'     => $payslipid,
-                        'allowance_type' => 'Employee Provident Fund (EPF)',
+                        'allowance_type' => 'EPF',
                         'amount'         => $statutory_deductions['epf_deduction'],
                         'staff_id'       => $staff_id,
                         'cal_type'       => 'negative',
@@ -1029,7 +1046,7 @@ class Payroll extends Admin_Controller
                 if ($statutory_deductions['esi_deduction'] > 0) {
                     $esi_data = array(
                         'payslip_id'     => $payslipid,
-                        'allowance_type' => 'Employee State Insurance (ESI)',
+                        'allowance_type' => 'ESI',
                         'amount'         => $statutory_deductions['esi_deduction'],
                         'staff_id'       => $staff_id,
                         'cal_type'       => 'negative',
@@ -1105,6 +1122,19 @@ class Payroll extends Admin_Controller
             $total_deduction = 0;
             $da = 0;  // Initialize DA variable
             $tax = 0;
+            $increment_amount = 0;  // Initialize increment variable
+            $is_increment_month = false;
+
+            // Check if this is an increment month
+            $increment = $this->payroll_increment_model->getApprovedIncrementForMonth($staff['id'], $month_numeric, $year);
+            if ($increment) {
+                $is_increment_month = true;
+                if ($increment['increment_type'] === 'Fixed') {
+                    $increment_amount = (float) $increment['increment_amount'];
+                } else {
+                    $increment_amount = round($basic * ($increment['increment_percentage'] / 100), 2);
+                }
+            }
 
             if (!empty($last_payslip)) {
                 if ((float) $basic <= 0 && !empty($last_payslip['basic'])) {
@@ -1113,14 +1143,19 @@ class Payroll extends Admin_Controller
                 $tax = !empty($last_payslip['tax']) ? $last_payslip['tax'] : 0;
                 $allowances = $this->payroll_model->getAllowance($last_payslip['id']);
                 foreach ($allowances as $allowance) {
-                    // Skip "BASIC PAY" or "BASIC SALARY" to avoid double counting with $basic field
-                    $allowance_label = strtolower(trim($allowance['allowance_type']));
-                    if ($allowance_label === 'basic pay' || $allowance_label === 'basic salary') {
+                    // Skip "BASIC" allowance code to avoid double counting with $basic field
+                    $allowance_code = strtoupper(trim($allowance['allowance_type']));
+                    if ($allowance_code === 'BASIC') {
+                        continue;
+                    }
+                    
+                    // Skip temporary increment from previous month
+                    if ($allowance_code === 'TEMP') {
                         continue;
                     }
                     
                     // Extract DA from allowances if applicable
-                    if (stripos($allowance_label, 'dearness') !== false || $allowance_label === 'da') {
+                    if ($allowance_code === 'DA') {
                         $da = (float) $allowance['amount'];
                     }
                     
@@ -1130,6 +1165,11 @@ class Payroll extends Admin_Controller
                         $total_deduction += (float) $allowance['amount'];
                     }
                 }
+            }
+
+            // Add increment to total_allowance if it's increment month
+            if ($is_increment_month && $increment_amount > 0) {
+                $total_allowance += $increment_amount;
             }
 
             $date = $year . '-' . $month;
@@ -1180,10 +1220,30 @@ class Payroll extends Admin_Controller
             }
 
             // Calculate EPF and TDS using the new library
-            $epf_wage = $this->tax_epf_calculator->calculate_epf_wage($basic, $da);
-            $employee_epf = $this->tax_epf_calculator->calculate_employee_epf($epf_wage);
-            $employer_pf = $this->tax_epf_calculator->calculate_employer_pf($epf_wage);
-            $employer_eps = $this->tax_epf_calculator->calculate_employer_eps($epf_wage);
+            // EPF CALCULATION: Only if UAN is available for the staff
+            $epf_wage = 0;
+            $employee_epf = 0;
+            $employer_pf = 0;
+            $employer_eps = 0;
+            
+            if (!empty($staff['uan_no']) && isset($staff['is_epf_enabled']) && $staff['is_epf_enabled'] == 1) {
+                // Staff has UAN and EPF is enabled - calculate EPF wage
+                $epf_wage = $this->tax_epf_calculator->calculate_epf_wage($basic, $da);
+                $employee_epf = $this->tax_epf_calculator->calculate_employee_epf($epf_wage);
+                $employer_pf = $this->tax_epf_calculator->calculate_employer_pf($epf_wage);
+                $employer_eps = $this->tax_epf_calculator->calculate_employer_eps($epf_wage);
+            }
+            // If UAN is not available, EPF is 0 (skip this staff for EPF)
+            
+            // ESI CALCULATION: Only if ESI_no is available for the staff
+            $esi_deduction = 0;
+            if (!empty($staff['esi_no']) && isset($staff['is_esi_enabled']) && $staff['is_esi_enabled'] == 1) {
+                // Staff has ESI_no and ESI is enabled - calculate ESI
+                // ESI is 0.75% of gross salary (basic + DA + other allowances)
+                $esi_base = $basic + $da; // ESI is calculated on basic+DA typically, though some consider full gross
+                $esi_deduction = round($esi_base * 0.0075, 2);
+            }
+            // If ESI_no is not available, ESI is 0 (skip this staff for ESI)
             
             // Calculate TDS using YTD (Year-To-Date) approach for accurate mid-year increment handling
             $month_num = date('n', strtotime($year . '-' . $month . '-01'));
@@ -1204,10 +1264,10 @@ class Payroll extends Admin_Controller
                 $monthly_tds = $this->tax_epf_calculator->calculate_monthly_tds($gross_salary);
             }
             
-            // Total deductions now include employee EPF and TDS
-            $total_with_epf_tds = (float) $employee_epf + (float) $monthly_tds + (float) $total_deduction + (float) $lop_deduction;
+            // Total deductions now include employee EPF, ESI, and TDS
+            $total_with_epf_tds_esi = (float) $employee_epf + (float) $esi_deduction + (float) $monthly_tds + (float) $total_deduction + (float) $lop_deduction;
             
-            $net_salary = $gross_salary - $total_with_epf_tds;
+            $net_salary = $gross_salary - $total_with_epf_tds_esi;
 
             $data = array(
                 'staff_id' => $staff['id'],
@@ -1248,8 +1308,12 @@ class Payroll extends Admin_Controller
                 $this->db->update('staff_monthly_leave_balance', ['payslip_id' => $payslipid]);
             }
 
+            // Always delete old allowances/deductions when recalculating an existing payslip
             if (!empty($staff['payslip_id']) && $overwrite) {
                 $this->db->where('payslip_id', $payslipid)->delete('payslip_allowance');
+            } else if (!empty($staff['payslip_id'])) {
+                // Even if not overwriting, delete deductions to prevent duplicates during recalculation
+                $this->db->where('payslip_id', $payslipid)->where('cal_type', 'negative')->delete('payslip_allowance');
             }
 
             if (!empty($allowances)) {
@@ -1257,7 +1321,7 @@ class Payroll extends Admin_Controller
                     // Allowance data structure
                     $allowance_data = array(
                         'payslip_id'        => $payslipid,
-                        'allowance_type_id' => $allowance['allowance_type_id'],
+                        'allowance_type'    => $allowance['allowance_type'],
                         'amount'            => $allowance['amount'],
                         'staff_id'          => $staff['id'],
                         'cal_type'          => $allowance['cal_type'],
@@ -1266,27 +1330,88 @@ class Payroll extends Admin_Controller
                 }
             }
 
-            // Automatic EPF and ESI deductions based on dual checkpoint validation
-            $statutory_deductions = $this->payroll_model->calculateStatutoryDeductions($staff);
-            if ($statutory_deductions['epf_deduction'] > 0) {
+            // Add increment as a temporary earning if it's an increment month
+            if ($is_increment_month && $increment_amount > 0) {
+                $temp_allowance_code = $this->payroll_model->getStatutoryAllowanceCode('TEMP');
+                if ($temp_allowance_code) {
+                    $increment_allowance = array(
+                        'payslip_id'        => $payslipid,
+                        'allowance_type'    => $temp_allowance_code,  // TEMP code from database
+                        'amount'            => round($increment_amount, 2),
+                        'staff_id'          => $staff['id'],
+                        'cal_type'          => 'positive',  // Increment is an earning
+                    );
+                    $this->payroll_model->add_allowance($increment_allowance);
+                } else {
+                    // Fallback to 'TEMP' if database code not found (shouldn't happen)
+                    $increment_allowance = array(
+                        'payslip_id'        => $payslipid,
+                        'allowance_type'    => 'TEMP',
+                        'amount'            => round($increment_amount, 2),
+                        'staff_id'          => $staff['id'],
+                        'cal_type'          => 'positive',
+                    );
+                    $this->payroll_model->add_allowance($increment_allowance);
+                }
+            }
+
+            // Delete existing statutory deductions (EPF/ESI/TDS) before adding new ones to prevent duplicates
+            // Get statutory allowance type codes from database
+            $statutory_types = $this->payroll_model->getStatutoryAllowanceTypes();
+            $statutory_codes = array_keys($statutory_types); // Get all statutory codes: EPF, ESI, TDS, PT, etc.
+            
+            if (!empty($statutory_codes)) {
+                $this->db->where('payslip_id', $payslipid)
+                    ->where_in('allowance_type', $statutory_codes)
+                    ->delete('payslip_allowance');
+            }
+
+            // ======== ADD STATUTORY DEDUCTIONS TO PAYSLIP ALLOWANCE ========
+            // All statutory deductions are now calculated above and need to be added to payslip_allowance table
+            // Using allowance type codes from payroll_allowance_types table
+            // - EPF: Calculated only if UAN is available (done above via library)
+            // - ESI: Calculated only if ESI_no is available (done above)
+            // - TDS: Income tax calculation (done above via library)
+            
+            // Get allowance type codes from database for all three statutory deductions
+            $epf_code = $this->payroll_model->getStatutoryAllowanceCode('EPF');
+            $esi_code = $this->payroll_model->getStatutoryAllowanceCode('ESI');
+            $tds_code = $this->payroll_model->getStatutoryAllowanceCode('TDS');
+            
+            // Add EPF deduction (already calculated above via tax_epf_calculator library)
+            if (!empty($employee_epf) && $employee_epf > 0 && $epf_code) {
                 $epf_data = array(
                     'payslip_id'        => $payslipid,
-                    'allowance_type_id' => 50, // EPF type ID from master table
-                    'amount'            => $statutory_deductions['epf_deduction'],
+                    'allowance_type'    => $epf_code,  // Use code from database
+                    'amount'            => round($employee_epf, 2),
                     'staff_id'          => $staff['id'],
                     'cal_type'          => 'negative',
                 );
                 $this->payroll_model->add_allowance($epf_data);
             }
-            if ($statutory_deductions['esi_deduction'] > 0) {
+            
+            // Add ESI deduction (already calculated above)
+            if (!empty($esi_deduction) && $esi_deduction > 0 && $esi_code) {
                 $esi_data = array(
                     'payslip_id'        => $payslipid,
-                    'allowance_type_id' => 51, // ESI type ID from master table
-                    'amount'            => $statutory_deductions['esi_deduction'],
+                    'allowance_type'    => $esi_code,  // Use code from database
+                    'amount'            => round($esi_deduction, 2),
                     'staff_id'          => $staff['id'],
                     'cal_type'          => 'negative',
                 );
                 $this->payroll_model->add_allowance($esi_data);
+            }
+
+            // Add TDS (Income Tax) deduction (already calculated above via library)
+            if (!empty($monthly_tds) && $monthly_tds > 0 && $tds_code) {
+                $tds_data = array(
+                    'payslip_id'        => $payslipid,
+                    'allowance_type'    => $tds_code,  // Use code from database
+                    'amount'            => round($monthly_tds, 2),
+                    'staff_id'          => $staff['id'],
+                    'cal_type'          => 'negative',
+                );
+                $this->payroll_model->add_allowance($tds_data);
             }
 
             if (!empty($staff['payslip_id']) && $overwrite) {
@@ -1343,6 +1468,7 @@ class Payroll extends Admin_Controller
         $staff_id = (int) $this->input->post('staff_id');
         $month = $this->input->post('month');
         $year = $this->input->post('year');
+        $month_numeric = date('n', strtotime($year . '-' . $month . '-01'));
         $basic = $this->input->post('basic');
         $basic = $basic ? convertCurrencyFormatToBaseAmount($basic) : 0;
 
@@ -1358,7 +1484,7 @@ class Payroll extends Admin_Controller
         $is_increment_month = false;
 
         // Check if this is an increment month
-        $increment = $this->payroll_increment_model->getApprovedIncrementForMonth($staff_id, $month, $year);
+        $increment = $this->payroll_increment_model->getApprovedIncrementForMonth($staff_id, $month_numeric, $year);
         if ($increment) {
             $is_increment_month = true;
             if ($increment['increment_type'] === 'Fixed') {
@@ -1432,7 +1558,7 @@ class Payroll extends Admin_Controller
             }
         }
 
-        $month_num = date('n', strtotime($year . '-' . $month . '-01'));
+        $month_num = $month_numeric;
         $newdate = date('Y-m-d', strtotime($year . '-' . $month . ' +1 month'));
         $monthAttendanceData = $this->monthAttendance($newdate, 3, $staff_id);
         $monthLeaves = $this->monthLeaves($newdate, 3, $staff_id);
@@ -1457,10 +1583,28 @@ class Payroll extends Admin_Controller
             $lop_deduction = ($gross_salary / $total_days_of_month) * $net_lop_days;
         }
 
-        $epf_wage = $this->tax_epf_calculator->calculate_epf_wage($basic, $da);
-        $employee_epf = $this->tax_epf_calculator->calculate_employee_epf($epf_wage);
-        $employer_pf = $this->tax_epf_calculator->calculate_employer_pf($epf_wage);
-        $employer_eps = $this->tax_epf_calculator->calculate_employer_eps($epf_wage);
+        $epf_wage = 0;
+        $employee_epf = 0;
+        $employer_pf = 0;
+        $employer_eps = 0;
+        $esi_deduction = 0;
+
+        $staff_data = $this->payroll_model->searchEmployeeById($staff_id);
+        if (!is_array($staff_data)) {
+            $staff_data = [];
+        }
+
+        if (!empty($staff_data['uan_no']) && isset($staff_data['is_epf_enabled']) && (int) $staff_data['is_epf_enabled'] === 1) {
+            $epf_wage = $this->tax_epf_calculator->calculate_epf_wage($basic, $da);
+            $employee_epf = $this->tax_epf_calculator->calculate_employee_epf($epf_wage);
+            $employer_pf = $this->tax_epf_calculator->calculate_employer_pf($epf_wage);
+            $employer_eps = $this->tax_epf_calculator->calculate_employer_eps($epf_wage);
+        }
+
+        if (!empty($staff_data['esi_no']) && isset($staff_data['is_esi_enabled']) && (int) $staff_data['is_esi_enabled'] === 1) {
+            $esi_base = $basic + $da;
+            $esi_deduction = round($esi_base * 0.0075, 2);
+        }
 
         $ytd_data = $this->payroll_model->getYTDIncome($staff_id, $year, $month_num - 1);
         if ($ytd_data['gross'] > 0 && $month_num > 1) {
@@ -1475,8 +1619,8 @@ class Payroll extends Admin_Controller
             $monthly_tds = $this->tax_epf_calculator->calculate_monthly_tds($gross_salary);
         }
 
-        $total_with_epf_tds = (float) $employee_epf + (float) $monthly_tds + (float) $total_deduction + (float) $lop_deduction;
-        $net_salary = $gross_salary - $total_with_epf_tds;
+        $total_with_epf_tds_esi = (float) $employee_epf + (float) $esi_deduction + (float) $monthly_tds + (float) $total_deduction + (float) $lop_deduction;
+        $net_salary = $gross_salary - $total_with_epf_tds_esi;
 
         $response = [
             'success' => true,
@@ -1490,6 +1634,7 @@ class Payroll extends Admin_Controller
             'employer_pf' => round($employer_pf, 2),
             'employer_eps' => round($employer_eps, 2),
             'tds' => round($monthly_tds, 2),
+            'esi_deduction' => round($esi_deduction, 2),
             'actual_lop_days' => round($actual_lop_days, 2),
             'adjusted_lop_days' => round($adjusted_lop_days, 2),
             'net_lop_days' => round($net_lop_days, 2),
@@ -2380,6 +2525,54 @@ class Payroll extends Admin_Controller
 
             redirect('admin/payroll/pending_increments');
         }
+    }
+
+    /**
+     * Fix duplicate EPF/ESI deductions that may have been created by running bulk calculate multiple times
+     */
+    public function clean_duplicate_deductions()
+    {
+        if (!$this->rbac->hasPrivilege('staff_payroll', 'can_edit')) {
+            access_denied();
+        }
+
+        // Find all payslips with duplicate EPF/ESI deductions
+        $duplicate_query = "
+            SELECT payslip_id, allowance_type, COUNT(*) as cnt, GROUP_CONCAT(id ORDER BY id) as ids
+            FROM payslip_allowance 
+            WHERE cal_type='negative' AND allowance_type IN ('EPF', 'ESI')
+            GROUP BY payslip_id, allowance_type 
+            HAVING cnt > 1
+        ";
+
+        $result = $this->db->query($duplicate_query);
+        $duplicates = $result->result_array();
+
+        $deleted_count = 0;
+        $message = '';
+
+        if (!empty($duplicates)) {
+            foreach ($duplicates as $dup) {
+                // Get the IDs as array
+                $ids = array_map('trim', explode(',', $dup['ids']));
+                
+                // Keep the first one, delete the rest
+                $delete_ids = array_slice($ids, 1);
+                
+                // Delete duplicate records
+                $this->db->where_in('id', $delete_ids);
+                $this->db->delete('payslip_allowance');
+                
+                $deleted_count += $this->db->affected_rows();
+            }
+            
+            $message = "Fixed " . count($duplicates) . " payslips with duplicate deductions. Deleted " . $deleted_count . " duplicate record(s).";
+        } else {
+            $message = "No duplicate deductions found. All payslips are clean.";
+        }
+
+        $this->session->set_flashdata('msg', '<div class="alert alert-info text-center">' . $message . '</div>');
+        redirect('admin/payroll');
     }
 }
 

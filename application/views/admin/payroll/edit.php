@@ -307,7 +307,9 @@ if ($is_current_payroll_month) {
                             <div class="row display-flex">
                                 <div class="col-md-4 col-sm-4">
                                     <h3 class="box-title">📊 <?php echo $this->lang->line('earning'); ?></h3>
-                                    <button type="button" onclick="add_more()" class="plusign"><i class="fa fa-plus"></i> Add</button>
+                                    <?php if(!$is_calculated): ?>
+                                        <button type="button" onclick="add_more()" class="plusign"><i class="fa fa-plus"></i> Add</button>
+                                    <?php endif; ?>
                                     <div class="sameheight">
                                         <div class="feebox" style="padding: 0; background: white; border-radius: 6px; overflow: hidden;">
                                             <style>
@@ -376,17 +378,39 @@ if (!empty($earnings)) {
         ?>
                                                 <div class="modern-item-row" id="row<?php echo $earning_count; ?>">
                                                     <input type="hidden" name="allowance_prev_id[]" value="<?php echo $earning_value['id'] ?>" />
-                                                    <select class="form-control modern-item-type" name="allowance_type_id[]" required>
-                                                        <option value="">Select Type</option>
-                                                        <?php foreach($earning_types as $type): ?>
-                                                            <option value="<?php echo $type['id']; ?>" data-code="<?php echo $type['allowance_code']; ?>" 
-                                                                <?php echo ($type['id'] == $earning_value['allowance_type_id']) ? 'selected' : ''; ?>>
-                                                                <?php echo $type['allowance_name']; ?> (<?php echo $type['allowance_code']; ?>)
-                                                            </option>
-                                                        <?php endforeach; ?>
-                                                    </select>
-                                                    <input type="text" id="allowance_amount" name="allowance_amount[]" class="form-control modern-item-amount" value="<?php echo convertBaseAmountCurrencyFormat($earning_value['amount']) ?>" placeholder="Amount">
-                                                    <button type="button" onclick="delete_row(<?php echo $earning_count ?>)" class="modern-item-delete" autocomplete="off"><i class="fa fa-trash"></i></button>
+                                                    <?php if($is_calculated): ?>
+                                                        <!-- Read-only display for calculated payslip -->
+                                                        <input type="hidden" name="allowance_type_id[]" value="<?php echo !empty($earning_value['allowance_type_id']) ? $earning_value['allowance_type_id'] : ''; ?>">
+                                                        <div class="form-control modern-item-type" style="background-color: #f5f5f5; border: none; cursor: not-allowed; padding: 8px 12px;">
+                                                            <?php 
+                                                                $type_name = !empty($earning_value['allowance_type_name']) ? $earning_value['allowance_type_name'] : ucfirst(strtolower($earning_value['allowance_type']));
+                                                                $type_code = !empty($earning_value['allowance_code']) ? $earning_value['allowance_code'] : $earning_value['allowance_type'];
+                                                                echo $type_name . ' (' . $type_code . ')';
+                                                            ?>
+                                                        </div>
+                                                    <?php else: ?>
+                                                        <!-- Editable dropdown for new payslip -->
+                                                        <select class="form-control modern-item-type" name="allowance_type_id[]" required>
+                                                            <option value="">Select Type</option>
+                                                            <?php foreach($earning_types as $type): ?>
+                                                                <option value="<?php echo $type['id']; ?>" data-code="<?php echo $type['allowance_code']; ?>" 
+                                                                    <?php echo ($type['id'] == $earning_value['allowance_type_id']) ? 'selected' : ''; ?>>
+                                                                    <?php echo $type['allowance_name']; ?> (<?php echo $type['allowance_code']; ?>)
+                                                                </option>
+                                                            <?php endforeach; ?>
+                                                        </select>
+                                                    <?php endif; ?>
+                                                    <?php if($is_calculated): ?>
+                                                        <div class="form-control modern-item-amount" style="background-color: #f5f5f5; border: none; cursor: not-allowed; text-align: right;">
+                                                            <?php echo convertBaseAmountCurrencyFormat($earning_value['amount']) ?>
+                                                        </div>
+                                                        <input type="hidden" name="allowance_amount[]" value="<?php echo $earning_value['amount'] ?>">
+                                                    <?php else: ?>
+                                                        <input type="text" id="allowance_amount" name="allowance_amount[]" class="form-control modern-item-amount" value="<?php echo convertBaseAmountCurrencyFormat($earning_value['amount']) ?>" placeholder="Amount">
+                                                    <?php endif; ?>
+                                                    <?php if(!$is_calculated): ?>
+                                                        <button type="button" onclick="delete_row(<?php echo $earning_count ?>)" class="modern-item-delete" autocomplete="off"><i class="fa fa-trash"></i></button>
+                                                    <?php endif; ?>
                                                 </div>
   <?php
 $earning_count++;
@@ -463,7 +487,9 @@ $earning_count++;
                                 </div><!--./col-md-4-->
                                 <div class="col-md-4 col-sm-4">
                                     <h3 class="box-title">💸 <?php echo $this->lang->line('deduction'); ?></h3>
-                                    <button type="button" onclick="add_more_deduction()" class="plusign"><i class="fa fa-plus"></i> Add</button>
+                                    <?php if(!$is_calculated): ?>
+                                        <button type="button" onclick="add_more_deduction()" class="plusign"><i class="fa fa-plus"></i> Add</button>
+                                    <?php endif; ?>
                                     <div class="sameheight">
                                         <div class="feebox" style="padding: 0; background: white; border-radius: 6px; overflow: hidden;">
                                             <style>
@@ -513,17 +539,39 @@ if (!empty($deductions)) {
         ?>
                                                 <div class="modern-deduction-row" id="deduction_row<?php echo $deduction_count; ?>">
                                                     <input type="hidden" name="deduction_prev_id[]" value="<?php echo $deduction_value['id'] ?>" />
-                                                    <select class="form-control modern-deduction-type" name="deduction_type_id[]" required>
-                                                        <option value="">Select Type</option>
-                                                        <?php foreach($deduction_types as $type): ?>
-                                                            <option value="<?php echo $type['id']; ?>" data-code="<?php echo $type['allowance_code']; ?>" 
-                                                                <?php echo ($type['id'] == $deduction_value['allowance_type_id']) ? 'selected' : ''; ?>>
-                                                                <?php echo $type['allowance_name']; ?> (<?php echo $type['allowance_code']; ?>)
-                                                            </option>
-                                                        <?php endforeach; ?>
-                                                    </select>
-                                                    <input type="text" id="deduction_amount" name="deduction_amount[]" class="form-control modern-deduction-amount" value="<?php echo convertBaseAmountCurrencyFormat($deduction_value['amount']) ?>" placeholder="Amount">
-                                                    <button type="button" onclick="delete_deduction_row(<?php echo $deduction_count ?>)" class="modern-item-delete" autocomplete="off"><i class="fa fa-trash"></i></button>
+                                                    <?php if($is_calculated): ?>
+                                                        <!-- Read-only display for calculated payslip -->
+                                                        <input type="hidden" name="deduction_type_id[]" value="<?php echo !empty($deduction_value['allowance_type_id']) ? $deduction_value['allowance_type_id'] : ''; ?>">
+                                                        <div class="form-control modern-deduction-type" style="background-color: #f5f5f5; border: none; cursor: not-allowed; padding: 8px 12px;">
+                                                            <?php 
+                                                                $type_name = !empty($deduction_value['allowance_type_name']) ? $deduction_value['allowance_type_name'] : ucfirst(strtolower($deduction_value['allowance_type']));
+                                                                $type_code = !empty($deduction_value['allowance_code']) ? $deduction_value['allowance_code'] : $deduction_value['allowance_type'];
+                                                                echo $type_name . ' (' . $type_code . ')';
+                                                            ?>
+                                                        </div>
+                                                    <?php else: ?>
+                                                        <!-- Editable dropdown for new payslip -->
+                                                        <select class="form-control modern-deduction-type" name="deduction_type_id[]" required>
+                                                            <option value="">Select Type</option>
+                                                            <?php foreach($deduction_types as $type): ?>
+                                                                <option value="<?php echo $type['id']; ?>" data-code="<?php echo $type['allowance_code']; ?>" 
+                                                                    <?php echo ($type['id'] == $deduction_value['allowance_type_id']) ? 'selected' : ''; ?>>
+                                                                    <?php echo $type['allowance_name']; ?> (<?php echo $type['allowance_code']; ?>)
+                                                                </option>
+                                                            <?php endforeach; ?>
+                                                        </select>
+                                                    <?php endif; ?>
+                                                    <?php if($is_calculated): ?>
+                                                        <div class="form-control modern-deduction-amount" style="background-color: #f5f5f5; border: none; cursor: not-allowed; text-align: right;">
+                                                            <?php echo convertBaseAmountCurrencyFormat($deduction_value['amount']) ?>
+                                                        </div>
+                                                        <input type="hidden" name="deduction_amount[]" value="<?php echo $deduction_value['amount'] ?>">
+                                                    <?php else: ?>
+                                                        <input type="text" id="deduction_amount" name="deduction_amount[]" class="form-control modern-deduction-amount" value="<?php echo convertBaseAmountCurrencyFormat($deduction_value['amount']) ?>" placeholder="Amount">
+                                                    <?php endif; ?>
+                                                    <?php if(!$is_calculated): ?>
+                                                        <button type="button" onclick="delete_deduction_row(<?php echo $deduction_count ?>)" class="modern-item-delete" autocomplete="off"><i class="fa fa-trash"></i></button>
+                                                    <?php endif; ?>
                                                 </div>
   <?php
 $deduction_count++;
@@ -753,7 +801,12 @@ $deduction_count++;
                                     </div>
                                 </div><!--./col-md-4-->
                                 <div class="col-md-12 col-sm-12">
-                                    <button type="submit" id="contact_submit" class="btn btn-info pull-right"><i class="fa fa-check-circle"></i> <?php echo $this->lang->line('save'); ?></button>
+                                    <?php if($is_calculated): ?>
+                                        <button type="button" class="btn btn-secondary pull-right" disabled><i class="fa fa-eye"></i> <?php echo 'Payslip Calculated'; ?></button>
+                                        <a href="<?php echo base_url() ?>admin/payroll" class="btn btn-default pull-right" style="margin-right: 10px;"><i class="fa fa-arrow-left"></i> Back</a>
+                                    <?php else: ?>
+                                        <button type="submit" id="contact_submit" class="btn btn-info pull-right"><i class="fa fa-check-circle"></i> <?php echo $this->lang->line('save'); ?></button>
+                                    <?php endif; ?>
                                 </div><!--./col-md-12-->
                                 </form>
                             </div><!--./row-->

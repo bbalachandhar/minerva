@@ -227,7 +227,9 @@ foreach ($monthAttendance as $attendence_key => $attendence_value) {
                             <div class="row display-flex">
                                 <div class="col-md-4 col-sm-4">
                                     <h3 class="box-title"><?php echo $this->lang->line('earning'); ?></h3>
-                                    <button type="button" onclick="add_more()" class="plusign"><i class="fa fa-plus"></i></button>
+                                    <?php if(!$is_calculated): ?>
+                                        <button type="button" onclick="add_more()" class="plusign"><i class="fa fa-plus"></i></button>
+                                    <?php endif; ?>
                                                                          <div class="sameheight">
                                                                             <div class="feebox">
                                                                                 <table class="table3" id="tableID">
@@ -238,21 +240,45 @@ foreach ($monthAttendance as $attendence_key => $attendence_value) {
                                             ?>
                                                                                             <tr id="row<?php echo $count; ?>">
                                                                                                 <td>
-                                                                                                    <select class="form-control" name="allowance_type_id[]" id="allowance_type_<?php echo $count; ?>">
-                                                                                                        <option value=""><?php echo $this->lang->line('type'); ?></option>
-                                                                                                        <?php foreach($earning_types as $type): ?>
-                                                                                                            <option value="<?php echo $type['id']; ?>" data-code="<?php echo $type['allowance_code']; ?>"
-                                                                                                                <?php echo ($type['id'] == $earning['allowance_type_id']) ? 'selected' : ''; ?>>
-                                                                                                                <?php echo $type['allowance_name']; ?> (<?php echo $type['allowance_code']; ?>)
-                                                                                                            </option>
-                                                                                                        <?php endforeach; ?>
-                                                                                                    </select>
+                                                                                                    <?php if($is_calculated): ?>
+                                                                                                        <!-- Read-only display for calculated payslip -->
+                                                                                                        <input type="hidden" name="allowance_type_id[]" value="<?php echo !empty($earning['allowance_type_id']) ? $earning['allowance_type_id'] : ''; ?>">
+                                                                                                        <div class="form-control" style="background-color: #f5f5f5; border: none; cursor: not-allowed;">
+                                                                                                            <?php 
+                                                                                                                // Show the allowance type name, with fallback to code if name is null
+                                                                                                                $type_name = !empty($earning['allowance_type_name']) ? $earning['allowance_type_name'] : ucfirst(strtolower($earning['allowance_type']));
+                                                                                                                $type_code = !empty($earning['allowance_code']) ? $earning['allowance_code'] : $earning['allowance_type'];
+                                                                                                                echo $type_name . ' (' . $type_code . ')';
+                                                                                                            ?>
+                                                                                                        </div>
+                                                                                                    <?php else: ?>
+                                                                                                        <!-- Editable dropdown for new payslip -->
+                                                                                                        <select class="form-control" name="allowance_type_id[]" id="allowance_type_<?php echo $count; ?>">
+                                                                                                            <option value=""><?php echo $this->lang->line('type'); ?></option>
+                                                                                                            <?php foreach($earning_types as $type): ?>
+                                                                                                                <option value="<?php echo $type['id']; ?>" data-code="<?php echo $type['allowance_code']; ?>"
+                                                                                                                    <?php echo ($type['id'] == $earning['allowance_type_id']) ? 'selected' : ''; ?>>
+                                                                                                                    <?php echo $type['allowance_name']; ?> (<?php echo $type['allowance_code']; ?>)
+                                                                                                                </option>
+                                                                                                            <?php endforeach; ?>
+                                                                                                        </select>
+                                                                                                    <?php endif; ?>
                                                                                                 </td>
                                                                                                 <td>
-                                                                                                    <input type="text" name="allowance_amount[]" id="allowance_amount_<?php echo $count; ?>" class="form-control" value="<?php echo $earning['amount']; ?>">
+                                                                                                    <?php if($is_calculated): ?>
+                                                                                                        <!-- Read-only display for amount -->
+                                                                                                        <div class="form-control" style="background-color: #f5f5f5; border: none; cursor: not-allowed; text-align: right;">
+                                                                                                            <?php echo number_format($earning['amount'], 2); ?>
+                                                                                                        </div>
+                                                                                                        <input type="hidden" name="allowance_amount[]" value="<?php echo $earning['amount']; ?>">
+                                                                                                    <?php else: ?>
+                                                                                                        <input type="text" name="allowance_amount[]" id="allowance_amount_<?php echo $count; ?>" class="form-control" value="<?php echo $earning['amount']; ?>">
+                                                                                                    <?php endif; ?>
                                                                                                 </td>
                                                                                                 <td>
-                                                                                                    <button type="button" onclick="delete_row(<?php echo $count; ?>)" class="closebtn"><i class="fa fa-remove"></i></button>
+                                                                                                    <?php if(!$is_calculated): ?>
+                                                                                                        <button type="button" onclick="delete_row(<?php echo $count; ?>)" class="closebtn"><i class="fa fa-remove"></i></button>
+                                                                                                    <?php endif; ?>
                                                                                                 </td>
                                                                                             </tr>
                                                                                             <?php
@@ -282,7 +308,9 @@ foreach ($monthAttendance as $attendence_key => $attendence_value) {
                                                                     </div><!--./col-md-4-->
                                                                     <div class="col-md-4 col-sm-4">
                                                                         <h3 class="box-title"><?php echo $this->lang->line('deduction'); ?></h3>
-                                                                        <button type="button" onclick="add_more_deduction()" class="plusign"><i class="fa fa-plus"></i></button>
+                                                                        <?php if(!$is_calculated): ?>
+                                                                            <button type="button" onclick="add_more_deduction()" class="plusign"><i class="fa fa-plus"></i></button>
+                                                                        <?php endif; ?>
                                                                         <div class="sameheight">
                                                                             <div class="feebox">
                                                                                 <table class="table3" id="tableID2">
@@ -293,21 +321,45 @@ foreach ($monthAttendance as $attendence_key => $attendence_value) {
                                             ?>
                                                                                             <tr id="deduction_row<?php echo $count; ?>">
                                                                                                 <td>
-                                                                                                    <select class="form-control" id="deduction_type_<?php echo $count; ?>" name="deduction_type_id[]">
-                                                                                                        <option value=""><?php echo $this->lang->line('type'); ?></option>
-                                                                                                        <?php foreach($deduction_types as $type): ?>
-                                                                                                            <option value="<?php echo $type['id']; ?>" data-code="<?php echo $type['allowance_code']; ?>"
-                                                                                                                <?php echo ($type['id'] == $deduction['allowance_type_id']) ? 'selected' : ''; ?>>
-                                                                                                                <?php echo $type['allowance_name']; ?> (<?php echo $type['allowance_code']; ?>)
-                                                                                                            </option>
-                                                                                                        <?php endforeach; ?>
-                                                                                                    </select>
+                                                                                                    <?php if($is_calculated): ?>
+                                                                                                        <!-- Read-only display for calculated payslip -->
+                                                                                                        <input type="hidden" name="deduction_type_id[]" value="<?php echo !empty($deduction['allowance_type_id']) ? $deduction['allowance_type_id'] : ''; ?>">
+                                                                                                        <div class="form-control" style="background-color: #f5f5f5; border: none; cursor: not-allowed;">
+                                                                                                            <?php 
+                                                                                                                // Show the allowance type name, with fallback to code if name is null
+                                                                                                                $type_name = !empty($deduction['allowance_type_name']) ? $deduction['allowance_type_name'] : ucfirst(strtolower($deduction['allowance_type']));
+                                                                                                                $type_code = !empty($deduction['allowance_code']) ? $deduction['allowance_code'] : $deduction['allowance_type'];
+                                                                                                                echo $type_name . ' (' . $type_code . ')';
+                                                                                                            ?>
+                                                                                                        </div>
+                                                                                                    <?php else: ?>
+                                                                                                        <!-- Editable dropdown for new payslip -->
+                                                                                                        <select class="form-control" id="deduction_type_<?php echo $count; ?>" name="deduction_type_id[]">
+                                                                                                            <option value=""><?php echo $this->lang->line('type'); ?></option>
+                                                                                                            <?php foreach($deduction_types as $type): ?>
+                                                                                                                <option value="<?php echo $type['id']; ?>" data-code="<?php echo $type['allowance_code']; ?>"
+                                                                                                                    <?php echo ($type['id'] == $deduction['allowance_type_id']) ? 'selected' : ''; ?>>
+                                                                                                                    <?php echo $type['allowance_name']; ?> (<?php echo $type['allowance_code']; ?>)
+                                                                                                                </option>
+                                                                                                            <?php endforeach; ?>
+                                                                                                        </select>
+                                                                                                    <?php endif; ?>
                                                                                                 </td>
                                                                                                 <td>
-                                                                                                    <input type="text" id="deduction_amount_<?php echo $count; ?>" name="deduction_amount[]" class="form-control" value="<?php echo $deduction['amount']; ?>">
+                                                                                                    <?php if($is_calculated): ?>
+                                                                                                        <!-- Read-only display for amount -->
+                                                                                                        <div class="form-control" style="background-color: #f5f5f5; border: none; cursor: not-allowed; text-align: right;">
+                                                                                                            <?php echo number_format($deduction['amount'], 2); ?>
+                                                                                                        </div>
+                                                                                                        <input type="hidden" name="deduction_amount[]" value="<?php echo $deduction['amount']; ?>">
+                                                                                                    <?php else: ?>
+                                                                                                        <input type="text" id="deduction_amount_<?php echo $count; ?>" name="deduction_amount[]" class="form-control" value="<?php echo $deduction['amount']; ?>">
+                                                                                                    <?php endif; ?>
                                                                                                 </td>
                                                                                                  <td>
-                                                                                                    <button type="button" onclick="delete_deduction_row(<?php echo $count; ?>)" class="closebtn"><i class="fa fa-remove"></i></button>
+                                                                                                    <?php if(!$is_calculated): ?>
+                                                                                                        <button type="button" onclick="delete_deduction_row(<?php echo $count; ?>)" class="closebtn"><i class="fa fa-remove"></i></button>
+                                                                                                    <?php endif; ?>
                                                                                                 </td>
                                                                                             </tr>
                                                                                             <?php
@@ -404,7 +456,12 @@ if (!empty($result["basic_salary"])) {
                                     </div>
                                 </div><!--./col-md-4-->
                                 <div class="col-md-12 col-sm-12">
-                                    <button type="submit" id="contact_submit" class="btn btn-info pull-right mt25"><?php echo $this->lang->line('save'); ?></button>
+                                    <?php if($is_calculated): ?>
+                                        <button type="button" class="btn btn-secondary pull-right mt25" disabled><i class="fa fa-eye"></i> <?php echo 'Payslip Calculated'; ?></button>
+                                        <a href="<?php echo base_url() ?>admin/payroll" class="btn btn-default pull-right mt25" style="margin-right: 10px;"><i class="fa fa-arrow-left"></i> Back</a>
+                                    <?php else: ?>
+                                        <button type="submit" id="contact_submit" class="btn btn-info pull-right mt25"><?php echo $this->lang->line('save'); ?></button>
+                                    <?php endif; ?>
                                 </div><!--./col-md-12-->
                                 </form>
                             </div><!--./row-->
