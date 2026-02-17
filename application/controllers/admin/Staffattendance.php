@@ -572,6 +572,12 @@ class Staffattendance extends Admin_Controller
         foreach ($all_active_staff as $staff_member) {
             $staff_id = $staff_member['id'];
             $role_id = $staff_member['role_id'];
+            
+            // Use Admin role (ID 1) as default if staff has no role assigned
+            if (empty($role_id)) {
+                $role_id = 1; // Admin role
+                $this->logger->log("Staff ID: {$staff_id} has no role assigned. Using default Admin role (ID: 1)");
+            }
 
             // If a target staff id is provided, skip all other staff for performance and correctness
             if ($target_staff_id !== null && (int)$staff_id !== (int)$target_staff_id) {
