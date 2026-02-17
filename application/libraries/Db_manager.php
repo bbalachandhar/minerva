@@ -14,6 +14,11 @@ class Db_manager
     {
          $this->CI = &get_instance();
 
+        // Ensure session library is available before reading userdata
+        if (!isset($this->CI->session)) {
+            $this->CI->load->library('session');
+        }
+
         if ($this->CI->session->has_userdata('admin')) {
 
             $database_session = $this->CI->session->userdata('admin');

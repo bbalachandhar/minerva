@@ -23,6 +23,7 @@ class Site extends Public_Controller
         $this->load->library('mailsmsconf');
         $this->load->library('mailer');
         $this->load->library('media_storage');
+        $this->load->library('form_validation');
         $this->load->config('ci-blog');
         $this->mailer;
         $this->sch_setting = $this->setting_model->getSetting();
@@ -78,8 +79,9 @@ class Site extends Public_Controller
                 $this->form_validation->set_rules('captcha', $this->lang->line('captcha'), 'trim|required');
             }
         }
-        $this->form_validation->set_rules('username', $this->lang->line('username'), 'trim|required|xss_clean');
-        $this->form_validation->set_rules('password', $this->lang->line('password'), 'trim|required|xss_clean');
+        // Removed deprecated xss_clean rule to avoid missing language line errors
+        $this->form_validation->set_rules('username', $this->lang->line('username'), 'trim|required');
+        $this->form_validation->set_rules('password', $this->lang->line('password'), 'trim|required');
         if ($this->form_validation->run() == false) {
             $captcha               = $this->captchalib->generate_captcha();
             $data['captcha_image'] = isset($captcha['image']) ? $captcha['image'] : "";
