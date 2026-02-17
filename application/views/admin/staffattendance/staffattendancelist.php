@@ -883,11 +883,18 @@ $(document).on('click', '#btnProcessBetween', function(e) {
 var evalTimers = {}; // keyed by staffId
 // global flag to ignore per-row autosaves during full (bulk) save
 window._staffAttendanceBulkSave = window._staffAttendanceBulkSave || false;
+// global flag to prevent auto-save during initial page load
+var _pageLoadComplete = false;
 
 // initialize "last sent" values to avoid duplicate autosaves on harmless blur/submit
-$('.in_time, .out_time').each(function(){
-    $(this).data('last', $(this).val() || '');
-});
+// Use setTimeout to ensure this runs AFTER datetimepicker has formatted the values
+setTimeout(function() {
+    $('.in_time, .out_time').each(function(){
+        $(this).data('last', $(this).val() || '');
+    });
+    // Mark page load as complete - auto-save can now trigger
+    _pageLoadComplete = true;
+}, 500);
 
 function scheduleEvalForRow($row, staffId, dateRaw, inTime, outTime, showToast) {
     // ignore if bulk save in progress
@@ -986,6 +993,9 @@ function scheduleEvalForRow($row, staffId, dateRaw, inTime, outTime, showToast) 
 // handle changes, datetimepicker changes AND manual blur/focusout. Skip if bulk save in progress.
 $(document).on('change dp.change blur focusout', '.in_time, .out_time', function(e) {
     if (window._staffAttendanceBulkSave) { return; }
+    // Prevent auto-save during initial page load/initialization
+    if (!_pageLoadComplete) { return; }
+    
     var $row = $(this).closest('tr');
     var staffId = $row.find("input[name='student_session[]']").val();
     var dateRaw = $("input[name='date']").val();

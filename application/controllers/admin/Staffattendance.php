@@ -51,26 +51,13 @@ class Staffattendance extends Admin_Controller
         // Load attendance types (needed by the view for JavaScript rendering)
         $attendencetypes = $this->attendencetype_model->getStaffAttendanceType();
         $reordered_attendencetypes = [];
-        $half_day_item = null;
-        $late_index = -1;
 
         foreach ($attendencetypes as $key => $type) {
-            if ($type['id'] == 6) { // Half Day Second Shift (now renamed to Half Day)
-                $half_day_item = $type;
-                $half_day_item['long_lang_name'] = 'half_day';
+            // Skip internal session status types (8, 9, 10, 11) from radio button display
+            if (in_array($type['id'], [8, 9, 10, 11])) {
                 continue;
             }
-            if ($type['id'] == 2) { // Late
-                $late_index = count($reordered_attendencetypes);
-            }
             $reordered_attendencetypes[] = $type;
-        }
-
-        // Insert half_day_item after late_item
-        if ($half_day_item !== null && $late_index !== -1) {
-            array_splice($reordered_attendencetypes, $late_index + 1, 0, [$half_day_item]);
-        } elseif ($half_day_item !== null) {
-            $reordered_attendencetypes[] = $half_day_item;
         }
 
         $data['attendencetypeslist'] = $reordered_attendencetypes;
@@ -692,19 +679,8 @@ class Staffattendance extends Admin_Controller
                 $first_half_present = in_array($morning_session_status, [1, 2, 5], true);
                 $second_half_present = in_array($afternoon_session_status, [1, 6, 7], true);
 
-                // Check for Late status (prioritize late over present)
-                if ($morning_session_status === 2 || $afternoon_session_status === 6) {
-                    // First Half Late or Second Half Late - mark as Late overall
-                    if ($morning_session_status === 2 && $second_half_present) {
-                        $overall_attendance_type_id = 2; // First Half Late
-                    } elseif ($first_half_present && $afternoon_session_status === 6) {
-                        $overall_attendance_type_id = 6; // Second Half Late
-                    } elseif ($morning_session_status === 2 && !$second_half_present) {
-                        $overall_attendance_type_id = 4; // Half Day (late + absent afternoon)
-                    } elseif (!$first_half_present && $afternoon_session_status === 6) {
-                        $overall_attendance_type_id = 4; // Half Day (absent morning + late afternoon)
-                    }
-                } elseif ($first_half_present && $second_half_present) {
+                // Day Summary: Both halves present → Present; one half present → Half Day; both absent → Absent
+                if ($first_half_present && $second_half_present) {
                     $overall_attendance_type_id = 1; // Present
                 } elseif ($first_half_present || $second_half_present) {
                     $overall_attendance_type_id = 4; // Half Day
