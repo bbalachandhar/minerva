@@ -1221,6 +1221,12 @@ $data['department_id_selected'] = $this->input->post('department_id');
         $data['searchlist']  = $this->customlib->get_searchtype();
         $data['date_type']   = $this->customlib->date_type();
         $data['date_typeid'] = '';
+        
+        // Get month and year filters from POST
+        $filter_month = $this->input->post('filter_month');
+        $filter_year = $this->input->post('filter_year');
+        $data['filter_month'] = $filter_month;
+        $data['filter_year'] = $filter_year;
 
         if (isset($_POST['search_type']) && $_POST['search_type'] != '') {
 
@@ -1238,7 +1244,7 @@ $data['department_id_selected'] = $this->input->post('department_id');
         $data['label']        = date($this->customlib->getSchoolDateFormat(), strtotime($start_date)) . " " . $this->lang->line('to') . " " . date($this->customlib->getSchoolDateFormat(), strtotime($end_date));
         $data['payment_mode'] = $this->payment_mode;
 
-        $result              = $this->payroll_model->getbetweenpayrollReport($start_date, $end_date);
+        $result              = $this->payroll_model->getbetweenpayrollReport($start_date, $end_date, $filter_month, $filter_year);
         $data['payrollList'] = $result;
         $this->load->view('layout/header', $data);
         $this->load->view('financereports/payroll', $data);

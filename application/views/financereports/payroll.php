@@ -108,6 +108,36 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                     <span class="text-danger"><?php echo form_error('search_type'); ?></span>
                                 </div>
                             </div>
+                            <div class="col-sm-6 col-md-2" >
+                                <div class="form-group">
+                                    <label><?php echo $this->lang->line('month'); ?></label>
+                                    <select class="form-control" name="filter_month">
+                                        <option value=""><?php echo $this->lang->line('select'); ?></option>
+                                        <?php 
+                                        $months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+                                        foreach ($months as $month) {
+                                            $selected = (isset($filter_month) && $filter_month == $month) ? 'selected' : '';
+                                            echo '<option value="' . $month . '" ' . $selected . '>' . $this->lang->line(strtolower($month)) . '</option>';
+                                        }
+                                        ?>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-sm-6 col-md-2" >
+                                <div class="form-group">
+                                    <label><?php echo $this->lang->line('year'); ?></label>
+                                    <select class="form-control" name="filter_year">
+                                        <option value=""><?php echo $this->lang->line('select'); ?></option>
+                                        <?php 
+                                        $current_year = date('Y');
+                                        for ($y = $current_year; $y >= $current_year - 10; $y--) {
+                                            $selected = (isset($filter_year) && $filter_year == $y) ? 'selected' : '';
+                                            echo '<option value="' . $y . '" ' . $selected . '>' . $y . '</option>';
+                                        }
+                                        ?>
+                                    </select>
+                                </div>
+                            </div>
                             <div id='date_result'>
 
                             </div>
@@ -162,6 +192,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                     } else {
                                         $count = 1;
 										$grossTotal = 0;
+										$netTotal = 0;
                                         foreach ($payrollList as $key => $value) {
                                             $basic += $value["basic"];
                                             $gross += $value["basic"] + $value["total_allowance"]-$value['total_deduction'];                                       
@@ -173,6 +204,8 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                                 $taxdata = 0;
                                             }
                                             $tax += $taxdata;
+                                            // Add net salary from database to total
+                                            $netTotal += $value["net_salary"];
                                             $total = 0;
                                             $grd_total = 0;
                                             ?>
@@ -243,10 +276,11 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                                 </td>
                                                 <td class="text text-right">
                                                     <?php
-                                                    $gross_amount = $value['basic'] + $value['total_allowance'] - $total_deduction-$taxdata;
+                                                    // Use net_salary from database (paybill)
+                                                    $net_amount = $value['net_salary'];
                                                     
-                                                    if($gross_amount > 0){
-                                                        echo amountFormat($gross_amount);
+                                                    if($net_amount > 0){
+                                                        echo amountFormat($net_amount);
                                                     }else{
                                                         echo 0;
                                                     }
@@ -269,7 +303,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                         <td class="text text-right"><?php if($deduction > 0){ echo $currency_symbol . amountFormat($deduction); } ?></td>
                                         <td class="text text-right"><?php if($grossTotal > 0){ echo $currency_symbol . amountFormat($grossTotal); } ?></td>
                                         <td class="text text-right"><?php if($tax > 0){ echo $currency_symbol . amountFormat($tax); } ?></td>
-                                        <td class="text text-right"><?php $grandtotal = $grossTotal - $tax; if($grandtotal > 0){ echo $currency_symbol . amountFormat($grandtotal); }  ?></td>
+                                        <td class="text text-right"><?php if($netTotal > 0){ echo $currency_symbol . amountFormat($netTotal); }  ?></td>
                                     </tr> 
                                     <?php } ?>
                             </table>

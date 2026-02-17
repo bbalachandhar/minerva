@@ -535,10 +535,20 @@ class Payroll_model extends MY_Model
         return $query->result_array();
     }
 
-    public function getbetweenpayrollReport($start_date, $end_date)
+    public function getbetweenpayrollReport($start_date, $end_date, $filter_month = null, $filter_year = null)
     {      
         
-        $condition = "date_format(staff_payslip.payment_date,'%Y-%m-%d') between '" . $start_date . "' and '" . $end_date . "'";       
+        $condition = "date_format(staff_payslip.payment_date,'%Y-%m-%d') between '" . $start_date . "' and '" . $end_date . "'";
+        
+        // Add month filter if provided
+        if (!empty($filter_month)) {
+            $condition .= " AND staff_payslip.month = '" . $this->db->escape_str($filter_month) . "'";
+        }
+        
+        // Add year filter if provided
+        if (!empty($filter_year)) {
+            $condition .= " AND staff_payslip.year = '" . $this->db->escape_str($filter_year) . "'";
+        }
        
         $this->db->select('staff.id,staff.employee_id,staff.name,roles.name as user_type,staff.surname,staff_designation.designation,department.department_name as department,staff_payslip.*');
         $this->db->join("staff_payslip", "staff_payslip.staff_id = staff.id", "inner");
