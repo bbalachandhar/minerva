@@ -578,10 +578,9 @@ class Staffattendance extends Admin_Controller
                 continue;
             }
 
-            if (isset($staff_punches_by_day[$staff_id])) {
-                $dates = $staff_punches_by_day[$staff_id];
-                $timestamps = reset($dates);
-                $date = key($dates);
+            if (isset($staff_punches_by_day[$staff_id]) && isset($staff_punches_by_day[$staff_id][$date_to_process])) {
+                $timestamps = $staff_punches_by_day[$staff_id][$date_to_process];
+                $date = $date_to_process;
 
                 $this->logger->log("--- Processing Staff ID: {$staff_id}, Date: {$date} ---");
                 sort($timestamps);
