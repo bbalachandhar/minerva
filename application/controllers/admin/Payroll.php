@@ -1142,6 +1142,8 @@ class Payroll extends Admin_Controller
                 }
                 $tax = !empty($last_payslip['tax']) ? $last_payslip['tax'] : 0;
                 $allowances = $this->payroll_model->getAllowance($last_payslip['id']);
+                $temp_amount_from_last_month = 0;  // Track TEMP for potential merging
+                
                 foreach ($allowances as $allowance) {
                     // Skip "BASIC" allowance code to avoid double counting with $basic field
                     $allowance_code = strtoupper(trim($allowance['allowance_type']));
@@ -1149,8 +1151,10 @@ class Payroll extends Admin_Controller
                         continue;
                     }
                     
-                    // Skip temporary increment from previous month
+                    // Handle temporary increment from previous month
                     if ($allowance_code === 'TEMP') {
+                        $temp_amount_from_last_month = (float) $allowance['amount'];
+                        // Don't add TEMP to total_allowance yet - check if it needs to be merged
                         continue;
                     }
                     
@@ -1163,6 +1167,31 @@ class Payroll extends Admin_Controller
                         $total_allowance += (float) $allowance['amount'];
                     } else {
                         $total_deduction += (float) $allowance['amount'];
+                    }
+                }
+                
+                // MERGE LOGIC: If TEMP exists from last month, check if it should be merged into SA/BASIC
+                if ($temp_amount_from_last_month > 0) {
+                    // Get the approved increment for this staff (from ANY month, we need the latest)
+                    $approved_increment = $this->payroll_increment_model->getLatestApprovedIncrement($staff['id']);
+                    
+                    if ($approved_increment && $approved_increment['is_recurring'] == 1) {
+                        // This is a recurring increment - merge based on merge_with setting
+                        if ($approved_increment['merge_with'] === 'special_allowance') {
+                            // Merge into SA: Find SA in current allowances and increase it
+                            // Actually, we already read SA from payslip_allowance earlier, so just add to total
+                            $total_allowance += $temp_amount_from_last_month;
+                        } elseif ($approved_increment['merge_with'] === 'basic') {
+                            // Merge into basic salary
+                            $basic = (float) $basic + $temp_amount_from_last_month;
+                        } else {
+                            // Default to special_allowance if merge_with not specified
+                            $total_allowance += $temp_amount_from_last_month;
+                        }
+                        // Don't add TEMP as separate line item in payslip_allowance (it's merged)
+                    } else {
+                        // Not a recurring increment (one-time bonus) - just add it as-is
+                        $total_allowance += $temp_amount_from_last_month;
                     }
                 }
             }
@@ -1236,12 +1265,20 @@ class Payroll extends Admin_Controller
             // If UAN is not available, EPF is 0 (skip this staff for EPF)
             
             // ESI CALCULATION: Only if ESI_no is available for the staff
+            $esi_wage = 0;
             $esi_deduction = 0;
             if (!empty($staff['esi_no']) && isset($staff['is_esi_enabled']) && $staff['is_esi_enabled'] == 1) {
-                // Staff has ESI_no and ESI is enabled - calculate ESI
-                // ESI is 0.75% of gross salary (basic + DA + other allowances)
-                $esi_base = $basic + $da; // ESI is calculated on basic+DA typically, though some consider full gross
-                $esi_deduction = round($esi_base * 0.0075, 2);
+                // Staff has ESI_no and ESI is enabled - calculate ESI wage properly
+                // ESI is calculated on: Basic + DA + Other Allowances + Increment (capped at ₹21,000)
+                // Note: We'll use total_allowance as proxy for other fixed allowances
+                // This is not 100% accurate but closest without detailed allowance breakdown
+                $esi_wage = $this->tax_epf_calculator->calculate_esi_wage(
+                    $basic, 
+                    $da, 
+                    $total_allowance,  // Other allowances (HRA, SA, etc.)
+                    $is_increment_month ? $increment_amount : 0  // Include increment if applicable
+                );
+                $esi_deduction = $this->tax_epf_calculator->calculate_employee_esi($esi_wage);
             }
             // If ESI_no is not available, ESI is 0 (skip this staff for ESI)
             
@@ -1587,6 +1624,7 @@ class Payroll extends Admin_Controller
         $employee_epf = 0;
         $employer_pf = 0;
         $employer_eps = 0;
+        $esi_wage = 0;
         $esi_deduction = 0;
 
         $staff_data = $this->payroll_model->searchEmployeeById($staff_id);
@@ -1602,8 +1640,14 @@ class Payroll extends Admin_Controller
         }
 
         if (!empty($staff_data['esi_no']) && isset($staff_data['is_esi_enabled']) && (int) $staff_data['is_esi_enabled'] === 1) {
-            $esi_base = $basic + $da;
-            $esi_deduction = round($esi_base * 0.0075, 2);
+            // Calculate ESI properly with wage ceiling (₹21,000) and all components
+            $esi_wage = $this->tax_epf_calculator->calculate_esi_wage(
+                $basic, 
+                $da, 
+                $total_allowance,  // Other allowances
+                $is_increment_month ? $increment_amount : 0  // Include increment if applicable
+            );
+            $esi_deduction = $this->tax_epf_calculator->calculate_employee_esi($esi_wage);
         }
 
         $ytd_data = $this->payroll_model->getYTDIncome($staff_id, $year, $month_num - 1);
@@ -2386,7 +2430,7 @@ class Payroll extends Admin_Controller
         if (!empty($all_staff)) {
             foreach ($all_staff as $staff) {
                 if (isset($staff['is_active']) && $staff['is_active'] == 1) {
-                    // Query SA directly by staff_id from payslip_allowance
+                    // Query Special Allowance directly from payslip_allowance table
                     $staff['special_allowance'] = 0;
                     $this->db->select('amount');
                     $this->db->from('payslip_allowance');

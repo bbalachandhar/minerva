@@ -115,6 +115,47 @@ class Tax_epf_calculator
     }
 
     /**
+     * Calculate ESI Wage (ESI salary)
+     * This is the total wages on which ESI is calculated
+     * ESI Wage = MIN(Total Wages, 21000)
+     * 
+     * @param float $basic Basic salary
+     * @param float $da Dearness allowance
+     * @param float $other_allowances Other allowances (HRA, SA, etc.)
+     * @param float $increment Increment amount (if any)
+     * @return float ESI wage (capped at ceiling)
+     */
+    public function calculate_esi_wage($basic, $da = 0, $other_allowances = 0, $increment = 0)
+    {
+        // ESI wage ceiling per quarter (₹21,000 as per current ESI rules)
+        $esi_wage_ceiling = 21000;
+        
+        // Total wages = Basic + DA + Other Allowances + Increment
+        $esi_wage = $basic + $da + $other_allowances + $increment;
+        
+        // Cap at ESI wage ceiling
+        if ($esi_wage > $esi_wage_ceiling) {
+            $esi_wage = $esi_wage_ceiling;
+        }
+        
+        return $esi_wage;
+    }
+
+    /**
+     * Calculate Employee ESI Contribution
+     * 0.75% of ESI wage (capped at ceiling)
+     * Note: Employer also contributes 3.25% (not calculated here as per requirement)
+     * 
+     * @param float $esi_wage ESI wage
+     * @return float Employee ESI contribution
+     */
+    public function calculate_employee_esi($esi_wage)
+    {
+        $esi_rate = 0.75; // Employee contribution rate
+        return round($esi_wage * ($esi_rate / 100), 2);
+    }
+
+    /**
      * Calculate TDS under New Tax Regime FY 2025-26
      * Includes Section 87A rebate and health cess
      * 
