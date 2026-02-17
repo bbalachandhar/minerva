@@ -719,43 +719,46 @@ class Staffattendance extends Admin_Controller
                     'updated_at' => date('Y-m-d H:i:s'),
                 ];
 
-                $existing_attendance = $this->staffattendancemodel->getAttendanceByStaffIdAndDate($staff_id, $date);
-                if ($existing_attendance) {
-                    $attendance_record['id'] = $existing_attendance['id'];
-                }
+                // Delete any existing attendance records first to prevent duplicates
+                $this->db->where('staff_id', $staff_id);
+                $this->db->where('date', $date);
+                $this->db->delete('staff_attendance');
+                
+                // Now insert the fresh record
                 $this->staffattendancemodel->add($attendance_record);
 
             } else {
                 // Staff has NO punches for this day. Check if it's a holiday first, then mark as Absent.
-                $existing_attendance = $this->staffattendancemodel->getAttendanceByStaffIdAndDate($staff_id, $date_to_process);
+                // First, delete any existing attendance records to prevent duplicates
+                $this->db->where('staff_id', $staff_id);
+                $this->db->where('date', $date_to_process);
+                $this->db->delete('staff_attendance');
 
-                if (!$existing_attendance) {
-                    // Check if the date is an official holiday
-                    $is_holiday = $this->_is_official_holiday($date_to_process);
-                    
-                    if ($is_holiday) {
-                        // Mark as Holiday
-                        $attendance_type_id = $this->staff_attendance['holiday']; // Type ID 5
-                        $remark = 'Official Holiday';
-                        $this->logger->log("--- No punches found for Staff ID: {$staff_id}, Date: {$date_to_process}. Marking as Holiday. ---");
-                    } else {
-                        // Mark as Absent
-                        $attendance_type_id = 3; // 3 is for 'Absent'
-                        $remark = 'No punch found';
-                        $this->logger->log("--- No punches found for Staff ID: {$staff_id}, Date: {$date_to_process}. Marking as Absent. ---");
-                    }
-                    
-                    $attendance_record = [
-                        'staff_id' => $staff_id,
-                        'staff_attendance_type_id' => $attendance_type_id,
-                        'remark' => $remark,
-                        'date' => $date_to_process,
-                        'biometric_attendence' => 1,
-                        'qrcode_attendance' => 0,
-                        'updated_at' => date('Y-m-d H:i:s'),
-                    ];
-                    $this->staffattendancemodel->add($attendance_record);
+                // Check if the date is an official holiday
+                $is_holiday = $this->_is_official_holiday($date_to_process);
+                
+                if ($is_holiday) {
+                    // Mark as Holiday
+                    $attendance_type_id = $this->staff_attendance['holiday']; // Type ID 5
+                    $remark = 'Official Holiday';
+                    $this->logger->log("--- No punches found for Staff ID: {$staff_id}, Date: {$date_to_process}. Marking as Holiday. ---");
+                } else {
+                    // Mark as Absent
+                    $attendance_type_id = 3; // 3 is for 'Absent'
+                    $remark = 'No punch found';
+                    $this->logger->log("--- No punches found for Staff ID: {$staff_id}, Date: {$date_to_process}. Marking as Absent. ---");
                 }
+                
+                $attendance_record = [
+                    'staff_id' => $staff_id,
+                    'staff_attendance_type_id' => $attendance_type_id,
+                    'remark' => $remark,
+                    'date' => $date_to_process,
+                    'biometric_attendence' => 1,
+                    'qrcode_attendance' => 0,
+                    'updated_at' => date('Y-m-d H:i:s'),
+                ];
+                $this->staffattendancemodel->add($attendance_record);
             }
         }
         return ['unmatched_staff_ids' => $unmatched_staff_ids];
