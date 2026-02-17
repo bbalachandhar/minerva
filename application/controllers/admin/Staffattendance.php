@@ -512,26 +512,33 @@ class Staffattendance extends Admin_Controller
         $exceptions = 0;
 
         foreach ($raw_punches as $punch) {
-            $staff_id = $punch['staff_id'];
+            $biometric_id = $punch['staff_id']; // This is the biometric device ID, not the database staff_id
             $punch_time = $punch['punch_time'];
 
-            // same exception detection as sync_biometric_attendance
-            $staff_member = $this->staff_model->get($staff_id);
+            // Map biometric_id to actual staff_id
+            $staff_member = $this->staff_model->get_by_biometric_id($biometric_id);
+            
+            if (!$staff_member) {
+                log_message('error', "fetch_punches_between_dates: Staff with biometric_id {$biometric_id} not found. Skipping punch.");
+                continue;
+            }
+
+            $staff_id = $staff_member->id; // Get the actual database staff_id
             $is_exception = 0;
             $exception_reason = null;
 
-            if ($staff_member) {
-                $role_id = $staff_member['role_id'];
-                $present_setting = $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($role_id, 1);
-                if ($present_setting && !empty($present_setting->entry_time_from)) {
-                    $morning_window_start = $present_setting->entry_time_from;
-                    $three_hour_buffer = date('H:i:s', strtotime($morning_window_start) - (3 * 60 * 60));
-                    $punch_time_only = date('H:i:s', strtotime($punch_time));
-                    if (strtotime($punch_time_only) < strtotime($three_hour_buffer)) {
-                        $is_exception = 1;
-                        $exception_reason = "Punch at {$punch_time_only} is earlier than 3-hour buffer ({$three_hour_buffer}) before morning window ({$morning_window_start})";
-                        $exceptions++;
-                    }
+            // Exception detection logic
+            $role_id = $staff_member->role_id;
+            $present_setting = $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($role_id, 1);
+            if ($present_setting && !empty($present_setting->entry_time_from)) {
+                $morning_window_start = $present_setting->entry_time_from;
+                $three_hour_buffer = date('H:i:s', strtotime($morning_window_start) - (3 * 60 * 60));
+                $punch_time_only = date('H:i:s', strtotime($punch_time));
+                if (strtotime($punch_time_only) < strtotime($three_hour_buffer)) {
+                    $is_exception = 1;
+                    $exception_reason = "Punch at {$punch_time_only} is earlier than 3-hour buffer ({$three_hour_buffer}) before morning window ({$morning_window_start})";
+                    $exceptions++;
+                    log_message('info', "Exception flagged: Staff {$staff_id} (biometric_id: {$biometric_id}) - {$exception_reason}");
                 }
             }
 
