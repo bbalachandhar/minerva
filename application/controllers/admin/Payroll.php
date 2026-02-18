@@ -1358,6 +1358,12 @@ class Payroll extends Admin_Controller
 
             if (!empty($allowances)) {
                 foreach ($allowances as $allowance) {
+                    // Skip TEMP allowances - they are handled separately by increment/merge logic
+                    $allowance_code = strtoupper(trim($allowance['allowance_type']));
+                    if ($allowance_code === 'TEMP') {
+                        continue;
+                    }
+                    
                     // Allowance data structure
                     $allowance_data = array(
                         'payslip_id'        => $payslipid,
