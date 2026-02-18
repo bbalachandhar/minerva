@@ -1,5 +1,5 @@
 <?php
-// Version: 2026-02-18 - Removed granular logging from add() method
+// Version: 2026-02-18-FINAL - No per-record logging in add()
 class Staffattendancemodel extends MY_Model {
 
     public function __construct() {

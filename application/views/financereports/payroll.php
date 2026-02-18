@@ -1,5 +1,5 @@
 <?php
-// Version: 2026-02-18 - Grand total moved to tfoot for Excel export
+// Version: 2026-02-18-FINAL - Grand total in tfoot for Excel
 $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
 ?>
 <style type="text/css">

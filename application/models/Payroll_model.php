@@ -1,5 +1,5 @@
 <?php
-// Version: 2026-02-18 - Removed granular logging
+// Version: 2026-02-18-FINAL - Logging removed, ESI docs updated
 
 class Payroll_model extends MY_Model
 {

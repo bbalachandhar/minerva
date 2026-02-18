@@ -1,5 +1,5 @@
 <?php
-// Payroll Edit View - Version: 2026-02-18 - Includes ESI summary section
+// Version: 2026-02-18-FINAL - Complete ESI summary widget with all calculations
 $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
 ?>
 <style>

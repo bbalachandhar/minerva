@@ -1,5 +1,5 @@
 <?php
-// Version: 2026-02-18 - Fixed getStaffName() undefined method, added summary logging
+// Version: 2026-02-18-FINAL - getStaffName fix, summary logs only
 if (!defined('BASEPATH')) {
     exit('No direct script access allowed');
 }
