@@ -757,24 +757,15 @@ $deduction_count++;
                                             <?php } ?>
 
                                             <!-- TAX SECTION -->
-                                            <?php if (!empty($employee_payroll['tds']) || !empty($employee_payroll['tax'])) { ?>
+                                            <?php if (!empty($employee_payroll['tax']) && $employee_payroll['tax'] > 0) { ?>
                                             <div class="modern-summary-section tax-section">
                                                 <div class="section-title">📋 Income Tax Deduction</div>
-                                                <?php if (!empty($employee_payroll['tds'])) { ?>
                                                 <div class="modern-summary-row">
                                                     <span class="modern-summary-label">TDS (New Regime FY 2025-26)</span>
-                                                    <span class="modern-summary-value deduction-value">
-                                                        <input type="text" name="tax_percent" id="tax_percent" value="<?php echo convertBaseAmountCurrencyFormat($employee_payroll['tds']); ?>" />
-                                                    </span>
-                                                </div>
-                                                <?php } else if (!empty($employee_payroll['tax'])) { ?>
-                                                <div class="modern-summary-row">
-                                                    <span class="modern-summary-label"><?php echo $this->lang->line('tax'); ?></span>
                                                     <span class="modern-summary-value deduction-value">
                                                         <input type="text" name="tax_percent" id="tax_percent" value="<?php echo convertBaseAmountCurrencyFormat($employee_payroll['tax']); ?>" />
                                                     </span>
                                                 </div>
-                                                <?php } ?>
                                             </div>
                                             <?php } ?>
 
