@@ -164,13 +164,17 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                 <thead>
                                     <tr>
                                         <th><?php echo $this->lang->line('name'); ?></th>
-                                        <th><?php echo $this->lang->line('role'); ?></th>
-                                        <th><?php echo $this->lang->line('designation'); ?></th>
                                         <th><?php echo $this->lang->line('month_year'); ?></th>
                                         <th><?php echo $this->lang->line('payslip'); ?> #</th>
                                         <th class="text text-right"><?php echo $this->lang->line('basic_salary'); ?> <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
                                         <th class="text text-right"><?php echo $this->lang->line('earning'); ?> <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
                                         <th class="text text-right"><?php echo $this->lang->line('deduction'); ?> <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
+                                        <th class="text text-right">LOP <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
+                                        <th class="text text-right">EPF (Employee) <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
+                                        <th class="text text-right">Employer PF <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
+                                        <th class="text text-right">Employer EPS <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
+                                        <th class="text text-right">ESI (Employee) <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
+                                        <th class="text text-right">ESI (Employer) <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
                                         <th class="text text-right"><?php echo $this->lang->line('gross_salary'); ?> <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
                                         <th class="text text-right"><?php echo $this->lang->line('tax'); ?> <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
                                         <th class="text text-right"><?php echo $this->lang->line('net_salary'); ?> <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
@@ -184,6 +188,12 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                     $earnings = 0;
                                     $deduction = 0;
                                     $tax = 0;
+                                    $total_lop = 0;
+                                    $total_employee_epf = 0;
+                                    $total_employer_pf = 0;
+                                    $total_employer_eps = 0;
+                                    $total_esi = 0;
+                                    $total_employer_esi = 0;
 
                                     if (empty($payrollList)) {
                                         ?>
@@ -195,7 +205,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
 										$netTotal = 0;
                                         foreach ($payrollList as $key => $value) {
                                             $basic += $value["basic"];
-                                            $gross += $value["basic"] + $value["total_allowance"]-$value['total_deduction'];                                       
+                                            $gross += $value["basic"] + $value["total_allowance"];  // Gross = Basic + Allowances (NO deductions)
                                             $earnings += $value["total_allowance"];
                                             $deduction += $value["total_deduction"];
                                             if ($value["tax"] != '') {
@@ -206,6 +216,14 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                             $tax += $taxdata;
                                             // Add net salary from database to total
                                             $netTotal += $value["net_salary"];
+                                            // Add LOP total
+                                            $total_lop += !empty($value["leave_deduction"]) ? $value["leave_deduction"] : 0;
+                                            // Add EPF and ESI totals
+                                            $total_employee_epf += !empty($value["employee_epf"]) ? $value["employee_epf"] : 0;
+                                            $total_employer_pf += !empty($value["employer_pf"]) ? $value["employer_pf"] : 0;
+                                            $total_employer_eps += !empty($value["employer_eps"]) ? $value["employer_eps"] : 0;
+                                            $total_esi += !empty($value["esi_deduction"]) ? $value["esi_deduction"] : 0;
+                                            $total_employer_esi += !empty($value["employer_esi"]) ? $value["employer_esi"] : 0;
                                             $total = 0;
                                             $grd_total = 0;
                                             ?>
@@ -213,16 +231,6 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                                 <td style="text-transform: capitalize;">
                                                     <span data-toggle="popover" class="detail_popover" data-original-title="" title=""><a href="<?php echo base_url() ?>admin/staff/profile/<?php echo $value['staff_id']; ?>"><?php echo $value['name'] . " " . $value['surname']." (".$value['employee_id'].")"; ?></a></span>
                                                    
-                                                </td>
-                                                <td>
-        <?php echo $value['user_type']; ?>
-                                                </td>
-                                                <td>
-                                                    <span  data-original-title="" title=""><?php
-                                                        echo $value['designation'];
-                                                        ;
-                                                        ?></span>
-
                                                 </td>
                                                 <td>
         <?php echo $this->lang->line(strtolower($value['month'])) . " - " . $value['year']; ?>
@@ -251,8 +259,27 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                                     ?>
                                                 </td>
                                                 <td class="text text-right">
+                                                    <?php echo (!empty($value['leave_deduction']) && $value['leave_deduction'] > 0) ? amountFormat($value['leave_deduction']) : '-'; ?>
+                                                </td>
+                                                <td class="text text-right">
+                                                    <?php echo (!empty($value['employee_epf']) && $value['employee_epf'] > 0) ? amountFormat($value['employee_epf']) : '-'; ?>
+                                                </td>
+                                                <td class="text text-right">
+                                                    <?php echo (!empty($value['employer_pf']) && $value['employer_pf'] > 0) ? amountFormat($value['employer_pf']) : '-'; ?>
+                                                </td>
+                                                <td class="text text-right">
+                                                    <?php echo (!empty($value['employer_eps']) && $value['employer_eps'] > 0) ? amountFormat($value['employer_eps']) : '-'; ?>
+                                                </td>
+                                                <td class="text text-right">
+                                                    <?php echo (!empty($value['esi_deduction']) && $value['esi_deduction'] > 0) ? amountFormat($value['esi_deduction']) : '-'; ?>
+                                                </td>
+                                                <td class="text text-right">
+                                                    <?php echo (!empty($value['employer_esi']) && $value['employer_esi'] > 0) ? amountFormat($value['employer_esi']) : '-'; ?>
+                                                </td>
+                                                <td class="text text-right">
                                                     <?php 
-                                                    $gross = $value['basic'] + $value['total_allowance'] - $total_deduction ;
+                                                    // Gross Salary = Basic + Total Allowances (earnings only, NO deductions)
+                                                    $gross = $value['basic'] + $value['total_allowance'];
 													
                                                     if($gross > 0){
                                                     echo amountFormat($gross); 
@@ -295,12 +322,16 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
 									<tr class="box box-solid total-bg">
                                         <td></td>
                                         <td></td>
-                                        <td></td>
-                                        <td></td>
                                         <td class="text-right"><?php echo $this->lang->line('grand_total'); ?> </td>
                                         <td class="text text-right"><?php if($basic > 0){ echo $currency_symbol . amountFormat($basic); } ?></td>
                                         <td class="text text-right"><?php if($earnings > 0){ echo $currency_symbol . amountFormat($earnings); } ?></td>
                                         <td class="text text-right"><?php if($deduction > 0){ echo $currency_symbol . amountFormat($deduction); } ?></td>
+                                        <td class="text text-right"><?php if($total_lop > 0){ echo $currency_symbol . amountFormat($total_lop); } ?></td>
+                                        <td class="text text-right"><?php if($total_employee_epf > 0){ echo $currency_symbol . amountFormat($total_employee_epf); } ?></td>
+                                        <td class="text text-right"><?php if($total_employer_pf > 0){ echo $currency_symbol . amountFormat($total_employer_pf); } ?></td>
+                                        <td class="text text-right"><?php if($total_employer_eps > 0){ echo $currency_symbol . amountFormat($total_employer_eps); } ?></td>
+                                        <td class="text text-right"><?php if($total_esi > 0){ echo $currency_symbol . amountFormat($total_esi); } ?></td>
+                                        <td class="text text-right"><?php if($total_employer_esi > 0){ echo $currency_symbol . amountFormat($total_employer_esi); } ?></td>
                                         <td class="text text-right"><?php if($grossTotal > 0){ echo $currency_symbol . amountFormat($grossTotal); } ?></td>
                                         <td class="text text-right"><?php if($tax > 0){ echo $currency_symbol . amountFormat($tax); } ?></td>
                                         <td class="text text-right"><?php if($netTotal > 0){ echo $currency_symbol . amountFormat($netTotal); }  ?></td>

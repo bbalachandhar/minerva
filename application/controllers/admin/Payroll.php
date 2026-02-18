@@ -119,7 +119,7 @@ class Payroll extends Admin_Controller
                 $data['result']['basic_salary'] = $last_payslip['basic'];
             }
             $data["earnings"]   = $this->payroll_model->getAllowance($last_payslip['id'], 'positive');
-            $data["deductions"] = $this->payroll_model->getAllowance($last_payslip['id'], 'negative');
+            // Note: Deductions are NOT copied from previous month - they are calculated fresh each month
         }
 
         $alloted_leave = $this->staff_model->alloted_leave($id);
@@ -1141,7 +1141,9 @@ class Payroll extends Admin_Controller
                     $basic = $last_payslip['basic'];
                 }
                 $tax = !empty($last_payslip['tax']) ? $last_payslip['tax'] : 0;
-                $allowances = $this->payroll_model->getAllowance($last_payslip['id']);
+                // Only get POSITIVE allowances (earnings) from last payslip
+                // Deductions are NOT copied - they are calculated fresh each month based on EPF/ESI/TDS rules
+                $allowances = $this->payroll_model->getAllowance($last_payslip['id'], 'positive');
                 $temp_amount_from_last_month = 0;  // Track TEMP for potential merging
                 
                 foreach ($allowances as $allowance) {
@@ -1163,11 +1165,11 @@ class Payroll extends Admin_Controller
                         $da = (float) $allowance['amount'];
                     }
                     
+                    // Only process positive allowances (earnings)
                     if ($allowance['cal_type'] === 'positive') {
                         $total_allowance += (float) $allowance['amount'];
-                    } else {
-                        $total_deduction += (float) $allowance['amount'];
                     }
+                    // Note: Deductions are NOT copied from previous month
                 }
                 
                 // MERGE LOGIC: If TEMP exists from last month, check if it should be merged into SA/BASIC
@@ -1268,16 +1270,17 @@ class Payroll extends Admin_Controller
             $esi_wage = 0;
             $esi_deduction = 0;
             if (!empty($staff['esi_no']) && isset($staff['is_esi_enabled']) && $staff['is_esi_enabled'] == 1) {
-                // Staff has ESI_no and ESI is enabled - calculate ESI wage properly
-                // ESI is calculated on: Basic + DA + Other Allowances + Increment (capped at ₹21,000)
+                // Staff has ESI_no and ESI is enabled - check ESI eligibility
+                // ESI is calculated on: Basic + DA + Other Allowances + Increment
+                // ESI is NOT applicable if monthly gross wage exceeds ₹21,000
                 // Note: We'll use total_allowance as proxy for other fixed allowances
-                // This is not 100% accurate but closest without detailed allowance breakdown
                 $esi_wage = $this->tax_epf_calculator->calculate_esi_wage(
                     $basic, 
                     $da, 
                     $total_allowance,  // Other allowances (HRA, SA, etc.)
                     $is_increment_month ? $increment_amount : 0  // Include increment if applicable
                 );
+                // calculate_esi_wage returns 0 if not eligible (wage > ₹21,000)
                 $esi_deduction = $this->tax_epf_calculator->calculate_employee_esi($esi_wage);
             }
             // If ESI_no is not available, ESI is 0 (skip this staff for ESI)

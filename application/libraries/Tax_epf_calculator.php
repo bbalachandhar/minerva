@@ -127,15 +127,16 @@ class Tax_epf_calculator
      */
     public function calculate_esi_wage($basic, $da = 0, $other_allowances = 0, $increment = 0)
     {
-        // ESI wage ceiling per quarter (₹21,000 as per current ESI rules)
+        // ESI wage ceiling (₹21,000 as per current ESI rules)
+        // ESI is NOT applicable if monthly gross wage exceeds ₹21,000
         $esi_wage_ceiling = 21000;
         
         // Total wages = Basic + DA + Other Allowances + Increment
         $esi_wage = $basic + $da + $other_allowances + $increment;
         
-        // Cap at ESI wage ceiling
+        // ESI eligibility check: If wage exceeds ceiling, employee is NOT eligible for ESI
         if ($esi_wage > $esi_wage_ceiling) {
-            $esi_wage = $esi_wage_ceiling;
+            return 0; // Not eligible for ESI
         }
         
         return $esi_wage;
