@@ -1,4 +1,4 @@
-
+// Version: 2026-02-18 - Added footer export for Excel grand total
 
 
 $(document).ready(function () {
