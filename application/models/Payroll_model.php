@@ -1,4 +1,5 @@
 <?php
+// Version: 2026-02-18 - Removed granular logging
 
 class Payroll_model extends MY_Model
 {
