@@ -756,6 +756,37 @@ $deduction_count++;
                                             </div>
                                             <?php } ?>
 
+                                            <!-- ESI SECTION -->
+                                            <?php if (!empty($employee_payroll['esi_wage']) || !empty($employee_payroll['employee_esi'])) { ?>
+                                            <div class="modern-summary-section esi-section">
+                                                <div class="section-title">🏥 Employees State Insurance (ESI)</div>
+                                                <?php if (!empty($employee_payroll['esi_wage'])) { ?>
+                                                <div class="modern-summary-row">
+                                                    <span class="modern-summary-label">ESI Wage Base</span>
+                                                    <span class="modern-summary-value">
+                                                        <input type="text" id="esi_wage" value="<?php echo convertBaseAmountCurrencyFormat($employee_payroll['esi_wage']); ?>" readonly />
+                                                    </span>
+                                                </div>
+                                                <?php } ?>
+                                                <?php if (!empty($employee_payroll['employee_esi'])) { ?>
+                                                <div class="modern-summary-row">
+                                                    <span class="modern-summary-label">Employee Contribution (0.75%)</span>
+                                                    <span class="modern-summary-value deduction-value" style="color: #c62828 !important;">
+                                                        <input type="text" id="employee_esi" value="<?php echo convertBaseAmountCurrencyFormat($employee_payroll['employee_esi']); ?>" readonly />
+                                                    </span>
+                                                </div>
+                                                <?php } ?>
+                                                <?php if (!empty($employee_payroll['employer_esi'])) { ?>
+                                                <div class="modern-summary-row">
+                                                    <span class="modern-summary-label">Employer Contribution (3.25%)</span>
+                                                    <span class="modern-summary-value" style="color: #d84315;">
+                                                        <input type="text" id="employer_esi" value="<?php echo convertBaseAmountCurrencyFormat($employee_payroll['employer_esi']); ?>" readonly />
+                                                    </span>
+                                                </div>
+                                                <?php } ?>
+                                            </div>
+                                            <?php } ?>
+
                                             <!-- TAX SECTION -->
                                             <?php if (!empty($employee_payroll['tax']) && $employee_payroll['tax'] > 0) { ?>
                                             <div class="modern-summary-section tax-section">
@@ -901,6 +932,16 @@ $deduction_count++;
             }
             if ($("#employer_eps").length) {
                 $("#employer_eps").val(parseAmount(response.employer_eps).toFixed(2));
+            }
+
+            if ($("#esi_wage").length) {
+                $("#esi_wage").val(parseAmount(response.esi_wage).toFixed(2));
+            }
+            if ($("#employee_esi").length) {
+                $("#employee_esi").val(parseAmount(response.employee_esi).toFixed(2));
+            }
+            if ($("#employer_esi").length) {
+                $("#employer_esi").val(parseAmount(response.employer_esi).toFixed(2));
             }
         });
     }

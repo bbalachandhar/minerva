@@ -397,6 +397,15 @@ class Staffattendance extends Admin_Controller
 
             $this->setting_model->update(array('last_biometric_sync_datetime' => $toDateTime));
 
+            // Add summary log for biometric sync
+            $this->load->model('staff_biometric_punches_model');
+            $user_name = $this->customlib->getStaffName();
+            $log_message = "Biometric attendance synced by {$user_name}: {$inserted_count} punches synchronized";
+            if ($exception_count > 0) {
+                $log_message .= ", {$exception_count} exceptions flagged";
+            }
+            $this->staff_biometric_punches_model->log($log_message, null, 'Sync');
+
             $msg = '<div class="alert alert-success">Biometric raw punches synchronized successfully. ' . $inserted_count . ' new punches recorded.';
             if ($exception_count > 0) {
                 $msg .= ' <strong>' . $exception_count . ' exceptions flagged for review.</strong>';
@@ -540,6 +549,15 @@ class Staffattendance extends Admin_Controller
         }
 
         log_message('debug', "fetch_punches_between_dates: Completed. Inserted: {$inserted}, Exceptions: {$exceptions}");
+        
+        // Add summary log for fetching punches between dates
+        $user_name = $this->customlib->getStaffName();
+        $log_message = "Biometric punches fetched by {$user_name}: {$inserted} punches from {$from_date} to {$to_date}";
+        if ($exceptions > 0) {
+            $log_message .= ", {$exceptions} exceptions flagged";
+        }
+        $this->staff_biometric_punches_model->log($log_message, null, 'Fetch');
+        
         ob_end_clean();
         $message = $inserted . ' punch' . ($inserted != 1 ? 'es' : '') . ' fetched successfully!';
         echo json_encode(['status' => 'success', 'message' => $message, 'inserted' => $inserted, 'exceptions' => $exceptions]);
@@ -874,6 +892,12 @@ class Staffattendance extends Admin_Controller
                 'last_processed_attendance_date' => $to_date
             ];
             $this->setting_model->add($update_data); // Call add method with ID
+            
+            // Add summary log for attendance processing
+            $user_name = $this->customlib->getStaffName();
+            $log_message = "Biometric attendance processed by {$user_name}: {$processed_dates_count} day(s) from {$from_date} to {$to_date}";
+            $this->staffattendancemodel->log($log_message, null, 'Process');
+            
             $final_msg = '<div class="alert alert-success">Biometric attendance processed successfully for ' . $processed_dates_count . ' day(s) up to ' . $to_date . '.</div>';
         } else {
             $final_msg = '<div class="alert alert-info">No new attendance data to process. Last processed date: ' . ($last_processed_attendance_date ?: 'N/A') . '</div>';
@@ -950,6 +974,11 @@ class Staffattendance extends Admin_Controller
         if ($setting && isset($setting->id)) {
             $this->setting_model->add(['id' => $setting->id, 'last_processed_attendance_date' => $to_date]);
         }
+
+        // Add summary log for reprocessing attendance between dates
+        $user_name = $this->customlib->getStaffName();
+        $log_message = "Attendance reprocessed by {$user_name}: {$processed_days} day(s) from {$from_date} to {$to_date}, {$deleted_rows} old records deleted";
+        $this->staffattendancemodel->log($log_message, null, 'Reprocess');
 
         ob_end_clean();
         echo json_encode(['status' => 'success', 'message' => 'Attendance reprocessed for selected range', 'processed_days' => $processed_days, 'deleted_rows' => $deleted_rows]);

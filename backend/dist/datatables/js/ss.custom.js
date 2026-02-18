@@ -122,7 +122,13 @@ $(document).ready(function () {
                         });
                     },
                     exportOptions: {
-                        columns: ["thead th:not(.noExport)"]
+                        columns: ["thead th:not(.noExport)"],
+                        format: {
+                            footer: function (data, row, column, node) {
+                                // Include footer/grand total row in Excel export
+                                return data;
+                            }
+                        }
                     }
                 },
                 {

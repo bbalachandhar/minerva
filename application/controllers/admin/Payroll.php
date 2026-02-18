@@ -1173,7 +1173,8 @@ class Payroll extends Admin_Controller
                 }
                 
                 // MERGE LOGIC: If TEMP exists from last month, check if it should be merged into SA/BASIC
-                if ($temp_amount_from_last_month > 0) {
+                // BUT: If we're overwriting and this IS the increment month, skip this - the TEMP is from THIS month's increment
+                if ($temp_amount_from_last_month > 0 && !$is_increment_month) {
                     // Get the approved increment for this staff (from ANY month, we need the latest)
                     $approved_increment = $this->payroll_increment_model->getLatestApprovedIncrement($staff['id']);
                     
@@ -1266,24 +1267,18 @@ class Payroll extends Admin_Controller
             }
             // If UAN is not available, EPF is 0 (skip this staff for EPF)
             
-            // ESI CALCULATION: Only if ESI_no is available for the staff
-            $esi_wage = 0;
-            $esi_deduction = 0;
-            if (!empty($staff['esi_no']) && isset($staff['is_esi_enabled']) && $staff['is_esi_enabled'] == 1) {
-                // Staff has ESI_no and ESI is enabled - check ESI eligibility
-                // ESI is calculated on: Basic + DA + Other Allowances + Increment
-                // ESI is NOT applicable if monthly gross wage exceeds ₹21,000
-                // Note: We'll use total_allowance as proxy for other fixed allowances
-                $esi_wage = $this->tax_epf_calculator->calculate_esi_wage(
-                    $basic, 
-                    $da, 
-                    $total_allowance,  // Other allowances (HRA, SA, etc.)
-                    $is_increment_month ? $increment_amount : 0  // Include increment if applicable
-                );
-                // calculate_esi_wage returns 0 if not eligible (wage > ₹21,000)
-                $esi_deduction = $this->tax_epf_calculator->calculate_employee_esi($esi_wage);
-            }
-            // If ESI_no is not available, ESI is 0 (skip this staff for ESI)
+            // ESI CALCULATION: Based on salary threshold only (≤ ₹21,000)
+            // ESI is calculated on: Basic + DA + Other Allowances (which already includes increment)
+            // ESI is NOT applicable if monthly gross wage exceeds ₹21,000
+            // Note: total_allowance already includes increment if it's increment month, so don't add it again
+            $esi_wage = $this->tax_epf_calculator->calculate_esi_wage(
+                $basic, 
+                $da, 
+                $total_allowance,  // Other allowances (HRA, SA, etc., and TEMP increment if applicable)
+                0  // Don't add increment separately - it's already in total_allowance
+            );
+            // calculate_esi_wage returns 0 if not eligible (wage > ₹21,000)
+            $esi_deduction = $this->tax_epf_calculator->calculate_employee_esi($esi_wage);
             
             // Calculate TDS using YTD (Year-To-Date) approach for accurate mid-year increment handling
             $month_num = date('n', strtotime($year . '-' . $month . '-01'));
@@ -1658,16 +1653,16 @@ class Payroll extends Admin_Controller
             $employer_eps = $this->tax_epf_calculator->calculate_employer_eps($epf_wage);
         }
 
-        if (!empty($staff_data['esi_no']) && isset($staff_data['is_esi_enabled']) && (int) $staff_data['is_esi_enabled'] === 1) {
-            // Calculate ESI properly with wage ceiling (₹21,000) and all components
-            $esi_wage = $this->tax_epf_calculator->calculate_esi_wage(
-                $basic, 
-                $da, 
-                $total_allowance,  // Other allowances
-                $is_increment_month ? $increment_amount : 0  // Include increment if applicable
-            );
-            $esi_deduction = $this->tax_epf_calculator->calculate_employee_esi($esi_wage);
-        }
+        // Calculate ESI based on salary threshold only (≤ ₹21,000)
+        // ESI is calculated on Basic + DA + Other Allowances (which already includes increment)
+        // Note: total_allowance already includes increment if it's increment month, so don't add it again
+        $esi_wage = $this->tax_epf_calculator->calculate_esi_wage(
+            $basic, 
+            $da, 
+            $total_allowance,  // Other allowances (already includes TEMP increment if applicable)
+            0  // Don't add increment separately - it's already in total_allowance
+        );
+        $esi_deduction = $this->tax_epf_calculator->calculate_employee_esi($esi_wage);
 
         $ytd_data = $this->payroll_model->getYTDIncome($staff_id, $year, $month_num - 1);
         if ($ytd_data['gross'] > 0 && $month_num > 1) {
@@ -1703,7 +1698,7 @@ class Payroll extends Admin_Controller
             'employer_pf' => round($employer_pf, 2),
             'employer_eps' => round($employer_eps, 2),
             'esi_wage' => round($esi_wage, 2),
-            'esi_deduction' => round($esi_deduction, 2),
+            'employee_esi' => round($esi_deduction, 2),
             'employer_esi' => $employer_esi,
             'tds' => round($monthly_tds, 2),
             'actual_lop_days' => round($actual_lop_days, 2),

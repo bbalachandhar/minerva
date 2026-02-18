@@ -317,8 +317,9 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                             <?php
                                             $count++;
                                         }
-                                        ?>                                     
+                                        ?>
                                 </tbody>
+                                <tfoot>
 									<tr class="box box-solid total-bg">
                                         <td></td>
                                         <td></td>
@@ -337,6 +338,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                         <td class="text text-right"><?php if($netTotal > 0){ echo $currency_symbol . amountFormat($netTotal); }  ?></td>
                                     </tr> 
                                     <?php } ?>
+                                </tfoot>
                             </table>
                         </div>
                     </div>

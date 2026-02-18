@@ -130,18 +130,13 @@ class Payroll_model extends MY_Model
         if (isset($data['id'])) {
             $this->db->where('id', $data['id']);
             $this->db->update('payslip_allowance', $data);
-            $message   = UPDATE_RECORD_CONSTANT . " On payslip allowance id " . $data['id'];
-            $action    = "Update";
-            $record_id = $data['id'];
-            $this->log($message, $record_id, $action);
+            // Logging removed to prevent excessive logs during bulk payroll operations
+            // Individual allowance logs are not needed; summary logs are created at controller level
         } else {
             $this->db->insert('payslip_allowance', $data);
             $id = $this->db->insert_id();
-
-            $message   = INSERT_RECORD_CONSTANT . " On payslip allowance id " . $id;
-            $action    = "Insert";
-            $record_id = $id;
-            $this->log($message, $record_id, $action);
+            // Logging removed to prevent excessive logs during bulk payroll operations
+            // Individual allowance logs are not needed; summary logs are created at controller level
         }
 
         $this->db->trans_complete(); # Completing transaction
@@ -1358,10 +1353,10 @@ class Payroll_model extends MY_Model
      * Validates staff eligibility before calculation
      *
      * Rule: EPF only if UAN is available
-     * Rule: ESI only if ESI_no is available
+     * Rule: ESI based on salary threshold only (≤ ₹21,000)
      * Rule: EPF contribution capped at Rs 15,000 base salary
      *
-     * @param array $staff Staff record with uan_no, esi_no, is_epf_enabled, is_esi_enabled
+     * @param array $staff Staff record with uan_no, is_epf_enabled
      * @param float $epf_rate EPF rate (default 12%)
      * @param float $esi_rate ESI rate (default 0.75%)
      * @return array Array with epf_deduction, esi_deduction
@@ -1402,19 +1397,18 @@ class Payroll_model extends MY_Model
 
         // ========== ESI DEDUCTION ==========
         // ESI Eligibility Check:
-        // - ESI number must be available (primary check)
-        // - ESI enabled flag must be set (1 = Yes)
-        // Rule: Without ESI_no, no ESI calculation, even if flag is enabled
+        // - Based on salary threshold only (≤ ₹21,000)
+        // - No longer requires esi_no to be present
+        // Rule: ESI is calculated for all employees with gross wage ≤ ₹21,000
+        // Note: This function uses basic_salary as approximation; full calculation in controller
         
-        if (!empty($staff['esi_no'])) {
-            // ESI_no is available - check if ESI is enabled
-            if (isset($staff['is_esi_enabled']) && $staff['is_esi_enabled'] == 1) {
-                // Calculate ESI - note: ESI is calculated on gross salary, not capped at base
-                // For this function, we calculate on basic; actual should include DA
-                $deductions['esi_deduction'] = round($basic_salary * $esi_rate, 2);
-            }
+        if ($basic_salary <= 21000) {
+            // Salary is within ESI threshold - calculate ESI
+            // Calculate ESI - note: ESI should be calculated on gross (basic + DA + allowances)
+            // For this simplified function, we calculate on basic as approximation
+            $deductions['esi_deduction'] = round($basic_salary * $esi_rate, 2);
         }
-        // If ESI_no is not available, ESI deduction remains 0 (no calculation)
+        // If salary > ₹21,000, ESI deduction remains 0 (not eligible)
 
         return $deductions;
     }

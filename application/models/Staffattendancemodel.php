@@ -159,17 +159,13 @@ class Staffattendancemodel extends MY_Model {
         if (isset($data['id'])) {
             $this->db->where('id', $data['id']);
             $this->db->update('staff_attendance', $data);
-            $message = UPDATE_RECORD_CONSTANT . " On staff attendance id " . $data['id'];
-            $action = "Update";
-            $record_id = $data['id'];
-            $this->log($message, $record_id, $action);
+            // Logging removed to prevent excessive logs during bulk operations
+            // Individual attendance logs are not needed; summary logs are created at controller level
         } else {
             $this->db->insert('staff_attendance', $data);
             $id = $this->db->insert_id();
-            $message = INSERT_RECORD_CONSTANT . " On staff attendance id " . $id;
-            $action = "Insert";
-            $record_id = $id;
-            $this->log($message, $record_id, $action);
+            // Logging removed to prevent excessive logs during bulk operations
+            // Individual attendance logs are not needed; summary logs are created at controller level
         }
         //======================Code End==============================
         $this->db->trans_complete(); # Completing transaction
