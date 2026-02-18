@@ -22,6 +22,7 @@ class Auth
         $this->CI->load->library('Enc_lib');
         $this->set_timezone();
         $this->CI->load->database();
+        $this->CI->load->helper('cookie');
     }
 
     /*

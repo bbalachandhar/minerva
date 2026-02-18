@@ -188,11 +188,11 @@ class Site extends Public_Controller
         $student_session = $this->session->userdata('student');
         $this->auth->logout();
         if ($admin_session) {
-            redirect('site/login');
+            redirect(base_url('site/login'), 'refresh');
         } else if ($student_session) {
-            redirect('site/userlogin');
+            redirect(base_url('site/userlogin'), 'refresh');
         } else {
-            redirect('site/userlogin');
+            redirect(base_url('site/userlogin'), 'refresh');
         }
     }
 

@@ -1869,9 +1869,10 @@ class Payroll extends Admin_Controller
 
     public function bulkimport()
     {
+        $this->load->library('form_validation');
         $this->form_validation->set_rules('file', $this->lang->line('file'), 'callback_handle_csv_upload');
-        $this->form_validation->set_rules('month', $this->lang->line('month'), 'trim|required|xss_clean');
-        $this->form_validation->set_rules('year', $this->lang->line('year'), 'trim|required|xss_clean');
+        $this->form_validation->set_rules('month', $this->lang->line('month'), 'trim|required|callback_valid_payroll_month');
+        $this->form_validation->set_rules('year', $this->lang->line('year'), 'trim|required|integer|exact_length[4]');
 
         if ($this->form_validation->run() == false) {
             $this->bulkupload();
@@ -1982,6 +1983,21 @@ class Payroll extends Admin_Controller
             }
             redirect('admin/payroll/bulkupload');
         }
+    }
+
+    public function valid_payroll_month($month)
+    {
+        $valid_months = array(
+            'January', 'February', 'March', 'April', 'May', 'June',
+            'July', 'August', 'September', 'October', 'November', 'December'
+        );
+
+        if (in_array(trim($month), $valid_months, true)) {
+            return true;
+        }
+
+        $this->form_validation->set_message('valid_payroll_month', 'The {field} field is invalid.');
+        return false;
     }
 
     public function handle_csv_upload()
