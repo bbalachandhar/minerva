@@ -550,16 +550,15 @@ class Payroll_model extends MY_Model
             $condition .= " AND staff_payslip.year = '" . $this->db->escape_str($filter_year) . "'";
         }
        
-        // Get ESI deduction from payslip_allowance (subquery)
-        // Also calculate ESI employer contribution (3.25% of capped wage)
+        // Get ESI deduction from payslip_allowance (subquery) - for backward compatibility
+        // Read ESI values directly from staff_payslip table (employee_esi and employer_esi)
         $this->db->select('staff.id,staff.employee_id,staff.name,staff.surname,staff_payslip.*,
             (SELECT pa.amount FROM payslip_allowance pa 
              INNER JOIN payroll_allowance_types pat ON pa.allowance_type = pat.allowance_code 
              WHERE pa.payslip_id = staff_payslip.id 
              AND pat.allowance_code = "ESI" 
              AND pa.cal_type = "negative" 
-             LIMIT 1) as esi_deduction,
-            ROUND(LEAST(staff_payslip.basic + IFNULL(staff_payslip.da, 0) + staff_payslip.total_allowance, 21000) * 0.0325, 2) as employer_esi');
+             LIMIT 1) as esi_deduction');
         $this->db->join("staff_payslip", "staff_payslip.staff_id = staff.id", "inner");
         $this->db->join("staff_designation", "staff.designation = staff_designation.id", "left");
         $this->db->join("department", "staff.department = department.id", "left");

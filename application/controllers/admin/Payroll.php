@@ -1309,6 +1309,12 @@ class Payroll extends Admin_Controller
             
             $net_salary = $gross_salary - $total_with_epf_tds_esi;
 
+            // Calculate ESI employer contribution (3.25% of ESI wage)
+            $employer_esi = 0;
+            if ($esi_wage > 0) {
+                $employer_esi = round($esi_wage * 0.0325, 2);
+            }
+
             $data = array(
                 'staff_id' => $staff['id'],
                 'basic' => $basic,
@@ -1325,11 +1331,15 @@ class Payroll extends Admin_Controller
                 'actual_lop_days' => $actual_lop_days,
                 'adjusted_lop_days' => $adjusted_lop_days,
                 'net_lop_days' => $net_lop_days,
-                // New EPF fields
+                // EPF fields
                 'epf_wage' => $epf_wage,
                 'employee_epf' => round($employee_epf, 2),
                 'employer_pf' => round($employer_pf, 2),
                 'employer_eps' => round($employer_eps, 2),
+                // ESI fields
+                'esi_wage' => $esi_wage,
+                'employee_esi' => round($esi_deduction, 2),
+                'employer_esi' => $employer_esi,
                 'tax_regime' => 'new',
             );
 
@@ -1675,6 +1685,12 @@ class Payroll extends Admin_Controller
         $total_with_epf_tds_esi = (float) $employee_epf + (float) $esi_deduction + (float) $monthly_tds + (float) $total_deduction + (float) $lop_deduction;
         $net_salary = $gross_salary - $total_with_epf_tds_esi;
 
+        // Calculate ESI employer contribution (3.25% of ESI wage)
+        $employer_esi = 0;
+        if ($esi_wage > 0) {
+            $employer_esi = round($esi_wage * 0.0325, 2);
+        }
+
         $response = [
             'success' => true,
             'total_allowance' => round($total_allowance, 2),
@@ -1686,8 +1702,10 @@ class Payroll extends Admin_Controller
             'employee_epf' => round($employee_epf, 2),
             'employer_pf' => round($employer_pf, 2),
             'employer_eps' => round($employer_eps, 2),
-            'tds' => round($monthly_tds, 2),
+            'esi_wage' => round($esi_wage, 2),
             'esi_deduction' => round($esi_deduction, 2),
+            'employer_esi' => $employer_esi,
+            'tds' => round($monthly_tds, 2),
             'actual_lop_days' => round($actual_lop_days, 2),
             'adjusted_lop_days' => round($adjusted_lop_days, 2),
             'net_lop_days' => round($net_lop_days, 2),
