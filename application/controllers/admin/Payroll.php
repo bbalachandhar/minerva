@@ -1,5 +1,5 @@
 <?php
-// Version: 2026-02-18 - ESI calculation fix, TEMP increment doubling fix
+// Version: 2026-02-18-v2 - COMPLETE: ESI calculation fix, TEMP increment doubling fix, all code changes included
 
 class Payroll extends Admin_Controller
 {
