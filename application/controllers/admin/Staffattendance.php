@@ -399,7 +399,8 @@ class Staffattendance extends Admin_Controller
 
             // Add summary log for biometric sync
             $this->load->model('staff_biometric_punches_model');
-            $user_name = $this->customlib->getStaffName();
+            $admin_session = $this->session->userdata('admin');
+            $user_name = !empty($admin_session['username']) ? $admin_session['username'] : 'System';
             $log_message = "Biometric attendance synced by {$user_name}: {$inserted_count} punches synchronized";
             if ($exception_count > 0) {
                 $log_message .= ", {$exception_count} exceptions flagged";
@@ -551,7 +552,8 @@ class Staffattendance extends Admin_Controller
         log_message('debug', "fetch_punches_between_dates: Completed. Inserted: {$inserted}, Exceptions: {$exceptions}");
         
         // Add summary log for fetching punches between dates
-        $user_name = $this->customlib->getStaffName();
+        $admin_session = $this->session->userdata('admin');
+        $user_name = !empty($admin_session['username']) ? $admin_session['username'] : 'System';
         $log_message = "Biometric punches fetched by {$user_name}: {$inserted} punches from {$from_date} to {$to_date}";
         if ($exceptions > 0) {
             $log_message .= ", {$exceptions} exceptions flagged";
@@ -894,7 +896,8 @@ class Staffattendance extends Admin_Controller
             $this->setting_model->add($update_data); // Call add method with ID
             
             // Add summary log for attendance processing
-            $user_name = $this->customlib->getStaffName();
+            $admin_session = $this->session->userdata('admin');
+            $user_name = !empty($admin_session['username']) ? $admin_session['username'] : 'System';
             $log_message = "Biometric attendance processed by {$user_name}: {$processed_dates_count} day(s) from {$from_date} to {$to_date}";
             $this->staffattendancemodel->log($log_message, null, 'Process');
             
@@ -976,7 +979,8 @@ class Staffattendance extends Admin_Controller
         }
 
         // Add summary log for reprocessing attendance between dates
-        $user_name = $this->customlib->getStaffName();
+        $admin_session = $this->session->userdata('admin');
+        $user_name = !empty($admin_session['username']) ? $admin_session['username'] : 'System';
         $log_message = "Attendance reprocessed by {$user_name}: {$processed_days} day(s) from {$from_date} to {$to_date}, {$deleted_rows} old records deleted";
         $this->staffattendancemodel->log($log_message, null, 'Reprocess');
 
