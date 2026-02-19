@@ -625,6 +625,7 @@ class Studentfee extends Admin_Controller
 
     public function search()
     {
+        log_message('debug', 'Studentfee::search invoked — POST: ' . json_encode($_POST));
         $search_type = $this->input->post('search_type');
         if ($search_type == "class_search") {
             $this->form_validation->set_rules('class_id', $this->lang->line('class'), 'required|trim');
