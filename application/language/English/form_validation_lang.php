@@ -36,3 +36,5 @@ $lang['form_validation_check_exists_code']	= 'The {field} already exists.';
 $lang['staff_id_already_exists'] = 'The Staff ID already exists.';
 $lang['csv_file_malformed_no_delimiters'] = 'The CSV file is malformed or not properly delimited. Please ensure columns are separated by commas.';
 $lang['error_creating_upload_directory'] = 'Error creating upload directory.';
+// Custom: show message when xss_clean rule triggers
+$lang['form_validation_xss_clean'] = 'The {field} field failed the XSS filter and was rejected.';
