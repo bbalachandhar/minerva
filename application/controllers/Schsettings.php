@@ -68,7 +68,7 @@ class Schsettings extends Admin_Controller
 
     public function ajax_editlogo()
     {
-        $this->form_validation->set_rules('id', $this->lang->line('id'), 'trim|required|xss_clean');
+        $this->form_validation->set_rules('id', $this->lang->line('id'), 'trim|required');
         $this->form_validation->set_rules('file', $this->lang->line('image'), 'callback_handle_upload');
         if ($this->form_validation->run() == false) {
             $data = array(
@@ -107,7 +107,7 @@ class Schsettings extends Admin_Controller
 
     public function ajax_editadmin_smalllogo()
     {
-        $this->form_validation->set_rules('id', $this->lang->line('id'), 'trim|required|xss_clean');
+        $this->form_validation->set_rules('id', $this->lang->line('id'), 'trim|required');
         $this->form_validation->set_rules('file', $this->lang->line('image'), 'callback_handle_upload');
         if ($this->form_validation->run() == false) {
             $data = array(
@@ -145,7 +145,7 @@ class Schsettings extends Admin_Controller
 
     public function ajax_editadmin_adminlogo()
     {
-        $this->form_validation->set_rules('id', $this->lang->line('id'), 'trim|required|xss_clean');
+        $this->form_validation->set_rules('id', $this->lang->line('id'), 'trim|required');
         $this->form_validation->set_rules('file', $this->lang->line('image'), 'callback_handle_upload');
         if ($this->form_validation->run() == false) {
             $data = array(
