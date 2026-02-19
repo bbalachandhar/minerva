@@ -1,1 +1,0 @@
-mysql -u root mcekknagar < C:\xampp\htdocs\minerva\missing_permissions.sql

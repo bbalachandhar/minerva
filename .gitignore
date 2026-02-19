@@ -41,14 +41,10 @@ Thumbs.db
 
 /.github
 uploads/
-/index.php
-application/config/config.php
-application/config/database.php
-application/config/autoload.php
+
 application/config/production/
 
 # API environment-specific configs
-/api/index.php
 api/application/config/config.php
 api/application/config/database.php
 api/application/config/autoload.php
