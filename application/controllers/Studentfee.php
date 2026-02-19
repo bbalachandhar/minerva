@@ -627,9 +627,9 @@ class Studentfee extends Admin_Controller
     {
         $search_type = $this->input->post('search_type');
         if ($search_type == "class_search") {
-            $this->form_validation->set_rules('class_id', $this->lang->line('class'), 'required|trim|xss_clean');
+            $this->form_validation->set_rules('class_id', $this->lang->line('class'), 'required|trim');
         } elseif ($search_type == "keyword_search") {
-            $this->form_validation->set_rules('search_text', $this->lang->line('keyword'), 'required|trim|xss_clean');
+            $this->form_validation->set_rules('search_text', $this->lang->line('keyword'), 'required|trim');
         }
 
         if ($this->form_validation->run() == false) {
