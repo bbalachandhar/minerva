@@ -12,6 +12,7 @@ class Schsettings extends Admin_Controller
         parent::__construct();
         $this->load->library('media_storage');
         $this->load->library('upload');
+        $this->load->library('form_validation');
         $this->load->model(array('class_section_time_model','sidebarmenu_model','staffAttendaceSetting_model','attendencetype_model','studentAttendaceSetting_model'));
     }
 
