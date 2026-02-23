@@ -239,4 +239,32 @@ class Admin_model extends CI_Model
         return $this->db->select("SUM(CASE WHEN status = 'won' THEN 1  ELSE 0 END) AS 'complete',SUM(CASE WHEN status = 'active' THEN 1  ELSE 0 END) AS 'active',SUM(CASE WHEN status = 'passive' THEN 1  ELSE 0 END) AS 'passive',SUM(CASE WHEN status = 'dead' THEN 1  ELSE 0 END) AS 'dead',SUM(CASE WHEN status = 'lost' THEN 1  ELSE 0 END) AS 'lost',count(*) as total")->from('enquiry')->where($condition)->get()->row_array();
     }
 
+    /**
+     * Return application counts and payment breakdown for a date range.
+     * total           : number of applications received
+     * paid_count      : number with any payment recorded
+     * full_paid_count : number whose paid_amount >= online_admission_amount setting
+     */
+    public function getApplicationStats($start_date, $end_date)
+    {
+        // determine required amount from settings
+        $setting = $this->setting_model->getSetting();
+        $required = isset($setting->online_admission_amount) ? (float)$setting->online_admission_amount : 0;
+        // subquery to sum payments per admission
+        $sub = $this->db->select('online_admission_id, SUM(paid_amount) AS paid_amount', false)
+                        ->from('online_admission_payment')
+                        ->group_by('online_admission_id')
+                        ->get_compiled_select();
+        $condition = " date_format(online_admissions.created_at,'%Y-%m-%d') between '" . $start_date . "' and '" . $end_date . "'";
+        $row = $this->db->select("COUNT(*) AS total,
+                                    SUM(CASE WHEN p.paid_amount > 0 THEN 1 ELSE 0 END) AS paid_count,
+                                    SUM(CASE WHEN p.paid_amount >= " . $this->db->escape($required) . " THEN 1 ELSE 0 END) AS full_paid_count",
+                                    false)
+                        ->from('online_admissions')
+                        ->join('(' . $sub . ') p', 'p.online_admission_id = online_admissions.id', 'left')
+                        ->where($condition)
+                        ->get()->row_array();
+        return $row ? $row : ['total'=>0,'paid_count'=>0,'full_paid_count'=>0];
+    }
+
 }

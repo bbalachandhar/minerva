@@ -995,6 +995,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                 .att-cell-halfday { background: linear-gradient(135deg, #9b59b6, #8e44ad); }
                                 .att-cell-weekend { background: linear-gradient(135deg, #34495e, #2c3e50); }
                                 .att-cell-holiday { background: linear-gradient(135deg, #3498db, #2980b9); }
+                                .att-cell-compensation { background: linear-gradient(135deg, #f39c12, #f1c40f); }
                             </style>
                             <?php
                             $summary = isset($month_summary) ? $month_summary : [
@@ -1169,6 +1170,10 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                                         $att_dates = date("Y") . "-" . $datemonth . "-" . sprintf("%02d", $i);
                                                         $display_key = '';
                                                         $display_class = '';
+                                                        // compensatory working day? mark specially but still allow attendance override
+                                                        if (!empty($compensation_dates_year) && in_array($att_dates, $compensation_dates_year, true)) {
+                                                            $display_class = 'att-cell-compensation';
+                                                        }
                                                         // Check holidays first (to prioritize 'H' over 'W' if a date is both)
                                                         if (!empty($holiday_dates_year) && in_array($att_dates, $holiday_dates_year, true)) {
                                                             $display_key = 'H';

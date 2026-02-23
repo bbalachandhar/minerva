@@ -25,6 +25,10 @@ foreach ($monthlist as $key => $value) {
             $att_dates = $year . "-" . $datemonth . "-" . sprintf("%02d", $i);
             $display_key = '';
             $display_class = '';
+            // compensatory working day? mark with special style but still allow attendance override
+            if (!empty($compensation_dates_year) && in_array($att_dates, $compensation_dates_year, true)) {
+                $display_class = 'att-cell-compensation';
+            }
             // Check holidays first (to prioritize 'H' over 'W' if a date is both)
             if (!empty($holiday_dates_year) && in_array($att_dates, $holiday_dates_year, true)) {
                 $display_key = 'H';

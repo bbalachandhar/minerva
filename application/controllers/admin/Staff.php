@@ -348,18 +348,27 @@ class Staff extends Admin_Controller
 
         $holidays = $this->holiday_model->get();
         $official_holiday_dates = [];
+        $compensation_dates = [];
+        // separate normal holidays from compensation (working) days
         foreach ($holidays as $holiday_value) {
-            $from_date = new DateTime($holiday_value['from_date']);
-            $to_date = new DateTime($holiday_value['to_date']);
-            $current = clone $from_date;
+            $type_label = strtolower(trim($holiday_value['type'] ?? ''));
+            $from_date  = new DateTime($holiday_value['from_date']);
+            $to_date    = new DateTime($holiday_value['to_date']);
+            $current    = clone $from_date;
             while ($current <= $to_date) {
                 if ($current->format('m') == $current_month_number && $current->format('Y') == $current_year) {
-                    $official_holiday_dates[] = $current->format('Y-m-d');
+                    $d = $current->format('Y-m-d');
+                    if ($type_label === 'compensation') {
+                        $compensation_dates[] = $d;
+                    } else {
+                        $official_holiday_dates[] = $d;
+                    }
                 }
                 $current->modify('+1 day');
             }
         }
         $official_holiday_dates = array_values(array_unique($official_holiday_dates));
+        $compensation_dates = array_values(array_unique($compensation_dates));
 
         $settings = $this->setting_model->getSetting();
         $weekendDaysStr = isset($settings->weekend_days) && !empty($settings->weekend_days) ? $settings->weekend_days : '0';
@@ -392,6 +401,10 @@ class Staff extends Admin_Controller
             }
         }
         $weekend_day_dates = array_values(array_unique($weekend_day_dates));
+        // remove any compensation days (they are working days)
+        if (!empty($compensation_dates)) {
+            $weekend_day_dates = array_values(array_diff($weekend_day_dates, $compensation_dates));
+        }
 
         $holiday_dates_for_H = array_values(array_unique(array_filter($official_holiday_dates, function ($dateStr) use ($weekend_day_dates) {
             return !in_array($dateStr, $weekend_day_dates, true);
@@ -446,23 +459,31 @@ class Staff extends Admin_Controller
         ];
 
         // Year-wide weekend/holiday dates for attendance grid
-        // Using same logic as staffattendancereport controller
+        // Using same logic as staffattendancereport controller (with compensation handling)
         $all_holidays_year = $this->holiday_model->get();
         $official_holiday_dates_year = [];
+        $compensation_dates_year = [];
         foreach ($all_holidays_year as $holiday_value) {
+            $type_label = strtolower(trim($holiday_value['type'] ?? ''));
             $from_date = new DateTime($holiday_value['from_date']);
             $to_date = new DateTime($holiday_value['to_date']);
             $current = clone $from_date;
             while ($current <= $to_date) {
                 if ($current->format('Y') == $current_year) {
-                    $official_holiday_dates_year[] = $current->format('Y-m-d');
+                    $d = $current->format('Y-m-d');
+                    if ($type_label === 'compensation') {
+                        $compensation_dates_year[] = $d;
+                    } else {
+                        $official_holiday_dates_year[] = $d;
+                    }
                 }
                 $current->modify('+1 day');
             }
         }
-        // Include ALL holidays (not filtered)
+        // Include only real holidays
         $data['holiday_dates_year'] = array_values(array_unique($official_holiday_dates_year));
-        
+        // provide compensation dates for view
+        $data['compensation_dates_year'] = array_values(array_unique($compensation_dates_year));
         $holiday_dates_year = $data['holiday_dates_year'];
         $weekend_day_dates_year = [];
         for ($m = 1; $m <= 12; $m++) {
@@ -492,6 +513,10 @@ class Staff extends Admin_Controller
             }
         }
 
+        // remove weekends that have been converted to working days via compensation
+        if (!empty($compensation_dates_year)) {
+            $weekend_day_dates_year = array_values(array_diff($weekend_day_dates_year, $compensation_dates_year));
+        }
         $data['weekend_day_dates_year'] = array_values(array_unique($weekend_day_dates_year));
 
         $this->load->view('layout/header', $data);
@@ -684,18 +709,26 @@ class Staff extends Admin_Controller
 
             $holidays = $this->holiday_model->get();
             $official_holiday_dates = [];
+            $compensation_dates_year = [];
             foreach ($holidays as $holiday_value) {
+                $type_label = strtolower(trim($holiday_value['type'] ?? ''));
                 $from_date = new DateTime($holiday_value['from_date']);
                 $to_date = new DateTime($holiday_value['to_date']);
                 $current = clone $from_date;
                 while ($current <= $to_date) {
                     if ($current->format('Y') == $year) {
-                        $official_holiday_dates[] = $current->format('Y-m-d');
+                        $d = $current->format('Y-m-d');
+                        if ($type_label === 'compensation') {
+                            $compensation_dates_year[] = $d;
+                        } else {
+                            $official_holiday_dates[] = $d;
+                        }
                     }
                     $current->modify('+1 day');
                 }
             }
             $official_holiday_dates = array_values(array_unique($official_holiday_dates));
+            $compensation_dates_year = array_values(array_unique($compensation_dates_year));
 
             $weekend_day_dates_year = [];
             for ($m = 1; $m <= 12; $m++) {
@@ -725,12 +758,18 @@ class Staff extends Admin_Controller
                 }
             }
             $weekend_day_dates_year = array_values(array_unique($weekend_day_dates_year));
+            // strip compensation dates from weekends
+            if (!empty($compensation_dates_year)) {
+                $weekend_day_dates_year = array_values(array_diff($weekend_day_dates_year, $compensation_dates_year));
+            }
 
             // Include all official holidays (don't filter out those on weekends)
             $holiday_dates_year = array_values(array_unique($official_holiday_dates));
 
             $data['weekend_day_dates_year'] = $weekend_day_dates_year;
             $data['holiday_dates_year'] = $holiday_dates_year;
+            // expose compensatory working days so view can style them if needed
+            $data['compensation_dates_year'] = $compensation_dates_year;
 
             foreach ($monthlist as $key => $value) {
                 $datemonth       = date("m", strtotime($key));
@@ -760,9 +799,10 @@ class Staff extends Admin_Controller
                 ->set_content_type('application/json')
                 ->set_status_header(200)
                 ->set_output(json_encode(array(
-                    'status'          => 1,
-                    'countAttendance' => $countAttendance[$year],
-                    'page'            => $page,
+                    'status'              => 1,
+                    'countAttendance'     => $countAttendance[$year],
+                    'page'                => $page,
+                    'compensation_dates'  => $compensation_dates_year,
                 )));
         }
     }

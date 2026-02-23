@@ -904,31 +904,44 @@ class Admin extends Admin_Controller
         $enquiry = $this->admin_model->getAllEnquiryCount($start_date, $end_date);
         $total_enquiry = isset($enquiry['total']) ? $enquiry['total'] : 0;
 
+        // fetch application stats
+        $appStats = $this->admin_model->getApplicationStats($start_date, $end_date);
+        $applications_total = isset($appStats['total']) ? $appStats['total'] : 0;
+        $applications_paid = isset($appStats['paid_count']) ? $appStats['paid_count'] : 0;
+        $applications_full = isset($appStats['full_paid_count']) ? $appStats['full_paid_count'] : 0;
+        $applications_partial = $applications_paid - $applications_full;
+        $applications_total_progress = $applications_total > 0 ? 100 : 0;
+        $applications_partial_progress = $applications_total > 0 ? round(($applications_partial * 100) / $applications_total, 2) : 0;
+        $applications_full_progress = $applications_total > 0 ? round(($applications_full * 100) / $applications_total, 2) : 0;
+
         if ($total_enquiry > 0) {
             $overview = array(
+                'total'            => $total_enquiry,
                 'won'              => $enquiry['complete'],
                 'won_progress'     => round(($enquiry['complete'] * 100) / $total_enquiry, 2),
                 'active'           => $enquiry['active'],
                 'active_progress'  => round(($enquiry['active'] * 100) / $total_enquiry, 2),
-                'passive'          => $enquiry['passive'],
-                'passive_progress' => round(($enquiry['passive'] * 100) / $total_enquiry, 2),
-                'dead'             => $enquiry['dead'],
-                'dead_progress'    => round(($enquiry['dead'] * 100) / $total_enquiry, 2),
-                'lost'             => $enquiry['lost'],
-                'lost_progress'    => round(($enquiry['lost'] * 100) / $total_enquiry, 2),
+                // dead, lost and passive omitted
+                'applications_total'            => $applications_total,
+                'applications_total_progress'   => $applications_total_progress,
+                'applications_partial'          => $applications_partial,
+                'applications_partial_progress' => $applications_partial_progress,
+                'applications_full'             => $applications_full,
+                'applications_full_progress'    => $applications_full_progress,
             );
         } else {
             $overview = array(
+                'total'            => 0,
                 'won'              => 0,
                 'won_progress'     => 0,
                 'active'           => 0,
                 'active_progress'  => 0,
-                'passive'          => 0,
-                'passive_progress' => 0,
-                'dead'             => 0,
-                'dead_progress'    => 0,
-                'lost'             => 0,
-                'lost_progress'    => 0,
+                'applications_total'            => $applications_total,
+                'applications_total_progress'   => $applications_total_progress,
+                'applications_partial'          => $applications_partial,
+                'applications_partial_progress' => $applications_partial_progress,
+                'applications_full'             => $applications_full,
+                'applications_full_progress'    => $applications_full_progress,
             );
         }
 

@@ -840,9 +840,24 @@ class Staffattendance extends Admin_Controller
         return false;
     }
 
-    public function trigger_process_biometric_attendance() {
+    /**
+     * Process biometric attendance and optionally notify absentees.
+     * Can be invoked via cron twice daily. Pass a parameter 'notify' in the URI or as GET
+     * to trigger absent notifications (typically only for evening run).
+     * Example CLI: php index.php admin/staffattendance/trigger_process_biometric_attendance/1
+     * or via HTTP: /admin/staffattendance/trigger_process_biometric_attendance?notify=1
+     */
+    public function trigger_process_biometric_attendance($notify = 0) {
         if (!($this->rbac->hasPrivilege('biometric_attendance', 'can_view'))) {
             access_denied();
+        }
+        // determine whether we should send absent notifications
+        $sendAbsentNotifications = false;
+        if ($notify === '1' || $notify === 1) {
+            $sendAbsentNotifications = true;
+        }
+        if ($this->input->get('notify') == 1) {
+            $sendAbsentNotifications = true;
         }
 
         $this->session->set_userdata('top_menu', 'HR');
@@ -909,6 +924,25 @@ class Staffattendance extends Admin_Controller
         if (!empty($overall_unmatched_staff_ids)) {
             $final_msg .= '<div class="alert alert-warning">Warning: Unmatched staff IDs: ' . implode(', ', array_unique($overall_unmatched_staff_ids)) . '</div>';
         }
+
+        // send absent notifications if requested (e.g. evening cron)
+        if ($sendAbsentNotifications) {
+            $absent_config = $this->config_attendance['absent'];
+            // loop through each processed date and notify absentees
+            $dateToNotify = $to_date;
+            // if multiple days, you could notify each, but typically only today's
+            $this->load->model('staffattendancemodel');
+            $ids = $this->db->select('staff_id')->from('staff_attendance')
+                ->where('date', $dateToNotify)
+                ->where('staff_attendance_type_id', $absent_config)
+                ->get()->result_array();
+            $absent_ids = array_column($ids, 'staff_id');
+            if (!empty($absent_ids)) {
+                $this->mailsmsconf->mailsms('staff_absent_attendence', $absent_ids, $dateToNotify);
+                $final_msg .= '<div class="alert alert-info">Absent notification sent for ' . $dateToNotify . '</div>';
+            }
+        }
+
         $this->session->set_flashdata('msg', $final_msg);
 
         redirect('admin/staffattendance/index');

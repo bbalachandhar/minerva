@@ -496,13 +496,9 @@ foreach ($notifications as $notice_key => $notice_value) {
                                 <div class="col-md-2 col-sm-6 mb10">
                                     <div class="topprograssstart flex-card" id="enquiry-overview-widget" data-url="<?php echo site_url('admin/admin/enquiry_overview_widget'); ?>">
                                         <h5 class="pro-border widget-header-color widget-header-enquiry"><?php echo $this->lang->line('enquiry_overview'); ?></h5>
-                                        <p class="text-uppercase mt10 clearfix"><span class="eo-active-count fo-skeleton">0</span> <?php echo $this->lang->line('active') ?><span class="pull-right"><span class="eo-active-percent fo-skeleton">0</span>%</span>
+                                        <p class="text-uppercase mt10 clearfix">
+                                            <span class="eo-total-count fo-skeleton">0</span> <?php echo $this->lang->line('total_enquiry_received'); ?>
                                         </p>
-                                        <div class="progress-group">
-                                            <div class="progress progress-minibar">
-                                                <div class="progress-bar progress-bar-red eo-active-bar" style="width: 0%"></div>
-                                            </div>
-                                        </div>
                                         <p class="text-uppercase mt10 clearfix"><span class="eo-won-count fo-skeleton">0</span> <?php echo $this->lang->line('won') ?><span class="pull-right"><span class="eo-won-percent fo-skeleton">0</span>%</span>
                                         </p>
                                         <div class="progress-group">
@@ -510,25 +506,39 @@ foreach ($notifications as $notice_key => $notice_value) {
                                                 <div class="progress-bar progress-bar-yellow eo-won-bar" style="width: 0%"></div>
                                             </div>
                                         </div>
-                                        <p class="text-uppercase mt10 clearfix"><span class="eo-passive-count fo-skeleton">0</span> <?php echo $this->lang->line('passive') ?><span class="pull-right"><span class="eo-passive-percent fo-skeleton">0</span>%</span>
+                                        <p class="text-uppercase mt10 clearfix"><span class="eo-active-count fo-skeleton">0</span> <?php echo $this->lang->line('active') ?><span class="pull-right"><span class="eo-active-percent fo-skeleton">0</span>%</span>
                                         </p>
                                         <div class="progress-group">
                                             <div class="progress progress-minibar">
-                                                <div class="progress-bar progress-bar-yellow eo-passive-bar" style="width: 0%"></div>
+                                                <div class="progress-bar progress-bar-red eo-active-bar" style="width: 0%"></div>
                                             </div>
                                         </div>
-                                        <p class="text-uppercase mt10 clearfix"><span class="eo-lost-count fo-skeleton">0</span> <?php echo $this->lang->line('lost') ?><span class="pull-right"><span class="eo-lost-percent fo-skeleton">0</span>%</span>
+                                        <!-- lost/dead removed per request -->
+                                        <p class="text-uppercase mt10 clearfix">
+                                            <span class="eo-app-count fo-skeleton">0</span> Application received
+                                            <span class="pull-right"><span class="eo-app-total-percent fo-skeleton">0</span></span>
                                         </p>
                                         <div class="progress-group">
                                             <div class="progress progress-minibar">
-                                                <div class="progress-bar progress-bar-yellow eo-lost-bar" style="width: 0%"></div>
+                                                <div class="progress-bar eo-app-total-bar" style="width:0%"></div>
                                             </div>
                                         </div>
-                                        <p class="text-uppercase mt10 clearfix"><span class="eo-dead-count fo-skeleton">0</span> <?php echo $this->lang->line('dead'); ?><span class="pull-right"><span class="eo-dead-percent fo-skeleton">0</span>%</span>
+                                        <p class="text-uppercase mt10 clearfix">
+                                            <span class="eo-app-partial-count fo-skeleton">0</span> <?php echo $this->lang->line('partial_payments'); ?>
+                                            <span class="pull-right"><span class="eo-app-partial-percent fo-skeleton">0</span></span>
                                         </p>
                                         <div class="progress-group">
                                             <div class="progress progress-minibar">
-                                                <div class="progress-bar progress-bar-yellow eo-dead-bar" style="width: 0%"></div>
+                                                <div class="progress-bar eo-app-partial-bar" style="width:0%"></div>
+                                            </div>
+                                        </div>
+                                        <p class="text-uppercase mt10 clearfix">
+                                            <span class="eo-app-full-count fo-skeleton">0</span> <?php echo $this->lang->line('full_payments'); ?>
+                                            <span class="pull-right"><span class="eo-app-full-percent fo-skeleton">0</span></span>
+                                        </p>
+                                        <div class="progress-group">
+                                            <div class="progress progress-minibar">
+                                                <div class="progress-bar eo-app-full-bar" style="width:0%"></div>
                                             </div>
                                         </div>
                                     </div><!--./topprograssstart-->
@@ -1650,7 +1660,7 @@ if (($this->module_lib->hasActive('fees_collection')) || ($this->module_lib->has
                     $staffAttendance.find('.sfa-present-count, .sfa-present-percent, .sfa-late-count, .sfa-late-percent, .sfa-absent-count, .sfa-absent-percent, .sfa-halfday-count, .sfa-halfday-percent, .sfa-permission-count, .sfa-permission-percent').addClass('fo-skeleton');
 
                     var $enquiryOverview = $('#enquiry-overview-widget');
-                    $enquiryOverview.find('.eo-active-count, .eo-active-percent, .eo-won-count, .eo-won-percent, .eo-passive-count, .eo-passive-percent, .eo-lost-count, .eo-lost-percent, .eo-dead-count, .eo-dead-percent').addClass('fo-skeleton');
+                    $enquiryOverview.find('.eo-won-count, .eo-won-percent, .eo-active-count, .eo-active-percent, .eo-total-count, .eo-app-count, .eo-app-total-percent, .eo-app-partial-count, .eo-app-partial-percent, .eo-app-full-count, .eo-app-full-percent').addClass('fo-skeleton');
 
                     var $libraryOverview = $('#library-overview-widget');
                     $libraryOverview.find('.lib-dueforreturn, .lib-forreturn, .lib-total-issued, .lib-total, .lib-issued-progress, .lib-availble, .lib-availble-progress').addClass('fo-skeleton');
@@ -1676,7 +1686,7 @@ if (($this->module_lib->hasActive('fees_collection')) || ($this->module_lib->has
                     $staffAttendance.find('.sfa-present-count, .sfa-present-percent, .sfa-late-count, .sfa-late-percent, .sfa-absent-count, .sfa-absent-percent, .sfa-halfday-count, .sfa-halfday-percent, .sfa-permission-count, .sfa-permission-percent').removeClass('fo-skeleton');
 
                     var $enquiryOverview = $('#enquiry-overview-widget');
-                    $enquiryOverview.find('.eo-active-count, .eo-active-percent, .eo-won-count, .eo-won-percent, .eo-passive-count, .eo-passive-percent, .eo-lost-count, .eo-lost-percent, .eo-dead-count, .eo-dead-percent').removeClass('fo-skeleton');
+                    $enquiryOverview.find('.eo-won-count, .eo-won-percent, .eo-active-count, .eo-active-percent, .eo-total-count, .eo-app-count, .eo-app-total-percent, .eo-app-partial-count, .eo-app-partial-percent, .eo-app-full-count, .eo-app-full-percent').removeClass('fo-skeleton');
 
                     var $libraryOverview = $('#library-overview-widget');
                     $libraryOverview.find('.lib-dueforreturn, .lib-forreturn, .lib-total-issued, .lib-total, .lib-issued-progress, .lib-availble, .lib-availble-progress').removeClass('fo-skeleton');
@@ -2073,30 +2083,34 @@ if (($this->module_lib->hasActive('fees_collection')) || ($this->module_lib->has
                     }
 
                     var d = resp.data;
-                    $enquiryOverview.find('.eo-active-count').text(d.active || 0);
-                    var ap = (parseFloat(d.active_progress) || 0).toFixed(2);
-                    $enquiryOverview.find('.eo-active-percent').text(ap);
-                    $enquiryOverview.find('.eo-active-bar').css('width', ap + '%');
+                    $enquiryOverview.find('.eo-total-count').text(d.total || 0);
+
 
                     $enquiryOverview.find('.eo-won-count').text(d.won || 0);
                     var wp = (parseFloat(d.won_progress) || 0).toFixed(2);
                     $enquiryOverview.find('.eo-won-percent').text(wp);
                     $enquiryOverview.find('.eo-won-bar').css('width', wp + '%');
 
-                    $enquiryOverview.find('.eo-passive-count').text(d.passive || 0);
-                    var pp = (parseFloat(d.passive_progress) || 0).toFixed(2);
-                    $enquiryOverview.find('.eo-passive-percent').text(pp);
-                    $enquiryOverview.find('.eo-passive-bar').css('width', (d.passive_progress || 0) + '%');
+                    $enquiryOverview.find('.eo-active-count').text(d.active || 0);
+                    var ap = (parseFloat(d.active_progress) || 0).toFixed(2);
+                    $enquiryOverview.find('.eo-active-percent').text(ap);
+                    $enquiryOverview.find('.eo-active-bar').css('width', ap + '%');
 
-                    $enquiryOverview.find('.eo-lost-count').text(d.lost || 0);
-                    var lp = (parseFloat(d.lost_progress) || 0).toFixed(2);
-                    $enquiryOverview.find('.eo-lost-percent').text(lp);
-                    $enquiryOverview.find('.eo-lost-bar').css('width', (d.lost_progress || 0) + '%');
+                    // applications stats
+                    $enquiryOverview.find('.eo-app-count').text(d.applications_total || 0);
+                    var atp = (parseFloat(d.applications_total_progress) || 0).toFixed(2);
+                    $enquiryOverview.find('.eo-app-total-percent').text(atp + '%');
+                    $enquiryOverview.find('.eo-app-total-bar').css('width', atp + '%');
 
-                    $enquiryOverview.find('.eo-dead-count').text(d.dead || 0);
-                    var dp = (parseFloat(d.dead_progress) || 0).toFixed(2);
-                    $enquiryOverview.find('.eo-dead-percent').text(dp);
-                    $enquiryOverview.find('.eo-dead-bar').css('width', (d.dead_progress || 0) + '%');
+                    $enquiryOverview.find('.eo-app-partial-count').text(d.applications_partial || 0);
+                    var app = (parseFloat(d.applications_partial_progress) || 0).toFixed(2);
+                    $enquiryOverview.find('.eo-app-partial-percent').text(app + '%');
+                    $enquiryOverview.find('.eo-app-partial-bar').css('width', app + '%');
+
+                    $enquiryOverview.find('.eo-app-full-count').text(d.applications_full || 0);
+                    var afp = (parseFloat(d.applications_full_progress) || 0).toFixed(2);
+                    $enquiryOverview.find('.eo-app-full-percent').text(afp + '%');
+                    $enquiryOverview.find('.eo-app-full-bar').css('width', afp + '%');
 
                     $enquiryOverview.find('.fo-skeleton').removeClass('fo-skeleton');
                 }).fail(function() {
