@@ -95,6 +95,11 @@
     'use strict';
     $(document).ready(function () {
         initDatatable('student-list','admin/onlinestudent/getstudentlist',[],[],100);
+        // prevent any delegated row click from blocking anchor navigation
+        $(document).on('click', '.student-list td a', function(e) {
+            e.stopPropagation();
+            // allow default action
+        });
     });
 } ( jQuery ) )
 </script>

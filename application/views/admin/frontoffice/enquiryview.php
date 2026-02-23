@@ -168,7 +168,7 @@ if (empty($enquiry_list)) {
                                                             <td class="mailbox-name"><?php echo $value['name']; ?> </td>
                                                             <td class="mailbox-name"><?php echo $value['contact']; ?> </td>
                                                             <td class="mailbox-name"><?php echo $value['source']; ?></td>
-                                                            <td class="mailbox-name"> <?php
+                                                            <td class="mailbox-name" data-order="<?php echo $value['date']; ?>"> <?php
 if (!empty($value["date"])) {
             echo date($this->customlib->getSchoolDateFormat(), $this->customlib->dateyyyymmddTodateformat($value['date']));
         }
@@ -539,6 +539,8 @@ foreach ($class_list as $key => $value) {
             paging: true,
             bSort: true,
             info: false,
+            /* default ordering: show most recently submitted enquiry first */
+            order: [[4, 'desc']],
             dom: "Bfrtip",
             buttons: [
 

@@ -859,7 +859,8 @@ class Admin extends Admin_Controller
 
     public function staff_today_attendance_widget()
     {
-        if (!$this->rbac->hasPrivilege('staff_today_attendance', 'can_view')) {
+        // permission name corrected to match category 'Staff Present Today Widegts'
+        if (!$this->rbac->hasPrivilege('staff_present_today_widegts', 'can_view')) {
             access_denied();
         }
 
@@ -906,15 +907,15 @@ class Admin extends Admin_Controller
         if ($total_enquiry > 0) {
             $overview = array(
                 'won'              => $enquiry['complete'],
-                'won_progress'     => ($enquiry['complete'] * 100) / $total_enquiry,
+                'won_progress'     => round(($enquiry['complete'] * 100) / $total_enquiry, 2),
                 'active'           => $enquiry['active'],
-                'active_progress'  => ($enquiry['active'] * 100) / $total_enquiry,
+                'active_progress'  => round(($enquiry['active'] * 100) / $total_enquiry, 2),
                 'passive'          => $enquiry['passive'],
-                'passive_progress' => ($enquiry['passive'] * 100) / $total_enquiry,
+                'passive_progress' => round(($enquiry['passive'] * 100) / $total_enquiry, 2),
                 'dead'             => $enquiry['dead'],
-                'dead_progress'    => ($enquiry['dead'] * 100) / $total_enquiry,
+                'dead_progress'    => round(($enquiry['dead'] * 100) / $total_enquiry, 2),
                 'lost'             => $enquiry['lost'],
-                'lost_progress'    => ($enquiry['lost'] * 100) / $total_enquiry,
+                'lost_progress'    => round(($enquiry['lost'] * 100) / $total_enquiry, 2),
             );
         } else {
             $overview = array(

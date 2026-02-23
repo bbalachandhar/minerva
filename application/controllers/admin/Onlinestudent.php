@@ -488,6 +488,7 @@ class Onlinestudent extends Admin_Controller
                 }
 
                 if (!empty($value->reference_no)) {
+                    $previewbtn = "<a target='_blank' href='" . base_url('admin/onlinestudent/preview/' . $value->reference_no) . "'  class='btn btn-default btn-xs mt-5 pull-right' data-toggle='tooltip' title='" . $this->lang->line('preview') . "' ><i class='fa fa-eye'></i></a>";
                     $printbtn = "<a target='_blank' href='" . $this->customlib->getBaseUrl() . 'welcome/online_admission_review/' . $value->reference_no . "'  class='btn btn-default btn-xs mt-5 pull-right' data-toggle='tooltip' title='" . $this->lang->line('print') . "' ><i class='fa fa-print'></i></a>";
                 } else {
                     $printbtn = "";
@@ -569,7 +570,7 @@ class Onlinestudent extends Admin_Controller
                 $row[] = $value->payment_updated_by_name;
                 $row[] = ($value->payment_updated_at != null) ? date($this->customlib->getSchoolDateFormat(), $this->customlib->dateyyyymmddTodateformat($value->payment_updated_at)) : '';
                 
-                $row[]     = $document . ' ' . $printbtn . ' ' . $editbtn . ' ' . $deletebtn . ' ' . $paybtn;
+                $row[]     = $document . ' ' . $previewbtn . ' ' . $printbtn . ' ' . $editbtn . ' ' . $deletebtn . ' ' . $paybtn;
                 $dt_data[] = $row;
             }
         }
@@ -650,6 +651,23 @@ class Onlinestudent extends Admin_Controller
         }
 
         echo $message;
+    }
+
+    /**
+     * Preview an application by reference number.  Sets the "validlogin" session
+     * value and redirects to the front‑end review page.  Admin users already
+     * bypass the review check so no special privilege is required.
+     */
+    public function preview($reference_no = null)
+    {
+        if (empty($reference_no) || !$this->onlinestudent_model->checkreferenceno($reference_no)) {
+            show_404();
+        }
+
+        // allow anyone (admin or public) to view by temporarily marking validlogin
+        $this->session->set_userdata('validlogin', $reference_no);
+
+        redirect('welcome/online_admission_review/' . $reference_no);
     }
 
     public function handle_upload($str, $var)

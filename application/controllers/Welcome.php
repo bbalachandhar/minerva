@@ -751,7 +751,8 @@ class Welcome extends Front_Controller
             $this->data['category']    = $result['category'];
             $this->data['religion']    = $result['religion'];
             $this->data['cast']        = $result['cast'];
-            $this->data['community']   = isset($result['community']) ? $result['community'] : 'N/A';
+            // community field removed from schema; default to N/A
+            $this->data['community']   = 'N/A';
             if ($result['school_house_id'] != 0) {
                 $this->data['house_name'] = $this->customlib->gethousename($result['school_house_id']);
             } else {

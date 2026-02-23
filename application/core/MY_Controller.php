@@ -59,16 +59,25 @@ class Admin_Controller extends MY_Controller
     {
         parent::__construct();
 
-        if ($this->input->is_ajax_request()) {
-            if (!$this->auth->logged_in()) {
-                $this->output
-                    ->set_content_type('application/json')
-                    ->set_status_header(401)
-                    ->set_output(json_encode(array('status' => 'error', 'message' => 'Unauthorized access')));
-                exit;
+        // skip authentication for certain public methods (e.g. preview link)
+        $current_method = $this->router->fetch_method();
+        $current_class  = $this->router->fetch_class();
+        $bypass = false;
+        if ($current_class === 'onlinestudent' && $current_method === 'preview') {
+            $bypass = true;
+        }
+        if (!$bypass) {
+            if ($this->input->is_ajax_request()) {
+                if (!$this->auth->logged_in()) {
+                    $this->output
+                        ->set_content_type('application/json')
+                        ->set_status_header(401)
+                        ->set_output(json_encode(array('status' => 'error', 'message' => 'Unauthorized access')));
+                    exit;
+                }
+            } else {
+                $this->auth->is_logged_in();
             }
-        } else {
-            $this->auth->is_logged_in();
         }
         $this->sch_setting_detail = $this->setting_model->getSchoolDetail();
         $this->load->library('rbac');

@@ -125,6 +125,8 @@ class enquiry_model extends MY_Model
 
             
 
+            // primary sort by enquiry `date` (newest first) then by id
+            $this->db->order_by("enquiry.date", "desc");
             $this->db->order_by("enquiry.id", "desc");
 
             $query = $this->db->get("enquiry");
@@ -298,6 +300,14 @@ class enquiry_model extends MY_Model
         if ($department_id != null) {
             $this->db->where("classes.department_id", $department_id);
         }
+
+        // ensure search results are newest-first by enquiry date
+        $this->db->order_by("enquiry.date", "desc");
+        $this->db->order_by("enquiry.id", "desc");
+
+        // default ordering for search results: newest enquiry date first
+        $this->db->order_by("enquiry.date", "desc");
+        $this->db->order_by("enquiry.id", "desc");
 
         $query = $this->db->get("enquiry");
         return $query->result_array();

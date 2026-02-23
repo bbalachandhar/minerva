@@ -75,6 +75,13 @@ class Enquiry extends Admin_Controller
         }
    
         
+        // enforce newest-first ordering by enquiry `date` (in case data source/order differs)
+        usort($enquiry_list, function ($a, $b) {
+            $da = !empty($a['date']) ? $a['date'] : '0000-00-00';
+            $db = !empty($b['date']) ? $b['date'] : '0000-00-00';
+            return strcmp($db, $da); // descending by YYYY-MM-DD string
+        });
+
         $data['enquiry_list']   = $enquiry_list;
         $data['enquiry_status'] = $this->enquiry_status;
         $data['Reference']      = $this->enquiry_model->get_reference();

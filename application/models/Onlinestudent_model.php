@@ -29,7 +29,7 @@ class Onlinestudent_model extends MY_Model
     {
         $this->db->select('online_admissions.vehroute_id,vehicle_routes.route_id,vehicle_routes.vehicle_id,transport_route.route_title,vehicles.vehicle_no,hostel_rooms.room_no,vehicles.driver_name,vehicles.driver_contact,hostel.id as `hostel_id`,hostel.hostel_name,room_types.id as `room_type_id`,room_types.room_type,online_admissions.hostel_room_id,class_sections.id as class_section_id,classes.id AS `class_id`,classes.class,sections.id AS `section_id`,sections.section,online_admissions.id,online_admissions.admission_no, online_admissions.roll_no,online_admissions.admission_date,online_admissions.firstname,online_admissions.middlename, online_admissions.lastname,online_admissions.image,online_admissions.mobileno,online_admissions.email,online_admissions.state,   online_admissions.city,online_admissions.pincode,online_admissions.note,online_admissions.religion,online_admissions.cast, school_houses.house_name,online_admissions.dob,online_admissions.current_address,online_admissions.previous_school,
             online_admissions.guardian_is,
-            online_admissions.permanent_address,IFNULL(online_admissions.category_id, 0) as `category_id`,IFNULL(categories.category, "") as `category`,online_admissions.adhar_no,online_admissions.samagra_id,online_admissions.bank_account_no,online_admissions.bank_name, online_admissions.ifsc_code,online_admissions.guardian_name,online_admissions.father_pic,online_admissions.height ,online_admissions.weight,online_admissions.measurement_date,online_admissions.mother_pic,online_admissions.guardian_pic, online_admissions.guardian_relation,online_admissions.guardian_phone,online_admissions.guardian_address,online_admissions.is_enroll ,online_admissions.created_at,online_admissions.document ,online_admissions.updated_at,online_admissions.father_name,online_admissions.father_phone,online_admissions.blood_group,online_admissions.school_house_id,online_admissions.father_occupation,online_admissions.mother_name,online_admissions.mother_phone,online_admissions.mother_occupation,online_admissions.guardian_occupation,online_admissions.gender,online_admissions.guardian_is,online_admissions.rte,online_admissions.guardian_email,online_admissions.paid_status,online_admissions.form_status,online_admissions.reference_no,online_admissions.class_section_id,online_admissions.community,online_admissions.ug_course_id,
+            online_admissions.permanent_address,IFNULL(online_admissions.category_id, 0) as `category_id`,IFNULL(categories.category, "") as `category`,online_admissions.adhar_no,online_admissions.samagra_id,online_admissions.bank_account_no,online_admissions.bank_name, online_admissions.ifsc_code,online_admissions.guardian_name,online_admissions.father_pic,online_admissions.height ,online_admissions.weight,online_admissions.measurement_date,online_admissions.mother_pic,online_admissions.guardian_pic, online_admissions.guardian_relation,online_admissions.guardian_phone,online_admissions.guardian_address,online_admissions.is_enroll ,online_admissions.created_at,online_admissions.document ,online_admissions.updated_at,online_admissions.father_name,online_admissions.father_phone,online_admissions.blood_group,online_admissions.school_house_id,online_admissions.father_occupation,online_admissions.mother_name,online_admissions.mother_phone,online_admissions.mother_occupation,online_admissions.guardian_occupation,online_admissions.gender,online_admissions.guardian_is,online_admissions.rte,online_admissions.guardian_email,online_admissions.paid_status,online_admissions.form_status,online_admissions.reference_no,online_admissions.class_section_id,online_admissions.ug_course_id,
             online_admissions.total_maths,online_admissions.maths_marks,online_admissions.maths_perc,online_admissions.total_physics,online_admissions.physics_marks,online_admissions.physics_perc,online_admissions.total_chemistry,online_admissions.chemistry_marks,online_admissions.chemistry_perc,online_admissions.average_marks,online_admissions.cutoff_marks')->from('online_admissions');
 
         $this->db->join('class_sections', 'class_sections.id = online_admissions.class_section_id', 'left');
@@ -55,6 +55,17 @@ class Onlinestudent_model extends MY_Model
             $this->db->order_by('online_admissions.id', 'desc');
         }
         $query = $this->db->get();
+        if ($query === false) {
+            $db_error = $this->db->error();
+            log_message('error', "Onlinestudent_model::get failed SQL: " . $this->db->last_query());
+            log_message('error', "Onlinestudent_model::get error: " . $db_error['message']);
+            // return empty result to avoid fatal
+            if ($id != null) {
+                return array();
+            } else {
+                return array();
+            }
+        }
         if ($id != null) {
             return $query->row_array();
         } else {

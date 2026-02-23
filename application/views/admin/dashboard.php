@@ -445,7 +445,8 @@ foreach ($notifications as $notice_key => $notice_value) {
                                 <?php
             }
             }
-            if ($this->rbac->hasPrivilege('staff_today_attendance', 'can_view')) {
+            // use correct privilege key matching permission_category (id 229)
+            if ($this->rbac->hasPrivilege('staff_present_today_widegts', 'can_view')) {
             ?>
                                 <div class="col-md-2 col-sm-6 mb10">
                                     <div class="topprograssstart flex-card" id="staff-attendance-widget" data-url="<?php echo site_url('admin/admin/staff_today_attendance_widget'); ?>">
@@ -2073,23 +2074,28 @@ if (($this->module_lib->hasActive('fees_collection')) || ($this->module_lib->has
 
                     var d = resp.data;
                     $enquiryOverview.find('.eo-active-count').text(d.active || 0);
-                    $enquiryOverview.find('.eo-active-percent').text(d.active_progress || 0);
-                    $enquiryOverview.find('.eo-active-bar').css('width', (d.active_progress || 0) + '%');
+                    var ap = (parseFloat(d.active_progress) || 0).toFixed(2);
+                    $enquiryOverview.find('.eo-active-percent').text(ap);
+                    $enquiryOverview.find('.eo-active-bar').css('width', ap + '%');
 
                     $enquiryOverview.find('.eo-won-count').text(d.won || 0);
-                    $enquiryOverview.find('.eo-won-percent').text(d.won_progress || 0);
-                    $enquiryOverview.find('.eo-won-bar').css('width', (d.won_progress || 0) + '%');
+                    var wp = (parseFloat(d.won_progress) || 0).toFixed(2);
+                    $enquiryOverview.find('.eo-won-percent').text(wp);
+                    $enquiryOverview.find('.eo-won-bar').css('width', wp + '%');
 
                     $enquiryOverview.find('.eo-passive-count').text(d.passive || 0);
-                    $enquiryOverview.find('.eo-passive-percent').text(d.passive_progress || 0);
+                    var pp = (parseFloat(d.passive_progress) || 0).toFixed(2);
+                    $enquiryOverview.find('.eo-passive-percent').text(pp);
                     $enquiryOverview.find('.eo-passive-bar').css('width', (d.passive_progress || 0) + '%');
 
                     $enquiryOverview.find('.eo-lost-count').text(d.lost || 0);
-                    $enquiryOverview.find('.eo-lost-percent').text(d.lost_progress || 0);
+                    var lp = (parseFloat(d.lost_progress) || 0).toFixed(2);
+                    $enquiryOverview.find('.eo-lost-percent').text(lp);
                     $enquiryOverview.find('.eo-lost-bar').css('width', (d.lost_progress || 0) + '%');
 
                     $enquiryOverview.find('.eo-dead-count').text(d.dead || 0);
-                    $enquiryOverview.find('.eo-dead-percent').text(d.dead_progress || 0);
+                    var dp = (parseFloat(d.dead_progress) || 0).toFixed(2);
+                    $enquiryOverview.find('.eo-dead-percent').text(dp);
                     $enquiryOverview.find('.eo-dead-bar').css('width', (d.dead_progress || 0) + '%');
 
                     $enquiryOverview.find('.fo-skeleton').removeClass('fo-skeleton');
