@@ -53,6 +53,36 @@
                                             </div>
                                         <?php }?>
                                     </div>
+                                    <!-- add gender and dob row for self-edit -->
+                                    <div class="row">
+                                        <div class="col-md-3">
+                                            <div class="form-group">
+                                                <label for="gender"><?php echo $this->lang->line('gender'); ?></label><small class="req"> *</small>
+                                                <select name="gender" class="form-control">
+                                                    <?php foreach ($genderList as $gkey => $gval) {
+                                                        $sel = ($staff['gender'] == $gkey) ? 'selected' : '';
+                                                        echo "<option value='" . $gkey . "' " . $sel . ">" . $gval . "</option>";
+                                                    } ?>
+                                                </select>
+                                                <span class="text-danger"><?php echo form_error('gender'); ?></span>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="form-group">
+                                                <label for="dob"><?php echo $this->lang->line('date_of_birth'); ?></label><small class="req"> *</small>
+                                                <input id="dob" name="dob" placeholder="" type="text" class="form-control date" value="<?php if (!empty($staff['dob'])) { echo date($this->customlib->getSchoolDateFormat(), strtotime($staff['dob'])); } ?>" />
+                                                <span class="text-danger"><?php echo form_error('dob'); ?></span>
+                                            </div>
+                                        </div>
+                                        <?php if ($sch_setting->staff_date_of_joining) { ?>
+                                        <div class="col-md-3">
+                                            <div class="form-group">
+                                                <label for="date_of_joining"><?php echo $this->lang->line('date_of_joining'); ?></label>
+                                                <input id="date_of_joining" name="date_of_joining" placeholder="" type="text" class="form-control date" value="<?php if (!empty($staff['date_of_joining'])) { echo date($this->customlib->getSchoolDateFormat(), strtotime($staff['date_of_joining'])); } ?>" />
+                                            </div>
+                                        </div>
+                                        <?php } ?>
+                                    </div>
                                     <div class="row">
                                         <div class="col-md-3">
                                             <div class="form-group">

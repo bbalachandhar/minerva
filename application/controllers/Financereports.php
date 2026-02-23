@@ -1245,6 +1245,50 @@ $data['department_id_selected'] = $this->input->post('department_id');
         $data['payment_mode'] = $this->payment_mode;
 
         $result              = $this->payroll_model->getbetweenpayrollReport($start_date, $end_date, $filter_month, $filter_year);
+        // attach allowance breakdown for each payslip row
+        if (!empty($result)) {
+            foreach ($result as &$row) {
+                // positive earnings other than basic
+                $row['earnings_breakdown'] = $this->payroll_model->getAllowance($row['id'], 'positive');
+                // negative deductions
+                $row['deductions_breakdown'] = $this->payroll_model->getAllowance($row['id'], 'negative');
+                // if there is a leave deduction (LOP) add it to the breakdown so it shows under details
+                if (!empty($row['leave_deduction']) && $row['leave_deduction'] > 0) {
+                    $row['deductions_breakdown'][] = array(
+                        'allowance_type' => 'LOP',
+                        'amount' => $row['leave_deduction'],
+                        'cal_type' => 'negative'
+                    );
+                }
+                // statutory deductions stored as separate columns; avoid duplicates if allowance already exists
+                $existingTypes = array_column($row['deductions_breakdown'], 'allowance_type');
+                if (!empty($row['employee_epf']) && $row['employee_epf'] > 0 && !in_array('EPF', $existingTypes)) {
+                    $row['deductions_breakdown'][] = array(
+                        'allowance_type' => 'EPF',
+                        'amount' => $row['employee_epf'],
+                        'cal_type' => 'negative'
+                    );
+                    $existingTypes[] = 'EPF';
+                }
+                if (!empty($row['esi_deduction']) && $row['esi_deduction'] > 0 && !in_array('ESI', $existingTypes)) {
+                    $row['deductions_breakdown'][] = array(
+                        'allowance_type' => 'ESI',
+                        'amount' => $row['esi_deduction'],
+                        'cal_type' => 'negative'
+                    );
+                    $existingTypes[] = 'ESI';
+                }
+                if (!empty($row['tax']) && $row['tax'] > 0 && !in_array('TDS', $existingTypes)) {
+                    $row['deductions_breakdown'][] = array(
+                        'allowance_type' => 'TDS',
+                        'amount' => $row['tax'],
+                        'cal_type' => 'negative'
+                    );
+                    $existingTypes[] = 'TDS';
+                }
+            }
+            unset($row);
+        }
         $data['payrollList'] = $result;
         $this->load->view('layout/header', $data);
         $this->load->view('financereports/payroll', $data);

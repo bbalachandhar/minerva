@@ -169,7 +169,9 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                         <th><?php echo $this->lang->line('payslip'); ?> #</th>
                                         <th class="text text-right"><?php echo $this->lang->line('basic_salary'); ?> <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
                                         <th class="text text-right"><?php echo $this->lang->line('earning'); ?> <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
+                                        <th class="text text-right"><?php echo $this->lang->line('earning'); ?> Details <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
                                         <th class="text text-right"><?php echo $this->lang->line('deduction'); ?> <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
+                                        <th class="text text-right"><?php echo $this->lang->line('deduction'); ?> Details <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
                                         <th class="text text-right">LOP <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
                                         <th class="text text-right">EPF (Employee) <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
                                         <th class="text text-right">Employer PF <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
@@ -196,6 +198,12 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                     $total_esi = 0;
                                     $total_employer_esi = 0;
 
+                                    // aggregated breakdown totals across records
+                                    $earnings_details_totals = [];
+                                    $deductions_details_totals = [];
+
+                                    // compute later as we iterate rows
+
                                     if (empty($payrollList)) {
                                         ?>
 
@@ -208,7 +216,12 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                             $basic += $value["basic"];
                                             $gross += $value["basic"] + $value["total_allowance"];  // Gross = Basic + Allowances (NO deductions)
                                             $earnings += $value["total_allowance"];
-                                            $deduction += $value["total_deduction"];
+                                            // include leave deduction in the overall deduction total
+                                            $deduction += $value["total_deduction"]
+                                                 + (!empty($value["leave_deduction"]) ? $value["leave_deduction"] : 0)
+                                                 + (!empty($value["employee_epf"]) ? $value["employee_epf"] : 0)
+                                                 + (!empty($value["esi_deduction"]) ? $value["esi_deduction"] : 0)
+                                                 + (!empty($value["tax"]) ? $value["tax"] : 0);
                                             if ($value["tax"] != '') {
                                                 $taxdata = $value["tax"];
                                             } else {
@@ -225,6 +238,25 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                             $total_employer_eps += !empty($value["employer_eps"]) ? $value["employer_eps"] : 0;
                                             $total_esi += !empty($value["esi_deduction"]) ? $value["esi_deduction"] : 0;
                                             $total_employer_esi += !empty($value["employer_esi"]) ? $value["employer_esi"] : 0;
+
+                                            // breakdown totals
+                                            if (!empty($value['earnings_breakdown'])) {
+                                                foreach ($value['earnings_breakdown'] as $e) {
+                                                    if (!isset($earnings_details_totals[$e['allowance_type']])) {
+                                                        $earnings_details_totals[$e['allowance_type']] = 0;
+                                                    }
+                                                    $earnings_details_totals[$e['allowance_type']] += $e['amount'];
+                                                }
+                                            }
+                                            if (!empty($value['deductions_breakdown'])) {
+                                                foreach ($value['deductions_breakdown'] as $d) {
+                                                    if (!isset($deductions_details_totals[$d['allowance_type']])) {
+                                                        $deductions_details_totals[$d['allowance_type']] = 0;
+                                                    }
+                                                    $deductions_details_totals[$d['allowance_type']] += $d['amount'];
+                                                }
+                                            }
+
                                             $total = 0;
                                             $grd_total = 0;
                                             ?>
@@ -255,8 +287,41 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                                 </td>
                                                 <td class="text text-right">
                                                     <?php
-                                                    $total_deduction = ($value['total_deduction']);
+                                                    // earnings breakdown list
+                                                    if (!empty($value['earnings_breakdown'])) {
+                                                        $parts = array();
+                                                        foreach ($value['earnings_breakdown'] as $e) {
+                                                            $parts[] = $e['allowance_type'] . ": " . amountFormat($e['amount']);
+                                                        }
+                                                        echo implode('<br/>', $parts);
+                                                    } else {
+                                                        echo '-';
+                                                    }
+                                                    ?>
+                                                </td>
+                                                <td class="text text-right">
+                                                    <?php
+                                                            // show total including leave deduction and statutory charges
+                                                    $total_deduction = $value['total_deduction']
+                                                        + (!empty($value['leave_deduction']) ? $value['leave_deduction'] : 0)
+                                                        + (!empty($value['employee_epf']) ? $value['employee_epf'] : 0)
+                                                        + (!empty($value['esi_deduction']) ? $value['esi_deduction'] : 0)
+                                                        + (!empty($value['tax']) ? $value['tax'] : 0);
                                                     if($total_deduction > 0){ echo amountFormat($total_deduction); }
+                                                    ?>
+                                                </td>
+                                                <td class="text text-right">
+                                                    <?php
+                                                    // deductions breakdown list
+                                                    if (!empty($value['deductions_breakdown'])) {
+                                                        $parts = array();
+                                                        foreach ($value['deductions_breakdown'] as $d) {
+                                                            $parts[] = $d['allowance_type'] . ": " . amountFormat($d['amount']);
+                                                        }
+                                                        echo implode('<br/>', $parts);
+                                                    } else {
+                                                        echo '-';
+                                                    }
                                                     ?>
                                                 </td>
                                                 <td class="text text-right">
@@ -327,7 +392,29 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                         <td class="text-right"><?php echo $this->lang->line('grand_total'); ?> </td>
                                         <td class="text text-right"><?php if($basic > 0){ echo $currency_symbol . amountFormat($basic); } ?></td>
                                         <td class="text text-right"><?php if($earnings > 0){ echo $currency_symbol . amountFormat($earnings); } ?></td>
+                                        <td class="text text-right">
+                                            <?php
+                                            if (!empty($earnings_details_totals)) {
+                                                $parts2 = [];
+                                                foreach ($earnings_details_totals as $type => $amt) {
+                                                    $parts2[] = $type . ": " . amountFormat($amt);
+                                                }
+                                                echo implode('<br/>', $parts2);
+                                            }
+                                            ?>
+                                        </td> <!-- earnings detail total placeholder -->
                                         <td class="text text-right"><?php if($deduction > 0){ echo $currency_symbol . amountFormat($deduction); } ?></td>
+                                        <td class="text text-right">
+                                            <?php
+                                            if (!empty($deductions_details_totals)) {
+                                                $parts3 = [];
+                                                foreach ($deductions_details_totals as $type => $amt) {
+                                                    $parts3[] = $type . ": " . amountFormat($amt);
+                                                }
+                                                echo implode('<br/>', $parts3);
+                                            }
+                                            ?>
+                                        </td> <!-- deduction detail total placeholder -->
                                         <td class="text text-right"><?php if($total_lop > 0){ echo $currency_symbol . amountFormat($total_lop); } ?></td>
                                         <td class="text text-right"><?php if($total_employee_epf > 0){ echo $currency_symbol . amountFormat($total_employee_epf); } ?></td>
                                         <td class="text text-right"><?php if($total_employer_pf > 0){ echo $currency_symbol . amountFormat($total_employer_pf); } ?></td>
