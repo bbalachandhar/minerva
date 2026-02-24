@@ -1295,6 +1295,594 @@ $data['department_id_selected'] = $this->input->post('department_id');
         $this->load->view('layout/footer', $data);
     }
 
+    /**
+     * EPF report: filter by date range and optional month/year
+     * shows basic payroll fields along with EPF contributions and working days.
+     */
+    public function epfreport()
+    {
+        try {
+            log_message('debug','epfreport invoked');
+            $this->session->set_userdata('top_menu', 'Reports');
+            $this->session->set_userdata('sub_menu', 'Reports/finance');
+            $this->session->set_userdata('subsub_menu', 'Reports/finance/epfreport');
+            $data['searchlist']  = $this->customlib->get_searchtype();
+            $data['date_type']   = $this->customlib->date_type();
+            $data['date_typeid'] = '';
+
+            // month/year filters
+            $filter_month = $this->input->post('filter_month');
+            $filter_year  = $this->input->post('filter_year');
+            $display_month = $filter_month;
+            if (!empty($filter_month) && !ctype_digit($filter_month)) {
+                $filter_month = date('m', strtotime($filter_month . ' 1'));
+            }
+            log_message('debug','epfreport filter month='.print_r($filter_month,true).' year='.print_r($filter_year,true));
+            $data['filter_month'] = $display_month;
+            $data['filter_year']  = $filter_year;
+
+        if (isset($_POST['search_type']) && $_POST['search_type'] != '') {
+            $dates               = $this->customlib->get_betweendate($_POST['search_type']);
+            $data['search_type'] = $_POST['search_type'];
+        } else {
+            $dates               = $this->customlib->get_betweendate('this_year');
+            $data['search_type'] = '';
+        }
+
+        $start_date = date('Y-m-d', strtotime($dates['from_date']));
+        $end_date   = date('Y-m-d', strtotime($dates['to_date']));
+
+        $data['label'] = date($this->customlib->getSchoolDateFormat(), strtotime($start_date)) . " " . $this->lang->line('to') . " " . date($this->customlib->getSchoolDateFormat(), strtotime($end_date));
+
+        log_message('debug','epfreport fetch payroll range '.$start_date.' to '.$end_date);
+        $result = $this->payroll_model->getbetweenpayrollReport($start_date, $end_date, $filter_month, $filter_year);
+        log_message('debug','epfreport result count:'.count($result));
+
+        // attach working days and lop information from payslip
+        if (!empty($result)) {
+            foreach ($result as &$row) {
+                // compute working days based on row month/year
+                $row['working_days'] = '';
+                if (!empty($row['month']) && !empty($row['year'])) {
+                    // determine numeric month; ensure valid 1-12
+                    $month_num = date('m', strtotime($row['month']));
+                    if ($month_num >= 1 && $month_num <= 12) {
+                        $start_date = $row['year'] . '-' . $month_num . '-01';
+                        $end_date = date('Y-m-t', strtotime($start_date));
+                        log_message('debug','epfreport calculating working days for '.$start_date.' to '.$end_date);
+                        try {
+                            $ctx = $this->getWorkingDayContextRange($start_date, $end_date);
+                            $row['working_days'] = count($ctx['working_day_dates']);
+                        } catch (\Throwable $e) {
+                            log_message('error','failed to calculate WD for '.$start_date.' '.$e->getMessage());
+                            $row['working_days'] = '';
+                        }
+                        log_message('debug','epfreport row '.$row['id'].' month='.$row['month'].' year='.$row['year'].' wd='.$row['working_days']);
+                    } else {
+                        log_message('error','invalid month parsed for row: '.print_r($row, true));
+                        $row['working_days'] = '';
+                    }
+                }
+                // use actual_lop_days column from payslip if exists
+                $row['lop_days'] = isset($row['actual_lop_days']) ? $row['actual_lop_days'] : 0;
+                $row['lop_amount'] = isset($row['leave_deduction']) ? $row['leave_deduction'] : 0;
+                // calculate adjusted LOP based on leave balance (preview - does not persist)
+                $row['adjusted_lop_days'] = '';
+                $row['net_lop_days'] = '';
+                if (is_numeric($row['lop_days']) && $row['lop_days'] > 0 && !empty($row['staff_id'])) {
+                    $month_num = date('m', strtotime($row['month']));
+                    try {
+                        $adj = $this->payroll_model->previewLOPWithMonthlyBalance($row['staff_id'], $row['lop_days'], $month_num, $row['year']);
+                        $row['adjusted_lop_days'] = isset($adj['adjusted_lop_days']) ? $adj['adjusted_lop_days'] : 0;
+                        $row['net_lop_days'] = isset($adj['net_lop_days']) ? $adj['net_lop_days'] : 0;
+                    } catch (\Throwable $e) {
+                        log_message('error','epfreport adjusted lop failed for staff '.$row['staff_id'].' '.$e->getMessage());
+                        $row['adjusted_lop_days'] = '';
+                        $row['net_lop_days'] = '';
+                    }
+                }
+            }
+            unset($row);
+        }
+
+        $data['epfList']      = $result;
+        $data['working_days'] = '';
+        if (!empty($filter_month) && !empty($filter_year)) {
+            $data['working_days'] = $this->calculateWorkingDays($filter_month, $filter_year);
+        }
+
+        $this->load->view('layout/header', $data);
+        $this->load->view('financereports/epfreport', $data);
+        $this->load->view('layout/footer', $data);
+        } catch (\Throwable $e) {
+            log_message('error','epfreport failed: '.$e->getMessage());
+            log_message('error','epfreport trace: '.$e->getTraceAsString());
+            // display generic error
+            show_error('An error occurred while generating the report.');
+        }
+    }
+
+    /**
+     * ESI report: same filters as EPF but shows ESI contributions instead.
+     */
+    public function esireport()
+    {
+        try {
+            log_message('debug','esireport invoked');
+            $this->session->set_userdata('top_menu', 'Reports');
+            $this->session->set_userdata('sub_menu', 'Reports/finance');
+            $this->session->set_userdata('subsub_menu', 'Reports/finance/esireport');
+            $data['searchlist']  = $this->customlib->get_searchtype();
+            $data['date_type']   = $this->customlib->date_type();
+            $data['date_typeid'] = '';
+
+            // month/year filters
+            $filter_month = $this->input->post('filter_month');
+            $filter_year  = $this->input->post('filter_year');
+            $display_month = $filter_month;
+            if (!empty($filter_month) && !ctype_digit($filter_month)) {
+                $filter_month = date('m', strtotime($filter_month . ' 1'));
+            }
+            log_message('debug','esireport filter month='.print_r($filter_month,true).' year='.print_r($filter_year,true));
+            $data['filter_month'] = $display_month;
+            $data['filter_year']  = $filter_year;
+
+            if (isset($_POST['search_type']) && $_POST['search_type'] != '') {
+                $dates               = $this->customlib->get_betweendate($_POST['search_type']);
+                $data['search_type'] = $_POST['search_type'];
+            } else {
+                $dates               = $this->customlib->get_betweendate('this_year');
+                $data['search_type'] = '';
+            }
+
+            $start_date = date('Y-m-d', strtotime($dates['from_date']));
+            $end_date   = date('Y-m-d', strtotime($dates['to_date']));
+
+            $data['label'] = date($this->customlib->getSchoolDateFormat(), strtotime($start_date)) . " " . $this->lang->line('to') . " " . date($this->customlib->getSchoolDateFormat(), strtotime($end_date));
+
+            log_message('debug','esireport fetch payroll range '.$start_date.' to '.$end_date);
+            $result = $this->payroll_model->getbetweenpayrollReport($start_date, $end_date, $filter_month, $filter_year);
+            log_message('debug','esireport result count:'.count($result));
+
+            // reuse working days/LOP logic from EPF
+            if (!empty($result)) {
+                foreach ($result as &$row) {
+                    $row['working_days'] = '';
+                    if (!empty($row['month']) && !empty($row['year'])) {
+                        $month_num = date('m', strtotime($row['month']));
+                        if ($month_num >= 1 && $month_num <= 12) {
+                            $start_date = $row['year'] . '-' . $month_num . '-01';
+                            $end_date = date('Y-m-t', strtotime($start_date));
+                            log_message('debug','esireport calculating working days for '.$start_date.' to '.$end_date);
+                            try {
+                                $ctx = $this->getWorkingDayContextRange($start_date, $end_date);
+                                $row['working_days'] = count($ctx['working_day_dates']);
+                            } catch (\Throwable $e) {
+                                log_message('error','failed to calculate WD for '.$start_date.' '.$e->getMessage());
+                                $row['working_days'] = '';
+                            }
+                            log_message('debug','esireport row '.$row['id'].' month='.$row['month'].' year='.$row['year'].' wd='.$row['working_days']);
+                        } else {
+                            log_message('error','invalid month parsed for row: '.print_r($row, true));
+                            $row['working_days'] = '';
+                        }
+                    }
+                    $row['lop_days'] = isset($row['actual_lop_days']) ? $row['actual_lop_days'] : 0;
+                    $row['lop_amount'] = isset($row['leave_deduction']) ? $row['leave_deduction'] : 0;
+                    $row['adjusted_lop_days'] = '';
+                    $row['net_lop_days'] = '';
+                    if (is_numeric($row['lop_days']) && $row['lop_days'] > 0 && !empty($row['staff_id'])) {
+                        $month_num = date('m', strtotime($row['month']));
+                        try {
+                            $adj = $this->payroll_model->previewLOPWithMonthlyBalance($row['staff_id'], $row['lop_days'], $month_num, $row['year']);
+                            $row['adjusted_lop_days'] = isset($adj['adjusted_lop_days']) ? $adj['adjusted_lop_days'] : 0;
+                            $row['net_lop_days'] = isset($adj['net_lop_days']) ? $adj['net_lop_days'] : 0;
+                        } catch (\Throwable $e) {
+                            log_message('error','esireport adjusted lop failed for staff '.$row['staff_id'].' '.$e->getMessage());
+                            $row['adjusted_lop_days'] = '';
+                            $row['net_lop_days'] = '';
+                        }
+                    }
+                }
+                unset($row);
+            }
+
+            $data['esilist']      = $result;
+            $data['working_days'] = '';
+            if (!empty($filter_month) && !empty($filter_year)) {
+                $data['working_days'] = $this->calculateWorkingDays($filter_month, $filter_year);
+            }
+
+            $this->load->view('layout/header', $data);
+            $this->load->view('financereports/esireport', $data);
+            $this->load->view('layout/footer', $data);
+        } catch (\Throwable $e) {
+            log_message('error','esireport failed: '.$e->getMessage());
+            log_message('error','esireport trace: '.$e->getTraceAsString());
+            show_error('An error occurred while generating the report.');
+        }
+    }
+
+    /**
+     * Salary abstract report
+     */
+    public function salaryabstract()
+    {
+        try {
+            log_message('debug','salaryabstract invoked');
+            $this->session->set_userdata('top_menu', 'Reports');
+            $this->session->set_userdata('sub_menu', 'Reports/finance');
+            $this->session->set_userdata('subsub_menu', 'Reports/finance/salaryabstract');
+            $data['searchlist']  = $this->customlib->get_searchtype();
+            $data['date_type']   = $this->customlib->date_type();
+            $data['date_typeid'] = '';
+
+            $filter_month = $this->input->post('filter_month');
+            $filter_year  = $this->input->post('filter_year');
+            // preserve original for label
+            $display_month = $filter_month;
+            // convert month name to number if necessary
+            if (!empty($filter_month) && !ctype_digit($filter_month)) {
+                $filter_month = date('m', strtotime($filter_month . ' 1'));
+            }
+            log_message('debug','salaryabstract filter month='.print_r($filter_month,true).' year='.print_r($filter_year,true));
+            $data['filter_month'] = $display_month;
+            $data['filter_year']  = $filter_year;
+
+            // determine date range either from search_type or explicit month/year
+            if (!empty($filter_month) && !empty($filter_year)) {
+                // user wants a specific month; label accordingly
+                $data['label'] = "Salary Abstract for the month of $filter_month -$filter_year";
+                $data['search_type'] = '';
+                // use broad payment_date range so records are picked up even if paid later
+                $start_date = '1900-01-01';
+                $end_date = '2999-12-31';
+            } else {
+                if (isset($_POST['search_type']) && $_POST['search_type'] != '') {
+                    $dates               = $this->customlib->get_betweendate($_POST['search_type']);
+                    $data['search_type'] = $_POST['search_type'];
+                } else {
+                    $dates               = $this->customlib->get_betweendate('this_year');
+                    $data['search_type'] = '';
+                }
+                $start_date = date('Y-m-d', strtotime($dates['from_date']));
+                $end_date   = date('Y-m-d', strtotime($dates['to_date']));
+
+                $data['label'] = date($this->customlib->getSchoolDateFormat(), strtotime($start_date)) . " " . $this->lang->line('to') . " " . date($this->customlib->getSchoolDateFormat(), strtotime($end_date));
+            }
+
+            log_message('debug','salaryabstract fetch payroll range '.$start_date.' to '.$end_date);
+            // make range available to view for troubleshooting
+            $data['start_date'] = $start_date;
+            $data['end_date'] = $end_date;
+            $result = $this->payroll_model->getbetweenpayrollReport($start_date, $end_date, $filter_month, $filter_year);
+            log_message('debug','salaryabstract result count:'.count($result));
+
+            // add working days for each row (optional)
+            if (!empty($result)) {
+                foreach ($result as &$row) {
+                    $row['working_days'] = '';
+                    if (!empty($row['month']) && !empty($row['year'])) {
+                        $mnum = date('m', strtotime($row['month']));
+                        if ($mnum>=1 && $mnum<=12) {
+                            $sd = $row['year'].'-'.sprintf('%02d',$mnum).'-01';
+                            $ed = date('Y-m-t',strtotime($sd));
+                            try {
+                                $ctx = $this->getWorkingDayContextRange($sd,$ed);
+                                $row['working_days'] = count($ctx['working_day_dates']);
+                            } catch (\Throwable $e) { }
+                        }
+                    }
+                }
+                unset($row);
+            }
+
+            $data['abstractList'] = $result;
+            $data['working_days'] = '';
+            if (!empty($filter_month) && !empty($filter_year)) {
+                $data['working_days'] = $this->calculateWorkingDays($filter_month, $filter_year);
+            }
+
+            $this->load->view('layout/header',$data);
+            $this->load->view('financereports/salaryabstract',$data);
+            $this->load->view('layout/footer',$data);
+        } catch (\Throwable $e) {
+            log_message('error','salaryabstract failed: '.$e->getMessage());
+            log_message('error','salaryabstract trace: '.$e->getTraceAsString());
+            show_error('An error occurred while generating the report.');
+        }
+    }
+    /**
+     * computes number of working days in a month accounting for weekends/holidays
+     * copied from Specialattendance->get_working_days but returns integer
+     */
+    private function calculateWorkingDays($month, $year)
+    {
+        $validMonths = array(
+            'January','February','March','April','May','June',
+            'July','August','September','October','November','December'
+        );
+        if (empty($month) || empty($year) || !in_array($month, $validMonths, true) || !ctype_digit((string)$year)) {
+            return 0;
+        }
+
+        $this->load->model('setting_model');
+        $settings = $this->setting_model->getSetting();
+        $weekendDaysStr = isset($settings->weekend_days) && !empty($settings->weekend_days) ? $settings->weekend_days : '0';
+        $weekendDays = array_map('intval', explode(',', $weekendDaysStr));
+        $isSecondSaturdayHoliday = isset($settings->isSecondSaturdayHoliday) ? (int)$settings->isSecondSaturdayHoliday : 0;
+
+        $this->db->select('annual_calendar.from_date, annual_calendar.to_date, holiday_type.type');
+        $this->db->from('annual_calendar');
+        $this->db->join('holiday_type', 'holiday_type.id = annual_calendar.holiday_type', 'left');
+        $this->db->where('is_active', 1);
+        $this->db->where('(MONTH(from_date) = ' . date('n', strtotime("$month 1, $year")) . ' AND YEAR(from_date) = ' . $year . ') 
+                         OR (MONTH(to_date) = ' . date('n', strtotime("$month 1, $year")) . ' AND YEAR(to_date) = ' . $year . ')
+                         OR (from_date <= "' . $year . '-' . str_pad(date('n', strtotime("$month 1, $year")), 2, '0', STR_PAD_LEFT) . '-' . date('t', strtotime("$month 1, $year")) . '" 
+                             AND to_date >= "' . $year . '-' . str_pad(date('n', strtotime("$month 1, $year")), 2, '0', STR_PAD_LEFT) . '-01")');
+        $holidays = $this->db->get()->result_array();
+
+        $firstDay = DateTime::createFromFormat('F j, Y', $month . ' 1, ' . $year);
+        if ($firstDay === false) {
+            return 0;
+        }
+        $monthIndex = (int)$firstDay->format('n') - 1;
+        $daysInMonth = (int)$firstDay->format('t');
+        $workingDays = 0;
+        $holidayDates = [];
+        $compensationDates = [];
+        foreach ($holidays as $holiday) {
+            $from = new DateTime(date('Y-m-d', strtotime($holiday['from_date'])));
+            $to = new DateTime(date('Y-m-d', strtotime($holiday['to_date'])));
+            $interval = new DateInterval('P1D');
+            $period = new DatePeriod($from, $interval, $to->modify('+1 day'));
+            foreach ($period as $date) {
+                if ($date->format('n') == ($monthIndex + 1) && $date->format('Y') == $year) {
+                    $type_label = strtolower(trim($holiday['type'] ?? ''));
+                    if ($type_label === 'compensatory') {
+                        $compensationDates[] = $date->format('Y-m-d');
+                    } else {
+                        $holidayDates[] = $date->format('Y-m-d');
+                    }
+                }
+            }
+        }
+
+        for ($i = 1; $i <= $daysInMonth; $i++) {
+            $day = sprintf('%02d', $i);
+            $currDate = $year . '-' . str_pad(($monthIndex + 1), 2, '0', STR_PAD_LEFT) . '-' . $day;
+            $dt = new DateTime($currDate);
+            $weekday = intval($dt->format('w')); // 0 for Sunday
+            if (in_array($currDate, $holidayDates, true)) {
+                continue;
+            }
+            if (in_array($weekday, $weekendDays, true)) {
+                // optionally second saturday
+                if ($isSecondSaturdayHoliday && $weekday === 6) {
+                    $weekCount = floor(($i - 1) / 7) + 1;
+                    if ($weekCount === 2) {
+                        continue;
+                    }
+                } else {
+                    continue;
+                }
+            }
+            $workingDays++;
+        }
+
+        return $workingDays;
+    }
+
+    // Helper copied from Payroll controller to calculate working/holiday/weekend context over a date range.
+    private function getWorkingDayContextRange($start_date, $end_date, $settings = null, $holidays = null)
+    {
+        $this->load->model("holiday_model");
+        $this->load->model("setting_model");
+
+        if ($settings === null) {
+            $settings = $this->setting_model->getSetting();
+        }
+        if ($holidays === null) {
+            $holidays = $this->holiday_model->get();
+        }
+
+        $weekendDaysStr = isset($settings->weekend_days) && !empty($settings->weekend_days) ? $settings->weekend_days : '0';
+        $weekendDays = array_map('intval', explode(',', $weekendDaysStr));
+        $isSecondSaturdayWeekend = isset($settings->isSecondSaturdayHoliday) ? (int) $settings->isSecondSaturdayHoliday : 0;
+
+        $range_start = new DateTime($start_date);
+        $range_end = new DateTime($end_date);
+
+        $official_holiday_dates = [];
+        $compensation_dates = [];
+        foreach ($holidays as $holiday_value) {
+            $type_label = strtolower(trim($holiday_value['type'] ?? ''));
+            $from_date = new DateTime($holiday_value['from_date']);
+            $to_date = new DateTime($holiday_value['to_date']);
+            if ($to_date < $range_start || $from_date > $range_end) {
+                continue;
+            }
+            $current = clone $from_date;
+            while ($current <= $to_date) {
+                if ($current >= $range_start && $current <= $range_end) {
+                    if ($type_label === 'compensation') {
+                        $compensation_dates[] = $current->format('Y-m-d');
+                    } else {
+                        $official_holiday_dates[] = $current->format('Y-m-d');
+                    }
+                }
+                $current->modify('+1 day');
+            }
+        }
+        $official_holiday_dates = array_values(array_unique($official_holiday_dates));
+        $compensation_dates = array_values(array_unique($compensation_dates));
+
+        $weekend_day_dates = [];
+        $working_day_dates = [];
+        $holiday_dates = [];
+
+        $current = new DateTime($start_date);
+        while ($current <= $range_end) {
+            $dateStr = $current->format('Y-m-d');
+            $dayOfWeek = (int) $current->format('w');
+            $is_second_saturday = false;
+            if ($isSecondSaturdayWeekend && $dayOfWeek === 6) {
+                $is_second_saturday = $this->isSecondSaturday($current);
+            }
+
+            if (in_array($dateStr, $compensation_dates, true)) {
+                $working_day_dates[] = $dateStr;
+                $current->modify('+1 day');
+                continue;
+            }
+
+            $is_weekend = in_array($dayOfWeek, $weekendDays, true) || $is_second_saturday;
+            $is_official_holiday = in_array($dateStr, $official_holiday_dates, true);
+
+            if ($is_weekend) {
+                $weekend_day_dates[] = $dateStr;
+            }
+            if ($is_official_holiday && !$is_weekend) {
+                $holiday_dates[] = $dateStr;
+            }
+            if (!$is_weekend && !$is_official_holiday) {
+                $working_day_dates[] = $dateStr;
+            }
+
+            $current->modify('+1 day');
+        }
+
+        return [
+            'working_day_dates' => array_values(array_unique($working_day_dates)),
+            'weekend_day_dates' => array_values(array_unique($weekend_day_dates)),
+            'holiday_dates' => array_values(array_unique($holiday_dates)),
+        ];
+    }
+
+    private function isSecondSaturday(DateTime $dateObj)
+    {
+        $month_start = new DateTime($dateObj->format('Y-m-01'));
+        $count = 0;
+        while ($month_start <= $dateObj) {
+            if ((int) $month_start->format('w') === 6) {
+                $count++;
+            }
+            if ($month_start->format('Y-m-d') === $dateObj->format('Y-m-d')) {
+                break;
+            }
+            $month_start->modify('+1 day');
+        }
+        return $count === 2;
+    }
+
+    /**
+     * copy of Payroll->monthAttendance simplified for finance reports
+     */
+    private function monthAttendance($st_month, $no_of_months, $emp)
+    {
+        $this->load->model("holiday_model");
+        $holidays = $this->holiday_model->get();
+        $this->load->model("setting_model");
+        $settings = $this->setting_model->getSetting();
+        $this->load->model("staffattendancemodel");
+        $this->staff_attendance  = $this->config->item('staffattendance');
+
+        $record = array();
+        for ($i = 1; $i <= $no_of_months; $i++) {
+            $r     = array();
+            $month = date('m', strtotime($st_month . " -$i month"));
+            $year  = date('Y', strtotime($st_month . " -$i month"));
+
+            $period = $this->getPayrollPeriodRange($month, $year);
+            $context = $this->getWorkingDayContextRange($period['start_date'], $period['end_date'], $settings, $holidays);
+            $weekend_day_dates = $context['weekend_day_dates'];
+            $holidays_for_H_column = $context['holiday_dates'];
+            $working_day_dates = $context['working_day_dates'];
+
+            $attendance_types_from_db = $this->staffattendancemodel->getStaffAttendanceType();
+            $att_key_to_id_map = [];
+            foreach ($attendance_types_from_db as $type_row) {
+                $config_key = str_replace(" ", "_", strtolower($type_row['type']));
+                $att_key_to_id_map[$config_key] = $type_row['id'];
+            }
+
+            foreach ($this->staff_attendance as $att_key => $att_value_from_config) {
+                $attendance_type_id_for_query = $att_key_to_id_map[$att_key] ?? null;
+
+                if ($att_key == 'holiday') {
+                    $r[$att_key] = count($holidays_for_H_column); // Now this only counts "other leaves"
+                    $r['sunday'] = count($weekend_day_dates); // Weekend days count
+                    continue;
+                }
+
+                if ($attendance_type_id_for_query !== null) {
+                    $s = $this->payroll_model->count_attendance_range($period['start_date'], $period['end_date'], $emp, $attendance_type_id_for_query);
+                    $r[$att_key] = $s;
+                } else {
+                    $r[$att_key] = 0;
+                }
+            }
+
+            $r['working_days']   = count($working_day_dates);
+            $record[$month . '-' . $year] = $r;
+        }
+        return $record;
+    }
+
+    /**
+     * replicate getPayrollLopSummary logic for working/LOP days
+     */
+    private function calculateLopSummary($monthAttendance, $monthLeaves, $month, $year, $staff_id)
+    {
+        $month_num = date('m', strtotime($year . '-' . $month . '-01'));
+        $month_key = '01-' . $month_num . '-' . $year;
+        $attendance = $monthAttendance[$month_key] ?? reset($monthAttendance) ?? [];
+
+        $period = $this->getPayrollPeriodRange($month, $year);
+        $days_in_period = (int) ($attendance['days_in_period'] ?? $this->getDaysInRange($period['start_date'], $period['end_date']));
+        $working_days = (int) ($attendance['working_days'] ?? 0);
+        if ($working_days === 0) {
+            $context = $this->getWorkingDayContextRange($period['start_date'], $period['end_date']);
+            $working_days = count($context['working_day_dates']);
+        }
+
+        $holidays = (int) ($attendance['holiday'] ?? 0);
+        $sundays = (int) ($attendance['sunday'] ?? 0);
+
+        $present = (int) ($attendance['present'] ?? 0);
+        $late = (int) ($attendance['late'] ?? 0);
+        $absent_working = $this->getAbsentWorkingDayCount($month_num, $year, $staff_id);
+        $half_day = (int) ($attendance['half_day'] ?? 0);
+        $first_half_absent = (int) ($attendance['first_half_absent'] ?? 0);
+        $second_half_absent = (int) ($attendance['second_half_absent'] ?? 0);
+        $first_half_permission = (int) ($attendance['first_half_permission'] ?? 0);
+        $second_half_permission = (int) ($attendance['second_half_permission'] ?? 0);
+
+        $approved_leave = (int) ($monthLeaves[$month_num] ?? 0);
+
+        $lop_rules = $this->config->item('lop_rules');
+        $half_day_weight = isset($lop_rules['half_day_weight']) ? (float) $lop_rules['half_day_weight'] : 0.5;
+
+        $permission_count = $first_half_permission + $second_half_permission;
+        $max_late_allowed = isset($this->sch_setting_detail->max_late_allowed) ? (int) $this->sch_setting_detail->max_late_allowed : 0;
+        $max_permission_allowed = isset($this->sch_setting_detail->max_permission_allowed) ? (int) $this->sch_setting_detail->max_permission_allowed : 0;
+
+        $late_half_days = $late > $max_late_allowed ? ($late - $max_late_allowed) : 0;
+        $permission_half_days = $permission_count > $max_permission_allowed ? ($permission_count - $max_permission_allowed) : 0;
+
+        $paid_leave_absent = $this->getPaidLeaveAbsentCountRange($period['start_date'], $period['end_date'], $staff_id);
+
+        $late_permission_penalty = ($late_half_days + $permission_half_days) * $half_day_weight;
+
+        $total_present = max(0, $present + ($half_day * $half_day_weight) - $late_permission_penalty + $paid_leave_absent);
+        $total_absent = $absent_working + ($half_day * $half_day_weight) + $late_permission_penalty;
+
+        $lop_days = $total_absent
+            + (($first_half_absent + $second_half_absent) * $half_day_weight);
+
+        return ['working_days'=>$working_days,'lop_days'=>$lop_days];
+    }
+
     public function incomegroup()
     {
         $this->session->set_userdata('top_menu', 'Reports');

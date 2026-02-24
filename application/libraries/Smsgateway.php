@@ -40,6 +40,53 @@ class Smsgateway
     {
         $sms_detail = $this->_CI->smsconfig_model->getActiveSMS();
 
+        // if active provider is whatsapp, send via Askeva and return
+        if (!empty($sms_detail) && $sms_detail->type == 'whatsapp') {
+            $token = $sms_detail->api_id;
+            $url   = "https://backend.askeva.io/v1/message/send-message?token=" . urlencode($token);
+            // Askeva does not allow underscores in template names, so strip them
+            $askeva_name = $template_id ? str_replace('_', '', $template_id) : '';
+            $payload = array(
+                'to' => $send_to,
+                'type' => 'template',
+                'template' => array(
+                    'language' => array('policy'=>'deterministic','code'=>'en'),
+                    'name' => $askeva_name,
+                ),
+            );
+            // build parameter list from detail array (preserve order)
+            if (!empty($detail) && is_array($detail)) {
+                $params = array();
+                foreach ($detail as $k => $v) {
+                    // remove underscores from key just in case, though Askeva ignores it
+                    $params[] = array('type' => 'text', 'text' => $v);
+                }
+                if (!empty($params)) {
+                    $payload['template']['components'] = array(array(
+                        'type' => 'body',
+                        'parameters' => $params,
+                    ));
+                }
+            } else {
+                // fallback to single body text if detail not array
+                $msg = $template != "" ? $this->getContent($detail, $template, $sms_detail->type) : $detail;
+                if (!empty($msg)) {
+                    $payload['template']['components'] = array(array(
+                        'type' => 'body',
+                        'parameters' => array(array('type'=>'text','text'=>$msg)),
+                    ));
+                }
+            }
+            $ch = curl_init($url);
+            curl_setopt($ch, CURLOPT_POST, true);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json'));
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+            curl_exec($ch);
+            curl_close($ch);
+            return true;
+        }
+
         if ($template != "") {
             $msg = $this->getContent($detail, $template, $sms_detail->type);
         } else {

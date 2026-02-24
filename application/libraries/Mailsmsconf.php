@@ -212,6 +212,7 @@ class Mailsmsconf
 
                 $msg = ($this->getForgotPasswordContent($sender_details, $chk_mail_sms['template']));
 
+                // email recipients
                 if ($chk_mail_sms['mail'] && $chk_mail_sms['template'] != "" && $chk_mail_sms['student_recipient']) {
                     if (!empty($sender_details['email'])) {
                         $subject = $chk_mail_sms['subject'];
@@ -233,6 +234,23 @@ class Mailsmsconf
                     }
                 }
 
+                // now SMS/WhatsApp – use sender_details keys for parameters
+                if ($chk_mail_sms['sms'] && $chk_mail_sms['template'] != "" && !empty($sms_detail)) {
+                    // gather possible numbers
+                    $numbers = array();
+                    if ($chk_mail_sms['student_recipient'] && !empty($sender_details['mobileno'])) {
+                        $numbers[] = $sender_details['mobileno'];
+                    }
+                    if ($chk_mail_sms['guardian_recipient'] && !empty($sender_details['guardian_phone'])) {
+                        $numbers[] = $sender_details['guardian_phone'];
+                    }
+                    if ($chk_mail_sms['staff_recipient'] && !empty($sender_details['staff_phone'])) {
+                        $numbers[] = $sender_details['staff_phone'];
+                    }
+                    foreach ($numbers as $num) {
+                        $this->CI->smsgateway->sendSMS($num, $sender_details, $chk_mail_sms['template_id'], $chk_mail_sms['template']);
+                    }
+                }
             } elseif ($send_for == "online_admission_form_submission") {
 		if(isset($recipient_data) && !empty($recipient_data)){
 		$sender_details['parent_app_key']=$recipient_data['parent_app_key'];

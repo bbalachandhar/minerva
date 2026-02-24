@@ -5,6 +5,8 @@
 
             <small class="pull-right">
                 <a type="button" onclick="sms_test()" class="btn btn-primary btn-sm"><?php echo $this->lang->line('sms_test'); ?></a>
+                &nbsp;&nbsp;
+                <a href="<?php echo site_url('whatsappconfig'); ?>" class="btn btn-info btn-sm"><?php echo $this->lang->line('whatsapp_gateway'); ?></a>
             </small></h1>
     </section> 
     <!-- Main content -->
@@ -14,6 +16,11 @@
                 <div class="nav-tabs-custom theme-shadow">
                     <div class="box-header with-border">
                        <h3 class="box-title titlefix"></i> <?php echo $this->lang->line('sms_setting'); ?></h3>
+                       <div class="box-tools pull-right">
+                           <a href="<?php echo site_url('whatsappconfig'); ?>" class="btn btn-info btn-sm">
+                               <?php echo $this->lang->line('whatsapp_gateway'); ?>
+                           </a>
+                       </div>
                     </div>
                     <ul class="nav nav-tabs">
                         <li class="active"><a href="#tab_1" data-toggle="tab"><?php echo $this->lang->line('clickatell_sms_gateway'); ?></a></li>
@@ -27,7 +34,6 @@
                         <li><a href="#tab_10" data-toggle="tab"><?php echo $this->lang->line('africastalking'); ?></a></li>
                         <li><a href="#tab_11" data-toggle="tab"><?php echo $this->lang->line('sms_egypt'); ?></a></li>
                         <li><a href="#tab_3" data-toggle="tab"><?php echo $this->lang->line('custom_sms_gateway'); ?></a></li>
-
                     </ul>
                     <div class="tab-content">
                         <div class="tab-pane active" id="tab_1">
@@ -105,6 +111,7 @@
                                 </div>
                             </form>
                         </div>
+                        <!-- /.tab-pane -->
                         <!-- /.tab-pane -->
                         <div class="tab-pane" id="tab_2">
                             <form role="form" id="twilio" id="twilio" action="<?php echo site_url('smsconfig/twilio') ?>" class="form-horizontal" method="post">

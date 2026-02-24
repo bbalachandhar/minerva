@@ -779,6 +779,16 @@ class Mailsms extends Admin_Controller
                                 $this->smsgateway->sendSMS($user_mail_value['mobileno'], $message, $template_id, "");
                             }
                         }
+                        if (in_array("whatsapp", $sms_mail)) {
+                            if ($user_mail_value['mobileno'] != "") {
+                                // use existing sms gateway for now; actual implementation may call whatsapp gateway
+                                if (method_exists($this->smsgateway,'sendWhatsApp')) {
+                                    $this->smsgateway->sendWhatsApp($user_mail_value['mobileno'], $message);
+                                } else {
+                                    // fallback log or no-op
+                                }
+                            }
+                        }
                         if (in_array("push", $sms_mail)) {
                             $push_array = array(
                                 'title' => $message_title,

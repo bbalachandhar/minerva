@@ -753,6 +753,23 @@ class Webservice extends CI_Controller
                                 $resp = array('status' => 200, 'message' => "Sending of message failed, Please contact to Admin.");
                             }
                         }
+                        // attempt SMS/WhatsApp as well
+                        $sms_detail = $this->smsconfig_model->getActiveSMS();
+                        $phone = '';
+                        if (isset($result->mobileno)) {
+                            $phone = $result->mobileno;
+                        } elseif (isset($result->guardian_phone)) {
+                            $phone = $result->guardian_phone;
+                        }
+                        if (!empty($phone) && !empty($sms_detail)) {
+                            // prepare detail parameters for SMS gateway
+                            $params = array(
+                                'name' => $name,
+                                'school_name' => $this->customlib->getSchoolName(),
+                                'resetPassLink' => $resetPassLink,
+                            );
+                            $this->smsgateway->sendSMS($phone, $params, $template->template_id, $template->template);
+                        }
                     } else {
                         $respStatus = 200;
                         $resp = array('status' => 200, 'message' => "Sending of message failed, Please contact to Admin.");

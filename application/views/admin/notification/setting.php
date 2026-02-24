@@ -59,8 +59,22 @@ if ($note_value->display_sms) {
                                                             <?php echo $this->lang->line('sms'); ?>
                                                         </label>
                                                         <?php
-}?>
+}
+?>
                                                     <br>
+                                                    <?php
+// always show whatsapp checkbox; display_whatsapp column controls visibility but
+// if the database hasn't been altered yet we'll default to visible
+if (!isset($note_value->display_whatsapp) || $note_value->display_whatsapp) {
+        ?>
+                                                        <label class="checkbox-inline">
+                                                            <input type="checkbox" name="whatsapp_<?php echo $note_value->id; ?>" value="1" <?php echo set_checkbox('whatsapp_' . $note_value->id, 1, set_value('whatsapp_' . $note_value->id, isset($note_value->is_whatsapp) ? $note_value->is_whatsapp : 0) ? true : false); ?>>
+                                                            <?php echo $this->lang->line('whatsapp'); ?>
+                                                        </label>
+                                                        <br>
+                                                        <?php
+}
+?>
                                                     <?php if ($note_value->display_notification) {
         ?>
                                                         <label class="checkbox-inline">

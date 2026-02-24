@@ -87,6 +87,7 @@ $config['question_true_false'] = array(
 );
 
 $config['send_through'] = array(
-    'sms'  => lang('sms'),
-    'push' => lang('mobile_app'),
+    'sms'      => lang('sms'),
+    'whatsapp' => lang('whatsapp'),
+    'push'     => lang('mobile_app'),
 );

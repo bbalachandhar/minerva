@@ -57,6 +57,15 @@ class Notification extends Admin_Controller
         $data                     = array();
         $data['title']            = 'Email Config List';
         $notificationlist         = $this->notificationsetting_model->get();
+        // ensure each result has display_whatsapp property to avoid undefined errors
+        foreach ($notificationlist as $nkey => $nval) {
+            if (!isset($nval->display_whatsapp)) {
+                $notificationlist[$nkey]->display_whatsapp = 1;
+            }
+            if (!isset($nval->is_whatsapp)) {
+                $notificationlist[$nkey]->is_whatsapp = 0;
+            }
+        }
         
         // Check if 'enquiry_form_submission' notification setting exists, if not, add it
         $enquiry_notification_exists = false;
@@ -81,6 +90,7 @@ class Notification extends Admin_Controller
                 'type'                => 'enquiry_form_submission',
                 'is_mail'             => 1, // Enabled by default for email
                 'is_sms'              => 0, // Disabled by default for SMS
+                'is_whatsapp'         => 0, // Disabled by default for WhatsApp
                 'is_notification'     => 0, // Disabled by default for internal notifications
                 'template'            => 'Dear {{name}} your enquiry has been submitted successfully on {{date}}. Your Reference number is {{reference_no}}. Please remember your reference number for further process.',
                 'subject'             => 'Enquiry Form Submission',
@@ -88,6 +98,7 @@ class Notification extends Admin_Controller
                 'is_student_recipient' => 0, // Not applicable for enquiry form
                 'is_guardian_recipient' => 0, // Not applicable for enquiry form
                 'is_staff_recipient'  => 0, // Not applicable for enquiry form
+                'display_whatsapp'    => 0, // no whatsapp option visible
             );
             $this->notificationsetting_model->add($enquiry_notification_data);
             // Re-fetch the list to include the newly added setting
@@ -104,12 +115,14 @@ class Notification extends Admin_Controller
                     'id'                    => $id_value,
                     'is_mail'               => 0,
                     'is_sms'                => 0,
+                    'is_whatsapp'           => 0,
                     'is_student_recipient'  => 0,
                     'is_guardian_recipient' => 0,
                     'is_staff_recipient'    => 0,
                 );
                 $mail               = $this->input->post('mail_' . $id_value);
                 $sms                = $this->input->post('sms_' . $id_value);
+                $whatsapp           = $this->input->post('whatsapp_' . $id_value);
                 $notification       = $this->input->post('notification_' . $id_value);
                 $student_recipient  = $this->input->post('student_recipient_' . $id_value);
                 $guardian_recipient = $this->input->post('guardian_recipient_' . $id_value);
@@ -119,6 +132,9 @@ class Notification extends Admin_Controller
                 }
                 if (isset($sms)) {
                     $array['is_sms'] = $sms;
+                }
+                if (isset($whatsapp)) {
+                    $array['is_whatsapp'] = $whatsapp;
                 }
                 if (isset($notification)) {
                     $array['is_notification'] = $notification;

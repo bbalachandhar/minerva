@@ -329,6 +329,7 @@ if (!function_exists('main_menu_array')) {
                 'sessions'              => array('index','edit'),                     
                 'notification'          => array('setting'),                     
                 'smsconfig'             => array('index'),                     
+                'whatsappconfig'        => array('index'),                     
                 'emailconfig'           => array('index'),                     
                 'paymentsettings'       => array('index'),                     
                 'print_headerfooter'    => array('index'),                     

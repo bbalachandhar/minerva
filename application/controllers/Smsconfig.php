@@ -10,6 +10,9 @@ class Smsconfig extends Admin_Controller
     public function __construct()
     {
         parent::__construct();
+        // ensure whatsapp submenu exists even if user never visits the whatsapp page directly
+        $this->load->model('sidebarmenu_model');
+        $this->createWhatsappSubmenu();
     }
 
     public function index()
@@ -26,6 +29,38 @@ class Smsconfig extends Admin_Controller
         $this->load->view('layout/header', $data);
         $this->load->view('smsconfig/smsList', $data);
         $this->load->view('layout/footer', $data);
+    }
+
+
+    /**
+     * create whatsapp submenu entry if missing (same logic as Whatsappconfig controller)
+     */
+    private function createWhatsappSubmenu()
+    {
+        $parent = $this->db->get_where('sidebar_menus', ['lang_key' => 'system_settings'])->row();
+        if (!$parent) {
+            return;
+        }
+        $exists = $this->db->get_where('sidebar_sub_menus', ['url' => 'whatsappconfig'])->row();
+        if ($exists) {
+            return;
+        }
+        $sms_sub = $this->db->get_where('sidebar_sub_menus', [
+            'sidebar_menu_id' => $parent->id,
+            'url'             => 'smsconfig',
+        ])->row();
+        $level = ($sms_sub && isset($sms_sub->level)) ? ($sms_sub->level + 1) : 1;
+        $insert = [
+            'sidebar_menu_id'     => $parent->id,
+            'url'                 => 'whatsappconfig',
+            'lang_key'            => 'whatsapp_setting',
+            'menu'                => $this->lang->line('whatsapp_setting'),
+            'activate_controller' => 'whatsappconfig',
+            'activate_methods'    => 'index',
+            'access_permissions'  => 'sms_setting',
+            'level'               => $level,
+        ];
+        $this->sidebarmenu_model->addSubMenu($insert);
     }
 
     public function clickatell()
@@ -91,6 +126,7 @@ class Smsconfig extends Admin_Controller
             echo json_encode(array('st' => 1, 'msg' => $data));
         }
     }
+
 
     public function custom()
     {

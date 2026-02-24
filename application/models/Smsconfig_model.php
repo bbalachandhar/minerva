@@ -26,7 +26,18 @@ class Smsconfig_model extends MY_Model {
 
     public function changeStatus($type) {
         $data = array('is_active' => 'disabled');
-        $this->db->where('type !=', $type);
+        // When enabling one configuration we only want to disable others in the same group
+        // SMS configs and WhatsApp configs are stored in the same table but should not
+        // affect each other. We treat any type starting with 'whatsapp' as whatsapp group.
+        if (strpos($type, 'whatsapp') === 0) {
+            // disable other whatsapp configs only
+            $this->db->where('type LIKE', 'whatsapp%');
+            $this->db->where('type !=', $type);
+        } else {
+            // disable everything except whatsapp entries and the current type
+            $this->db->where('type NOT LIKE', 'whatsapp%');
+            $this->db->where('type !=', $type);
+        }
         $this->db->update('sms_config', $data);
     }
 
@@ -73,6 +84,19 @@ class Smsconfig_model extends MY_Model {
     public function getActiveSMS() {
         $this->db->select()->from('sms_config');
         $this->db->where('is_active', 'enabled');
+        // exclude any whatsapp configuration entries so they are handled separately
+        $this->db->where('type NOT LIKE', 'whatsapp%');
+        $query = $this->db->get();
+        return $query->row();
+    }
+
+    /**
+     * Retrieve the currently enabled whatsapp configuration (first enabled whatsapp entry)
+     */
+    public function getActiveWhatsapp() {
+        $this->db->select()->from('sms_config');
+        $this->db->where('is_active', 'enabled');
+        $this->db->like('type', 'whatsapp', 'after');
         $query = $this->db->get();
         return $query->row();
     }

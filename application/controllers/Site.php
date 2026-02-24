@@ -233,7 +233,15 @@ class Site extends Public_Controller
                     $this->staff_model->add($update_record);
                     $name           = $result->name;
                     $resetPassLink  = site_url('admin/resetpassword') . "/" . $verification_code;
-                    $sender_details = array('resetPassLink' => $resetPassLink, 'name' => $name, 'username' => $result->surname, 'staff_email' => $email);
+                    $sender_details = array(
+                        'resetPassLink' => $resetPassLink,
+                        'name' => $name,
+                        'username' => $result->surname,
+                        'staff_email' => $email,
+                        'mobileno' => isset($result->mobileno) ? $result->mobileno : '',
+                        'guardian_phone' => isset($result->guardian_phone) ? $result->guardian_phone : '',
+                        'staff_phone' => isset($result->contact_no) ? $result->contact_no : ''
+                    );
                     $this->mailsmsconf->mailsms('forgot_password', $sender_details);
                     $this->session->set_flashdata('message', $this->lang->line('please_check_your_email_to_recover_your_password'));
                 } else {

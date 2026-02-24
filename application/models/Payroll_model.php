@@ -538,7 +538,16 @@ class Payroll_model extends MY_Model
         
         // Add month filter if provided
         if (!empty($filter_month)) {
-            $condition .= " AND staff_payslip.month = '" . $this->db->escape_str($filter_month) . "'";
+            $escaped = $this->db->escape_str($filter_month);
+            // build condition allowing both number and month name
+            if (ctype_digit($filter_month)) {
+                $num = intval($filter_month);
+                $monthName = date('F', mktime(0, 0, 0, $num, 1));
+                $condition .= " AND (staff_payslip.month = '" . $escaped . "' OR staff_payslip.month = '" . $this->db->escape_str($monthName) . "')";
+            } else {
+                // filter_month not numeric; may be name
+                $condition .= " AND (staff_payslip.month = '" . $escaped . "' OR staff_payslip.month = '" . $this->db->escape_str(date('m', strtotime($filter_month . ' 1'))) . "')";
+            }
         }
         
         // Add year filter if provided
