@@ -272,6 +272,41 @@ $count++;
     $(document).ready(function () {
         $('.table-fixed-header').fixedHeader();
     });
+    
+    // initialize DataTable with export buttons and custom header
+    $(document).ready(function () {
+        var schoolName = "<?php echo addslashes($this->sch_setting_detail->name);?>";
+        var schoolAddr = "<?php echo addslashes($this->sch_setting_detail->address);?>";
+        var headerMsg = schoolName + "\n" + schoolAddr + "\n" + ("<?php echo addslashes($report_title ?? $this->lang->line('payroll_report'));?>") + "\n";
+        $('.table-fixed-header').DataTable({
+            dom: 'Bfrtip',
+            buttons: [
+                'copy','csv',
+                {
+                    extend:'excelHtml5', title:'', messageTop:headerMsg,
+                    customize:function(xlsx){
+                        var sheet = xlsx.xl.worksheets['sheet1.xml'];
+                        $('row c[r^="A1"]',sheet).attr('s','22');
+                    },
+                    exportOptions:{format:{body:function(d){return d.replace(/(<([^>]+)>)/ig,'');},footer:function(d){return d.replace(/(<([^>]+)>)/ig,'');}}},footer:true
+                },
+                {
+                    extend:'pdfHtml5', title:'', customize:function(doc){
+                        doc.content.splice(0,0,
+                            {text:schoolName,style:'dtHeader'},
+                            {text:schoolAddr,style:'dtSubHeader'},
+                            {text:("<?php echo addslashes($report_title ?? $this->lang->line('payroll_report'));?>"),style:'dtSubHeader'},
+                            {text:'\n'}
+                        );
+                        doc.styles.dtHeader={fontSize:16,bold:true,alignment:'center'};
+                        doc.styles.dtSubHeader={fontSize:11,alignment:'center'};
+                    },footer:true
+                },
+                'print'
+            ],
+            ordering:false,paging:false,info:false
+        });
+    });
 
     (function ($) {
         $.fn.fixedHeader = function (options) {

@@ -572,7 +572,8 @@ $months = array(
         if (!data) {
             return;
         }
-        var selection = collectSelectedStaff(false, false);
+        // use same logic as generate to skip rows without days value
+        var selection = collectSelectedStaff(true, true);
         if (!selection.ids.length) {
             showMessage('warning', '<?php echo addslashes($select_staff_warning); ?>');
             return;
@@ -581,11 +582,15 @@ $months = array(
             showMessage('info', '<?php echo addslashes($cancelled_text); ?>');
             return;
         }
+        if (selection.skipped > 0) {
+            showMessage('info', selection.skipped + ' <?php echo addslashes($skipped_days_info); ?>');
+        }
 
         postAction(baseurl + 'admin/specialattendance/process_attendance', {
             employee_ids: selection.ids,
             month: data.month,
-            year: data.year
+            year: data.year,
+            days_present: selection.days // send so server can double-check
         }, '<?php echo addslashes($process_success_text); ?>');
     });
 

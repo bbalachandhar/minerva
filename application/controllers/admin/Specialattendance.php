@@ -238,11 +238,24 @@ class Specialattendance extends Admin_Controller
         }
 
         $employee_ids = $this->input->post('employee_ids');
+        $days_present = $this->input->post('days_present'); // optional array
         $month = $this->input->post('month');
         $year = $this->input->post('year');
 
         if (empty($employee_ids) || empty($month) || empty($year)) {
             echo json_encode(['status' => 'error', 'message' => 'Missing required data']);
+            return;
+        }
+
+        // if days_present provided, filter out staff with non‑positive values
+        if (!empty($days_present) && is_array($days_present)) {
+            $employee_ids = array_filter($employee_ids, function($id) use ($days_present) {
+                return isset($days_present[$id]) && floatval($days_present[$id]) > 0;
+            });
+        }
+
+        if (empty($employee_ids)) {
+            echo json_encode(['status' => 'error', 'message' => 'No valid staff selected for processing']);
             return;
         }
 

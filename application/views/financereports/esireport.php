@@ -161,6 +161,10 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                     extend: 'excelHtml5',
                     title: '',
                     messageTop: headerMsg,
+                    customize: function (xlsx) {
+                        var sheet = xlsx.xl.worksheets['sheet1.xml'];
+                        $('row c[r^="A1"]', sheet).attr('s', '22');
+                    },
                     exportOptions: {
                         format: {
                             body: function ( data, row, column, node ) {
