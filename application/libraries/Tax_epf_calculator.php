@@ -126,6 +126,63 @@ class Tax_epf_calculator
     }
 
     /**
+     * Calculate Employer EDLI (Insurance) Contribution
+     * 0.5% of EPF Wage
+     * 
+     * @param float $epf_wage EPF wage
+     * @return float Employer EDLI contribution
+     */
+    public function calculate_employer_edli($epf_wage)
+    {
+        if (!$this->config['enabled']) {
+            return 0;
+        }
+        
+        $rate = $this->config['employer_edli_rate'] / 100;
+        return round($epf_wage * $rate, 2);
+    }
+
+    /**
+     * Calculate Employer Admin Charges
+     * 0.5% of EPF Wage
+     * 
+     * @param float $epf_wage EPF wage
+     * @return float Employer Admin Charges
+     */
+    public function calculate_employer_admin_charges($epf_wage)
+    {
+        if (!$this->config['enabled']) {
+            return 0;
+        }
+        
+        $rate = $this->config['employer_admin_rate'] / 100;
+        return round($epf_wage * $rate, 2);
+    }
+
+    /**
+     * Calculate Total Employer EPF Contribution with all components
+     * PF (3.67%) + EPS (8.33%) + EDLI (0.5%) + Admin Charges (0.5%) = 13%
+     * 
+     * @param float $epf_wage EPF wage
+     * @return array Array with breakdown: ['pf' => amt, 'eps' => amt, 'edli' => amt, 'admin' => amt, 'total' => total]
+     */
+    public function calculate_employer_epf_with_breakdown($epf_wage)
+    {
+        $pf = $this->calculate_employer_pf($epf_wage);
+        $eps = $this->calculate_employer_eps($epf_wage);
+        $edli = $this->calculate_employer_edli($epf_wage);
+        $admin = $this->calculate_employer_admin_charges($epf_wage);
+        
+        return array(
+            'pf' => $pf,
+            'eps' => $eps,
+            'edli' => $edli,
+            'admin' => $admin,
+            'total' => round($pf + $eps + $edli + $admin, 2),
+        );
+    }
+
+    /**
      * Calculate ESI Wage (ESI salary)
      * This is the total wages on which ESI is calculated
      * ESI Wage = MIN(Total Wages, 21000)
@@ -370,6 +427,8 @@ class Tax_epf_calculator
         $employee_epf = $this->calculate_employee_epf($epf_wage);
         $employer_pf = $this->calculate_employer_pf($epf_wage);
         $employer_eps = $this->calculate_employer_eps($epf_wage);
+        $employer_edli = $this->calculate_employer_edli($epf_wage);
+        $employer_admin = $this->calculate_employer_admin_charges($epf_wage);
         
         // Calculate TDS
         $gross_salary = $basic + $total_allowance;
@@ -380,7 +439,9 @@ class Tax_epf_calculator
             'employee_epf' => $employee_epf,
             'employer_pf' => $employer_pf,
             'employer_eps' => $employer_eps,
-            'employer_epf_total' => $employer_pf + $employer_eps,
+            'employer_edli' => $employer_edli,
+            'employer_admin' => $employer_admin,
+            'employer_epf_total' => $employer_pf + $employer_eps + $employer_edli + $employer_admin,
             'tds' => round($monthly_tds, 2),
             'total_deductions' => $employee_epf + $monthly_tds + $total_deduction + $lop_deduction,
         );

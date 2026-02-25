@@ -94,7 +94,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                         <th class="text text-right"><?php echo $this->lang->line('lop_amount'); ?> <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
                                         <th class="text text-right">EPF (Employee) <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
                                         <th class="text text-right"><?php echo $this->lang->line('net_salary'); ?> <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
-                                        <th class="text text-right">EPF (Employer) <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
+                                        <th class="text text-right">Employer EPF (13%) <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -133,6 +133,9 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                             $net_total += $value['net_salary'];
                                             $emp_epf_total += !empty($value['employee_epf']) ? $value['employee_epf'] : 0;
                                             $empr_epf_total += !empty($value['employer_pf']) ? $value['employer_pf'] : 0;
+                                            $empr_epf_total += !empty($value['employer_eps']) ? $value['employer_eps'] : 0;
+                                            $empr_epf_total += !empty($value['employer_edli']) ? $value['employer_edli'] : 0;
+                                            $empr_epf_total += !empty($value['employer_admin']) ? $value['employer_admin'] : 0;
                                             ?>
                                             <tr>
                                                 <td><?php echo $value['name'] . ' ' . $value['surname']; ?></td>
@@ -143,7 +146,13 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                                 <td class="text text-right"><?php if($lop_amt>0){ echo amountFormat($lop_amt);} ?></td>
                                                 <td class="text text-right"><?php echo (!empty($value['employee_epf']) ? amountFormat($value['employee_epf']) : '-'); ?></td>
                                                 <td class="text text-right"><?php if ($value['net_salary'] > 0) { echo amountFormat($value['net_salary']); } ?></td>
-                                                <td class="text text-right"><?php echo (!empty($value['employer_pf']) ? amountFormat($value['employer_pf']) : '-'); ?></td>
+                                                <td class="text text-right"><?php 
+                                                    $total_empr = (!empty($value['employer_pf']) ? $value['employer_pf'] : 0) + 
+                                                                  (!empty($value['employer_eps']) ? $value['employer_eps'] : 0) + 
+                                                                  (!empty($value['employer_edli']) ? $value['employer_edli'] : 0) + 
+                                                                  (!empty($value['employer_admin']) ? $value['employer_admin'] : 0);
+                                                    echo ($total_empr > 0 ? amountFormat($total_empr) : '-'); 
+                                                ?></td>
                                             </tr>
                                             <?php
                                         }

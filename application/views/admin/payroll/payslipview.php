@@ -320,6 +320,14 @@ echo amountFormat($gross_salary);?></td>
                             <th width="20%">Employer Contribution - EPS 8.33% (<?php echo $currency_symbol; ?>)</th>
                             <td class="text-right"><?php echo amountFormat($result["employer_eps"]); ?></td>
                         </tr>
+                        <tr>
+                            <th width="20%">Employer Contribution - EDLI (Insurance) 0.5% (<?php echo $currency_symbol; ?>)</th>
+                            <td class="text-right"><?php echo amountFormat($result["employer_edli"] ?? 0); ?></td>
+                        </tr>
+                        <tr>
+                            <th width="20%">Employer Contribution - Admin Charges 0.5% (<?php echo $currency_symbol; ?>)</th>
+                            <td class="text-right"><?php echo amountFormat($result["employer_admin"] ?? 0); ?></td>
+                        </tr>
                         <?php } ?>
                         
                         <!-- TDS Deduction -->

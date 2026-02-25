@@ -733,6 +733,8 @@ class Payroll extends Admin_Controller
         $employee_epf = $this->tax_epf_calculator->calculate_employee_epf($epf_wage);
         $employer_pf = $this->tax_epf_calculator->calculate_employer_pf($epf_wage);
         $employer_eps = $this->tax_epf_calculator->calculate_employer_eps($epf_wage);
+        $employer_edli = $this->tax_epf_calculator->calculate_employer_edli($epf_wage);
+        $employer_admin = $this->tax_epf_calculator->calculate_employer_admin_charges($epf_wage);
         
         // ESI calculation based on salary threshold (≤ ₹21,000)
         $esi_wage = $this->tax_epf_calculator->calculate_esi_wage($basic, $da, $total_allowance, 0);
@@ -759,6 +761,8 @@ class Payroll extends Admin_Controller
                 'employee_epf'    => round($employee_epf, 2),
                 'employer_pf'     => round($employer_pf, 2),
                 'employer_eps'    => round($employer_eps, 2),
+                'employer_edli'   => round($employer_edli, 2),
+                'employer_admin'  => round($employer_admin, 2),
                 'esi_wage'        => round($esi_wage, 2),
                 'employee_esi'    => round($employee_esi, 2),
                 'employer_esi'    => $employer_esi,
@@ -773,7 +777,7 @@ class Payroll extends Admin_Controller
                 // Get staff data to calculate EPF/ESI based on dual checkpoints
                 $staff_data = $this->payroll_model->searchEmployeeById($staff_id);
                 // include allowances in EPF base
-                $statutory_deductions = $this->payroll_model->calculateStatutoryDeductions($staff_data, 0.12, 0.0075, $total_allowance);
+                $statutory_deductions = $this->payroll_model->calculateStatutoryDeductions($staff_data, 0.13, 0.0075, $total_allowance);
                 
                 // Load allowance type mapping
                 $allowance_types = $this->payroll_model->getAllowanceTypes(null, false);
@@ -1064,7 +1068,7 @@ class Payroll extends Admin_Controller
                 // Get staff data to calculate EPF/ESI based on dual checkpoints
                 $staff_data = $this->payroll_model->searchEmployeeById($staff_id);
                 // include allowances in EPF/ESI rules
-                $statutory_deductions = $this->payroll_model->calculateStatutoryDeductions($staff_data, 0.12, 0.0075, $total_allowance);
+                $statutory_deductions = $this->payroll_model->calculateStatutoryDeductions($staff_data, 0.13, 0.0075, $total_allowance);
                 
                 // Load allowance type mapping to convert IDs to codes
                 $allowance_types = $this->payroll_model->getAllowanceTypes(null, false);
@@ -1379,6 +1383,8 @@ class Payroll extends Admin_Controller
             $employee_epf = 0;
             $employer_pf = 0;
             $employer_eps = 0;
+            $employer_edli = 0;
+            $employer_admin = 0;
             
             if (!empty($staff['uan_no']) && isset($staff['is_epf_enabled']) && $staff['is_epf_enabled'] == 1) {
                 // Staff has UAN and EPF is enabled - calculate EPF wage
@@ -1388,6 +1394,8 @@ class Payroll extends Admin_Controller
                 $employee_epf = $this->tax_epf_calculator->calculate_employee_epf($epf_wage);
                 $employer_pf = $this->tax_epf_calculator->calculate_employer_pf($epf_wage);
                 $employer_eps = $this->tax_epf_calculator->calculate_employer_eps($epf_wage);
+                $employer_edli = $this->tax_epf_calculator->calculate_employer_edli($epf_wage);
+                $employer_admin = $this->tax_epf_calculator->calculate_employer_admin_charges($epf_wage);
             }
             // If UAN is not available, EPF is 0 (skip this staff for EPF)
             
@@ -1455,6 +1463,8 @@ class Payroll extends Admin_Controller
                 'employee_epf' => round($employee_epf, 2),
                 'employer_pf' => round($employer_pf, 2),
                 'employer_eps' => round($employer_eps, 2),
+                'employer_edli' => round($employer_edli, 2),
+                'employer_admin' => round($employer_admin, 2),
                 // ESI fields
                 'esi_wage' => $esi_wage,
                 'employee_esi' => round($esi_deduction, 2),
@@ -1796,6 +1806,8 @@ class Payroll extends Admin_Controller
         $employee_epf = 0;
         $employer_pf = 0;
         $employer_eps = 0;
+        $employer_edli = 0;
+        $employer_admin = 0;
         $esi_wage = 0;
         $esi_deduction = 0;
 
@@ -1810,6 +1822,8 @@ class Payroll extends Admin_Controller
             $employee_epf = $this->tax_epf_calculator->calculate_employee_epf($epf_wage);
             $employer_pf = $this->tax_epf_calculator->calculate_employer_pf($epf_wage);
             $employer_eps = $this->tax_epf_calculator->calculate_employer_eps($epf_wage);
+            $employer_edli = $this->tax_epf_calculator->calculate_employer_edli($epf_wage);
+            $employer_admin = $this->tax_epf_calculator->calculate_employer_admin_charges($epf_wage);
         }
 
         // Calculate ESI based on salary threshold only (≤ ₹21,000)

@@ -750,6 +750,18 @@ $deduction_count++;
                                                         <input type="text" id="employer_eps" name="employer_eps" value="<?php echo convertBaseAmountCurrencyFormat($employee_payroll['employer_eps']); ?>" readonly />
                                                     </span>
                                                 </div>
+                                                <div class="modern-summary-row">
+                                                    <span class="modern-summary-label">Employer EDLI (0.5%)</span>
+                                                    <span class="modern-summary-value" style="color: #d84315;">
+                                                        <input type="text" id="employer_edli" name="employer_edli" value="<?php echo convertBaseAmountCurrencyFormat($employee_payroll['employer_edli'] ?? 0); ?>" readonly />
+                                                    </span>
+                                                </div>
+                                                <div class="modern-summary-row">
+                                                    <span class="modern-summary-label">Employer Admin (0.5%)</span>
+                                                    <span class="modern-summary-value" style="color: #ef6c00;">
+                                                        <input type="text" id="employer_admin" name="employer_admin" value="<?php echo convertBaseAmountCurrencyFormat($employee_payroll['employer_admin'] ?? 0); ?>" readonly />
+                                                    </span>
+                                                </div>
                                             </div>
 
                                             <!-- ESI SECTION -->
@@ -924,6 +936,8 @@ $deduction_count++;
             $("#employee_epf").val(parseAmount(response.employee_epf).toFixed(2));
             $("#employer_pf").val(parseAmount(response.employer_pf).toFixed(2));
             $("#employer_eps").val(parseAmount(response.employer_eps).toFixed(2));
+            $("#employer_edli").val(parseAmount(response.employer_edli).toFixed(2));
+            $("#employer_admin").val(parseAmount(response.employer_admin).toFixed(2));
 
             // update ESI values
             if ($("#esi_wage").length) {

@@ -92,7 +92,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                             if(!empty($abstractList)){
                                 foreach($abstractList as $r){
                                     $bank_credit += floatval($r['net_salary'] ?? 0);
-                                    $total_epf += floatval($r['employee_epf'] ?? 0) + floatval($r['employer_pf'] ?? 0);
+                                    $total_epf += floatval($r['employee_epf'] ?? 0) + floatval($r['employer_pf'] ?? 0) + floatval($r['employer_eps'] ?? 0) + floatval($r['employer_edli'] ?? 0) + floatval($r['employer_admin'] ?? 0);
                                     $total_esi += floatval($r['employee_esi'] ?? 0) + floatval($r['employer_esi'] ?? 0);
                                     $total_income_tax += floatval($r['tax'] ?? 0);
                                     $gross = floatval($r['basic'] ?? 0) + floatval($r['total_allowance'] ?? 0);

@@ -41,8 +41,16 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                     <td style="color: #ff6b00; font-weight: 600;"><?php echo $epf['employer_pf_rate']; ?>%</td>
                                 </tr>
                                 <tr style="background: #fff3cd;">
-                                    <td><strong>&nbsp;&nbsp;└─ EPS Contribution</strong></td>
+                                    <td><strong>&nbsp;&nbsp;├─ EPS Contribution</strong></td>
                                     <td style="color: #ff6b00; font-weight: 600;"><?php echo $epf['employer_eps_rate']; ?>%</td>
+                                </tr>
+                                <tr style="background: #fff3cd;">
+                                    <td><strong>&nbsp;&nbsp;├─ EDLI (Insurance)</strong></td>
+                                    <td style="color: #ff6b00; font-weight: 600;"><?php echo $epf['employer_edli_rate']; ?>%</td>
+                                </tr>
+                                <tr style="background: #fff3cd;">
+                                    <td><strong>&nbsp;&nbsp;└─ Admin Charges</strong></td>
+                                    <td style="color: #ff6b00; font-weight: 600;"><?php echo $epf['employer_admin_rate']; ?>%</td>
                                 </tr>
                                 <tr>
                                     <td><strong>EPF Wage Ceiling</strong></td>
@@ -76,6 +84,15 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                             </p>
                             <p style="margin: 8px 0; color: #555;">
                                 <strong>Employer EPS</strong> = MIN(<?php echo $epf['employer_eps_rate']; ?>% × EPF Wage, ₹<?php echo number_format($epf['eps_monthly_cap']); ?> per month)
+                            </p>
+                            <p style="margin: 8px 0; color: #555;">
+                                <strong>Employer EDLI</strong> = <?php echo $epf['employer_edli_rate']; ?>% × EPF Wage
+                            </p>
+                            <p style="margin: 8px 0; color: #555;">
+                                <strong>Employer Admin Charges</strong> = <?php echo $epf['employer_admin_rate']; ?>% × EPF Wage
+                            </p>
+                            <p style="margin: 15px 0 0 0; padding-top: 12px; border-top: 1px solid #90caf9; color: #1565c0; font-weight: 600;">
+                                <strong>Total Employer EPF Contribution</strong> = <?php echo $epf['employer_pf_rate'] + $epf['employer_eps_rate'] + $epf['employer_edli_rate'] + $epf['employer_admin_rate']; ?>% of EPF Wage
                             </p>
                         </div>
                     </div>
