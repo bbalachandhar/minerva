@@ -3,7 +3,11 @@
 // Initialize variables to prevent undefined warnings
 $ug_details = isset($ug_details) && !empty($ug_details) ? $ug_details : array();
 $reference_details = isset($reference_details) && !empty($reference_details) ? $reference_details : array();
+$current_gender = strtolower(trim(isset($student['gender']) ? $student['gender'] : ''));
+$current_community = isset($student['cast']) ? $student['cast'] : '';
 ?>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/plugins/monthSelect/style.css">
 <!-- Content Wrapper. Contains page content -->
 <div class="content-wrapper">
     <!-- Main content -->
@@ -29,16 +33,22 @@ $reference_details = isset($reference_details) && !empty($reference_details) ? $
 
                             <!-- Reference Number & Course Level (Read-Only) -->
                             <div class="row">
-                                <div class="col-md-6">
+                                <div class="col-md-4">
                                     <div class="form-group">
                                         <label>Application Ref No (Read-Only)</label>
                                         <input type="text" class="form-control" value="<?php echo $student['reference_no']; ?>" readonly style="background-color: #e9ecef;">
                                     </div>
                                 </div>
-                                <div class="col-md-6">
+                                <div class="col-md-4">
                                     <div class="form-group">
                                         <label>Form Status (Read-Only)</label>
                                         <input type="text" class="form-control" value="<?php echo ($student['form_status'] == 1) ? 'Submitted' : 'Draft'; ?>" readonly style="background-color: #e9ecef;">
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label>Course applied (Read-Only)</label>
+                                        <input type="text" class="form-control" value="<?php echo isset($course_applied) ? $course_applied : 'N/A'; ?>" readonly style="background-color: #e9ecef;">
                                     </div>
                                 </div>
                             </div>
@@ -47,25 +57,41 @@ $reference_details = isset($reference_details) && !empty($reference_details) ? $
                             <hr>
                             <h4 style="margin-top: 20px; margin-bottom: 15px;"><strong>Personal Information</strong></h4>
 
-                            <!-- Student Name & Gender -->
+                            <!-- Student Name, Gender & Community -->
                             <div class="row">
-                                <div class="col-md-6">
+                                <div class="col-md-4">
                                     <div class="form-group">
                                         <label for="user_name">Full Name <span style="color:red;">*</span></label>
                                         <input type="text" class="form-control" id="user_name" name="user_name" placeholder="Enter full name" value="<?php echo set_value('user_name', $student['firstname']); ?>" required>
                                         <span class="text-danger"><?php echo form_error('user_name'); ?></span>
                                     </div>
                                 </div>
-                                <div class="col-md-6">
+                                <div class="col-md-4">
                                     <div class="form-group">
                                         <label for="gender">Gender <span style="color:red;">*</span></label>
                                         <select class="form-control" id="gender" name="gender" required>
                                             <option value="">Select Gender</option>
-                                            <option value="Male" <?php echo set_select('gender', 'Male', $student['gender'] == 'Male'); ?>>Male</option>
-                                            <option value="Female" <?php echo set_select('gender', 'Female', $student['gender'] == 'Female'); ?>>Female</option>
-                                            <option value="Other" <?php echo set_select('gender', 'Other', $student['gender'] == 'Other'); ?>>Other</option>
+                                            <option value="Male" <?php echo set_select('gender', 'Male', $current_gender == 'male'); ?>>Male</option>
+                                            <option value="Female" <?php echo set_select('gender', 'Female', $current_gender == 'female'); ?>>Female</option>
+                                            <option value="Other" <?php echo set_select('gender', 'Other', $current_gender == 'other'); ?>>Other</option>
                                         </select>
                                         <span class="text-danger"><?php echo form_error('gender'); ?></span>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label for="community">Community</label>
+                                        <select class="form-control" id="community" name="community">
+                                            <option value="">Select Community</option>
+                                            <option value="OC" <?php echo set_select('community', 'OC', $current_community == 'OC'); ?>>OC (General)</option>
+                                            <option value="BC" <?php echo set_select('community', 'BC', $current_community == 'BC'); ?>>BC</option>
+                                            <option value="MBC" <?php echo set_select('community', 'MBC', $current_community == 'MBC'); ?>>MBC</option>
+                                            <option value="BCM" <?php echo set_select('community', 'BCM', $current_community == 'BCM'); ?>>BCM</option>
+                                            <option value="SC" <?php echo set_select('community', 'SC', $current_community == 'SC'); ?>>SC</option>
+                                            <option value="SCA" <?php echo set_select('community', 'SCA', $current_community == 'SCA'); ?>>SCA</option>
+                                            <option value="ST" <?php echo set_select('community', 'ST', $current_community == 'ST'); ?>>ST</option>
+                                        </select>
+                                        <span class="text-danger"><?php echo form_error('community'); ?></span>
                                     </div>
                                 </div>
                             </div>
@@ -75,7 +101,7 @@ $reference_details = isset($reference_details) && !empty($reference_details) ? $
                                 <div class="col-md-6">
                                     <div class="form-group">
                                         <label for="dob">Date of Birth <span style="color:red;">*</span></label>
-                                        <input type="date" class="form-control" id="dob" name="dob" value="<?php echo set_value('dob', $student['dob']); ?>" required>
+                                        <input type="text" class="form-control" id="dob" name="dob" value="<?php echo set_value('dob', $student['dob']); ?>" required>
                                         <span class="text-danger"><?php echo form_error('dob'); ?></span>
                                     </div>
                                 </div>
@@ -270,16 +296,22 @@ $reference_details = isset($reference_details) && !empty($reference_details) ? $
                             <hr>
                             <h4 style="margin-top: 20px; margin-bottom: 15px;"><strong>Additional Information</strong></h4>
                             <div class="row">
-                                <div class="col-md-6">
+                                <div class="col-md-4">
                                     <div class="form-group">
                                         <label for="school_name">Name of School (X Std)</label>
-                                        <input type="text" class="form-control" id="school_name" name="school_name" placeholder="Enter school name" value="<?php echo set_value('school_name', (isset($ug_details['school_name']) ? $ug_details['school_name'] : '')); ?>" onkeydown="return allowAlphabets(event);">
+                                        <input type="text" class="form-control" id="school_name" name="school_name" placeholder="Enter school name" value="<?php echo set_value('school_name', (isset($student['school_name_x']) ? $student['school_name_x'] : '')); ?>">
                                     </div>
                                 </div>
-                                <div class="col-md-6">
+                                <div class="col-md-4">
                                     <div class="form-group">
                                         <label for="tenth_passing">Year of Passing (X Std)</label>
-                                        <input type="text" class="form-control" id="tenth_passing" name="tenth_passing" placeholder="YYYY" minlength="4" maxlength="4" value="<?php echo set_value('tenth_passing', (isset($ug_details['tenth_passing']) ? $ug_details['tenth_passing'] : '')); ?>" onKeyPress="return checkIt(event);">
+                                        <input type="text" class="form-control" id="tenth_passing" name="tenth_passing" placeholder="YYYY-MM" minlength="4" maxlength="20" value="<?php echo set_value('tenth_passing', (isset($student['passing_year_x']) ? $student['passing_year_x'] : '')); ?>">
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label for="tenth_marks_percentage">X Marks (in %)</label>
+                                        <input type="number" step="0.01" min="0" max="100" class="form-control" id="tenth_marks_percentage" name="tenth_marks_percentage" placeholder="Enter percentage" value="<?php echo set_value('tenth_marks_percentage', (isset($student['tenth_marks_percentage']) ? $student['tenth_marks_percentage'] : '')); ?>">
                                     </div>
                                 </div>
                             </div>
@@ -307,6 +339,8 @@ $reference_details = isset($reference_details) && !empty($reference_details) ? $
 </div>
 <!-- /.content-wrapper -->
 
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/plugins/monthSelect/index.js"></script>
 <script>
 function checkIt(e) {
     if (e.charCode >= 48 && e.charCode <= 57)
@@ -387,6 +421,30 @@ function calculateTotal() {
 }
 
 $(document).ready(function() {
+    flatpickr('#dob', {
+        dateFormat: 'Y-m-d',
+        allowInput: false,
+        maxDate: new Date()
+    });
+
+    var tenthField = $('#tenth_passing');
+    var tenthValue = (tenthField.val() || '').trim();
+    if (/^\d{4}$/.test(tenthValue)) {
+        tenthField.val(tenthValue + '-01');
+    }
+
+    flatpickr('#tenth_passing', {
+        dateFormat: 'Y-m',
+        allowInput: false,
+        plugins: [
+            new monthSelectPlugin({
+                shorthand: true,
+                dateFormat: 'Y-m',
+                altFormat: 'F Y'
+            })
+        ]
+    });
+
     $("#maths_marks, #total_maths, #physics_marks, #total_physics, #chemistry_marks, #total_chemistry").on("input", function() {
         calculateTotal();
     });

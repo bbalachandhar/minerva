@@ -34,6 +34,37 @@
                                 <span class="text-danger"><?php echo form_error('course_code'); ?></span>
                             </div>
                             <div class="form-group">
+                                <label>Course Level</label><small class="req"> *</small>
+                                <select class="form-control" name="course_level">
+                                    <option value="ug" <?php echo set_select('course_level', 'ug', (isset($course['course_level']) && $course['course_level'] == 'ug')); ?>>UG</option>
+                                    <option value="pg" <?php echo set_select('course_level', 'pg', (isset($course['course_level']) && $course['course_level'] == 'pg')); ?>>PG</option>
+                                </select>
+                                <span class="text-danger"><?php echo form_error('course_level'); ?></span>
+                            </div>
+                            <div class="form-group">
+                                <label>Admission Type</label><small class="req"> *</small>
+                                <select class="form-control" name="admission_type">
+                                    <option value="first_year" <?php echo set_select('admission_type', 'first_year', (isset($course['admission_type']) && $course['admission_type'] == 'first_year')); ?>>First Year</option>
+                                    <option value="lateral" <?php echo set_select('admission_type', 'lateral', (isset($course['admission_type']) && $course['admission_type'] == 'lateral')); ?>>Lateral Entry</option>
+                                </select>
+                                <span class="text-danger"><?php echo form_error('admission_type'); ?></span>
+                            </div>
+                            <div class="form-group">
+                                <label>Government Fee</label><small class="req"> *</small>
+                                <input id="govt_fee" name="govt_fee" type="number" step="0.01" min="0" class="form-control"  value="<?php echo set_value('govt_fee', isset($course['govt_fee']) ? $course['govt_fee'] : '0'); ?>" />
+                                <span class="text-danger"><?php echo form_error('govt_fee'); ?></span>
+                            </div>
+                            <div class="form-group">
+                                <label>Management Fee</label><small class="req"> *</small>
+                                <input id="mgt_fee" name="mgt_fee" type="number" step="0.01" min="0" class="form-control"  value="<?php echo set_value('mgt_fee', isset($course['mgt_fee']) ? $course['mgt_fee'] : '0'); ?>" />
+                                <span class="text-danger"><?php echo form_error('mgt_fee'); ?></span>
+                            </div>
+                            <div class="form-group">
+                                <label>Sort Order</label>
+                                <input id="sort_order" name="sort_order" type="number" step="1" min="0" class="form-control"  value="<?php echo set_value('sort_order', isset($course['sort_order']) ? $course['sort_order'] : '0'); ?>" />
+                                <span class="text-danger"><?php echo form_error('sort_order'); ?></span>
+                            </div>
+                            <div class="form-group">
                                 <label for="exampleInputEmail1"><?php echo $this->lang->line('description'); ?></label>
                                 <textarea class="form-control" id="description" name="description" rows="3"><?php echo set_value('description', $course['description']); ?></textarea>
                                 <span class="text-danger"><?php echo form_error('description'); ?></span>
@@ -70,6 +101,11 @@
                                     <tr>
                                         <th><?php echo $this->lang->line('course_name'); ?></th>
                                         <th><?php echo $this->lang->line('course_code'); ?></th>
+                                        <th>Level</th>
+                                        <th>Admission Type</th>
+                                        <th>Govt Fee</th>
+                                        <th>Mgt Fee</th>
+                                        <th>Sort</th>
                                         <th><?php echo $this->lang->line('description'); ?></th>
                                         <th><?php echo $this->lang->line('status'); ?></th>
                                         <th class="text-right noExport"><?php echo $this->lang->line('action'); ?></th>
@@ -80,7 +116,7 @@
                                     if (empty($course_list)) {
                                         ?>
                                         <tr>
-                                            <td colspan="5" class="text-center"><?php echo $this->lang->line('no_record_found'); ?></td>
+                                            <td colspan="10" class="text-center"><?php echo $this->lang->line('no_record_found'); ?></td>
                                         </tr>
                                         <?php
                                     } else {
@@ -89,6 +125,11 @@
                                             <tr>
                                                 <td class="mailbox-name"><?php echo $course_item['course_name'] ?></td>
                                                 <td class="mailbox-name"><?php echo $course_item['course_code'] ?></td>
+                                                <td class="mailbox-name"><?php echo strtoupper($course_item['course_level']); ?></td>
+                                                <td class="mailbox-name"><?php echo ($course_item['admission_type'] == 'lateral') ? 'Lateral' : 'First Year'; ?></td>
+                                                <td class="mailbox-name"><?php echo number_format((float)$course_item['govt_fee'], 2); ?></td>
+                                                <td class="mailbox-name"><?php echo number_format((float)$course_item['mgt_fee'], 2); ?></td>
+                                                <td class="mailbox-name"><?php echo (int)$course_item['sort_order']; ?></td>
                                                 <td class="mailbox-name"><?php echo $course_item['description'] ?></td>
                                                 <td class="mailbox-name"><?php echo ($course_item['is_active'] == 1) ? $this->lang->line('active') : $this->lang->line('inactive'); ?></td>
                                                 <td class="mailbox-date text-right">

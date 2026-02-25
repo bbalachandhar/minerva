@@ -17,6 +17,7 @@ class Enquiry extends CI_Controller
         $this->load->model("staff_model");
         $this->load->model("language_model");
         $this->load->model("notificationsetting_model");
+        $this->load->model("Onlineadmissioncourses_model");
         $this->load->library('customlib'); // Load customlib library
         $this->load->library('mailsmsconf');
         $this->load->helper('url');
@@ -49,10 +50,12 @@ class Enquiry extends CI_Controller
         $this->form_validation->set_rules('contact', 'Phone', 'trim|required|numeric|xss_clean');
         $this->form_validation->set_rules('email', 'Email', 'trim|valid_email|xss_clean');
         $this->form_validation->set_rules('source', 'Source', 'trim|required|xss_clean');
-        $this->form_validation->set_rules('class', 'Class', 'trim|required|xss_clean');
+        $this->form_validation->set_rules('admission_course_id', 'Course', 'trim|required|xss_clean');
         if ($this->form_validation->run() == FALSE) {
             // Load dropdown data
-            $data['class_list'] = $this->class_model->get();
+            $data['ug_first_year_courses'] = $this->Onlineadmissioncourses_model->getActiveCourses('ug', 'first_year');
+            $data['ug_lateral_courses'] = $this->Onlineadmissioncourses_model->getActiveCourses('ug', 'lateral');
+            $data['pg_first_year_courses'] = $this->Onlineadmissioncourses_model->getActiveCourses('pg', 'first_year');
             $data['sourcelist'] = $this->enquiry_model->getComplaintSource();
             $data['references'] = $this->enquiry_model->get_reference();
             
@@ -62,6 +65,13 @@ class Enquiry extends CI_Controller
             // Save the enquiry
             // Generate unique reference number
             $reference_no = 'ENQ-' . date('YmdHis') . rand(100,999);
+            
+            // Get course metadata and derive course_level
+            $admission_course_id = $this->input->post('admission_course_id');
+            $course_data = $this->Onlineadmissioncourses_model->getById($admission_course_id);
+            $course_level = $course_data ? $course_data['course_level'] : null;
+            $admission_type = $course_data ? $course_data['admission_type'] : null;
+            
             $enquiry = array(
                 'name'           => $this->input->post('name'),
                 'contact'        => $this->input->post('contact'),
@@ -75,7 +85,10 @@ class Enquiry extends CI_Controller
                 'note'           => $this->input->post('referencer_details'),
                 'source'         => $this->input->post('source'),
                 'email'          => $this->input->post('email'),
-                'class_id'       => $this->input->post('class'),
+                'class_id'       => null, // Legacy field, keeping for backward compatibility
+                'admission_course_id' => $admission_course_id,
+                'course_level'   => $course_level,
+                'admission_type' => $admission_type,
                 'created_by'     => 1,
                 'status'         => 'active',
                 'ref_no'         => $reference_no
@@ -91,7 +104,7 @@ class Enquiry extends CI_Controller
                 'reference_no'   => $reference_no,
                 'contact'        => $enquiry['contact'],
                 'source'         => $enquiry['source'],
-                'class'          => $enquiry['class_id'],
+                'class'          => $course_data ? $course_data['course_name'] : '',
                 'reference'      => $enquiry['reference'],
                 'reference_name' => isset($enquiry['reference_name']) ? $enquiry['reference_name'] : '',
                 'reference_contact' => isset($enquiry['reference_contact']) ? $enquiry['reference_contact'] : ''

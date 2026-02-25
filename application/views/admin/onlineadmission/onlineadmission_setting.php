@@ -16,12 +16,13 @@ $currency_symbol = $admin_session['currency_symbol'];
                        <h3 class="box-title titlefix"><?php echo $this->lang->line('online_admission'); ?></h3>
                     </div>
                     <ul class="nav nav-tabs">
-                        <li><a href="#tab_1" data-toggle="tab"><?php echo $this->lang->line('online_admission_form_setting'); ?></a></li>
+                        <li class="active"><a href="#tab_1" data-toggle="tab"><?php echo $this->lang->line('online_admission_form_setting'); ?></a></li>
                         <li><a href="#tab_2" data-toggle="tab"><?php echo $this->lang->line('online_admission_fields_setting'); ?></a></li>
                         <li><a href="#tab_3" data-toggle="tab"><?php echo $this->lang->line('admission_courses'); ?></a></li>
+                        <li><a href="#tab_4" data-toggle="tab">Universities</a></li>
                     </ul>
                     <div class="tab-content">
-                        <div class="tab-pane" id="tab_1">
+                        <div class="tab-pane active" id="tab_1">
                             <?php if ($this->session->flashdata('msg')) {
     ?>
                                         <?php
@@ -227,6 +228,33 @@ if (!empty($custom_fields)) {
                         <div class="tab-pane" id="tab_3">
                             <div class="content" style="padding: 15px 0;">
                                 <?php $this->load->view('admin/onlineadmission/admissioncourses/tab_content'); ?>
+                            </div>
+                        </div>
+
+                        <div class="tab-pane" id="tab_4">
+                            <div class="content" style="padding: 15px 0;">
+                                <div class="box box-primary">
+                                    <div class="box-header with-border">
+                                        <h3 class="box-title">Manage Universities</h3>
+                                    </div>
+                                    <div class="box-body">
+                                        <button class="btn btn-success mb-3" id="addUniversityBtn" onclick="openAddUniversityModal()"><i class="fa fa-plus"></i> Add University</button>
+                                        
+                                        <table class="table table-bordered table-hover">
+                                            <thead>
+                                                <tr>
+                                                    <th style="width:5%">ID</th>
+                                                    <th style="width:60%">University Name</th>
+                                                    <th style="width:15%">Status</th>
+                                                    <th style="width:20%">Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="universitiesTableBody">
+                                                <tr><td colspan="4" class="text-center"><i class="fa fa-spinner fa-spin"></i> Loading...</td></tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -491,6 +519,107 @@ function findSelected($inserted_fields, $find)
         $('a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
             var target = $(e.target).attr("href");
             $('#active_tab').val(target.replace('#', ''));
+            
+            // Load universities when tab_4 is shown
+            if (target === '#tab_4') {
+                loadUniversities();
+            }
         });
+        
+        // Load universities on page load if tab_4 is active
+        if ($('#tab_4').hasClass('active')) {
+            loadUniversities();
+        }
     });
+
+    // Universities CRUD Functions
+    function loadUniversities() {
+        $.ajax({
+            url: '<?php echo base_url("admin/onlineadmission/get_universities"); ?>',
+            type: 'GET',
+            dataType: 'json',
+            success: function(data) {
+                let html = '';
+                if (data && Array.isArray(data) && data.length > 0) {
+                    data.forEach(function(uni) {
+                        html += `<tr>
+                            <td>${uni.id}</td>
+                            <td>${uni.name}</td>
+                            <td><span class="badge ${uni.status ? 'badge-success' : 'badge-danger'}">${uni.status ? 'Active' : 'Inactive'}</span></td>
+                            <td>
+                                <button class="btn btn-sm btn-primary" onclick="editUniversity(${uni.id}, '${uni.name}', ${uni.status})"><i class="fa fa-edit"></i> Edit</button>
+                                <button class="btn btn-sm btn-danger" onclick="deleteUniversity(${uni.id})"><i class="fa fa-trash"></i> Delete</button>
+                            </td>
+                        </tr>`;
+                    });
+                } else {
+                    html = '<tr><td colspan="4" class="text-center text-muted">No universities found</td></tr>';
+                }
+                $('#universitiesTableBody').html(html);
+            },
+            error: function(err) {
+                $('#universitiesTableBody').html('<tr><td colspan="4" class="text-center text-danger">Error loading universities</td></tr>');
+            }
+        });
+    }
+
+    function openAddUniversityModal() {
+        let name = prompt('Enter University Name:');
+        if (name && name.trim()) {
+            saveUniversity(null, name.trim());
+        }
+    }
+
+    function editUniversity(id, name, status) {
+        let newName = prompt('Edit University Name:', name);
+        if (newName && newName.trim() && newName !== name) {
+            saveUniversity(id, newName.trim(), status);
+        }
+    }
+
+    function saveUniversity(id, name, status = 1) {
+        $.ajax({
+            url: '<?php echo base_url("admin/onlineadmission/save_university"); ?>',
+            type: 'POST',
+            dataType: 'json',
+            data: {
+                id: id || null,
+                name: name,
+                status: status
+            },
+            success: function(response) {
+                if (response.success) {
+                    alert(response.message);
+                    loadUniversities();
+                } else {
+                    alert('Error: ' + (response.message || 'Failed to save'));
+                }
+            },
+            error: function(err) {
+                alert('Error: Failed to save university');
+            }
+        });
+    }
+
+    function deleteUniversity(id) {
+        if (confirm('Are you sure you want to delete this university?')) {
+            $.ajax({
+                url: '<?php echo base_url("admin/onlineadmission/delete_university"); ?>',
+                type: 'POST',
+                dataType: 'json',
+                data: { id: id },
+                success: function(response) {
+                    if (response.success) {
+                        alert(response.message);
+                        loadUniversities();
+                    } else {
+                        alert('Error: ' + (response.message || 'Failed to delete'));
+                    }
+                },
+                error: function(err) {
+                    alert('Error: Failed to delete university');
+                }
+            });
+        }
+    }
 </script>

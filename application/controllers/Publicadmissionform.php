@@ -23,7 +23,7 @@ class PublicAdmissionForm extends CI_Controller
         $this->load->model('language_model');
         $this->load->model('setting_model');
         $this->sch_setting_detail = $this->setting_model->getSetting(); // Load school settings
-        $this->load->model(array('frontcms_setting_model', 'complaint_Model', 'Visitors_model', 'onlinestudent_model', 'filetype_model', 'customfield_model', 'examgroupstudent_model', 'examgroup_model', 'grade_model', 'marksdivision_model', 'currency_model', 'section_model','holiday_model', 'class_model', 'category_model', 'student_model', 'Online_admission_ug_details_model', 'Online_admission_pg_details_model', 'Online_admission_lateral_details_model', 'Online_admission_references_model', 'Online_admission_nata_details_model', 'notificationsetting_model', 'enquiry_model'));
+        $this->load->model(array('frontcms_setting_model', 'complaint_Model', 'Visitors_model', 'onlinestudent_model', 'filetype_model', 'customfield_model', 'examgroupstudent_model', 'examgroup_model', 'grade_model', 'marksdivision_model', 'currency_model', 'section_model','holiday_model', 'class_model', 'category_model', 'student_model', 'Online_admission_ug_details_model', 'Online_admission_pg_details_model', 'Online_admission_lateral_details_model', 'Online_admission_references_model', 'Online_admission_nata_details_model', 'notificationsetting_model', 'enquiry_model', 'Onlineadmissioncourses_model'));
         $this->load->model('examstudent_model');
         $this->load->config('form-builder');
         $this->load->config('app-config');
@@ -122,6 +122,9 @@ class PublicAdmissionForm extends CI_Controller
         $this->data['setting_data'] = $setting_data;
         $this->data['online_admission_instruction']      = $sch_setting->online_admission_instruction;
         $this->data['online_admission_application_form'] = $sch_setting->online_admission_application_form;
+        $this->data['ug_first_year_courses'] = $this->Onlineadmissioncourses_model->getActiveCourses('ug', 'first_year');
+        $this->data['ug_lateral_courses'] = $this->Onlineadmissioncourses_model->getActiveCourses('ug', 'lateral');
+        $this->data['pg_first_year_courses'] = $this->Onlineadmissioncourses_model->getActiveCourses('pg', 'first_year');
         
         if ($this->module_lib->hasModule('online_course')) {
             $this->load->model('course_model');
@@ -1309,6 +1312,8 @@ class PublicAdmissionForm extends CI_Controller
 
     public function add_college_admission()
     {
+        $this->normalize_admission_year_inputs();
+
         $this->form_validation->set_rules('user_name', 'Name', 'trim|required|xss_clean');
         $this->form_validation->set_rules('father_name', 'Father\'s Name', 'trim|required|xss_clean');
         $this->form_validation->set_rules('father_mobile', 'Father\'s Mobile Number', 'trim|required|min_length[10]|max_length[10]|xss_clean');
@@ -1331,6 +1336,7 @@ class PublicAdmissionForm extends CI_Controller
         $this->form_validation->set_rules('user_image', 'Photo', 'callback_image_handle_upload[user_image]');
 
         $courseLevel = $this->input->post('courseLevel');
+        $this->form_validation->set_rules('quota_type', 'Quota Type', 'trim|required|xss_clean');
 
         if ($courseLevel == 'ug') {
             $this->form_validation->set_rules('maths_marks', 'Maths Marks', 'trim|required|numeric|less_than_equal_to[total_maths]|xss_clean');
@@ -1359,16 +1365,24 @@ class PublicAdmissionForm extends CI_Controller
         if ($courseLevel == 'ug') {
             $this->form_validation->set_rules('ug_course', 'UG Course', 'trim|required|xss_clean');
             $this->form_validation->set_rules('school_name', 'Name of the school of X std', 'trim|required|xss_clean');
-            $this->form_validation->set_rules('tenth_passing', 'Year of passing of X std', 'trim|required|min_length[4]|max_length[4]|xss_clean');
-            if ($this->input->post('ug_course') == 1) { // B.Arch course ID
-                $this->form_validation->set_rules('nata_score', 'NATA Score', 'trim|required|xss_clean');
-                $this->form_validation->set_rules('application_number', 'NATA Application Form', 'trim|required|xss_clean');
-                $this->form_validation->set_rules('nata_year', 'NATA Year', 'trim|required|xss_clean');
+            $this->form_validation->set_rules('tenth_passing', 'Year of passing of X std', 'trim|required|numeric|xss_clean');
+            $this->form_validation->set_rules('tenth_marks_percentage', 'X marks (in %)', 'trim|required|numeric|greater_than[0]|less_than_equal_to[100]|xss_clean');
+            
+            // Check if selected course is B.ARCH by checking course name
+            $ug_course_id = $this->input->post('ug_course');
+            if (!empty($ug_course_id)) {
+                $course = $this->Onlineadmissioncourses_model->getById($ug_course_id);
+                if ($course && stripos($course->course_name, 'ARCH') !== false) {
+                    $this->form_validation->set_rules('nata_score', 'NATA Score', 'trim|required|xss_clean');
+                    $this->form_validation->set_rules('application_number', 'NATA Application Form', 'trim|required|xss_clean');
+                    $this->form_validation->set_rules('nata_year', 'NATA Year', 'trim|required|xss_clean');
+                }
             }
         } elseif ($courseLevel == 'lateral') {
             $this->form_validation->set_rules('lateral_course', 'Lateral Entry Course', 'trim|required|xss_clean');
             $this->form_validation->set_rules('lateral_school_name', 'Name of the school of X std', 'trim|required|xss_clean');
-            $this->form_validation->set_rules('lateral_tenth_passing', 'Year of passing of X std', 'trim|required|min_length[4]|max_length[4]|xss_clean');
+            $this->form_validation->set_rules('lateral_tenth_passing', 'Year of passing of X std', 'trim|required|numeric|xss_clean');
+            $this->form_validation->set_rules('lateral_tenth_marks_percentage', 'X marks (in %)', 'trim|required|numeric|greater_than[0]|less_than_equal_to[100]|xss_clean');
             for ($i = 1; $i <= 6; $i++) {
                 $this->form_validation->set_rules('presub' . $i, 'Pre-Final Semester Subject ' . $i, 'trim|xss_clean');
                 $this->form_validation->set_rules('premark' . $i, 'Pre-Final Semester Marks ' . $i, 'trim|numeric|less_than_equal_to[preout' . $i . ']|xss_clean');
@@ -1379,13 +1393,13 @@ class PublicAdmissionForm extends CI_Controller
             }
         } elseif ($courseLevel == 'pg') {
             $this->form_validation->set_rules('pg_course', 'PG Course', 'trim|required|xss_clean');
-            $this->form_validation->set_rules('exam_passed', 'Qualifying Exam passed', 'trim|required|xss_clean');
-            $this->form_validation->set_rules('branch', 'Branch', 'trim|required|xss_clean');
+            $this->form_validation->set_rules('exam_passed', 'UG Course Passed', 'trim|required|xss_clean');
+            $this->form_validation->set_rules('branch', 'Main Stream', 'trim|required|xss_clean');
             $this->form_validation->set_rules('yop', 'Year of Passing', 'trim|required|xss_clean');
             $this->form_validation->set_rules('noc', 'Name of the College', 'trim|required|xss_clean');
-            $this->form_validation->set_rules('nou', 'Name of the University', 'trim|required|xss_clean');
+            $this->form_validation->set_rules('university_id', 'University', 'trim|required|numeric|xss_clean');
             $this->form_validation->set_rules('pg_app_num', 'TANCET / PGETA Exam Application Number', 'trim|required|xss_clean');
-            $this->form_validation->set_rules('exam_year', 'TANCET / PGETA Examination Year', 'trim|required|min_length[4]|max_length[4]|xss_clean');
+            $this->form_validation->set_rules('exam_year', 'TANCET / PGETA Examination Year', 'trim|required|numeric|xss_clean');
             $this->form_validation->set_rules('exam_score', 'TANCET / PGETA Exam Score', 'trim|required|numeric|xss_clean');
             if (!empty($_FILES['bonafide']['name'])) {
                 $this->form_validation->set_rules('bonafide', 'Bonafide Certificate', 'callback_document_handle_upload[bonafide]');
@@ -1408,10 +1422,12 @@ class PublicAdmissionForm extends CI_Controller
                 'aadhaar' => form_error('aadhaar'),
                 'comm_addr' => form_error('comm_addr'),
                 'perm_addr' => form_error('perm_addr'),
+                'quota_type' => form_error('quota_type'),
                 'user_image' => form_error('user_image'),
                 'ug_course' => form_error('ug_course'),
                 'school_name' => form_error('school_name'),
                 'tenth_passing' => form_error('tenth_passing'),
+                'tenth_marks_percentage' => form_error('tenth_marks_percentage'),
                 'maths_marks' => form_error('maths_marks'),
                 'total_maths' => form_error('total_maths'),
                 'physics_marks' => form_error('physics_marks'),
@@ -1422,6 +1438,7 @@ class PublicAdmissionForm extends CI_Controller
                 'lateral_course' => form_error('lateral_course'),
                 'lateral_school_name' => form_error('lateral_school_name'),
                 'lateral_tenth_passing' => form_error('lateral_tenth_passing'),
+                'lateral_tenth_marks_percentage' => form_error('lateral_tenth_marks_percentage'),
                 'pg_course' => form_error('pg_course'),
                 'exam_passed' => form_error('exam_passed'),
                 'branch' => form_error('branch'),
@@ -1471,12 +1488,14 @@ class PublicAdmissionForm extends CI_Controller
                 $refence_status = $this->onlinestudent_model->checkreferenceno($reference_no);
             } while ($refence_status);
 
+            $normalized_dob = $this->normalize_dob_value($data['dob'] ?? '');
+
             $insert_data_online_admission = array(
                 'reference_no' => $reference_no,
                 'firstname' => $data['user_name'],
                 'mobileno' => $data['student_mobile'],
                 'email' => $data['student_email'],
-                'dob' => date('Y-m-d', strtotime($data['dob'])),
+                'dob' => !empty($normalized_dob) ? $normalized_dob : null,
                 'gender' => $data['gender'],
                 'cast' => $data['community'],
                 'father_name' => $data['father_name'],
@@ -1501,7 +1520,18 @@ class PublicAdmissionForm extends CI_Controller
                     $this->build_hsc_payload($data)
                 );
                 $insert_data_online_admission['ug_course_id'] = $data['ug_course'];
+                $insert_data_online_admission['school_name_x'] = !empty($data['school_name']) ? $data['school_name'] : null;
+                $insert_data_online_admission['passing_year_x'] = !empty($data['tenth_passing']) ? $data['tenth_passing'] : null;
+                $insert_data_online_admission['tenth_marks_percentage'] = !empty($data['tenth_marks_percentage']) ? $data['tenth_marks_percentage'] : null;
+            } elseif ($courseLevel == 'lateral') {
+                // For lateral entry, save X std details to main table
+                $insert_data_online_admission['school_name_x'] = !empty($data['lateral_school_name']) ? $data['lateral_school_name'] : null;
+                $insert_data_online_admission['passing_year_x'] = !empty($data['lateral_tenth_passing']) ? $data['lateral_tenth_passing'] : null;
+                $insert_data_online_admission['tenth_marks_percentage'] = !empty($data['lateral_tenth_marks_percentage']) ? $data['lateral_tenth_marks_percentage'] : null;
             }
+
+            $course_meta = $this->get_selected_course_meta($courseLevel, $data);
+            $insert_data_online_admission = array_merge($insert_data_online_admission, $course_meta);
 
             $online_admission_id = $this->onlinestudent_model->add($insert_data_online_admission);
 
@@ -1527,7 +1557,7 @@ class PublicAdmissionForm extends CI_Controller
                 // online_admission_ug_details table is for PG applicants' UG degree info
                 // So we don't insert into online_admission_ug_details for UG applicants
 
-                if ($data['ug_course'] == 1) { // B.Arch course ID
+                if ($this->is_barch_course($data['ug_course'] ?? null)) {
                     $insert_nata_data = array(
                         'online_admission_id' => $online_admission_id,
                         'nata_score' => $data['nata_score'],
@@ -1557,8 +1587,6 @@ class PublicAdmissionForm extends CI_Controller
                 $insert_lateral_data = array(
                     'online_admission_id' => $online_admission_id,
                     'lateral_course_id' => $data['lateral_course'],
-                    'school_name_x' => $data['lateral_school_name'],
-                    'passing_year_x' => $data['lateral_tenth_passing'],
                     'pre_final_sem_subjects' => json_encode($pre_sem_subjects),
                     'final_sem_subjects' => json_encode($final_sem_subjects),
                 );
@@ -1572,6 +1600,14 @@ class PublicAdmissionForm extends CI_Controller
                     }
                 }
                 
+                // Get university name from ID
+                $university_name = null;
+                if (!empty($data['university_id'])) {
+                    $this->load->model('Online_admission_universities_model');
+                    $university = $this->Online_admission_universities_model->get($data['university_id']);
+                    $university_name = $university ? $university->name : null;
+                }
+                
                 $insert_pg_data = array(
                     'online_admission_id' => $online_admission_id,
                     'pg_course_id' => $data['pg_course'],
@@ -1579,11 +1615,12 @@ class PublicAdmissionForm extends CI_Controller
                     'branch' => $data['branch'],
                     'year_of_passing' => $data['yop'],
                     'college_name' => $data['noc'],
-                    'university_name' => $data['nou'],
+                    'university_id' => !empty($data['university_id']) ? $data['university_id'] : null,
+                    'university_name' => $university_name,
                     'tancet_pgeta_app_no' => $data['pg_app_num'],
                     'tancet_pgeta_year' => $data['exam_year'],
                     'tancet_pgeta_score' => $data['exam_score'],
-                    'is_alumni' => isset($data['alumni_check']) ? 1 : 0, // Assuming a checkbox with name alumni_check
+                    'is_alumni' => isset($data['alumni_check']) ? 1 : 0,
                     'bonafide_cert_path' => $bonafide_cert_path,
                     'is_sports_person' => $data['sports'] == 'Yes' ? 1 : 0,
                     'sports_level' => $data['sports'] == 'Yes' ? $data['sports_level'] : NULL,
@@ -1696,6 +1733,48 @@ class PublicAdmissionForm extends CI_Controller
             return false;
         }
         return true;
+    }
+
+    private function get_selected_course_meta($courseLevel, $data)
+    {
+        $course_id = null;
+        if ($courseLevel == 'ug') {
+            $course_id = $data['ug_course'] ?? null;
+        } elseif ($courseLevel == 'lateral') {
+            $course_id = $data['lateral_course'] ?? null;
+        } elseif ($courseLevel == 'pg') {
+            $course_id = $data['pg_course'] ?? null;
+        }
+
+        $course = null;
+        if (!empty($course_id)) {
+            $course = $this->Onlineadmissioncourses_model->getById($course_id);
+        }
+
+        $quota_type = $data['quota_type'] ?? null;
+        $course_fee_total = null;
+        if (!empty($quota_type) && !empty($course)) {
+            if ($quota_type === 'government') {
+                $course_fee_total = $course['govt_fee'];
+            } elseif ($quota_type === 'management') {
+                $course_fee_total = $course['mgt_fee'];
+            }
+        }
+
+        if ($course_fee_total === null && isset($data['course_fee_total']) && $data['course_fee_total'] !== '') {
+            $course_fee_total = (float)$data['course_fee_total'];
+        }
+
+        $admission_type = ($courseLevel == 'lateral') ? 'lateral' : 'first_year';
+        $course_level = ($courseLevel == 'lateral') ? 'ug' : $courseLevel;
+
+        return array(
+            'admission_course_id' => $course_id,
+            'course_level' => $course_level,
+            'admission_type' => $admission_type,
+            'quota_type' => $quota_type,
+            'course_fee_total' => $course_fee_total,
+        );
     }
 
     private function calculate_percentage($marks, $total)
@@ -1864,6 +1943,8 @@ class PublicAdmissionForm extends CI_Controller
 
     public function ajax_add_college_admission()
     {
+        $this->normalize_admission_year_inputs();
+
         $this->form_validation->set_rules('user_name', 'Name', 'trim|required|xss_clean');
         $this->form_validation->set_rules('father_name', 'Father\'s Name', 'trim|required|xss_clean');
         $this->form_validation->set_rules('father_mobile', 'Father\'s Mobile Number', 'trim|required|min_length[10]|max_length[10]|xss_clean');
@@ -1887,20 +1968,28 @@ class PublicAdmissionForm extends CI_Controller
         }
 
         $courseLevel = $this->input->post('courseLevel');
+        $this->form_validation->set_rules('quota_type', 'Quota Type', 'trim|required|xss_clean');
 
         if ($courseLevel == 'ug') {
             $this->form_validation->set_rules('ug_course', 'UG Course', 'trim|required|xss_clean');
             $this->form_validation->set_rules('school_name', 'Name of the school of X std', 'trim|required|xss_clean');
-            $this->form_validation->set_rules('tenth_passing', 'Year of passing of X std', 'trim|required|min_length[4]|max_length[4]|xss_clean');
-            if ($this->input->post('ug_course') == 1) { // B.Arch course ID
-                $this->form_validation->set_rules('nata_score', 'NATA Score', 'trim|required|xss_clean');
-                $this->form_validation->set_rules('application_number', 'NATA Application Form', 'trim|required|xss_clean');
-                $this->form_validation->set_rules('nata_year', 'NATA Year', 'trim|required|xss_clean');
+            $this->form_validation->set_rules('tenth_passing', 'Year of passing of X std', 'trim|required|numeric|xss_clean');
+            $this->form_validation->set_rules('tenth_marks_percentage', 'X marks (in %)', 'trim|required|numeric|greater_than[0]|less_than_equal_to[100]|xss_clean');
+            // Check if selected course is B.ARCH by checking course name
+            $ug_course_id = $this->input->post('ug_course');
+            if (!empty($ug_course_id)) {
+                $course = $this->Onlineadmissioncourses_model->getById($ug_course_id);
+                if ($course && stripos($course->course_name, 'ARCH') !== false) {
+                    $this->form_validation->set_rules('nata_score', 'NATA Score', 'trim|required|xss_clean');
+                    $this->form_validation->set_rules('application_number', 'NATA Application Form', 'trim|required|xss_clean');
+                    $this->form_validation->set_rules('nata_year', 'NATA Year', 'trim|required|xss_clean');
+                }
             }
         } elseif ($courseLevel == 'lateral') {
             $this->form_validation->set_rules('lateral_course', 'Lateral Entry Course', 'trim|required|xss_clean');
             $this->form_validation->set_rules('lateral_school_name', 'Name of the school of X std', 'trim|required|xss_clean');
-            $this->form_validation->set_rules('lateral_tenth_passing', 'Year of passing of X std', 'trim|required|min_length[4]|max_length[4]|xss_clean');
+            $this->form_validation->set_rules('lateral_tenth_passing', 'Year of passing of X std', 'trim|required|numeric|xss_clean');
+            $this->form_validation->set_rules('lateral_tenth_marks_percentage', 'X marks (in %)', 'trim|required|numeric|greater_than[0]|less_than_equal_to[100]|xss_clean');
             for ($i = 1; $i <= 6; $i++) {
                 $this->form_validation->set_rules('presub' . $i, 'Pre-Final Semester Subject ' . $i, 'trim|xss_clean');
                 $this->form_validation->set_rules('premark' . $i, 'Pre-Final Semester Marks ' . $i, 'trim|numeric|xss_clean');
@@ -1911,13 +2000,13 @@ class PublicAdmissionForm extends CI_Controller
             }
         } elseif ($courseLevel == 'pg') {
             $this->form_validation->set_rules('pg_course', 'PG Course', 'trim|required|xss_clean');
-            $this->form_validation->set_rules('exam_passed', 'Qualifying Exam passed', 'trim|required|xss_clean');
-            $this->form_validation->set_rules('branch', 'Branch', 'trim|required|xss_clean');
+            $this->form_validation->set_rules('exam_passed', 'UG Course Passed', 'trim|required|xss_clean');
+            $this->form_validation->set_rules('branch', 'Main Stream', 'trim|required|xss_clean');
             $this->form_validation->set_rules('yop', 'Year of Passing', 'trim|required|xss_clean');
             $this->form_validation->set_rules('noc', 'Name of the College', 'trim|required|xss_clean');
-            $this->form_validation->set_rules('nou', 'Name of the University', 'trim|required|xss_clean');
+            $this->form_validation->set_rules('university_id', 'University', 'trim|required|numeric|xss_clean');
             $this->form_validation->set_rules('pg_app_num', 'TANCET / PGETA Exam Application Number', 'trim|required|xss_clean');
-            $this->form_validation->set_rules('exam_year', 'TANCET / PGETA Examination Year', 'trim|required|min_length[4]|max_length[4]|xss_clean');
+            $this->form_validation->set_rules('exam_year', 'TANCET / PGETA Examination Year', 'trim|required|numeric|xss_clean');
             $this->form_validation->set_rules('exam_score', 'TANCET / PGETA Exam Score', 'trim|required|numeric|xss_clean');
             if (!empty($_FILES['bonafide']['name'])) {
                 $this->form_validation->set_rules('bonafide', 'Bonafide Certificate', 'callback_document_handle_upload[bonafide]');
@@ -1943,12 +2032,14 @@ class PublicAdmissionForm extends CI_Controller
                 $refence_status = $this->onlinestudent_model->checkreferenceno($reference_no);
             } while ($refence_status);
 
+            $normalized_dob = $this->normalize_dob_value($data['dob'] ?? '');
+
             $insert_data_online_admission = array(
                 'reference_no' => $reference_no,
                 'firstname' => $data['user_name'],
                 'mobileno' => $data['student_mobile'],
                 'email' => $data['student_email'],
-                'dob' => date('Y-m-d', strtotime($data['dob'])),
+                'dob' => !empty($normalized_dob) ? $normalized_dob : null,
                 'gender' => $data['gender'],
                 'cast' => $data['community'],
                 'father_name' => $data['father_name'],
@@ -1973,7 +2064,18 @@ class PublicAdmissionForm extends CI_Controller
                     $this->build_hsc_payload($data)
                 );
                 $insert_data_online_admission['ug_course_id'] = $data['ug_course'];
+                $insert_data_online_admission['school_name_x'] = !empty($data['school_name']) ? $data['school_name'] : null;
+                $insert_data_online_admission['passing_year_x'] = !empty($data['tenth_passing']) ? $data['tenth_passing'] : null;
+                $insert_data_online_admission['tenth_marks_percentage'] = !empty($data['tenth_marks_percentage']) ? $data['tenth_marks_percentage'] : null;
+            } elseif ($courseLevel == 'lateral') {
+                // For lateral entry, save X std details to main table
+                $insert_data_online_admission['school_name_x'] = !empty($data['lateral_school_name']) ? $data['lateral_school_name'] : null;
+                $insert_data_online_admission['passing_year_x'] = !empty($data['lateral_tenth_passing']) ? $data['lateral_tenth_passing'] : null;
+                $insert_data_online_admission['tenth_marks_percentage'] = !empty($data['lateral_tenth_marks_percentage']) ? $data['lateral_tenth_marks_percentage'] : null;
             }
+
+            $course_meta = $this->get_selected_course_meta($courseLevel, $data);
+            $insert_data_online_admission = array_merge($insert_data_online_admission, $course_meta);
 
             $online_admission_id = $this->onlinestudent_model->add($insert_data_online_admission);
             
@@ -2030,7 +2132,7 @@ class PublicAdmissionForm extends CI_Controller
                     'cutoff_marks' => $data['cutoff_marks'],
                 ]);
                 */
-                if ($data['ug_course'] == 1) { // B.Arch course ID
+                if ($this->is_barch_course($data['ug_course'] ?? null)) {
                     $this->Online_admission_nata_details_model->add([
                         'online_admission_id' => $online_admission_id,
                         'nata_score' => $data['nata_score'],
@@ -2059,8 +2161,6 @@ class PublicAdmissionForm extends CI_Controller
                 $insert_lateral_data = array(
                     'online_admission_id' => $online_admission_id,
                     'lateral_course_id' => $data['lateral_course'],
-                    'school_name_x' => $data['lateral_school_name'],
-                    'passing_year_x' => $data['lateral_tenth_passing'],
                     'pre_final_sem_subjects' => json_encode($pre_sem_subjects),
                     'final_sem_subjects' => json_encode($final_sem_subjects),
                 );
@@ -2074,6 +2174,14 @@ class PublicAdmissionForm extends CI_Controller
                     }
                 }
                 
+                // Get university name from ID
+                $university_name = null;
+                if (!empty($data['university_id'])) {
+                    $this->load->model('Online_admission_universities_model');
+                    $university = $this->Online_admission_universities_model->get($data['university_id']);
+                    $university_name = $university ? $university->name : null;
+                }
+                
                 $insert_pg_data = array(
                     'online_admission_id' => $online_admission_id,
                     'pg_course_id' => $data['pg_course'],
@@ -2081,7 +2189,8 @@ class PublicAdmissionForm extends CI_Controller
                     'branch' => $data['branch'],
                     'year_of_passing' => $data['yop'],
                     'college_name' => $data['noc'],
-                    'university_name' => $data['nou'],
+                    'university_id' => !empty($data['university_id']) ? $data['university_id'] : null,
+                    'university_name' => $university_name,
                     'tancet_pgeta_app_no' => $data['pg_app_num'],
                     'tancet_pgeta_year' => $data['exam_year'],
                     'tancet_pgeta_score' => $data['exam_score'],
@@ -2127,5 +2236,94 @@ class PublicAdmissionForm extends CI_Controller
                 exit();
             }
         }
+    }
+
+    /**
+     * Get universities for PG dropdown - AJAX endpoint
+     */
+    public function get_universities()
+    {
+        $this->load->model('Online_admission_universities_model');
+        $universities = $this->Online_admission_universities_model->get_all_active();
+        header('Content-Type: application/json');
+        echo json_encode($universities);
+        exit();
+    }
+
+    private function normalize_admission_year_inputs()
+    {
+        if (isset($_POST['dob'])) {
+            $_POST['dob'] = $this->normalize_dob_value($_POST['dob']);
+        }
+
+        $year_fields = array('tenth_passing', 'lateral_tenth_passing', 'yop', 'exam_year', 'nata_year');
+        foreach ($year_fields as $field) {
+            if (isset($_POST[$field])) {
+                $_POST[$field] = $this->normalize_year_value($_POST[$field]);
+            }
+        }
+    }
+
+    private function normalize_year_value($value)
+    {
+        $value = trim((string)$value);
+        if ($value === '') {
+            return $value;
+        }
+
+        if (preg_match('/\b(19|20)\d{2}\b/', $value, $matches)) {
+            return $matches[0];
+        }
+
+        $digits_only = preg_replace('/\D+/', '', $value);
+        if (strlen($digits_only) >= 4) {
+            return substr($digits_only, 0, 4);
+        }
+
+        return $digits_only;
+    }
+
+    private function normalize_dob_value($value)
+    {
+        $value = trim((string)$value);
+        if ($value === '') {
+            return '';
+        }
+
+        $formats = array('d/m/Y', 'Y-m-d', 'd-m-Y', 'm/d/Y');
+        foreach ($formats as $format) {
+            $date = DateTime::createFromFormat($format, $value);
+            if ($date && $date->format($format) === $value) {
+                return $date->format('Y-m-d');
+            }
+        }
+
+        $timestamp = strtotime($value);
+        if ($timestamp !== false) {
+            return date('Y-m-d', $timestamp);
+        }
+
+        return '';
+    }
+
+    private function is_barch_course($course_id)
+    {
+        if (empty($course_id)) {
+            return false;
+        }
+
+        $course = $this->Onlineadmissioncourses_model->getById($course_id);
+        if (empty($course)) {
+            return false;
+        }
+
+        $course_name = '';
+        if (is_array($course) && isset($course['course_name'])) {
+            $course_name = $course['course_name'];
+        } elseif (is_object($course) && isset($course->course_name)) {
+            $course_name = $course->course_name;
+        }
+
+        return ($course_name !== '' && stripos($course_name, 'ARCH') !== false);
     }
 }

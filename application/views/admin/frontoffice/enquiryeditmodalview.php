@@ -119,17 +119,37 @@
                 </div>    
                 <div class="col-sm-3">
                     <div class="form-group">
-                        <label for="pwd"><?php echo $this->lang->line('class'); ?></label> 
-                        <select name="class" class="form-control"  >
-                            <option value="" selected=""><?php echo $this->lang->line('select') ?></option>
-                            <?php
-                            foreach ($class_list as $key => $value) {
-                                ?>
-                                <option value="<?php echo $value['id'] ?>" <?php if (set_value('class', $enquiry_data['class_id']) == $value['id']) { ?> selected="" <?php } ?>><?php echo $value['class'] ?></option>
-
-                                <?php
-                            }
-                            ?>
+                        <label for="pwd">Course Type</label><small class="req"> *</small>
+                        <div>
+<?php
+$current_course_type = '';
+if (isset($enquiry_data['course_level']) && isset($enquiry_data['admission_type'])) {
+    if ($enquiry_data['course_level'] == 'ug' && $enquiry_data['admission_type'] == 'first_year') {
+        $current_course_type = 'ug_first_year';
+    } else if ($enquiry_data['course_level'] == 'ug' && $enquiry_data['admission_type'] == 'lateral') {
+        $current_course_type = 'ug_lateral';
+    } else if ($enquiry_data['course_level'] == 'pg' && $enquiry_data['admission_type'] == 'first_year') {
+        $current_course_type = 'pg_first_year';
+    }
+}
+?>
+                            <label class="radio-inline">
+                                <input type="radio" name="course_type" value="ug_first_year" <?php if ($current_course_type == 'ug_first_year') echo 'checked'; ?>> UG First Year
+                            </label>
+                            <label class="radio-inline">
+                                <input type="radio" name="course_type" value="ug_lateral" <?php if ($current_course_type == 'ug_lateral') echo 'checked'; ?>> UG Lateral
+                            </label>
+                            <label class="radio-inline">
+                                <input type="radio" name="course_type" value="pg_first_year" <?php if ($current_course_type == 'pg_first_year') echo 'checked'; ?>> PG First Year
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-3">
+                    <div class="form-group">
+                        <label for="pwd">Course</label><small class="req"> *</small>
+                        <select name="admission_course_id" id="admission_course_id_edit" class="form-control">
+                            <option value="">Select Course</option>
                         </select>
                     </div>
                 </div> 
@@ -197,6 +217,40 @@
                     $('#city_edit').append('<option value="' + city + '">' + city + '</option>');
                 });
             }
+        }
+    });
+    
+    // Course level and course dropdown logic for Edit modal
+    var coursesDataEdit = {
+        ug_first_year: <?php echo json_encode($ug_first_year_courses); ?>,
+        ug_lateral: <?php echo json_encode($ug_lateral_courses); ?>,
+        pg_first_year: <?php echo json_encode($pg_first_year_courses); ?>
+    };
+    
+    var currentCourseType = "<?php echo $current_course_type; ?>";
+    var currentCourseId = "<?php echo isset($enquiry_data['admission_course_id']) ? $enquiry_data['admission_course_id'] : ''; ?>";
+    
+    // Populate courses based on current type
+    if (currentCourseType && coursesDataEdit[currentCourseType]) {
+        $.each(coursesDataEdit[currentCourseType], function(index, course) {
+            var selected = (course.id == currentCourseId) ? 'selected' : '';
+            $('#admission_course_id_edit').append('<option value="' + course.id + '" ' + selected + '>' + course.course_name + '</option>');
+        });
+    }
+    
+    // Handle course type change
+    $(document).on('change', 'input[name="course_type"]', function() {
+        if (!$(this).is(':checked')) return;
+        
+        var selectedType = $(this).val();
+        var courseSelect = $('#admission_course_id_edit');
+        
+        courseSelect.html('<option value="">Select Course</option>');
+        
+        if (coursesDataEdit[selectedType]) {
+            $.each(coursesDataEdit[selectedType], function(index, course) {
+                courseSelect.append('<option value="' + course.id + '">' + course.course_name + '</option>');
+            });
         }
     });
 </script>

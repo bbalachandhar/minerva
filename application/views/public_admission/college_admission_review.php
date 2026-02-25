@@ -161,8 +161,8 @@
                     <div class="col-md-4"><p><span class="data-label">Mother's Name:</span> <span class="data-value"><?php echo isset($mother_name) ? $mother_name : 'N/A'; ?></span></p></div>
                     <div class="col-md-4"><p><span class="data-label">Mother's Mobile:</span> <span class="data-value"><?php echo isset($mother_phone) ? $mother_phone : 'N/A'; ?></span></p></div>
                     <div class="col-md-4"><p><span class="data-label">Mother's Occupation:</span> <span class="data-value"><?php echo isset($mother_occupation) ? $mother_occupation : 'N/A'; ?></span></p></div>
-                    <div class="col-md-4"><p><span class="data-label">Gender:</span> <span class="data-value"><?php echo isset($gender) ? $gender : 'N/A'; ?></span></p></div>
-                    <div class="col-md-4"><p><span class="data-label">Community:</span> <span class="data-value"><?php echo isset($community) ? $community : 'N/A'; ?></span></p></div>
+                    <div class="col-md-4"><p><span class="data-label">Gender:</span> <span class="data-value"><?php echo !empty($gender) ? ucfirst($gender) : 'N/A'; ?></span></p></div>
+                    <div class="col-md-4"><p><span class="data-label">Community:</span> <span class="data-value"><?php echo !empty($community) ? $community : (!empty($cast) ? $cast : 'N/A'); ?></span></p></div>
                     <div class="col-md-4"><p><span class="data-label">Email ID:</span> <span class="data-value"><?php echo isset($email) ? $email : 'N/A'; ?></span></p></div>
                     <div class="col-md-4"><p><span class="data-label">Student's Mobile:</span> <span class="data-value"><?php echo isset($mobileno) ? $mobileno : 'N/A'; ?></span></p></div>
                     <div class="col-md-4"><p><span class="data-label">Date of Birth:</span> <span class="data-value"><?php echo (isset($dob) && !empty($dob)) ? date($this->customlib->getSchoolDateFormat(), strtotime($dob)) : 'N/A'; ?></span></p></div>
@@ -210,7 +210,10 @@
                             $course_name = $course_names[$ug_course_id];
                         }
                         ?>
-                        <p><span class="data-label">Courses applied:</span> <span class="data-value"><?php echo $course_name; ?></span></p>
+                        <p><span class="data-label">Course applied:</span> <span class="data-value"><?php echo $course_name; ?></span></p>
+                        <p><span class="data-label">Name of the school of X std:</span> <span class="data-value"><?php echo !empty($school_name_x) ? $school_name_x : 'N/A'; ?></span></p>
+                        <p><span class="data-label">Year of passing of X std:</span> <span class="data-value"><?php echo !empty($passing_year_x) ? $passing_year_x : 'N/A'; ?></span></p>
+                        <p><span class="data-label">X marks (in %):</span> <span class="data-value"><?php echo ($tenth_marks_percentage !== null && $tenth_marks_percentage !== '') ? $tenth_marks_percentage : 'N/A'; ?></span></p>
                     </div>
                 </div>
             </div>
@@ -251,7 +254,19 @@
                     </div>
                 </div>
             </div>
-                <?php if (isset($nata_details) && $nata_details): ?>
+                <?php
+                $is_barch_course = (isset($course_name) && stripos($course_name, 'ARCH') !== false);
+                $has_nata_data = (
+                    isset($nata_details) &&
+                    is_array($nata_details) &&
+                    (
+                        !empty($nata_details['nata_score']) ||
+                        !empty($nata_details['application_number']) ||
+                        !empty($nata_details['nata_year'])
+                    )
+                );
+                ?>
+                <?php if ($is_barch_course && $has_nata_data): ?>
                 <div class="section-card">
                     <h5 class="mb-2">NATA Details</h5>
                     <p><span class="data-label">Score:</span> <span class="data-value"><?php echo $nata_details['nata_score']; ?></span></p>
@@ -269,8 +284,9 @@
                 $course_name = isset($courses[$course_id]) ? $courses[$course_id] : 'Unknown Course';
                 ?>
                  <p><span class="data-label">Course apply:</span> <span class="data-value"><?php echo $course_name; ?></span></p>
-                <p><span class="data-label">Name of the school of X std:</span> <span class="data-value"><?php echo $lateral_details['school_name_x']; ?></span></p>
-                <p><span class="data-label">Year of passing of X std:</span> <span class="data-value"><?php echo $lateral_details['passing_year_x']; ?></span></p>
+                <p><span class="data-label">Name of the school of X std:</span> <span class="data-value"><?php echo !empty($school_name_x) ? $school_name_x : 'N/A'; ?></span></p>
+                <p><span class="data-label">Year of passing of X std:</span> <span class="data-value"><?php echo !empty($passing_year_x) ? $passing_year_x : 'N/A'; ?></span></p>
+                <p><span class="data-label">X marks (in %):</span> <span class="data-value"><?php echo ($tenth_marks_percentage !== null && $tenth_marks_percentage !== '') ? $tenth_marks_percentage : 'N/A'; ?></span></p>
 
                 <h5 class="mt-4">Semester Marks</h5>
                 <h6>Pre-Final Semester</h6>

@@ -217,8 +217,83 @@ class Onlineadmission extends Admin_Controller
 
         }
 
-    
+    /**
+     * Get all universities for dropdown
+     */
+    public function get_universities()
+    {
+        $this->load->model('Online_admission_universities_model');
+        $universities = $this->Online_admission_universities_model->get_all();
+        echo json_encode($universities);
+    }
 
+    /**
+     * Save/Update university
+     */
+    public function save_university()
+    {
+        $this->load->model('Online_admission_universities_model');
+        
+        $id = $this->input->post('id');
+        $name = $this->input->post('name');
+        $status = $this->input->post('status', true) ? 1 : 0;
 
+        if (!$name) {
+            echo json_encode(['success' => false, 'message' => 'University name is required']);
+            return;
+        }
 
-            }
+        // Check for duplicates (excluding current ID on edit)
+        if ($this->Online_admission_universities_model->check_duplicate($name, $id)) {
+            echo json_encode(['success' => false, 'message' => 'University name already exists']);
+            return;
+        }
+
+        $data = ['name' => $name, 'status' => $status];
+        
+        if ($id) {
+            $data['id'] = $id;
+            $result = $this->Online_admission_universities_model->edit($data);
+            $message = 'University updated successfully';
+        } else {
+            $result = $this->Online_admission_universities_model->add($data);
+            $message = 'University added successfully';
+        }
+
+        if ($result) {
+            echo json_encode(['success' => true, 'message' => $message]);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Failed to save university']);
+        }
+    }
+
+    /**
+     * Delete university
+     */
+    public function delete_university()
+    {
+        $this->load->model('Online_admission_universities_model');
+        
+        $id = $this->input->post('id');
+        
+        if (!$id) {
+            echo json_encode(['success' => false, 'message' => 'Invalid university ID']);
+            return;
+        }
+
+        // Prevent deletion of 'Others' option (ID 1)
+        if ($id == 1) {
+            echo json_encode(['success' => false, 'message' => 'Cannot delete "Others" option']);
+            return;
+        }
+
+        $result = $this->Online_admission_universities_model->delete($id);
+        
+        if ($result) {
+            echo json_encode(['success' => true, 'message' => 'University deleted successfully']);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Failed to delete university']);
+        }
+    }
+
+        }

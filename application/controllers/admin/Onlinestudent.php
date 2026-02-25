@@ -488,7 +488,6 @@ class Onlinestudent extends Admin_Controller
                 }
 
                 if (!empty($value->reference_no)) {
-                    $previewbtn = "<a target='_blank' href='" . base_url('admin/onlinestudent/preview/' . $value->reference_no) . "'  class='btn btn-default btn-xs mt-5 pull-right' data-toggle='tooltip' title='" . $this->lang->line('preview') . "' ><i class='fa fa-eye'></i></a>";
                     $printbtn = "<a target='_blank' href='" . $this->customlib->getBaseUrl() . 'welcome/online_admission_review/' . $value->reference_no . "'  class='btn btn-default btn-xs mt-5 pull-right' data-toggle='tooltip' title='" . $this->lang->line('print') . "' ><i class='fa fa-print'></i></a>";
                 } else {
                     $printbtn = "";
@@ -570,7 +569,7 @@ class Onlinestudent extends Admin_Controller
                 $row[] = $value->payment_updated_by_name;
                 $row[] = ($value->payment_updated_at != null) ? date($this->customlib->getSchoolDateFormat(), $this->customlib->dateyyyymmddTodateformat($value->payment_updated_at)) : '';
                 
-                $row[]     = $document . ' ' . $previewbtn . ' ' . $printbtn . ' ' . $editbtn . ' ' . $deletebtn . ' ' . $paybtn;
+                $row[]     = $document . ' ' . $printbtn . ' ' . $editbtn . ' ' . $deletebtn . ' ' . $paybtn;
                 $dt_data[] = $row;
             }
         }
@@ -733,11 +732,26 @@ class Onlinestudent extends Admin_Controller
         $this->load->model('Online_admission_references_model');
         $ug_details = $this->Online_admission_ug_details_model->get_by_online_admission_id($id);
         $reference_details = $this->Online_admission_references_model->get_by_online_admission_id($id);
+        $this->load->model('Onlineadmissioncourses_model');
+
+        $course_applied = 'N/A';
+        $selected_course_id = !empty($student['admission_course_id']) ? $student['admission_course_id'] : (!empty($student['ug_course_id']) ? $student['ug_course_id'] : null);
+        if (!empty($selected_course_id)) {
+            $course = $this->Onlineadmissioncourses_model->getById($selected_course_id);
+            if (is_array($course) && !empty($course['course_name'])) {
+                $course_applied = $course['course_name'];
+            } elseif (is_object($course) && !empty($course->course_name)) {
+                $course_applied = $course->course_name;
+            }
+        }
 
         // Set validation rules for essential fields only
         $this->form_validation->set_rules('user_name', 'Name', 'trim|xss_clean|min_length[3]');
         $this->form_validation->set_rules('student_email', 'Email', 'trim|xss_clean|valid_email');
         $this->form_validation->set_rules('student_mobile', 'Student Mobile', 'trim|xss_clean|exact_length[10]|numeric');
+        $this->form_validation->set_rules('community', 'Community', 'trim|xss_clean');
+        $this->form_validation->set_rules('tenth_passing', 'Year of Passing (X Std)', 'trim|xss_clean');
+        $this->form_validation->set_rules('tenth_marks_percentage', 'X marks (in %)', 'trim|xss_clean');
 
         if ($this->form_validation->run() == false) {
             // Show edit form with validation errors
@@ -745,6 +759,7 @@ class Onlinestudent extends Admin_Controller
             $data['id'] = $id;
             $data['ug_details'] = $ug_details;
             $data['reference_details'] = $reference_details;
+            $data['course_applied'] = $course_applied;
             $data['title'] = 'Edit Application';
             
             $this->session->set_userdata('top_menu', 'Student Information');
@@ -759,6 +774,7 @@ class Onlinestudent extends Admin_Controller
                 'id' => $id,
                 'firstname' => htmlspecialchars($this->input->post('user_name')),
                 'gender' => $this->input->post('gender'),
+                'cast' => $this->input->post('community'),
                 'email' => $this->input->post('student_email'),
                 'mobileno' => $this->input->post('student_mobile'),
                 'dob' => $this->input->post('dob'),
@@ -784,6 +800,9 @@ class Onlinestudent extends Admin_Controller
                 'chemistry_perc' => $this->input->post('chemistry_perc'),
                 'average_marks' => $this->input->post('average_marks'),
                 'cutoff_marks' => $this->input->post('cutoff_marks'),
+                'school_name_x' => htmlspecialchars($this->input->post('school_name')),
+                'passing_year_x' => $this->input->post('tenth_passing'),
+                'tenth_marks_percentage' => $this->input->post('tenth_marks_percentage'),
                 'updated_at' => date('Y-m-d H:i:s'),
             );
 

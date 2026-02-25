@@ -335,16 +335,25 @@ if (!empty($next_date) && $next_date != '0000-00-00') {
                                     </div>
                                     <div class="col-sm-3">
                                         <div class="form-group">
-                                            <label for="pwd"><?php echo $this->lang->line('class'); ?></label>
-                                            <select name="class" class="form-control"  >
-                                                <option value=""><?php echo $this->lang->line('select') ?></option>
-                                                <?php
-foreach ($class_list as $key => $value) {
-    ?>
-                                                    <option value="<?php echo $value['id'] ?>" <?php if (set_value('class') == $value['id']) {?> selected="" <?php }?>><?php echo $value['class'] ?></option>
-                                                    <?php
-}
-?>
+                                            <label for="pwd">Course Type</label><small class="req"> *</small>
+                                            <div>
+                                                <label class="radio-inline">
+                                                    <input type="radio" name="course_type" value="ug_first_year"> UG First Year
+                                                </label>
+                                                <label class="radio-inline">
+                                                    <input type="radio" name="course_type" value="ug_lateral"> UG Lateral
+                                                </label>
+                                                <label class="radio-inline">
+                                                    <input type="radio" name="course_type" value="pg_first_year"> PG First Year
+                                                </label>
+                                            </div>
+                                        </div><!--./form-group-->
+                                    </div>
+                                    <div class="col-sm-3">
+                                        <div class="form-group">
+                                            <label for="pwd">Course</label><small class="req"> *</small>
+                                            <select name="admission_course_id" id="admission_course_id_add" class="form-control">
+                                                <option value="">Select Course Type First</option>
                                             </select>
                                         </div><!--./form-group-->
                                     </div>
@@ -685,6 +694,26 @@ foreach ($class_list as $key => $value) {
                     $('#city_add').append('<option value="' + city + '">' + city + '</option>');
                 });
             }
+        }
+    });
+    
+    // Course level and course dropdown logic for Add modal
+    var coursesData = {
+        ug_first_year: <?php echo json_encode($ug_first_year_courses); ?>,
+        ug_lateral: <?php echo json_encode($ug_lateral_courses); ?>,
+        pg_first_year: <?php echo json_encode($pg_first_year_courses); ?>
+    };
+    
+    $(document).on('change', 'input[name="course_type"]', function() {
+        var selectedType = $(this).val();
+        var courseSelect = $('#admission_course_id_add');
+        
+        courseSelect.html('<option value="">Select Course</option>');
+        
+        if (coursesData[selectedType]) {
+            $.each(coursesData[selectedType], function(index, course) {
+                courseSelect.append('<option value="' + course.id + '">' + course.course_name + '</option>');
+            });
         }
     });
 </script>

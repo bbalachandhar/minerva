@@ -52,6 +52,34 @@ class Onlineadmissioncourses_model extends MY_Model
             return $query->result_array();
         }
     }
+
+    public function getActiveCourses($course_level = null, $admission_type = null)
+    {
+        $this->db->select('*');
+        $this->db->from('online_admission_courses');
+        $this->db->where('is_active', 1);
+
+        if (!empty($course_level)) {
+            $this->db->where('course_level', $course_level);
+        }
+
+        if (!empty($admission_type)) {
+            $this->db->where('admission_type', $admission_type);
+        }
+
+        $this->db->order_by('sort_order', 'ASC');
+        $this->db->order_by('id', 'ASC');
+
+        return $this->db->get()->result_array();
+    }
+
+    public function getById($id)
+    {
+        $this->db->select('*');
+        $this->db->from('online_admission_courses');
+        $this->db->where('id', $id);
+        return $this->db->get()->row_array();
+    }
     
     public function remove($id)
     {

@@ -6,7 +6,11 @@
     <title>Application Form - Meenakshi College</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/plugins/monthSelect/style.css">
     <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/plugins/monthSelect/index.js"></script>
     <style>
         body {
             font-family: 'Poppins', sans-serif;
@@ -101,6 +105,25 @@
             padding: 20px;
             margin-top: 15px;
             border-left: 5px solid #253976;
+        }
+        .admission-type-options {
+            display: flex;
+            width: 100%;
+            gap: 12px;
+            flex-wrap: nowrap;
+        }
+        .admission-type-options .form-check {
+            flex: 1 1 0;
+            margin-right: 0;
+        }
+        .passport-upload-frame {
+            width: 35mm;
+            height: 45mm;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            margin: 0 auto;
+            background: #f8f9fa;
         }.form-control {
             border-radius: 8px;
             border: 1px solid #ccc;
@@ -198,81 +221,136 @@
                 <?php } ?>
                 <div class="section-card">
                     <h5 class="text-center mb-4">APPLICATION FORM FOR ADMISSION</h5>
-                    <div class="d-flex justify-content-center mb-4">
-                        <div class="form-check mx-3">
-                            <input class="form-check-input" type="radio" name="courseLevel" id="ugRadio" value="ug" checked tabindex="1">
-                            <label class="form-check-label" for="ugRadio">Undergraduate (UG)</label>
-                        </div>
-                        <div class="form-check mx-3">
-                            <input class="form-check-input" type="radio" name="courseLevel" id="lateralRadio" value="lateral" tabindex="2">
-                            <label class="form-check-label" for="lateralRadio">Lateral Entry</label>
-                        </div>
-                        <div class="form-check mx-3">
-                            <input class="form-check-input" type="radio" name="courseLevel" id="pgRadio" value="pg" tabindex="3">
-                            <label class="form-check-label" for="pgRadio">Postgraduate (PG)</label>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-12 cus_form">
-                            <div class="">
+                    <div class="mb-4">
+                    <!-- Academic Year and Course Level Row -->
+                    <div class="row align-items-center">
+                        <div class="col-md-2">
+                            <div class="mb-3">
                                 <label class="form-label">Academic Year:</label>
                                 <input type="text" class="form-control" name="academic_year" id="academic_year" value="2026-2027" readonly tabindex="-1">
                             </div>
-                            <div class="Upload_pic">
-                                <label class="form-label">Upload Your Photo (Passport Size) *:</label>
-                                <div id="image-upload-area" class="border rounded d-flex flex-column align-items-center justify-content-center p-3 bg-light"style="height: 200px; cursor: pointer; position: relative; overflow: hidden;">
-                                    <input type="file" id="imageUpload" name="user_image" accept="image/*" required tabindex="4" style="opacity: 0; position: absolute; top: 0; left: 0; width: 100%; height: 100%; cursor: pointer;">
-                                    <img id="previewImage" src="" alt="Preview" class="d-none border"
-                                    style="width: 35mm; height: 45mm; object-fit: cover; border-radius: 5px;">
-                                    <i id="uploadIcon" class="bi bi-cloud-upload-fill text-primary" style="font-size: 30px;"></i>
-                                    <p id="uploadText" class="mb-0 text-muted">Drag & Drop or Click to Upload</p>
-                                    <small id="uploadNote" class="text-muted">Max size: 300KB</small>
+                        </div>
+                        <div class="col-md-5">
+                            <div class="mb-3">
+                                <label class="form-label">Admission Type*</label>
+                                <div class="admission-type-options">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="courseLevel" id="ugRadio" value="ug" checked tabindex="7">
+                                        <label class="form-check-label" for="ugRadio">Undergraduate (UG)</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="courseLevel" id="lateralRadio" value="lateral" tabindex="8">
+                                        <label class="form-check-label" for="lateralRadio">Lateral Entry</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="courseLevel" id="pgRadio" value="pg" tabindex="9">
+                                        <label class="form-check-label" for="pgRadio">Postgraduate (PG)</label>
+                                    </div>
                                 </div>
+                            </div>
+                        </div>
+                        <div class="col-md-5">
+                            <div class="mb-3">
+                                <div id="image-upload-area" class="passport-upload-frame border rounded d-flex flex-column align-items-center justify-content-center">
+                                    <input type="file" id="imageUpload" name="user_image" accept="image/*" required tabindex="4" style="opacity: 0; position: absolute; top: 0; left: 0; width: 100%; height: 100%; cursor: pointer;">
+                                    <img id="previewImage" src="" alt="Preview" class="d-none" style="width: 100%; height: 100%; object-fit: cover; border-radius: 5px;">
+                                    <i id="uploadIcon" class="bi bi-cloud-upload-fill text-primary" style="font-size: 20px;"></i>
+                                </div>
+                                <small id="uploadNote" class="text-muted text-center d-block mt-1">Max size: 300KB *</small>
                                 <span id="image_upload_error" class="text-danger"></span>
                             </div>
                         </div>
                     </div>
+                    
+                    <!-- Course Selection Row -->
+                    <div class="row" id="courseSelectionRow">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Course apply*</label>
+                                <select class="form-control" name="ug_course" id="ug_course" tabindex="5">
+                                    <option value="">Select a Course</option>
+                                    <?php if (!empty($ug_first_year_courses)) { ?>
+                                        <?php foreach ($ug_first_year_courses as $course) { ?>
+                                            <option value="<?php echo (int)$course['id']; ?>" data-govt-fee="<?php echo (float)$course['govt_fee']; ?>" data-mgt-fee="<?php echo (float)$course['mgt_fee']; ?>" data-is-barch="<?php echo (stripos($course['course_name'], 'ARCH') !== false) ? '1' : '0'; ?>"><?php echo htmlspecialchars($course['course_name']); ?></option>
+                                        <?php } ?>
+                                    <?php } ?>
+                                </select>
+                                <select class="form-control" name="lateral_course" id="lateral_course" style="display:none;" tabindex="5">
+                                    <option value="">Select a Course</option>
+                                    <?php if (!empty($ug_lateral_courses)) { ?>
+                                        <?php foreach ($ug_lateral_courses as $course) { ?>
+                                            <option value="<?php echo (int)$course['id']; ?>" data-govt-fee="<?php echo (float)$course['govt_fee']; ?>" data-mgt-fee="<?php echo (float)$course['mgt_fee']; ?>" data-is-barch="<?php echo (stripos($course['course_name'], 'ARCH') !== false) ? '1' : '0'; ?>"><?php echo htmlspecialchars($course['course_name']); ?></option>
+                                        <?php } ?>
+                                    <?php } ?>
+                                </select>
+                                <select class="form-control" name="pg_course" id="pg_course" style="display:none;" tabindex="5">
+                                    <option value="">Select a Course</option>
+                                    <?php if (!empty($pg_first_year_courses)) { ?>
+                                        <?php foreach ($pg_first_year_courses as $course) { ?>
+                                            <option value="<?php echo (int)$course['id']; ?>" data-govt-fee="<?php echo (float)$course['govt_fee']; ?>" data-mgt-fee="<?php echo (float)$course['mgt_fee']; ?>" data-is-barch="<?php echo (stripos($course['course_name'], 'ARCH') !== false) ? '1' : '0'; ?>"><?php echo htmlspecialchars($course['course_name']); ?></option>
+                                        <?php } ?>
+                                    <?php } ?>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label class="form-label">Quota Type*</label>
+                                <select class="form-control" id="quota_type" name="quota_type" required tabindex="6">
+                                    <option value="">Select Quota</option>
+                                    <option value="government">Government</option>
+                                    <option value="management">Management</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label class="form-label">Course Fee (Auto)</label>
+                                <input type="text" class="form-control" id="course_fee_display" readonly tabindex="-1" placeholder="Select course + quota">
+                                <input type="hidden" id="course_fee_total" name="course_fee_total" value="">
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 </div>
                 <div class="section-card">
                     <h5 class="mb-2">PERSONAL DETAILS</h5>
                     <div class="row">
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <div class="mb-3">
                                 <label class="form-label">Name (In block letters with initial at the end)*</label>
                                 <input type="text" class="form-control" name="user_name" id="user_name" onkeydown="return allowAlphabets(event)" placeholder="Enter your full name" required tabindex="5" value="<?php echo isset($name) ? htmlspecialchars($name) : ''; ?>">
                             </div>
                         </div>
-                        <div class="mb-3 col-md-6">
+                        <div class="mb-3 col-md-4">
                             <label class="form-label">Father's Name*</label>
                             <input type="text" class="form-control" placeholder="Enter your Father's Name" name="father_name" onkeydown="return allowAlphabets(event)" id="father_name" required tabindex="6">
                         </div>
-                    </div>
-                    <div class="row">
-                        <div class="mb-3 col-md-6">
+                        <div class="mb-3 col-md-4">
                             <label class="form-label">Father's/Guardian's Mobile Number*</label>
                             <input type="text" class="form-control" minlength="10" maxlength="10" placeholder="Enter your Father's Mobile Number"  onchange="validateMobile(this)" name="father_mobile" id="father_mobile"  onKeyPress="return checkIt(event);" required tabindex="7">
                         </div>
-                        <div class="mb-3 col-md-6">
+                    </div>
+                    <div class="row">
+                        <div class="mb-3 col-md-4">
                             <label class="form-label">Father's Occupation*</label>
                             <input type="text" class="form-control" onkeydown="return allowAlphabets(event)" placeholder="Enter your Father's Occupation"   name="father_occupation" id="father_occupation" required tabindex="8">
                         </div>
-                    </div>
-                    <div class="row">
-                        <div class="mb-3 col-md-6">
+                        <div class="mb-3 col-md-4">
                             <label class="form-label">Mother's Name*</label>
                             <input type="text" class="form-control" onkeydown="return allowAlphabets(event)" placeholder="Enter your Mother's Name" name="mother_name" id="mother_name" required tabindex="9">
                         </div>
-                        <div class="mb-3 col-md-6">
+                        <div class="mb-3 col-md-4">
                             <label class="form-label">Mother's/Guardian's Mobile Number*</label>
                             <input type="text" class="form-control" placeholder="Enter your Mother's Mobile Number" name="mother_mobile" id="mother_mobile"  onchange="validateMobile(this)" required minlength="10" maxlength="10" onKeyPress="return checkIt(event);" tabindex="10">
                         </div>
                     </div>
                     <div class="row">
-                        <div class="mb-3 col-md-6">
+                        <div class="mb-3 col-md-4">
                             <label class="form-label">Mother's Occupation*</label>
                             <input type="text" class="form-control" onkeydown="return allowAlphabets(event)" placeholder="Enter your Mother's Occupation" name="mother_occupation" id="mother_occupation" required tabindex="11">
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <div class="mb-3">
                                 <label class="form-label" for="gender">Gender*</label>
                                 <select class="form-select" id="gender" name="gender" required tabindex="12">
@@ -283,48 +361,61 @@
                                 </select>
                             </div>
                         </div>
-                    </div>
-                    <div class="row">
-                        <div class="mb-3 col-md-6">
+                        <div class="mb-3 col-md-4">
                             <label class="form-label">Community*</label>
                             <select class="form-control" id="community" name="community" required tabindex="12a">
                                 <option value="">Select Community</option>
-                                <option value="General">General</option>
-                                <option value="OBC">OBC</option>
+                                <option value="OC">OC (General)</option>
+                                <option value="BC">BC</option>
+                                <option value="MBC">MBC</option>
+                                <option value="BCM">BCM</option>
                                 <option value="SC">SC</option>
+                                <option value="SCA">SCA</option>
                                 <option value="ST">ST</option>
                             </select>
                         </div>
-                        <div class="mb-3 col-md-6">
+                    </div>
+                    <div class="row">
+                        <div class="mb-3 col-md-4">
                             <label class="form-label">Student's Email ID*</label>
                             <input type="email" class="form-control" placeholder="Enter your Email"  id="student_email" name="student_email" required tabindex="13" value="<?php echo isset($email) ? htmlspecialchars($email) : ''; ?>">
                             <span id="email_error" class="text-danger"></span>
                         </div>
-                    </div>
-                    <div class="row">
-                        <div class="mb-3 col-md-6">
+                        <div class="mb-3 col-md-4">
                             <label class="form-label">Student's Mobile Number*</label>
                             <input type="text" step="any" class="form-control" placeholder="Enter Student's Mobile Number" id="student_mobile" onchange="validateMobile(this)" onKeyPress="return checkIt(event);" name="student_mobile" required minlength="10" maxlength="10" tabindex="14" value="<?php echo isset($mobileno) ? htmlspecialchars($mobileno) : ''; ?>">
                             <span id="mobile_error" class="text-danger"></span>
                         </div>
-                    </div>
-                    <div class="row">
-                        <div class="mb-3 col-md-6">
+                        <div class="mb-3 col-md-4">
                             <label class="form-label">Student's D.O.B*</label>
-                            <input type="date" class="form-control" placeholder="Enter your D.O.B"  id="dob" name="dob" required tabindex="15">
+                            <input type="text" class="form-control" placeholder="Select Date of Birth (DD/MM/YYYY)"  id="dob" name="dob" required tabindex="15">
                             <span id="dob_error" class="text-danger"></span>
                         </div>
-                        <div class="mb-3 col-md-6">
+                    </div>
+                    <div class="row">
+                        <div class="mb-3 col-md-4">
                             <label class="form-label">Aadhaar Number*</label>
                             <input type="text" step="any" class="form-control" placeholder="Enter your Aadhar Number" id="aadhaar" name="aadhaar" required minlength="12" maxlength="12" onKeyPress="return checkIt(event);" tabindex="16">
                             <span id="aadhaar_error" class="text-danger"></span>
+                        </div>
+                        <div class="mb-3 col-md-4">
+                            <label class="form-label">State*</label>
+                            <select class="form-control" id="state" name="state" required tabindex="17">
+                                <option value="">Select State</option>
+                            </select>
+                        </div>
+                        <div class="mb-3 col-md-4">
+                            <label class="form-label">City*</label>
+                            <select class="form-control" id="city" name="city" required tabindex="18">
+                                <option value="">Select City</option>
+                            </select>
                         </div>
                     </div>
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label class="form-label">Address for Communication*</label>
-                                <textarea class="form-control" placeholder="Enter your Communication Address"  name="comm_addr" id="comm_addr" required tabindex="17"></textarea>
+                                <textarea class="form-control" placeholder="Enter your Communication Address"  name="comm_addr" id="comm_addr" required tabindex="19"></textarea>
                             </div>
                         </div>
                         <div class="col-md-6">
@@ -338,28 +429,7 @@
                                         </label>
                                     </div>
                                 </div>
-                                <textarea class="form-control" placeholder="Enter your Permanent Address" name="perm_addr" id="perm_addr" required tabindex="18"></textarea>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="section-card">
-                    <h5 class="mb-3">STATE AND CITY*</h5>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label class="form-label">State*</label>
-                                <select class="form-control" id="state" name="state" required tabindex="19">
-                                    <option value="">Select State</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label class="form-label">City*</label>
-                                <select class="form-control" id="city" name="city" required tabindex="20">
-                                    <option value="">Select City</option>
-                                </select>
+                                <textarea class="form-control" placeholder="Enter your Permanent Address" name="perm_addr" id="perm_addr" required tabindex="20"></textarea>
                             </div>
                         </div>
                     </div>
@@ -432,34 +502,23 @@
 
                     <div id="ugDetails">
                         <div class="section-card">
-                            <h5 class="mb-3">Course apply*</h5>
-                                                        <select class="form-control" name="ug_course" id="ug_course" tabindex="22">
-                                                            <option value="">Select a Course</option>
-                                                                                                <option value="1">B.Arch - Bachelor of Architecture</option>
-                                                                                                <option value="2">B.E. CIVIL - Civil Engineering</option>
-                                                                                                <option value="3">B.E. CSE - Computer Science Engineering</option>
-                                                                                                <option value="4">B.E. CSE(AIML) - CSE(Artificial Intelligence & Machine Learning)</option>
-                                                                                                <option value="5">B.E. EEE - Electrical and Electronics Engineering</option>
-                                                                                                <option value="6">B.E. ECE - Electronics and Communication Engineering</option>
-                                                                                                <option value="7">B.E. EIE - Electronics and Instrumentation Engineering</option>
-                                                                                                <option value="8">B.E. MECH - Mechanical Engineering</option>
-                                                                                                <option value="9">B.TECH. AIDS - Artificial Intelligence and Data Science</option>
-                                                                                                <option value="10">B.TECH. CSBS - Computer Science and Business System</option>
-                                                                                                <option value="11">B.TECH. IT - Information Technology </option>
-                                                                                                <option value="12">B.E. Cybersecurity and Bachelor of Design (B.Des)</option>
-                                                        </select>                        </div>
-                        <div class="section-card">
                             <div class="row">
-                                <div class="col-md-6">
+                                <div class="col-md-4">
                                     <div class="mb-3">
                                         <label class="form-label">Name of the school of X std*</label>
-                                        <input type="text" class="form-control" placeholder="Enter your year"  name="school_name" id="school_name" onkeydown="return allowAlphabets(event)" tabindex="23">
+                                        <input type="text" class="form-control" placeholder="Enter school name"  name="school_name" id="school_name" onkeydown="return allowAlphabets(event)" tabindex="22">
                                     </div>
                                 </div>
-                                <div class="col-md-6">
+                                <div class="col-md-4">
                                     <div class="mb-3">
                                         <label class="form-label">Year of passing of X std*</label>
-                                        <input  type="text" class="form-control" placeholder="Enter your year" name="tenth_passing" id="tenth_passing" minlength="4" maxlength="4" onKeyPress="return checkIt(event);" tabindex="24">
+                                        <input  type="text" class="form-control" placeholder="Select year" name="tenth_passing" id="tenth_passing" tabindex="23">
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label class="form-label">X marks (in %)*</label>
+                                        <input type="number" step="0.01" min="0" max="100" class="form-control" placeholder="Enter marks %" name="tenth_marks_percentage" id="tenth_marks_percentage" tabindex="24">
                                     </div>
                                 </div>
                             </div>
@@ -468,33 +527,23 @@
                     
                     <div id="lateralDetails" style="display:none">
                         <div class="section-card">
-                            <h5 class="mb-3">Course apply*</h5>
-                            <select class="form-control" name="lateral_course" id="lateral_course" tabindex="29">
-                                <option value="">Select a Course</option>
-                                                                    <option value="2">B.E. CIVIL - Civil Engineering</option>
-                                                                    <option value="3">B.E. CSE - Computer Science Engineering</option>
-                                                                    <option value="4">B.E. CSE(AIML) - CSE(Artificial Intelligence & Machine Learning)</option>
-                                                                    <option value="5">B.E. EEE - Electrical and Electronics Engineering</option>
-                                                                    <option value="6">B.E. ECE - Electronics and Communication Engineering</option>
-                                                                    <option value="7">B.E. EIE - Electronics and Instrumentation Engineering</option>
-                                                                    <option value="8">B.E. MECH - Mechanical Engineering</option>
-                                                                    <option value="9">B.TECH. AIDS - Artificial Intelligence and Data Science</option>
-                                                                    <option value="11">B.TECH. IT - Information Technology </option>
-                                                                    <option value="12">B.E. Cybersecurity and Bachelor of Design (B.Des)</option>
-                                                            </select>
-                        </div>
-                        <div class="section-card">
                             <div class="row">
-                                <div class="col-md-6">
+                                <div class="col-md-4">
                                     <div class="mb-3">
                                         <label class="form-label">Name of the school of X std*</label>
-                                        <input type="text" class="form-control" placeholder="Enter your year"  name="lateral_school_name" id="lateral_school_name" onkeydown="return allowAlphabets(event)" tabindex="30">
+                                        <input type="text" class="form-control" placeholder="Enter school name"  name="lateral_school_name" id="lateral_school_name" onkeydown="return allowAlphabets(event)" tabindex="29">
                                     </div>
                                 </div>
-                                <div class="col-md-6">
+                                <div class="col-md-4">
                                     <div class="mb-3">
                                         <label class="form-label">Year of passing of X std*</label>
-                                        <input  type="text" class="form-control" placeholder="Enter your year" name="lateral_tenth_passing" id="lateral_tenth_passing" minlength="4" maxlength="4" onKeyPress="return checkIt(event);" tabindex="31">
+                                        <input  type="text" class="form-control" placeholder="Select year" name="lateral_tenth_passing" id="lateral_tenth_passing" tabindex="30">
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label class="form-label">X marks (in %)*</label>
+                                        <input type="number" step="0.01" min="0" max="100" class="form-control" placeholder="Enter marks %" name="lateral_tenth_marks_percentage" id="lateral_tenth_marks_percentage" tabindex="31">
                                     </div>
                                 </div>
                             </div>
@@ -612,27 +661,15 @@
                     
                     <div id="pgDetails" style="display: none;">
                         <div class="section-card">
-                            <h5 class="mb-3">Course apply</h5>
-                            <select class="form-control" name="pg_course" id="pg_course" tabindex="71">
-                                <option value="">Select a Course</option>
-                                                                    <option value="12">M. Arch. - Master of Architecture</option>
-                                                                    <option value="13">M.B.A - Master of Business Administration</option>
-                                                                    <option value="14">M.C.A - Master of Computer Application</option>
-                                                                    <option value="15">M.E. AE - Applied Electronics</option>
-                                                                    <option value="16">M.E. CSE - Computer Science and Engineering</option>
-                                                                    <option value="17">M.E. PED - Power Electronics and Drives</option>
-                                                            </select>
-                        </div>
-                        <div class="section-card">
                             <h5 class="mb-3">Academic  Details</h5>
                             <div class="row">
                                 <div class="mb-3 col-md-6">
-                                    <label class="form-label">Qualifying Exam passed</label>
-                                    <input class="form-control" type="text" placeholder="Enter your exam passed" name="exam_passed" id="exam_passed" tabindex="72">
+                                    <label class="form-label">UG Course Studied</label>
+                                    <input class="form-control" type="text" placeholder="Enter your UG course" name="exam_passed" id="exam_passed" tabindex="71">
                                 </div>
                                 <div class="mb-3 col-md-6">
-                                    <label class="form-label">Branch</label>
-                                    <input type="text" class="form-control" placeholder="Enter your Branch" name="branch" id="branch" tabindex="73">
+                                    <label class="form-label">Major Stream</label>
+                                    <input type="text" class="form-control" placeholder="Enter your major stream" name="branch" id="branch" tabindex="72">
                                 </div>
                             </div>
                             <div class="row">
@@ -642,13 +679,15 @@
                                 </div>
                                 <div class="mb-3 col-md-6">
                                     <label class="form-label">Name of the College</label>
-                                    <input type="text" class="form-control" minlength="4" maxlength="4" placeholder="Enter your College" name="noc" id="noc" tabindex="75">
+                                    <input type="text" class="form-control" minlength="2" maxlength="200" placeholder="Enter your College" name="noc" id="noc" tabindex="75">
                                 </div>
                             </div>
                             <div class="row">
                                 <div class="mb-3 col-md-6">
-                                    <label class="form-label">Name of the University</label>
-                                    <input type="texts" step="any" class="form-control" placeholder="Enter your University" name="nou" id="nou" tabindex="76">
+                                    <label class="form-label">University*</label>
+                                    <select class="form-control" id="university_id" name="university_id" tabindex="76" required>
+                                        <option value="">Select University</option>
+                                    </select>
                                 </div>
                                 <div class="mb-3 col-md-6">
                                     <label class="form-label">TANCET / PGETA Exam Application Number</label>
@@ -810,6 +849,7 @@
     // Initialize with UG selected by default
     document.addEventListener("DOMContentLoaded", function() {
         toggleCourseSelection();
+        loadUniversities();
     });
 
     function toggleCourseSelection() {
@@ -829,6 +869,11 @@
             pgDetails.style.display = "none";
             hscDetails.style.display = "block";
             
+            // Show/hide course dropdowns in top row
+            document.getElementById("ug_course").style.display = "block";
+            document.getElementById("lateral_course").style.display = "none";
+            document.getElementById("pg_course").style.display = "none";
+            
             // Set required fields for UG
             setRequiredFields(true, false, false);
             setHscRequired(true);
@@ -839,6 +884,11 @@
             lateralDetails.style.display = "block";
             pgDetails.style.display = "none";
             hscDetails.style.display = "none";
+            
+            // Show/hide course dropdowns in top row
+            document.getElementById("ug_course").style.display = "none";
+            document.getElementById("lateral_course").style.display = "block";
+            document.getElementById("pg_course").style.display = "none";
             
             // Set required fields for Lateral
             setRequiredFields(false, true, false);
@@ -852,6 +902,11 @@
             pgDetails.style.display = "block";
             hscDetails.style.display = "none";
             
+            // Show/hide course dropdowns in top row
+            document.getElementById("ug_course").style.display = "none";
+            document.getElementById("lateral_course").style.display = "none";
+            document.getElementById("pg_course").style.display = "block";
+            
             // Set required fields for PG
             setRequiredFields(false, false, true);
             setHscRequired(false);
@@ -864,11 +919,13 @@
         $("#ug_course").prop("required", ugRequired);
         $("#school_name").prop("required", ugRequired);
         $("#tenth_passing").prop("required", ugRequired);
+        $("#tenth_marks_percentage").prop("required", ugRequired);
         
         // Lateral fields
         $("#lateral_course").prop("required", lateralRequired);
         $("#lateral_school_name").prop("required", lateralRequired);
         $("#lateral_tenth_passing").prop("required", lateralRequired);
+        $("#lateral_tenth_marks_percentage").prop("required", lateralRequired);
         for (let i = 1; i <= 6; i++) {
             $(`#presub${i}`).prop("required", lateralRequired);
             $(`#preout${i}`).prop("required", lateralRequired);
@@ -884,7 +941,7 @@
         $("#branch").prop("required", pgRequired);
         $("#yop").prop("required", pgRequired);
         $("#noc").prop("required", pgRequired);
-        $("#nou").prop("required", pgRequired);
+        $("#university_id").prop("required", pgRequired);
         $("#exam_score").prop("required", pgRequired);
         $("#exam_year").prop("required", pgRequired);
         $("#pg_app_num").prop("required", pgRequired);
@@ -927,21 +984,88 @@
     document.getElementById("lateralRadio").addEventListener("change", toggleCourseSelection);
     document.getElementById("pgRadio").addEventListener("change", toggleCourseSelection);
 
-    // NATA section toggle for B.Arch
-    $("#ug_course, #lateral_course").change(function(){
-        let course_val = $(this).val();
-        if(course_val==1){ // Assuming 1 is B.Arch course ID
+    function getSelectedCourseOption() {
+        const courseLevel = $("input[name='courseLevel']:checked").val();
+        if (courseLevel === 'ug') {
+            return $('#ug_course option:selected');
+        }
+        if (courseLevel === 'lateral') {
+            return $('#lateral_course option:selected');
+        }
+        if (courseLevel === 'pg') {
+            return $('#pg_course option:selected');
+        }
+        return null;
+    }
+
+    function updateNataVisibility() {
+        const selectedOption = getSelectedCourseOption();
+        const isBarch = selectedOption && selectedOption.data('is-barch') == 1;
+        if (isBarch) {
             $("#nata_sec").show();
             $("#nata_score").prop('required', true);
             $("#application_number").prop('required', true);
             $("#nata_year").prop('required', true);
-        }else{
+        } else {
             $("#nata_sec").hide();
             $("#nata_score").prop('required', false);
             $("#application_number").prop('required', false);
             $("#nata_year").prop('required', false);
         }
+    }
+
+    function updateCourseFee() {
+        const quotaType = $('#quota_type').val();
+        const selectedOption = getSelectedCourseOption();
+        if (!selectedOption || !selectedOption.val() || !quotaType) {
+            $('#course_fee_display').val('');
+            $('#course_fee_total').val('');
+            return;
+        }
+
+        const govtFee = parseFloat(selectedOption.data('govt-fee') || 0);
+        const mgtFee = parseFloat(selectedOption.data('mgt-fee') || 0);
+        const fee = quotaType === 'government' ? govtFee : mgtFee;
+
+        $('#course_fee_total').val(fee.toFixed(2));
+        $('#course_fee_display').val(new Intl.NumberFormat('en-IN', {
+            style: 'currency',
+            currency: 'INR',
+            minimumFractionDigits: 2
+        }).format(fee));
+    }
+
+    // NATA section toggle for B.Arch and fee auto-calc
+    $("#ug_course, #lateral_course, #pg_course, #quota_type, input[name='courseLevel']").on('change', function(){
+        updateNataVisibility();
+        updateCourseFee();
     });
+
+    updateNataVisibility();
+    updateCourseFee();
+
+    // Load universities for PG dropdown
+    function loadUniversities() {
+        $.ajax({
+            url: '<?php echo base_url("publicadmissionform/get_universities"); ?>',
+            type: 'GET',
+            dataType: 'json',
+            success: function(data) {
+                if (data && Array.isArray(data)) {
+                    let select = $('#university_id');
+                    select.empty();
+                    select.append('<option value="">Select University</option>');
+                    
+                    data.forEach(function(uni) {
+                        select.append(`<option value="${uni.id}">${uni.name}</option>`);
+                    });
+                }
+            },
+            error: function(err) {
+                console.error('Error loading universities:', err);
+            }
+        });
+    }
 </script>
 <script type="text/javascript">
     $(document).ready(function() {
@@ -1504,6 +1628,45 @@ $(document).ready(function() {
         if (checkbox.checked) {
             document.getElementById('perm_addr').value = this.value;
         }
+    });
+
+    // Initialize Flatpickr for DOB picker
+    flatpickr('#dob', {
+        mode: 'single',
+        dateFormat: 'd/m/Y',
+        altInput: false,
+        maxDate: new Date(),
+        yearRange: [1950, new Date().getFullYear()],
+        monthSelectorType: 'dropdown',
+        allowInput: true,
+        enableTime: false,
+        time_24hr: false,
+        locale: 'en'
+    });
+
+    // Initialize Flatpickr for year inputs (tenth_passing and lateral_tenth_passing)
+    flatpickr('#tenth_passing', {
+        mode: 'single',
+        dateFormat: 'Y',
+        altInput: false,
+        maxDate: new Date(),
+        yearRange: [1950, new Date().getFullYear()],
+        monthSelectorType: 'dropdown',
+        allowInput: false,
+        enableTime: false,
+        locale: 'en'
+    });
+
+    flatpickr('#lateral_tenth_passing', {
+        mode: 'single',
+        dateFormat: 'Y',
+        altInput: false,
+        maxDate: new Date(),
+        yearRange: [1950, new Date().getFullYear()],
+        monthSelectorType: 'dropdown',
+        allowInput: false,
+        enableTime: false,
+        locale: 'en'
     });
 });
 </script>

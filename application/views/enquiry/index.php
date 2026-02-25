@@ -74,12 +74,27 @@ if (validation_errors()) {
     <div class="row">
         <div class="col-md-12">
             <div class="form-group">
-                <label for="class">Department/Class <span class="text-danger">*</span></label>
-                <select name="class" class="form-control">
-                    <option value="">Select Class</option>
-                    <?php foreach ($class_list as $class): ?>
-                        <option value="<?php echo $class['id']; ?>" <?php echo set_select('class', $class['id']); ?>><?php echo $class['class']; ?></option>
-                    <?php endforeach; ?>
+                <label for="course_type">Course Type <span class="text-danger">*</span></label>
+                <div>
+                    <label class="radio-inline">
+                        <input type="radio" name="course_type" value="ug_first_year" <?php echo set_radio('course_type', 'ug_first_year'); ?>> UG First Year
+                    </label>
+                    <label class="radio-inline">
+                        <input type="radio" name="course_type" value="ug_lateral" <?php echo set_radio('course_type', 'ug_lateral'); ?>> UG Lateral Entry
+                    </label>
+                    <label class="radio-inline">
+                        <input type="radio" name="course_type" value="pg_first_year" <?php echo set_radio('course_type', 'pg_first_year'); ?>> PG First Year
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <div class="form-group">
+                <label for="admission_course_id">Course <span class="text-danger">*</span></label>
+                <select name="admission_course_id" id="admission_course_id" class="form-control">
+                    <option value="">Select Course Type First</option>
                 </select>
             </div>
         </div>
@@ -110,6 +125,31 @@ if (validation_errors()) {
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
 <script>
 $(document).ready(function() {
+    // Course data from PHP
+    const coursesData = {
+        ug_first_year: <?php echo json_encode($ug_first_year_courses); ?>,
+        ug_lateral: <?php echo json_encode($ug_lateral_courses); ?>,
+        pg_first_year: <?php echo json_encode($pg_first_year_courses); ?>
+    };
+    
+    // Handle course level selection
+    $('input[name="course_type"]').on('change', function() {
+        const selectedType = $(this).val();
+        const courseSelect = $('#admission_course_id');
+        
+        courseSelect.html('<option value="">Select Course</option>');
+        
+        if (coursesData[selectedType]) {
+            coursesData[selectedType].forEach(function(course) {
+                courseSelect.append(
+                    $('<option></option>')
+                        .attr('value', course.id)
+                        .text(course.course_name)
+                );
+            });
+        }
+    });
+    
     // Load India states and cities
     let statesData = {};
     

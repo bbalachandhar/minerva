@@ -85,65 +85,67 @@ class enquiry_model extends MY_Model
         }
     }
 
-        public function getenquiry_list($id = null, $status = 'active')
+    public function getenquiry_list($id = null, $status = 'active')
 
-        {
+    {
 
-            $this->db->select('enquiry.*,classes.class as classname,staff.id as staff_id,staff.name as staff_name,staff.surname as staff_surname,staff.employee_id')->
+        $this->db->select('enquiry.*,classes.class as classname,staff.id as staff_id,staff.name as staff_name,staff.surname as staff_surname,staff.employee_id,online_admission_courses.course_name as admission_course_name')->
 
-                join("classes", "enquiry.class_id = classes.id", "left")->
+            join("classes", "enquiry.class_id = classes.id", "left")->
 
-                join("staff", "staff.id = enquiry.assigned", "left");
-
-                
-
-            if (!empty($id)) {
-
-                $this->db->where("enquiry.id", $id);
-
-            }
-
-    
-
-                    if (is_array($status)) {
-
-    
-
-                        $this->db->where_in('enquiry.status', $status);
-
-    
-
-                    } else if ($status != 'all') { // Only apply status filter if not 'all'
-
-    
-
-                        $this->db->where('enquiry.status', $status);
-
-    
-
-                    }
+            join("staff", "staff.id = enquiry.assigned", "left")->
+            
+            join("online_admission_courses", "enquiry.admission_course_id = online_admission_courses.id", "left");
 
             
 
-            // primary sort by enquiry `date` (newest first) then by id
-            $this->db->order_by("enquiry.date", "desc");
-            $this->db->order_by("enquiry.id", "desc");
+        if (!empty($id)) {
 
-            $query = $this->db->get("enquiry");
-
-    
-
-            if (!empty($id)) {
-
-                return $query->row_array();
-
-            } else {
-
-                return $query->result_array();
-
-            }
+            $this->db->where("enquiry.id", $id);
 
         }
+
+
+
+                if (is_array($status)) {
+
+
+
+                    $this->db->where_in('enquiry.status', $status);
+
+
+
+                } else if ($status != 'all') { // Only apply status filter if not 'all'
+
+
+
+                    $this->db->where('enquiry.status', $status);
+
+
+
+                }
+
+        
+
+        // primary sort by enquiry `date` (newest first) then by id
+        $this->db->order_by("enquiry.date", "desc");
+        $this->db->order_by("enquiry.id", "desc");
+
+        $query = $this->db->get("enquiry");
+
+
+
+        if (!empty($id)) {
+
+            return $query->row_array();
+
+        } else {
+
+            return $query->result_array();
+
+        }
+
+    }
 
     public function getFollowByEnquiry($id)
     {
@@ -271,7 +273,9 @@ class enquiry_model extends MY_Model
 
     public function searchEnquiry($class, $source, $date_from, $date_to, $status = 'active', $department_id = null)
     {
-        $this->db->select('enquiry.*,classes.class as classname')->join("classes", "classes.id = enquiry.class_id", "left");
+        $this->db->select('enquiry.*,classes.class as classname,online_admission_courses.course_name as admission_course_name')
+            ->join("classes", "classes.id = enquiry.class_id", "left")
+            ->join("online_admission_courses", "enquiry.admission_course_id = online_admission_courses.id", "left");
 
         if (!empty($class)) {
             $this->db->where("enquiry.class_id", $class);

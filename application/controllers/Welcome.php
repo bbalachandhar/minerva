@@ -12,7 +12,7 @@ class Welcome extends Front_Controller
         $this->load->config('form-builder');
         $this->load->config('app-config');
         $this->load->library(array('mailer', 'form_builder', 'mailsmsconf'));
-        $this->load->model(array('frontcms_setting_model', 'complaint_Model', 'Visitors_model', 'onlinestudent_model', 'filetype_model', 'customfield_model', 'setting_model', 'examgroupstudent_model', 'examgroup_model', 'grade_model', 'marksdivision_model', 'currency_model', 'section_model','holiday_model', 'class_model', 'category_model'));
+        $this->load->model(array('frontcms_setting_model', 'complaint_Model', 'Visitors_model', 'onlinestudent_model', 'filetype_model', 'customfield_model', 'setting_model', 'examgroupstudent_model', 'examgroup_model', 'grade_model', 'marksdivision_model', 'currency_model', 'section_model','holiday_model', 'class_model', 'category_model', 'Onlineadmissioncourses_model'));
         $this->load->model('examstudent_model');
         $this->blood_group = $this->config->item('bloodgroup');
         $this->load->library('Ajax_pagination');
@@ -751,8 +751,7 @@ class Welcome extends Front_Controller
             $this->data['category']    = $result['category'];
             $this->data['religion']    = $result['religion'];
             $this->data['cast']        = $result['cast'];
-            // community field removed from schema; default to N/A
-            $this->data['community']   = 'N/A';
+            $this->data['community']   = !empty($result['cast']) ? $result['cast'] : 'N/A';
             if ($result['school_house_id'] != 0) {
                 $this->data['house_name'] = $this->customlib->gethousename($result['school_house_id']);
             } else {
@@ -812,6 +811,14 @@ class Welcome extends Front_Controller
             $this->data['chemistry_perc'] = isset($result['chemistry_perc']) ? $result['chemistry_perc'] : null;
             $this->data['average_marks'] = isset($result['average_marks']) ? $result['average_marks'] : null;
             $this->data['cutoff_marks'] = isset($result['cutoff_marks']) ? $result['cutoff_marks'] : null;
+            $this->data['admission_course_id'] = isset($result['admission_course_id']) ? $result['admission_course_id'] : null;
+            $this->data['stored_course_level'] = isset($result['course_level']) ? $result['course_level'] : null;
+            $this->data['admission_type'] = isset($result['admission_type']) ? $result['admission_type'] : null;
+            $this->data['quota_type'] = isset($result['quota_type']) ? $result['quota_type'] : null;
+            $this->data['course_fee_total'] = isset($result['course_fee_total']) ? $result['course_fee_total'] : null;
+            $this->data['school_name_x'] = isset($result['school_name_x']) ? $result['school_name_x'] : null;
+            $this->data['passing_year_x'] = isset($result['passing_year_x']) ? $result['passing_year_x'] : null;
+            $this->data['tenth_marks_percentage'] = isset($result['tenth_marks_percentage']) ? $result['tenth_marks_percentage'] : null;
             $this->data['reference_no']    = $result['reference_no'];
             $this->data['transaction_id']  = $this->customlib->gettransactionid($result['id']);
             $this->data['transaction_paid_amount']  = $this->customlib->gettransactionpaidamount($result['id']);
@@ -852,23 +859,24 @@ class Welcome extends Front_Controller
             $this->data['nata_details'] = $this->Online_admission_nata_details_model->get_by_online_admission_id($id);
             $this->data['reference_details'] = $this->Online_admission_references_model->get_by_online_admission_id($id);
 
-            // Course name mapping for UG courses
-            $this->data['course_names'] = array(
-                1 => 'B.Arch - Bachelor of Architecture',
-                2 => 'B.E. CIVIL - Civil Engineering',
-                3 => 'B.E. CSE - Computer Science Engineering',
-                4 => 'B.E. CSE(AIML) - CSE(Artificial Intelligence & Machine Learning)',
-                5 => 'B.E. EEE - Electrical and Electronics Engineering',
-                6 => 'B.E. ECE - Electronics and Communication Engineering',
-                7 => 'B.E. EIE - Electronics and Instrumentation Engineering',
-                8 => 'B.E. MECH - Mechanical Engineering',
-                9 => 'B.TECH. AIDS - Artificial Intelligence and Data Science',
-                10 => 'B.TECH. CSBS - Computer Science and Business System',
-                11 => 'B.TECH. IT - Information Technology',
-                12 => 'B.E. Cybersecurity and Bachelor of Design (B.Des)',
-            );
+            $all_courses = $this->Onlineadmissioncourses_model->get();
+            $course_name_map = array();
+            foreach ($all_courses as $course_row) {
+                $course_name_map[$course_row['id']] = $course_row['course_name'];
+            }
+            $this->data['course_names'] = $course_name_map;
 
-            if($this->data['ug_details'] || !empty($this->data['ug_course_id'])){
+            if (!empty($this->data['pg_details']['pg_course_id']) && isset($course_name_map[$this->data['pg_details']['pg_course_id']])) {
+                $this->data['pg_details']['pg_course_id'] = $course_name_map[$this->data['pg_details']['pg_course_id']];
+            }
+
+            if (!empty($this->data['lateral_details']['lateral_course_id']) && isset($course_name_map[$this->data['lateral_details']['lateral_course_id']])) {
+                $this->data['lateral_details']['lateral_course_id'] = $course_name_map[$this->data['lateral_details']['lateral_course_id']];
+            }
+
+            if (!empty($this->data['stored_course_level'])) {
+                $this->data['course_level'] = ($this->data['stored_course_level'] === 'ug' && $this->data['admission_type'] === 'lateral') ? 'lateral' : $this->data['stored_course_level'];
+            } elseif($this->data['ug_details'] || !empty($this->data['ug_course_id'])){
                 $this->data['course_level'] = 'ug';
             } elseif($this->data['pg_details']){
                 $this->data['course_level'] = 'pg';

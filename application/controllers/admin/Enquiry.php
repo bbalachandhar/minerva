@@ -13,6 +13,7 @@ class Enquiry extends Admin_Controller
         parent::__construct();
         $this->load->library('form_validation');
         $this->load->model("enquiry_model");
+        $this->load->model("Onlineadmissioncourses_model");
         $this->config->load("payroll");
         $this->enquiry_status = $this->config->item('enquiry_status');
     }
@@ -86,6 +87,12 @@ class Enquiry extends Admin_Controller
         $data['enquiry_status'] = $this->enquiry_status;
         $data['Reference']      = $this->enquiry_model->get_reference();
         $data['sourcelist']     = $this->enquiry_model->getComplaintSource();
+        
+        // Load course data for dropdowns
+        $data['ug_first_year_courses'] = $this->Onlineadmissioncourses_model->getActiveCourses('ug', 'first_year');
+        $data['ug_lateral_courses'] = $this->Onlineadmissioncourses_model->getActiveCourses('ug', 'lateral');
+        $data['pg_first_year_courses'] = $this->Onlineadmissioncourses_model->getActiveCourses('pg', 'first_year');
+        
         $this->load->view('layout/header');
         $this->load->view('admin/frontoffice/enquiryview', $data);
         $this->load->view('layout/footer');
@@ -101,6 +108,7 @@ class Enquiry extends Admin_Controller
         $this->form_validation->set_rules('source', $this->lang->line('source'), 'trim|required|xss_clean');
         $this->form_validation->set_rules('date', $this->lang->line('date'), 'trim|required|xss_clean');
         $this->form_validation->set_rules('follow_up_date', $this->lang->line('next_follow_up_date'), 'trim|required|xss_clean');
+        $this->form_validation->set_rules('admission_course_id', 'Course', 'trim|required|xss_clean');
         
         if ($this->form_validation->run() == false) {
             $msg = array(
@@ -108,7 +116,8 @@ class Enquiry extends Admin_Controller
                 'contact' => form_error('contact'),
                 'source'  => form_error('source'),
                 'date'    => form_error('date'),
-                'follow_up_date'    => form_error('follow_up_date'),
+                'follow_up_date' => form_error('follow_up_date'),
+                'admission_course_id' => form_error('admission_course_id'),
             );
 
             $array = array('status' => 'fail', 'error' => $msg, 'message' => '');
@@ -116,6 +125,12 @@ class Enquiry extends Admin_Controller
 
             $userdata   = $this->customlib->getUserData();
             $created_by = $userdata["id"];
+
+            // Get course metadata and derive course_level
+            $admission_course_id = $this->input->post('admission_course_id');
+            $course_data = $this->Onlineadmissioncourses_model->getById($admission_course_id);
+            $course_level = $course_data ? $course_data['course_level'] : null;
+            $admission_type = $course_data ? $course_data['admission_type'] : null;
 
             $reference_no = 'ENQ-' . date('YmdHis') . rand(100, 999);
             $enquiry = array(
@@ -131,8 +146,11 @@ class Enquiry extends Admin_Controller
                 'note'           => $this->input->post('referencer_details'),
                 'source'         => $this->input->post('source'),
                 'email'          => $this->input->post('email'),
-    'assigned'       => IsNullOrEmptyString($this->input->post('assigned')) ? NULL :$this->input->post('assigned'),
-                'class_id' => IsNullOrEmptyString($this->input->post('class')) ? NULL :$this->input->post('class'),
+                'assigned'       => IsNullOrEmptyString($this->input->post('assigned')) ? NULL : $this->input->post('assigned'),
+                'class_id'       => null, // Legacy field
+                'admission_course_id' => $admission_course_id,
+                'course_level'   => $course_level,
+                'admission_type' => $admission_type,
                 'status'         => 'active',
                 'created_by'     => $created_by,
                 'ref_no'         => $reference_no,
@@ -237,6 +255,12 @@ class Enquiry extends Admin_Controller
         $data['class_list']   = $this->enquiry_model->getclasses();        
         $data['enquiry_data'] = $this->enquiry_model->getenquiry_list($id, $status);
         $data['stff_list']    = $this->staff_model->get();
+        
+        // Load course data for dropdowns
+        $data['ug_first_year_courses'] = $this->Onlineadmissioncourses_model->getActiveCourses('ug', 'first_year');
+        $data['ug_lateral_courses'] = $this->Onlineadmissioncourses_model->getActiveCourses('ug', 'lateral');
+        $data['pg_first_year_courses'] = $this->Onlineadmissioncourses_model->getActiveCourses('pg', 'first_year');
+        
         $this->load->view('admin/frontoffice/enquiryeditmodalview', $data);
     }
 
@@ -250,6 +274,7 @@ class Enquiry extends Admin_Controller
         $this->form_validation->set_rules('source', $this->lang->line('source'), 'trim|required|xss_clean');
         $this->form_validation->set_rules('date', $this->lang->line('date'), 'trim|required|xss_clean');
         $this->form_validation->set_rules('follow_up_date', $this->lang->line('next_follow_up_date'), 'trim|required|xss_clean');
+        $this->form_validation->set_rules('admission_course_id', 'Course', 'trim|required|xss_clean');
         
         if ($this->form_validation->run() == false) {
             $msg = array(
@@ -257,11 +282,18 @@ class Enquiry extends Admin_Controller
                 'contact' => form_error('contact'),
                 'source'  => form_error('source'),
                 'date'    => form_error('date'),
-                'follow_up_date'    => form_error('follow_up_date'),
+                'follow_up_date' => form_error('follow_up_date'),
+                'admission_course_id' => form_error('admission_course_id'),
             );
 
             $array = array('status' => 'fail', 'error' => $msg, 'message' => '');
         } else {
+            // Get course metadata and derive course_level
+            $admission_course_id = $this->input->post('admission_course_id');
+            $course_data = $this->Onlineadmissioncourses_model->getById($admission_course_id);
+            $course_level = $course_data ? $course_data['course_level'] : null;
+            $admission_type = $course_data ? $course_data['admission_type'] : null;
+            
             $enquiry_update = array(
                 'name'           => $this->input->post('name'),
                 'contact'        => $this->input->post('contact'),
@@ -276,7 +308,10 @@ class Enquiry extends Admin_Controller
                 'source'         => $this->input->post('source'),
                 'email'          => $this->input->post('email'),
                 'assigned'       => empty2null($this->input->post('assigned')),
-                'class_id'       => empty2null($this->input->post('class')),
+                'class_id'       => null, // Legacy field
+                'admission_course_id' => $admission_course_id,
+                'course_level'   => $course_level,
+                'admission_type' => $admission_type,
             );
             $this->enquiry_model->enquiry_update($id, $enquiry_update);
             $array = array('status' => 'success', 'error' => '', 'message' => $this->lang->line('update_message'));
