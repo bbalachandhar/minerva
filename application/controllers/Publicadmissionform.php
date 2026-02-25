@@ -1478,7 +1478,7 @@ class PublicAdmissionForm extends CI_Controller
                 'email' => $data['student_email'],
                 'dob' => date('Y-m-d', strtotime($data['dob'])),
                 'gender' => $data['gender'],
-                'community' => $data['community'],
+                'cast' => $data['community'],
                 'father_name' => $data['father_name'],
                 'father_phone' => $data['father_mobile'],
                 'father_occupation' => $data['father_occupation'],
@@ -1950,7 +1950,7 @@ class PublicAdmissionForm extends CI_Controller
                 'email' => $data['student_email'],
                 'dob' => date('Y-m-d', strtotime($data['dob'])),
                 'gender' => $data['gender'],
-                'community' => $data['community'],
+                'cast' => $data['community'],
                 'father_name' => $data['father_name'],
                 'father_phone' => $data['father_mobile'],
                 'father_occupation' => $data['father_occupation'],
@@ -1976,6 +1976,26 @@ class PublicAdmissionForm extends CI_Controller
             }
 
             $online_admission_id = $this->onlinestudent_model->add($insert_data_online_admission);
+            
+            // Debug: Check if insert was successful
+            if (!$online_admission_id) {
+                log_message('error', 'AJAX_ADMISSION_ERROR: Insert failed! online_admission_id is: ' . var_export($online_admission_id, true));
+                // Check for database errors
+                if (isset($this->db) && $this->db->error()['code'] != 0) {
+                    $db_error = $this->db->error();
+                    log_message('error', 'AJAX_ADMISSION_DB_ERROR CODE: ' . $db_error['code']);
+                    log_message('error', 'AJAX_ADMISSION_DB_ERROR MESSAGE: ' . $db_error['message']);
+                    $error_array = array('database_error' => 'Database error: ' . $db_error['message']);
+                    echo json_encode(['status' => 'fail', 'error' => $error_array]);
+                    exit();
+                } else {
+                    $error_array = array('database_error' => 'Failed to insert admission record. Please try again.');
+                    echo json_encode(['status' => 'fail', 'error' => $error_array]);
+                    exit();
+                }
+            } else {
+                log_message('error', 'AJAX_ADMISSION_SUCCESS: Record inserted with ID: ' . $online_admission_id . ', Reference: ' . $reference_no);
+            }
 
             // Update enquiry status only when a valid enquiry_id is provided
             $enquiry_id = trim((string)$this->input->post('enquiry_id'));
@@ -2019,9 +2039,61 @@ class PublicAdmissionForm extends CI_Controller
                     ]);
                 }
             } elseif ($courseLevel == 'lateral') {
-                // Lateral entry logic here
+                $pre_sem_subjects = array();
+                for ($i = 1; $i <= 6; $i++) {
+                    $pre_sem_subjects[] = array(
+                        'subject' => $data['presub' . $i],
+                        'marks' => $data['premark' . $i],
+                        'total_marks' => $data['preout' . $i],
+                    );
+                }
+                $final_sem_subjects = array();
+                for ($i = 1; $i <= 6; $i++) {
+                    $final_sem_subjects[] = array(
+                        'subject' => $data['finalsub' . $i],
+                        'marks' => $data['finalmark' . $i],
+                        'total_marks' => $data['finalout' . $i],
+                    );
+                }
+
+                $insert_lateral_data = array(
+                    'online_admission_id' => $online_admission_id,
+                    'lateral_course_id' => $data['lateral_course'],
+                    'school_name_x' => $data['lateral_school_name'],
+                    'passing_year_x' => $data['lateral_tenth_passing'],
+                    'pre_final_sem_subjects' => json_encode($pre_sem_subjects),
+                    'final_sem_subjects' => json_encode($final_sem_subjects),
+                );
+                $this->Online_admission_lateral_details_model->add($insert_lateral_data);
             } elseif ($courseLevel == 'pg') {
-                // PG logic here
+                $bonafide_cert_path = '';
+                if (isset($_FILES["bonafide"]) && !empty($_FILES['bonafide']['name'])) {
+                    $upload_result = $this->media_storage->fileupload("bonafide", "./uploads/bonafide_certificates/");
+                    if ($upload_result['status']) {
+                        $bonafide_cert_path = 'uploads/bonafide_certificates/' . $upload_result['message'];
+                    }
+                }
+                
+                $insert_pg_data = array(
+                    'online_admission_id' => $online_admission_id,
+                    'pg_course_id' => $data['pg_course'],
+                    'qualifying_exam' => $data['exam_passed'],
+                    'branch' => $data['branch'],
+                    'year_of_passing' => $data['yop'],
+                    'college_name' => $data['noc'],
+                    'university_name' => $data['nou'],
+                    'tancet_pgeta_app_no' => $data['pg_app_num'],
+                    'tancet_pgeta_year' => $data['exam_year'],
+                    'tancet_pgeta_score' => $data['exam_score'],
+                    'is_alumni' => isset($data['alumni_check']) ? 1 : 0,
+                    'bonafide_cert_path' => $bonafide_cert_path,
+                    'is_sports_person' => $data['sports'] == 'Yes' ? 1 : 0,
+                    'sports_level' => $data['sports'] == 'Yes' ? $data['sports_level'] : NULL,
+                    'is_ex_service' => $data['exservice'] == 'Yes' ? 1 : 0,
+                    'is_differently_abled' => $data['differently_abled'] == 'Yes' ? 1 : 0,
+                    'disability_type' => $data['differently_abled'] == 'Yes' ? $data['disability_type'] : NULL,
+                );
+                $this->Online_admission_pg_details_model->add($insert_pg_data);
             }
             
             $sender_details = ['firstname' => $data['user_name'], 'lastname' => $data['father_name'], 'email' => $data['student_email'], 'date' => date('Y-m-d'), 'reference_no' => $reference_no, 'mobileno' => $data['student_mobile'], 'guardian_email' => '', 'guardian_phone' => $data['father_mobile']];
@@ -2031,7 +2103,9 @@ class PublicAdmissionForm extends CI_Controller
                 $this->onlinestudent_model->edit(['id' => $online_admission_id, 'paid_status' => ($payment_option == 'pay_later') ? 2 : 0]);
                 $this->mailsmsconf->mailsms('online_admission_form_submission', $sender_details);
                 $this->session->set_userdata('validlogin', $reference_no);
+                header('Content-Type: application/json');
                 echo json_encode(['status' => 'success', 'redirect_url' => site_url('publicadmissionform/pay_later_confirmation/' . $reference_no)]);
+                exit();
             } else {
                 $total_admission_amount = $this->sch_setting_detail->online_admission_amount;
                 $processing_charge = 0;
@@ -2048,7 +2122,9 @@ class PublicAdmissionForm extends CI_Controller
                 $this->session->set_userdata('online_admission_id', $online_admission_id);
                 $this->session->set_userdata('validlogin', $reference_no);
                 $this->onlinestudent_model->edit(['id' => $online_admission_id, 'paid_status' => 0]);
+                header('Content-Type: application/json');
                 echo json_encode(['status' => 'success', 'redirect_url' => site_url('publicadmissionform/confirm_payment')]);
+                exit();
             }
         }
     }
