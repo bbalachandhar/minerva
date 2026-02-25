@@ -109,6 +109,12 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                     $empr_epf_total = 0;
                                     if (!empty($epfList)) {
                                         foreach ($epfList as $value) {
+                                            // Skip if employee EPF is 0 or empty
+                                            $emp_epf = !empty($value['employee_epf']) ? $value['employee_epf'] : 0;
+                                            if ($emp_epf <= 0) {
+                                                continue;
+                                            }
+                                            
                                             // use values added by controller
                                             $netlop = $value['net_lop_days'] ?? '';
                                             $lop_amt = $value['lop_amount'] ?? 0;
@@ -223,18 +229,21 @@ if (isset($search_type) && $search_type == 'period') {
                     messageTop: headerMsg,
                     customize: function (xlsx) {
                         var sheet = xlsx.xl.worksheets['sheet1.xml'];
-                        // enlarge first row (header) font if style index exists
-                        $('row c[r^="A1"]', sheet).attr('s', '22');
+                        // Remove all cell styling to ensure uniform formatting
+                        $('row c', sheet).attr('s', '');
                     },
                     exportOptions: {
                         format: {
                             body: function ( data, row, column, node ) {
-                                return data.replace( /(<([^>]+)>)/ig, '' );
+                                // Strip all HTML tags and styling
+                                return data.replace( /(<([^>]+)>)/ig, '' ).trim();
                             },
                             footer: function ( data, row, column, node ) {
-                                return data.replace( /(<([^>]+)>)/ig, '' );
+                                return data.replace( /(<([^>]+)>)/ig, '' ).trim();
                             }
-                        }
+                        },
+                        stripHtml: true,
+                        stripNewlines: true
                     },
                     footer: true
                 },

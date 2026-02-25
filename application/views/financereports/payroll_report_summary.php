@@ -363,3 +363,55 @@ if ($search_type == 'period') {
 ?>
 
 </script>
+<script type="text/javascript">
+    $(document).ready(function () {
+        var schoolName = "<?php echo addslashes($this->sch_setting_detail->name);?>";
+        var schoolAddr = "<?php echo addslashes($this->sch_setting_detail->address);?>";
+        var headerMsg = schoolName + "\n" + schoolAddr + "\n" + "Payroll Report Summary" + "\n";
+        $('.example').DataTable({
+            dom: 'Bfrtip',
+            buttons: [
+                'copy', 'csv',
+                {
+                    extend: 'excelHtml5',
+                    title: '',
+                    messageTop: headerMsg,
+                    customize: function (xlsx) {
+                        var sheet = xlsx.xl.worksheets['sheet1.xml'];
+                        // Remove all cell styling to ensure uniform formatting
+                        $('row c', sheet).attr('s', '');
+                    },
+                    exportOptions: {
+                        format: {
+                            body: function ( data, row, column, node ) {
+                                return data.replace( /(<([^>]+)>)/ig, '' ).trim();
+                            },
+                            footer: function ( data, row, column, node ) {
+                                return data.replace( /(<([^>]+)>)/ig, '' ).trim();
+                            }
+                        },
+                        stripHtml: true,
+                        stripNewlines: true
+                    },
+                    footer: true
+                },
+                {
+                    extend: 'pdfHtml5',
+                    title: '',
+                    customize: function(doc) {
+                        doc.content.splice(0,0,
+                            { text: schoolName, style: 'dtHeader' },
+                            { text: schoolAddr, style: 'dtSubHeader' },
+                            { text: 'Payroll Report Summary', style: 'dtSubHeader' },
+                            { text: '\n' }
+                        );
+                        doc.styles.dtHeader = { fontSize: 16, bold: true, alignment: 'center' };
+                        doc.styles.dtSubHeader = { fontSize: 11, alignment: 'center' };
+                    },
+                    footer: true
+                },
+                'print'
+            ]
+        });
+    });
+</script>

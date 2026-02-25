@@ -107,6 +107,12 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                         $empr_esi_total = 0;
                         if (!empty($esilist)) {
                             foreach ($esilist as $value) {
+                                // Skip if employee ESI is 0 or empty
+                                $emp_esi = !empty($value['employee_esi']) ? $value['employee_esi'] : 0;
+                                if ($emp_esi <= 0) {
+                                    continue;
+                                }
+                                
                                 $netlop = $value['net_lop_days'] ?? '';
                                 $lop_amt = $value['lop_amount'] ?? 0;
                                 $total_net_lop += is_numeric($netlop) ? $netlop : 0;
@@ -192,17 +198,21 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                     messageTop: headerMsg,
                     customize: function (xlsx) {
                         var sheet = xlsx.xl.worksheets['sheet1.xml'];
-                        $('row c[r^="A1"]', sheet).attr('s', '22');
+                        // Remove all cell styling to ensure uniform formatting
+                        $('row c', sheet).attr('s', '');
                     },
                     exportOptions: {
                         format: {
                             body: function ( data, row, column, node ) {
-                                return data.replace( /(<([^>]+)>)/ig, '' );
+                                // Strip all HTML tags and styling
+                                return data.replace( /(<([^>]+)>)/ig, '' ).trim();
                             },
                             footer: function ( data, row, column, node ) {
-                                return data.replace( /(<([^>]+)>)/ig, '' );
+                                return data.replace( /(<([^>]+)>)/ig, '' ).trim();
                             }
-                        }
+                        },
+                        stripHtml: true,
+                        stripNewlines: true
                     },
                     footer: true
                 },
