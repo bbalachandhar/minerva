@@ -563,9 +563,14 @@ class Payroll_model extends MY_Model
              WHERE pa.payslip_id = staff_payslip.id 
              AND pat.allowance_code = "ESI" 
              AND pa.cal_type = "negative" 
-             LIMIT 1) as esi_deduction');
+             LIMIT 1) as esi_deduction,
+            COALESCE(staff.category_id, staff_designation.category_id) as category_id,
+            sdc.name as staff_type,
+            sdc.color as staff_type_color,
+            sdc.icon as staff_type_icon');
         $this->db->join("staff_payslip", "staff_payslip.staff_id = staff.id", "inner");
         $this->db->join("staff_designation", "staff.designation = staff_designation.id", "left");
+        $this->db->join("staff_designation_category sdc", "COALESCE(staff.category_id, staff_designation.category_id) = sdc.id", "left");
         $this->db->join("department", "staff.department = department.id", "left");
         $this->db->join("staff_roles", "staff_roles.staff_id = staff.id", "left");
         $this->db->join("roles", "staff_roles.role_id = roles.id", "left");        
@@ -579,6 +584,9 @@ class Payroll_model extends MY_Model
                 $this->db->where("roles.id !=", 7)  ;          
             } 
         }
+        
+        $this->db->order_by("staff.name", "ASC");
+        $this->db->order_by("staff.surname", "ASC");
         
         $query = $this->db->get("staff");         
         return $query->result_array(); 

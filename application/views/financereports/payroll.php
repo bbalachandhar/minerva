@@ -166,6 +166,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                     <tr>
                                         <th><?php echo $this->lang->line('name'); ?></th>
                                         <th><?php echo $this->lang->line('month_year'); ?></th>
+                                        <th>Category</th>
                                         <th><?php echo $this->lang->line('payslip'); ?> #</th>
                                         <th class="text text-right"><?php echo $this->lang->line('basic_salary'); ?> <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
                                         <th class="text text-right"><?php echo $this->lang->line('earning'); ?> <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
@@ -273,6 +274,16 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                                 </td>
                                                 <td>
         <?php echo $this->lang->line(strtolower($value['month'])) . " - " . $value['year']; ?>
+                                                </td>
+                                                <td>
+                                                    <?php if (!empty($value['staff_type'])): ?>
+                                                        <span style="border-left: 3px solid <?php echo $value['staff_type_color'] ?? '#ccc'; ?>; padding-left: 6px; display: inline-block;">
+                                                            <i class="fa <?php echo $value['staff_type_icon'] ?? 'fa-folder'; ?>" style="color: <?php echo $value['staff_type_color'] ?? '#ccc'; ?>; margin-right: 3px;"></i>
+                                                            <?php echo $value['staff_type']; ?>
+                                                        </span>
+                                                    <?php else: ?>
+                                                        <span style="color: #999; font-style: italic;">-</span>
+                                                    <?php endif; ?>
                                                 </td>
                                                 <td>
 
@@ -399,6 +410,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                 </tbody>
                                 <tfoot>
 									<tr class="box box-solid total-bg">
+                                        <td></td>
                                         <td></td>
                                         <td></td>
                                         <td class="text-right"><?php echo $this->lang->line('grand_total'); ?> </td>

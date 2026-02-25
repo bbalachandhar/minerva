@@ -86,6 +86,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                         <tr>
                             <th><?php echo $this->lang->line('name'); ?></th>
                             <th><?php echo $this->lang->line('employee_id'); ?></th>
+                            <th>Category</th>
                             <th><?php echo $this->lang->line('net_lop'); ?></th>
                             <th>Payable Days</th>
                             <th class="text text-right"><?php echo $this->lang->line('gross_salary'); ?> <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
@@ -134,6 +135,16 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                 <tr>
                                     <td><?php echo $value['name'] . ' ' . $value['surname']; ?></td>
                                     <td><?php echo $value['employee_id']; ?></td>
+                                    <td>
+                                        <?php if (!empty($value['staff_type'])): ?>
+                                            <span style="border-left: 3px solid <?php echo $value['staff_type_color'] ?? '#ccc'; ?>; padding-left: 6px; display: inline-block;">
+                                                <i class="fa <?php echo $value['staff_type_icon'] ?? 'fa-folder'; ?>" style="color: <?php echo $value['staff_type_color'] ?? '#ccc'; ?>; margin-right: 3px;"></i>
+                                                <?php echo $value['staff_type']; ?>
+                                            </span>
+                                        <?php else: ?>
+                                            <span style="color: #999; font-style: italic;">-</span>
+                                        <?php endif; ?>
+                                    </td>
                                     <td><?php echo $netlop; ?></td>
                                     <td><?php echo rtrim(rtrim(number_format($payable_days, 2, '.', ''), '0'), '.'); ?></td>
                                     <td class="text text-right"><?php if ($gross > 0) { echo amountFormat($gross); } ?></td>
@@ -151,6 +162,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                         <tr class="box box-solid total-bg">
                             <td></td>
                             <td class="text-right"><?php echo $this->lang->line('grand_total'); ?></td>
+                            <td></td>
                             <td class="text text-right"><?php if(isset($total_net_lop) && $total_net_lop > 0){ echo $total_net_lop; } ?></td>
                             <td class="text text-right"><?php if(isset($total_payable_days) && $total_payable_days > 0){ echo rtrim(rtrim(number_format($total_payable_days, 2, '.', ''), '0'), '.'); } ?></td>
                             <td class="text text-right"><?php if($gross_total > 0){ echo $currency_symbol . amountFormat($gross_total); } ?></td>

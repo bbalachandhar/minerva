@@ -57,6 +57,21 @@ if ($role_id == $role_value["id"]) {
                                                 <span class="text-danger"><?php echo form_error('role'); ?></span>
                                             </div>
                                         </div>
+                                        <div class="col-sm-12">
+                                            <div class="form-group">
+                                                <label>Staff Type / Category</label>
+                                                <select name="category" class="form-control">
+                                                    <option value=""><?php echo $this->lang->line("select"); ?></option>
+                                                    <?php if (!empty($categories)): ?>
+                                                        <?php foreach ($categories as $category): ?>
+                                                            <option value="<?php echo $category['id']; ?>" style="border-left: 4px solid <?php echo $category['color']; ?>;">
+                                                                <i class="fa <?php echo $category['icon']; ?>"></i> <?php echo $category['name']; ?>
+                                                            </option>
+                                                        <?php endforeach; ?>
+                                                    <?php endif; ?>
+                                                </select>
+                                            </div>
+                                        </div>
 
                                         <div class="col-sm-12">
                                             <div class="form-group">
@@ -108,6 +123,7 @@ if (isset($resultlist)) {
                                             <th><?php echo $this->lang->line('role'); ?></th>
                                             <th><?php echo $this->lang->line('department'); ?></th>
                                             <th><?php echo $this->lang->line('designation'); ?></th>
+                                            <th>Staff Type / Category</th>
                                             <th><?php echo $this->lang->line('mobile_number'); ?></th>
                                              <?php
 if (!empty($fields)) {
@@ -140,6 +156,16 @@ if (empty($resultlist)) {
                                                     <td><?php echo $staff['user_type']; ?></td>
                                                     <td><?php echo $staff['department']; ?></td>
                                                     <td><?php echo $staff['designation']; ?></td>
+                                                    <td>
+                                                        <?php if (!empty($staff['staff_type'])): ?>
+                                                            <span style="border-left: 4px solid <?php echo $staff['staff_type_color'] ?? '#ccc'; ?>; padding-left: 8px;">
+                                                                <i class="fa <?php echo $staff['staff_type_icon'] ?? 'fa-folder'; ?>" style="color: <?php echo $staff['staff_type_color'] ?? '#ccc'; ?>; margin-right: 5px;"></i>
+                                                                <span style="font-weight: 500;"><?php echo $staff['staff_type']; ?></span>
+                                                            </span>
+                                                        <?php else: ?>
+                                                            <span class="text-muted">—</span>
+                                                        <?php endif; ?>
+                                                    </td>
                                                     <td><?php echo $staff['contact_no']; ?></td>
    <?php
 if (!empty($fields)) {

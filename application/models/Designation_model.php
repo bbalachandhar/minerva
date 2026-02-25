@@ -9,12 +9,17 @@ class Designation_model extends MY_model
 
     public function get($id = null)
     {
+        $this->db->select('sd.*, sdc.id as category_id, sdc.name as category_name, sdc.color, sdc.icon');
+        $this->db->from('staff_designation sd');
+        $this->db->join('staff_designation_category sdc', 'sd.category_id = sdc.id', 'left');
+        
         if (!empty($id)) {
-            $query = $this->db->where("id", $id)->get("staff_designation");
+            $this->db->where("sd.id", $id);
+            $query = $this->db->get();
             return $query->row_array();
         } else {
-            $query = $this->db->where("is_active", "yes")->get("staff_designation");
-
+            $this->db->where("sd.is_active", "yes");
+            $query = $this->db->get();
             return $query->result_array();
         }
     }

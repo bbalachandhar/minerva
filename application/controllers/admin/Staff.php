@@ -48,6 +48,12 @@ class Staff extends Admin_Controller
         $staffRole          = $this->staff_model->getStaffRole();
         $data["role"]       = $staffRole;
         $data["role_id"]    = "";
+        
+        // Get staff categories for filter
+        $this->db->select('id, name, color, icon');
+        $categories = $this->db->get('staff_designation_category')->result_array();
+        $data['categories'] = $categories;
+        
         $search_text        = $this->input->post('search_text');
         if (isset($search)) {
             if ($search == 'search_filter') {
@@ -57,10 +63,19 @@ class Staff extends Admin_Controller
                 } else {
                     $data['searchby']    = "filter";
                     $role                = $this->input->post('role');
+                    $category            = $this->input->post('category');
                     $data['employee_id'] = $this->input->post('empid');
                     $data["role_id"]     = $role;
                     $data['search_text'] = $this->input->post('search_text');
                     $resultlist          = $this->staff_model->getEmployee($role, 1);
+                    
+                    // Filter by category if provided
+                    if (!empty($category)) {
+                        $resultlist = array_filter($resultlist, function($staff) use ($category) {
+                            return isset($staff['category_id']) && $staff['category_id'] == $category;
+                        });
+                    }
+                    
                     $data['resultlist']  = $resultlist;
                 }
             } else if ($search == 'search_full') {
@@ -818,6 +833,12 @@ class Staff extends Admin_Controller
         $data['roles'] = $this->role_model->get();
         $data['designation'] = $this->staff_model->getStaffDesignation();
         $data['department'] = $this->staff_model->getDepartment();
+        
+        // Get staff categories for dropdown
+        $this->db->select('id, name, color, icon');
+        $categories = $this->db->get('staff_designation_category')->result_array();
+        $data['categories'] = $categories;
+        
         $genderList                  = $this->customlib->getGender();
         $data['genderList']          = $genderList;
         $payscaleList                = $this->staff_model->getPayroll();
@@ -926,6 +947,7 @@ class Staff extends Admin_Controller
             $previous_salary = $this->input->post('previous_salary');
             $uan_no = $this->input->post('uan_no');
             $pan_no = $this->input->post('pan_no');
+            $category_id = empty2null($this->input->post("category_id"));
 
             $password = $this->role->get_random_password($chars_min = 6, $chars_max = 6, $use_upper_case = false, $include_numbers = true, $include_special_chars = false);
 
@@ -960,6 +982,7 @@ class Staff extends Admin_Controller
                 'pan_no' => $pan_no,
                 'previous_institution' => $this->input->post('previous_institution'),
                 'subject_expertise' => $this->input->post('subject_expertise'),
+                'category_id' => $category_id,
             );
 
             if (isset($surname)) {
@@ -1236,6 +1259,12 @@ class Staff extends Admin_Controller
         $data['getStaffRole'] = $this->role_model->get();
         $data['designation'] = $this->staff_model->getStaffDesignation();
         $data['department'] = $this->staff_model->getDepartment();
+        
+        // Get staff categories for dropdown
+        $this->db->select('id, name, color, icon');
+        $categories = $this->db->get('staff_designation_category')->result_array();
+        $data['categories'] = $categories;
+        
         $genderList = $this->customlib->getGender();
         $data['genderList'] = $genderList;
         $payscaleList = $this->staff_model->getPayroll();
@@ -1363,6 +1392,7 @@ class Staff extends Admin_Controller
             $pan_no = $this->input->post("pan_no");
             $previous_institution = $this->input->post("previous_institution");
             $subject_expertise = $this->input->post("subject_expertise");
+            $category_id = empty2null($this->input->post("category_id"));
             
             $data_update = array(
                 'id' => $id,
@@ -1395,6 +1425,7 @@ class Staff extends Admin_Controller
                 'subject_expertise' => $subject_expertise,
                 'is_epf_enabled' => $is_epf_enabled,
                 'is_esi_enabled' => $is_esi_enabled,
+                'category_id' => $category_id,
             );
 
             if (isset($surname)) {
@@ -2057,6 +2088,7 @@ class Staff extends Admin_Controller
             "resignation_letter"       => "resignation_letter",
             "designation"              => "designation",
             "department"               => "department",
+            "category_id"              => "category_id",
             "aadhaar_no" => "aadhaar_no",
             "religion" => "religion",
             "caste" => "caste",
@@ -2083,17 +2115,11 @@ class Staff extends Admin_Controller
         foreach ($all_departments as $department_item) {
             $department_map[strtolower($department_item['department_name'])] = $department_item['id'];
         }
-        $data["designation"] = $all_designations;
-        $data["department"]  = $all_departments;
-        $all_designations    = $this->staff_model->getStaffDesignation();
-        $designation_map     = [];
-        foreach ($all_designations as $designation_item) {
-            $designation_map[strtolower($designation_item['designation'])] = $designation_item['id'];
-        }
-        $all_departments     = $this->staff_model->getDepartment();
-        $department_map      = [];
-        foreach ($all_departments as $department_item) {
-            $department_map[strtolower($department_item['department_name'])] = $department_item['id'];
+        // Get all staff designation categories
+        $all_categories      = $this->db->select('id, name')->from('staff_designation_category')->where('is_active', 'yes')->get()->result_array();
+        $category_map        = [];
+        foreach ($all_categories as $category_item) {
+            $category_map[strtolower($category_item['name'])] = $category_item['id'];
         }
         $data["designation"] = $all_designations;
         $data["department"]  = $all_departments;
@@ -2157,6 +2183,32 @@ class Staff extends Admin_Controller
                                 } else {
                                     $staff_data['designation'] = null;
                                 }
+                            }
+
+                            // Handle category mapping
+                            if (!empty($staff_data['category_id'])) {
+                                $csv_category_input = trim($staff_data['category_id']);
+                                $category_id = null;
+                                
+                                // Check if input is numeric (direct category_id)
+                                if (is_numeric($csv_category_input)) {
+                                    // Verify category exists
+                                    $category_exists = $this->db->select('id')->from('staff_designation_category')
+                                        ->where('id', (int)$csv_category_input)->where('is_active', 'yes')->get()->row();
+                                    if ($category_exists) {
+                                        $category_id = (int)$csv_category_input;
+                                    }
+                                } else {
+                                    // Try to match by category name
+                                    $csv_category_name = strtolower($csv_category_input);
+                                    if (isset($category_map[$csv_category_name])) {
+                                        $category_id = $category_map[$csv_category_name];
+                                    }
+                                }
+                                
+                                $staff_data['category_id'] = $category_id;
+                            } else {
+                                $staff_data['category_id'] = null;
                             }
 
                             // Handle department mapping

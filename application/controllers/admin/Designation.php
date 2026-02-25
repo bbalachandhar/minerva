@@ -23,6 +23,12 @@ class Designation extends Admin_Controller {
         $designation = $this->designation_model->get();
         $data["title"] = $this->lang->line('add_designation');
         $data["designation"] = $designation;
+        
+        // Fetch staff categories for dropdown
+        $this->db->select('id, name, color, icon');
+        $categories = $this->db->get('staff_designation_category')->result_array();
+        $data["categories"] = $categories;
+        
         $this->form_validation->set_rules(
                 'type', $this->lang->line('name'), array('required',
             array('check_exists', array($this->designation_model, 'valid_designation'))
@@ -32,6 +38,7 @@ class Designation extends Admin_Controller {
 
             $type = $this->input->post("type");
             $designationid = $this->input->post("designationid");
+            $category_id = $this->input->post("category_id");
             $status = $this->input->post("status");
             if (empty($designationid)) {
 
@@ -46,12 +53,12 @@ class Designation extends Admin_Controller {
             }
 
             if (!empty($designationid)) {
-                $data = array('designation' => $type, 'is_active' => 'yes', 'id' => $designationid);
+                $data_update = array('designation' => $type, 'is_active' => 'yes', 'id' => $designationid, 'category_id' => $category_id);
             } else {
 
-                $data = array('designation' => $type, 'is_active' => 'yes');
+                $data_update = array('designation' => $type, 'is_active' => 'yes', 'category_id' => $category_id);
             }
-            $insert_id = $this->designation_model->addDesignation($data);
+            $insert_id = $this->designation_model->addDesignation($data_update);
             $this->session->set_flashdata('msg', '<div class="alert alert-success">' . $this->lang->line('success_message') . '</div>');
             redirect("admin/designation/designation");
         } else {
@@ -70,6 +77,12 @@ class Designation extends Admin_Controller {
 
         $designation = $this->designation_model->get();
         $data["designation"] = $designation;
+        
+        // Fetch staff categories for dropdown
+        $this->db->select('id, name, color, icon');
+        $categories = $this->db->get('staff_designation_category')->result_array();
+        $data["categories"] = $categories;
+        
         $this->load->view("layout/header");
         $this->load->view("admin/staff/designation", $data);
         $this->load->view("layout/footer");

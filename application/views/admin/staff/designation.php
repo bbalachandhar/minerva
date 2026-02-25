@@ -43,6 +43,22 @@ if (isset($result)) {
     }
     ?>" />
                                 </div>
+                                <div class="form-group">
+                                    <label for="category_id"><?php echo $this->lang->line('staff_type'); ?> / Category</label>
+                                    <select id="category_id" name="category_id" class="form-control">
+                                        <option value="">Select Category</option>
+                                        <?php if (isset($categories)): ?>
+                                            <?php foreach ($categories as $cat): ?>
+                                                <option value="<?php echo $cat['id']; ?>" 
+                                                    style="border-left: 4px solid <?php echo $cat['color']; ?>;"
+                                                    <?php if (isset($result) && $result['category_id'] == $cat['id']) echo 'selected'; ?>>
+                                                    <?php echo $cat['name']; ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        <?php endif; ?>
+                                    </select>
+                                    <span class="text-danger"><?php echo form_error('category_id'); ?></span>
+                                </div>
                             </div>
                             <div class="box-footer">
                                 <button type="submit" class="btn btn-info pull-right"><?php echo $this->lang->line('save'); ?></button>
@@ -71,6 +87,7 @@ if (($this->rbac->hasPrivilege('designation', 'can_add')) || ($this->rbac->hasPr
                                 <thead>
                                     <tr>
                                         <th><?php echo $this->lang->line('designation'); ?></th>
+                                        <th>Staff Type / Category</th>
                                         <th class="text-right noExport"><?php echo $this->lang->line('action'); ?>
                                         </th>
                                     </tr>
@@ -89,6 +106,19 @@ foreach ($designation as $value) {
     ?>
                                         <tr>
                                             <td class="mailbox-name"> <?php echo $value['designation'] ?></td>
+                                            <td>
+                                                <?php if (!empty($value['category_id'])): ?>
+                                                    <span style="display: inline-block; padding: 4px 8px; border-radius: 3px; 
+                                                                  border-left: 4px solid <?php echo $value['color'] ?? '#ccc'; ?>; 
+                                                                  background: #f5f5f5;">
+                                                        <i class="fa <?php echo $value['icon'] ?? 'fa-folder'; ?>" 
+                                                           style="color: <?php echo $value['color'] ?? '#ccc'; ?>;"></i>
+                                                        <?php echo $value['category_name'] ?? ''; ?>
+                                                    </span>
+                                                <?php else: ?>
+                                                    <span class="text-muted">Uncategorized</span>
+                                                <?php endif; ?>
+                                            </td>
                                             <td class="mailbox-date pull-right no-print">
                                                 <?php if ($this->rbac->hasPrivilege('designation', 'can_edit')) {?>
                                                     <a href="<?php echo base_url(); ?>admin/designation/designationedit/<?php echo $value['id'] ?>" class="btn btn-default btn-xs"  data-toggle="tooltip" title="<?php echo $this->lang->line('edit'); ?>">

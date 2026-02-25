@@ -25,6 +25,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                         1. <?php echo $this->lang->line('csv_import_instruction_step1'); ?><br/>
                         2. <?php echo $this->lang->line('csv_import_instruction_step2_date_format'); ?><br/>
                         3. For Contract Type use Visiting Faculty, Part Time Faculty, or Full Time Faculty value.<br/>
+                        4. For Staff Category (category_id) use: 1 = Teaching, 2 = Non-Teaching, 3 = Others. You can also use category names (Teaching, Non-Teaching, Others) instead of IDs.<br/>
 
                         <hr/></div>
                     <div class="box-body table-responsive" style="overflow-x:auto;">

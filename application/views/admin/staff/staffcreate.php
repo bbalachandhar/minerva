@@ -92,15 +92,30 @@ foreach ($roles as $key => $role) {
                                                 <div class="form-group">
                                                     <label for="exampleInputEmail1"><?php echo $this->lang->line('designation'); ?></label>
 
-                                                    <select id="designation" name="designation" placeholder="" type="text" class="form-control" >
+                                                    <select id="designation" name="designation" placeholder="" type="text" class="form-control" onchange="syncCategoryFromDesignation()">
                                                         <option value=""><?php echo $this->lang->line('select') ?></option>
                                                         <?php foreach ($designation as $key => $value) {
         ?>
-                                                            <option value="<?php echo $value["id"] ?>" <?php echo set_select('designation', $value['id'], set_value('designation')); ?> ><?php echo $value["designation"] ?></option>
+                                                            <option value="<?php echo $value["id"] ?>" data-category-id="<?php echo $value['category_id'] ?? ''; ?>" <?php echo set_select('designation', $value['id'], set_value('designation')); ?> ><?php echo $value["designation"] ?></option>
                                                         <?php }
     ?>
                                                     </select>
                                                     <span class="text-danger"><?php echo form_error('designation'); ?></span>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <div class="form-group">
+                                                    <label for="category_id">Staff Type / Category</label>
+                                                    <select id="category_id" name="category_id" class="form-control">
+                                                        <option value="">-- None --</option>
+                                                        <?php if (!empty($categories)): ?>
+                                                            <?php foreach ($categories as $category): ?>
+                                                                <option value="<?php echo $category['id']; ?>" style="border-left: 4px solid <?php echo $category['color']; ?>;" <?php echo set_select('category_id', $category['id'], ''); ?>>
+                                                                    <i class="fa <?php echo $category['icon']; ?>"></i> <?php echo $category['name']; ?>
+                                                                </option>
+                                                            <?php endforeach; ?>
+                                                        <?php endif; ?>
+                                                    </select>
                                                 </div>
                                             </div>
                                         <?php } if ($sch_setting->staff_department) {
@@ -729,5 +744,27 @@ foreach ($leavetypeList as $key => $leave) {
             $("#submitbtn").button('loading');
         });
     })
+
+    function syncCategoryFromDesignation() {
+        var designationSelect = document.getElementById('designation');
+        var selectedOption = designationSelect.options[designationSelect.selectedIndex];
+        var categoryId = selectedOption.getAttribute('data-category-id');
+        var categoryDropdown = document.getElementById('category_id');
+
+        if (categoryId) {
+            categoryDropdown.value = categoryId;
+        } else {
+            categoryDropdown.value = '';
+        }
+    }
+
+    // Trigger on page load if designation is already selected
+    window.addEventListener('DOMContentLoaded', function(){
+        var designationSelect = document.getElementById('designation');
+        if (designationSelect && designationSelect.value !== '') {
+            syncCategoryFromDesignation();
+        }
+    });
+
 </script>
 <script type="text/javascript" src="<?php echo base_url(); ?>backend/dist/js/savemode.js"></script>

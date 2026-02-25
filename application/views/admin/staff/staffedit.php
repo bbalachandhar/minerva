@@ -74,11 +74,11 @@ if ($staff["user_type"] == $role["name"]) {
                                                 <div class="form-group">
                                                     <label for="exampleInputEmail1"><?php echo $this->lang->line('designation'); ?></label>
 
-                                                    <select id="designation" name="designation" placeholder="" type="text" class="form-control" >
+                                                    <select id="designation" name="designation" placeholder="" type="text" class="form-control" onchange="updateStaffType()">
                                                         <option value=""><?php echo $this->lang->line('select') ?></option>
                                                         <?php foreach ($designation as $key => $value) {
         ?>
-                                                            <option value="<?php echo $value["id"] ?>" <?php
+                                                            <option value="<?php echo $value["id"] ?>" data-category="<?php echo $value['category_name'] ?? ''; ?>" data-color="<?php echo $value['color'] ?? '#ccc'; ?>" data-icon="<?php echo $value['icon'] ?? 'fa-folder'; ?>" <?php
 if ($staff["designation"] == $value["id"]) {
             echo "selected";
         }
@@ -87,6 +87,21 @@ if ($staff["designation"] == $value["id"]) {
     ?>
                                                     </select>
                                                     <span class="text-danger"><?php echo form_error('designation'); ?></span>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <div class="form-group">
+                                                    <label for="category_id">Staff Type / Category</label>
+                                                    <select id="category_id" name="category_id" class="form-control">
+                                                        <option value="">-- None --</option>
+                                                        <?php if (!empty($categories)): ?>
+                                                            <?php foreach ($categories as $category): ?>
+                                                                <option value="<?php echo $category['id']; ?>" style="border-left: 4px solid <?php echo $category['color']; ?>;" <?php if (!empty($staff['category_id']) && $staff['category_id'] == $category['id']) echo 'selected'; ?>>
+                                                                    <i class="fa <?php echo $category['icon']; ?>"></i> <?php echo $category['name']; ?>
+                                                                </option>
+                                                            <?php endforeach; ?>
+                                                        <?php endif; ?>
+                                                    </select>
                                                 </div>
                                             </div>
                                         <?php }if ($sch_setting->staff_department) {
@@ -948,6 +963,29 @@ $j++;
             $('.sibling_msg').html("<div class='alert alert-danger'><?php echo $this->lang->line('no_student_selected'); ?></div>");
         }
 
+    });
+
+    function updateStaffType() {
+        var designationSelect = document.getElementById('designation');
+        var selectedOption = designationSelect.options[designationSelect.selectedIndex];
+        var categoryName = selectedOption.getAttribute('data-category');
+        var categoryColor = selectedOption.getAttribute('data-color');
+        var categoryIcon = selectedOption.getAttribute('data-icon');
+        var staffTypeDisplay = document.getElementById('staff_type_display');
+
+        if (categoryName && categoryName.trim() !== '') {
+            staffTypeDisplay.innerHTML = '<i class="fa ' + categoryIcon + '" style="color: ' + categoryColor + '; margin-right: 8px;"></i> <span style="border-left: 4px solid ' + categoryColor + '; padding-left: 8px; font-weight: 500;">' + categoryName + '</span>';
+        } else {
+            staffTypeDisplay.innerHTML = '<span class="text-muted">No category assigned to this designation</span>';
+        }
+    }
+
+    // Trigger on page load if designation is already selected
+    window.addEventListener('DOMContentLoaded', function(){
+        var designationSelect = document.getElementById('designation');
+        if (designationSelect && designationSelect.value !== '') {
+            updateStaffType();
+        }
     });
 </script>
 <script type="text/javascript" src="<?php echo base_url(); ?>backend/dist/js/savemode.js"></script>

@@ -16,7 +16,7 @@ class Staff_model extends MY_Model
 
     public function get($id = null)
     {
-        $this->db->select('staff.*,languages.language,languages.is_rtl,roles.name as user_type,roles.id as role_id')->from('staff')->join("staff_roles", "staff_roles.staff_id = staff.id", "left")->join("roles", "staff_roles.role_id = roles.id", "left")->join("languages", "languages.id = staff.lang_id", "left");
+        $this->db->select('staff.*,languages.language,languages.is_rtl,roles.name as user_type,roles.id as role_id,staff_designation.designation,staff_designation.id as designation_id,COALESCE(staff.category_id, staff_designation.category_id) as category_id,sdc.name as staff_type,sdc.color as staff_type_color,sdc.icon as staff_type_icon')->from('staff')->join("staff_roles", "staff_roles.staff_id = staff.id", "left")->join("roles", "staff_roles.role_id = roles.id", "left")->join("languages", "languages.id = staff.lang_id", "left")->join("staff_designation", "staff_designation.id = staff.designation", "left")->join("staff_designation_category sdc", "COALESCE(staff.category_id, staff_designation.category_id) = sdc.id", "left");
 
         if ($this->session->has_userdata('admin')) {
             if($this->staffrole->id != 7){
@@ -141,9 +141,12 @@ class Staff_model extends MY_Model
 
     public function getAll($id = null, $is_active = null)
     {
-        $this->db->select("staff.*,staff_designation.designation,department.department_name as department, roles.id as role_id, roles.name as role");
+        $this->db->select("staff.*,staff_designation.designation,
+                          COALESCE(staff.category_id, staff_designation.category_id) as category_id, sdc.name as staff_type, sdc.color as staff_type_color, sdc.icon as staff_type_icon,
+                          department.department_name as department, roles.id as role_id, roles.name as role");
         $this->db->from('staff');
         $this->db->join('staff_designation', "staff_designation.id = staff.designation", "left");
+        $this->db->join('staff_designation_category sdc', "COALESCE(staff.category_id, staff_designation.category_id) = sdc.id", "left");
         $this->db->join('staff_roles', "staff_roles.staff_id = staff.id", "left");
         $this->db->join('roles', "roles.id = staff_roles.role_id", "left");
         $this->db->join('department', "department.id = staff.department", "left");
@@ -166,9 +169,12 @@ class Staff_model extends MY_Model
 
     public function getAll_users($id = null, $is_active = null)
     {
-        $this->db->select("staff.*,staff_designation.designation,department.department_name as department, roles.id as role_id, roles.name as role");
+        $this->db->select("staff.*,staff_designation.designation,
+                          COALESCE(staff.category_id, staff_designation.category_id) as category_id, sdc.name as staff_type, sdc.color as staff_type_color, sdc.icon as staff_type_icon,
+                          department.department_name as department, roles.id as role_id, roles.name as role");
         $this->db->from('staff');
         $this->db->join('staff_designation', "staff_designation.id = staff.designation", "left");
+        $this->db->join('staff_designation_category sdc', "COALESCE(staff.category_id, staff_designation.category_id) = sdc.id", "left");
         $this->db->join('staff_roles', "staff_roles.staff_id = staff.id", "left");
         $this->db->join('roles', "roles.id = staff_roles.role_id", "left");
         $this->db->join('department', "department.id = staff.department", "left");
@@ -187,6 +193,37 @@ class Staff_model extends MY_Model
         } else {
             return $query->result_array();
         }
+    }
+
+    /**
+     * Get staff by category type (Teaching, Non-Teaching, Others)
+     * @param string $category_name Category name
+     * @param bool $active_only Only active staff
+     * @return array Array of staff members
+     */
+    public function getStaffByCategory($category_name = null, $active_only = true)
+    {
+        $this->db->select("staff.*,staff_designation.designation,
+                          sdc.id as category_id, sdc.name as staff_type, sdc.color as staff_type_color, sdc.icon as staff_type_icon,
+                          department.department_name as department, roles.id as role_id, roles.name as role");
+        $this->db->from('staff');
+        $this->db->join('staff_designation', "staff_designation.id = staff.designation", "left");
+        $this->db->join('staff_designation_category sdc', "staff_designation.category_id = sdc.id", "left");
+        $this->db->join('staff_roles', "staff_roles.staff_id = staff.id", "left");
+        $this->db->join('roles', "roles.id = staff_roles.role_id", "left");
+        $this->db->join('department', "department.id = staff.department", "left");
+        
+        if ($active_only) {
+            $this->db->where('staff.is_active', 1);
+        }
+        
+        if ($category_name) {
+            $this->db->where('sdc.name', $category_name);
+        }
+        
+        $this->db->order_by('staff.id');
+        $query = $this->db->get();
+        return $query->result_array();
     }
 
     public function getBirthDayStaff($dob, $is_active = 1, $email = false, $contact_no = false)
@@ -624,8 +661,9 @@ class Staff_model extends MY_Model
             }
         }
 
-        $this->db->select("staff.*,staff_designation.designation,department.department_name as department,roles.name as user_type,roles.id as role_id" . $field_var)->from('staff');
+        $this->db->select("staff.*,staff_designation.designation,department.department_name as department,roles.name as user_type,roles.id as role_id,COALESCE(staff.category_id, staff_designation.category_id) as category_id,sdc.name as staff_type,sdc.color as staff_type_color,sdc.icon as staff_type_icon" . $field_var)->from('staff');
         $this->db->join('staff_designation', "staff_designation.id = staff.designation", "left");
+        $this->db->join('staff_designation_category sdc', "COALESCE(staff.category_id, staff_designation.category_id) = sdc.id", "left");
         $this->db->join('staff_roles', "staff_roles.staff_id = staff.id", "left");
         $this->db->join('roles', "roles.id = staff_roles.role_id", "left");
         $this->db->join('department', "department.id = staff.department", "left");
@@ -653,7 +691,11 @@ class Staff_model extends MY_Model
 
     public function getStaffDesignation()
     {
-        $query = $this->db->select('*')->where("is_active", "yes")->get("staff_designation");
+        $this->db->select('sd.*, sdc.id as category_id, sdc.name as category_name, sdc.color, sdc.icon');
+        $this->db->from('staff_designation sd');
+        $this->db->join('staff_designation_category sdc', 'sd.category_id = sdc.id', 'left');
+        $this->db->where('sd.is_active', 'yes');
+        $query = $this->db->get();
         return $query->result_array();
     }
 
@@ -705,8 +747,9 @@ class Staff_model extends MY_Model
 
     public function getProfile($id)
     {
-        $this->db->select('staff.*,staff_designation.designation as designation,staff_roles.role_id, department.department_name as department,roles.name as user_type, staff.prefix, staff.ug_qualification, staff.pg_qualification, staff.higher_qualification, staff.qualified_exam, staff.subject_specialization, staff.additional_qualification');
+        $this->db->select('staff.*,staff_designation.designation as designation,staff_roles.role_id, department.department_name as department,roles.name as user_type, staff.prefix, staff.ug_qualification, staff.pg_qualification, staff.higher_qualification, staff.qualified_exam, staff.subject_specialization, staff.additional_qualification,COALESCE(staff.category_id, staff_designation.category_id) as category_id,sdc.name as staff_type,sdc.color as staff_type_color,sdc.icon as staff_type_icon');
         $this->db->join("staff_designation", "staff_designation.id = staff.designation", "left");
+        $this->db->join("staff_designation_category sdc", "COALESCE(staff.category_id, staff_designation.category_id) = sdc.id", "left");
         $this->db->join("department", "department.id = staff.department", "left");
         $this->db->join("staff_roles", "staff_roles.staff_id = staff.id", "left");
         $this->db->join("roles", "staff_roles.role_id = roles.id", "left");
@@ -767,7 +810,7 @@ class Staff_model extends MY_Model
 
         $field_var = count($field_k_array) > 0 ? "," . implode(',', $field_k_array) : "";
 
-        $query = "SELECT `staff`.*, `staff_designation`.`designation` as `designation`, `department`.`department_name` as `department`,`roles`.`name` as user_type " . $field_var . ",GROUP_CONCAT(leave_type_id,'@',alloted_leave) as leaves  FROM `staff` " . $join_array . " LEFT JOIN `staff_designation` ON `staff_designation`.`id` = `staff`.`designation` LEFT JOIN `staff_roles` ON `staff_roles`.`staff_id` = `staff`.`id` LEFT JOIN `roles` ON `staff_roles`.`role_id` = `roles`.`id` LEFT JOIN `department` ON `department`.`id` = `staff`.`department` left join staff_leave_details ON staff_leave_details.staff_id=staff.id WHERE staff.is_active = " . $this->db->escape($active) . "  " . $condition . " group by staff.id";
+        $query = "SELECT `staff`.*, `staff_designation`.`designation` as `designation`, `department`.`department_name` as `department`,`roles`.`name` as user_type,COALESCE(`staff`.`category_id`, `staff_designation`.`category_id`) as category_id,`sdc`.`name` as staff_type,`sdc`.`color` as staff_type_color,`sdc`.`icon` as staff_type_icon " . $field_var . ",GROUP_CONCAT(leave_type_id,'@',alloted_leave) as leaves  FROM `staff` " . $join_array . " LEFT JOIN `staff_designation` ON `staff_designation`.`id` = `staff`.`designation` LEFT JOIN `staff_designation_category` as `sdc` ON COALESCE(`staff`.`category_id`, `staff_designation`.`category_id`) = `sdc`.`id` LEFT JOIN `staff_roles` ON `staff_roles`.`staff_id` = `staff`.`id` LEFT JOIN `roles` ON `staff_roles`.`role_id` = `roles`.`id` LEFT JOIN `department` ON `department`.`id` = `staff`.`department` left join staff_leave_details ON staff_leave_details.staff_id=staff.id WHERE staff.is_active = " . $this->db->escape($active) . "  " . $condition . " group by staff.id";
 
         $query = $this->db->query($query);
         return $query->result_array();

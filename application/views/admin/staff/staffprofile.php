@@ -157,6 +157,17 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                 <li class="list-group-item listnoback">
                                     <b><?php echo $this->lang->line('designation'); ?></b> <a class="pull-right text-aqua"><?php echo $staff['designation']; ?></a>
                                 </li>
+                                <li class="list-group-item listnoback">
+                                    <b>Staff Type / Category</b> 
+                                    <?php if (!empty($staff['staff_type'])): ?>
+                                        <a class="pull-right" style="border-left: 4px solid <?php echo $staff['staff_type_color'] ?? '#ccc'; ?>; padding-left: 8px;">
+                                            <i class="fa <?php echo $staff['staff_type_icon'] ?? 'fa-folder'; ?>" style="color: <?php echo $staff['staff_type_color'] ?? '#ccc'; ?>; margin-right: 5px;"></i>
+                                            <span style="font-weight: 500;"><?php echo $staff['staff_type']; ?></span>
+                                        </a>
+                                    <?php else: ?>
+                                        <a class="pull-right text-muted"><span style="font-style: italic;">Not Assigned</span></a>
+                                    <?php endif; ?>
+                                </li>
                             <?php }
                             if ($sch_setting->staff_department) { ?>
                                 <li class="list-group-item listnoback">
