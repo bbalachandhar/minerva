@@ -66,7 +66,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                         <div style="margin-top: 20px; padding: 15px; background: #e3f2fd; border-left: 4px solid #2196F3; border-radius: 4px;">
                             <h4 style="margin-top: 0; color: #1565c0;">EPF Wage Calculation:</h4>
                             <p style="margin: 8px 0; color: #555;">
-                                <strong>EPF Wage</strong> = MIN(Basic + DA, ₹<?php echo number_format($epf['epf_wage_ceiling']); ?>)
+                                <strong>EPF Wage</strong> = MIN([<?php echo $epf['basic_applicable'] ? 'Basic' : '0'; ?>] + [<?php echo $epf['da_applicable'] ? 'DA' : '0'; ?>] + Qualifying Earnings (including temporary increments), ₹<?php echo number_format($epf['epf_wage_ceiling']); ?>)
                             </p>
                             <p style="margin: 8px 0; color: #555;">
                                 <strong>Employee EPF</strong> = <?php echo $epf['employee_contribution_rate']; ?>% × EPF Wage

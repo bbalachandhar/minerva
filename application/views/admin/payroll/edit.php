@@ -78,6 +78,11 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
     <!-- Main content -->
     <section class="content">
         <div class="row">
+            <?php if ($this->session->flashdata('msg')) { ?>
+                <div class="col-md-12">
+                    <?php echo $this->session->flashdata('msg'); ?>
+                </div>
+            <?php } ?>
             <!-- left column -->
             <div class="col-md-12">
                 <div class="box box-primary">
@@ -696,7 +701,7 @@ $deduction_count++;
                                                 <div class="modern-summary-row" style="background: rgba(0,0,0,0.02); border-top: 2px solid rgba(0,0,0,0.1); font-weight: 700;">
                                                     <span class="modern-summary-label">Gross Salary</span>
                                                     <span class="modern-summary-value" style="color: #2e7d32; font-size: 16px;">
-                                                        <input type="text" name="gross_salary" id="gross_salary" value="<?php echo convertBaseAmountCurrencyFormat(($employee_payroll['basic'] + $employee_payroll['total_allowance']) - $employee_payroll['total_deduction']); ?>" />
+                                                        <input type="text" name="gross_salary" id="gross_salary" value="<?php echo convertBaseAmountCurrencyFormat($employee_payroll['basic'] + $employee_payroll['total_allowance']); ?>" />
                                                     </span>
                                                 </div>
                                             </div>
@@ -719,74 +724,56 @@ $deduction_count++;
                                             </div>
 
                                             <!-- EPF SECTION -->
-                                            <?php if (!empty($employee_payroll['epf_wage']) || !empty($employee_payroll['employee_epf'])) { ?>
                                             <div class="modern-summary-section epf-section">
                                                 <div class="section-title">🏦 Employees Provident Fund (EPF)</div>
-                                                <?php if (!empty($employee_payroll['epf_wage'])) { ?>
                                                 <div class="modern-summary-row">
                                                     <span class="modern-summary-label">EPF Wage Base</span>
                                                     <span class="modern-summary-value">
-                                                        <input type="text" id="epf_wage" value="<?php echo convertBaseAmountCurrencyFormat($employee_payroll['epf_wage']); ?>" readonly />
+                                                        <input type="text" id="epf_wage" name="epf_wage" value="<?php echo convertBaseAmountCurrencyFormat($employee_payroll['epf_wage'] ?? 0); ?>" readonly />
                                                     </span>
                                                 </div>
-                                                <?php } ?>
-                                                <?php if (!empty($employee_payroll['employee_epf'])) { ?>
                                                 <div class="modern-summary-row">
                                                     <span class="modern-summary-label">Employee Contribution (12%)</span>
                                                     <span class="modern-summary-value deduction-value" style="color: #1565c0 !important;">
-                                                        <input type="text" id="employee_epf" value="<?php echo convertBaseAmountCurrencyFormat($employee_payroll['employee_epf']); ?>" readonly />
+                                                        <input type="text" id="employee_epf" name="employee_epf" value="<?php echo convertBaseAmountCurrencyFormat($employee_payroll['employee_epf'] ?? 0); ?>" readonly />
                                                     </span>
                                                 </div>
-                                                <?php } ?>
-                                                <?php if (!empty($employee_payroll['employer_pf'])) { ?>
                                                 <div class="modern-summary-row">
                                                     <span class="modern-summary-label">Employer PF (3.67%)</span>
                                                     <span class="modern-summary-value" style="color: #558b2f;">
-                                                        <input type="text" id="employer_pf" value="<?php echo convertBaseAmountCurrencyFormat($employee_payroll['employer_pf']); ?>" readonly />
+                                                        <input type="text" id="employer_pf" name="employer_pf" value="<?php echo convertBaseAmountCurrencyFormat($employee_payroll['employer_pf'] ?? 0); ?>" readonly />
                                                     </span>
                                                 </div>
-                                                <?php } ?>
-                                                <?php if (!empty($employee_payroll['employer_eps'])) { ?>
                                                 <div class="modern-summary-row">
                                                     <span class="modern-summary-label">Employer EPS (8.33%)</span>
                                                     <span class="modern-summary-value" style="color: #6a1b9a;">
-                                                        <input type="text" id="employer_eps" value="<?php echo convertBaseAmountCurrencyFormat($employee_payroll['employer_eps']); ?>" readonly />
+                                                        <input type="text" id="employer_eps" name="employer_eps" value="<?php echo convertBaseAmountCurrencyFormat($employee_payroll['employer_eps']); ?>" readonly />
                                                     </span>
                                                 </div>
-                                                <?php } ?>
                                             </div>
-                                            <?php } ?>
 
                                             <!-- ESI SECTION -->
-                                            <?php if (!empty($employee_payroll['esi_wage']) || !empty($employee_payroll['employee_esi'])) { ?>
                                             <div class="modern-summary-section esi-section">
                                                 <div class="section-title">🏥 Employees State Insurance (ESI)</div>
-                                                <?php if (!empty($employee_payroll['esi_wage'])) { ?>
                                                 <div class="modern-summary-row">
                                                     <span class="modern-summary-label">ESI Wage Base</span>
                                                     <span class="modern-summary-value">
-                                                        <input type="text" id="esi_wage" value="<?php echo convertBaseAmountCurrencyFormat($employee_payroll['esi_wage']); ?>" readonly />
+                                                        <input type="text" id="esi_wage" name="esi_wage" value="<?php echo convertBaseAmountCurrencyFormat($employee_payroll['esi_wage'] ?? 0); ?>" readonly />
                                                     </span>
                                                 </div>
-                                                <?php } ?>
-                                                <?php if (!empty($employee_payroll['employee_esi'])) { ?>
                                                 <div class="modern-summary-row">
                                                     <span class="modern-summary-label">Employee Contribution (0.75%)</span>
                                                     <span class="modern-summary-value deduction-value" style="color: #c62828 !important;">
-                                                        <input type="text" id="employee_esi" value="<?php echo convertBaseAmountCurrencyFormat($employee_payroll['employee_esi']); ?>" readonly />
+                                                        <input type="text" id="employee_esi" name="employee_esi" value="<?php echo convertBaseAmountCurrencyFormat($employee_payroll['employee_esi'] ?? 0); ?>" readonly />
                                                     </span>
                                                 </div>
-                                                <?php } ?>
-                                                <?php if (!empty($employee_payroll['employer_esi'])) { ?>
                                                 <div class="modern-summary-row">
                                                     <span class="modern-summary-label">Employer Contribution (3.25%)</span>
                                                     <span class="modern-summary-value" style="color: #d84315;">
-                                                        <input type="text" id="employer_esi" value="<?php echo convertBaseAmountCurrencyFormat($employee_payroll['employer_esi']); ?>" readonly />
+                                                        <input type="text" id="employer_esi" name="employer_esi" value="<?php echo convertBaseAmountCurrencyFormat($employee_payroll['employer_esi'] ?? 0); ?>" readonly />
                                                     </span>
                                                 </div>
-                                                <?php } ?>
                                             </div>
-                                            <?php } ?>
 
                                             <!-- TAX SECTION -->
                                             <?php if (!empty($employee_payroll['tax']) && $employee_payroll['tax'] > 0) { ?>
@@ -862,7 +849,14 @@ $deduction_count++;
         var allowance_type = document.getElementsByName('allowance_type_id[]');
         var allowance_amount = document.getElementsByName('allowance_amount[]');
         for (var i = 0; i < allowance_type.length; i++) {
-            var selected = allowance_type[i].options[allowance_type[i].selectedIndex];
+            if (!allowance_type[i] || !allowance_type[i].options || allowance_type[i].options.length === 0) {
+                continue;
+            }
+            var selectedIndex = allowance_type[i].selectedIndex;
+            if (selectedIndex < 0) {
+                continue;
+            }
+            var selected = allowance_type[i].options[selectedIndex];
             var code = (selected && selected.getAttribute('data-code')) ? selected.getAttribute('data-code').toUpperCase() : '';
             if (code === 'BASIC') {
                 return { typeEl: allowance_type[i], amountEl: allowance_amount[i] };
@@ -886,11 +880,13 @@ $deduction_count++;
     }
 
     function add_allowance() {
-        $("#net_salary").val('');
-        $("#gross_salary").val('');
+        var calcButton = $(".plusign");
+        calcButton.prop('disabled', true);
+        $("#err").text('');
         syncBasicFromEarnings();
 
         var payload = {
+            payslip_id: $("input[name='id']").val(),  // Send payslip ID so calculatepreview can save to DB
             staff_id: $("input[name='staff_id']").val(),
             month: $("input[name='month']").val(),
             year: $("input[name='year']").val(),
@@ -908,6 +904,7 @@ $deduction_count++;
             data: payload
         }).done(function (response) {
             if (!response || response.success !== true) {
+                $("#err").text("Calculation failed. Please try again.");
                 return;
             }
 
@@ -922,28 +919,35 @@ $deduction_count++;
                 $("#tax_percent").val(parseAmount(response.tds).toFixed(2));
             }
 
-            if ($("#epf_wage").length) {
-                $("#epf_wage").val(parseAmount(response.epf_wage).toFixed(2));
-            }
-            if ($("#employee_epf").length) {
-                $("#employee_epf").val(parseAmount(response.employee_epf).toFixed(2));
-            }
-            if ($("#employer_pf").length) {
-                $("#employer_pf").val(parseAmount(response.employer_pf).toFixed(2));
-            }
-            if ($("#employer_eps").length) {
-                $("#employer_eps").val(parseAmount(response.employer_eps).toFixed(2));
-            }
+            // update EPF values (inputs always present now)
+            $("#epf_wage").val(parseAmount(response.epf_wage).toFixed(2));
+            $("#employee_epf").val(parseAmount(response.employee_epf).toFixed(2));
+            $("#employer_pf").val(parseAmount(response.employer_pf).toFixed(2));
+            $("#employer_eps").val(parseAmount(response.employer_eps).toFixed(2));
 
+            // update ESI values
             if ($("#esi_wage").length) {
                 $("#esi_wage").val(parseAmount(response.esi_wage).toFixed(2));
-            }
-            if ($("#employee_esi").length) {
                 $("#employee_esi").val(parseAmount(response.employee_esi).toFixed(2));
-            }
-            if ($("#employer_esi").length) {
                 $("#employer_esi").val(parseAmount(response.employer_esi).toFixed(2));
             }
+
+            // if there's an existing payslip id, auto-submit the form to persist results
+            if ($("input[name='id']").val()) {
+                var netSalary = $("#net_salary").val();
+                if (!netSalary) {
+                    $("#err").text("<?php echo $this->lang->line('net_salary_should_not_be_empty') ?>");
+                    return;
+                }
+                var form = document.getElementById('employeeform');
+                if (form) {
+                    form.submit();
+                }
+            }
+        }).fail(function () {
+            $("#err").text("Calculation failed. Please try again.");
+        }).always(function () {
+            calcButton.prop('disabled', false);
         });
     }
 

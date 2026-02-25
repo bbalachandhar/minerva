@@ -88,22 +88,19 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                     <tr>
                                         <th><?php echo $this->lang->line('name'); ?></th>
                                         <th><?php echo $this->lang->line('employee_id'); ?></th>
-                                        <th><?php echo $this->lang->line('working_days'); ?></th>
-                                        <th><?php echo $this->lang->line('lop_days'); ?></th>
                                         <th><?php echo $this->lang->line('net_lop'); ?></th>
-                                        <th class="text text-right"><?php echo $this->lang->line('lop_amount'); ?> <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
+                                        <th>Payable Days</th>
                                         <th class="text text-right"><?php echo $this->lang->line('gross_salary'); ?> <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
-                                        <th class="text text-right"><?php echo $this->lang->line('net_salary'); ?> <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
+                                        <th class="text text-right"><?php echo $this->lang->line('lop_amount'); ?> <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
                                         <th class="text text-right">EPF (Employee) <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
+                                        <th class="text text-right"><?php echo $this->lang->line('net_salary'); ?> <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
                                         <th class="text text-right">EPF (Employer) <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <?php
-                                    $total_working = 0;
-                                    $total_lop_days = 0;
-                                    $total_adjusted_lop = 0;
                                     $total_net_lop = 0;
+                                    $total_payable_days = 0;
                                     $total_lop_amt = 0;
                                     $gross_total = 0;
                                     $net_total   = 0;
@@ -112,16 +109,25 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                     if (!empty($epfList)) {
                                         foreach ($epfList as $value) {
                                             // use values added by controller
-                                            $working = $value['working_days'] ?? '';
-                                            $lop_days = $value['lop_days'] ?? '';
-                                            $adjusted = $value['adjusted_lop_days'] ?? '';
                                             $netlop = $value['net_lop_days'] ?? '';
                                             $lop_amt = $value['lop_amount'] ?? 0;
-                                            $total_working += is_numeric($working) ? $working : 0;
-                                            $total_lop_days += is_numeric($lop_days) ? $lop_days : 0;
-                                            $total_adjusted_lop += is_numeric($adjusted) ? $adjusted : 0;
                                             $total_net_lop += is_numeric($netlop) ? $netlop : 0;
                                             $total_lop_amt += is_numeric($lop_amt) ? $lop_amt : 0;
+
+                                            $days_in_month = 0;
+                                            if (!empty($value['month']) && !empty($value['year'])) {
+                                                $month_num = date('n', strtotime($value['month'] . ' 1'));
+                                                $year_num = (int)$value['year'];
+                                                if ($month_num > 0 && $year_num > 0) {
+                                                    $days_in_month = cal_days_in_month(CAL_GREGORIAN, $month_num, $year_num);
+                                                }
+                                            }
+                                            $payable_days = $days_in_month - (is_numeric($netlop) ? (float)$netlop : 0);
+                                            if ($payable_days < 0) {
+                                                $payable_days = 0;
+                                            }
+                                            $total_payable_days += $payable_days;
+
                                             $gross = $value['basic'] + $value['total_allowance'];
                                             $gross_total += $gross;
                                             $net_total += $value['net_salary'];
@@ -131,13 +137,12 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                             <tr>
                                                 <td><?php echo $value['name'] . ' ' . $value['surname']; ?></td>
                                                 <td><?php echo $value['employee_id']; ?></td>
-                                                <td><?php echo $working; ?></td>
-                                                <td><?php echo $lop_days; ?></td>
                                                 <td><?php echo $netlop; ?></td>
-                                                <td class="text text-right"><?php if($lop_amt>0){ echo amountFormat($lop_amt);} ?></td>
+                                                <td><?php echo rtrim(rtrim(number_format($payable_days, 2, '.', ''), '0'), '.'); ?></td>
                                                 <td class="text text-right"><?php if ($gross > 0) { echo amountFormat($gross); } ?></td>
-                                                <td class="text text-right"><?php if ($value['net_salary'] > 0) { echo amountFormat($value['net_salary']); } ?></td>
+                                                <td class="text text-right"><?php if($lop_amt>0){ echo amountFormat($lop_amt);} ?></td>
                                                 <td class="text text-right"><?php echo (!empty($value['employee_epf']) ? amountFormat($value['employee_epf']) : '-'); ?></td>
+                                                <td class="text text-right"><?php if ($value['net_salary'] > 0) { echo amountFormat($value['net_salary']); } ?></td>
                                                 <td class="text text-right"><?php echo (!empty($value['employer_pf']) ? amountFormat($value['employer_pf']) : '-'); ?></td>
                                             </tr>
                                             <?php
@@ -149,13 +154,12 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                     <tr class="box box-solid total-bg">
                                         <td></td>
                                         <td class="text-right"><?php echo $this->lang->line('grand_total'); ?></td>
-                                        <td class="text text-right"><?php if($total_working > 0){ echo $total_working; } ?></td>
-                                        <td class="text text-right"><?php if(isset($total_lop_days) && $total_lop_days > 0){ echo $total_lop_days; } ?></td>
                                         <td class="text text-right"><?php if(isset($total_net_lop) && $total_net_lop > 0){ echo $total_net_lop; } ?></td>
-                                        <td class="text text-right"><?php if(isset($total_lop_amt) && $total_lop_amt > 0){ echo $currency_symbol . amountFormat($total_lop_amt); } ?></td>
+                                        <td class="text text-right"><?php if(isset($total_payable_days) && $total_payable_days > 0){ echo rtrim(rtrim(number_format($total_payable_days, 2, '.', ''), '0'), '.'); } ?></td>
                                         <td class="text text-right"><?php if($gross_total > 0){ echo $currency_symbol . amountFormat($gross_total); } ?></td>
-                                        <td class="text text-right"><?php if($net_total > 0){ echo $currency_symbol . amountFormat($net_total); } ?></td>
+                                        <td class="text text-right"><?php if(isset($total_lop_amt) && $total_lop_amt > 0){ echo $currency_symbol . amountFormat($total_lop_amt); } ?></td>
                                         <td class="text text-right"><?php if($emp_epf_total > 0){ echo $currency_symbol . amountFormat($emp_epf_total); } ?></td>
+                                        <td class="text text-right"><?php if($net_total > 0){ echo $currency_symbol . amountFormat($net_total); } ?></td>
                                         <td class="text text-right"><?php if($empr_epf_total > 0){ echo $currency_symbol . amountFormat($empr_epf_total); } ?></td>
                                     </tr>
                                 </tfoot>

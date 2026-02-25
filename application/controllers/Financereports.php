@@ -1295,6 +1295,82 @@ $data['department_id_selected'] = $this->input->post('department_id');
         $this->load->view('layout/footer', $data);
     }
 
+    public function payrollreportsummary()
+    {
+        $this->session->set_userdata('top_menu', 'Reports');
+        $this->session->set_userdata('sub_menu', 'Reports/finance');
+        $this->session->set_userdata('subsub_menu', 'Reports/finance/payrollreportsummary');
+        $data['searchlist']  = $this->customlib->get_searchtype();
+        $data['date_type']   = $this->customlib->date_type();
+        $data['date_typeid'] = '';
+
+        $filter_month = $this->input->post('filter_month');
+        $filter_year = $this->input->post('filter_year');
+        $data['filter_month'] = $filter_month;
+        $data['filter_year'] = $filter_year;
+
+        if (isset($_POST['search_type']) && $_POST['search_type'] != '') {
+
+            $dates               = $this->customlib->get_betweendate($_POST['search_type']);
+            $data['search_type'] = $_POST['search_type'];
+        } else {
+
+            $dates               = $this->customlib->get_betweendate('this_year');
+            $data['search_type'] = '';
+        }
+
+        $start_date = date('Y-m-d', strtotime($dates['from_date']));
+        $end_date   = date('Y-m-d', strtotime($dates['to_date']));
+
+        $data['label']        = date($this->customlib->getSchoolDateFormat(), strtotime($start_date)) . " " . $this->lang->line('to') . " " . date($this->customlib->getSchoolDateFormat(), strtotime($end_date));
+        $data['payment_mode'] = $this->payment_mode;
+
+        $result              = $this->payroll_model->getbetweenpayrollReport($start_date, $end_date, $filter_month, $filter_year);
+        if (!empty($result)) {
+            foreach ($result as &$row) {
+                $row['earnings_breakdown'] = $this->payroll_model->getAllowance($row['id'], 'positive');
+                $row['deductions_breakdown'] = $this->payroll_model->getAllowance($row['id'], 'negative');
+                if (!empty($row['leave_deduction']) && $row['leave_deduction'] > 0) {
+                    $row['deductions_breakdown'][] = array(
+                        'allowance_type' => 'LOP',
+                        'amount' => $row['leave_deduction'],
+                        'cal_type' => 'negative'
+                    );
+                }
+                $existingTypes = array_column($row['deductions_breakdown'], 'allowance_type');
+                if (!empty($row['employee_epf']) && $row['employee_epf'] > 0 && !in_array('EPF', $existingTypes)) {
+                    $row['deductions_breakdown'][] = array(
+                        'allowance_type' => 'EPF',
+                        'amount' => $row['employee_epf'],
+                        'cal_type' => 'negative'
+                    );
+                    $existingTypes[] = 'EPF';
+                }
+                if (!empty($row['esi_deduction']) && $row['esi_deduction'] > 0 && !in_array('ESI', $existingTypes)) {
+                    $row['deductions_breakdown'][] = array(
+                        'allowance_type' => 'ESI',
+                        'amount' => $row['esi_deduction'],
+                        'cal_type' => 'negative'
+                    );
+                    $existingTypes[] = 'ESI';
+                }
+                if (!empty($row['tax']) && $row['tax'] > 0 && !in_array('TDS', $existingTypes)) {
+                    $row['deductions_breakdown'][] = array(
+                        'allowance_type' => 'TDS',
+                        'amount' => $row['tax'],
+                        'cal_type' => 'negative'
+                    );
+                    $existingTypes[] = 'TDS';
+                }
+            }
+            unset($row);
+        }
+        $data['payrollList'] = $result;
+        $this->load->view('layout/header', $data);
+        $this->load->view('financereports/payroll_report_summary', $data);
+        $this->load->view('layout/footer', $data);
+    }
+
     /**
      * EPF report: filter by date range and optional month/year
      * shows basic payroll fields along with EPF contributions and working days.

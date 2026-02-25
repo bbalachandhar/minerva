@@ -1371,7 +1371,7 @@ class Payroll_model extends MY_Model
      * @param float $esi_rate ESI rate (default 0.75%)
      * @return array Array with epf_deduction, esi_deduction
      */
-    public function calculateStatutoryDeductions($staff, $epf_rate = 0.12, $esi_rate = 0.0075)
+    public function calculateStatutoryDeductions($staff, $epf_rate = 0.12, $esi_rate = 0.0075, $additional_earnings = 0)
     {
         $deductions = array(
             'epf_deduction' => 0,
@@ -1399,7 +1399,8 @@ class Payroll_model extends MY_Model
             if (isset($staff['is_epf_enabled']) && $staff['is_epf_enabled'] == 1) {
                 // Calculate EPF with wage ceiling of Rs 15,000
                 // Indian law: EPF contribution base is capped at Rs 15,000
-                $epf_base = min($basic_salary, 15000);
+                // include additional earnings such as allowances or temporary increments
+                $epf_base = min($basic_salary + (float)$additional_earnings, 15000);
                 $deductions['epf_deduction'] = round($epf_base * $epf_rate, 2);
             }
         }

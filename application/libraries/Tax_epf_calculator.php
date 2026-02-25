@@ -20,20 +20,31 @@ class Tax_epf_calculator
 
     /**
      * Calculate EPF Wage (EPF salary)
-     * EPF Wage = MIN(Basic + DA, 15000)
+     * EPF Wage = MIN([Basic if enabled] + [DA if enabled] + Additional Earnings, 15000)
+     * Additional earnings may include qualifying allowances, temporary increments, etc.
+     * Whether basic itself counts is controlled via config 'basic_applicable'.
      * 
      * @param float $basic Basic salary
      * @param float $da Dearness allowance
+     * @param float $additional Additional earnings to include (default 0)
      * @return float EPF wage
      */
-    public function calculate_epf_wage($basic, $da = 0)
+    public function calculate_epf_wage($basic, $da = 0, $additional = 0)
     {
         $epf_wage_ceiling = $this->config['epf_wage_ceiling'];
-        $epf_wage = $basic;
+        $epf_wage = 0;
+        
+        // include basic only if configured to do so
+        if ($this->config['basic_applicable']) {
+            $epf_wage += $basic;
+        }
         
         if ($this->config['da_applicable']) {
             $epf_wage += $da;
         }
+        
+        // include any extra earnings (allowances, temp increment, etc.)
+        $epf_wage += $additional;
         
         // Cap at wage ceiling
         if ($epf_wage > $epf_wage_ceiling) {
@@ -353,7 +364,9 @@ class Tax_epf_calculator
         $lop_deduction = isset($staff_data['lop_deduction']) ? $staff_data['lop_deduction'] : 0;
         
         // Calculate EPF
-        $epf_wage = $this->calculate_epf_wage($basic, $da);
+        // include any other earnings in EPF wage
+        $additional = isset($staff_data['total_allowance']) ? $staff_data['total_allowance'] : 0;
+        $epf_wage = $this->calculate_epf_wage($basic, $da, $additional);
         $employee_epf = $this->calculate_employee_epf($epf_wage);
         $employer_pf = $this->calculate_employer_pf($epf_wage);
         $employer_eps = $this->calculate_employer_eps($epf_wage);
