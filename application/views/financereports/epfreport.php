@@ -88,6 +88,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                     <tr>
                                         <th><?php echo $this->lang->line('name'); ?></th>
                                         <th><?php echo $this->lang->line('employee_id'); ?></th>
+                                        <th>UAN</th>
                                         <th>Category</th>
                                         <th><?php echo $this->lang->line('net_lop'); ?></th>
                                         <th>Payable Days</th>
@@ -96,6 +97,10 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                         <th class="text text-right">EPF Wages <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
                                         <th class="text text-right">EPF (Employee) <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
                                         <th class="text text-right"><?php echo $this->lang->line('net_salary'); ?> <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
+                                        <th class="text text-right">PF Contribution 3.67% <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
+                                        <th class="text text-right">EPS Contribution 8.33% <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
+                                        <th class="text text-right">EDLI (Insurance) 0.5% <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
+                                        <th class="text text-right">Admin Charges 0.5% <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
                                         <th class="text text-right">Employer EPF (13%) <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
                                     </tr>
                                 </thead>
@@ -108,6 +113,10 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                     $net_total   = 0;
                                     $epf_wages_total = 0;
                                     $emp_epf_total = 0;
+                                    $employer_pf_total = 0;
+                                    $employer_eps_total = 0;
+                                    $employer_edli_total = 0;
+                                    $employer_admin_total = 0;
                                     $empr_epf_total = 0;
                                     if (!empty($epfList)) {
                                         foreach ($epfList as $value) {
@@ -142,14 +151,20 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                             $net_total += $value['net_salary'];
                                             $epf_wages_total += !empty($value['epf_wage']) ? $value['epf_wage'] : 0;
                                             $emp_epf_total += !empty($value['employee_epf']) ? $value['employee_epf'] : 0;
-                                            $empr_epf_total += !empty($value['employer_pf']) ? $value['employer_pf'] : 0;
-                                            $empr_epf_total += !empty($value['employer_eps']) ? $value['employer_eps'] : 0;
-                                            $empr_epf_total += !empty($value['employer_edli']) ? $value['employer_edli'] : 0;
-                                            $empr_epf_total += !empty($value['employer_admin']) ? $value['employer_admin'] : 0;
+                                            $employer_pf = !empty($value['employer_pf']) ? $value['employer_pf'] : 0;
+                                            $employer_eps = !empty($value['employer_eps']) ? $value['employer_eps'] : 0;
+                                            $employer_edli = !empty($value['employer_edli']) ? $value['employer_edli'] : 0;
+                                            $employer_admin = !empty($value['employer_admin']) ? $value['employer_admin'] : 0;
+                                            $employer_pf_total += $employer_pf;
+                                            $employer_eps_total += $employer_eps;
+                                            $employer_edli_total += $employer_edli;
+                                            $employer_admin_total += $employer_admin;
+                                            $empr_epf_total += $employer_pf + $employer_eps + $employer_edli + $employer_admin;
                                             ?>
                                             <tr>
                                                 <td><?php echo $value['name'] . ' ' . $value['surname']; ?></td>
                                                 <td><?php echo $value['employee_id']; ?></td>
+                                                <td><?php echo !empty($value['uan_no']) ? $value['uan_no'] : '-'; ?></td>
                                                 <td>
                                                     <?php if (!empty($value['staff_type'])): ?>
                                                         <span style="border-left: 3px solid <?php echo $value['staff_type_color'] ?? '#ccc'; ?>; padding-left: 6px; display: inline-block;">
@@ -167,11 +182,12 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                                 <td class="text text-right"><?php echo (!empty($value['epf_wage']) ? amountFormat($value['epf_wage']) : '-'); ?></td>
                                                 <td class="text text-right"><?php echo (!empty($value['employee_epf']) ? amountFormat($value['employee_epf']) : '-'); ?></td>
                                                 <td class="text text-right"><?php if ($value['net_salary'] > 0) { echo amountFormat($value['net_salary']); } ?></td>
+                                                <td class="text text-right"><?php echo ($employer_pf > 0 ? amountFormat($employer_pf) : '-'); ?></td>
+                                                <td class="text text-right"><?php echo ($employer_eps > 0 ? amountFormat($employer_eps) : '-'); ?></td>
+                                                <td class="text text-right"><?php echo ($employer_edli > 0 ? amountFormat($employer_edli) : '-'); ?></td>
+                                                <td class="text text-right"><?php echo ($employer_admin > 0 ? amountFormat($employer_admin) : '-'); ?></td>
                                                 <td class="text text-right"><?php 
-                                                    $total_empr = (!empty($value['employer_pf']) ? $value['employer_pf'] : 0) + 
-                                                                  (!empty($value['employer_eps']) ? $value['employer_eps'] : 0) + 
-                                                                  (!empty($value['employer_edli']) ? $value['employer_edli'] : 0) + 
-                                                                  (!empty($value['employer_admin']) ? $value['employer_admin'] : 0);
+                                                    $total_empr = $employer_pf + $employer_eps + $employer_edli + $employer_admin;
                                                     echo ($total_empr > 0 ? amountFormat($total_empr) : '-'); 
                                                 ?></td>
                                             </tr>
@@ -183,6 +199,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                 <tfoot>
                                     <tr class="box box-solid total-bg">
                                         <td></td>
+                                        <td></td>
                                         <td class="text-right"><?php echo $this->lang->line('grand_total'); ?></td>
                                         <td></td>
                                         <td class="text text-right"><?php if(isset($total_net_lop) && $total_net_lop > 0){ echo $total_net_lop; } ?></td>
@@ -192,6 +209,10 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                         <td class="text text-right"><?php if($epf_wages_total > 0){ echo $currency_symbol . amountFormat($epf_wages_total); } ?></td>
                                         <td class="text text-right"><?php if($emp_epf_total > 0){ echo $currency_symbol . amountFormat($emp_epf_total); } ?></td>
                                         <td class="text text-right"><?php if($net_total > 0){ echo $currency_symbol . amountFormat($net_total); } ?></td>
+                                        <td class="text text-right"><?php if($employer_pf_total > 0){ echo $currency_symbol . amountFormat($employer_pf_total); } ?></td>
+                                        <td class="text text-right"><?php if($employer_eps_total > 0){ echo $currency_symbol . amountFormat($employer_eps_total); } ?></td>
+                                        <td class="text text-right"><?php if($employer_edli_total > 0){ echo $currency_symbol . amountFormat($employer_edli_total); } ?></td>
+                                        <td class="text text-right"><?php if($employer_admin_total > 0){ echo $currency_symbol . amountFormat($employer_admin_total); } ?></td>
                                         <td class="text text-right"><?php if($empr_epf_total > 0){ echo $currency_symbol . amountFormat($empr_epf_total); } ?></td>
                                     </tr>
                                 </tfoot>

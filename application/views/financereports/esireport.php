@@ -86,6 +86,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                         <tr>
                             <th><?php echo $this->lang->line('name'); ?></th>
                             <th><?php echo $this->lang->line('employee_id'); ?></th>
+                            <th>ESI No</th>
                             <th>Category</th>
                             <th><?php echo $this->lang->line('net_lop'); ?></th>
                             <th>Payable Days</th>
@@ -144,6 +145,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                 <tr>
                                     <td><?php echo $value['name'] . ' ' . $value['surname']; ?></td>
                                     <td><?php echo $value['employee_id']; ?></td>
+                                    <td><?php echo !empty($value['esi_no']) ? $value['esi_no'] : '-'; ?></td>
                                     <td>
                                         <?php if (!empty($value['staff_type'])): ?>
                                             <span style="border-left: 3px solid <?php echo $value['staff_type_color'] ?? '#ccc'; ?>; padding-left: 6px; display: inline-block;">
@@ -170,6 +172,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                     </tbody>
                     <tfoot>
                         <tr class="box box-solid total-bg">
+                            <td></td>
                             <td></td>
                             <td class="text-right"><?php echo $this->lang->line('grand_total'); ?></td>
                             <td></td>
