@@ -38,16 +38,32 @@ class Specialattendance extends Admin_Controller
         $employees = $this->Staff_model->getByDepartment($department_id);
 
         $presentCounts = [];
+        $presentEquivalent = [];
+        $workingDays = null;
         if (!empty($month) && !empty($year) && !empty($employees)) {
             $this->load->model('StaffBiometricPunchesManual_model');
+            $this->load->model('SpecialAttendance_model');
             $staffIds = array_map(function ($emp) {
                 return $emp['id'];
             }, $employees);
             $presentCounts = $this->StaffBiometricPunchesManual_model->getSpecialAttendanceCounts($staffIds, $month, $year);
+            $presentEquivalent = $this->StaffBiometricPunchesManual_model->getSpecialAttendancePresentEquivalent($staffIds, $month, $year);
+            $workingDays = $this->SpecialAttendance_model->getWorkingDaysCount($month, $year);
         }
 
         foreach ($employees as &$emp) {
             $emp['present_days'] = isset($presentCounts[$emp['id']]) ? $presentCounts[$emp['id']] : 0;
+            $hasSpecial = isset($presentEquivalent[$emp['id']]);
+            $emp['has_special_attendance'] = $hasSpecial ? 1 : 0;
+            if ($hasSpecial && $workingDays !== null) {
+                $lopDays = (float)$workingDays - (float)$presentEquivalent[$emp['id']];
+                if ($lopDays < 0) {
+                    $lopDays = 0;
+                }
+                $emp['lop_days'] = round($lopDays, 2);
+            } else {
+                $emp['lop_days'] = null;
+            }
         }
         unset($emp);
 
@@ -178,6 +194,7 @@ class Specialattendance extends Admin_Controller
         
         echo json_encode([
             'working_days' => $workingDays,
+            'payable_working_days' => $daysInMonth,
             'holidays' => $holidayDates,
             'weekend_days' => $weekendDays
         ]);
@@ -192,24 +209,24 @@ class Specialattendance extends Admin_Controller
         }
         
         $employee_ids = $this->input->post('employee_ids');
-        $days_present = $this->input->post('days_present');
+        $days_absent = $this->input->post('days_absent');
         $month = $this->input->post('month');
         $year = $this->input->post('year');
         $reason = $this->input->post('reason');
         $admin_user_id = $this->session->userdata('id');
 
         $valid_entries = 0;
-        if (!empty($employee_ids) && !empty($days_present)) {
+        if (!empty($employee_ids) && !empty($days_absent)) {
             foreach ($employee_ids as $emp_id) {
-                $days = isset($days_present[$emp_id]) ? (float)$days_present[$emp_id] : 0;
-                if ($days > 0) {
+                $raw_days = isset($days_absent[$emp_id]) ? trim((string)$days_absent[$emp_id]) : '';
+                if ($raw_days !== '' && is_numeric($raw_days) && (float)$raw_days >= 0) {
                     $valid_entries++;
                 }
             }
         }
 
         if ($valid_entries === 0) {
-            echo json_encode(['status' => 'error', 'message' => 'Please enter Days Present for at least one staff member.']);
+            echo json_encode(['status' => 'error', 'message' => 'Please enter LOP Days (0 or more) for at least one staff member.']);
             return;
         }
         
@@ -219,10 +236,11 @@ class Specialattendance extends Admin_Controller
         $this->load->model('StaffBiometricPunchesManual_model');
         
         foreach ($employee_ids as $index => $emp_id) {
-            $days = isset($days_present[$emp_id]) ? $days_present[$emp_id] : 0;
-            if ($days > 0) {
+            $raw_days = isset($days_absent[$emp_id]) ? trim((string)$days_absent[$emp_id]) : '';
+            if ($raw_days !== '' && is_numeric($raw_days) && (float)$raw_days >= 0) {
+                $days = (float)$raw_days;
                 $schedule = $this->StaffAttendanceSchedule_model->getByStaffId($emp_id);
-                $punches = $this->SpecialAttendance_model->generatePunches($emp_id, $month, $year, $days, $schedule);
+                $punches = $this->SpecialAttendance_model->generatePunchesFromLop($emp_id, $month, $year, $days, $schedule);
                 $this->StaffBiometricPunchesManual_model->replacePunches($emp_id, $month, $year, $punches, $admin_user_id, $reason);
             }
         }
@@ -238,7 +256,7 @@ class Specialattendance extends Admin_Controller
         }
 
         $employee_ids = $this->input->post('employee_ids');
-        $days_present = $this->input->post('days_present'); // optional array
+        $days_absent = $this->input->post('days_absent'); // optional array
         $month = $this->input->post('month');
         $year = $this->input->post('year');
 
@@ -247,10 +265,14 @@ class Specialattendance extends Admin_Controller
             return;
         }
 
-        // if days_present provided, filter out staff with non‑positive values
-        if (!empty($days_present) && is_array($days_present)) {
-            $employee_ids = array_filter($employee_ids, function($id) use ($days_present) {
-                return isset($days_present[$id]) && floatval($days_present[$id]) > 0;
+        // if days_absent provided, keep only rows with explicit numeric values >= 0
+        if (!empty($days_absent) && is_array($days_absent)) {
+            $employee_ids = array_filter($employee_ids, function($id) use ($days_absent) {
+                if (!isset($days_absent[$id])) {
+                    return false;
+                }
+                $raw_days = trim((string)$days_absent[$id]);
+                return ($raw_days !== '' && is_numeric($raw_days) && (float)$raw_days >= 0);
             });
         }
 

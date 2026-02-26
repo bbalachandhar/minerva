@@ -91,6 +91,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                             <th>Payable Days</th>
                             <th class="text text-right"><?php echo $this->lang->line('gross_salary'); ?> <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
                             <th class="text text-right"><?php echo $this->lang->line('lop_amount'); ?> <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
+                            <th class="text text-right">ESI Wages <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
                             <th class="text text-right">ESI (Employee) <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
                             <th class="text text-right"><?php echo $this->lang->line('net_salary'); ?> <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
                             <th class="text text-right">ESI (Employer) <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
@@ -103,6 +104,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                         $total_lop_amt = 0;
                         $gross_total = 0;
                         $net_total = 0;
+                        $esi_wages_total = 0;
                         $emp_esi_total = 0;
                         $empr_esi_total = 0;
                         if (!empty($esilist)) {
@@ -134,6 +136,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
 
                                 $emp_esi_total += !empty($value['employee_esi']) ? $value['employee_esi'] : 0;
                                 $empr_esi_total += !empty($value['employer_esi']) ? $value['employer_esi'] : 0;
+                                $esi_wages_total += !empty($value['esi_wage']) ? $value['esi_wage'] : 0;
                                 $gross = $value['basic'] + $value['total_allowance'];
                                 $gross_total += $gross;
                                 $net_total += $value['net_salary'];
@@ -155,6 +158,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                     <td><?php echo rtrim(rtrim(number_format($payable_days, 2, '.', ''), '0'), '.'); ?></td>
                                     <td class="text text-right"><?php if ($gross > 0) { echo amountFormat($gross); } ?></td>
                                     <td class="text text-right"><?php if($lop_amt>0){ echo amountFormat($lop_amt);} ?></td>
+                                    <td class="text text-right"><?php echo (!empty($value['esi_wage']) ? amountFormat($value['esi_wage']) : '-'); ?></td>
                                     <td class="text text-right"><?php echo (!empty($value['employee_esi']) ? amountFormat($value['employee_esi']) : '-'); ?></td>
                                     <td class="text text-right"><?php if ($value['net_salary'] > 0) { echo amountFormat($value['net_salary']); } ?></td>
                                     <td class="text text-right"><?php echo (!empty($value['employer_esi']) ? amountFormat($value['employer_esi']) : '-'); ?></td>
@@ -173,6 +177,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                             <td class="text text-right"><?php if(isset($total_payable_days) && $total_payable_days > 0){ echo rtrim(rtrim(number_format($total_payable_days, 2, '.', ''), '0'), '.'); } ?></td>
                             <td class="text text-right"><?php if($gross_total > 0){ echo $currency_symbol . amountFormat($gross_total); } ?></td>
                             <td class="text text-right"><?php if(isset($total_lop_amt) && $total_lop_amt > 0){ echo $currency_symbol . amountFormat($total_lop_amt); } ?></td>
+                            <td class="text text-right"><?php if($esi_wages_total > 0){ echo $currency_symbol . amountFormat($esi_wages_total); } ?></td>
                             <td class="text text-right"><?php if($emp_esi_total > 0){ echo $currency_symbol . amountFormat($emp_esi_total); } ?></td>
                             <td class="text text-right"><?php if($net_total > 0){ echo $currency_symbol . amountFormat($net_total); } ?></td>
                             <td class="text text-right"><?php if($empr_esi_total > 0){ echo $currency_symbol . amountFormat($empr_esi_total); } ?></td>

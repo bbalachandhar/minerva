@@ -2116,7 +2116,7 @@ class Staff extends Admin_Controller
             $department_map[strtolower($department_item['department_name'])] = $department_item['id'];
         }
         // Get all staff designation categories
-        $all_categories      = $this->db->select('id, name')->from('staff_designation_category')->where('is_active', 'yes')->get()->result_array();
+        $all_categories      = $this->db->select('id, name')->from('staff_designation_category')->get()->result_array();
         $category_map        = [];
         foreach ($all_categories as $category_item) {
             $category_map[strtolower($category_item['name'])] = $category_item['id'];

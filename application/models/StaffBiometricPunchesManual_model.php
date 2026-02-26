@@ -49,6 +49,75 @@ class StaffBiometricPunchesManual_model extends CI_Model {
         $this->insertPunches($staff_id, $punches, $admin_user_id, $reason);
     }
 
+    public function getSpecialAttendancePresentEquivalent($staffIds, $month, $year) {
+        if (empty($staffIds)) {
+            return [];
+        }
+
+        $monthNum = $this->getMonthNumber($month, $year);
+        if ($monthNum === null) {
+            return [];
+        }
+
+        $startDate = sprintf('%04d-%02d-01 00:00:00', $year, $monthNum);
+        $endDate = sprintf('%04d-%02d-%02d 23:59:59', $year, $monthNum, cal_days_in_month(CAL_GREGORIAN, $monthNum, (int)$year));
+
+        $rows = $this->db
+            ->select('staff_id, DATE(punch_time) as punch_date, punch_type, TIME(punch_time) as punch_only_time')
+            ->from('staff_biometric_punches_manual')
+            ->where_in('staff_id', $staffIds)
+            ->where('source', 'special_attendance')
+            ->where('punch_time >=', $startDate)
+            ->where('punch_time <=', $endDate)
+            ->order_by('staff_id', 'ASC')
+            ->order_by('punch_date', 'ASC')
+            ->order_by('punch_time', 'ASC')
+            ->get()
+            ->result_array();
+
+        $daywise = [];
+        foreach ($rows as $row) {
+            $staffId = (int)$row['staff_id'];
+            $date = $row['punch_date'];
+            if (!isset($daywise[$staffId])) {
+                $daywise[$staffId] = [];
+            }
+            if (!isset($daywise[$staffId][$date])) {
+                $daywise[$staffId][$date] = ['in' => null, 'out' => null];
+            }
+
+            if ($row['punch_type'] === 'in') {
+                if ($daywise[$staffId][$date]['in'] === null || $row['punch_only_time'] < $daywise[$staffId][$date]['in']) {
+                    $daywise[$staffId][$date]['in'] = $row['punch_only_time'];
+                }
+            } elseif ($row['punch_type'] === 'out') {
+                if ($daywise[$staffId][$date]['out'] === null || $row['punch_only_time'] > $daywise[$staffId][$date]['out']) {
+                    $daywise[$staffId][$date]['out'] = $row['punch_only_time'];
+                }
+            }
+        }
+
+        $presentEquivalent = [];
+        foreach ($daywise as $staffId => $dates) {
+            $sum = 0.0;
+            foreach ($dates as $date => $times) {
+                if (empty($times['in']) || empty($times['out'])) {
+                    continue;
+                }
+                $inTs = strtotime($date . ' ' . $times['in']);
+                $outTs = strtotime($date . ' ' . $times['out']);
+                if ($inTs === false || $outTs === false || $outTs <= $inTs) {
+                    continue;
+                }
+                $hours = ($outTs - $inTs) / 3600;
+                $sum += ($hours < 6.0) ? 0.5 : 1.0;
+            }
+            $presentEquivalent[$staffId] = $sum;
+        }
+
+        return $presentEquivalent;
+    }
+
     public function insertPunches($staff_id, $punches, $admin_user_id, $reason) {
         foreach ($punches as $punch) {
             // Insert in-punch

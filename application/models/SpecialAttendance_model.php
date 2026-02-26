@@ -29,6 +29,66 @@ class SpecialAttendance_model extends CI_Model {
         }
         return $punches;
     }
+
+    public function getWorkingDaysCount($month, $year) {
+        $this->load->model('setting_model');
+        $settings = $this->setting_model->getSetting();
+        $working_days = $this->getWorkingDays($month, $year, $settings);
+        return count($working_days);
+    }
+
+    public function generatePunchesFromLop($staff_id, $month, $year, $lop_days, $schedule) {
+        $this->load->model('setting_model');
+        $settings = $this->setting_model->getSetting();
+
+        $working_days = $this->getWorkingDays($month, $year, $settings);
+        $total_working_days = count($working_days);
+
+        $lop = is_numeric($lop_days) ? (float)$lop_days : 0;
+        if ($lop < 0) {
+            $lop = 0;
+        }
+        if ($lop > $total_working_days) {
+            $lop = (float)$total_working_days;
+        }
+
+        $present_days_target = $total_working_days - $lop;
+        if ($present_days_target <= 0) {
+            return [];
+        }
+
+        $full_days = (int)floor($present_days_target);
+        $has_half_day = (($present_days_target - $full_days) >= 0.5);
+
+        shuffle($working_days);
+        $required_days = $full_days + ($has_half_day ? 1 : 0);
+        $selected_days = array_slice($working_days, 0, min($required_days, count($working_days)));
+        sort($selected_days);
+
+        $punches = [];
+        foreach ($selected_days as $index => $date) {
+            $is_half_day = $has_half_day && ($index === (count($selected_days) - 1));
+
+            $entryFrom = !empty($schedule['entry_time_from']) ? $schedule['entry_time_from'] : '09:00:00';
+            $entryTo = !empty($schedule['entry_time_to']) ? $schedule['entry_time_to'] : '09:30:00';
+            $in_time = $this->randomizeTime($entryFrom, $entryTo);
+
+            if ($is_half_day) {
+                $out_time = $this->calculateOutTime($in_time, 4, 5);
+            } else {
+                $out_time = $this->calculateOutTime($in_time, 8, 9);
+            }
+
+            $punches[] = [
+                'date' => $date,
+                'in' => $in_time,
+                'out' => $out_time
+            ];
+        }
+
+        return $punches;
+    }
+
     private function getWorkingDays($month, $year, $settings) {
         $monthNum = $this->getMonthNumber($month, $year);
         if ($monthNum === null) {

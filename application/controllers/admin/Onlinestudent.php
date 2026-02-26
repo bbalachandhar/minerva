@@ -528,7 +528,7 @@ class Onlinestudent extends Admin_Controller
                 $row   = array();
                 $row[] = $value->reference_no;
                 $row[] = $value->firstname . " " . $middlename. " " . $last_name;
-                $row[] = $value->class . "(" . $value->section . ")";
+                $row[] = !empty($value->course_name) ? $value->course_name : "N/A";
 
                 if ($sch_setting->father_name) {
                     $row[] = $value->father_name;
@@ -536,7 +536,7 @@ class Onlinestudent extends Admin_Controller
 
                 $row[] = $dob;
                 $row[] = $this->lang->line(strtolower($value->gender));
-                $row[] = $value->category;
+                $row[] = !empty($value->quota_type) ? $value->quota_type : "N/A";
 
                 if ($sch_setting->mobile_no) {
                     $row[] = $value->mobileno;

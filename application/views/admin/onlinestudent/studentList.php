@@ -24,13 +24,13 @@
                                     <tr>
                                         <th style="width:5%"><?php echo $this->lang->line('reference_no'); ?></th>
                                         <th><?php echo $this->lang->line('student_name'); ?></th>
-                                        <th class="white-space-nowrap"><?php echo $this->lang->line('class'); ?></th>
+                                        <th class="white-space-nowrap">Course</th>
                                          <?php if ($sch_setting->father_name) {?>
                                             <th><?php echo $this->lang->line('father_name'); ?></th>
                                         <?php }?>
                                         <th><?php echo $this->lang->line('date_of_birth'); ?></th>
                                         <th><?php echo $this->lang->line('gender'); ?></th>
-                                        <th><?php echo $this->lang->line('category'); ?></th>
+                                        <th>Quota Type</th>
                                           <?php if ($sch_setting->mobile_no) {?>
                                         <th style="width:10%"><?php echo $this->lang->line('student_mobile_number'); ?></th>
                                        <?php }?>

@@ -23,6 +23,7 @@ $working_days_label = $this->lang->line('working_days');
 if (empty($working_days_label)) {
     $working_days_label = 'Working Days';
 }
+$payable_working_days_label = 'Payable Working Days';
 $load_staff_label = $this->lang->line('load') ?: 'Load Staff';
 $generate_label = $this->lang->line('generate') ?: 'Generate';
 $process_label = $this->lang->line('process') ?: 'Process';
@@ -34,10 +35,7 @@ $name_label = $this->lang->line('name');
 if (empty($name_label)) {
     $name_label = 'Name';
 }
-$days_present_label = $this->lang->line('days_present');
-if (empty($days_present_label)) {
-    $days_present_label = 'Days Present';
-}
+$days_absent_label = 'LOP Days';
 $remarks_label = $this->lang->line('remarks');
 if (empty($remarks_label)) {
     $remarks_label = 'Remarks';
@@ -85,8 +83,8 @@ $process_success_text = $this->lang->line('attendance_processed_successfully');
 if (empty($process_success_text)) {
     $process_success_text = 'Attendance processed successfully.';
 }
-$positive_days_warning = 'Enter Days Present greater than zero for at least one selected staff member.';
-$skipped_days_info = 'staff member(s) skipped due to zero or negative Days Present.';
+$positive_days_warning = 'Enter LOP Days (0 or more) for at least one staff member.';
+$skipped_days_info = 'staff member(s) skipped due to empty/invalid LOP Days (use 0, 0.5, 1, 1.5, etc.).';
 $current_year = (int)date('Y');
 $months = array(
     'January','February','March','April','May','June','July','August','September','October','November','December'
@@ -113,6 +111,18 @@ $months = array(
 .special-attendance-toast.toast-info { background-color: #5bc0de; }
 .special-attendance-toast.toast-success { background-color: #5cb85c; }
 .special-attendance-toast.toast-danger { background-color: #d9534f; }
+#special-attendance-message.special-attendance-floating {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10000;
+    min-width: 320px;
+    max-width: 680px;
+    width: auto;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
+    margin: 0;
+}
 </style>
 <div class="content-wrapper">
     <section class="content-header">
@@ -156,7 +166,7 @@ $months = array(
                                     <input type="number" class="form-control" id="attendance_year" value="<?php echo $current_year; ?>" min="2000" max="2100">
                                 </div>
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-md-2">
                                 <div class="form-group">
                                     <label for="working_days"><?php echo htmlspecialchars($working_days_label); ?></label>
                                     <div class="input-group">
@@ -165,6 +175,12 @@ $months = array(
                                             <button type="button" class="btn btn-default" id="refresh_working_days" title="Refresh"><i class="fa fa-refresh"></i></button>
                                         </span>
                                     </div>
+                                </div>
+                            </div>
+                            <div class="col-md-1">
+                                <div class="form-group">
+                                    <label for="payable_working_days"><?php echo htmlspecialchars($payable_working_days_label); ?></label>
+                                    <input type="text" class="form-control" id="payable_working_days" readonly>
                                 </div>
                             </div>
                         </div>
@@ -189,20 +205,26 @@ $months = array(
 
         <div id="special-attendance-message" class="alert" style="display:none;"></div>
 
-        <div class="table-responsive" id="employees-wrapper" style="display:none;">
+        <div id="employees-wrapper" style="display:none;">
+            <div class="alert alert-info" style="margin-bottom:10px;">
+                <strong>Instructions:</strong>
+                Leave <strong>LOP Days</strong> empty to skip staff. Enter <strong>0</strong> for full attendance.
+                Allowed values are half-step only: <strong>0, 0.5, 1, 1.5, ...</strong>
+            </div>
+            <div class="table-responsive">
             <table class="table table-bordered table-striped" id="employees-table">
                 <thead>
                     <tr>
-                        <th style="width:40px;" class="text-center"><input type="checkbox" id="select_all"></th>
                         <th><?php echo htmlspecialchars($staff_id_label); ?></th>
                         <th><?php echo htmlspecialchars($name_label); ?></th>
                         <th><?php echo htmlspecialchars($department_label); ?></th>
-                        <th style="width:140px;" class="text-center"><?php echo htmlspecialchars($days_present_label); ?></th>
+                        <th style="width:140px;" class="text-center"><?php echo htmlspecialchars($days_absent_label); ?></th>
                     </tr>
                 </thead>
                 <tbody>
                 </tbody>
             </table>
+            </div>
         </div>
 
         <div class="clearfix">
@@ -222,15 +244,18 @@ $months = array(
     var $month = $('#attendance_month');
     var $year = $('#attendance_year');
     var $workingDays = $('#working_days');
+    var $payableWorkingDays = $('#payable_working_days');
     var $message = $('#special-attendance-message');
     var $wrapper = $('#employees-wrapper');
     var $tableBody = $('#employees-table tbody');
-    var $selectAll = $('#select_all');
     var $generateBtn = $('#generate_attendance');
     var $processBtn = $('#process_attendance');
     var $reason = $('#special_reason');
     var workingDaysCache = null;
     var toastTimer = null;
+    var messageTimer = null;
+
+    $message.addClass('special-attendance-floating');
 
     function getToastContainer() {
         var $toast = $('#special-attendance-toast');
@@ -264,7 +289,15 @@ $months = array(
             $message.hide();
             return;
         }
+        if (messageTimer) {
+            clearTimeout(messageTimer);
+        }
         $message.removeClass('alert-success alert-danger alert-warning alert-info').addClass('alert-' + type).text(text).show();
+        if (type !== 'danger') {
+            messageTimer = setTimeout(function(){
+                $message.fadeOut(200);
+            }, 4500);
+        }
     }
 
     function formDataValid(requireDepartment) {
@@ -296,9 +329,8 @@ $months = array(
 
     function updateButtonsState() {
         var hasRows = $tableBody.find('tr').length > 0;
-        var anySelected = $tableBody.find('.employee-select:checked').length > 0;
-        $generateBtn.prop('disabled', !(hasRows && anySelected));
-        $processBtn.prop('disabled', !(hasRows && anySelected));
+        $generateBtn.prop('disabled', !hasRows);
+        $processBtn.prop('disabled', !hasRows);
     }
 
     function renderEmployees(employees) {
@@ -317,20 +349,16 @@ $months = array(
 
         var rows = [];
         $.each(employees, function(_, emp){
-            var presentDays = parseFloat(emp.present_days);
-            if (!isFinite(presentDays)) {
-                presentDays = '';
-            }
-            if (workingDays !== null && presentDays > workingDays) {
-                presentDays = workingDays;
+            var lopDays = '';
+            if (parseInt(emp.has_special_attendance, 10) === 1 && emp.lop_days !== null && typeof emp.lop_days !== 'undefined') {
+                lopDays = emp.lop_days;
             }
             rows.push('<tr data-employee-id="' + emp.id + '">\n' +
-                '   <td class="text-center"><input type="checkbox" class="employee-select" checked></td>\n' +
                 '   <td>' + (emp.code ? emp.code : '-') + '</td>\n' +
                 '   <td>' + (emp.name ? emp.name : '-') + '</td>\n' +
                 '   <td>' + (emp.department ? emp.department : '-') + '</td>\n' +
-                '   <td class="text-center"><input type="number" class="form-control input-sm days-present" min="0" step="0.5"' +
-                (workingDays !== null ? ' max="' + workingDays + '"' : '') + ' value="' + (presentDays === '' ? '' : presentDays) + '"></td>\n' +
+                '   <td class="text-center"><input type="number" class="form-control input-sm days-absent" min="0" step="0.5"' +
+                (workingDays !== null ? ' max="' + workingDays + '"' : '') + ' placeholder="e.g. 1 or 1.5" value="' + (lopDays === '' ? '' : lopDays) + '"></td>\n' +
                 '</tr>');
         });
         $tableBody.html(rows.join('\n'));
@@ -363,7 +391,8 @@ $months = array(
                         payload: response
                     };
                     $workingDays.val(response.working_days);
-                    var badgeText = '<?php echo addslashes($working_days_label); ?>: ' + response.working_days;
+                    $payableWorkingDays.val(response.payable_working_days || '');
+                    var badgeText = '<?php echo addslashes($working_days_label); ?>: ' + response.working_days + ' | <?php echo addslashes($payable_working_days_label); ?>: ' + (response.payable_working_days || '0');
                     if (response.holidays && response.holidays.length) {
                         badgeText += ' | Holidays: ' + response.holidays.length;
                     }
@@ -371,6 +400,7 @@ $months = array(
                     if (callback) { callback(response); }
                 } else {
                     $workingDays.val('');
+                    $payableWorkingDays.val('');
                     $('#working-days-badge').hide();
                     workingDaysCache = null;
                     if (callback) { callback(null); }
@@ -378,6 +408,7 @@ $months = array(
             },
             error: function(xhr){
                 $workingDays.val('');
+                $payableWorkingDays.val('');
                 $('#working-days-badge').hide();
                 workingDaysCache = null;
                 var msg = '<?php echo addslashes($this->lang->line('something_went_wrong') ?: 'Unable to fetch working days.'); ?>';
@@ -434,7 +465,8 @@ $months = array(
         } else {
             if (workingDaysCache.payload) {
                 $workingDays.val(workingDaysCache.payload.working_days || '');
-                var cachedBadge = '<?php echo addslashes($working_days_label); ?>: ' + (workingDaysCache.payload.working_days || '0');
+                $payableWorkingDays.val(workingDaysCache.payload.payable_working_days || '');
+                var cachedBadge = '<?php echo addslashes($working_days_label); ?>: ' + (workingDaysCache.payload.working_days || '0') + ' | <?php echo addslashes($payable_working_days_label); ?>: ' + (workingDaysCache.payload.payable_working_days || '0');
                 if (workingDaysCache.payload.holidays && workingDaysCache.payload.holidays.length) {
                     cachedBadge += ' | Holidays: ' + workingDaysCache.payload.holidays.length;
                 }
@@ -446,28 +478,32 @@ $months = array(
 
     function collectSelectedStaff(includeDays, skipZeroOrNegative) {
         var employeeIds = [];
-        var daysPresent = {};
+        var daysAbsent = {};
         var skipped = 0;
+
+        function isHalfStep(value) {
+            return Math.abs((value * 2) - Math.round(value * 2)) < 0.000001;
+        }
+
         $tableBody.find('tr').each(function(){
             var $row = $(this);
-            var selected = $row.find('.employee-select').prop('checked');
-            if (!selected) {
-                return;
-            }
             var empId = $row.data('employee-id');
             var includeEmployee = true;
             employeeIds.push(empId);
             if (includeDays) {
-                var value = parseFloat($row.find('.days-present').val());
-                if (!isFinite(value)) {
-                    value = 0;
-                }
-                if (skipZeroOrNegative && value <= 0) {
+                var rawValue = $.trim($row.find('.days-absent').val());
+                if (rawValue === '') {
                     includeEmployee = false;
                     skipped++;
-                }
-                if (includeEmployee) {
-                    daysPresent[empId] = value;
+                } else {
+                    var value = parseFloat(rawValue);
+                    if (!isFinite(value) || value < 0 || !isHalfStep(value)) {
+                        includeEmployee = false;
+                        skipped++;
+                    }
+                    if (includeEmployee) {
+                        daysAbsent[empId] = value;
+                    }
                 }
             }
             if (!includeEmployee) {
@@ -476,7 +512,7 @@ $months = array(
         });
         return {
             ids: employeeIds,
-            days: daysPresent,
+            days: daysAbsent,
             skipped: skipped
         };
     }
@@ -519,24 +555,25 @@ $months = array(
         fetchWorkingDays();
     });
 
-    $selectAll.on('change', function(){
-        var checked = $(this).prop('checked');
-        $tableBody.find('.employee-select').prop('checked', checked);
-        updateButtonsState();
-    });
-
-    $tableBody.on('change', '.employee-select', function(){
-        if (!$(this).prop('checked')) {
-            $selectAll.prop('checked', false);
-        }
-        updateButtonsState();
-    });
-
-    $tableBody.on('input', '.days-present', function(){
+    $tableBody.on('input', '.days-absent', function(){
         var max = parseFloat($(this).attr('max'));
         var value = parseFloat($(this).val());
         if (isFinite(max) && isFinite(value) && value > max) {
             $(this).val(max);
+        }
+    });
+
+    $tableBody.on('blur', '.days-absent', function(){
+        var raw = $.trim($(this).val());
+        if (raw === '') {
+            $(this).removeClass('input-error');
+            return;
+        }
+        var value = parseFloat(raw);
+        var validHalfStep = isFinite(value) && value >= 0 && Math.abs((value * 2) - Math.round(value * 2)) < 0.000001;
+        if (!validHalfStep) {
+            $(this).val('');
+            showToast('warning', 'Use only 0.5 step values (0, 0.5, 1, 1.5, ...).');
         }
     });
 
@@ -560,7 +597,7 @@ $months = array(
 
         postAction(baseurl + 'admin/specialattendance/generate_attendance', {
             employee_ids: selection.ids,
-            days_present: selection.days,
+            days_absent: selection.days,
             month: data.month,
             year: data.year,
             reason: $reason.val()
@@ -590,7 +627,7 @@ $months = array(
             employee_ids: selection.ids,
             month: data.month,
             year: data.year,
-            days_present: selection.days // send so server can double-check
+            days_absent: selection.days // send so server can double-check
         }, '<?php echo addslashes($process_success_text); ?>');
     });
 

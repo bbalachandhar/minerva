@@ -137,6 +137,7 @@
                     <div class="col-md-9">
                         <h5 class="text-center mb-4 fw-bold">APPLICATION FORM FOR ADMISSION</h5>
                          <p><span class="data-label">Course Level:</span> <span class="data-value text-uppercase"><?php echo (isset($course_level) && !empty($course_level)) ? $course_level : 'N/A'; ?></span></p>
+                         <p><span class="data-label">Quota Type:</span> <span class="data-value text-uppercase"><?php echo (isset($quota_type) && !empty($quota_type)) ? $quota_type : 'N/A'; ?></span></p>
                          <p><span class="data-label">Academic Year:</span> <span class="data-value">2026-2027</span></p>
                          <p><span class="data-label">Application Ref No:</span> <span class="data-value"><?php echo isset($reference_no) ? $reference_no : 'N/A'; ?></span></p>
                          <p><span class="data-label">Application Fee Status:</span> <span class="data-value"><?php echo (isset($paid_status) && $paid_status == 1) ? '<span style="color: #28a745; font-weight: bold;">PAID</span>' : '<span style="color: #dc3545; font-weight: bold;">PENDING</span>'; ?></span></p>
