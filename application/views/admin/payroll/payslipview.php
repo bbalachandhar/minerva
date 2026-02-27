@@ -305,7 +305,7 @@ echo amountFormat($gross_salary);?></td>
                             <th colspan="2" style="background-color: #f9f9f9; font-weight: bold;">Provident Fund (EPF) Details</th>
                         </tr>
                         <tr>
-                            <th width="20%">EPF Wage (Basic + DA + qualifying earnings – e.g. TEMP increment; capped at ₹15,000) (<?php echo $currency_symbol; ?>)</th>
+                            <th width="20%">EPF Wage (Gross Salary - LOP; capped at ₹15,000) (<?php echo $currency_symbol; ?>)</th>
                             <td class="text-right"><?php echo amountFormat($result["epf_wage"]); ?></td>
                         </tr>
                         <tr>

@@ -591,6 +591,11 @@ class Payroll extends Admin_Controller
         return (int) $diff->days + 1;
     }
 
+    private function roundPayrollAmount($amount)
+    {
+        return (float) round((float) $amount, 0, PHP_ROUND_HALF_UP);
+    }
+
     public function editpayroll()
     {
         $id              = $this->input->post("id");
@@ -692,7 +697,7 @@ class Payroll extends Admin_Controller
         }
         
         if($net_salary){
-                $net_salary = convertCurrencyFormatToBaseAmount($net_salary);
+            $net_salary = $this->roundPayrollAmount(convertCurrencyFormatToBaseAmount($net_salary));
         }else{
                 $net_salary = 0;  
         }
@@ -729,19 +734,21 @@ class Payroll extends Admin_Controller
         }
         
         // Calculate EPF and ESI contributions
-        $epf_wage = $this->tax_epf_calculator->calculate_epf_wage($basic, $da, $total_allowance);
+        $gross_salary = (float) $basic + (float) $total_allowance;
+        $lop_deduction = isset($leave_deduction) ? (float) $leave_deduction : 0;
+        $epf_wage = $this->tax_epf_calculator->calculate_epf_wage($gross_salary, $lop_deduction);
         $employee_epf = $this->tax_epf_calculator->calculate_employee_epf($epf_wage);
         $employer_pf = $this->tax_epf_calculator->calculate_employer_pf($epf_wage);
         $employer_eps = $this->tax_epf_calculator->calculate_employer_eps($epf_wage);
         $employer_edli = $this->tax_epf_calculator->calculate_employer_edli($epf_wage);
         $employer_admin = $this->tax_epf_calculator->calculate_employer_admin_charges($epf_wage);
         
-        // ESI calculation based on salary threshold (≤ ₹21,000)
-        $esi_wage = $this->tax_epf_calculator->calculate_esi_wage($basic, $da, $total_allowance, 0);
+        // ESI calculation based on gross and LOP
+        $esi_wage = $this->tax_epf_calculator->calculate_esi_wage($gross_salary, $lop_deduction);
         $employee_esi = $this->tax_epf_calculator->calculate_employee_esi($esi_wage);
         $employer_esi = 0;
         if ($esi_wage > 0) {
-            $employer_esi = round($esi_wage * 0.0325, 2);
+            $employer_esi = round($esi_wage * 0.0325, 0);
         }
 
             $data = array(
@@ -750,7 +757,7 @@ class Payroll extends Admin_Controller
                 'basic'           => $basic,
                 'total_allowance' => $total_allowance,
                 'total_deduction' => $total_deduction,
-                'net_salary'      => $net_salary,
+                'net_salary'      => $this->roundPayrollAmount($net_salary),
                 'payment_date'    => date("Y-m-d"),
                 'status'          => $status,
                 'month'           => $month,
@@ -859,7 +866,7 @@ class Payroll extends Admin_Controller
             $this->payroll_model->add_allowance($epf_data);
         }
         
-        // Add ESI deduction ONLY if esi_wage > 0 AND employee_esi > 0 (salary <= ₹21,000)
+        // Add ESI deduction ONLY if esi_wage > 0 AND employee_esi > 0
         if ($esi_wage > 0 && !empty($employee_esi) && $employee_esi > 0 && $esi_code) {
             $esi_data = array(
                 'payslip_id'     => $payslipid,
@@ -1014,7 +1021,7 @@ class Payroll extends Admin_Controller
         }
         
         if($this->input->post("net_salary")){
-                $net_salary = convertCurrencyFormatToBaseAmount($this->input->post("net_salary"));
+            $net_salary = $this->roundPayrollAmount(convertCurrencyFormatToBaseAmount($this->input->post("net_salary")));
         }else{
                 $net_salary = 0;  
         }
@@ -1049,7 +1056,7 @@ class Payroll extends Admin_Controller
                 'basic'                  => $basic,
                 'total_allowance'        => $total_allowance,
                 'total_deduction'        => $total_deduction,
-                'net_salary'             => $net_salary,
+                'net_salary'             => $this->roundPayrollAmount($net_salary),
                 'payment_date'           => date("Y-m-d"),
                 'status'                 => $status,
                 'month'                  => $month,
@@ -1390,7 +1397,7 @@ class Payroll extends Admin_Controller
                 // Staff has UAN and EPF is enabled - calculate EPF wage
                 // total_allowance already includes the increment amount for the month
                 // (we added it above when building the payslip), so pass it directly.
-                $epf_wage = $this->tax_epf_calculator->calculate_epf_wage($basic, $da, $total_allowance);
+                $epf_wage = $this->tax_epf_calculator->calculate_epf_wage($gross_salary, $lop_deduction);
                 $employee_epf = $this->tax_epf_calculator->calculate_employee_epf($epf_wage);
                 $employer_pf = $this->tax_epf_calculator->calculate_employer_pf($epf_wage);
                 $employer_eps = $this->tax_epf_calculator->calculate_employer_eps($epf_wage);
@@ -1399,17 +1406,8 @@ class Payroll extends Admin_Controller
             }
             // If UAN is not available, EPF is 0 (skip this staff for EPF)
             
-            // ESI CALCULATION: Based on salary threshold only (≤ ₹21,000)
-            // ESI is calculated on: Basic + DA + Other Allowances (which already includes increment)
-            // ESI is NOT applicable if monthly gross wage exceeds ₹21,000
-            // Note: total_allowance already includes increment if it's increment month, so don't add it again
-            $esi_wage = $this->tax_epf_calculator->calculate_esi_wage(
-                $basic, 
-                $da, 
-                $total_allowance,  // Other allowances (HRA, SA, etc., and TEMP increment if applicable)
-                0  // Don't add increment separately - it's already in total_allowance
-            );
-            // calculate_esi_wage returns 0 if not eligible (wage > ₹21,000)
+            // ESI calculation based on gross salary and LOP for this month
+            $esi_wage = $this->tax_epf_calculator->calculate_esi_wage($gross_salary, $lop_deduction);
             $esi_deduction = $this->tax_epf_calculator->calculate_employee_esi($esi_wage);
             
             // Calculate TDS using YTD (Year-To-Date) approach for accurate mid-year increment handling
@@ -1434,12 +1432,12 @@ class Payroll extends Admin_Controller
             // Total deductions now include employee EPF, ESI, and TDS
             $total_with_epf_tds_esi = (float) $employee_epf + (float) $esi_deduction + (float) $monthly_tds + (float) $total_deduction + (float) $lop_deduction;
             
-            $net_salary = $gross_salary - $total_with_epf_tds_esi;
+            $net_salary = $this->roundPayrollAmount($gross_salary - $total_with_epf_tds_esi);
 
             // Calculate ESI employer contribution (3.25% of ESI wage)
             $employer_esi = 0;
             if ($esi_wage > 0) {
-                $employer_esi = round($esi_wage * 0.0325, 2);
+                $employer_esi = round($esi_wage * 0.0325, 0);
             }
 
             $data = array(
@@ -1448,7 +1446,7 @@ class Payroll extends Admin_Controller
                 'da' => $da,
                 'total_allowance' => $total_allowance,
                 'total_deduction' => $total_deduction,
-                'net_salary' => $net_salary,
+                'net_salary' => $this->roundPayrollAmount($net_salary),
                 'payment_date' => date('Y-m-d'),
                 'status' => 'generated',
                 'month' => $month,
@@ -1818,7 +1816,7 @@ class Payroll extends Admin_Controller
 
         if (!empty($staff_data['uan_no']) && isset($staff_data['is_epf_enabled']) && (int) $staff_data['is_epf_enabled'] === 1) {
             // preview should include all current earnings (total_allowance already has increment if applicable)
-            $epf_wage = $this->tax_epf_calculator->calculate_epf_wage($basic, $da, $total_allowance);
+            $epf_wage = $this->tax_epf_calculator->calculate_epf_wage($gross_salary, $lop_deduction);
             $employee_epf = $this->tax_epf_calculator->calculate_employee_epf($epf_wage);
             $employer_pf = $this->tax_epf_calculator->calculate_employer_pf($epf_wage);
             $employer_eps = $this->tax_epf_calculator->calculate_employer_eps($epf_wage);
@@ -1826,17 +1824,8 @@ class Payroll extends Admin_Controller
             $employer_admin = $this->tax_epf_calculator->calculate_employer_admin_charges($epf_wage);
         }
 
-        // Calculate ESI based on salary threshold only (≤ ₹21,000)
-        // ESI is calculated on Basic + DA + Other Allowances (which already includes increment)
-        // Note: total_allowance already includes increment if it's increment month, so don't add it again
-        // IMPORTANT: Pass only other_allowances (exclude DA) since DA is passed separately
-        $other_allowances = $total_allowance - $da;  // Remove DA from total to avoid double-counting
-        $esi_wage = $this->tax_epf_calculator->calculate_esi_wage(
-            $basic, 
-            $da, 
-            $other_allowances,  // Other allowances EXCLUDING DA (already passed separately)
-            0  // Don't add increment separately - it's already in total_allowance
-        );
+        // ESI calculation based on gross salary and LOP for preview
+        $esi_wage = $this->tax_epf_calculator->calculate_esi_wage($gross_salary, $lop_deduction);
         $esi_deduction = $this->tax_epf_calculator->calculate_employee_esi($esi_wage);
 
         $ytd_data = $this->payroll_model->getYTDIncome($staff_id, $year, $month_num - 1);
@@ -1855,7 +1844,7 @@ class Payroll extends Admin_Controller
         // Calculate total deductions including manual + all statutory deductions
         // This ensures net_salary shows correctly with all deductions subtracted
         $total_with_epf_tds_esi = (float) $employee_epf + (float) $esi_deduction + (float) $monthly_tds + (float) $total_deduction + (float) $lop_deduction;
-        $net_salary = $gross_salary - $total_with_epf_tds_esi;
+        $net_salary = $this->roundPayrollAmount($gross_salary - $total_with_epf_tds_esi);
         
         // Update total_deduction to include statutory deductions for response and form display
         // This ensures the summary card calculations are correct
@@ -1864,7 +1853,7 @@ class Payroll extends Admin_Controller
         // Calculate ESI employer contribution (3.25% of ESI wage)
         $employer_esi = 0;
         if ($esi_wage > 0) {
-            $employer_esi = round($esi_wage * 0.0325, 2);
+            $employer_esi = round($esi_wage * 0.0325, 0);
         }
 
         // ========================================
@@ -1930,8 +1919,8 @@ class Payroll extends Admin_Controller
                 $this->payroll_model->add_allowance($epf_data);
             }
             
-            // Add ESI deduction ONLY if employee_esi > 0 AND esi_wage > 0 (salary <= ₹21,000)
-            // This is the critical condition: esi_wage should be > 0 for the employee to be eligible
+            // Add ESI deduction ONLY if employee_esi > 0 AND esi_wage > 0
+            // ESI eligibility is determined by calculate_esi_wage() based on gross and LOP rules
             if ($esi_wage > 0 && !empty($esi_deduction) && $esi_deduction > 0 && $esi_code) {
                 $esi_data = array(
                     'payslip_id'     => $payslip_id,
@@ -1961,7 +1950,7 @@ class Payroll extends Admin_Controller
                 'total_allowance' => round($total_allowance, 2),
                 'total_deduction' => round($total_deduction, 2),
                 'leave_deduction' => round($lop_deduction, 2),
-                'net_salary'      => round($net_salary, 2),
+                'net_salary'      => $this->roundPayrollAmount($net_salary),
                 'epf_wage'        => round($epf_wage, 2),
                 'employee_epf'    => round($employee_epf, 2),
                 'employer_pf'     => round($employer_pf, 2),
@@ -1980,7 +1969,7 @@ class Payroll extends Admin_Controller
             'total_deduction' => round($total_deduction_with_statutory, 2),  // Include all statutory deductions
             'gross_salary' => round($gross_salary, 2),
             'leave_deduction' => round($lop_deduction, 2),
-            'net_salary' => round($net_salary, 2),
+            'net_salary' => $this->roundPayrollAmount($net_salary),
             'epf_wage' => round($epf_wage, 2),
             'employee_epf' => round($employee_epf, 2),
             'employer_pf' => round($employer_pf, 2),
@@ -2224,7 +2213,7 @@ class Payroll extends Admin_Controller
                             'basic' => $basic_salary,
                             'total_allowance' => $total_allowance,
                             'total_deduction' => $total_deduction,
-                            'net_salary' => $basic_salary + $total_allowance - $total_deduction,
+                            'net_salary' => $this->roundPayrollAmount($basic_salary + $total_allowance - $total_deduction),
                             'payment_date' => date("Y-m-d"),
                             'status' => 'generated',
                             'month' => $month,

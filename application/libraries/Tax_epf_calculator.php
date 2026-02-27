@@ -19,39 +19,40 @@ class Tax_epf_calculator
     }
 
     /**
+     * Round payroll values to nearest rupee.
+     *
+     * @param float $amount
+     * @return float
+     */
+    private function round_to_rupee($amount)
+    {
+        return (float) round((float) $amount, 0, PHP_ROUND_HALF_UP);
+    }
+
+    /**
      * Calculate EPF Wage (EPF salary)
-     * EPF Wage = MIN([Basic if enabled] + [DA if enabled] + Additional Earnings, 15000)
-     * Additional earnings may include qualifying allowances, temporary increments, etc.
-     * Whether basic itself counts is controlled via config 'basic_applicable'.
+     * EPF Wage = MIN(MAX(Gross Salary - LOP Deduction, 0), EPF Wage Ceiling)
      * 
-     * @param float $basic Basic salary
-     * @param float $da Dearness allowance
-     * @param float $additional Additional earnings to include (default 0)
+     * @param float $gross_salary Gross salary for the month
+     * @param float $lop_deduction Loss of pay deduction amount
      * @return float EPF wage
      */
-    public function calculate_epf_wage($basic, $da = 0, $additional = 0)
+    public function calculate_epf_wage($gross_salary, $lop_deduction = 0)
     {
-        $epf_wage_ceiling = $this->config['epf_wage_ceiling'];
-        $epf_wage = 0;
-        
-        // include basic only if configured to do so
-        if ($this->config['basic_applicable']) {
-            $epf_wage += $basic;
+        $epf_wage_ceiling = (float) $this->config['epf_wage_ceiling'];
+        $gross_salary = (float) $gross_salary;
+        $lop_deduction = (float) $lop_deduction;
+
+        $epf_wage = $gross_salary - $lop_deduction;
+        if ($epf_wage < 0) {
+            $epf_wage = 0;
         }
-        
-        if ($this->config['da_applicable']) {
-            $epf_wage += $da;
-        }
-        
-        // include any extra earnings (allowances, temp increment, etc.)
-        $epf_wage += $additional;
-        
-        // Cap at wage ceiling
+
         if ($epf_wage > $epf_wage_ceiling) {
             $epf_wage = $epf_wage_ceiling;
         }
-        
-        return $epf_wage;
+
+        return $this->round_to_rupee($epf_wage);
     }
 
     /**
@@ -68,7 +69,7 @@ class Tax_epf_calculator
         }
         
         $rate = $this->config['employee_contribution_rate'] / 100;
-        return round($epf_wage * $rate, 2);
+        return $this->round_to_rupee($epf_wage * $rate);
     }
 
     /**
@@ -85,7 +86,7 @@ class Tax_epf_calculator
         }
         
         $rate = $this->config['employer_pf_rate'] / 100;
-        return round($epf_wage * $rate, 2);
+        return $this->round_to_rupee($epf_wage * $rate);
     }
 
     /**
@@ -110,7 +111,7 @@ class Tax_epf_calculator
             $eps_amount = $eps_cap;
         }
         
-        return round($eps_amount, 2);
+        return $this->round_to_rupee($eps_amount);
     }
 
     /**
@@ -139,7 +140,7 @@ class Tax_epf_calculator
         }
         
         $rate = $this->config['employer_edli_rate'] / 100;
-        return round($epf_wage * $rate, 2);
+        return $this->round_to_rupee($epf_wage * $rate);
     }
 
     /**
@@ -156,7 +157,7 @@ class Tax_epf_calculator
         }
         
         $rate = $this->config['employer_admin_rate'] / 100;
-        return round($epf_wage * $rate, 2);
+        return $this->round_to_rupee($epf_wage * $rate);
     }
 
     /**
@@ -178,36 +179,38 @@ class Tax_epf_calculator
             'eps' => $eps,
             'edli' => $edli,
             'admin' => $admin,
-            'total' => round($pf + $eps + $edli + $admin, 2),
+            'total' => $this->round_to_rupee($pf + $eps + $edli + $admin),
         );
     }
 
     /**
      * Calculate ESI Wage (ESI salary)
-     * This is the total wages on which ESI is calculated
-     * ESI Wage = MIN(Total Wages, 21000)
+     * Rule: if Gross Salary > wage ceiling, ESI is not applicable.
+     * Otherwise ESI Wage = Gross Salary - LOP Deduction (minimum 0).
      * 
-     * @param float $basic Basic salary
-     * @param float $da Dearness allowance
-     * @param float $other_allowances Other allowances (HRA, SA, etc.)
-     * @param float $increment Increment amount (if any)
-     * @return float ESI wage (capped at ceiling)
+     * @param float $gross_salary Gross salary for the month
+     * @param float $lop_deduction Loss of pay deduction amount
+     * @return float ESI wage
      */
-    public function calculate_esi_wage($basic, $da = 0, $other_allowances = 0, $increment = 0)
+    public function calculate_esi_wage($gross_salary, $lop_deduction = 0)
     {
-        // ESI wage ceiling (₹21,000 as per current ESI rules)
-        // ESI is NOT applicable if monthly gross wage exceeds ₹21,000
-        $esi_wage_ceiling = 21000;
-        
-        // Total wages = Basic + DA + Other Allowances + Increment
-        $esi_wage = $basic + $da + $other_allowances + $increment;
-        
-        // ESI eligibility check: If wage exceeds ceiling, employee is NOT eligible for ESI
-        if ($esi_wage > $esi_wage_ceiling) {
-            return 0; // Not eligible for ESI
+        $esi_wage_ceiling = isset($this->CI->config->item('esi')['wage_ceiling'])
+            ? (float) $this->CI->config->item('esi')['wage_ceiling']
+            : 21000;
+
+        $gross_salary = (float) $gross_salary;
+        $lop_deduction = (float) $lop_deduction;
+
+        if ($gross_salary > $esi_wage_ceiling) {
+            return 0;
         }
-        
-        return $esi_wage;
+
+        $esi_wage = $gross_salary - $lop_deduction;
+        if ($esi_wage < 0) {
+            $esi_wage = 0;
+        }
+
+        return $this->round_to_rupee($esi_wage);
     }
 
     /**
@@ -221,7 +224,7 @@ class Tax_epf_calculator
     public function calculate_employee_esi($esi_wage)
     {
         $esi_rate = 0.75; // Employee contribution rate
-        return round($esi_wage * ($esi_rate / 100), 2);
+        return $this->round_to_rupee($esi_wage * ($esi_rate / 100));
     }
 
     /**
@@ -415,15 +418,13 @@ class Tax_epf_calculator
     public function calculate_full_payroll($staff_data)
     {
         $basic = isset($staff_data['basic']) ? $staff_data['basic'] : 0;
-        $da = isset($staff_data['da']) ? $staff_data['da'] : 0;
         $total_allowance = isset($staff_data['total_allowance']) ? $staff_data['total_allowance'] : 0;
         $total_deduction = isset($staff_data['total_deduction']) ? $staff_data['total_deduction'] : 0;
         $lop_deduction = isset($staff_data['lop_deduction']) ? $staff_data['lop_deduction'] : 0;
         
         // Calculate EPF
-        // include any other earnings in EPF wage
-        $additional = isset($staff_data['total_allowance']) ? $staff_data['total_allowance'] : 0;
-        $epf_wage = $this->calculate_epf_wage($basic, $da, $additional);
+        $gross_salary = $basic + $total_allowance;
+        $epf_wage = $this->calculate_epf_wage($gross_salary, $lop_deduction);
         $employee_epf = $this->calculate_employee_epf($epf_wage);
         $employer_pf = $this->calculate_employer_pf($epf_wage);
         $employer_eps = $this->calculate_employer_eps($epf_wage);
@@ -431,7 +432,6 @@ class Tax_epf_calculator
         $employer_admin = $this->calculate_employer_admin_charges($epf_wage);
         
         // Calculate TDS
-        $gross_salary = $basic + $total_allowance;
         $monthly_tds = $this->calculate_monthly_tds($gross_salary);
         
         return array(

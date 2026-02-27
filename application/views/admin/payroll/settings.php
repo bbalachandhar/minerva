@@ -74,7 +74,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                         <div style="margin-top: 20px; padding: 15px; background: #e3f2fd; border-left: 4px solid #2196F3; border-radius: 4px;">
                             <h4 style="margin-top: 0; color: #1565c0;">EPF Wage Calculation:</h4>
                             <p style="margin: 8px 0; color: #555;">
-                                <strong>EPF Wage</strong> = MIN([<?php echo $epf['basic_applicable'] ? 'Basic' : '0'; ?>] + [<?php echo $epf['da_applicable'] ? 'DA' : '0'; ?>] + Qualifying Earnings (including temporary increments), ₹<?php echo number_format($epf['epf_wage_ceiling']); ?>)
+                                <strong>EPF Wage</strong> = MIN(MAX(Gross Salary - LOP (Loss of Pay), 0), ₹<?php echo number_format($epf['epf_wage_ceiling']); ?>)
                             </p>
                             <p style="margin: 8px 0; color: #555;">
                                 <strong>Employee EPF</strong> = <?php echo $epf['employee_contribution_rate']; ?>% × EPF Wage
@@ -148,16 +148,16 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                         <div style="margin-top: 20px; padding: 15px; background: #e0f7fa; border-left: 4px solid #00ACC1; border-radius: 4px;">
                             <h4 style="margin-top: 0; color: #00695c;">ESI Contribution Calculation:</h4>
                             <p style="margin: 8px 0; color: #555;">
-                                <strong>Applicable Wages</strong> = Gross Salary (if ≤ ₹<?php echo number_format($esi['wage_ceiling']); ?>)
+                                <strong>Applicable Wages</strong> = Gross Salary - LOP (only if Gross Salary ≤ ₹<?php echo number_format($esi['wage_ceiling']); ?>)
                             </p>
                             <p style="margin: 8px 0; color: #555;">
-                                <strong>Employee ESI</strong> = <?php echo $esi['employee_contribution_rate']; ?>% × Gross Salary
+                                <strong>Employee ESI</strong> = <?php echo $esi['employee_contribution_rate']; ?>% × ESI Wage
                             </p>
                             <p style="margin: 8px 0; color: #555;">
-                                <strong>Employer ESI</strong> = <?php echo $esi['employer_contribution_rate']; ?>% × Gross Salary
+                                <strong>Employer ESI</strong> = <?php echo $esi['employer_contribution_rate']; ?>% × ESI Wage
                             </p>
                             <p style="margin: 8px 0; color: #555;">
-                                <strong>Total ESI</strong> = <?php echo ($esi['employee_contribution_rate'] + $esi['employer_contribution_rate']); ?>% × Gross Salary
+                                <strong>Total ESI</strong> = <?php echo ($esi['employee_contribution_rate'] + $esi['employer_contribution_rate']); ?>% × ESI Wage
                             </p>
                             <p style="margin: 12px 0 0 0; padding: 10px; background: #fff9c4; border-radius: 4px; color: #f57c00; font-weight: 600;">
                                 ⚠️ ESI is not applicable if monthly gross wage exceeds ₹<?php echo number_format($esi['wage_ceiling']); ?>

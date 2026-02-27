@@ -94,7 +94,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                         <th>Payable Days</th>
                                         <th class="text text-right"><?php echo $this->lang->line('gross_salary'); ?> <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
                                         <th class="text text-right"><?php echo $this->lang->line('lop_amount'); ?> <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
-                                        <th class="text text-right">EPF Wages <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
+                                        <th class="text text-right">EPF Wages (Gross - LOP) <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
                                         <th class="text text-right">EPF (Employee) <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
                                         <th class="text text-right"><?php echo $this->lang->line('net_salary'); ?> <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
                                         <th class="text text-right">PF Contribution 3.67% <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
