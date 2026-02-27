@@ -1328,6 +1328,21 @@ $data['department_id_selected'] = $this->input->post('department_id');
         $result              = $this->payroll_model->getbetweenpayrollReport($start_date, $end_date, $filter_month, $filter_year);
         if (!empty($result)) {
             foreach ($result as &$row) {
+                $row['working_days'] = '';
+                if (!empty($row['month']) && !empty($row['year'])) {
+                    $month_num = date('m', strtotime($row['month'] . ' 1'));
+                    if ($month_num >= 1 && $month_num <= 12) {
+                        $month_start = $row['year'] . '-' . $month_num . '-01';
+                        $month_end = date('Y-m-t', strtotime($month_start));
+                        try {
+                            $ctx = $this->getWorkingDayContextRange($month_start, $month_end);
+                            $row['working_days'] = count($ctx['working_day_dates']);
+                        } catch (\Throwable $e) {
+                            $row['working_days'] = '';
+                        }
+                    }
+                }
+
                 $row['earnings_breakdown'] = $this->payroll_model->getAllowance($row['id'], 'positive');
                 $row['deductions_breakdown'] = $this->payroll_model->getAllowance($row['id'], 'negative');
                 if (!empty($row['leave_deduction']) && $row['leave_deduction'] > 0) {

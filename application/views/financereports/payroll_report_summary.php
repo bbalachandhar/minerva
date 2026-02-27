@@ -171,6 +171,9 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                         <th class="text text-right"><?php echo $this->lang->line('basic_salary'); ?> <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
                                         <th class="text text-right"><?php echo $this->lang->line('earning'); ?> <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
                                         <th class="text text-right"><?php echo $this->lang->line('gross_salary'); ?> <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
+                                        <th class="text text-right">No. Of Days</th>
+                                        <th class="text text-right">AWD</th>
+                                        <th class="text text-right">LOP Days</th>
                                         <th class="text text-right">LOP <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
                                         <th class="text text-right">EPF Wages (Gross - LOP) <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
                                         <th class="text text-right">EPF (Employee) <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
@@ -194,6 +197,9 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                     $total_employee_epf = 0;
                                     $total_esi_wages = 0;
                                     $total_esi = 0;
+                                    $total_no_of_days = 0;
+                                    $total_awd = 0;
+                                    $total_lop_days = 0;
 
                                     // compute later as we iterate rows
 
@@ -230,6 +236,31 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                             $total_employee_epf += !empty($value["employee_epf"]) ? $value["employee_epf"] : 0;
                                             $total_esi_wages += !empty($value["esi_wage"]) ? $value["esi_wage"] : 0;
                                             $total_esi += !empty($value["esi_deduction"]) ? $value["esi_deduction"] : 0;
+
+                                            $days_in_month = 0;
+                                            if (!empty($value['month']) && !empty($value['year'])) {
+                                                $month_num = date('n', strtotime($value['month'] . ' 1'));
+                                                $year_num = (int)$value['year'];
+                                                if ($month_num > 0 && $year_num > 0) {
+                                                    $days_in_month = cal_days_in_month(CAL_GREGORIAN, $month_num, $year_num);
+                                                }
+                                            }
+
+                                            $lop_days = 0;
+                                            if (isset($value['net_lop_days']) && $value['net_lop_days'] !== '') {
+                                                $lop_days = (float)$value['net_lop_days'];
+                                            } elseif (isset($value['actual_lop_days']) && $value['actual_lop_days'] !== '') {
+                                                $lop_days = (float)$value['actual_lop_days'];
+                                            }
+
+                                            $awd_days = $days_in_month - $lop_days;
+                                            if ($awd_days < 0) {
+                                                $awd_days = 0;
+                                            }
+
+                                            $total_no_of_days += $days_in_month;
+                                            $total_awd += $awd_days;
+                                            $total_lop_days += $lop_days;
 
                                             $total = 0;
                                             $grd_total = 0;
@@ -278,6 +309,9 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                                     }
                                                     ?>
                                                 </td>
+                                                <td class="text text-right"><?php echo $days_in_month > 0 ? rtrim(rtrim(number_format($days_in_month, 2, '.', ''), '0'), '.') : '-'; ?></td>
+                                                <td class="text text-right"><?php echo $awd_days > 0 ? rtrim(rtrim(number_format($awd_days, 2, '.', ''), '0'), '.') : '0'; ?></td>
+                                                <td class="text text-right"><?php echo $lop_days > 0 ? rtrim(rtrim(number_format($lop_days, 2, '.', ''), '0'), '.') : '0'; ?></td>
                                                 <td class="text text-right">
                                                     <?php echo (!empty($value['leave_deduction']) && $value['leave_deduction'] > 0) ? amountFormat($value['leave_deduction']) : '-'; ?>
                                                 </td>
@@ -342,6 +376,9 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                         <td class="text text-right"><?php if($basic > 0){ echo $currency_symbol . amountFormat($basic); } ?></td>
                                         <td class="text text-right"><?php if($earnings > 0){ echo $currency_symbol . amountFormat($earnings); } ?></td>
                                         <td class="text text-right"><?php if($grossTotal > 0){ echo $currency_symbol . amountFormat($grossTotal); } ?></td>
+                                        <td class="text text-right"><?php if($total_no_of_days > 0){ echo rtrim(rtrim(number_format($total_no_of_days, 2, '.', ''), '0'), '.'); } ?></td>
+                                        <td class="text text-right"><?php if($total_awd > 0){ echo rtrim(rtrim(number_format($total_awd, 2, '.', ''), '0'), '.'); } ?></td>
+                                        <td class="text text-right"><?php if($total_lop_days > 0){ echo rtrim(rtrim(number_format($total_lop_days, 2, '.', ''), '0'), '.'); } ?></td>
                                         <td class="text text-right"><?php if($total_lop > 0){ echo $currency_symbol . amountFormat($total_lop); } ?></td>
                                         <td class="text text-right"><?php if($total_epf_wages > 0){ echo $currency_symbol . amountFormat($total_epf_wages); } ?></td>
                                         <td class="text text-right"><?php if($total_employee_epf > 0){ echo $currency_symbol . amountFormat($total_employee_epf); } ?></td>

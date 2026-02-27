@@ -163,12 +163,25 @@ $image=$this->media_storage->getImageURL("uploads/staff_images/" . $file);
                                                     </tr>
                                                     <tr style="background: #f9f9f9;">
                                                         <td colspan="4" style="padding: 8px; font-size: 12px; color: #666;">
-                                                            <strong>Statutory Deductions Status:</strong> 
+                                                            <strong>Statutory Deductions Status:</strong>
+                                                            <i class="fa fa-info-circle text-muted" style="font-size: 11px; margin-left: 4px;" data-toggle="tooltip" title="Badge marking: If ESI is No and this month Gross Salary is ≤ ₹21,000, it auto-updates to Yes. Once Yes, it remains Yes."></i>
                                                             <?php
-                                                            $epf_status = (!empty($result['uan_no']) && isset($result['is_epf_enabled']) && $result['is_epf_enabled'] == 1) ? '<span style="color: #28a745;">✓ EPF Active</span>' : '<span style="color: #dc3545;">✗ EPF Inactive</span>';
-                                                            $esi_status = (!empty($result['esi_no']) && isset($result['is_esi_enabled']) && $result['is_esi_enabled'] == 1) ? '<span style="color: #28a745;">✓ ESI Active</span>' : '<span style="color: #dc3545;">✗ ESI Inactive</span>';
+                                                            $epf_is_active = (!empty($result['uan_no']) && isset($result['is_epf_enabled']) && (int) $result['is_epf_enabled'] === 1);
+                                                            $esi_is_active = (isset($result['is_esi_enabled']) && (int) $result['is_esi_enabled'] === 1);
+                                                            $epf_status = $epf_is_active
+                                                                ? '<span id="epf_status_badge" data-state="yes" style="color: #28a745;">✓ EPF Active</span>'
+                                                                : '<span id="epf_status_badge" data-state="no" style="color: #dc3545;">✗ EPF Inactive</span>';
+                                                            $esi_status = $esi_is_active
+                                                                ? '<span id="esi_status_badge" data-state="yes" style="color: #28a745;">✓ ESI Active</span>'
+                                                                : '<span id="esi_status_badge" data-state="no" style="color: #dc3545;">✗ ESI Inactive</span>';
                                                             echo $epf_status . ' | ' . $esi_status;
                                                             ?>
+                                                            <div style="font-size:11px;color:#666;margin-top:4px;">
+                                                                ESI applies only when Gross Salary ≤ ₹21,000 (ESI Wage = Gross - LOP).
+                                                            </div>
+                                                            <div style="font-size:11px;color:#666;margin-top:2px;">
+                                                                Badge marking: if ESI is currently No and this month Gross Salary is ≤ ₹21,000, it auto-updates to Yes for payroll processing.
+                                                            </div>
                                                         </td>
                                                     </tr>
                                                 </tbody>
@@ -891,6 +904,26 @@ $deduction_count++;
         }
     }
 
+    function updateStatutoryBadgesFromGross() {
+        var esiBadge = $("#esi_status_badge");
+        if (!esiBadge.length) {
+            return;
+        }
+
+        if ((esiBadge.data("state") || "").toString().toLowerCase() === "yes") {
+            return;
+        }
+
+        var gross = parseAmount($("#gross_salary").val());
+        if (gross > 0 && gross <= 21000) {
+            esiBadge
+                .data("state", "yes")
+                .attr("data-state", "yes")
+                .css("color", "#28a745")
+                .text("✓ ESI Active");
+        }
+    }
+
     function add_allowance() {
         var calcButton = $(".plusign");
         calcButton.prop('disabled', true);
@@ -945,6 +978,8 @@ $deduction_count++;
                 $("#employee_esi").val(parseAmount(response.employee_esi).toFixed(2));
                 $("#employer_esi").val(parseAmount(response.employer_esi).toFixed(2));
             }
+
+            updateStatutoryBadgesFromGross();
 
             // if there's an existing payslip id, auto-submit the form to persist results
             if ($("input[name='id']").val()) {
@@ -1015,6 +1050,14 @@ $deduction_count++;
 
     $("#basic").on("input", function () {
         syncEarningsFromBasic();
+    });
+
+    $("#gross_salary").on("input", function () {
+        updateStatutoryBadgesFromGross();
+    });
+
+    $(document).ready(function () {
+        updateStatutoryBadgesFromGross();
     });
 
     $("#contact_submit").click(function (event) {
