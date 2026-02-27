@@ -560,4 +560,60 @@ class Messages_model extends MY_Model
             //return $return_value;
         }
     }
+
+    /**
+     * Add message with automatic sender tracking
+     * Captures sender information (staff_id, name, employee_id)
+     * for audit and compliance purposes
+     * 
+     * @param array $data Message data
+     * @return int/bool Inserted ID or false on failure
+     */
+    public function addWithSenderInfo($data)
+    {
+        // Get current logged-in user information
+        $sender_info = $this->getSenderInfo();
+        
+        // Merge sender info with message data
+        $data['sender_staff_id']    = $sender_info['staff_id'];
+        $data['sender_name']        = $sender_info['name'];
+        $data['sender_employee_id'] = $sender_info['employee_id'];
+        $data['sender_type']        = $sender_info['type'];
+        
+        return $this->add($data);
+    }
+
+    /**
+     * Get information about the current sender (logged-in user)
+     * 
+     * @return array Array with keys: staff_id, name, employee_id, type
+     */
+    public function getSenderInfo()
+    {
+        $staff_id = $this->customlib->getStaffID();
+        $sender_info = array(
+            'staff_id'    => $staff_id,
+            'name'        => '',
+            'employee_id' => '',
+            'type'        => 'staff'
+        );
+        
+        if (!empty($staff_id)) {
+            try {
+                // Load staff model and get sender details
+                $this->load->model('Staff_model');
+                $staff_data = $this->staff_model->get($staff_id);
+                
+                if ($staff_data) {
+                    $sender_info['name'] = trim($staff_data['name'] . ' ' . $staff_data['surname']);
+                    $sender_info['employee_id'] = $staff_data['employee_id'];
+                }
+            } catch (Exception $e) {
+                // If error getting staff info, just log with staff_id
+                log_message('error', 'Error getting sender info: ' . $e->getMessage());
+            }
+        }
+        
+        return $sender_info;
+    }
 }

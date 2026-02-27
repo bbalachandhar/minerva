@@ -341,7 +341,7 @@ class Mailsms extends Admin_Controller
             }
 
             $data['user_list'] = json_encode($user_array);
-            $last_inserted_id  = $this->messages_model->add($data);
+            $last_inserted_id  = $this->messages_model->addWithSenderInfo($data);
 
             if (!empty($attachment_data)) {
                 foreach ($attachment_data as $attachment_key => $attachment_data_value) {
@@ -472,7 +472,7 @@ class Mailsms extends Admin_Controller
             }
 
             $data['user_list'] = json_encode($user_array);
-            $last_inserted_id  = $this->messages_model->add($data);
+            $last_inserted_id  = $this->messages_model->addWithSenderInfo($data);
 
             if (!empty($attachment_data)) {
                 foreach ($attachment_data as $attachment_key => $attachment_data_value) {
@@ -652,7 +652,7 @@ class Mailsms extends Admin_Controller
                 }
             }
             $data['user_list'] = json_encode($user_array);
-            $last_inserted_id  = $this->messages_model->add($data);
+            $last_inserted_id  = $this->messages_model->addWithSenderInfo($data);
 
             if (!empty($attachment_data)) {
                 foreach ($attachment_data as $attachment_key => $attachment_data_value) {
@@ -807,7 +807,7 @@ class Mailsms extends Admin_Controller
             }
 
             $data['user_list'] = json_encode($user_array);
-            $this->messages_model->add($data);
+            $this->messages_model->addWithSenderInfo($data);
             if ($send_type == 'send_now') {
                 echo json_encode(array('status' => 0, 'msg' => $this->lang->line('message_sent_successfully')));
             } else {
@@ -983,7 +983,7 @@ class Mailsms extends Admin_Controller
                 $data['schedule_date_time'] = date('Y-m-d H:i:s', $this->customlib->dateTimeformatTwentyfourhour($this->input->post('schedule_date_time'), false));
             }
             $data['user_list'] = json_encode($user_array);
-            $this->messages_model->add($data);
+            $this->messages_model->addWithSenderInfo($data);
             if ($send_type == 'send_now') {
                 echo json_encode(array('status' => 0, 'msg' => $this->lang->line('message_sent_successfully')));
             } else {
@@ -1110,7 +1110,7 @@ class Mailsms extends Admin_Controller
                 $data['schedule_date_time'] = date('Y-m-d H:i:s', $this->customlib->dateTimeformatTwentyfourhour($this->input->post('schedule_date_time'), false));
             }
             $data['user_list'] = json_encode($user_array);
-            $this->messages_model->add($data);
+            $this->messages_model->addWithSenderInfo($data);
             if ($send_type == 'send_now') {
                 echo json_encode(array('status' => 0, 'msg' => $this->lang->line('message_sent_successfully')));
             } else {
@@ -1275,7 +1275,7 @@ class Mailsms extends Admin_Controller
             }
             $data['user_list'] = json_encode($user_array);
 
-            $last_inserted_id = $this->messages_model->add($data);
+            $last_inserted_id = $this->messages_model->addWithSenderInfo($data);
 
             if (!empty($attachment_data)) {
                 foreach ($attachment_data as $attachment_key => $attachment_data_value) {
@@ -2209,7 +2209,7 @@ class Mailsms extends Admin_Controller
             $data['schedule_date_time'] = date('Y-m-d H:i:s', $this->customlib->dateTimeformatTwentyfourhour($this->input->post('schedule_date_time'), false));
 
             $data['user_list'] = json_encode($user_array);
-            $this->messages_model->add($data);
+            $this->messages_model->addWithSenderInfo($data);
             echo json_encode(array('status' => 0, 'msg' => $this->lang->line('success_message')));
         } else {
 
@@ -2320,7 +2320,7 @@ class Mailsms extends Admin_Controller
 
             $data['user_list'] = json_encode($user_array);
 
-            $this->messages_model->add($data);
+            $this->messages_model->addWithSenderInfo($data);
             echo json_encode(array('status' => 0, 'msg' => $this->lang->line('success_message')));
         } else {
 
@@ -2461,7 +2461,7 @@ class Mailsms extends Admin_Controller
             $data['schedule_date_time'] = date('Y-m-d H:i:s', $this->customlib->dateTimeformatTwentyfourhour($this->input->post('schedule_date_time'), false));
 
             $data['user_list'] = json_encode($user_array);
-            $this->messages_model->add($data);
+            $this->messages_model->addWithSenderInfo($data);
             echo json_encode(array('status' => 0, 'msg' => $this->lang->line('success_message')));
         } else {
 
@@ -2558,7 +2558,7 @@ class Mailsms extends Admin_Controller
             $data['schedule_date_time'] = date('Y-m-d H:i:s', $this->customlib->dateTimeformatTwentyfourhour($this->input->post('schedule_date_time'), false));
 
             $data['user_list'] = json_encode($user_array);
-            $this->messages_model->add($data);
+            $this->messages_model->addWithSenderInfo($data);
             echo json_encode(array('status' => 0, 'msg' => $this->lang->line('success_message')));
         } else {
 
@@ -2619,7 +2619,7 @@ class Mailsms extends Admin_Controller
             $data['schedule_date_time'] = date('Y-m-d H:i:s', $this->customlib->dateTimeformatTwentyfourhour($this->input->post('schedule_date_time'), false));
 
             $data['user_list'] = json_encode($user_array);
-            $this->messages_model->add($data);
+            $this->messages_model->addWithSenderInfo($data);
             echo json_encode(array('status' => 0, 'msg' => $this->lang->line('success_message')));
         } else {
 
@@ -2713,7 +2713,7 @@ class Mailsms extends Admin_Controller
             $data['schedule_date_time'] = date('Y-m-d H:i:s', $this->customlib->dateTimeformatTwentyfourhour($this->input->post('schedule_date_time'), false));
 
             $data['user_list'] = json_encode($user_array);
-            $this->messages_model->add($data);
+            $this->messages_model->addWithSenderInfo($data);
             echo json_encode(array('status' => 0, 'msg' => $this->lang->line('success_message')));
         } else {
 

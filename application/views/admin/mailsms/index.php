@@ -33,6 +33,8 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                         <th><?php echo $this->lang->line('title'); ?></th>
                                         <th><?php echo $this->lang->line('description'); ?></th>
                                         <th><?php echo $this->lang->line('date'); ?></th>
+                                        <th>Sent By</th>
+                                        <th>Employee ID</th>
                                         <th><?php echo $this->lang->line('email'); ?></th>
                                         <th><?php echo $this->lang->line('sms'); ?></th>
                                         <th><?php echo $this->lang->line('group'); ?></th>
@@ -49,6 +51,12 @@ foreach ($listMessage as $message) {
                                             <td class="mailbox-name"><?php echo $message['message'] ?></td>
                                             <td class="mailbox-name"> 
                                                 <?php echo $this->customlib->dateyyyymmddToDateTimeformat($message['created_at'], false); ?> 
+                                            </td>
+                                            <td class="mailbox-name">
+                                                <?php echo isset($message['sender_name']) ? $message['sender_name'] : '-'; ?>
+                                            </td>
+                                            <td class="mailbox-name">
+                                                <?php echo isset($message['sender_employee_id']) ? $message['sender_employee_id'] : '-'; ?>
                                             </td>
                                             <td class="mailbox-name">
                                                 <?php
