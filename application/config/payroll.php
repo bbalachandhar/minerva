@@ -38,6 +38,7 @@ $config['payroll_status'] = array(
     'paid' => lang('paid'),
     'unpaid' => lang('unpaid'),
     'not_generate' => lang('not_generated'),
+    'no_attendance' => 'No Attendance',
 );
 $config['lop_rules'] = array(
     'half_day_weight' => 0.5,

@@ -62,7 +62,7 @@ $reason_options = array(
 );
 $no_staff_message = $this->lang->line('no_record_found');
 if (empty($no_staff_message)) {
-    $no_staff_message = 'No active staff found for the selected department.';
+    $no_staff_message = 'No staff found below 50% attendance for the selected month and year.';
 }
 $confirm_generate_text = 'Generating special attendance will delete any existing special-attendance punches for the selected staff in this month and recreate them. Continue?';
 $confirm_process_text = 'Processing attendance will remove previously generated attendance records for the selected staff in this month and rebuild them from the current punches. Continue?';
@@ -218,6 +218,7 @@ $months = array(
                         <th><?php echo htmlspecialchars($staff_id_label); ?></th>
                         <th><?php echo htmlspecialchars($name_label); ?></th>
                         <th><?php echo htmlspecialchars($department_label); ?></th>
+                        <th style="width:120px;" class="text-center">Attendance %</th>
                         <th style="width:140px;" class="text-center"><?php echo htmlspecialchars($days_absent_label); ?></th>
                     </tr>
                 </thead>
@@ -350,6 +351,10 @@ $months = array(
         var rows = [];
         $.each(employees, function(_, emp){
             var lopDays = '';
+            var attendancePercentage = parseFloat(emp.attendance_percentage);
+            if (!isFinite(attendancePercentage)) {
+                attendancePercentage = 0;
+            }
             if (parseInt(emp.has_special_attendance, 10) === 1 && emp.lop_days !== null && typeof emp.lop_days !== 'undefined') {
                 lopDays = emp.lop_days;
             }
@@ -357,6 +362,7 @@ $months = array(
                 '   <td>' + (emp.code ? emp.code : '-') + '</td>\n' +
                 '   <td>' + (emp.name ? emp.name : '-') + '</td>\n' +
                 '   <td>' + (emp.department ? emp.department : '-') + '</td>\n' +
+                '   <td class="text-center">' + attendancePercentage.toFixed(2) + '%</td>\n' +
                 '   <td class="text-center"><input type="number" class="form-control input-sm days-absent" min="0" step="0.5"' +
                 (workingDays !== null ? ' max="' + workingDays + '"' : '') + ' placeholder="e.g. 1 or 1.5" value="' + (lopDays === '' ? '' : lopDays) + '"></td>\n' +
                 '</tr>');
@@ -364,7 +370,7 @@ $months = array(
         $tableBody.html(rows.join('\n'));
         $wrapper.show();
         var deptText = $department.val() ? $department.find('option:selected').text() : '<?php echo addslashes($all_departments_label); ?>';
-        showMessage('info', employees.length + ' staff member(s) loaded (' + deptText + ').');
+        showMessage('info', employees.length + ' staff member(s) loaded below 50% attendance (' + deptText + ').');
         updateButtonsState();
     }
 

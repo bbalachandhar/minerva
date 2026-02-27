@@ -51,10 +51,20 @@ class Specialattendance extends Admin_Controller
             $workingDays = $this->SpecialAttendance_model->getWorkingDaysCount($month, $year);
         }
 
+        $filteredEmployees = [];
         foreach ($employees as &$emp) {
             $emp['present_days'] = isset($presentCounts[$emp['id']]) ? $presentCounts[$emp['id']] : 0;
             $hasSpecial = isset($presentEquivalent[$emp['id']]);
             $emp['has_special_attendance'] = $hasSpecial ? 1 : 0;
+
+            $presentEquivalentDays = $hasSpecial ? (float)$presentEquivalent[$emp['id']] : 0.0;
+            if ($workingDays !== null && (float)$workingDays > 0) {
+                $attendancePercent = ($presentEquivalentDays / (float)$workingDays) * 100;
+            } else {
+                $attendancePercent = 0;
+            }
+            $emp['attendance_percentage'] = round($attendancePercent, 2);
+
             if ($hasSpecial && $workingDays !== null) {
                 $lopDays = (float)$workingDays - (float)$presentEquivalent[$emp['id']];
                 if ($lopDays < 0) {
@@ -64,10 +74,14 @@ class Specialattendance extends Admin_Controller
             } else {
                 $emp['lop_days'] = null;
             }
+
+            if ($workingDays !== null && (float)$workingDays > 0 && $emp['attendance_percentage'] < 50) {
+                $filteredEmployees[] = $emp;
+            }
         }
         unset($emp);
 
-        echo json_encode($employees);
+        echo json_encode($filteredEmployees);
     }
     
     public function get_working_days()

@@ -674,6 +674,55 @@ class Staff extends Admin_Controller
         redirect('admin/staff/profile/' . $id);
     }
 
+    public function disablestaff($id)
+    {
+        if (!$this->rbac->hasPrivilege('disable_staff', 'can_view')) {
+            access_denied();
+        }
+
+        if ((int)$this->customlib->getStaffID() === (int)$id) {
+            $response = array('status' => 'fail', 'error' => array('staff' => 'You cannot disable your own account.'), 'message' => '');
+            if ($this->input->is_ajax_request()) {
+                echo json_encode($response);
+                return;
+            }
+            $this->session->set_flashdata('msg', '<div class="alert alert-danger text-center">You cannot disable your own account.</div>');
+            redirect('admin/staff/profile/' . $id);
+        }
+
+        $data = array(
+            'id'        => $id,
+            'is_active' => 0,
+            'disable_at'=> date('Y-m-d H:i:s'),
+        );
+        $this->staff_model->disablestaff($data);
+
+        if ($this->input->is_ajax_request()) {
+            echo json_encode(array('status' => 'success', 'error' => '', 'message' => 'Staff disabled successfully.'));
+            return;
+        }
+
+        $this->session->set_flashdata('msg', '<div class="alert alert-success text-center">Staff disabled successfully.</div>');
+        redirect('admin/staff/profile/' . $id);
+    }
+
+    public function enablestaff($id)
+    {
+        if (!$this->rbac->hasPrivilege('disable_staff', 'can_view')) {
+            access_denied();
+        }
+
+        $this->staff_model->enablestaff($id);
+
+        if ($this->input->is_ajax_request()) {
+            echo json_encode(array('status' => 'success', 'error' => '', 'message' => 'Staff enabled successfully.'));
+            return;
+        }
+
+        $this->session->set_flashdata('msg', '<div class="alert alert-success text-center">Staff enabled successfully.</div>');
+        redirect('admin/staff/profile/' . $id);
+    }
+
     public function change_password($id)
     {
         if (!$this->rbac->hasPrivilege('staff', 'can_edit')) {

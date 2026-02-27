@@ -1241,10 +1241,80 @@ class Payroll extends Admin_Controller
         $generated = 0;
         $updated_existing = 0;
         $skipped_existing = 0;
+        $zero_salary_generated = 0;
 
         foreach ($staff_list as $staff) {
             if (!empty($staff['payslip_id']) && !$overwrite) {
                 $skipped_existing++;
+                continue;
+            }
+
+            $date = $year . '-' . $month;
+            $newdate = date('Y-m-d', strtotime($date . ' +1 month'));
+            $monthAttendanceData = $this->monthAttendance($newdate, 3, $staff['id']);
+
+            $month_num = date('m', strtotime($year . '-' . $month . '-01'));
+            $month_key = '01-' . $month_num . '-' . $year;
+            $attendance = $monthAttendanceData[$month_key] ?? reset($monthAttendanceData) ?? [];
+
+            $present_days = (float) ($attendance['present'] ?? 0);
+            $late_days = (float) ($attendance['late'] ?? 0);
+            $half_days = (float) ($attendance['half_day'] ?? 0);
+            $first_half_permission = (float) ($attendance['first_half_permission'] ?? 0);
+            $second_half_permission = (float) ($attendance['second_half_permission'] ?? 0);
+
+            $effective_presence = $present_days
+                + $late_days
+                + $half_days
+                + $first_half_permission
+                + $second_half_permission;
+
+            if ($effective_presence <= 0) {
+                $data = array(
+                    'staff_id' => $staff['id'],
+                    'basic' => 0,
+                    'da' => 0,
+                    'total_allowance' => 0,
+                    'total_deduction' => 0,
+                    'net_salary' => 0,
+                    'payment_date' => date('Y-m-d'),
+                    'status' => 'no_attendance',
+                    'month' => $month,
+                    'year' => $year,
+                    'tax' => 0,
+                    'leave_deduction' => 0,
+                    'actual_lop_days' => 0,
+                    'adjusted_lop_days' => 0,
+                    'net_lop_days' => 0,
+                    'epf_wage' => 0,
+                    'employee_epf' => 0,
+                    'employer_pf' => 0,
+                    'employer_eps' => 0,
+                    'employer_edli' => 0,
+                    'employer_admin' => 0,
+                    'esi_wage' => 0,
+                    'employee_esi' => 0,
+                    'employer_esi' => 0,
+                    'tax_regime' => 'new',
+                );
+
+                if (!empty($staff['payslip_id']) && $overwrite) {
+                    $data['id'] = $staff['payslip_id'];
+                }
+
+                $payslipid = $this->payroll_model->createPayslip($data);
+
+                if ($payslipid) {
+                    $this->db->where('payslip_id', $payslipid)->delete('payslip_allowance');
+                }
+
+                if (!empty($staff['payslip_id']) && $overwrite) {
+                    $updated_existing++;
+                } else {
+                    $generated++;
+                }
+
+                $zero_salary_generated++;
                 continue;
             }
 
@@ -1337,9 +1407,6 @@ class Payroll extends Admin_Controller
                 $total_allowance += $increment_amount;
             }
 
-            $date = $year . '-' . $month;
-            $newdate = date('Y-m-d', strtotime($date . ' +1 month'));
-            $monthAttendanceData = $this->monthAttendance($newdate, 3, $staff['id']);
             $monthLeaves = $this->monthLeaves($newdate, 3, $staff['id']);
             $lop_summary = $this->getPayrollLopSummary($monthAttendanceData, $monthLeaves, $month, $year, $staff['id']);
 
@@ -1610,6 +1677,9 @@ class Payroll extends Admin_Controller
         }
         if ($skipped_existing > 0) {
             $message .= '<div class="alert alert-warning text-center">Skipped existing payslips: ' . $skipped_existing . '.</div>';
+        }
+        if ($zero_salary_generated > 0) {
+            $message .= '<div class="alert alert-info text-center">Zero-salary payslips generated (no attendance): ' . $zero_salary_generated . '.</div>';
         }
         $this->session->set_flashdata('msg', $message);
 
