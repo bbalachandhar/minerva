@@ -208,6 +208,50 @@ foreach ($monthAttendance as $attendence_key => $attendence_value) {
     $total_present = max(0, $total_present - $late_permission_penalty + $paid_leave_absent);
     $total_absent = $total_absent + $late_permission_penalty;
     $lop_days = $total_absent + (($first_half_absent + $second_half_absent) * $half_day_weight);
+
+    $month_num = date('m', strtotime($attendence_key));
+    $year_num = date('Y', strtotime($attendence_key));
+    $month_name = date('F', strtotime($attendence_key));
+    $is_current_payroll_month = (($month_name == $month || $month_num == $month) && $year_num == $year);
+
+    if ($is_current_payroll_month && !empty($payroll_lop_summary)) {
+        if (isset($payroll_lop_summary['working_days'])) {
+            $working_days = (int) $payroll_lop_summary['working_days'];
+        }
+        if (isset($payroll_lop_summary['paid_days'])) {
+            $total_present = (float) $payroll_lop_summary['paid_days'];
+        }
+        if (isset($payroll_lop_summary['absent'])) {
+            $total_absent = (float) $payroll_lop_summary['absent'];
+        }
+        if (isset($payroll_lop_summary['half_day'])) {
+            $half_day = (int) $payroll_lop_summary['half_day'];
+        }
+        if (isset($payroll_lop_summary['holidays'])) {
+            $holiday_count = (int) $payroll_lop_summary['holidays'];
+        }
+        if (isset($payroll_lop_summary['sundays'])) {
+            $weekend_count = (int) $payroll_lop_summary['sundays'];
+        }
+        if (isset($payroll_lop_summary['approved_leave'])) {
+            $approved_leave = (int) $payroll_lop_summary['approved_leave'];
+        }
+        if (isset($payroll_lop_summary['first_half_absent'])) {
+            $first_half_absent = (int) $payroll_lop_summary['first_half_absent'];
+        }
+        if (isset($payroll_lop_summary['second_half_absent'])) {
+            $second_half_absent = (int) $payroll_lop_summary['second_half_absent'];
+        }
+        if (isset($payroll_lop_summary['late'])) {
+            $late_count = (int) $payroll_lop_summary['late'];
+        }
+        if (isset($payroll_lop_summary['first_half_permission']) || isset($payroll_lop_summary['second_half_permission'])) {
+            $permission_count = (int) ($payroll_lop_summary['first_half_permission'] ?? 0) + (int) ($payroll_lop_summary['second_half_permission'] ?? 0);
+        }
+        if (isset($payroll_lop_summary['lop_days'])) {
+            $lop_days = (float) $payroll_lop_summary['lop_days'];
+        }
+    }
     ?>
                                                 <tr>
                                                     <td><?php echo $this->lang->line(strtolower(date("F", strtotime($attendence_key)))); ?></td>

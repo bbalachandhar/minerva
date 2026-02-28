@@ -260,6 +260,46 @@ $year_num = date('Y', strtotime($attendence_key));
 $month_name = date('F', strtotime($attendence_key));
 $is_current_payroll_month = (($month_name == $employee_payroll['month'] || $month_num == $employee_payroll['month']) && $year_num == $employee_payroll['year']);
 
+// For current payroll month, display exactly what payroll calculation uses
+if ($is_current_payroll_month && !empty($payroll_lop_summary)) {
+    if (isset($payroll_lop_summary['working_days'])) {
+        $working_days = (int) $payroll_lop_summary['working_days'];
+    }
+    if (isset($payroll_lop_summary['paid_days'])) {
+        $total_present = (float) $payroll_lop_summary['paid_days'];
+    }
+    if (isset($payroll_lop_summary['absent'])) {
+        $total_absent = (float) $payroll_lop_summary['absent'];
+    }
+    if (isset($payroll_lop_summary['half_day'])) {
+        $half_day = (int) $payroll_lop_summary['half_day'];
+    }
+    if (isset($payroll_lop_summary['holidays'])) {
+        $holiday_count = (int) $payroll_lop_summary['holidays'];
+    }
+    if (isset($payroll_lop_summary['sundays'])) {
+        $weekend_count = (int) $payroll_lop_summary['sundays'];
+    }
+    if (isset($payroll_lop_summary['approved_leave'])) {
+        $approved_leave = (int) $payroll_lop_summary['approved_leave'];
+    }
+    if (isset($payroll_lop_summary['first_half_absent'])) {
+        $first_half_absent = (int) $payroll_lop_summary['first_half_absent'];
+    }
+    if (isset($payroll_lop_summary['second_half_absent'])) {
+        $second_half_absent = (int) $payroll_lop_summary['second_half_absent'];
+    }
+    if (isset($payroll_lop_summary['lop_days'])) {
+        $lop_days = (float) $payroll_lop_summary['lop_days'];
+    }
+    if (isset($payroll_lop_summary['late'])) {
+        $late_count = (int) $payroll_lop_summary['late'];
+    }
+    if (isset($payroll_lop_summary['first_half_permission']) || isset($payroll_lop_summary['second_half_permission'])) {
+        $permission_count = (int) ($payroll_lop_summary['first_half_permission'] ?? 0) + (int) ($payroll_lop_summary['second_half_permission'] ?? 0);
+    }
+}
+
 // For current payroll month, use values from payslip; for other months, query monthly balance
 if ($is_current_payroll_month) {
     $adjusted_lop = floatval($employee_payroll['adjusted_lop_days'] ?? 0);

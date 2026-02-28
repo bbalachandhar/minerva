@@ -266,12 +266,23 @@ class Payroll extends Admin_Controller
         $first_half_permission = (int) ($attendance['first_half_permission'] ?? 0);
         $second_half_permission = (int) ($attendance['second_half_permission'] ?? 0);
 
+        $late_permission_counts = $this->getLateAndPermissionCountsRange($staff_id, $period['start_date'], $period['end_date']);
+        if (!empty($late_permission_counts['late_computed'])) {
+            $late = (int) $late_permission_counts['late'];
+        }
+        if (!empty($late_permission_counts['permission_computed'])) {
+            $permission_count = (int) $late_permission_counts['permission_total'];
+            $first_half_permission = (int) $late_permission_counts['first_half_permission'];
+            $second_half_permission = (int) $late_permission_counts['second_half_permission'];
+        } else {
+            $permission_count = $first_half_permission + $second_half_permission;
+        }
+
         $approved_leave = (int) ($monthLeaves[$month_num] ?? 0);
 
         $lop_rules = $this->config->item('lop_rules');
         $half_day_weight = isset($lop_rules['half_day_weight']) ? (float) $lop_rules['half_day_weight'] : 0.5;
 
-        $permission_count = $first_half_permission + $second_half_permission;
         $max_late_allowed = isset($this->sch_setting_detail->max_late_allowed) ? (int) $this->sch_setting_detail->max_late_allowed : 0;
         $max_permission_allowed = isset($this->sch_setting_detail->max_permission_allowed) ? (int) $this->sch_setting_detail->max_permission_allowed : 0;
 
@@ -311,6 +322,146 @@ class Payroll extends Admin_Controller
             'lop_days' => $lop_days,
             'paid_days' => $paid_days,
         ];
+    }
+
+    private function getLateAndPermissionCountsRange($staff_id, $start_date, $end_date)
+    {
+        $result = [
+            'is_computed' => false,
+            'late_computed' => false,
+            'permission_computed' => false,
+            'late' => null,
+            'permission_total' => null,
+            'first_half_permission' => null,
+            'second_half_permission' => null,
+        ];
+
+        $role_ids = [];
+        $role_rows = $this->db->select('role_id')
+            ->from('staff_roles')
+            ->where('staff_id', $staff_id)
+            ->get()
+            ->result_array();
+        foreach ($role_rows as $role_row) {
+            $rid = isset($role_row['role_id']) ? (int) $role_row['role_id'] : 0;
+            if ($rid > 0 && !in_array($rid, $role_ids, true)) {
+                $role_ids[] = $rid;
+            }
+        }
+
+        $admin_role_row = $this->db->query("SELECT id FROM roles WHERE LOWER(name)='admin' ORDER BY id ASC LIMIT 1")->row_array();
+        $admin_role_id = isset($admin_role_row['id']) ? (int) $admin_role_row['id'] : 0;
+        if ($admin_role_id > 0 && !in_array($admin_role_id, $role_ids, true)) {
+            $role_ids[] = $admin_role_id;
+        }
+
+        if (empty($role_ids)) {
+            return $result;
+        }
+
+        $this->load->model('staffAttendaceSetting_model');
+        $attendance_types = $this->staffattendancemodel->getStaffAttendanceType();
+        $type_map = [];
+        foreach ($attendance_types as $type_row) {
+            $key_value = strtoupper(trim($type_row['key_value'] ?? ''));
+            if (!empty($key_value)) {
+                $type_map[$key_value] = (int) $type_row['id'];
+            }
+        }
+
+        $late_settings = ['FHL' => false, 'SHL' => false];
+        $permission_settings = ['FHP' => false, 'SHP' => false];
+
+        foreach ($role_ids as $candidate_role_id) {
+            $candidate_fhl = !empty($type_map['FHL']) ? $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($candidate_role_id, $type_map['FHL']) : false;
+            $candidate_shl = !empty($type_map['SHL']) ? $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($candidate_role_id, $type_map['SHL']) : false;
+            $candidate_fhp = !empty($type_map['FHP']) ? $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($candidate_role_id, $type_map['FHP']) : false;
+            $candidate_shp = !empty($type_map['SHP']) ? $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($candidate_role_id, $type_map['SHP']) : false;
+
+            if (empty($late_settings['FHL']) && empty($late_settings['SHL']) && (!empty($candidate_fhl) || !empty($candidate_shl))) {
+                $late_settings['FHL'] = $candidate_fhl;
+                $late_settings['SHL'] = $candidate_shl;
+            }
+
+            if (empty($permission_settings['FHP']) && empty($permission_settings['SHP']) && (!empty($candidate_fhp) || !empty($candidate_shp))) {
+                $permission_settings['FHP'] = $candidate_fhp;
+                $permission_settings['SHP'] = $candidate_shp;
+            }
+
+            if ((!empty($late_settings['FHL']) || !empty($late_settings['SHL'])) && (!empty($permission_settings['FHP']) || !empty($permission_settings['SHP']))) {
+                break;
+            }
+        }
+
+        $has_late_mapping = !empty($late_settings['FHL']) || !empty($late_settings['SHL']);
+        $has_permission_mapping = !empty($permission_settings['FHP']) || !empty($permission_settings['SHP']);
+
+        $rows = $this->staffattendancemodel->getAttendanceRowsInRange($staff_id, $start_date, $end_date);
+        $computed = [
+            'late' => 0,
+            'permission_total' => 0,
+            'first_half_permission' => 0,
+            'second_half_permission' => 0,
+        ];
+        foreach ($rows as $row) {
+            $in_time = $row['in_time'] ?? '';
+            $out_time = $row['out_time'] ?? '';
+
+            if ($has_late_mapping) {
+                $late_for_day = 0;
+                if (!empty($in_time)) {
+                    if (!empty($late_settings['SHL']) && $this->timeInRangeForPayroll($in_time, $late_settings['SHL']->entry_time_from, $late_settings['SHL']->entry_time_to)) {
+                        $late_for_day = 1;
+                    } elseif (!empty($late_settings['FHL']) && $this->timeInRangeForPayroll($in_time, $late_settings['FHL']->entry_time_from, $late_settings['FHL']->entry_time_to)) {
+                        $late_for_day = 1;
+                    }
+                }
+                $computed['late'] += $late_for_day;
+            }
+
+            if ($has_permission_mapping) {
+                if (!empty($in_time) && !empty($permission_settings['FHP']) && $this->timeInRangeForPayroll($in_time, $permission_settings['FHP']->entry_time_from, $permission_settings['FHP']->entry_time_to)) {
+                    $computed['first_half_permission']++;
+                    $computed['permission_total']++;
+                }
+                if (!empty($out_time) && !empty($permission_settings['SHP']) && $this->timeInRangeForPayroll($out_time, $permission_settings['SHP']->entry_time_from, $permission_settings['SHP']->entry_time_to)) {
+                    $computed['second_half_permission']++;
+                    $computed['permission_total']++;
+                }
+            }
+        }
+
+        $result['is_computed'] = $has_late_mapping || $has_permission_mapping;
+        if ($has_late_mapping) {
+            $result['late_computed'] = true;
+            $result['late'] = $computed['late'];
+        }
+        if ($has_permission_mapping) {
+            $result['permission_computed'] = true;
+            $result['permission_total'] = $computed['permission_total'];
+            $result['first_half_permission'] = $computed['first_half_permission'];
+            $result['second_half_permission'] = $computed['second_half_permission'];
+        }
+
+        return $result;
+    }
+
+    private function timeInRangeForPayroll($time, $from, $to)
+    {
+        if (empty($time) || empty($from) || empty($to)) {
+            return false;
+        }
+
+        $base_date = date('Y-m-d');
+        $time_ts = strtotime($base_date . ' ' . $time);
+        $from_ts = strtotime($base_date . ' ' . $from);
+        $to_ts = strtotime($base_date . ' ' . $to);
+
+        if ($time_ts === false || $from_ts === false || $to_ts === false) {
+            return false;
+        }
+
+        return ($time_ts >= $from_ts && $time_ts <= $to_ts);
     }
 
     private function getMonthAbsentWorkingDays($monthAttendance, $staff_id)

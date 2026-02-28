@@ -626,17 +626,31 @@ class Attendencereports extends Admin_Controller
                 $end_date = date('Y-m-t', strtotime($start_date));
 
                 $role_settings_map = [];
+                $admin_role_row = $this->db->query("SELECT id FROM roles WHERE LOWER(name)='admin' ORDER BY id ASC LIMIT 1")->row_array();
+                $admin_role_id = isset($admin_role_row['id']) ? (int) $admin_role_row['id'] : 0;
                 foreach ($stafflist as $staff_row) {
                     $role_id = (int) ($staff_row['role_id'] ?? 0);
                     if (!$role_id || isset($role_settings_map[$role_id])) {
                         continue;
                     }
-                    $role_settings_map[$role_id] = [
+                    $candidate_settings = [
                         'FHL' => !empty($type_map['FHL']) ? $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($role_id, $type_map['FHL']) : false,
                         'FHP' => !empty($type_map['FHP']) ? $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($role_id, $type_map['FHP']) : false,
                         'SHL' => !empty($type_map['SHL']) ? $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($role_id, $type_map['SHL']) : false,
                         'SHP' => !empty($type_map['SHP']) ? $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($role_id, $type_map['SHP']) : false,
                     ];
+
+                    $has_any_mapping = !empty($candidate_settings['FHL']) || !empty($candidate_settings['FHP']) || !empty($candidate_settings['SHL']) || !empty($candidate_settings['SHP']);
+                    if (!$has_any_mapping && $admin_role_id > 0 && $admin_role_id !== $role_id) {
+                        $candidate_settings = [
+                            'FHL' => !empty($type_map['FHL']) ? $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($admin_role_id, $type_map['FHL']) : false,
+                            'FHP' => !empty($type_map['FHP']) ? $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($admin_role_id, $type_map['FHP']) : false,
+                            'SHL' => !empty($type_map['SHL']) ? $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($admin_role_id, $type_map['SHL']) : false,
+                            'SHP' => !empty($type_map['SHP']) ? $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($admin_role_id, $type_map['SHP']) : false,
+                        ];
+                    }
+
+                    $role_settings_map[$role_id] = $candidate_settings;
                 }
 
                 foreach ($stafflist as $staff_row) {
@@ -995,6 +1009,20 @@ class Attendencereports extends Admin_Controller
                 'SHL' => !empty($type_map['SHL']) ? $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($role_id, $type_map['SHL']) : false,
                 'SHP' => !empty($type_map['SHP']) ? $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($role_id, $type_map['SHP']) : false,
             ];
+
+            $has_any_mapping = !empty($settings['FHL']) || !empty($settings['FHP']) || !empty($settings['SHL']) || !empty($settings['SHP']);
+            if (!$has_any_mapping) {
+                $admin_role_row = $this->db->query("SELECT id FROM roles WHERE LOWER(name)='admin' ORDER BY id ASC LIMIT 1")->row_array();
+                $admin_role_id = isset($admin_role_row['id']) ? (int) $admin_role_row['id'] : 0;
+                if ($admin_role_id > 0) {
+                    $settings = [
+                        'FHL' => !empty($type_map['FHL']) ? $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($admin_role_id, $type_map['FHL']) : false,
+                        'FHP' => !empty($type_map['FHP']) ? $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($admin_role_id, $type_map['FHP']) : false,
+                        'SHL' => !empty($type_map['SHL']) ? $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($admin_role_id, $type_map['SHL']) : false,
+                        'SHP' => !empty($type_map['SHP']) ? $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($admin_role_id, $type_map['SHP']) : false,
+                    ];
+                }
+            }
 
             foreach ($rows as $row) {
                 $in_time = $row['in_time'] ?? '';

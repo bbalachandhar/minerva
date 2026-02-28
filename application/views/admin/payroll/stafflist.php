@@ -81,7 +81,6 @@ if ($month_selected == $m_key) {
     }
     ?>><?php echo $month_value; ?></option>
                                                         <?php
-$count++;
 }
 ?>
 
@@ -159,7 +158,6 @@ if (isset($resultlist)) {
                                 </thead>
                                 <tbody>
                                     <?php
-$count = 1;
     foreach ($resultlist as $staff) {
         $status = $staff["status"];
         if ($staff["status"] == "paid") {
@@ -224,7 +222,6 @@ $count = 1;
                                         </tr>
         <?php
 }
-    $count++;
     ?>
                                 </tbody>
                             </table>

@@ -248,7 +248,11 @@ class Attendance_model extends CI_Model {
                 $pending_out_punch = false;
                 $pending_out_punch = false;
 
-                if ($half_day_settings && $this->time_in_range($in_time_final, $half_day_settings->entry_time_from, $half_day_settings->entry_time_to)) {
+                $in_present_window = ($present_settings && $this->time_in_range($in_time_final, $present_settings->entry_time_from, $present_settings->entry_time_to))
+                    || ($first_half_late_settings && $this->time_in_range($in_time_final, $first_half_late_settings->entry_time_from, $first_half_late_settings->entry_time_to))
+                    || ($fhp_settings && $this->time_in_range($in_time_final, $fhp_settings->entry_time_from, $fhp_settings->entry_time_to));
+
+                if ($half_day_settings && !$in_present_window && $this->time_in_range($in_time_final, $half_day_settings->entry_time_from, $half_day_settings->entry_time_to)) {
                     $first_half_status = $first_half_absent_id;
                     $arrival_second_half_status = $present_id;
                     $remark = 'Second half attendance';
@@ -439,7 +443,11 @@ class Attendance_model extends CI_Model {
 
                 $arrival_second_half_status = null;
 
-                if ($half_day_settings && $this->time_in_range($in_time_final, $half_day_settings->entry_time_from, $half_day_settings->entry_time_to)) {
+                $in_present_window = ($present_settings && $this->time_in_range($in_time_final, $present_settings->entry_time_from, $present_settings->entry_time_to))
+                    || ($first_half_late_settings && $this->time_in_range($in_time_final, $first_half_late_settings->entry_time_from, $first_half_late_settings->entry_time_to))
+                    || ($fhp_settings && $this->time_in_range($in_time_final, $fhp_settings->entry_time_from, $fhp_settings->entry_time_to));
+
+                if ($half_day_settings && !$in_present_window && $this->time_in_range($in_time_final, $half_day_settings->entry_time_from, $half_day_settings->entry_time_to)) {
                     $first_half_status = $first_half_absent_id;
                     $arrival_second_half_status = $present_id;
                     $remark = 'Second half attendance';
@@ -633,7 +641,11 @@ class Attendance_model extends CI_Model {
             $arrival_second_half_status = null;
             $pending_out_punch = false;
 
-            if ($half_day_settings && $this->time_in_range($in_time_final, $half_day_settings->entry_time_from, $half_day_settings->entry_time_to)) {
+            $in_present_window = ($present_settings && $this->time_in_range($in_time_final, $present_settings->entry_time_from, $present_settings->entry_time_to))
+                || ($first_half_late_settings && $this->time_in_range($in_time_final, $first_half_late_settings->entry_time_from, $first_half_late_settings->entry_time_to))
+                || ($fhp_settings && $this->time_in_range($in_time_final, $fhp_settings->entry_time_from, $fhp_settings->entry_time_to));
+
+            if ($half_day_settings && !$in_present_window && $this->time_in_range($in_time_final, $half_day_settings->entry_time_from, $half_day_settings->entry_time_to)) {
                 $first_half_status = $first_half_absent_id;
                 $arrival_second_half_status = $present_id;
                 $remark = 'Second half attendance';
