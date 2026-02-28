@@ -517,22 +517,30 @@ if (!empty($result["basic_salary"])) {
     }
 
     function updateStatutoryBadgesFromGross() {
+        var epfBadge = $("#epf_status_badge");
         var esiBadge = $("#esi_status_badge");
-        if (!esiBadge.length) {
-            return;
-        }
-
-        if ((esiBadge.data("state") || "").toString().toLowerCase() === "yes") {
+        if (!epfBadge.length && !esiBadge.length) {
             return;
         }
 
         var gross = parseFloat($("#gross_salary").val()) || 0;
-        if (gross > 0 && gross <= 21000) {
+        var epfEligible = gross > 0;
+        var esiEligible = gross > 0 && gross <= 21000;
+
+        if (epfBadge.length) {
+            epfBadge
+                .data("state", epfEligible ? "yes" : "no")
+                .attr("data-state", epfEligible ? "yes" : "no")
+                .css("color", epfEligible ? "#28a745" : "#dc3545")
+                .text(epfEligible ? "✓ EPF Active" : "✗ EPF Inactive");
+        }
+
+        if (esiBadge.length) {
             esiBadge
-                .data("state", "yes")
-                .attr("data-state", "yes")
-                .css("color", "#28a745")
-                .text("✓ ESI Active");
+                .data("state", esiEligible ? "yes" : "no")
+                .attr("data-state", esiEligible ? "yes" : "no")
+                .css("color", esiEligible ? "#28a745" : "#dc3545")
+                .text(esiEligible ? "✓ ESI Active" : "✗ ESI Inactive");
         }
     }
 

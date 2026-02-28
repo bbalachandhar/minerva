@@ -185,50 +185,42 @@ $count = 1;
                                                 <td><?php echo $staff['contact_no']; ?></td>
                                                 <?php }?>
                                             <td><small <?php echo $label; ?>><?php echo $wstatus; ?></small></td>
-                                                <?php if ($status == "paid") {
-            ?>
-                                                <td class="pull-right no-print">
-            <?php
-if ($this->rbac->hasPrivilege('staff_payroll', 'can_delete')) {
-                ?>
+                                            <td class="pull-right no-print">
+                                                <?php if ($status == "paid") { ?>
+                                                    <?php if ($this->rbac->hasPrivilege('staff_payroll', 'can_edit')) {?>
+                                                        <a href="<?php echo site_url('admin/payroll/edit/' . $staff["payslip_id"]) ?>" class="btn btn-default btn-xs" data-toggle="tooltip" title="<?php echo $this->lang->line('edit') ?>"><i class="fa fa-pencil"> </i></a>
+                                                    <?php }?>
+                                                    <?php if ($this->rbac->hasPrivilege('staff_payroll', 'can_delete')) {?>
                                                         <a class="btn btn-default btn-xs" onclick="return confirm('<?php echo $this->lang->line("are_you_sure_you_want_to_revert_this_record") ?>')" href="<?php echo base_url() . "admin/payroll/revertpayroll/" . $staff["payslip_id"] . "/" . $month_selected . "/" . date("Y") . "/" . $role_selected ?>" title="<?php echo $this->lang->line("revert") ?>">
                                                             <i class="fa fa-undo"> </i>
                                                         </a>
                                                     <?php }?>
-                                                    <a href="javascript:void" onclick="getPayslip('<?php echo $staff["payslip_id"]; ?>')"  role="button" class="btn btn-primary btn-xs checkbox-toggle edit_setting" data-toggle="tooltip"  ><?php echo $this->lang->line('view_payslip'); ?></a>
-
-                                                <?php }?></td>
-                                                <?php if ($status == "generated") {
-            ?>
-                                                <td class="pull-right no-print">
+                                                    <a href="javascript:void" onclick="getPayslip('<?php echo $staff["payslip_id"]; ?>')" role="button" class="btn btn-primary btn-xs checkbox-toggle edit_setting" data-toggle="tooltip"><?php echo $this->lang->line('view_payslip'); ?></a>
+                                                <?php } elseif ($status == "generated") { ?>
                                                     <?php if ($this->rbac->hasPrivilege('staff_payroll', 'can_edit')) {?>
-                                                    <a href="<?php echo site_url('admin/payroll/edit/' . $staff["payslip_id"]) ?>" class="btn btn-default btn-xs"  data-toggle="tooltip" title="<?php echo $this->lang->line('edit') ?>"><i class="fa fa-pencil"> </i></a>
+                                                        <a href="<?php echo site_url('admin/payroll/edit/' . $staff["payslip_id"]) ?>" class="btn btn-default btn-xs" data-toggle="tooltip" title="<?php echo $this->lang->line('edit') ?>"><i class="fa fa-pencil"> </i></a>
                                                     <?php }?>
-            <?php
-if ($this->rbac->hasPrivilege('staff_payroll', 'can_delete')) {
-                ?>
+                                                    <?php if ($this->rbac->hasPrivilege('staff_payroll', 'can_delete')) {?>
                                                         <a href="<?php echo base_url() ?>admin/payroll/deletepayroll/<?php echo $staff["payslip_id"] . "/" . $month_selected . "/" . date("Y") . "/" . $role_selected ?>" class="btn btn-default btn-xs" onclick="return confirm('<?php echo $this->lang->line("are_you_sure_you_want_to_revert_this_record") ?>')" title="<?php echo $this->lang->line("revert") ?>">
                                                             <i class="fa fa-undo"> </i>
                                                         </a>
-                <?php
-}
-            if ($this->rbac->hasPrivilege('staff_payroll', 'can_add')) {
-                ?>
-                                                        <a href="#" onclick="getRecord('<?php echo $staff["id"] ?>', '<?php echo $year ?>')" role="button" class="btn btn-primary btn-xs checkbox-toggle edit_setting" data-toggle="tooltip"   ><?php echo $this->lang->line('proceed_to_pay'); ?></a>
-                                                    <?php
-}
-        }
-        ?></td>
-                                                <?php if ($staff["payslip_id"] == 0) {
-            ?>
-                                                <td class="pull-right no-print">
-                                                    <?php
-if ($this->rbac->hasPrivilege('staff_payroll', 'can_add')) {
-                ?>
+                                                    <?php }
+                                                    if ($this->rbac->hasPrivilege('staff_payroll', 'can_add')) {?>
+                                                        <a href="#" onclick="getRecord('<?php echo $staff["id"] ?>', '<?php echo $year ?>')" role="button" class="btn btn-primary btn-xs checkbox-toggle edit_setting" data-toggle="tooltip"><?php echo $this->lang->line('proceed_to_pay'); ?></a>
+                                                    <?php }?>
+                                                <?php } else { ?>
+                                                    <?php if ($this->rbac->hasPrivilege('staff_payroll', 'can_edit')) {
+                                                        if ((int)$staff["payslip_id"] > 0) { ?>
+                                                            <a href="<?php echo site_url('admin/payroll/edit/' . $staff["payslip_id"]) ?>" class="btn btn-default btn-xs" data-toggle="tooltip" title="<?php echo $this->lang->line('edit') ?>"><i class="fa fa-pencil"> </i></a>
+                                                        <?php } else { ?>
+                                                            <a class="btn btn-default btn-xs" role="button" href="<?php echo base_url() . "admin/payroll/create/" . $month_selected . "/" . $year . "/" . $staff["id"] ?>" title="<?php echo $this->lang->line('edit') ?: 'Edit'; ?>"><i class="fa fa-pencil"> </i></a>
+                                                        <?php }
+                                                    }
+                                                    if ($this->rbac->hasPrivilege('staff_payroll', 'can_add')) {?>
                                                         <a class="btn btn-primary btn-xs checkbox-toggle edit_setting" role="button" href="<?php echo base_url() . "admin/payroll/create/" . $month_selected . "/" . $year . "/" . $staff["id"] ?>"><?php echo $this->lang->line('generate_payroll'); ?></a>
-                                            <?php }?>
-                                                </td>
-                                        <?php }?>
+                                                    <?php }?>
+                                                <?php } ?>
+                                            </td>
                                         </tr>
         <?php
 }
