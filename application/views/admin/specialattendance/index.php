@@ -62,7 +62,7 @@ $reason_options = array(
 );
 $no_staff_message = $this->lang->line('no_record_found');
 if (empty($no_staff_message)) {
-    $no_staff_message = 'No staff found below 50% attendance for the selected month and year.';
+    $no_staff_message = 'No staff found for the selected criteria.';
 }
 $confirm_generate_text = 'Generating special attendance will delete any existing special-attendance punches for the selected staff in this month and recreate them. Continue?';
 $confirm_process_text = 'Processing attendance will remove previously generated attendance records for the selected staff in this month and rebuild them from the current punches. Continue?';
@@ -334,6 +334,56 @@ $months = array(
         $processBtn.prop('disabled', !hasRows);
     }
 
+    function getPrefillStorageKey() {
+        var departmentId = $department.val() || 'all';
+        var month = $month.val() || '';
+        var year = $.trim($year.val()) || '';
+        return 'special_attendance_lop_' + departmentId + '_' + month + '_' + year;
+    }
+
+    function getStoredLopValues() {
+        var key = getPrefillStorageKey();
+        var raw = null;
+        try {
+            raw = window.localStorage.getItem(key);
+        } catch (e) {
+            return {};
+        }
+        if (!raw) {
+            return {};
+        }
+        try {
+            var parsed = JSON.parse(raw);
+            return (parsed && typeof parsed === 'object') ? parsed : {};
+        } catch (e) {
+            return {};
+        }
+    }
+
+    function saveStoredLopValues(values) {
+        var key = getPrefillStorageKey();
+        try {
+            window.localStorage.setItem(key, JSON.stringify(values || {}));
+        } catch (e) {
+        }
+    }
+
+    function setStoredLopValue(employeeId, rawValue) {
+        var values = getStoredLopValues();
+        var key = String(employeeId);
+        if (rawValue === null || typeof rawValue === 'undefined' || $.trim(String(rawValue)) === '') {
+            if (Object.prototype.hasOwnProperty.call(values, key)) {
+                delete values[key];
+            }
+        } else {
+            var num = parseFloat(rawValue);
+            if (isFinite(num) && num >= 0) {
+                values[key] = num;
+            }
+        }
+        saveStoredLopValues(values);
+    }
+
     function renderEmployees(employees) {
         $tableBody.empty();
         if (!employees || !employees.length) {
@@ -348,6 +398,8 @@ $months = array(
             workingDays = null;
         }
 
+        var storedLopValues = getStoredLopValues();
+
         var rows = [];
         $.each(employees, function(_, emp){
             var lopDays = '';
@@ -357,6 +409,10 @@ $months = array(
             }
             if (parseInt(emp.has_special_attendance, 10) === 1 && emp.lop_days !== null && typeof emp.lop_days !== 'undefined') {
                 lopDays = emp.lop_days;
+            }
+            var empKey = String(emp.id);
+            if (Object.prototype.hasOwnProperty.call(storedLopValues, empKey)) {
+                lopDays = storedLopValues[empKey];
             }
             rows.push('<tr data-employee-id="' + emp.id + '">\n' +
                 '   <td>' + (emp.code ? emp.code : '-') + '</td>\n' +
@@ -370,7 +426,7 @@ $months = array(
         $tableBody.html(rows.join('\n'));
         $wrapper.show();
         var deptText = $department.val() ? $department.find('option:selected').text() : '<?php echo addslashes($all_departments_label); ?>';
-        showMessage('info', employees.length + ' staff member(s) loaded below 50% attendance (' + deptText + ').');
+        showMessage('info', employees.length + ' staff member(s) loaded (' + deptText + ').');
         updateButtonsState();
     }
 
@@ -562,16 +618,28 @@ $months = array(
     });
 
     $tableBody.on('input', '.days-absent', function(){
+        var $row = $(this).closest('tr');
+        var empId = $row.data('employee-id');
         var max = parseFloat($(this).attr('max'));
         var value = parseFloat($(this).val());
         if (isFinite(max) && isFinite(value) && value > max) {
             $(this).val(max);
+            value = max;
+        }
+        var raw = $.trim($(this).val());
+        if (raw === '') {
+            setStoredLopValue(empId, null);
+        } else if (isFinite(value) && value >= 0) {
+            setStoredLopValue(empId, value);
         }
     });
 
     $tableBody.on('blur', '.days-absent', function(){
+        var $row = $(this).closest('tr');
+        var empId = $row.data('employee-id');
         var raw = $.trim($(this).val());
         if (raw === '') {
+            setStoredLopValue(empId, null);
             $(this).removeClass('input-error');
             return;
         }
@@ -579,7 +647,10 @@ $months = array(
         var validHalfStep = isFinite(value) && value >= 0 && Math.abs((value * 2) - Math.round(value * 2)) < 0.000001;
         if (!validHalfStep) {
             $(this).val('');
+            setStoredLopValue(empId, null);
             showToast('warning', 'Use only 0.5 step values (0, 0.5, 1, 1.5, ...).');
+        } else {
+            setStoredLopValue(empId, value);
         }
     });
 

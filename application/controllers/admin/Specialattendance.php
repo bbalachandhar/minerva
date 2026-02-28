@@ -51,7 +51,7 @@ class Specialattendance extends Admin_Controller
             $workingDays = $this->SpecialAttendance_model->getWorkingDaysCount($month, $year);
         }
 
-        $filteredEmployees = [];
+        $listedEmployees = [];
         foreach ($employees as &$emp) {
             $emp['present_days'] = isset($presentCounts[$emp['id']]) ? $presentCounts[$emp['id']] : 0;
             $hasSpecial = isset($presentEquivalent[$emp['id']]);
@@ -75,13 +75,11 @@ class Specialattendance extends Admin_Controller
                 $emp['lop_days'] = null;
             }
 
-            if ($workingDays !== null && (float)$workingDays > 0 && $emp['attendance_percentage'] < 50) {
-                $filteredEmployees[] = $emp;
-            }
+            $listedEmployees[] = $emp;
         }
         unset($emp);
 
-        echo json_encode($filteredEmployees);
+        echo json_encode($listedEmployees);
     }
     
     public function get_working_days()
@@ -234,7 +232,11 @@ class Specialattendance extends Admin_Controller
             foreach ($employee_ids as $emp_id) {
                 $raw_days = isset($days_absent[$emp_id]) ? trim((string)$days_absent[$emp_id]) : '';
                 if ($raw_days !== '' && is_numeric($raw_days) && (float)$raw_days >= 0) {
-                    $valid_entries++;
+                    $days_value = (float)$raw_days;
+                    $is_half_step = abs(($days_value * 2) - round($days_value * 2)) < 0.000001;
+                    if ($is_half_step) {
+                        $valid_entries++;
+                    }
                 }
             }
         }
@@ -253,6 +255,10 @@ class Specialattendance extends Admin_Controller
             $raw_days = isset($days_absent[$emp_id]) ? trim((string)$days_absent[$emp_id]) : '';
             if ($raw_days !== '' && is_numeric($raw_days) && (float)$raw_days >= 0) {
                 $days = (float)$raw_days;
+                $is_half_step = abs(($days * 2) - round($days * 2)) < 0.000001;
+                if (!$is_half_step) {
+                    continue;
+                }
                 $schedule = $this->StaffAttendanceSchedule_model->getByStaffId($emp_id);
                 $punches = $this->SpecialAttendance_model->generatePunchesFromLop($emp_id, $month, $year, $days, $schedule);
                 $this->StaffBiometricPunchesManual_model->replacePunches($emp_id, $month, $year, $punches, $admin_user_id, $reason);
@@ -286,7 +292,11 @@ class Specialattendance extends Admin_Controller
                     return false;
                 }
                 $raw_days = trim((string)$days_absent[$id]);
-                return ($raw_days !== '' && is_numeric($raw_days) && (float)$raw_days >= 0);
+                if (!($raw_days !== '' && is_numeric($raw_days) && (float)$raw_days >= 0)) {
+                    return false;
+                }
+                $days_value = (float)$raw_days;
+                return abs(($days_value * 2) - round($days_value * 2)) < 0.000001;
             });
         }
 

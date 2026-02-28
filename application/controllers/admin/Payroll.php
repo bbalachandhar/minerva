@@ -747,6 +747,77 @@ class Payroll extends Admin_Controller
         return (float) round((float) $amount, 0, PHP_ROUND_HALF_UP);
     }
 
+    private function getMonthDateRange($month, $year)
+    {
+        $month_num = (int) $month;
+        if ($month_num < 1 || $month_num > 12) {
+            $month_num = (int) date('m', strtotime($year . '-' . $month . '-01'));
+        }
+        $start_date = sprintf('%04d-%02d-01', (int) $year, $month_num);
+        $end_date = date('Y-m-t', strtotime($start_date));
+
+        return [
+            'month_num' => $month_num,
+            'start_date' => $start_date,
+            'end_date' => $end_date,
+            'total_days' => cal_days_in_month(CAL_GREGORIAN, $month_num, (int) $year),
+        ];
+    }
+
+    private function applyDojProrataToGross($full_gross_salary, $month, $year, $date_of_joining)
+    {
+        $full_gross_salary = (float) $full_gross_salary;
+        $range = $this->getMonthDateRange($month, $year);
+        $total_days = (int) ($range['total_days'] ?? 0);
+
+        $result = [
+            'is_prorata_applied' => false,
+            'payable_days' => $total_days,
+            'total_days' => $total_days,
+            'prorated_gross_salary' => $full_gross_salary,
+            'prorata_deduction' => 0,
+        ];
+
+        if (empty($date_of_joining)) {
+            return $result;
+        }
+
+        $joining_ts = strtotime($date_of_joining);
+        if ($joining_ts === false) {
+            return $result;
+        }
+
+        $joining_date = date('Y-m-d', $joining_ts);
+        $month_start = $range['start_date'];
+        $month_end = $range['end_date'];
+
+        if ($joining_date <= $month_start) {
+            return $result;
+        }
+
+        $result['is_prorata_applied'] = true;
+
+        if ($joining_date > $month_end) {
+            $result['payable_days'] = 0;
+            $result['prorated_gross_salary'] = 0;
+            $result['prorata_deduction'] = $full_gross_salary;
+            return $result;
+        }
+
+        $start_dt = new DateTime($joining_date);
+        $end_dt = new DateTime($month_end);
+        $payable_days = (int) $start_dt->diff($end_dt)->days + 1;
+        $payable_days = max(0, min($payable_days, $total_days));
+
+        $prorated_gross_salary = $total_days > 0 ? (($full_gross_salary / $total_days) * $payable_days) : 0;
+
+        $result['payable_days'] = $payable_days;
+        $result['prorated_gross_salary'] = $prorated_gross_salary;
+        $result['prorata_deduction'] = max(0, $full_gross_salary - $prorated_gross_salary);
+
+        return $result;
+    }
+
     public function editpayroll()
     {
         $id              = $this->input->post("id");
@@ -1666,14 +1737,16 @@ class Payroll extends Admin_Controller
                 }
             }
 
-            $gross_salary = (float) $basic + (float) $total_allowance;
+            $full_gross_salary = (float) $basic + (float) $total_allowance;
+            $prorata = $this->applyDojProrataToGross($full_gross_salary, $month_numeric, $year, $staff['date_of_joining'] ?? null);
+            $gross_salary = (float) ($prorata['prorated_gross_salary'] ?? $full_gross_salary);
             $lop_deduction = 0;
             if ($net_lop_days > 0) {
                 // Calculate total days in the month
                 $month_num = date('n', strtotime($year . '-' . $month . '-01'));
                 $total_days_of_month = cal_days_in_month(CAL_GREGORIAN, $month_num, (int)$year);
-                
-                $lop_deduction = ($gross_salary / $total_days_of_month) * $net_lop_days;
+
+                $lop_deduction = ($full_gross_salary / $total_days_of_month) * $net_lop_days;
             }
 
             // Calculate EPF and TDS using the new library
@@ -2095,13 +2168,6 @@ class Payroll extends Admin_Controller
             }
         }
 
-        $gross_salary = (float) $basic + (float) $total_allowance;
-        $lop_deduction = 0;
-        if ($net_lop_days > 0) {
-            $total_days_of_month = cal_days_in_month(CAL_GREGORIAN, (int) $month_num, (int) $year);
-            $lop_deduction = ($gross_salary / $total_days_of_month) * $net_lop_days;
-        }
-
         $epf_wage = 0;
         $employee_epf = 0;
         $employer_pf = 0;
@@ -2114,6 +2180,15 @@ class Payroll extends Admin_Controller
         $staff_data = $this->payroll_model->searchEmployeeById($staff_id);
         if (!is_array($staff_data)) {
             $staff_data = [];
+        }
+
+        $full_gross_salary = (float) $basic + (float) $total_allowance;
+        $prorata = $this->applyDojProrataToGross($full_gross_salary, $month_num, $year, $staff_data['date_of_joining'] ?? null);
+        $gross_salary = (float) ($prorata['prorated_gross_salary'] ?? $full_gross_salary);
+        $lop_deduction = 0;
+        if ($net_lop_days > 0) {
+            $total_days_of_month = cal_days_in_month(CAL_GREGORIAN, (int) $month_num, (int) $year);
+            $lop_deduction = ($full_gross_salary / $total_days_of_month) * $net_lop_days;
         }
 
         $has_uan = isset($staff_data['uan_no']) && trim((string) $staff_data['uan_no']) !== '';
@@ -2287,6 +2362,10 @@ class Payroll extends Admin_Controller
             'actual_lop_days' => round($actual_lop_days, 2),
             'adjusted_lop_days' => round($adjusted_lop_days, 2),
             'net_lop_days' => round($net_lop_days, 2),
+            'is_prorata_applied' => !empty($prorata['is_prorata_applied']),
+            'payable_days' => (int) ($prorata['payable_days'] ?? 0),
+            'total_days' => (int) ($prorata['total_days'] ?? 0),
+            'prorata_deduction' => round((float) ($prorata['prorata_deduction'] ?? 0), 2),
             'is_increment_month' => $is_increment_month,
             'increment_amount' => round($increment_amount, 2)
         ];

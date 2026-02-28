@@ -40,6 +40,7 @@ class SpecialAttendance_model extends CI_Model {
     public function generatePunchesFromLop($staff_id, $month, $year, $lop_days, $schedule) {
         $this->load->model('setting_model');
         $settings = $this->setting_model->getSetting();
+        $attendanceWindows = $this->getStaffAttendanceWindows($staff_id, $schedule, $settings);
 
         $working_days = $this->getWorkingDays($month, $year, $settings);
         $total_working_days = count($working_days);
@@ -69,14 +70,18 @@ class SpecialAttendance_model extends CI_Model {
         foreach ($selected_days as $index => $date) {
             $is_half_day = $has_half_day && ($index === (count($selected_days) - 1));
 
-            $entryFrom = !empty($schedule['entry_time_from']) ? $schedule['entry_time_from'] : '09:00:00';
-            $entryTo = !empty($schedule['entry_time_to']) ? $schedule['entry_time_to'] : '09:30:00';
+            $entryFrom = $attendanceWindows['entry_from'];
+            $entryTo = $attendanceWindows['entry_to'];
+            if ($is_half_day && !empty($attendanceWindows['half_day_entry_from']) && !empty($attendanceWindows['half_day_entry_to'])) {
+                $entryFrom = $attendanceWindows['half_day_entry_from'];
+                $entryTo = $attendanceWindows['half_day_entry_to'];
+            }
             $in_time = $this->randomizeTime($entryFrom, $entryTo);
 
             if ($is_half_day) {
                 $out_time = $this->calculateOutTime($in_time, 4, 5);
             } else {
-                $out_time = $this->calculateOutTime($in_time, 8, 9);
+                $out_time = $this->calculateFullDayOutTime($in_time, $attendanceWindows['full_day_out_cutoff']);
             }
 
             $punches[] = [
@@ -89,6 +94,87 @@ class SpecialAttendance_model extends CI_Model {
         return $punches;
     }
 
+    private function getStaffAttendanceWindows($staff_id, $schedule, $settings) {
+        $entryFrom = !empty($schedule['entry_time_from']) ? $schedule['entry_time_from'] : '09:00:00';
+        $entryTo = !empty($schedule['entry_time_to']) ? $schedule['entry_time_to'] : '09:30:00';
+        $halfDayEntryFrom = null;
+        $halfDayEntryTo = null;
+
+        $fullDayOutCutoff = !empty($settings->evening_session_end_time) ? $settings->evening_session_end_time : null;
+
+        if (!empty($staff_id)) {
+            $this->load->model('staff_model');
+            $this->load->model('staffAttendaceSetting_model');
+
+            $staff = $this->staff_model->get((int)$staff_id);
+            $role_id = isset($staff['role_id']) ? (int)$staff['role_id'] : 0;
+
+            if ($role_id > 0) {
+                $present_settings = $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($role_id, 1);
+                $first_half_late_settings = $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($role_id, 2);
+                $fhp_settings = $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($role_id, 5);
+                $half_day_settings = $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($role_id, 4);
+                $permission_second_session_settings = $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($role_id, 7);
+
+                if (!empty($present_settings->entry_time_from) && !empty($present_settings->entry_time_to)) {
+                    $entryFrom = $present_settings->entry_time_from;
+                    $entryTo = $present_settings->entry_time_to;
+                } elseif (!empty($first_half_late_settings->entry_time_from) && !empty($first_half_late_settings->entry_time_to)) {
+                    $entryFrom = $first_half_late_settings->entry_time_from;
+                    $entryTo = $first_half_late_settings->entry_time_to;
+                } elseif (!empty($fhp_settings->entry_time_from) && !empty($fhp_settings->entry_time_to)) {
+                    $entryFrom = $fhp_settings->entry_time_from;
+                    $entryTo = $fhp_settings->entry_time_to;
+                }
+
+                if (empty($fullDayOutCutoff) && !empty($permission_second_session_settings->entry_time_to)) {
+                    $fullDayOutCutoff = $permission_second_session_settings->entry_time_to;
+                }
+
+                if (!empty($half_day_settings->entry_time_from) && !empty($half_day_settings->entry_time_to)) {
+                    $halfDayEntryFrom = $half_day_settings->entry_time_from;
+                    $halfDayEntryTo = $half_day_settings->entry_time_to;
+                }
+            }
+        }
+
+        return [
+            'entry_from' => $entryFrom,
+            'entry_to' => $entryTo,
+            'full_day_out_cutoff' => $fullDayOutCutoff,
+            'half_day_entry_from' => $halfDayEntryFrom,
+            'half_day_entry_to' => $halfDayEntryTo
+        ];
+    }
+
+    private function calculateFullDayOutTime($in_time, $fullDayOutCutoff = null) {
+        $defaultOut = $this->calculateOutTime($in_time, 8, 9);
+        if (empty($fullDayOutCutoff)) {
+            return $defaultOut;
+        }
+
+        $inTs = strtotime($in_time);
+        $defaultTs = strtotime($defaultOut);
+        $cutoffTs = strtotime($fullDayOutCutoff);
+
+        if ($inTs === false || $defaultTs === false || $cutoffTs === false) {
+            return $defaultOut;
+        }
+
+        if ($defaultTs >= $cutoffTs) {
+            return date('H:i:s', $defaultTs);
+        }
+
+        $minTs = max($inTs + (8 * 3600), $cutoffTs);
+        $maxTs = max($inTs + (9 * 3600), $minTs);
+
+        if ($maxTs <= $minTs) {
+            return date('H:i:s', $minTs);
+        }
+
+        return date('H:i:s', rand($minTs, $maxTs));
+    }
+
     private function getWorkingDays($month, $year, $settings) {
         $monthNum = $this->getMonthNumber($month, $year);
         if ($monthNum === null) {
@@ -99,11 +185,13 @@ class SpecialAttendance_model extends CI_Model {
         $weekendDays = array_map('intval', explode(',', $weekendDaysStr));
         $isSecondSaturdayHoliday = isset($settings->isSecondSaturdayHoliday) ? (int)$settings->isSecondSaturdayHoliday : 0;
 
-        $holidayDates = $this->getHolidayDates($monthNum, $year);
+        $holidayData = $this->getHolidayDates($monthNum, $year);
+        $holidayDates = $holidayData['holiday_dates'] ?? [];
+        $compensationDates = $holidayData['compensation_dates'] ?? [];
 
         if ($isSecondSaturdayHoliday) {
             $secondSaturday = $this->getSecondSaturdayDate($monthNum, $year);
-            if ($secondSaturday && !in_array($secondSaturday, $holidayDates, true)) {
+            if ($secondSaturday && !in_array($secondSaturday, $compensationDates, true) && !in_array($secondSaturday, $holidayDates, true)) {
                 $holidayDates[] = $secondSaturday;
             }
         }
@@ -113,6 +201,12 @@ class SpecialAttendance_model extends CI_Model {
         for ($d = 1; $d <= $num_days; $d++) {
             $date = sprintf('%04d-%02d-%02d', $year, $monthNum, $d);
             $dow = (int)date('w', strtotime($date));
+
+            if (in_array($date, $compensationDates, true)) {
+                $days[] = $date;
+                continue;
+            }
+
             if (in_array($dow, $weekendDays, true)) {
                 continue;
             }
@@ -138,17 +232,20 @@ class SpecialAttendance_model extends CI_Model {
 
     private function getHolidayDates($monthNum, $year) {
         $holidayDates = [];
+        $compensationDates = [];
 
         $monthStart = sprintf('%04d-%02d-01', $year, $monthNum);
         $monthEnd = sprintf('%04d-%02d-%02d', $year, $monthNum, cal_days_in_month(CAL_GREGORIAN, $monthNum, (int)$year));
 
-        $this->db->select('from_date, to_date');
+        $this->db->select('annual_calendar.from_date, annual_calendar.to_date, holiday_type.type');
         $this->db->from('annual_calendar');
+        $this->db->join('holiday_type', 'holiday_type.id = annual_calendar.holiday_type', 'left');
         $this->db->where('is_active', 1);
         $this->db->where("(from_date <= '{$monthEnd}' AND to_date >= '{$monthStart}')");
         $holidays = $this->db->get()->result_array();
 
         foreach ($holidays as $holiday) {
+            $typeLabel = strtolower(trim($holiday['type'] ?? ''));
             $from = new DateTime(date('Y-m-d', strtotime($holiday['from_date'])));
             $to = new DateTime(date('Y-m-d', strtotime($holiday['to_date'])));
             $interval = new DateInterval('P1D');
@@ -156,12 +253,22 @@ class SpecialAttendance_model extends CI_Model {
 
             foreach ($period as $date) {
                 if ((int)$date->format('n') == $monthNum && (int)$date->format('Y') == (int)$year) {
-                    $holidayDates[] = $date->format('Y-m-d');
+                    if ($typeLabel === 'compensation') {
+                        $compensationDates[] = $date->format('Y-m-d');
+                    } else {
+                        $holidayDates[] = $date->format('Y-m-d');
+                    }
                 }
             }
         }
 
-        return array_values(array_unique($holidayDates));
+        $compensationDates = array_values(array_unique($compensationDates));
+        $holidayDates = array_values(array_diff(array_unique($holidayDates), $compensationDates));
+
+        return [
+            'holiday_dates' => $holidayDates,
+            'compensation_dates' => $compensationDates,
+        ];
     }
 
     private function getSecondSaturdayDate($monthNum, $year) {
