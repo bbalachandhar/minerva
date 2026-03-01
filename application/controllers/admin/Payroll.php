@@ -182,9 +182,13 @@ class Payroll extends Admin_Controller
         $data['classlist']        = $user_type;
         $data['sch_setting']      = $this->sch_setting_detail;
         $searchEmployee           = $this->payroll_model->searchEmployeeById($employee_payroll['staff_id']);
-        if(empty($employee_payroll['basic']) || $employee_payroll['basic'] == 0){
-            $employee_payroll['basic'] = $searchEmployee['basic_salary'];
-        }
+        $employee_payroll['basic'] = $this->resolvePayrollBasicAmount(
+            $employee_payroll['basic'] ?? 0,
+            $searchEmployee,
+            (int) $employee_payroll['staff_id']
+        );
+
+        $this->ensureBasicAllowanceExists((int) $id, (int) $employee_payroll['staff_id'], (float) $employee_payroll['basic']);
         
         // ==========================================
         // Check for Salary Increments (NEW)
@@ -238,6 +242,40 @@ class Payroll extends Admin_Controller
         $this->load->view("layout/header", $data);
         $this->load->view("admin/payroll/edit", $data);
         $this->load->view("layout/footer", $data);
+    }
+
+    private function ensureBasicAllowanceExists($payslip_id, $staff_id, $basic_amount)
+    {
+        if ($payslip_id <= 0 || $staff_id <= 0) {
+            return;
+        }
+
+        $basic_amount = (float) $basic_amount;
+
+        $existing = $this->db->select('id')
+            ->from('payslip_allowance')
+            ->where('payslip_id', $payslip_id)
+            ->where('allowance_type', 'BASIC')
+            ->where('cal_type', 'positive')
+            ->limit(1)
+            ->get()
+            ->row_array();
+
+        if (!empty($existing)) {
+            $this->db->where('payslip_id', $payslip_id)
+                ->where('allowance_type', 'BASIC')
+                ->where('cal_type', 'positive')
+                ->update('payslip_allowance', ['amount' => $basic_amount]);
+            return;
+        }
+
+        $this->payroll_model->add_allowance([
+            'payslip_id' => $payslip_id,
+            'allowance_type' => 'BASIC',
+            'amount' => $basic_amount,
+            'staff_id' => $staff_id,
+            'cal_type' => 'positive',
+        ]);
     }
 
     private function getPayrollLopSummary($monthAttendance, $monthLeaves, $month, $year, $staff_id)
@@ -747,6 +785,34 @@ class Payroll extends Admin_Controller
         return (float) round((float) $amount, 0, PHP_ROUND_HALF_UP);
     }
 
+    private function resolvePayrollBasicAmount($basic_amount, $staff = null, $staff_id = 0)
+    {
+        $basic_amount = (float) $basic_amount;
+        if ($basic_amount > 0) {
+            return $basic_amount;
+        }
+
+        if (is_array($staff) && !empty($staff['basic_salary'])) {
+            $contract_basic = (float) $staff['basic_salary'];
+            if ($contract_basic > 0) {
+                return $contract_basic;
+            }
+        }
+
+        $staff_id = (int) $staff_id;
+        if ($staff_id > 0) {
+            $staff_row = $this->payroll_model->searchEmployeeById($staff_id);
+            if (is_array($staff_row) && !empty($staff_row['basic_salary'])) {
+                $contract_basic = (float) $staff_row['basic_salary'];
+                if ($contract_basic > 0) {
+                    return $contract_basic;
+                }
+            }
+        }
+
+        return 0;
+    }
+
     private function getMonthDateRange($month, $year)
     {
         $month_num = (int) $month;
@@ -963,6 +1029,7 @@ class Payroll extends Admin_Controller
         if (!is_array($staff_data)) {
             $staff_data = [];
         }
+        $basic = $this->resolvePayrollBasicAmount($basic, $staff_data, (int) $staff_id);
         $has_uan = isset($staff_data['uan_no']) && trim((string) $staff_data['uan_no']) !== '';
         $has_esi_no = isset($staff_data['esi_no']) && trim((string) $staff_data['esi_no']) !== '';
 
@@ -1179,6 +1246,8 @@ class Payroll extends Admin_Controller
             $saved_deductions_count++;
         }
 
+            $this->ensureBasicAllowanceExists((int) $payslipid, (int) $staff_id, (float) $basic);
+
             $this->session->set_flashdata('msg', '<div class="alert alert-success text-center">Payslip updated successfully. (Earnings saved: ' . (int) $saved_earnings_count . ', Deductions saved: ' . (int) $saved_deductions_count . ')</div>');
             $redirect_id = $id;
             if (empty($redirect_id)) {
@@ -1332,6 +1401,7 @@ class Payroll extends Admin_Controller
         $month           = $this->input->post("month");
         $name            = $this->input->post("name");
         $year            = $this->input->post("year");      
+        $basic = $this->resolvePayrollBasicAmount($basic, null, (int) $staff_id);
         
         $leave_deduction = $this->input->post("leave_deduction");
         
@@ -1455,6 +1525,8 @@ class Payroll extends Admin_Controller
                     $this->payroll_model->add_allowance($esi_data);
                 }
 
+                $this->ensureBasicAllowanceExists((int) $payslipid, (int) $staff_id, (float) $basic);
+
                 $this->session->set_flashdata('msg', '<div class="alert alert-success text-center">Payslip updated successfully.</div>');
                 $redirect_id = $id;
                 if (empty($redirect_id)) {
@@ -1546,68 +1618,7 @@ class Payroll extends Admin_Controller
             $month_key = '01-' . $month_num . '-' . $year;
             $attendance = $monthAttendanceData[$month_key] ?? reset($monthAttendanceData) ?? [];
 
-            $present_days = (float) ($attendance['present'] ?? 0);
-            $late_days = (float) ($attendance['late'] ?? 0);
-            $half_days = (float) ($attendance['half_day'] ?? 0);
-            $first_half_permission = (float) ($attendance['first_half_permission'] ?? 0);
-            $second_half_permission = (float) ($attendance['second_half_permission'] ?? 0);
-
-            $effective_presence = $present_days
-                + $late_days
-                + $half_days
-                + $first_half_permission
-                + $second_half_permission;
-
-            if ($effective_presence <= 0) {
-                $data = array(
-                    'staff_id' => $staff['id'],
-                    'basic' => 0,
-                    'da' => 0,
-                    'total_allowance' => 0,
-                    'total_deduction' => 0,
-                    'net_salary' => 0,
-                    'payment_date' => date('Y-m-d'),
-                    'status' => 'no_attendance',
-                    'month' => $month,
-                    'year' => $year,
-                    'tax' => 0,
-                    'leave_deduction' => 0,
-                    'actual_lop_days' => 0,
-                    'adjusted_lop_days' => 0,
-                    'net_lop_days' => 0,
-                    'epf_wage' => 0,
-                    'employee_epf' => 0,
-                    'employer_pf' => 0,
-                    'employer_eps' => 0,
-                    'employer_edli' => 0,
-                    'employer_admin' => 0,
-                    'esi_wage' => 0,
-                    'employee_esi' => 0,
-                    'employer_esi' => 0,
-                    'tax_regime' => 'new',
-                );
-
-                if (!empty($staff['payslip_id']) && $overwrite) {
-                    $data['id'] = $staff['payslip_id'];
-                }
-
-                $payslipid = $this->payroll_model->createPayslip($data);
-
-                if ($payslipid) {
-                    $this->db->where('payslip_id', $payslipid)->delete('payslip_allowance');
-                }
-
-                if (!empty($staff['payslip_id']) && $overwrite) {
-                    $updated_existing++;
-                } else {
-                    $generated++;
-                }
-
-                $zero_salary_generated++;
-                continue;
-            }
-
-            $basic = !empty($staff['basic_salary']) ? $staff['basic_salary'] : 0;
+            $basic = $this->resolvePayrollBasicAmount($staff['basic_salary'] ?? 0, $staff, (int) $staff['id']);
             $last_payslip = $this->payroll_model->getLastPayslip($staff['id']);
             $source_payslip = $last_payslip;
             if (!empty($staff['payslip_id']) && $overwrite) {
@@ -1639,6 +1650,7 @@ class Payroll extends Admin_Controller
                 if (!empty($source_payslip['basic'])) {
                     $basic = $source_payslip['basic'];
                 }
+                $basic = $this->resolvePayrollBasicAmount($basic, $staff, (int) $staff['id']);
                 $tax = !empty($source_payslip['tax']) ? $source_payslip['tax'] : 0;
                 // Only get POSITIVE allowances (earnings) from last payslip
                 // Deductions are NOT copied - they are calculated fresh each month based on EPF/ESI/TDS rules
@@ -1969,6 +1981,9 @@ class Payroll extends Admin_Controller
                 $this->payroll_model->add_allowance($tds_data);
             }
 
+            // Ensure BASIC earning row exists in payslip_allowance for consistent earnings rendering
+            $this->ensureBasicAllowanceExists((int) $payslipid, (int) $staff['id'], (float) $basic);
+
             if (!empty($staff['payslip_id']) && $overwrite) {
                 $updated_existing++;
             } else {
@@ -2030,6 +2045,11 @@ class Payroll extends Admin_Controller
         $month_numeric = date('n', strtotime($year . '-' . $month . '-01'));
         $basic = $this->input->post('basic');
         $basic = $basic ? convertCurrencyFormatToBaseAmount($basic) : 0;
+        $staff_data = $this->payroll_model->searchEmployeeById($staff_id);
+        if (!is_array($staff_data)) {
+            $staff_data = [];
+        }
+        $basic = $this->resolvePayrollBasicAmount($basic, $staff_data, $staff_id);
 
         $allowance_type_id = $this->input->post('allowance_type_id');
         $allowance_amount = $this->input->post('allowance_amount');
@@ -2176,11 +2196,6 @@ class Payroll extends Admin_Controller
         $employer_admin = 0;
         $esi_wage = 0;
         $esi_deduction = 0;
-
-        $staff_data = $this->payroll_model->searchEmployeeById($staff_id);
-        if (!is_array($staff_data)) {
-            $staff_data = [];
-        }
 
         $full_gross_salary = (float) $basic + (float) $total_allowance;
         $prorata = $this->applyDojProrataToGross($full_gross_salary, $month_num, $year, $staff_data['date_of_joining'] ?? null);

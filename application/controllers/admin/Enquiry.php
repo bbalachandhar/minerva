@@ -108,6 +108,7 @@ class Enquiry extends Admin_Controller
         $this->form_validation->set_rules('source', $this->lang->line('source'), 'trim|required|xss_clean');
         $this->form_validation->set_rules('date', $this->lang->line('date'), 'trim|required|xss_clean');
         $this->form_validation->set_rules('follow_up_date', $this->lang->line('next_follow_up_date'), 'trim|required|xss_clean');
+        $this->form_validation->set_rules('course_type', 'Course Type', 'trim|required|xss_clean');
         $this->form_validation->set_rules('admission_course_id', 'Course', 'trim|required|xss_clean');
         
         if ($this->form_validation->run() == false) {
@@ -117,6 +118,7 @@ class Enquiry extends Admin_Controller
                 'source'  => form_error('source'),
                 'date'    => form_error('date'),
                 'follow_up_date' => form_error('follow_up_date'),
+                'course_type' => form_error('course_type'),
                 'admission_course_id' => form_error('admission_course_id'),
             );
 

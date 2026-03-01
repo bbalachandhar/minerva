@@ -178,6 +178,13 @@ class Specialattendance extends Admin_Controller
 
         $compensationDates = array_values(array_unique($compensationDates));
         $holidayDates = array_values(array_diff(array_unique($holidayDates), $compensationDates));
+
+        // Holidays that fall on configured weekends should not be counted in UI holiday badge
+        // because those days are already excluded via weekend rules.
+        $effectiveHolidayDates = array_values(array_filter($holidayDates, function ($dateStr) use ($weekendDays) {
+            $dayOfWeek = (int)date('w', strtotime($dateStr));
+            return !in_array($dayOfWeek, $weekendDays, true);
+        }));
         
         // Count working days (exclude configured weekend days and holidays)
         for ($i = 1; $i <= $daysInMonth; $i++) {
@@ -201,13 +208,14 @@ class Specialattendance extends Admin_Controller
             ' weekendDays=' . json_encode($weekendDays) .
             ' secondSaturday=' . $isSecondSaturdayHoliday .
             ' holidayDates=' . json_encode($holidayDates) .
+            ' effectiveHolidayDates=' . json_encode($effectiveHolidayDates) .
             ' daysInMonth=' . $daysInMonth .
             ' workingDays=' . $workingDays);
         
         echo json_encode([
             'working_days' => $workingDays,
             'payable_working_days' => $daysInMonth,
-            'holidays' => $holidayDates,
+            'holidays' => $effectiveHolidayDates,
             'weekend_days' => $weekendDays
         ]);
     }

@@ -234,14 +234,15 @@ if (!empty($next_date) && $next_date != '0000-00-00') {
                                     <div class="col-sm-4">
                                         <div class="form-group">
                                             <label for="pwd"><?php echo $this->lang->line('name'); ?></label><small class="req"> *</small>
-                                            <input type="text" id="name_add" autocomplete="off" class="form-control" value="<?php echo set_value('name'); ?>" name="name">
+                                            <input type="text" id="name_add" autocomplete="off" class="form-control" value="<?php echo set_value('name'); ?>" name="name" required>
                                             <span id="name_add_error" class="text-danger"></span>
                                         </div>
                                     </div>
                                     <div class="col-sm-4">
                                         <div class="form-group">
                                             <label for="pwd"><?php echo $this->lang->line('phone'); ?></label><small class="req"> *</small> <small class="req"><span id="phone_error_message"></span></small>
-                                            <input id="number" autocomplete="off" name="contact" placeholder="" type="text" class="form-control"  value="<?php echo set_value('contact'); ?>" />
+                                            <input id="number" autocomplete="off" name="contact" placeholder="" type="text" class="form-control"  value="<?php echo set_value('contact'); ?>" required />
+                                            <span id="contact_add_error" class="text-danger"></span>
                                         </div>
                                     </div>
                                     <div class="col-sm-4">
@@ -281,14 +282,15 @@ if (!empty($next_date) && $next_date != '0000-00-00') {
                                     <div class="col-sm-4">
                                         <div class="form-group">
                                             <label for="pwd"><?php echo $this->lang->line('date'); ?><small class="req"> *</small></label>
-                                            <input type="text" id="date" name="date" class="form-control date" value="<?php echo set_value('date', date($this->customlib->getSchoolDateFormat())); ?>" readonly="">
+                                            <input type="text" id="date" name="date" class="form-control date" value="<?php echo set_value('date', date($this->customlib->getSchoolDateFormat())); ?>" readonly="" required>
                                             <span id="date_add_error" class="text-danger"></span>
                                         </div>
                                     </div>
                                     <div class="col-sm-4">
                                         <div class="form-group">
                                             <label for="pwd"><?php echo $this->lang->line('next_follow_up_date'); ?><small class="req"> *</small></label>
-                                            <input type="text" id="date_of_call" name="follow_up_date"class="form-control date" value="<?php echo set_value('follow_up_date', date($this->customlib->getSchoolDateFormat())); ?>" readonly="">
+                                            <input type="text" id="date_of_call" name="follow_up_date"class="form-control date" value="<?php echo set_value('follow_up_date', date($this->customlib->getSchoolDateFormat())); ?>" readonly="" required>
+                                            <span id="follow_up_date_add_error" class="text-danger"></span>
                                         </div>
                                     </div>
                                     <div class="col-sm-4">
@@ -306,13 +308,14 @@ if (!empty($next_date) && $next_date != '0000-00-00') {
                                     <div class="col-sm-3">
                                         <div class="form-group">
                                             <label for="pwd"><?php echo $this->lang->line('source'); ?></label> <small class="req"> *</small>
-                                            <select name="source" class="form-control">
+                                            <select name="source" id="source_add" class="form-control" required>
                                                 <option value=""><?php echo $this->lang->line('select') ?></option>
                                                 <?php foreach ($sourcelist as $key => $value) {?>
                                                     <option value="<?php echo $value['source']; ?>"><?php echo $value['source']; ?></option>
                                                 <?php }
 ?>
                                             </select>
+                                            <span id="source_add_error" class="text-danger"></span>
                                         </div><!--./form-group-->
                                     </div>
                                     <div class="col-sm-3">
@@ -338,7 +341,7 @@ if (!empty($next_date) && $next_date != '0000-00-00') {
                                             <label for="pwd">Course Type</label><small class="req"> *</small>
                                             <div>
                                                 <label class="radio-inline">
-                                                    <input type="radio" name="course_type" value="ug_first_year"> UG First Year
+                                                    <input type="radio" name="course_type" value="ug_first_year" required> UG First Year
                                                 </label>
                                                 <label class="radio-inline">
                                                     <input type="radio" name="course_type" value="ug_lateral"> UG Lateral
@@ -347,14 +350,16 @@ if (!empty($next_date) && $next_date != '0000-00-00') {
                                                     <input type="radio" name="course_type" value="pg_first_year"> PG First Year
                                                 </label>
                                             </div>
+                                            <span id="course_type_add_error" class="text-danger"></span>
                                         </div><!--./form-group-->
                                     </div>
                                     <div class="col-sm-3">
                                         <div class="form-group">
                                             <label for="pwd">Course</label><small class="req"> *</small>
-                                            <select name="admission_course_id" id="admission_course_id_add" class="form-control">
+                                            <select name="admission_course_id" id="admission_course_id_add" class="form-control" required>
                                                 <option value="">Select Course Type First</option>
                                             </select>
+                                            <span id="admission_course_id_add_error" class="text-danger"></span>
                                         </div><!--./form-group-->
                                     </div>
                                 </div><!--./row-->
@@ -406,8 +411,85 @@ if (!empty($next_date) && $next_date != '0000-00-00') {
         show:false
         });
     });
+
+    function clearAddEnquiryErrors() {
+        $('#name_add_error').html('');
+        $('#contact_add_error').html('');
+        $('#source_add_error').html('');
+        $('#date_add_error').html('');
+        $('#follow_up_date_add_error').html('');
+        $('#course_type_add_error').html('');
+        $('#admission_course_id_add_error').html('');
+    }
+
+    function setAddEnquiryError(field, message) {
+        var messageText = message ? $('<div>').html(message).text() : 'This field is required';
+        if (field === 'name') {
+            $('#name_add_error').html(messageText);
+        } else if (field === 'contact') {
+            $('#contact_add_error').html(messageText);
+        } else if (field === 'source') {
+            $('#source_add_error').html(messageText);
+        } else if (field === 'date') {
+            $('#date_add_error').html(messageText);
+        } else if (field === 'follow_up_date') {
+            $('#follow_up_date_add_error').html(messageText);
+        } else if (field === 'course_type') {
+            $('#course_type_add_error').html(messageText);
+        } else if (field === 'admission_course_id') {
+            $('#admission_course_id_add_error').html(messageText);
+        }
+    }
+
+    function validateAddEnquiryForm() {
+        var $form = $('#formadd');
+        clearAddEnquiryErrors();
+
+        var isValid = true;
+        var nameVal = $.trim($form.find('[name="name"]').val());
+        var contactVal = $.trim($form.find('[name="contact"]').val());
+        var sourceVal = $.trim($form.find('[name="source"]').val());
+        var dateVal = $.trim($form.find('[name="date"]').val());
+        var followDateVal = $.trim($form.find('[name="follow_up_date"]').val());
+        var courseTypeVal = $form.find('input[name="course_type"]:checked').val();
+        var courseVal = $.trim($form.find('[name="admission_course_id"]').val());
+
+        if (!nameVal) {
+            setAddEnquiryError('name', 'Name is required.');
+            isValid = false;
+        }
+        if (!contactVal) {
+            setAddEnquiryError('contact', 'Phone is required.');
+            isValid = false;
+        }
+        if (!sourceVal) {
+            setAddEnquiryError('source', 'Source is required.');
+            isValid = false;
+        }
+        if (!dateVal) {
+            setAddEnquiryError('date', 'Date is required.');
+            isValid = false;
+        }
+        if (!followDateVal) {
+            setAddEnquiryError('follow_up_date', 'Next follow up date is required.');
+            isValid = false;
+        }
+        if (!courseTypeVal) {
+            setAddEnquiryError('course_type', 'Course type is required.');
+            isValid = false;
+        }
+        if (!courseVal) {
+            setAddEnquiryError('admission_course_id', 'Course is required.');
+            isValid = false;
+        }
+
+        return isValid;
+    }
+
     $(".openmodal").click(function(){
         $('#formadd').trigger("reset");
+        clearAddEnquiryErrors();
+        $('#admission_course_id_add').html('<option value="">Select Course Type First</option>');
          $("#myModal").modal();
     });
 </script>
@@ -421,6 +503,14 @@ if (!empty($next_date) && $next_date != '0000-00-00') {
                     format: calendar_date_time_format
                 }
         });
+    });
+
+    $(document).on('input change', '#formadd [name="name"], #formadd [name="contact"], #formadd [name="source"], #formadd [name="date"], #formadd [name="follow_up_date"], #formadd [name="admission_course_id"]', function () {
+        validateAddEnquiryForm();
+    });
+
+    $(document).on('change', '#formadd input[name="course_type"]', function () {
+        validateAddEnquiryForm();
     });
 
     function getRecord(id, status) {
@@ -458,7 +548,12 @@ if (!empty($next_date) && $next_date != '0000-00-00') {
 
     $("#formadd").on('submit', (function (e) {
         e.preventDefault();
-        var $this = $(this).find("button[type=submit]:focus");
+        var $this = $(this).find("button[type=submit]");
+
+        if (!validateAddEnquiryForm()) {
+            return false;
+        }
+
         $.ajax({
             url: "<?php echo site_url("admin/enquiry/add/") ?>",
             type: "POST",
@@ -474,11 +569,18 @@ if (!empty($next_date) && $next_date != '0000-00-00') {
             success: function (res)
             {
                 if (res.status == "fail") {
-                    var message = "";
+                    clearAddEnquiryErrors();
+                    var hasFieldError = false;
                     $.each(res.error, function (index, value) {
-                        message += value;
+                        if ($.trim($('<div>').html(value).text()) !== '') {
+                            setAddEnquiryError(index, value);
+                            hasFieldError = true;
+                        }
                     });
-                    errorMsg(message);
+
+                    if (!hasFieldError) {
+                        errorMsg("<?php echo $this->lang->line('error_occurred_please_try_again'); ?>");
+                    }
                 } else {
                     successMsg(res.message);
                     window.location.reload(true);
@@ -625,6 +727,10 @@ if (!empty($next_date) && $next_date != '0000-00-00') {
 
     $('#number').blur(function(){
         $('#phone_error_message').html('');
+        var phoneVal = $.trim($('#number').val());
+        if (phoneVal === '') {
+            return;
+        }
         $.ajax({
                 url: '<?php echo base_url(); ?>admin/enquiry/check_number',
                 type: 'POST',
