@@ -39,6 +39,31 @@ class Attendance_model extends CI_Model {
         return false;
     }
 
+    private function getAdminRoleId() {
+        static $admin_role_id = null;
+        if ($admin_role_id !== null) {
+            return $admin_role_id;
+        }
+
+        $row = $this->db->query("SELECT id FROM roles WHERE LOWER(name)='admin' ORDER BY id ASC LIMIT 1")->row_array();
+        $admin_role_id = isset($row['id']) ? (int)$row['id'] : 0;
+        return $admin_role_id;
+    }
+
+    private function getAttendanceTypeSettingWithFallback($role_id, $attendance_type_id) {
+        $setting = $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($role_id, $attendance_type_id);
+        if (!empty($setting)) {
+            return $setting;
+        }
+
+        $admin_role_id = $this->getAdminRoleId();
+        if ($admin_role_id > 0 && (int)$role_id !== $admin_role_id) {
+            $setting = $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($admin_role_id, $attendance_type_id);
+        }
+
+        return $setting;
+    }
+
     /**
      * Saves raw biometric punch data into the staff_biometric_punches table.
      * Checks for duplicates before inserting.
@@ -209,12 +234,12 @@ class Attendance_model extends CI_Model {
             }
 
             // Get settings for all relevant attendance types for this role
-            $present_settings = $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($role_id, $present_id);
-            $first_half_late_settings = $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($role_id, $first_half_late_id);
-            $fhp_settings = $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($role_id, $permission_first_session_id);
-            $half_day_settings = $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($role_id, $half_day_id);
-            $second_half_late_settings = $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($role_id, $second_half_late_id);
-            $shp_settings = $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($role_id, $permission_second_session_id);
+            $present_settings = $this->getAttendanceTypeSettingWithFallback($role_id, $present_id);
+            $first_half_late_settings = $this->getAttendanceTypeSettingWithFallback($role_id, $first_half_late_id);
+            $fhp_settings = $this->getAttendanceTypeSettingWithFallback($role_id, $permission_first_session_id);
+            $half_day_settings = $this->getAttendanceTypeSettingWithFallback($role_id, $half_day_id);
+            $second_half_late_settings = $this->getAttendanceTypeSettingWithFallback($role_id, $second_half_late_id);
+            $shp_settings = $this->getAttendanceTypeSettingWithFallback($role_id, $permission_second_session_id);
 
             if (empty($timestamps)) {
                 // No punches for the day, mark as Absent
@@ -380,6 +405,14 @@ class Attendance_model extends CI_Model {
         $setting = $this->setting_model->getSetting();
         $morning_session_end_time = $setting->morning_session_end_time;
         $evening_session_end_time = $setting->evening_session_end_time;
+        $now_ts = time();
+        $final_cutoff_ts = null;
+        if (!empty($evening_session_end_time)) {
+            $final_cutoff_ts = strtotime($date . ' ' . $evening_session_end_time);
+        } elseif (!empty($morning_session_end_time)) {
+            $final_cutoff_ts = strtotime($date . ' ' . $morning_session_end_time);
+        }
+        $is_final = $final_cutoff_ts ? ($now_ts >= $final_cutoff_ts) : true;
 
         $staffIds = array_values(array_unique(array_map('intval', $staffIds)));
         $staff_punches_by_day = [];
@@ -409,12 +442,12 @@ class Attendance_model extends CI_Model {
                 continue;
             }
 
-            $present_settings = $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($role_id, $present_id);
-            $first_half_late_settings = $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($role_id, $first_half_late_id);
-            $fhp_settings = $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($role_id, $permission_first_session_id);
-            $half_day_settings = $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($role_id, $half_day_id);
-            $second_half_late_settings = $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($role_id, $second_half_late_id);
-            $shp_settings = $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($role_id, $permission_second_session_id);
+            $present_settings = $this->getAttendanceTypeSettingWithFallback($role_id, $present_id);
+            $first_half_late_settings = $this->getAttendanceTypeSettingWithFallback($role_id, $first_half_late_id);
+            $fhp_settings = $this->getAttendanceTypeSettingWithFallback($role_id, $permission_first_session_id);
+            $half_day_settings = $this->getAttendanceTypeSettingWithFallback($role_id, $half_day_id);
+            $second_half_late_settings = $this->getAttendanceTypeSettingWithFallback($role_id, $second_half_late_id);
+            $shp_settings = $this->getAttendanceTypeSettingWithFallback($role_id, $permission_second_session_id);
 
             if (empty($timestamps)) {
                 $attendance_type_id = $absent_id;
@@ -628,12 +661,12 @@ class Attendance_model extends CI_Model {
             $attendance_type_id = $present_id;
             $remark = '';
 
-            $present_settings = $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($role_id, $present_id);
-            $first_half_late_settings = $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($role_id, $first_half_late_id);
-            $fhp_settings = $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($role_id, $permission_first_session_id);
-            $half_day_settings = $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($role_id, $half_day_id);
-            $second_half_late_settings = $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($role_id, $second_half_late_id);
-            $shp_settings = $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($role_id, $permission_second_session_id);
+            $present_settings = $this->getAttendanceTypeSettingWithFallback($role_id, $present_id);
+            $first_half_late_settings = $this->getAttendanceTypeSettingWithFallback($role_id, $first_half_late_id);
+            $fhp_settings = $this->getAttendanceTypeSettingWithFallback($role_id, $permission_first_session_id);
+            $half_day_settings = $this->getAttendanceTypeSettingWithFallback($role_id, $half_day_id);
+            $second_half_late_settings = $this->getAttendanceTypeSettingWithFallback($role_id, $second_half_late_id);
+            $shp_settings = $this->getAttendanceTypeSettingWithFallback($role_id, $permission_second_session_id);
 
             // Morning session
             $first_half_status = $first_half_absent_id;

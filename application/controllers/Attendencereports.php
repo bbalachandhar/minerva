@@ -448,21 +448,26 @@ class Attendencereports extends Admin_Controller
         $this->load->view('layout/footer', $data);
     }
 
-    public function staffattendancereport()
+    public function staffattendancereport($withPunchReport = false)
     {
         if (!$this->rbac->hasPrivilege('staff_attendance_report', 'can_view')) {
             access_denied();
         }
 
+        $withPunchReport = (bool)$withPunchReport;
+
         $this->session->set_userdata('top_menu', 'Reports');
         $this->session->set_userdata('sub_menu', 'Reports/attendance');
-        $this->session->set_userdata('subsub_menu', 'Reports/attendance/staff_attendance_report');
+        $this->session->set_userdata('subsub_menu', $withPunchReport ? 'Reports/attendance/staff_attendance_with_punch_report' : 'Reports/attendance/staff_attendance_report');
         $attendencetypes             = $this->staffattendancemodel->getStaffAttendanceType();
         $data['attendencetypeslist'] = $attendencetypes;
         $staffRole                   = $this->staff_model->getStaffRole();
         $data["role"]                = $staffRole;
         $data['title']               = 'Attendance Report';
         $data['title_list']          = 'Attendance';
+        $data['is_punch_report']     = $withPunchReport;
+        $data['report_post_url']     = $withPunchReport ? site_url('attendencereports/staffattendancewithpunchreport') : site_url('attendencereports/staffattendancereport');
+        $data['report_heading']      = $withPunchReport ? 'Staff Attendance with Punch Report' : $this->lang->line('staff_attendance_report');
         $data['monthlist']           = $this->customlib->getMonthDropdown();
         $data['yearlist']            = $this->staffattendancemodel->attendanceYearCount();
         $data['date']                = "";
@@ -710,6 +715,11 @@ class Attendencereports extends Admin_Controller
         }
     }
 
+    public function staffattendancewithpunchreport()
+    {
+        return $this->staffattendancereport(true);
+    }
+
     public function staffattendancereport_export_excel()
     {
         if (!$this->rbac->hasPrivilege('staff_attendance_report', 'can_view')) {
@@ -721,6 +731,7 @@ class Attendencereports extends Admin_Controller
         $role = $this->input->get('role');
         $month = $this->input->get('month');
         $searchyear = $this->input->get('year');
+        $with_punch_report = (int)$this->input->get('with_punch_report') === 1;
 
         if (empty($month) || empty($searchyear)) {
             show_error('Month and year are required', 400);
@@ -917,7 +928,16 @@ class Attendencereports extends Admin_Controller
                     $display_key = 'A';
                 }
 
-                $sheet->setCellValueByColumnAndRow($colIndex, $rowIndex, $display_key);
+                $cellValue = $display_key;
+                if ($with_punch_report && ($display_key === 'P' || $display_key === 'HD')) {
+                    $in_time = $attendance_row['in_time'] ?? '';
+                    $out_time = $attendance_row['out_time'] ?? '';
+                    $firstPunch = (!empty($in_time) && $in_time !== '00:00:00') ? date('H:i', strtotime($in_time)) : '-';
+                    $lastPunch = (!empty($out_time) && $out_time !== '00:00:00') ? date('H:i', strtotime($out_time)) : '-';
+                    $cellValue = $display_key . "\nIN: " . $firstPunch . "\nOUT: " . $lastPunch;
+                }
+
+                $sheet->setCellValueByColumnAndRow($colIndex, $rowIndex, $cellValue);
 
                 $cell = $sheet->getCellByColumnAndRow($colIndex, $rowIndex)->getCoordinate();
                 if ($display_key === 'P') {
@@ -932,7 +952,10 @@ class Attendencereports extends Admin_Controller
                     $sheet->getStyle($cell)->getFill()->applyFromArray($holidayFill);
                 }
 
-                $sheet->getStyle($cell)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                $sheet->getStyle($cell)->getAlignment()
+                    ->setHorizontal(Alignment::HORIZONTAL_CENTER)
+                    ->setVertical(Alignment::VERTICAL_CENTER)
+                    ->setWrapText($with_punch_report && ($display_key === 'P' || $display_key === 'HD'));
                 $colIndex++;
             }
 
@@ -944,7 +967,7 @@ class Attendencereports extends Admin_Controller
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
 
-        $filename = 'Staff_Attendance_Report_' . $month_number . '_' . $searchyear . '.xlsx';
+        $filename = ($with_punch_report ? 'Staff_Attendance_With_Punch_Report_' : 'Staff_Attendance_Report_') . $month_number . '_' . $searchyear . '.xlsx';
         header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         header('Content-Disposition: attachment; filename="' . $filename . '"');
         header('Cache-Control: max-age=0');

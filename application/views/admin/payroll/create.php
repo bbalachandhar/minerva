@@ -392,8 +392,14 @@ foreach ($monthAttendance as $attendence_key => $attendence_value) {
                                                                                                         <select class="form-control" id="deduction_type_<?php echo $count; ?>" name="deduction_type_id[]">
                                                                                                             <option value=""><?php echo $this->lang->line('type'); ?></option>
                                                                                                             <?php foreach($deduction_types as $type): ?>
+                                                                                                                <?php
+                                                                                                                    $selected_by_id = !empty($deduction['allowance_type_id']) && ((int)$type['id'] === (int)$deduction['allowance_type_id']);
+                                                                                                                    $selected_by_code = empty($deduction['allowance_type_id'])
+                                                                                                                        && !empty($deduction['allowance_type'])
+                                                                                                                        && strtoupper(trim((string)$type['allowance_code'])) === strtoupper(trim((string)$deduction['allowance_type']));
+                                                                                                                ?>
                                                                                                                 <option value="<?php echo $type['id']; ?>" data-code="<?php echo $type['allowance_code']; ?>"
-                                                                                                                    <?php echo ($type['id'] == $deduction['allowance_type_id']) ? 'selected' : ''; ?>>
+                                                                                                                    <?php echo ($selected_by_id || $selected_by_code) ? 'selected' : ''; ?>>
                                                                                                                     <?php echo $type['allowance_name']; ?> (<?php echo $type['allowance_code']; ?>)
                                                                                                                 </option>
                                                                                                             <?php endforeach; ?>

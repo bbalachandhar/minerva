@@ -155,7 +155,7 @@ class Payroll extends Admin_Controller
 
         // Load standardized allowance types for dropdowns
         $data['earning_types'] = $this->payroll_model->getAllowanceTypes('earning', true);
-        $data['deduction_types'] = $this->payroll_model->getAllowanceTypes('deduction', true);
+        $data['deduction_types'] = $this->payroll_model->getAllowanceTypes('deduction', false);
 
         $this->load->view("layout/header", $data);
         $this->load->view("admin/payroll/create", $data);
@@ -233,7 +233,7 @@ class Payroll extends Admin_Controller
         
         // Load standardized allowance types for dropdowns
         $data['earning_types'] = $this->payroll_model->getAllowanceTypes('earning', true);
-        $data['deduction_types'] = $this->payroll_model->getAllowanceTypes('deduction', true);
+        $data['deduction_types'] = $this->payroll_model->getAllowanceTypes('deduction', false);
         
         $this->load->view("layout/header", $data);
         $this->load->view("admin/payroll/edit", $data);

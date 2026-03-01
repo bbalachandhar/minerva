@@ -32,12 +32,13 @@ $config['esi'] = array(
 $config['new_tax_regime'] = array(
     'standard_deduction' => 75000,           // Standard deduction for new regime
     'slabs' => array(
-        array('from' => 0, 'to' => 300000, 'rate' => 0),
-        array('from' => 300001, 'to' => 700000, 'rate' => 5),
-        array('from' => 700001, 'to' => 1000000, 'rate' => 10),
-        array('from' => 1000001, 'to' => 1200000, 'rate' => 15),
-        array('from' => 1200001, 'to' => 1500000, 'rate' => 20),
-        array('from' => 1500001, 'to' => PHP_INT_MAX, 'rate' => 30),
+        array('from' => 0, 'to' => 400000, 'rate' => 0),
+        array('from' => 400001, 'to' => 800000, 'rate' => 5),
+        array('from' => 800001, 'to' => 1200000, 'rate' => 10),
+        array('from' => 1200001, 'to' => 1600000, 'rate' => 15),
+        array('from' => 1600001, 'to' => 2000000, 'rate' => 20),
+        array('from' => 2000001, 'to' => 2400000, 'rate' => 25),
+        array('from' => 2400001, 'to' => PHP_INT_MAX, 'rate' => 30),
     ),
     'section_87a_rebate' => array(
         'income_limit' => 1200000,           // Income limit for rebate

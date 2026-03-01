@@ -39,6 +39,12 @@
     }
 </style>
 
+<?php
+$is_punch_report = !empty($is_punch_report);
+$report_post_url = !empty($report_post_url) ? $report_post_url : site_url('attendencereports/staffattendancereport');
+$report_heading = !empty($report_heading) ? $report_heading : $this->lang->line('staff_attendance_report');
+?>
+
 <div class="content-wrapper" style="min-height: 946px;">
     <!-- Content Header (Page header) -->
     <section class="content-header">
@@ -54,7 +60,7 @@
                     <div class="box-header with-border">
                         <h3 class="box-title"><i class="fa fa-search"></i> <?php echo $this->lang->line('select_criteria'); ?></h3>
                     </div>
-                    <form id='form1' action="<?php echo site_url('attendencereports/staffattendancereport') ?>" method="post" accept-charset="utf-8">
+                    <form id='form1' action="<?php echo $report_post_url; ?>" method="post" accept-charset="utf-8">
                         <div class="box-body">
                             <?php echo $this->customlib->getCSRF(); ?>
                             <div class="row">
@@ -137,12 +143,12 @@
                             <div class="box-header with-border">
                                 <div class="row">
                                     <div class="col-md-4 col-sm-4">
-                                        <h3 class="box-title"><i class="fa fa-users"></i> <?php echo $this->lang->line('staff_attendance_report'); ?></h3>
+                                        <h3 class="box-title"><i class="fa fa-users"></i> <?php echo $report_heading; ?></h3>
                                     </div>
                                     <div class="col-md-8 col-sm-8">
                                         <div class="pull-right">
                                             <?php if (!empty($month_selected) && !empty($year_selected)) { ?>
-                                                <a class="btn btn-xs btn-colored-excel" href="<?php echo site_url('attendencereports/staffattendancereport_export_excel?role=' . urlencode($role_selected) . '&month=' . urlencode($month_selected) . '&year=' . urlencode($year_selected)); ?>" title="Export in Excel(Colored)"><i class="fa fa-file-excel-o"></i> Export in Excel(Colored)</a>
+                                                <a class="btn btn-xs btn-colored-excel" href="<?php echo site_url('attendencereports/staffattendancereport_export_excel?role=' . urlencode($role_selected) . '&month=' . urlencode($month_selected) . '&year=' . urlencode($year_selected) . '&with_punch_report=' . ($is_punch_report ? '1' : '0')); ?>" title="Export in Excel(Colored)"><i class="fa fa-file-excel-o"></i> Export in Excel(Colored)</a>
                                             <?php } ?>
                                             <span class="label att-present" style="padding: 4px 8px; margin-right: 6px;">Present</span>
                                             <span class="label att-half-day" style="padding: 4px 8px; margin-right: 6px;">Half Day</span>
@@ -168,7 +174,7 @@
                                         <div class="pull-right">
                                         </div>
                                     </div>
-                                    <div class="download_label"><?php echo $this->lang->line('staff_attendance_report'); ?></div>
+                                    <div class="download_label"><?php echo $report_heading; ?></div>
                                     <div> <?php echo
                                             $this->customlib->get_postmessage();
                                             ?></div>
@@ -338,6 +344,16 @@
                                                                                                         <center>
                                                                                                         <span data-toggle="popover" class="detail_popover" data-original-title="" title="">
                                                                                                         <a href="#"><?php echo $display_key;  ?></a></span>
+                                                                                                        <?php
+                                                                                                        if ($is_punch_report && !$is_weekend_or_holiday && ($normalized_key === 'P' || $attendance_key === 'HD')) {
+                                                                                                            $first_punch = !empty($attendance_row['in_time']) && $attendance_row['in_time'] !== '00:00:00' ? date('H:i', strtotime($attendance_row['in_time'])) : '-';
+                                                                                                            $last_punch = !empty($attendance_row['out_time']) && $attendance_row['out_time'] !== '00:00:00' ? date('H:i', strtotime($attendance_row['out_time'])) : '-';
+                                                                                                        ?>
+                                                                                                            <div style="font-size:10px; line-height:1.2; margin-top:2px; white-space:nowrap;">IN: <?php echo $first_punch; ?></div>
+                                                                                                            <div style="font-size:10px; line-height:1.2; white-space:nowrap;">OUT: <?php echo $last_punch; ?></div>
+                                                                                                        <?php
+                                                                                                        }
+                                                                                                        ?>
                                                                                                         <div class="fee_detail_popover" style="display: none">
                                                                                                             <?php
                                                                                                                 if (!empty($resultlist[$at_value][$student_value['id']]['remark'])) {
@@ -444,7 +460,8 @@
                 var role = $('#role').val() || '';
                 var month = $('#month').val() || '';
                 var year = $('#year').val() || '';
-                var url = baseurl + 'attendencereports/staffattendancereport_export_excel?role=' + encodeURIComponent(role) + '&month=' + encodeURIComponent(month) + '&year=' + encodeURIComponent(year);
+                var isPunchReport = <?php echo $is_punch_report ? '1' : '0'; ?>;
+                var url = baseurl + 'attendencereports/staffattendancereport_export_excel?role=' + encodeURIComponent(role) + '&month=' + encodeURIComponent(month) + '&year=' + encodeURIComponent(year) + '&with_punch_report=' + encodeURIComponent(isPunchReport);
                 window.location.href = url;
             });
 

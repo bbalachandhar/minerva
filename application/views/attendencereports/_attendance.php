@@ -38,6 +38,8 @@
 
 
                         <li class="col-lg-4 col-md-4 col-sm-6 <?php echo set_SubSubmenu('Reports/attendance/staff_attendance_report'); ?>"><a href="<?php echo base_url() ?>attendencereports/staffattendancereport"><i class="fa fa-file-text-o"></i> <?php echo $this->lang->line('staff_attendance_report'); ?></a></li>
+
+                        <li class="col-lg-4 col-md-4 col-sm-6 <?php echo set_SubSubmenu('Reports/attendance/staff_attendance_with_punch_report'); ?>"><a href="<?php echo base_url() ?>attendencereports/staffattendancewithpunchreport"><i class="fa fa-file-text-o"></i> Staff Attendance with Punch Report</a></li>
                     <?php } ?>
                     <?php
                     if (is_subAttendence()) {

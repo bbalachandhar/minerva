@@ -116,6 +116,25 @@ class SpecialAttendance_model extends CI_Model {
                 $half_day_settings = $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($role_id, 4);
                 $permission_second_session_settings = $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($role_id, 7);
 
+                $has_any_mapping = !empty($present_settings)
+                    || !empty($first_half_late_settings)
+                    || !empty($fhp_settings)
+                    || !empty($half_day_settings)
+                    || !empty($permission_second_session_settings);
+
+                if (!$has_any_mapping) {
+                    $admin_role_row = $this->db->query("SELECT id FROM roles WHERE LOWER(name)='admin' ORDER BY id ASC LIMIT 1")->row_array();
+                    $admin_role_id = isset($admin_role_row['id']) ? (int)$admin_role_row['id'] : 0;
+
+                    if ($admin_role_id > 0 && $admin_role_id !== (int)$role_id) {
+                        $present_settings = $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($admin_role_id, 1);
+                        $first_half_late_settings = $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($admin_role_id, 2);
+                        $fhp_settings = $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($admin_role_id, 5);
+                        $half_day_settings = $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($admin_role_id, 4);
+                        $permission_second_session_settings = $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($admin_role_id, 7);
+                    }
+                }
+
                 if (!empty($present_settings->entry_time_from) && !empty($present_settings->entry_time_to)) {
                     $entryFrom = $present_settings->entry_time_from;
                     $entryTo = $present_settings->entry_time_to;

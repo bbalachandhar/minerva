@@ -613,8 +613,14 @@ if (!empty($deductions)) {
                                                         <select class="form-control modern-deduction-type" name="deduction_type_id[]" required>
                                                             <option value="">Select Type</option>
                                                             <?php foreach($deduction_types as $type): ?>
+                                                                <?php
+                                                                    $selected_by_id = !empty($deduction_value['allowance_type_id']) && ((int)$type['id'] === (int)$deduction_value['allowance_type_id']);
+                                                                    $selected_by_code = empty($deduction_value['allowance_type_id'])
+                                                                        && !empty($deduction_value['allowance_type'])
+                                                                        && strtoupper(trim((string)$type['allowance_code'])) === strtoupper(trim((string)$deduction_value['allowance_type']));
+                                                                ?>
                                                                 <option value="<?php echo $type['id']; ?>" data-code="<?php echo $type['allowance_code']; ?>" 
-                                                                    <?php echo ($type['id'] == $deduction_value['allowance_type_id']) ? 'selected' : ''; ?>>
+                                                                    <?php echo ($selected_by_id || $selected_by_code) ? 'selected' : ''; ?>>
                                                                     <?php echo $type['allowance_name']; ?> (<?php echo $type['allowance_code']; ?>)
                                                                 </option>
                                                             <?php endforeach; ?>
