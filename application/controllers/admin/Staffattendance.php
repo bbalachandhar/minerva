@@ -731,22 +731,22 @@ class Staffattendance extends Admin_Controller
                 $this->staffattendancemodel->add($attendance_record);
 
             } else {
-                // Staff has NO punches for this day. Check if it's a holiday first, then mark as Absent.
+                // Staff has NO punches for this day. Apply absent only on working days.
                 // First, delete any existing attendance records to prevent duplicates
                 $this->db->where('staff_id', $staff_id);
                 $this->db->where('date', $date_to_process);
                 $this->db->delete('staff_attendance');
 
-                // Check if the date is an official holiday
-                $is_holiday = $this->_is_official_holiday($date_to_process);
+                // Non-working days (weekends/official holidays excluding compensation days)
+                $is_non_working_day = $this->_is_non_working_day($date_to_process);
                 
-                if ($is_holiday) {
-                    // Mark as Holiday
+                if ($is_non_working_day) {
+                    // Mark non-working days as Holiday to avoid absent marking without punches
                     $attendance_type_id = $this->staff_attendance['holiday']; // Type ID 5
-                    $remark = 'Official Holiday';
-                    $this->logger->log("--- No punches found for Staff ID: {$staff_id}, Date: {$date_to_process}. Marking as Holiday. ---");
+                    $remark = 'Non-working day';
+                    $this->logger->log("--- No punches found for Staff ID: {$staff_id}, Date: {$date_to_process}. Marking as Non-working day. ---");
                 } else {
-                    // Mark as Absent
+                    // Working day with no punch => Absent
                     $attendance_type_id = 3; // 3 is for 'Absent'
                     $remark = 'No punch found';
                     $this->logger->log("--- No punches found for Staff ID: {$staff_id}, Date: {$date_to_process}. Marking as Absent. ---");
@@ -1034,6 +1034,11 @@ class Staffattendance extends Admin_Controller
             $holidays = $this->holiday_model->get();
             
             foreach ($holidays as $holiday) {
+                $type_label = strtolower(trim($holiday['type'] ?? ''));
+                if ($type_label === 'compensation') {
+                    continue;
+                }
+
                 $from_date = new DateTime($holiday['from_date']);
                 $to_date = new DateTime($holiday['to_date']);
                 $check_date = new DateTime($date);
@@ -1047,6 +1052,65 @@ class Staffattendance extends Admin_Controller
         }
         
         return false;
+    }
+
+    private function _is_compensation_day($date)
+    {
+        try {
+            $holidays = $this->holiday_model->get();
+            foreach ($holidays as $holiday) {
+                $type_label = strtolower(trim($holiday['type'] ?? ''));
+                if ($type_label !== 'compensation') {
+                    continue;
+                }
+
+                $from_date = new DateTime($holiday['from_date']);
+                $to_date = new DateTime($holiday['to_date']);
+                $check_date = new DateTime($date);
+                if ($check_date >= $from_date && $check_date <= $to_date) {
+                    return true;
+                }
+            }
+        } catch (Exception $e) {
+            $this->logger->log("Error checking compensation day for date {$date}: " . $e->getMessage());
+        }
+
+        return false;
+    }
+
+    private function _is_weekend_day($date)
+    {
+        try {
+            $settings = $this->setting_model->getSetting();
+            $weekendDaysStr = isset($settings->weekend_days) && !empty($settings->weekend_days) ? $settings->weekend_days : '0';
+            $weekendDays = array_map('intval', explode(',', $weekendDaysStr));
+            $dayOfWeek = (int) date('w', strtotime($date));
+
+            $is_weekend = in_array($dayOfWeek, $weekendDays, true);
+
+            $isSecondSaturdayHoliday = isset($settings->isSecondSaturdayHoliday) ? (int)$settings->isSecondSaturdayHoliday : 0;
+            if ($isSecondSaturdayHoliday === 1 && $dayOfWeek === 6) {
+                $d = new DateTime($date);
+                $day = (int) $d->format('j');
+                if ($day >= 8 && $day <= 14) {
+                    $is_weekend = true;
+                }
+            }
+
+            return $is_weekend;
+        } catch (Exception $e) {
+            $this->logger->log("Error checking weekend for date {$date}: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    private function _is_non_working_day($date)
+    {
+        if ($this->_is_compensation_day($date)) {
+            return false;
+        }
+
+        return ($this->_is_weekend_day($date) || $this->_is_official_holiday($date));
     }
 
     /**

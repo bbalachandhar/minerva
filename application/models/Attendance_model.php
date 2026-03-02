@@ -184,6 +184,7 @@ class Attendance_model extends CI_Model {
         $permission_second_session_id = 7;
         $first_half_absent_id = 8;
         $second_half_absent_id = 9;
+        $holiday_id = $this->getHolidayAttendanceTypeId();
 
         $morning_session_end_time = $setting->morning_session_end_time;
         $evening_session_end_time = $setting->evening_session_end_time;
@@ -242,12 +243,13 @@ class Attendance_model extends CI_Model {
             $shp_settings = $this->getAttendanceTypeSettingWithFallback($role_id, $permission_second_session_id);
 
             if (empty($timestamps)) {
-                // No punches for the day, mark as Absent
-                $attendance_type_id = $absent_id;
+                // No punches: mark Absent only on working day, otherwise Holiday
+                $is_non_working_day = $this->isNonWorkingDay($date);
+                $attendance_type_id = $is_non_working_day ? ($holiday_id ?: $absent_id) : $absent_id;
                 $in_time_final = null;
                 $out_time_final = null;
                 $total_hours_worked = 0;
-                $remark = 'No punch found';
+                $remark = $is_non_working_day ? 'Non-working day' : 'No punch found';
             } else {
                 sort($timestamps);
                 $in_time_final = date('H:i:s', $timestamps[0]);
@@ -401,6 +403,7 @@ class Attendance_model extends CI_Model {
         $permission_second_session_id = 7;
         $first_half_absent_id = 8;
         $second_half_absent_id = 9;
+        $holiday_id = $this->getHolidayAttendanceTypeId();
 
         $setting = $this->setting_model->getSetting();
         $morning_session_end_time = $setting->morning_session_end_time;
@@ -450,11 +453,12 @@ class Attendance_model extends CI_Model {
             $shp_settings = $this->getAttendanceTypeSettingWithFallback($role_id, $permission_second_session_id);
 
             if (empty($timestamps)) {
-                $attendance_type_id = $absent_id;
+                $is_non_working_day = $this->isNonWorkingDay($date);
+                $attendance_type_id = $is_non_working_day ? ($holiday_id ?: $absent_id) : $absent_id;
                 $in_time_final = null;
                 $out_time_final = null;
                 $total_hours_worked = 0;
-                $remark = 'No punch found';
+                $remark = $is_non_working_day ? 'Non-working day' : 'No punch found';
             } else {
                 sort($timestamps);
                 $in_time_final = date('H:i:s', $timestamps[0]);
@@ -785,6 +789,85 @@ class Attendance_model extends CI_Model {
                           ->order_by('punch_time', 'ASC')
                           ->get('staff_biometric_punches');
         return $query->result_array();
+    }
+
+    private function getHolidayAttendanceTypeId()
+    {
+        $row = $this->db->select('id')
+            ->from('staff_attendance_type')
+            ->where('UPPER(key_value)', 'HO')
+            ->limit(1)
+            ->get()
+            ->row_array();
+
+        return isset($row['id']) ? (int) $row['id'] : null;
+    }
+
+    private function isNonWorkingDay($date)
+    {
+        if ($this->isCompensationDay($date)) {
+            return false;
+        }
+
+        return ($this->isWeekendDay($date) || $this->isOfficialHoliday($date));
+    }
+
+    private function isCompensationDay($date)
+    {
+        $this->load->model('holiday_model');
+        $holidays = $this->holiday_model->get();
+
+        foreach ($holidays as $holiday) {
+            $type_label = strtolower(trim($holiday['type'] ?? ''));
+            if ($type_label !== 'compensation') {
+                continue;
+            }
+
+            if ($date >= $holiday['from_date'] && $date <= $holiday['to_date']) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function isOfficialHoliday($date)
+    {
+        $this->load->model('holiday_model');
+        $holidays = $this->holiday_model->get();
+
+        foreach ($holidays as $holiday) {
+            $type_label = strtolower(trim($holiday['type'] ?? ''));
+            if ($type_label === 'compensation') {
+                continue;
+            }
+
+            if ($date >= $holiday['from_date'] && $date <= $holiday['to_date']) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function isWeekendDay($date)
+    {
+        $settings = $this->setting_model->getSetting();
+        $weekendDaysStr = isset($settings->weekend_days) && !empty($settings->weekend_days) ? $settings->weekend_days : '0';
+        $weekendDays = array_map('intval', explode(',', $weekendDaysStr));
+        $dayOfWeek = (int) date('w', strtotime($date));
+
+        $is_weekend = in_array($dayOfWeek, $weekendDays, true);
+
+        $isSecondSaturdayHoliday = isset($settings->isSecondSaturdayHoliday) ? (int)$settings->isSecondSaturdayHoliday : 0;
+        if ($isSecondSaturdayHoliday === 1 && $dayOfWeek === 6) {
+            $day = (int) date('j', strtotime($date));
+            if ($day >= 8 && $day <= 14) {
+                $is_weekend = true;
+            }
+        }
+
+        return $is_weekend;
     }
 
 }

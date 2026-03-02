@@ -598,6 +598,61 @@ class Attendencereports extends Admin_Controller
                 $date_result[$att_date] = $s;
             }
 
+            $present_like_keys = ['P', 'FHL', 'SHL', 'FHP', 'SHP', 'HD'];
+            if (!empty($stafflist)) {
+                foreach ($stafflist as $staff_row) {
+                    $staff_id = (int) $staff_row['id'];
+                    foreach ($working_day_dates as $work_date) {
+                        if (!isset($date_result[$work_date][$staff_id])) {
+                            continue;
+                        }
+
+                        $attendance_row = $date_result[$work_date][$staff_id];
+                        $attendance_key = strtoupper(trim($attendance_row['key'] ?? ''));
+                        if (in_array($attendance_key, $present_like_keys, true) && !$this->hasValidPunch($attendance_row)) {
+                            $date_result[$work_date][$staff_id]['key'] = 'A';
+                            $date_result[$work_date][$staff_id]['att_type'] = 'Absent';
+                            $date_result[$work_date][$staff_id]['staff_attendance_type_id'] = 3;
+                            if (empty($date_result[$work_date][$staff_id]['remark'])) {
+                                $date_result[$work_date][$staff_id]['remark'] = 'No punch found';
+                            }
+                        }
+                    }
+                }
+            }
+
+            $staff_working_day_summary = [];
+            if (!empty($stafflist)) {
+                foreach ($stafflist as $staff_row) {
+                    $staff_id = (int) $staff_row['id'];
+                    $present_equivalent = 0.0;
+                    $absent_equivalent = 0.0;
+                    $half_day_count = 0;
+
+                    foreach ($working_day_dates as $work_date) {
+                        $attendance_row = $date_result[$work_date][$staff_id] ?? [];
+                        $attendance_key = strtoupper(trim($attendance_row['key'] ?? ''));
+
+                        if ($attendance_key === 'HD') {
+                            $half_day_count++;
+                            $present_equivalent += 0.5;
+                            $absent_equivalent += 0.5;
+                        } elseif (in_array($attendance_key, ['P', 'FHL', 'SHL', 'FHP', 'SHP'], true)) {
+                            $present_equivalent += 1;
+                        } else {
+                            $absent_equivalent += 1;
+                        }
+                    }
+
+                    $staff_working_day_summary[$staff_id] = [
+                        'present_equivalent' => $present_equivalent,
+                        'absent_equivalent' => $absent_equivalent,
+                        'half_day_count' => $half_day_count,
+                    ];
+                }
+            }
+            $data['staff_working_day_summary'] = $staff_working_day_summary;
+
             $monthAttendance = array();
             if(!empty($stafflist)){
                 foreach ($stafflist as $result_k => $result_v) {
@@ -818,6 +873,29 @@ class Attendencereports extends Admin_Controller
             $date_result[$att_date] = $s;
         }
 
+        $present_like_keys = ['P', 'FHL', 'SHL', 'FHP', 'SHP', 'HD'];
+        if (!empty($stafflist)) {
+            foreach ($stafflist as $staff_row) {
+                $staff_id = (int) $staff_row['id'];
+                foreach ($working_day_dates as $work_date) {
+                    if (!isset($date_result[$work_date][$staff_id])) {
+                        continue;
+                    }
+
+                    $attendance_row = $date_result[$work_date][$staff_id];
+                    $attendance_key = strtoupper(trim($attendance_row['key'] ?? ''));
+                    if (in_array($attendance_key, $present_like_keys, true) && !$this->hasValidPunch($attendance_row)) {
+                        $date_result[$work_date][$staff_id]['key'] = 'A';
+                        $date_result[$work_date][$staff_id]['att_type'] = 'Absent';
+                        $date_result[$work_date][$staff_id]['staff_attendance_type_id'] = 3;
+                        if (empty($date_result[$work_date][$staff_id]['remark'])) {
+                            $date_result[$work_date][$staff_id]['remark'] = 'No punch found';
+                        }
+                    }
+                }
+            }
+        }
+
         $monthAttendance = [];
         if (!empty($stafflist)) {
             foreach ($stafflist as $result_v) {
@@ -827,18 +905,34 @@ class Attendencereports extends Admin_Controller
             }
         }
 
-        $absent_working_day_counts = [];
+        $staff_working_day_summary = [];
         if (!empty($stafflist)) {
             foreach ($stafflist as $staff_row) {
-                $staff_id = $staff_row['id'];
-                $absent_count = 0;
+                $staff_id = (int) $staff_row['id'];
+                $present_equivalent = 0.0;
+                $absent_equivalent = 0.0;
+                $half_day_count = 0;
+
                 foreach ($working_day_dates as $work_date) {
-                    $att_key = $date_result[$work_date][$staff_id]['key'] ?? null;
-                    if ($att_key === 'A') {
-                        $absent_count++;
+                    $attendance_row = $date_result[$work_date][$staff_id] ?? [];
+                    $att_key = strtoupper(trim($attendance_row['key'] ?? ''));
+
+                    if ($att_key === 'HD') {
+                        $half_day_count++;
+                        $present_equivalent += 0.5;
+                        $absent_equivalent += 0.5;
+                    } elseif (in_array($att_key, ['P', 'FHL', 'SHL', 'FHP', 'SHP'], true)) {
+                        $present_equivalent += 1;
+                    } else {
+                        $absent_equivalent += 1;
                     }
                 }
-                $absent_working_day_counts[$staff_id] = $absent_count;
+
+                $staff_working_day_summary[$staff_id] = [
+                    'present_equivalent' => $present_equivalent,
+                    'absent_equivalent' => $absent_equivalent,
+                    'half_day_count' => $half_day_count,
+                ];
             }
         }
 
@@ -871,12 +965,11 @@ class Attendencereports extends Admin_Controller
         $i = 0;
         foreach ($stafflist as $staff_row) {
             $staff_id = $staff_row['id'];
-            $present_count = $monthAttendance[$i][$staff_id]['present'] ?? 0;
-            $half_day_count = $monthAttendance[$i][$staff_id]['half_day'] ?? 0;
-            $absent_count = $absent_working_day_counts[$staff_id] ?? 0;
             $working_days = count($working_day_dates);
-            $total_present = $present_count + ($half_day_count * 0.5);
-            $total_absent = $absent_count + ($half_day_count * 0.5);
+            $summary = $staff_working_day_summary[$staff_id] ?? ['present_equivalent' => 0, 'absent_equivalent' => 0, 'half_day_count' => 0];
+            $total_present = (float) $summary['present_equivalent'];
+            $total_absent = (float) $summary['absent_equivalent'];
+            $half_day_count = (float) $summary['half_day_count'];
 
             if ($working_days == 0) {
                 $print_percentage = '-';
@@ -925,6 +1018,8 @@ class Attendencereports extends Admin_Controller
                 } elseif ($normalized_key === 'P') {
                     $display_key = 'P';
                 } elseif ($normalized_key === 'A') {
+                    $display_key = 'A';
+                } elseif (in_array($att_date, $working_day_dates, true)) {
                     $display_key = 'A';
                 }
 
@@ -1353,5 +1448,20 @@ class Attendencereports extends Admin_Controller
         }
 
         return ($time_ts >= $from_ts && $time_ts <= $to_ts);
+    }
+
+    private function hasValidPunch($attendance_row)
+    {
+        $in_time = trim((string) ($attendance_row['in_time'] ?? ''));
+        $out_time = trim((string) ($attendance_row['out_time'] ?? ''));
+
+        if ($in_time !== '' && $in_time !== '00:00:00') {
+            return true;
+        }
+        if ($out_time !== '' && $out_time !== '00:00:00') {
+            return true;
+        }
+
+        return false;
     }
 }

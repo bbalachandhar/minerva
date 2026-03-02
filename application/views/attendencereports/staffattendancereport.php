@@ -224,12 +224,11 @@ $report_heading = !empty($report_heading) ? $report_heading : $this->lang->line(
                                                                                         $row_count = 1;
                                                                                         $i         = 0;
                                                                                         foreach ($student_array as $student_key => $student_value) {
-                                                                                            $present_count = $monthAttendance[$i][$student_value['id']]['present'] ?? 0;
-                                                                                            $half_day_count = $monthAttendance[$i][$student_value['id']]['half_day'] ?? 0;
-                                                                                            $absent_count = $absent_working_day_counts[$student_value['id']] ?? 0;
                                                                                             $working_days = $working_days_count ?? 0;
-                                                                                            $total_present = $present_count + ($half_day_count * 0.5);
-                                                                                            $total_absent = $absent_count + ($half_day_count * 0.5);
+                                                                                            $summary = $staff_working_day_summary[$student_value['id']] ?? ['present_equivalent' => 0, 'absent_equivalent' => 0, 'half_day_count' => 0];
+                                                                                            $total_present = (float) ($summary['present_equivalent'] ?? 0);
+                                                                                            $total_absent = (float) ($summary['absent_equivalent'] ?? 0);
+                                                                                            $half_day_count = (float) ($summary['half_day_count'] ?? 0);
 
                                                                                             $total_late = $total_late_counts[$student_value['id']] ?? 0;
                                                                                             $total_permission = $total_permission_counts[$student_value['id']] ?? 0;

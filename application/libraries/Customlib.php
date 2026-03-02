@@ -929,6 +929,9 @@ class Customlib
 
         if ($admin) {
             $roles    = $admin['roles'];
+            if (isset($roles['Super Admin'])) {
+                return json_encode(array('id' => $roles['Super Admin'], 'name' => 'Super Admin'));
+            }
             $role_key = key($roles);
             return json_encode(array('id' => $roles[$role_key], 'name' => $role_key));
         }

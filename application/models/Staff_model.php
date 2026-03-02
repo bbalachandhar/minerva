@@ -943,7 +943,13 @@ class Staff_model extends MY_Model
                 $roles = $CI->staffroles_model->getStaffRoles($record->id);
 
                 if (!empty($roles)) {
-                    $record->roles = array($roles[0]->name => $roles[0]->role_id);
+                    $role_map = array();
+                    foreach ($roles as $role_row) {
+                        if (isset($role_row->name) && isset($role_row->role_id)) {
+                            $role_map[$role_row->name] = (int) $role_row->role_id;
+                        }
+                    }
+                    $record->roles = $role_map;
                     return $record;
                 }
                 return $record;

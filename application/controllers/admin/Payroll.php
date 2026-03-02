@@ -1750,16 +1750,21 @@ class Payroll extends Admin_Controller
             }
 
             $full_gross_salary = (float) $basic + (float) $total_allowance;
+            $month_num = date('n', strtotime($year . '-' . $month . '-01'));
+            $total_days_of_month = cal_days_in_month(CAL_GREGORIAN, $month_num, (int)$year);
             $prorata = $this->applyDojProrataToGross($full_gross_salary, $month_numeric, $year, $staff['date_of_joining'] ?? null);
-            $gross_salary = (float) ($prorata['prorated_gross_salary'] ?? $full_gross_salary);
-            $lop_deduction = 0;
-            if ($net_lop_days > 0) {
-                // Calculate total days in the month
-                $month_num = date('n', strtotime($year . '-' . $month . '-01'));
-                $total_days_of_month = cal_days_in_month(CAL_GREGORIAN, $month_num, (int)$year);
 
-                $lop_deduction = ($full_gross_salary / $total_days_of_month) * $net_lop_days;
-            }
+            $payable_days_from_attendance = (float) ($lop_summary['paid_days'] ?? 0);
+            $payable_days_from_attendance += (float) $adjusted_lop_days;
+            $payable_days_from_attendance = max(0, $payable_days_from_attendance);
+
+            $doj_payable_days = isset($prorata['payable_days']) ? (float) $prorata['payable_days'] : (float) $total_days_of_month;
+            $effective_payable_days = min((float) $total_days_of_month, $doj_payable_days, $payable_days_from_attendance);
+
+            $gross_salary = $total_days_of_month > 0
+                ? (($full_gross_salary / $total_days_of_month) * $effective_payable_days)
+                : 0;
+            $lop_deduction = max(0, $full_gross_salary - $gross_salary);
 
             // Calculate EPF and TDS using the new library
             // EPF CALCULATION: Only if UAN is available for the staff
@@ -1813,8 +1818,8 @@ class Payroll extends Admin_Controller
                 $monthly_tds = $this->tax_epf_calculator->calculate_monthly_tds($gross_salary);
             }
             
-            // Total deductions now include employee EPF, ESI, and TDS
-            $total_with_epf_tds_esi = (float) $employee_epf + (float) $esi_deduction + (float) $monthly_tds + (float) $total_deduction + (float) $lop_deduction;
+            // Gross salary is already prorated by payable present days, so don't deduct LOP again here
+            $total_with_epf_tds_esi = (float) $employee_epf + (float) $esi_deduction + (float) $monthly_tds + (float) $total_deduction;
             
             $net_salary = $this->roundPayrollAmount($gross_salary - $total_with_epf_tds_esi);
 
@@ -2198,13 +2203,20 @@ class Payroll extends Admin_Controller
         $esi_deduction = 0;
 
         $full_gross_salary = (float) $basic + (float) $total_allowance;
+        $total_days_of_month = cal_days_in_month(CAL_GREGORIAN, (int) $month_num, (int) $year);
         $prorata = $this->applyDojProrataToGross($full_gross_salary, $month_num, $year, $staff_data['date_of_joining'] ?? null);
-        $gross_salary = (float) ($prorata['prorated_gross_salary'] ?? $full_gross_salary);
-        $lop_deduction = 0;
-        if ($net_lop_days > 0) {
-            $total_days_of_month = cal_days_in_month(CAL_GREGORIAN, (int) $month_num, (int) $year);
-            $lop_deduction = ($full_gross_salary / $total_days_of_month) * $net_lop_days;
-        }
+
+        $payable_days_from_attendance = (float) ($lop_summary['paid_days'] ?? 0);
+        $payable_days_from_attendance += (float) $adjusted_lop_days;
+        $payable_days_from_attendance = max(0, $payable_days_from_attendance);
+
+        $doj_payable_days = isset($prorata['payable_days']) ? (float) $prorata['payable_days'] : (float) $total_days_of_month;
+        $effective_payable_days = min((float) $total_days_of_month, $doj_payable_days, $payable_days_from_attendance);
+
+        $gross_salary = $total_days_of_month > 0
+            ? (($full_gross_salary / $total_days_of_month) * $effective_payable_days)
+            : 0;
+        $lop_deduction = max(0, $full_gross_salary - $gross_salary);
 
         $has_uan = isset($staff_data['uan_no']) && trim((string) $staff_data['uan_no']) !== '';
         $has_esi_no = isset($staff_data['esi_no']) && trim((string) $staff_data['esi_no']) !== '';
@@ -2237,9 +2249,8 @@ class Payroll extends Admin_Controller
             $monthly_tds = $this->tax_epf_calculator->calculate_monthly_tds($gross_salary);
         }
 
-        // Calculate total deductions including manual + all statutory deductions
-        // This ensures net_salary shows correctly with all deductions subtracted
-        $total_with_epf_tds_esi = (float) $employee_epf + (float) $esi_deduction + (float) $monthly_tds + (float) $total_deduction + (float) $lop_deduction;
+        // Gross salary is already prorated by payable present days, so don't deduct LOP again here
+        $total_with_epf_tds_esi = (float) $employee_epf + (float) $esi_deduction + (float) $monthly_tds + (float) $total_deduction;
         $net_salary = $this->roundPayrollAmount($gross_salary - $total_with_epf_tds_esi);
         
         // Update total_deduction to include statutory deductions for response and form display

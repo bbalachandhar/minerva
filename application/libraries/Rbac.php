@@ -21,32 +21,23 @@ class Rbac
  
     public function hasPrivilege($category = null, $permission = null)
     {    
-        $roles            = $this->CI->customlib->getStaffRole();
-        $logged_user_role = json_decode($roles)->name;
-
-        if ($logged_user_role == 'Super Admin') {
-            return true;
-        }
-
         $admin = $this->CI->session->userdata('admin');
 
-        // Add this check
         if (!$admin || !isset($admin['roles']) || empty($admin['roles'])) {
-            return false; // No admin logged in or roles not available, so no privilege
+            return false;
         }
 
-        $roles    = $admin['roles'];
-        $role_key = key($roles);
-        $role_id  = $roles[$role_key];
-
-        $role_perm = $this->CI->rolepermission_model->getPermissionByRoleandCategory($role_id, trim($category));
-
-        if ($role_perm) {
-            if (array_key_exists($permission, $role_perm)) {
-               return ($role_perm[$permission]);
+        $roles = $admin['roles'];
+        foreach ($roles as $role_name => $role_id) {
+            if ($role_name === 'Super Admin' || (int) $role_id === 7) {
+                return true;
             }
 
-        }       
+            $role_perm = $this->CI->rolepermission_model->getPermissionByRoleandCategory((int) $role_id, trim($category));
+            if ($role_perm && array_key_exists($permission, $role_perm) && (int) $role_perm[$permission] === 1) {
+                return true;
+            }
+        }
 
         return false;
     }
