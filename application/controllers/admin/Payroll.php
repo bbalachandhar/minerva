@@ -278,6 +278,32 @@ class Payroll extends Admin_Controller
         ]);
     }
 
+    private function mergeAmountIntoAllowanceCode(array &$allowances, $allowance_code, $amount, $staff_id)
+    {
+        $allowance_code = strtoupper(trim((string) $allowance_code));
+        $amount = (float) $amount;
+        if ($allowance_code === '' || $amount <= 0) {
+            return;
+        }
+
+        foreach ($allowances as &$allowance_row) {
+            $row_code = strtoupper(trim((string) ($allowance_row['allowance_type'] ?? '')));
+            $row_type = strtolower(trim((string) ($allowance_row['cal_type'] ?? '')));
+            if ($row_type === 'positive' && $row_code === $allowance_code) {
+                $allowance_row['amount'] = (float) ($allowance_row['amount'] ?? 0) + $amount;
+                return;
+            }
+        }
+        unset($allowance_row);
+
+        $allowances[] = [
+            'allowance_type' => $allowance_code,
+            'amount' => $amount,
+            'staff_id' => $staff_id,
+            'cal_type' => 'positive',
+        ];
+    }
+
     private function getPayrollLopSummary($monthAttendance, $monthLeaves, $month, $year, $staff_id)
     {
         $month_num = date('m', strtotime($year . '-' . $month . '-01'));
@@ -1604,6 +1630,19 @@ class Payroll extends Admin_Controller
         $skipped_existing = 0;
         $zero_salary_generated = 0;
 
+        $special_allowance_code = 'SA';
+        $earning_types = $this->payroll_model->getAllowanceTypes('earning', true);
+        if (!empty($earning_types)) {
+            foreach ($earning_types as $earning_type) {
+                $type_code = strtoupper(trim((string) ($earning_type['allowance_code'] ?? '')));
+                $type_name = strtolower(trim((string) ($earning_type['allowance_name'] ?? '')));
+                if ($type_code === 'SA' || $type_name === 'special allowance') {
+                    $special_allowance_code = !empty($type_code) ? $type_code : $special_allowance_code;
+                    break;
+                }
+            }
+        }
+
         foreach ($staff_list as $staff) {
             if (!empty($staff['payslip_id']) && !$overwrite) {
                 $skipped_existing++;
@@ -1619,13 +1658,24 @@ class Payroll extends Admin_Controller
             $attendance = $monthAttendanceData[$month_key] ?? reset($monthAttendanceData) ?? [];
 
             $basic = $this->resolvePayrollBasicAmount($staff['basic_salary'] ?? 0, $staff, (int) $staff['id']);
-            $last_payslip = $this->payroll_model->getLastPayslip($staff['id']);
-            $source_payslip = $last_payslip;
-            if (!empty($staff['payslip_id']) && $overwrite) {
-                $existing_month_payslip = $this->payroll_model->getPayslip($staff['payslip_id']);
-                if (!empty($existing_month_payslip)) {
-                    $source_payslip = $existing_month_payslip;
-                }
+
+            $source_payslip = false;
+            $selected_month_date = DateTime::createFromFormat('Y-F-d', $year . '-' . $month . '-01');
+            if (!$selected_month_date) {
+                $selected_month_date = new DateTime($year . '-' . $month . '-01');
+            }
+            $previous_month_date = clone $selected_month_date;
+            $previous_month_date->modify('-1 month');
+            $previous_month_name = $previous_month_date->format('F');
+            $previous_month_year = $previous_month_date->format('Y');
+
+            $previous_month_payslip = $this->payroll_model->getPayslipByStaffMonthYear($staff['id'], $previous_month_name, $previous_month_year);
+            if (!empty($previous_month_payslip) && !empty($previous_month_payslip->id)) {
+                $source_payslip = $this->payroll_model->getPayslip($previous_month_payslip->id);
+            }
+
+            if (empty($source_payslip)) {
+                $source_payslip = $this->payroll_model->getLastPayslip($staff['id']);
             }
             $allowances = [];
             $total_allowance = 0;
@@ -1692,14 +1742,15 @@ class Payroll extends Admin_Controller
                     if ($approved_increment && $approved_increment['is_recurring'] == 1) {
                         // This is a recurring increment - merge based on merge_with setting
                         if ($approved_increment['merge_with'] === 'special_allowance') {
-                            // Merge into SA: Find SA in current allowances and increase it
-                            // Actually, we already read SA from payslip_allowance earlier, so just add to total
+                            // Merge into SA allowance line item and totals
+                            $this->mergeAmountIntoAllowanceCode($allowances, $special_allowance_code, $temp_amount_from_last_month, (int) $staff['id']);
                             $total_allowance += $temp_amount_from_last_month;
                         } elseif ($approved_increment['merge_with'] === 'basic') {
                             // Merge into basic salary
                             $basic = (float) $basic + $temp_amount_from_last_month;
                         } else {
                             // Default to special_allowance if merge_with not specified
+                            $this->mergeAmountIntoAllowanceCode($allowances, $special_allowance_code, $temp_amount_from_last_month, (int) $staff['id']);
                             $total_allowance += $temp_amount_from_last_month;
                         }
                         // Don't add TEMP as separate line item in payslip_allowance (it's merged)
@@ -1754,12 +1805,15 @@ class Payroll extends Admin_Controller
             $total_days_of_month = cal_days_in_month(CAL_GREGORIAN, $month_num, (int)$year);
             $prorata = $this->applyDojProrataToGross($full_gross_salary, $month_numeric, $year, $staff['date_of_joining'] ?? null);
 
-            $payable_days_from_attendance = (float) ($lop_summary['paid_days'] ?? 0);
-            $payable_days_from_attendance += (float) $adjusted_lop_days;
-            $payable_days_from_attendance = max(0, $payable_days_from_attendance);
-
             $doj_payable_days = isset($prorata['payable_days']) ? (float) $prorata['payable_days'] : (float) $total_days_of_month;
-            $effective_payable_days = min((float) $total_days_of_month, $doj_payable_days, $payable_days_from_attendance);
+            if ((float) $net_lop_days <= 0) {
+                $effective_payable_days = min((float) $total_days_of_month, $doj_payable_days);
+            } else {
+                $payable_days_from_attendance = (float) ($lop_summary['paid_days'] ?? 0);
+                $payable_days_from_attendance += (float) $adjusted_lop_days;
+                $payable_days_from_attendance = max(0, $payable_days_from_attendance);
+                $effective_payable_days = min((float) $total_days_of_month, $doj_payable_days, $payable_days_from_attendance);
+            }
 
             $gross_salary = $total_days_of_month > 0
                 ? (($full_gross_salary / $total_days_of_month) * $effective_payable_days)
@@ -2206,12 +2260,15 @@ class Payroll extends Admin_Controller
         $total_days_of_month = cal_days_in_month(CAL_GREGORIAN, (int) $month_num, (int) $year);
         $prorata = $this->applyDojProrataToGross($full_gross_salary, $month_num, $year, $staff_data['date_of_joining'] ?? null);
 
-        $payable_days_from_attendance = (float) ($lop_summary['paid_days'] ?? 0);
-        $payable_days_from_attendance += (float) $adjusted_lop_days;
-        $payable_days_from_attendance = max(0, $payable_days_from_attendance);
-
         $doj_payable_days = isset($prorata['payable_days']) ? (float) $prorata['payable_days'] : (float) $total_days_of_month;
-        $effective_payable_days = min((float) $total_days_of_month, $doj_payable_days, $payable_days_from_attendance);
+        if ((float) $net_lop_days <= 0) {
+            $effective_payable_days = min((float) $total_days_of_month, $doj_payable_days);
+        } else {
+            $payable_days_from_attendance = (float) ($lop_summary['paid_days'] ?? 0);
+            $payable_days_from_attendance += (float) $adjusted_lop_days;
+            $payable_days_from_attendance = max(0, $payable_days_from_attendance);
+            $effective_payable_days = min((float) $total_days_of_month, $doj_payable_days, $payable_days_from_attendance);
+        }
 
         $gross_salary = $total_days_of_month > 0
             ? (($full_gross_salary / $total_days_of_month) * $effective_payable_days)
