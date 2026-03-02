@@ -30,7 +30,7 @@ $root .= str_replace(basename($_SERVER['SCRIPT_NAME']), '', $_SERVER['SCRIPT_NAM
 $config['base_url'] = 'http://localhost/minerva/'; 
 */
 
-$root = '192.168.1.3/minerva/';
+$root = '192.168.1.4/minerva/';
 /*
   |--------------------------------------------------------------------------
   | Index File

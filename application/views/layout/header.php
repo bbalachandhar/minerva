@@ -180,6 +180,61 @@ $this->load->view('layout/theme');
                                     <?php if ($this->rbac->hasPrivilege('quick_session_change', 'can_view')) { ?>
                                     <li class="cal15" data-placement="bottom" data-toggle="tooltip" title="<?php echo $this->lang->line('current_session'); ?>"><a href="#" data-toggle="modal" data-target="#currentSessionModal"><i class="fa fa-calendar-check-o" aria-hidden="true"></i></a></li>
                                     <?php } ?>
+
+                                    <?php
+                                    $leave_approve_pending_count = 0;
+                                    $leave_recommender_pending_count = 0;
+                                    $leave_total_pending_count = 0;
+                                    $leave_staff_id = (int) $this->customlib->getStaffID();
+                                    $leave_role_info = json_decode($this->customlib->getStaffRole());
+                                    $leave_role_name = strtolower(trim((string) ($leave_role_info->name ?? '')));
+                                    $is_leave_admin_or_super_admin = in_array($leave_role_name, ['admin', 'super admin'], true);
+                                    $CI = &get_instance();
+                                    if ($leave_staff_id > 0 && $this->rbac->hasPrivilege('approve_leave_request', 'can_view')) {
+                                        $CI->load->model('leaverequest_model');
+                                        if ($is_leave_admin_or_super_admin) {
+                                            $leave_approve_pending_count = $CI->leaverequest_model->count_all_approver_pending_leave_requests();
+                                            $leave_recommender_pending_count = $CI->leaverequest_model->count_all_recommender_pending_leave_requests();
+                                        } else {
+                                            $leave_approve_pending_count = $CI->leaverequest_model->count_approver_pending_leave_requests($leave_staff_id);
+                                            $leave_recommender_pending_count = $CI->leaverequest_model->count_recommender_pending_leave_requests($leave_staff_id);
+                                        }
+                                        $leave_total_pending_count = $leave_approve_pending_count + $leave_recommender_pending_count;
+                                    }
+                                    if ($leave_total_pending_count > 0) {
+                                    ?>
+                                    <li class="dropdown cal15" data-placement="bottom" data-toggle="tooltip" title="Leave Requests">
+                                        <a href="#" class="dropdown-toggle todoicon" data-toggle="dropdown">
+                                            <i class="fa fa-bell-o"></i>
+                                            <span class="todo-indicator"><?php echo $leave_total_pending_count; ?></span>
+                                        </a>
+                                        <ul class="dropdown-menu menuboxshadow">
+                                            <li class="todoview plr10 ssnoti">
+                                                You have <?php echo $leave_total_pending_count; ?> pending leave request action(s)
+                                            </li>
+                                            <li>
+                                                <ul class="todolist">
+                                                    <?php if ($leave_approve_pending_count > 0) { ?>
+                                                    <li>
+                                                        <a href="<?php echo site_url('admin/leaverequest/leaverequest'); ?>">
+                                                            <?php echo $this->lang->line('approve_leave_request'); ?>
+                                                            <small class="label pull-right bg-red"><?php echo $leave_approve_pending_count; ?></small>
+                                                        </a>
+                                                    </li>
+                                                    <?php } ?>
+                                                    <?php if ($leave_recommender_pending_count > 0) { ?>
+                                                    <li>
+                                                        <a href="<?php echo site_url('admin/leaverequest/recommender_leave_requests'); ?>">
+                                                            Recommender Leave Requests
+                                                            <small class="label pull-right bg-red"><?php echo $leave_recommender_pending_count; ?></small>
+                                                        </a>
+                                                    </li>
+                                                    <?php } ?>
+                                                </ul>
+                                            </li>
+                                        </ul>
+                                    </li>
+                                    <?php } ?>
                                     
  <?php
 if ($this->module_lib->hasActive('calendar_to_do_list')) {

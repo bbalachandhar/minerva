@@ -79,6 +79,17 @@ if (isset($result)) {
 ?>> <?php echo $this->lang->line('loss_of_pay'); ?>
                                     </label>
                                 </div>
+                                <?php if (!empty($has_balance_check_flag)) { ?>
+                                <div class="form-group">
+                                    <label class="checkbox-inline">
+                                        <input type="checkbox" name="requires_balance_check" value="1" <?php if (!isset($result) || (isset($result['requires_balance_check']) && (int) $result['requires_balance_check'] === 1)) {
+    echo 'checked';
+}
+?>> Requires Balance Check
+                                    </label>
+                                    <p class="help-block" style="margin-bottom:0;">Uncheck for OD/claim-based leaves that should allow apply without leave balance.</p>
+                                </div>
+                                <?php } ?>
                                 <div class="form-group">
                                     <label class="checkbox-inline">
                                         <input type="checkbox" id="is_carry_forward" name="is_carry_forward" value="1" <?php if (isset($result) && $result['is_carry_forward'] == 1) {
@@ -160,6 +171,7 @@ if ($this->rbac->hasPrivilege('leave_types', 'can_add')) {
                                         <th><?php echo $this->lang->line('applicable_for'); ?></th>
                                         <th><?php echo $this->lang->line('max_leave_days'); ?></th>
                                         <th><?php echo $this->lang->line('loss_of_pay'); ?></th>
+                                        <?php if (!empty($has_balance_check_flag)) { ?><th>Requires Balance Check</th><?php } ?>
                                         <th><?php echo $this->lang->line('carry_forward'); ?></th>
                                         <th><?php echo $this->lang->line('max_carry_forward'); ?></th>
                                         <th><?php echo $this->lang->line('gender_specific'); ?></th>
@@ -179,6 +191,7 @@ foreach ($leavetype as $value) {
                                             <td class="mailbox-name"> <?php echo $value['is_staff_specific'] ?></td>
                                             <td class="mailbox-name"> <?php echo $value['max_leave_days'] ?></td>
                                             <td class="mailbox-name"> <?php echo ($value['is_lop']) ? $this->lang->line('yes') : $this->lang->line('no'); ?></td>
+                                            <?php if (!empty($has_balance_check_flag)) { ?><td class="mailbox-name"><?php echo (!isset($value['requires_balance_check']) || (int) $value['requires_balance_check'] === 1) ? $this->lang->line('yes') : $this->lang->line('no'); ?></td><?php } ?>
                                             <td class="mailbox-name"> <?php echo ($value['is_carry_forward']) ? $this->lang->line('yes') : $this->lang->line('no'); ?></td>
                                             <td class="mailbox-name"> <?php echo $value['max_carry_forward'] ?></td>
                                             <td class="mailbox-name"> <?php echo $value['gender_specific'] ?></td>

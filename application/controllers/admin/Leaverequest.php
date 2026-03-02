@@ -2,6 +2,7 @@
 
 class Leaverequest extends Admin_Controller
 {
+    private $leaveTypeBalanceFlagColumnExists = null;
 
     public function __construct()
     {
@@ -23,9 +24,297 @@ class Leaverequest extends Admin_Controller
         $this->sch_setting_detail = $this->setting_model->getSetting();
     }
 
+    private function csvToIntArray($csv)
+    {
+        $parts = array_filter(array_map('trim', explode(',', (string) $csv)));
+        $result = [];
+        foreach ($parts as $part) {
+            $value = (int) $part;
+            if ($value > 0 && !in_array($value, $result, true)) {
+                $result[] = $value;
+            }
+        }
+        return $result;
+    }
+
+    private function roleIdsByNames($names)
+    {
+        $ids = [];
+        foreach ($names as $name) {
+            $row = $this->db->select('id')->where('LOWER(name)', strtolower($name))->limit(1)->get('roles')->row_array();
+            $id = isset($row['id']) ? (int) $row['id'] : 0;
+            if ($id > 0 && !in_array($id, $ids, true)) {
+                $ids[] = $id;
+            }
+        }
+        return $ids;
+    }
+
+    private function leaveTypeIdsByNames($names)
+    {
+        $ids = [];
+        foreach ($names as $name) {
+            $row = $this->db->select('id')->where('LOWER(type)', strtolower($name))->limit(1)->get('leave_types')->row_array();
+            $id = isset($row['id']) ? (int) $row['id'] : 0;
+            if ($id > 0 && !in_array($id, $ids, true)) {
+                $ids[] = $id;
+            }
+        }
+        return $ids;
+    }
+
+    private function getLeaveManagementPolicy()
+    {
+        $setting = $this->setting_model->getSetting();
+
+        $substitution_roles = $this->csvToIntArray((string) ($setting->leave_substitution_required_roles ?? ''));
+        $self_approve_roles = $this->csvToIntArray((string) ($setting->leave_self_approve_roles ?? ''));
+        $past_date_allowed_roles = $this->csvToIntArray((string) ($setting->leave_past_date_allowed_roles ?? ''));
+        $half_day_enabled = isset($setting->leave_enable_half_day) ? (int) $setting->leave_enable_half_day : 1;
+        $half_day_allowed_roles = $this->csvToIntArray((string) ($setting->leave_half_day_allowed_roles ?? ''));
+        $half_day_allowed_types = $this->csvToIntArray((string) ($setting->leave_half_day_allowed_types ?? ''));
+
+        if (empty($substitution_roles)) {
+            $substitution_roles = $this->roleIdsByNames(['teacher']);
+        }
+        if (empty($self_approve_roles)) {
+            $self_approve_roles = $this->roleIdsByNames(['principal']);
+        }
+        if (empty($past_date_allowed_roles)) {
+            $past_date_allowed_roles = $this->roleIdsByNames(['admin', 'super admin']);
+        }
+
+        return [
+            'substitution_required_roles' => $substitution_roles,
+            'self_approve_roles' => $self_approve_roles,
+            'past_date_allowed_roles' => $past_date_allowed_roles,
+            'half_day_enabled' => $half_day_enabled === 1,
+            'half_day_allowed_roles' => $half_day_allowed_roles,
+            'half_day_allowed_types' => $half_day_allowed_types,
+        ];
+    }
+
+    private function isOnDutyLeaveType($leave_type_id)
+    {
+        $leave_type_id = (int) $leave_type_id;
+        if ($leave_type_id <= 0) {
+            return false;
+        }
+
+        $row = $this->db->select('type')->where('id', $leave_type_id)->limit(1)->get('leave_types')->row_array();
+        $name = strtolower(trim((string) ($row['type'] ?? '')));
+        return in_array($name, ['on duty', 'od'], true); 
+    }
+
+    private function hasLeaveTypeBalanceFlagColumn()
+    {
+        if ($this->leaveTypeBalanceFlagColumnExists !== null) {
+            return $this->leaveTypeBalanceFlagColumnExists;
+        }
+
+        $row = $this->db->query("SHOW COLUMNS FROM leave_types LIKE 'requires_balance_check'")->row_array();
+        $this->leaveTypeBalanceFlagColumnExists = !empty($row);
+        return $this->leaveTypeBalanceFlagColumnExists;
+    }
+
+    private function leaveTypeRequiresBalanceCheck($leave_type_details)
+    {
+        if (!is_array($leave_type_details)) {
+            return true;
+        }
+
+        if ($this->hasLeaveTypeBalanceFlagColumn() && array_key_exists('requires_balance_check', $leave_type_details)) {
+            return ((int) $leave_type_details['requires_balance_check']) === 1;
+        }
+
+        $type_name = strtolower(trim((string) ($leave_type_details['type'] ?? '')));
+        if (in_array($type_name, ['on duty', 'od'], true)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private function parseSchoolDateStrictToYmd($input_date)
+    {
+        $input_date = trim((string) $input_date);
+        if ($input_date === '') {
+            return null;
+        }
+
+        $format = (string) $this->customlib->getSchoolDateFormat();
+        $date_obj = DateTime::createFromFormat('!' . $format, $input_date);
+        $errors = DateTime::getLastErrors();
+
+        if (!$date_obj || !empty($errors['warning_count']) || !empty($errors['error_count'])) {
+            return null;
+        }
+
+        if ($date_obj->format($format) !== $input_date) {
+            return null;
+        }
+
+        return $date_obj->format('Y-m-d');
+    }
+
+    private function parseYmdStrict($input_date)
+    {
+        $input_date = trim((string) $input_date);
+        if ($input_date === '') {
+            return null;
+        }
+
+        $date_obj = DateTime::createFromFormat('!Y-m-d', $input_date);
+        $errors = DateTime::getLastErrors();
+
+        if (!$date_obj || !empty($errors['warning_count']) || !empty($errors['error_count'])) {
+            return null;
+        }
+
+        if ($date_obj->format('Y-m-d') !== $input_date) {
+            return null;
+        }
+
+        return $date_obj->format('Y-m-d');
+    }
+
+    private function resolvePostedLeaveDateToYmd($display_field, $iso_field)
+    {
+        $iso_value = $this->input->post($iso_field);
+        $parsed_iso = $this->parseYmdStrict($iso_value);
+        if (!empty($parsed_iso)) {
+            return $parsed_iso;
+        }
+
+        return $this->parseSchoolDateStrictToYmd($this->input->post($display_field));
+    }
+
+    private function getPresentAttendanceConflictDate($staff_id, $from_date, $to_date)
+    {
+        $staff_id = (int) $staff_id;
+        if ($staff_id <= 0 || empty($from_date) || empty($to_date)) {
+            return null;
+        }
+
+        $row = $this->db->select('sa.date, sat.type, sat.key_value')
+            ->from('staff_attendance sa')
+            ->join('staff_attendance_type sat', 'sat.id = sa.staff_attendance_type_id', 'left')
+            ->where('sa.staff_id', $staff_id)
+            ->where('sa.date >=', $from_date)
+            ->where('sa.date <=', $to_date)
+            ->group_start()
+            ->where('LOWER(TRIM(sat.type))', 'present')
+            ->or_where('UPPER(TRIM(sat.key_value))', 'P')
+            ->group_end()
+            ->order_by('sa.date', 'ASC')
+            ->limit(1)
+            ->get()
+            ->row_array();
+
+        return !empty($row) ? $row : null;
+    }
+
+    private function getHalfDayAttendanceConflictDate($staff_id, $from_date, $to_date)
+    {
+        $staff_id = (int) $staff_id;
+        if ($staff_id <= 0 || empty($from_date) || empty($to_date)) {
+            return null;
+        }
+
+        $row = $this->db->select('sa.date, sat.type, sat.key_value')
+            ->from('staff_attendance sa')
+            ->join('staff_attendance_type sat', 'sat.id = sa.staff_attendance_type_id', 'left')
+            ->where('sa.staff_id', $staff_id)
+            ->where('sa.date >=', $from_date)
+            ->where('sa.date <=', $to_date)
+            ->group_start()
+            ->where('UPPER(TRIM(sat.key_value))', 'HD')
+            ->or_where('LOWER(TRIM(sat.type))', 'half day')
+            ->group_end()
+            ->order_by('sa.date', 'ASC')
+            ->limit(1)
+            ->get()
+            ->row_array();
+
+        return !empty($row) ? $row : null;
+    }
+
+    private function canApplyPastDateByPolicy($role_id, $policy = null)
+    {
+        if ($policy === null) {
+            $policy = $this->getLeaveManagementPolicy();
+        }
+        return in_array((int) $role_id, $policy['past_date_allowed_roles'], true);
+    }
+
+    private function canApplyHalfDayByPolicy($role_id, $leave_type_id, $policy = null)
+    {
+        if ($policy === null) {
+            $policy = $this->getLeaveManagementPolicy();
+        }
+
+        if (empty($policy['half_day_enabled'])) {
+            return false;
+        }
+
+        $role_id = (int) $role_id;
+        $leave_type_id = (int) $leave_type_id;
+
+        $allowed_roles = $policy['half_day_allowed_roles'] ?? [];
+        $allowed_types = $policy['half_day_allowed_types'] ?? [];
+
+        if (!empty($allowed_roles) && !in_array($role_id, $allowed_roles, true)) {
+            return false;
+        }
+        if (!empty($allowed_types) && !in_array($leave_type_id, $allowed_types, true)) {
+            return false;
+        }
+
+        return true;
+    }
+    private function currentUserIsAdminOrSuperAdmin()
+    {
+        $role_raw = $this->customlib->getStaffRole();
+        $role = json_decode($role_raw);
+
+        $role_id = isset($role->id) ? (int) $role->id : 0;
+        $role_name = strtolower(trim((string) ($role->name ?? '')));
+
+        if (in_array($role_name, ['admin', 'super admin'], true)) {
+            return true;
+        }
+
+        $privileged_ids = $this->roleIdsByNames(['admin', 'super admin']);
+        return $role_id > 0 && in_array($role_id, $privileged_ids, true);
+    }
+
+    private function isSubstitutionRequiredByPolicy($role_id, $leave_type_id, $policy = null)
+    {
+        if ($policy === null) {
+            $policy = $this->getLeaveManagementPolicy();
+        }
+
+        $role_id = (int) $role_id;
+        $leave_type_id = (int) $leave_type_id;
+
+        if ($role_id <= 0 || $leave_type_id <= 0) {
+            return false;
+        }
+
+        if (!in_array($role_id, $policy['substitution_required_roles'], true)) {
+            return false;
+        }
+
+        if ($this->isOnDutyLeaveType($leave_type_id)) {
+            return false;
+        }
+
+        return true;
+    }
+
     public function leaverequest()
     {
-        if (!$this->rbac->hasPrivilege('approve_leave_request', 'can_view')) {
+        if ((int) $this->customlib->getStaffID() <= 0) {
             access_denied();
         }
 
@@ -34,26 +323,24 @@ class Leaverequest extends Admin_Controller
         $all_leave_request = $this->leaverequest_model->staff_leave_request();
         $filtered_leave_request = [];
         $current_user_id = $this->customlib->getStaffID();
-        $role = json_decode($this->customlib->getStaffRole());
+        $is_admin_or_super_admin = $this->currentUserIsAdminOrSuperAdmin();
 
-        // Super Admin (Role 7) sees all
-        if ($role->id == 7) {
-            $filtered_leave_request = $all_leave_request;
+        // Admin / Super Admin: in approve view, show only approver-stage records (plus finalized history)
+        if ($is_admin_or_super_admin) {
+            foreach ($all_leave_request as $request) {
+                $recommender_done = in_array((string) ($request['recommender_status'] ?? ''), ['recommended', 'approved'], true);
+                $is_finalized = in_array((string) ($request['status'] ?? ''), ['approved', 'disapproved'], true);
+
+                if ($recommender_done || $is_finalized) {
+                    $filtered_leave_request[] = $request;
+                }
+            }
         } else {
             foreach ($all_leave_request as $request) {
                 $show = false;
-                
-                // 1. Applier: Always see own
-                if ($request['staff_id'] == $current_user_id) {
-                    $show = true;
-                }
-                // 2. Recommender: See requests where they are recommender
-                elseif ($request['recommender_id'] == $current_user_id) {
-                    $show = true;
-                }
-                // 3. Approver: See requests where they are approver AND status is recommended/approved
-                elseif ($request['approver_id'] == $current_user_id) {
-                    // Strict requirement: "approver should only see only if a leave is recommended"
+
+                // Approver sees only requests assigned to them and only after recommendation
+                if ($request['approver_id'] == $current_user_id) {
                     if ($request['recommender_status'] == 'recommended' || $request['recommender_status'] == 'approved') {
                         $show = true;
                     }
@@ -73,6 +360,8 @@ class Leaverequest extends Admin_Controller
         $staffRole             = $this->staff_model->getStaffRole();
         $data["staffrole"]     = $staffRole;
         $data["status"]        = $this->status;
+        $data['leave_management_policy'] = $this->getLeaveManagementPolicy();
+        $data['is_admin_or_super_admin'] = $is_admin_or_super_admin;
 
         // Fetch staff details, timetable, and potential substitutes
         if ($current_staff_id === 0) {
@@ -91,6 +380,8 @@ class Leaverequest extends Admin_Controller
         $data['staff_timetable'] = $this->subjecttimetable_model->getStaffTimetable($current_staff_id, $start_date, $end_date);
 
         $potential_substitutes = [];
+        $recommender_staff = null;
+        $approver_staff = null;
         if ($staff_details && $staff_details['department']) {
             $potential_substitutes = $this->staff_model->getEmployeeByDepartment($staff_details['department'], $current_staff_id);
 
@@ -100,30 +391,37 @@ class Leaverequest extends Admin_Controller
             if ($department && $department['dept_head_id']) {
                 $recommender_details = $this->staff_model->get($department['dept_head_id']);
                 if (!empty($recommender_details) && is_array($recommender_details)) {
-                    $data['recommender_info'] = $recommender_details['name'] . ' ' . $recommender_details['surname'] . ' (' . $recommender_details['designation'] . ')';
-                } else {
-                    $data['recommender_info'] = $this->lang->line('not_assigned');
+                    $recommender_staff = $recommender_details;
                 }
-            } else {
-                $data['recommender_info'] = $this->lang->line('not_assigned');
             }
-        } else {
-            $data['recommender_info'] = $this->lang->line('not_assigned');
         }
         $data['potential_substitutes'] = $potential_substitutes;
 
         // Fetch Approver details (from school settings)
         $setting = $this->setting_model->getSetting();
-        if ($setting && isset($setting->leave_approver_id)) {
+        if ($setting && !empty($setting->leave_approver_id)) {
             $approver_details = $this->staff_model->get($setting->leave_approver_id);
             if (!empty($approver_details) && is_array($approver_details)) {
-                $data['approver_info'] = $approver_details['name'] . ' ' . $approver_details['surname'] . ' (' . $approver_details['designation'] . ')';
-            } else {
-                $data['approver_info'] = $this->lang->line('not_assigned');
+                $approver_staff = $approver_details;
             }
+        }
+
+        if (empty($recommender_staff) && !empty($approver_staff)) {
+            $recommender_staff = $approver_staff;
+        }
+
+        if (!empty($recommender_staff)) {
+            $data['recommender_info'] = $recommender_staff['name'] . ' ' . $recommender_staff['surname'] . ' (' . $recommender_staff['designation'] . ')';
+        } else {
+            $data['recommender_info'] = $this->lang->line('not_assigned');
+        }
+
+        if (!empty($approver_staff)) {
+            $data['approver_info'] = $approver_staff['name'] . ' ' . $approver_staff['surname'] . ' (' . $approver_staff['designation'] . ')';
         } else {
             $data['approver_info'] = $this->lang->line('not_assigned');
         }
+        $data['leave_approver_configured'] = !empty($approver_staff);
 
         $this->load->view("layout/header", $data);
         $this->load->view("admin/staff/staffleaverequest", $data);
@@ -265,13 +563,10 @@ class Leaverequest extends Admin_Controller
 
     public function leaveStatus()
     {
-        if ((!$this->rbac->hasPrivilege('approve_leave_request', 'can_edit'))) {
-            access_denied();
-        }
-
         $leave_request_id = $this->input->post("leave_request_id");
         $status           = $this->input->post("status");
         $remark           = $this->input->post("detailremark");
+        $success_message  = 'Leave request status updated successfully.';
         
         $current_user_id = $this->customlib->getStaffID();
         $leave_request = $this->leaverequest_model->get_staff_leave($leave_request_id);
@@ -279,15 +574,25 @@ class Leaverequest extends Admin_Controller
         $data = [];
         $is_recommender = ($leave_request['recommender_id'] == $current_user_id);
         $is_approver = ($leave_request['approver_id'] == $current_user_id);
+        $is_admin_override = $this->currentUserIsAdminOrSuperAdmin() || $this->rbac->hasPrivilege('approve_leave_request', 'can_edit');
+
+        if (!$is_recommender && !$is_approver && !$is_admin_override) {
+            $array = array('status' => 'fail', 'error' => '', 'message' => $this->lang->line('unauthorized_action'));
+            echo json_encode($array);
+            return;
+        }
 
         if ($is_recommender) {
             // Map form status to DB ENUM for recommender
             if ($status == 'approved') {
                 $data['recommender_status'] = 'recommended';
+                $success_message = 'Leave successfully recommended for approval.';
             } elseif ($status == 'disapproved') {
                 $data['recommender_status'] = 'rejected';
+                $success_message = 'Leave request rejected at recommender level.';
             } else {
                 $data['recommender_status'] = $status;
+                $success_message = 'Leave recommendation updated successfully.';
             }
             
             $data['recommender_remark'] = $remark;
@@ -315,8 +620,14 @@ class Leaverequest extends Admin_Controller
                 // Map form status to DB ENUM for approver
                 if ($status == 'disapproved') {
                     $data['approver_status'] = 'rejected';
+                    $success_message = 'Leave request disapproved successfully.';
                 } else {
                     $data['approver_status'] = $status;
+                    if ($status == 'approved') {
+                        $success_message = 'Leave request approved successfully.';
+                    } else {
+                        $success_message = 'Leave approval status updated successfully.';
+                    }
                 }
                 
                 $data['approver_remark'] = $remark;
@@ -333,13 +644,45 @@ class Leaverequest extends Admin_Controller
                 return;
             }
         } else {
-            // Fallback for admin or other privileged users
-            $data['status'] = $status;
-            $data['admin_remark'] = $remark;
-            if ($status != 'pending') {
-                $data['approve_date'] = date('Y-m-d');
+            // Fallback for privileged users with strict stage sequence
+            $recommender_done = in_array((string) $leave_request['recommender_status'], ['approved', 'recommended'], true);
+
+            if (!$recommender_done) {
+                if ($status == 'approved') {
+                    $data['recommender_status'] = 'recommended';
+                    $success_message = 'Leave successfully recommended for approval.';
+                    if ($leave_request['status'] == 'pending') {
+                        $data['status'] = 'recommended';
+                    }
+                } elseif ($status == 'disapproved') {
+                    $data['recommender_status'] = 'rejected';
+                    $data['status'] = 'disapproved';
+                    $success_message = 'Leave request rejected at recommender level.';
+                } else {
+                    $array = array('status' => 'fail', 'error' => '', 'message' => $this->lang->line('invalid_status'));
+                    echo json_encode($array);
+                    return;
+                }
+
+                $data['recommender_remark'] = $remark;
+                $data['recommender_action_date'] = date('Y-m-d');
+                $data['admin_remark'] = $remark;
             } else {
-                $data['approve_date'] = null;
+                if ($status == 'approved' || $status == 'disapproved') {
+                    $data['approver_status'] = ($status == 'disapproved') ? 'rejected' : 'approved';
+                    $data['approver_remark'] = $remark;
+                    $data['approver_action_date'] = date('Y-m-d');
+                    $data['status'] = $status;
+                    $data['approve_date'] = ($status == 'approved') ? date('Y-m-d') : null;
+                    $data['admin_remark'] = $remark;
+                    $success_message = ($status == 'approved')
+                        ? 'Leave request approved successfully.'
+                        : 'Leave request disapproved successfully.';
+                } else {
+                    $array = array('status' => 'fail', 'error' => '', 'message' => $this->lang->line('invalid_status'));
+                    echo json_encode($array);
+                    return;
+                }
             }
         }
 
@@ -358,7 +701,7 @@ class Leaverequest extends Admin_Controller
                 $this->mailer->send_mail($applicant_details['email'], 'Leave Request Status Updated', $message_to_applicant);
             }
 
-            $array = array('status' => 'success', 'error' => '', 'message' => $this->lang->line('success_message'));
+            $array = array('status' => 'success', 'error' => '', 'message' => $success_message);
             echo json_encode($array);
         } else {
             $array = array('status' => 'fail', 'error' => '', 'message' => $this->lang->line('unauthorized_action'));
@@ -368,15 +711,27 @@ class Leaverequest extends Admin_Controller
 
     public function remove($id, $staff_id)
     {
+        $current_user_id = (int) $this->customlib->getStaffID();
+        $is_admin_override = $this->currentUserIsAdminOrSuperAdmin() || $this->rbac->hasPrivilege('approve_leave_request', 'can_delete');
         $row = $this->leaverequest_model->get_staff_leave($id);
-        if ($row['status'] == 'pending') {
+
+        if (empty($row)) {
+            return;
+        }
+
+        $is_owner = ((int) ($row['staff_id'] ?? 0) === $current_user_id) || ((int) ($row['applied_by'] ?? 0) === $current_user_id);
+        $is_pre_recommender_stage = ((string) ($row['status'] ?? '') === 'pending')
+            && in_array((string) ($row['recommender_status'] ?? ''), ['', 'pending'], true)
+            && in_array((string) ($row['approver_status'] ?? ''), ['', 'pending'], true);
+
+        if (($is_owner || $is_admin_override) && $is_pre_recommender_stage) {
             $uploaddir = './uploads/staff_documents/' . $staff_id . '/';
             if ($row['document_file'] != '') {
                 $this->media_storage->filedelete($row['document_file'], $uploaddir);
             }
             $this->leaverequest_model->leave_remove($id);
         } else {
-            log_message('error', 'Attempt to delete non-pending leave request ID: ' . $id);
+            log_message('error', 'Attempt to delete non-editable or unauthorized leave request ID: ' . $id);
         }
     }
 
@@ -384,6 +739,9 @@ class Leaverequest extends Admin_Controller
     {
         $id                   = $this->input->post("id");
         $result               = $this->staff_model->getLeaveRecord($id);
+        if (!isset($result->leave_duration_type) || empty($result->leave_duration_type)) {
+            $result->leave_duration_type = 'full_day';
+        }
 
         // Self-Healing: If recommender_id is missing, try to fix it based on current staff department
         if (empty($result->recommender_id)) {
@@ -465,6 +823,16 @@ class Leaverequest extends Admin_Controller
         return $interval->format($differenceFormat) + 1;
     }
 
+    private function calculateLeaveDays($leavefrom, $leaveto, $leave_duration_type)
+    {
+        $leave_duration_type = strtolower(trim((string) $leave_duration_type));
+        if (in_array($leave_duration_type, ['first_half', 'second_half'], true)) {
+            return 0.5;
+        }
+
+        return (float) $this->dateDifference($leavefrom, $leaveto);
+    }
+
         public function addLeave()
         {
             log_message('error', 'addLeave called');
@@ -475,13 +843,28 @@ class Leaverequest extends Admin_Controller
             $remark       = $this->input->post("remark");
             $status       = $this->input->post("addstatus");
             $request_id   = $this->input->post("leaverequestid");
-            $applied_date = $this->input->post("applieddate"); // Revert to using post value
+            $applied_date = $this->input->post("applieddate");
+            $server_apply_date = date('Y-m-d');
+            $leave_duration_type = strtolower(trim((string) $this->input->post('leave_duration_type')));
+            if (!in_array($leave_duration_type, ['full_day', 'first_half', 'second_half'], true)) {
+                $leave_duration_type = 'full_day';
+            }
+            $has_duration_column = $this->db->field_exists('leave_duration_type', 'staff_leave_request');
             
             $leavefrom = "";
             $leaveto = "";
             if ($this->input->post('leave_from_date') && $this->input->post('leave_to_date')) {
-                $leavefrom    = date("Y-m-d", $this->customlib->datetostrtotime($this->input->post('leave_from_date')));
-                $leaveto      = date("Y-m-d", $this->customlib->datetostrtotime($this->input->post('leave_to_date')));
+                $leavefrom = (string) $this->resolvePostedLeaveDateToYmd('leave_from_date', 'leave_from_date_iso');
+                $leaveto = (string) $this->resolvePostedLeaveDateToYmd('leave_to_date', 'leave_to_date_iso');
+            }
+
+            if (($this->input->post('leave_from_date') && empty($leavefrom)) || ($this->input->post('leave_to_date') && empty($leaveto))) {
+                $msg = array(
+                    'leave_from_date' => 'Invalid date format. Please use ' . $this->customlib->getSchoolDateFormat() . ' (example: 04/02/2026 for 4-Feb-2026).',
+                );
+                $array = array('status' => 'fail', 'error' => $msg, 'message' => '');
+                echo json_encode($array);
+                return;
             }
             
             $this->form_validation->set_rules('role', $this->lang->line('role'), 'trim|required|xss_clean');
@@ -491,9 +874,13 @@ class Leaverequest extends Admin_Controller
             $this->form_validation->set_rules('leave_to_date', $this->lang->line('leave_to_date'), 'trim|required|xss_clean');
             $this->form_validation->set_rules('leave_type', $this->lang->line('available_leave'), 'trim|required|xss_clean');
             $this->form_validation->set_rules('leave_type', $this->lang->line('leave_type'), 'trim|required|xss_clean');
+            $this->form_validation->set_rules('leave_duration_type', 'Leave Duration', 'trim|xss_clean');
             $this->form_validation->set_rules('userfile', $this->lang->line('file'), 'callback_handle_upload[userfile]');
             $this->form_validation->set_rules('alternative_teacher_id', $this->lang->line('alternative_teacher'), 'trim|xss_clean');
-            if ($leavefrom != "" && $leaveto != "") {
+
+            $policy = $this->getLeaveManagementPolicy();
+            $requires_substitution = $this->isSubstitutionRequiredByPolicy((int) $role, (int) $leavetype, $policy);
+            if ($leavefrom != "" && $leaveto != "" && $requires_substitution) {
                 $this->form_validation->set_rules('validate_substitutes_flag', 'Substitute Teachers', 'callback_validate_substitutes[' . $leavefrom . ',' . $leaveto . ']');
             }
             $this->form_validation->set_rules('reason', $this->lang->line('reason'), 'trim|xss_clean'); // Added rule for cleaning, but not required
@@ -508,6 +895,7 @@ class Leaverequest extends Admin_Controller
                     'leave_type'      => form_error('leave_type'),
                     'leave_from_date' => form_error('leave_from_date'),
                     'leave_to_date'   => form_error('leave_to_date'),
+                    'leave_duration_type' => form_error('leave_duration_type'),
                     'userfile'        => form_error('userfile'),
                     'alternative_teacher_id' => form_error('alternative_teacher_id'),
                     'validate_substitutes_flag' => form_error('validate_substitutes_flag'),
@@ -517,16 +905,84 @@ class Leaverequest extends Admin_Controller
                 $array = array('status' => 'fail', 'error' => $msg, 'message' => '');
             } else {
                 log_message('error', 'Validation succeeded in addLeave');
+
+                $can_apply_past_by_selected_role = $this->canApplyPastDateByPolicy((int) $role, $policy);
+                $can_apply_past_by_logged_in_user = $this->currentUserIsAdminOrSuperAdmin();
+
+                if (!empty($leavefrom) && !($can_apply_past_by_selected_role || $can_apply_past_by_logged_in_user)) {
+                    $today = date('Y-m-d');
+                    if ($leavefrom < $today) {
+                        $msg = array(
+                            'leave_from_date' => 'Past date leave/OD application is not allowed for selected role.',
+                        );
+                        $array = array('status' => 'fail', 'error' => $msg, 'message' => '');
+                        echo json_encode($array);
+                        return;
+                    }
+                }
+
+                if (in_array($leave_duration_type, ['first_half', 'second_half'], true)) {
+                    if (!$has_duration_column) {
+                        $msg = array(
+                            'leave_duration_type' => 'Half-day leave requires latest database update. Please run DB update script first.',
+                        );
+                        $array = array('status' => 'fail', 'error' => $msg, 'message' => '');
+                        echo json_encode($array);
+                        return;
+                    }
+
+                    if (!$this->canApplyHalfDayByPolicy((int) $role, (int) $leavetype, $policy)) {
+                        $msg = array(
+                            'leave_duration_type' => 'Half-day leave is not enabled for the selected role/leave type.',
+                        );
+                        $array = array('status' => 'fail', 'error' => $msg, 'message' => '');
+                        echo json_encode($array);
+                        return;
+                    }
+
+                    if ($leavefrom !== $leaveto) {
+                        $msg = array(
+                            'leave_to_date' => 'Half-day leave can only be applied for a single date.',
+                        );
+                        $array = array('status' => 'fail', 'error' => $msg, 'message' => '');
+                        echo json_encode($array);
+                        return;
+                    }
+                }
     
                 $alternative_teacher_id = $this->input->post('alternative_teacher_id');
                 $applied_by   = $this->customlib->getStaffID();
-                $leave_days   = $this->dateDifference($leavefrom, $leaveto);
+                $leave_days   = $this->calculateLeaveDays($leavefrom, $leaveto, $leave_duration_type);
                 $staff_id     = $empid;
+
+                                if ($leave_duration_type === 'full_day') {
+                                    $half_day_conflict = $this->getHalfDayAttendanceConflictDate($staff_id, $leavefrom, $leaveto);
+                                    if (!empty($half_day_conflict)) {
+                                        $conflict_date = date($this->customlib->getSchoolDateFormat(), strtotime($half_day_conflict['date']));
+                                        $msg = array(
+                                            'leave_duration_type' => 'Full-day leave is not allowed on a half-day attendance date. Please apply half-day leave for ' . $conflict_date . '.',
+                                        );
+                                        $array = array('status' => 'fail', 'error' => $msg, 'message' => '');
+                                        echo json_encode($array);
+                                        return;
+                                    }
+                                }
     
-                            $leave_type_details = $this->staff_model->getLeaveType($leavetype);
-                            $is_lop_leave = (isset($leave_type_details['is_lop']) && $leave_type_details['is_lop'] == 1);
+                                $leave_type_details = $this->staff_model->getLeaveType($leavetype);
+                                $present_conflict = $this->getPresentAttendanceConflictDate($staff_id, $leavefrom, $leaveto);
+                                if (!empty($present_conflict)) {
+                                    $conflict_date = date($this->customlib->getSchoolDateFormat(), strtotime($present_conflict['date']));
+                                    $msg = array(
+                                        'leave_from_date' => 'Leave cannot be applied on a day marked Present. Attendance is already marked Present on ' . $conflict_date . '.',
+                                    );
+                                    $array = array('status' => 'fail', 'error' => $msg, 'message' => '');
+                                    echo json_encode($array);
+                                    return;
+                                }
+                                $is_lop_leave = (isset($leave_type_details['is_lop']) && $leave_type_details['is_lop'] == 1);
+                                $requires_balance_check = $this->leaveTypeRequiresBalanceCheck($leave_type_details);
                             
-                            log_message('error', "Checking balance: Staff ID: $staff_id, Leave Type: $leavetype, Is LOP: " . ($is_lop_leave ? 'Yes' : 'No') . ", Leave Days Requested: $leave_days");
+                                log_message('error', "Checking balance: Staff ID: $staff_id, Leave Type: $leavetype, Is LOP: " . ($is_lop_leave ? 'Yes' : 'No') . ", RequiresBalance: " . ($requires_balance_check ? 'Yes' : 'No') . ", Leave Days Requested: $leave_days");
                 
                             $my_laeve     = $this->leaverequest_model->myallotedLeaveType($staff_id, $leavetype);
                             $alloted_leave = isset($my_laeve['alloted_leave']) ? $my_laeve['alloted_leave'] : 0;
@@ -535,7 +991,8 @@ class Leaverequest extends Admin_Controller
                             
                             log_message('error', "Balance details: Allotted: $alloted_leave, Applied: $total_applied, Remaining: $total_remain");
                 
-                            if ($is_lop_leave || $total_remain >= $leave_days) {                    if (isset($_FILES["userfile"]) && !empty($_FILES['userfile']['name'])) {
+                                if (!$requires_balance_check || $is_lop_leave || $total_remain >= $leave_days) {
+                            if (isset($_FILES["userfile"]) && !empty($_FILES['userfile']['name'])) {
                         $uploaddir = './uploads/staff_documents/' . $staff_id . '/';
                         $this->customlib->ensureDirectoryExists($uploaddir);
                         $document = $this->media_storage->fileupload("userfile", $uploaddir);
@@ -563,20 +1020,49 @@ class Leaverequest extends Admin_Controller
                         $setting = $this->setting_model->getSetting();
                         $approver_id = isset($setting->leave_approver_id) ? $setting->leave_approver_id : null;
 
+                            if (in_array((int) $role, $policy['self_approve_roles'], true)) {
+                                $recommender_id = $staff_id;
+                                $approver_id = $staff_id;
+                            }
+
                         // Fallback: If no recommender found (e.g. no Dept Head), use Approver as Recommender
                         if (empty($recommender_id) && !empty($approver_id)) {
                             $recommender_id = $approver_id;
                             log_message('error', 'No Recommender (HOD) found. Falling back to Approver ID: ' . $approver_id);
                         }
     
-                    if (!empty($request_id)) {				 
+					if (!empty($request_id)) {				 
+
+                        $existing_leave = $this->leaverequest_model->get_staff_leave($request_id);
+                        if (empty($existing_leave)) {
+                            $array = array('status' => 'fail', 'error' => array('message' => 'Leave request not found.'), 'message' => '');
+                            echo json_encode($array);
+                            return;
+                        }
+
+                        $current_user_id = (int) $this->customlib->getStaffID();
+                        $is_admin_override = $this->currentUserIsAdminOrSuperAdmin() || $this->rbac->hasPrivilege('approve_leave_request', 'can_edit');
+                        $is_owner = ((int) ($existing_leave['staff_id'] ?? 0) === $current_user_id)
+                            || ((int) ($existing_leave['applied_by'] ?? 0) === $current_user_id);
+                        $is_pre_recommender_stage = ((string) ($existing_leave['status'] ?? '') === 'pending')
+                            && in_array((string) ($existing_leave['recommender_status'] ?? ''), ['', 'pending'], true)
+                            && in_array((string) ($existing_leave['approver_status'] ?? ''), ['', 'pending'], true);
+
+                        if (!(($is_owner || $is_admin_override) && $is_pre_recommender_stage)) {
+                            $array = array('status' => 'fail', 'error' => array('message' => 'This leave request can only be edited before recommender action.'), 'message' => '');
+                            echo json_encode($array);
+                            return;
+                        }
+
+                        $persisted_apply_date = !empty($existing_leave['date']) ? $existing_leave['date'] : $server_apply_date;
     					 
                         $data = array(
                             'id'              => $request_id,
                             'staff_id'        => $staff_id,
-                            'date'            => date('Y-m-d', $this->customlib->datetostrtotime($applied_date)),
+                            'date'            => $persisted_apply_date,
                             'leave_type_id'   => $leavetype,
                             'leave_days'      => $leave_days,
+                            'leave_duration_type' => $leave_duration_type,
                             'leave_from'      => $leavefrom,
                             'leave_to'        => $leaveto,
                             'employee_remark' => $reason,
@@ -593,12 +1079,16 @@ class Leaverequest extends Admin_Controller
     					
                     } else {
     					 
-                        $data = array('staff_id' => $staff_id, 'date' => date("Y-m-d", $this->customlib->datetostrtotime($applied_date)), 'leave_days' => $leave_days, 'leave_type_id' => $leavetype, 'leave_from' => $leavefrom, 'leave_to' => $leaveto, 'employee_remark' => $reason, 'status' => $status, 'admin_remark' => $remark, 'applied_by' => $applied_by, 'document_file' => $document, 'approve_date' => $approve_date,
+                            $data = array('staff_id' => $staff_id, 'date' => $server_apply_date, 'leave_days' => $leave_days, 'leave_duration_type' => $leave_duration_type, 'leave_type_id' => $leavetype, 'leave_from' => $leavefrom, 'leave_to' => $leaveto, 'employee_remark' => $reason, 'status' => $status, 'admin_remark' => $remark, 'applied_by' => $applied_by, 'document_file' => $document, 'approve_date' => $approve_date,
                             'recommender_id' => $recommender_id,
                             'approver_id' => $approver_id,
                             'recommender_status' => 'pending', // Initial status
                             'alternative_teacher_id' => $alternative_teacher_id,
                         );
+                    }
+
+                    if (!$has_duration_column && isset($data['leave_duration_type'])) {
+                        unset($data['leave_duration_type']);
                     }
     
                     log_message('error', 'Calling addLeaveRequest with data: ' . json_encode($data));
@@ -606,8 +1096,30 @@ class Leaverequest extends Admin_Controller
                     $result = $this->leaverequest_model->addLeaveRequest($data);
     
                     if ($result === false) {
-    
-                        $array = array('status' => 'fail', 'error' => array('message' => 'Leave already applied for the selected date range.'), 'message' => '');
+
+                        $entered_from = (string) $this->input->post('leave_from_date');
+                        $entered_to = (string) $this->input->post('leave_to_date');
+                        $parsed_from = !empty($leavefrom) ? date($this->customlib->getSchoolDateFormat(), strtotime($leavefrom)) : '';
+                        $parsed_to = !empty($leaveto) ? date($this->customlib->getSchoolDateFormat(), strtotime($leaveto)) : '';
+
+                        $duplicate_message = 'Leave already applied for this date/date range.';
+                        if ($entered_from !== '' || $entered_to !== '') {
+                            $duplicate_message .= ' Entered: ' . $entered_from;
+                            if ($entered_to !== '' && $entered_to !== $entered_from) {
+                                $duplicate_message .= ' to ' . $entered_to;
+                            }
+                            $duplicate_message .= '.';
+                        }
+                        if ($parsed_from !== '' || $parsed_to !== '') {
+                            $duplicate_message .= ' Parsed as: ' . $parsed_from;
+                            if ($parsed_to !== '' && $parsed_to !== $parsed_from) {
+                                $duplicate_message .= ' to ' . $parsed_to;
+                            }
+                            $duplicate_message .= '.';
+                        }
+                        $duplicate_message .= ' Please use date format ' . $this->customlib->getSchoolDateFormat() . ' (for example: 04/02/2026 for 4-Feb-2026).';
+
+                        $array = array('status' => 'fail', 'error' => array('message' => $duplicate_message), 'message' => '');
     
                         echo json_encode($array);
     
@@ -635,7 +1147,20 @@ class Leaverequest extends Admin_Controller
                         $this->leaverequest_model->addLeaveSubstitutions($leave_request_id, $substitutions_data);
                     }
     
-                                    $array = array('status' => 'success', 'error' => '', 'message' => $this->lang->line('success_message'));
+                                    $display_from = !empty($leavefrom) ? date($this->customlib->getSchoolDateFormat(), strtotime($leavefrom)) : '';
+                                    $display_to = !empty($leaveto) ? date($this->customlib->getSchoolDateFormat(), strtotime($leaveto)) : '';
+                                    $display_range = $display_from;
+                                    if (!empty($display_to) && $display_to !== $display_from) {
+                                        $display_range .= ' to ' . $display_to;
+                                    }
+
+                                    $apply_success_message = !empty($request_id)
+                                        ? 'Leave request updated and submitted for review successfully.'
+                                        : 'Leave request submitted for review successfully.';
+                                    if (!empty($display_range)) {
+                                        $apply_success_message .= ' Applied dates: ' . $display_range . '.';
+                                    }
+                                    $array = array('status' => 'success', 'error' => '', 'message' => $apply_success_message);
                                     log_message('error', 'Sending success response from addLeave');
                                 } else {
                                     $msg = array(
@@ -686,6 +1211,8 @@ class Leaverequest extends Admin_Controller
                 $staff_id        = $this->input->post('staff_id');
                 $leave_from_date = $this->input->post('leave_from_date');
                 $leave_to_date   = $this->input->post('leave_to_date');
+                $role_id         = (int) $this->input->post('role_id');
+                $leave_type_id   = (int) $this->input->post('leave_type_id');
                 
                 log_message('error', "getTimetableAndSubstitutes called: Staff: $staff_id, From: $leave_from_date, To: $leave_to_date");
 
@@ -698,6 +1225,18 @@ class Leaverequest extends Admin_Controller
                 $substitution_html = '';
                 $status = 'fail';
                 $message = $this->lang->line('no_timetable_found_for_this_period');
+
+                $policy = $this->getLeaveManagementPolicy();
+                $requires_substitution = $this->isSubstitutionRequiredByPolicy($role_id, $leave_type_id, $policy);
+                if (!$requires_substitution) {
+                    echo json_encode([
+                        'status' => 'success',
+                        'message' => $this->lang->line('success_message'),
+                        'timetable_html' => '',
+                        'substitution_html' => '',
+                    ]);
+                    return;
+                }
    
                 if ($staff_details) {
                     $this->load->model('subjecttimetable_model');
@@ -822,7 +1361,8 @@ class Leaverequest extends Admin_Controller
  
             {
 
-                $staff_id = $this->input->post('staff_id');
+                $staff_id = (int) $this->input->post('staff_id');
+                $selected_role_id = (int) $this->input->post('role_id');
  
                 $recommender_info = $this->lang->line('not_assigned');
 
@@ -832,19 +1372,31 @@ class Leaverequest extends Admin_Controller
                 $staff_details = $this->staff_model->get($staff_id);
 
                 if ($staff_details) {
+                        $policy = $this->getLeaveManagementPolicy();
+                        if (in_array($selected_role_id, $policy['self_approve_roles'], true)) {
+                        $self_label = $staff_details['name'] . ' ' . $staff_details['surname'] . ' (' . $staff_details['designation'] . ')';
+                        echo json_encode([
+                            'status' => 'success',
+                            'recommender_info' => $self_label,
+                            'approver_info' => $self_label,
+                            'approver_configured' => true,
+                        ]);
+                        return;
+                    }
  
                     // Fetch Recommender (HOD) details
  
                     $this->load->model('department_model');
  
-                    $department = $this->department_model->get_departments($staff_details['department']);
+                    $department = $this->department_model->getDepartmentType($staff_details['department']);
   
                     if ($department && $department['dept_head_id']) {
  
                         $recommender_details = $this->staff_model->get($department['dept_head_id']);
-    
- 
-                        $recommender_info = $recommender_details['name'] . ' ' . $recommender_details['surname'] . ' (' . $recommender_details['designation'] . ')';
+
+                        if (!empty($recommender_details) && is_array($recommender_details)) {
+                            $recommender_info = $recommender_details['name'] . ' ' . $recommender_details['surname'] . ' (' . $recommender_details['designation'] . ')';
+                        }
 
     
                     }
@@ -853,12 +1405,18 @@ class Leaverequest extends Admin_Controller
  
                     $setting = $this->setting_model->getSetting();
   
-                    if ($setting && isset($setting->leave_approver_id)) {
+                    if ($setting && !empty($setting->leave_approver_id)) {
  
                         $approver_details = $this->staff_model->get($setting->leave_approver_id);
+
+                        if (!empty($approver_details) && is_array($approver_details)) {
+                            $approver_info = $approver_details['name'] . ' ' . $approver_details['surname'] . ' (' . $approver_details['designation'] . ')';
+                        }
  
-                        $approver_info = $approver_details['name'] . ' ' . $approver_details['surname'] . ' (' . $approver_details['designation'] . ')';
- 
+                    }
+
+                    if ($recommender_info === $this->lang->line('not_assigned') && $approver_info !== $this->lang->line('not_assigned')) {
+                        $recommender_info = $approver_info;
                     }
  
                 }
@@ -872,7 +1430,8 @@ class Leaverequest extends Admin_Controller
                     'recommender_info' => $recommender_info,
        
     
-                    'approver_info' => $approver_info
+                    'approver_info' => $approver_info,
+                    'approver_configured' => ($approver_info !== $this->lang->line('not_assigned'))
     
     
     
@@ -887,6 +1446,13 @@ class Leaverequest extends Admin_Controller
         list($leave_from, $leave_to) = explode(',', $params);
 
         $staff_id = $this->input->post('empname'); // Assuming empname is the staff_id
+        $role_id = (int) $this->input->post('role');
+        $leave_type_id = (int) $this->input->post('leave_type');
+
+        $policy = $this->getLeaveManagementPolicy();
+        if (!$this->isSubstitutionRequiredByPolicy($role_id, $leave_type_id, $policy)) {
+            return true;
+        }
 
         $this->load->model('subjecttimetable_model');
         $staff_timetable = $this->subjecttimetable_model->getStaffTimetable($staff_id, $leave_from, $leave_to);
@@ -910,7 +1476,7 @@ class Leaverequest extends Admin_Controller
 
     public function recommender_leave_requests()
     {
-        if (!$this->rbac->hasPrivilege('approve_leave_request', 'can_view') || $this->sch_setting_detail->institution_type != 'college') {
+        if ((int) $this->customlib->getStaffID() <= 0 || $this->sch_setting_detail->institution_type != 'college') {
             access_denied();
         }
 
@@ -918,11 +1484,16 @@ class Leaverequest extends Admin_Controller
         $this->session->set_userdata('sub_menu', 'HR/staff/leaverequest');
 
         $current_user_id = $this->customlib->getStaffID();
-        $leave_requests_for_recommender = $this->leaverequest_model->get_recommender_pending_leave_requests($current_user_id);
+        if ($this->currentUserIsAdminOrSuperAdmin()) {
+            $leave_requests_for_recommender = $this->leaverequest_model->get_all_recommender_pending_leave_requests();
+        } else {
+            $leave_requests_for_recommender = $this->leaverequest_model->get_recommender_pending_leave_requests($current_user_id);
+        }
         
         $data["leave_request"] = $leave_requests_for_recommender;
         $data["status"] = $this->status; // Status array from payroll config
         $data['sch_setting_detail'] = $this->sch_setting_detail; // Pass sch_setting_detail to the view
+        $data['is_admin_or_super_admin'] = $this->currentUserIsAdminOrSuperAdmin();
 
         $LeaveTypes            = $this->staff_model->getLeaveType();
         $data["leavetype"]     = $LeaveTypes;

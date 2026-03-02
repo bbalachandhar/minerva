@@ -32,6 +32,19 @@ class Staff extends Admin_Controller
         $this->sch_setting_detail = $this->setting_model->getSetting();
     }
 
+    private function canEditLeavesSection()
+    {
+        $admin = $this->session->userdata('admin');
+        $roles = isset($admin['roles']) && is_array($admin['roles']) ? $admin['roles'] : [];
+        foreach ($roles as $role_name => $role_id) {
+            $normalized = strtolower(trim((string) $role_name));
+            if ($normalized === 'super admin' || $normalized === 'admin') {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public function index()
     {
         if (!$this->rbac->hasPrivilege('staff', 'can_view')) {
@@ -541,7 +554,7 @@ class Staff extends Admin_Controller
 
     public function leaverequest()
     {
-        if (!$this->rbac->hasPrivilege('apply_leave', 'can_view')) {
+        if ((int) $this->customlib->getStaffID() <= 0) {
             access_denied();
         }
         $this->session->set_userdata('top_menu', 'HR');
@@ -557,7 +570,12 @@ class Staff extends Admin_Controller
             log_message('debug', 'leaverequest: staff_id is empty, set to: ' . $staff_id);
         }
         $data['staff_id'] = $staff_id; // Explicitly add staff_id to data array
-        $data['leave_request'] = $this->leaverequest_model->staff_leave_request($staff_id); // Use the existing method
+        $is_admin_or_super_admin = $this->canEditLeavesSection();
+        if ($is_admin_or_super_admin) {
+            $data['leave_request'] = $this->leaverequest_model->staff_leave_request();
+        } else {
+            $data['leave_request'] = $this->leaverequest_model->staff_leave_request($staff_id);
+        }
         
         // Fetch staff details, timetable, and potential substitutes
         $current_staff_id = $this->customlib->getStaffID(); // Use current logged-in staff ID
@@ -569,6 +587,8 @@ class Staff extends Admin_Controller
         $data['current_staff_details'] = $staff_details;
 
         $potential_substitutes = [];
+        $recommender_staff = null;
+        $approver_staff = null;
         if ($staff_details && isset($staff_details['department']) && !empty($staff_details['department'])) {
             log_message('debug', 'leaverequest: Staff department ID: ' . $staff_details['department']);
             $potential_substitutes = $this->staff_model->getEmployeeByDepartment($staff_details['department'], $current_staff_id);
@@ -580,32 +600,43 @@ class Staff extends Admin_Controller
             $department = $this->department_model->getDepartmentType($staff_details['department']);
             if ($department && isset($department['dept_head_id']) && !empty($department['dept_head_id'])) {
                 $recommender_details = $this->staff_model->get($department['dept_head_id']);
-                $data['recommender_info'] = $recommender_details['name'] . ' ' . $recommender_details['surname'] . ' (' . $recommender_details['designation'] . ')';
-                log_message('debug', 'leaverequest: Recommender Info: ' . $data['recommender_info']);
-            } else {
-                $data['recommender_info'] = $this->lang->line('not_assigned');
-                log_message('debug', 'leaverequest: Recommender Info: Not Assigned');
+                if (!empty($recommender_details) && is_array($recommender_details)) {
+                    $recommender_staff = $recommender_details;
+                }
             }
-        } else {
-            $data['recommender_info'] = $this->lang->line('not_assigned');
-            log_message('debug', 'leaverequest: Staff department is empty or not set. Recommender Info: Not Assigned');
         }
         $data['potential_substitutes'] = $potential_substitutes;
 
         // Fetch Approver details (from school settings)
         $this->load->model('setting_model'); // Ensure setting_model is loaded
         $setting = $this->setting_model->getSetting();
-        if ($setting && isset($setting->leave_approver_id)) {
-            $approver_details = $this->staff_model->get_staff_with_designation($setting->leave_approver_id);
-            if ($approver_details) {
-                $approver_surname = !empty($approver_details['surname']) ? ' ' . $approver_details['surname'] : '';
-                $data['approver_info'] = $approver_details['name'] . $approver_surname . ' (' . $approver_details['designation'] . ')';
-            } else {
-                $data['approver_info'] = $this->lang->line('not_assigned');
+        if ($setting && !empty($setting->leave_approver_id)) {
+            $approver_details = $this->staff_model->get($setting->leave_approver_id);
+            if (!empty($approver_details) && is_array($approver_details)) {
+                $approver_staff = $approver_details;
             }
+        }
+
+        if (empty($recommender_staff) && !empty($approver_staff)) {
+            $recommender_staff = $approver_staff;
+        }
+
+        if (!empty($recommender_staff)) {
+            $recommender_surname = !empty($recommender_staff['surname']) ? ' ' . $recommender_staff['surname'] : '';
+            $data['recommender_info'] = $recommender_staff['name'] . $recommender_surname . ' (' . $recommender_staff['designation'] . ')';
+            log_message('debug', 'leaverequest: Recommender Info: ' . $data['recommender_info']);
+        } else {
+            $data['recommender_info'] = $this->lang->line('not_assigned');
+            log_message('debug', 'leaverequest: Recommender Info: Not Assigned');
+        }
+
+        if (!empty($approver_staff)) {
+            $approver_surname = !empty($approver_staff['surname']) ? ' ' . $approver_staff['surname'] : '';
+            $data['approver_info'] = $approver_staff['name'] . $approver_surname . ' (' . $approver_staff['designation'] . ')';
         } else {
             $data['approver_info'] = $this->lang->line('not_assigned');
         }
+        $data['leave_approver_configured'] = !empty($approver_staff);
 
         // Also add staffrole for the modal
         $staffRole             = $this->staff_model->getStaffRole();
@@ -614,6 +645,30 @@ class Staff extends Admin_Controller
         $leavetype = $this->staff_model->getLeaveType();
         $data['leavetype'] = $leavetype;
         $data['status'] = $this->status;
+
+        $data['is_admin_or_super_admin'] = $is_admin_or_super_admin;
+
+        $setting_obj = $this->setting_model->getSetting();
+        $csvToIntArray = function ($csv) {
+            $parts = array_filter(array_map('trim', explode(',', (string) $csv)));
+            $result = [];
+            foreach ($parts as $part) {
+                $value = (int) $part;
+                if ($value > 0 && !in_array($value, $result, true)) {
+                    $result[] = $value;
+                }
+            }
+            return $result;
+        };
+
+        $data['leave_management_policy'] = [
+            'substitution_required_roles' => $csvToIntArray((string) ($setting_obj->leave_substitution_required_roles ?? '')),
+            'self_approve_roles' => $csvToIntArray((string) ($setting_obj->leave_self_approve_roles ?? '')),
+            'past_date_allowed_roles' => $csvToIntArray((string) ($setting_obj->leave_past_date_allowed_roles ?? '')),
+            'half_day_enabled' => (isset($setting_obj->leave_enable_half_day) ? (int) $setting_obj->leave_enable_half_day : 1) === 1,
+            'half_day_allowed_roles' => $csvToIntArray((string) ($setting_obj->leave_half_day_allowed_roles ?? '')),
+            'half_day_allowed_types' => $csvToIntArray((string) ($setting_obj->leave_half_day_allowed_types ?? '')),
+        ];
         
         $this->load->view('layout/header', $data);
         $this->load->view('admin/staff/staffleaverequest', $data); // Using the consolidated view
@@ -1304,6 +1359,7 @@ class Staff extends Admin_Controller
         $data['id'] = $id;
         $data['sch_setting'] = $this->sch_setting_detail;
         $data['staffid_auto_insert'] = $this->sch_setting_detail->staffid_auto_insert;
+        $data['can_edit_leave_section'] = $this->canEditLeavesSection();
 
         $data['getStaffRole'] = $this->role_model->get();
         $data['designation'] = $this->staff_model->getStaffDesignation();
@@ -1595,16 +1651,18 @@ class Staff extends Admin_Controller
                 $data_update['date_of_leaving'] = null;
             }
 
-            $leave_type_ids = $this->input->post('leave_type_id');
-            $alloted_leaves = $this->input->post('alloted_leave');
             $leave_array = array();
-            if (!empty($leave_type_ids)) {
-                foreach ($leave_type_ids as $key => $leave_type_id) {
-                    $leave_array[] = array(
-                        'staff_id' => $id,
-                        'leave_type_id' => $leave_type_id,
-                        'alloted_leave' => $alloted_leaves[$key],
-                    );
+            if ($this->canEditLeavesSection()) {
+                $leave_type_ids = $this->input->post('leave_type_id');
+                $alloted_leaves = $this->input->post('alloted_leave');
+                if (!empty($leave_type_ids)) {
+                    foreach ($leave_type_ids as $key => $leave_type_id) {
+                        $leave_array[] = array(
+                            'staff_id' => $id,
+                            'leave_type_id' => $leave_type_id,
+                            'alloted_leave' => $alloted_leaves[$key],
+                        );
+                    }
                 }
             }
             $role_array = array('role_id' => $this->input->post('role'), 'staff_id' => $id);

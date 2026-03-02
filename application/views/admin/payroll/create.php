@@ -156,7 +156,7 @@ $image=$this->media_storage->getImageURL("uploads/staff_images/" . $file);
                                     </div>
                                     <div class="padd-en-rtl33">
                                         <div class="text-muted" style="font-size:11px; margin-bottom:6px;">
-                                            P*: Present incl. half-day and approved paid leave on absent days. A*: Absent incl. half-day and late/permission penalty beyond limits. L: Late count. PR: Permission count. APR: Approved paid leaves. LOP: Loss Of Pay days.
+                                            P*: Present incl. half-day (after late/permission penalty). A*: Absent incl. half-day and late/permission penalty beyond limits. L: Late count. PR: Permission count. APR: Approved paid leaves. LOP: Loss Of Pay days before credit adjustment. CrAdj: Leave-credit days used to adjust LOP this month (eligible leave types where Requires Balance Check = No and Loss Of Pay = No). CrBal: Remaining carry-forward leave credit.
                                         </div>
                                         <table class="table mb0 font13" >
                                             <thead>
@@ -171,6 +171,8 @@ $image=$this->media_storage->getImageURL("uploads/staff_images/" . $file);
                                                 <th class="bozero"><span data-toggle="tooltip" title="Total Permissions">PR</span></th>
                                                 <th class="bozero"><span data-toggle="tooltip" title="Approved Paid Leaves">APR</span></th>
                                                 <th class="bozero"><span data-toggle="tooltip" title="Loss Of Pay Days">LOP</span></th>
+                                                <th class="bozero"><span data-toggle="tooltip" title="Leave-credit days adjusted in this month">CrAdj</span></th>
+                                                <th class="bozero"><span data-toggle="tooltip" title="Carry-forward leave credit after this month">CrBal</span></th>
                                                 <th class="bozero"><span data-toggle="tooltip" title="Weekends">WE</span></th>
                                             </tr>
                                             </thead>
@@ -205,7 +207,7 @@ foreach ($monthAttendance as $attendence_key => $attendence_value) {
     $excess_late = $late_count > $max_late_allowed ? ($late_count - $max_late_allowed) : 0;
     $excess_permission = $permission_count > $max_permission_allowed ? ($permission_count - $max_permission_allowed) : 0;
     $late_permission_penalty = ($excess_late + $excess_permission) * $half_day_weight;
-    $total_present = max(0, $total_present - $late_permission_penalty + $paid_leave_absent);
+    $total_present = max(0, $total_present - $late_permission_penalty);
     $total_absent = $total_absent + $late_permission_penalty;
     $lop_days = $total_absent + (($first_half_absent + $second_half_absent) * $half_day_weight);
 
@@ -213,6 +215,8 @@ foreach ($monthAttendance as $attendence_key => $attendence_value) {
     $year_num = date('Y', strtotime($attendence_key));
     $month_name = date('F', strtotime($attendence_key));
     $is_current_payroll_month = (($month_name == $month || $month_num == $month) && $year_num == $year);
+    $od_adjusted_days = 0;
+    $od_carry_forward_days = 0;
 
     if ($is_current_payroll_month && !empty($payroll_lop_summary)) {
         if (isset($payroll_lop_summary['working_days'])) {
@@ -251,6 +255,27 @@ foreach ($monthAttendance as $attendence_key => $attendence_value) {
         if (isset($payroll_lop_summary['lop_days'])) {
             $lop_days = (float) $payroll_lop_summary['lop_days'];
         }
+        if (isset($payroll_lop_summary['od_adjusted_days'])) {
+            $od_adjusted_days = (float) $payroll_lop_summary['od_adjusted_days'];
+        }
+        if (isset($payroll_lop_summary['od_carry_forward_days'])) {
+            $od_carry_forward_days = (float) $payroll_lop_summary['od_carry_forward_days'];
+        }
+
+        $CI =& get_instance();
+        $CI->db->select('SUM(smlb.used_for_lop_adjustment) as credit_adjusted, SUM(smlb.closing_balance) as credit_carry');
+        $CI->db->from('staff_monthly_leave_balance smlb');
+        $CI->db->join('leave_types lt', 'lt.id = smlb.leave_type_id', 'inner');
+        $CI->db->where('smlb.staff_id', (int) $result['id']);
+        $CI->db->where('smlb.month', (int) $month_num);
+        $CI->db->where('smlb.year', (int) $year_num);
+        $CI->db->where('lt.is_lop', 0);
+        $CI->db->where('lt.requires_balance_check', 0);
+        $credit_row = $CI->db->get()->row_array();
+        if (is_array($credit_row)) {
+            $od_adjusted_days = (float) ($credit_row['credit_adjusted'] ?? $od_adjusted_days);
+            $od_carry_forward_days = (float) ($credit_row['credit_carry'] ?? $od_carry_forward_days);
+        }
     }
     ?>
                                                 <tr>
@@ -264,6 +289,8 @@ foreach ($monthAttendance as $attendence_key => $attendence_value) {
                                                     <td><?php echo $permission_count; ?></td>
                                                     <td><?php echo $approved_leave; ?></td>
                                                     <td><?php echo rtrim(rtrim(number_format((float) $lop_days, 1, '.', ''), '0'), '.'); ?></td>
+                                                    <td><?php echo rtrim(rtrim(number_format((float) $od_adjusted_days, 1, '.', ''), '0'), '.'); ?></td>
+                                                    <td><?php echo rtrim(rtrim(number_format((float) $od_carry_forward_days, 1, '.', ''), '0'), '.'); ?></td>
                                                     <td><?php echo $weekend_count; ?></td>
                                                 </tr>
                                                 <?php

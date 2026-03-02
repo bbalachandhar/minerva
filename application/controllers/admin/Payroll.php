@@ -342,28 +342,43 @@ class Payroll extends Admin_Controller
             $permission_count = $first_half_permission + $second_half_permission;
         }
 
-        $approved_leave = (int) ($monthLeaves[$month_num] ?? 0);
+        $approved_leave = (float) ($monthLeaves[$month_num] ?? 0);
 
         $lop_rules = $this->config->item('lop_rules');
         $half_day_weight = isset($lop_rules['half_day_weight']) ? (float) $lop_rules['half_day_weight'] : 0.5;
 
-        $max_late_allowed = isset($this->sch_setting_detail->max_late_allowed) ? (int) $this->sch_setting_detail->max_late_allowed : 0;
-        $max_permission_allowed = isset($this->sch_setting_detail->max_permission_allowed) ? (int) $this->sch_setting_detail->max_permission_allowed : 0;
+        $max_late_allowed = max(0, isset($this->sch_setting_detail->max_late_allowed) ? (int) $this->sch_setting_detail->max_late_allowed : 0);
+        $max_permission_allowed = max(0, isset($this->sch_setting_detail->max_permission_allowed) ? (int) $this->sch_setting_detail->max_permission_allowed : 0);
 
-        $late_half_days = $late > $max_late_allowed ? ($late - $max_late_allowed) : 0;
-        $permission_half_days = $permission_count > $max_permission_allowed ? ($permission_count - $max_permission_allowed) : 0;
+        $unused_late_quota = max(0, $max_late_allowed - $late);
+        $unused_permission_quota = max(0, $max_permission_allowed - $permission_count);
 
-        $paid_leave_absent = $this->getPaidLeaveAbsentCountRange($period['start_date'], $period['end_date'], $staff_id);
+        $effective_late_quota = $max_late_allowed + $unused_permission_quota;
+        $effective_permission_quota = $max_permission_allowed + $unused_late_quota;
+
+        $late_half_days = max(0, $late - $effective_late_quota);
+        $permission_half_days = max(0, $permission_count - $effective_permission_quota);
 
         $late_permission_penalty = ($late_half_days + $permission_half_days) * $half_day_weight;
 
-        $total_present = max(0, $present + ($half_day * $half_day_weight) - $late_permission_penalty + $paid_leave_absent);
+        $paid_leave_absent = $this->getPaidLeaveAbsentCountRange($period['start_date'], $period['end_date'], $staff_id);
+
+        $total_present = max(0, $present + ($half_day * $half_day_weight) - $late_permission_penalty);
         $total_absent = $absent_working + ($half_day * $half_day_weight) + $late_permission_penalty;
 
         $lop_days = $total_absent
             + (($first_half_absent + $second_half_absent) * $half_day_weight);
 
         $paid_days = $total_present;
+        $od_adjusted_days = 0.0;
+        $od_carry_forward_days = 0.0;
+        if ($lop_days >= 0) {
+            $od_preview = $this->payroll_model->previewLOPWithMonthlyBalance($staff_id, (float) $lop_days, $month_num, $year);
+            if (!empty($od_preview['success'])) {
+                $od_adjusted_days = (float) ($od_preview['od_adjusted_days'] ?? 0);
+                $od_carry_forward_days = (float) ($od_preview['od_carry_forward_days'] ?? 0);
+            }
+        }
 
         return [
             'month_key' => $month_key,
@@ -385,6 +400,8 @@ class Payroll extends Admin_Controller
             'permission_half_days' => $permission_half_days,
             'lop_days' => $lop_days,
             'paid_days' => $paid_days,
+            'od_adjusted_days' => $od_adjusted_days,
+            'od_carry_forward_days' => $od_carry_forward_days,
         ];
     }
 
@@ -583,9 +600,7 @@ class Payroll extends Admin_Controller
             }
         }
 
-        $paid_leave_absent = $this->getPaidLeaveAbsentCountRange($period['start_date'], $period['end_date'], $staff_id, $context);
-
-        return max(0, $absent_count - $paid_leave_absent);
+        return max(0, $absent_count);
     }
 
     private function getPaidLeaveAbsentCount($month_num, $year, $staff_id, $context = null)
@@ -601,15 +616,18 @@ class Payroll extends Admin_Controller
         }
 
         $working_day_dates = $context['working_day_dates'];
-        $approved_paid_leave_dates = $this->getApprovedPaidLeaveDatesByRange($start_date, $end_date, $staff_id);
-        $approved_paid_leave_dates = array_values(array_intersect($approved_paid_leave_dates, $working_day_dates));
+        $approved_paid_leave_credits = $this->getApprovedPaidLeaveCreditsByRange($start_date, $end_date, $staff_id);
+        $working_day_lookup = array_fill_keys($working_day_dates, true);
 
-        $paid_leave_absent = 0;
-        foreach ($approved_paid_leave_dates as $leave_date) {
+        $paid_leave_absent = 0.0;
+        foreach ($approved_paid_leave_credits as $leave_date => $credit) {
+            if (!isset($working_day_lookup[$leave_date])) {
+                continue;
+            }
             $attendance_row = $this->staffattendancemodel->searchStaffattendance($leave_date, $staff_id, false);
             $attendance_key = $attendance_row['key'] ?? null;
             if ($attendance_key === 'A') {
-                $paid_leave_absent++;
+                $paid_leave_absent += max(0, min(1, (float) $credit));
             }
         }
 
@@ -626,27 +644,53 @@ class Payroll extends Admin_Controller
 
     private function getApprovedPaidLeaveDatesByRange($start_date, $end_date, $staff_id)
     {
-        $this->db->select('staff_leave_request.leave_from, staff_leave_request.leave_to');
+        $credits = $this->getApprovedPaidLeaveCreditsByRange($start_date, $end_date, $staff_id);
+        return array_keys(array_filter($credits, function ($value) {
+            return (float) $value > 0;
+        }));
+    }
+
+    private function getApprovedPaidLeaveCreditsByRange($start_date, $end_date, $staff_id)
+    {
+        $has_duration_column = $this->db->field_exists('leave_duration_type', 'staff_leave_request');
+        if ($has_duration_column) {
+            $this->db->select('staff_leave_request.leave_from, staff_leave_request.leave_to, staff_leave_request.leave_days, COALESCE(staff_leave_request.leave_duration_type, "full_day") as leave_duration_type', false);
+        } else {
+            $this->db->select('staff_leave_request.leave_from, staff_leave_request.leave_to, staff_leave_request.leave_days');
+        }
         $this->db->from('staff_leave_request');
         $this->db->join('leave_types', 'leave_types.id = staff_leave_request.leave_type_id');
         $this->db->where('staff_leave_request.staff_id', $staff_id);
-        $this->db->where('staff_leave_request.status', 'approve');
+        $this->db->where_in('staff_leave_request.status', ['approve', 'approved']);
         $this->db->where('leave_types.is_lop', 0);
         $this->db->where('staff_leave_request.leave_from <=', $end_date);
         $this->db->where('staff_leave_request.leave_to >=', $start_date);
         $rows = $this->db->get()->result_array();
 
-        $leave_dates = [];
+        $leave_credits = [];
         foreach ($rows as $row) {
+            $duration_type = strtolower(trim((string) ($row['leave_duration_type'] ?? 'full_day')));
+            if (in_array($duration_type, ['first_half', 'second_half'], true)) {
+                $date_key = $row['leave_from'];
+                if ($date_key >= $start_date && $date_key <= $end_date) {
+                    $existing = (float) ($leave_credits[$date_key] ?? 0);
+                    $leave_credits[$date_key] = min(1.0, $existing + 0.5);
+                }
+                continue;
+            }
+
             $from = new DateTime(max($row['leave_from'], $start_date));
             $to = new DateTime(min($row['leave_to'], $end_date));
             while ($from <= $to) {
-                $leave_dates[] = $from->format('Y-m-d');
+                $date_key = $from->format('Y-m-d');
+                $existing = (float) ($leave_credits[$date_key] ?? 0);
+                $leave_credits[$date_key] = min(1.0, $existing + 1.0);
                 $from->modify('+1 day');
             }
         }
 
-        return array_values(array_unique($leave_dates));
+        ksort($leave_credits);
+        return $leave_credits;
     }
 
     private function getWorkingDayContext($month_num, $year)
@@ -654,6 +698,35 @@ class Payroll extends Admin_Controller
         $start_date = $year . '-' . sprintf('%02d', $month_num) . '-01';
         $end_date = date('Y-m-t', strtotime($start_date));
         return $this->getWorkingDayContextRange($start_date, $end_date);
+    }
+
+    private function isCompOffHolidayType($type_label)
+    {
+        static $override_types = null;
+        if ($override_types === null) {
+            $override_types = ['compensation', 'comp off', 'compoff', 'compensatory off'];
+            $setting = $this->setting_model->getSetting();
+            $configured = trim((string) ($setting->leave_workday_override_types ?? ''));
+            if ($configured !== '') {
+                $parsed = array_filter(array_map('trim', explode(',', strtolower($configured))));
+                if (!empty($parsed)) {
+                    $override_types = [];
+                    foreach ($parsed as $item) {
+                        $normalized_item = str_replace(['_', '-'], ' ', $item);
+                        $normalized_item = preg_replace('/\s+/', ' ', $normalized_item);
+                        if (!in_array($normalized_item, $override_types, true)) {
+                            $override_types[] = $normalized_item;
+                        }
+                    }
+                }
+            }
+        }
+
+        $normalized = strtolower(trim((string) $type_label));
+        $normalized = str_replace(['_', '-'], ' ', $normalized);
+        $normalized = preg_replace('/\s+/', ' ', $normalized);
+
+        return in_array($normalized, $override_types, true);
     }
 
     private function getWorkingDayContextRange($start_date, $end_date, $settings = null, $holidays = null)
@@ -687,7 +760,7 @@ class Payroll extends Admin_Controller
             $current = clone $from_date;
             while ($current <= $to_date) {
                 if ($current >= $range_start && $current <= $range_end) {
-                    if ($type_label === 'compensation') {
+                    if ($this->isCompOffHolidayType($type_label)) {
                         $compensation_dates[] = $current->format('Y-m-d');
                     } else {
                         $official_holiday_dates[] = $current->format('Y-m-d');
@@ -1371,10 +1444,16 @@ class Payroll extends Admin_Controller
             $period = $this->getPayrollPeriodRange($month, $year);
             $context = $this->getWorkingDayContextRange($period['start_date'], $period['end_date']);
             $working_day_dates = $context['working_day_dates'];
-            $approved_paid_leave_dates = $this->getApprovedPaidLeaveDatesByRange($period['start_date'], $period['end_date'], $emp);
-            $approved_paid_leave_dates = array_values(array_intersect($approved_paid_leave_dates, $working_day_dates));
+            $approved_paid_leave_credits = $this->getApprovedPaidLeaveCreditsByRange($period['start_date'], $period['end_date'], $emp);
+            $working_day_lookup = array_fill_keys($working_day_dates, true);
+            $approved_leave_total = 0.0;
+            foreach ($approved_paid_leave_credits as $leave_date => $credit) {
+                if (isset($working_day_lookup[$leave_date])) {
+                    $approved_leave_total += (float) $credit;
+                }
+            }
 
-            $record[$month] = count($approved_paid_leave_dates);
+            $record[$month] = round($approved_leave_total, 2);
         }
 
         return $record;
@@ -1792,8 +1871,14 @@ class Payroll extends Admin_Controller
                 $adjusted_result = $this->payroll_model->processLOPWithMonthlyBalance($staff['id'], $actual_lop_days, $month_numeric, $year);
                 log_message('debug', 'LOP Adjustment Result for Staff ' . $staff['id'] . ': ' . json_encode($adjusted_result));
                 if ($adjusted_result !== false && is_array($adjusted_result) && $adjusted_result['success']) {
-                    $net_lop_days = (float) $adjusted_result['net_lop_days'];
-                    $adjusted_lop_days = (float) $adjusted_result['adjusted_lop_days'];
+                    $adjusted_lop_days = (float) ($adjusted_result['adjusted_lop_days'] ?? 0);
+                    if ($adjusted_lop_days < 0) {
+                        $adjusted_lop_days = 0;
+                    }
+                    if ($adjusted_lop_days > $actual_lop_days) {
+                        $adjusted_lop_days = $actual_lop_days;
+                    }
+                    $net_lop_days = max(0, round($actual_lop_days - $adjusted_lop_days, 2));
                     log_message('debug', 'Staff ' . $staff['id'] . ' - Adjusted: ' . $adjusted_lop_days . ', Net: ' . $net_lop_days);
                 } else {
                     log_message('error', 'LOP Adjustment Failed for Staff ' . $staff['id'] . ': ' . json_encode($adjusted_result));

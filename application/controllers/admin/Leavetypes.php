@@ -2,6 +2,7 @@
 
 class LeaveTypes extends Admin_Controller
 {
+    private $hasBalanceCheckFlagColumn = null;
 
     public function __construct()
     {
@@ -13,6 +14,17 @@ class LeaveTypes extends Admin_Controller
         $this->load->model('staff_model');
     }
 
+    private function hasRequiresBalanceCheckColumn()
+    {
+        if ($this->hasBalanceCheckFlagColumn !== null) {
+            return $this->hasBalanceCheckFlagColumn;
+        }
+
+        $row = $this->db->query("SHOW COLUMNS FROM leave_types LIKE 'requires_balance_check'")->row_array();
+        $this->hasBalanceCheckFlagColumn = !empty($row);
+        return $this->hasBalanceCheckFlagColumn;
+    }
+
     public function index()
     {
         $this->session->set_userdata('top_menu', 'HR');
@@ -20,6 +32,7 @@ class LeaveTypes extends Admin_Controller
         $data["title"]     = $this->lang->line('add_leave_type');
         $LeaveTypes        = $this->leavetypes_model->getLeaveType();
         $data["leavetype"] = $LeaveTypes;
+        $data['has_balance_check_flag'] = $this->hasRequiresBalanceCheckColumn();
         $this->load->view("layout/header");
         $this->load->view("admin/staff/leavetypes", $data);
         $this->load->view("layout/footer");
@@ -54,6 +67,7 @@ class LeaveTypes extends Admin_Controller
             $leave_encashment = $this->input->post("leave_encashment");
             $is_staff_specific = $this->input->post("is_staff_specific");
             $max_leave_days = $this->input->post("max_leave_days");
+            $requires_balance_check = $this->input->post("requires_balance_check") ? 1 : 0;
 
             if (empty($leavetypeid)) {
 
@@ -79,6 +93,10 @@ class LeaveTypes extends Admin_Controller
                 'is_active' => 'yes'
             );
 
+            if ($this->hasRequiresBalanceCheckColumn()) {
+                $data['requires_balance_check'] = $requires_balance_check;
+            }
+
             if (!empty($leavetypeid)) {
                 $data['id'] = $leavetypeid;
             }
@@ -91,6 +109,7 @@ class LeaveTypes extends Admin_Controller
             $this->session->set_flashdata('msg', '<div class="alert alert-danger">' . validation_errors() . '</div>');
             $LeaveTypes = $this->leavetypes_model->getLeaveType();
             $data["leavetype"] = $LeaveTypes;
+            $data['has_balance_check_flag'] = $this->hasRequiresBalanceCheckColumn();
             $this->load->view("layout/header");
             $this->load->view("admin/staff/leavetypes", $data);
             $this->load->view("layout/footer");
@@ -104,6 +123,7 @@ class LeaveTypes extends Admin_Controller
         $data["result"]    = $result;
         $LeaveTypes        = $this->leavetypes_model->getLeaveType();
         $data["leavetype"] = $LeaveTypes;
+        $data['has_balance_check_flag'] = $this->hasRequiresBalanceCheckColumn();
         $this->load->view("layout/header");
         $this->load->view("admin/staff/leavetypes", $data);
         $this->load->view("layout/footer");

@@ -685,8 +685,30 @@ class Staff_model extends MY_Model
     public function getEmployeeByRoleID($role, $active = 1)
     {
         $query = $this->db->select("staff.*,staff_designation.designation,department.department_name as department, roles.id as role_id, roles.name as role")->join('staff_designation', "staff_designation.id = staff.designation", "left")->join('staff_roles', "staff_roles.staff_id = staff.id", "left")->join('roles', "roles.id = staff_roles.role_id", "left")->join('department', "department.id = staff.department", "left")->where("staff.is_active", $active)->where("roles.id", $role)->get("staff");
+        $result = $query->result_array();
 
-        return $query->result_array();
+        if (!empty($result)) {
+            return $result;
+        }
+
+        $role_row = $this->db->select('name')->where('id', (int) $role)->get('roles')->row_array();
+        $role_name = strtolower(trim((string) ($role_row['name'] ?? '')));
+        if ($role_name !== 'principal') {
+            return $result;
+        }
+
+        $fallback = $this->db
+            ->select("staff.*,staff_designation.designation,department.department_name as department, {$role} as role_id, 'Principal' as role", false)
+            ->from('staff')
+            ->join('staff_designation', "staff_designation.id = staff.designation", "left")
+            ->join('department', "department.id = staff.department", "left")
+            ->where("staff.is_active", $active)
+            ->where("LOWER(TRIM(staff_designation.designation))", 'principal')
+            ->order_by('staff.id', 'ASC')
+            ->get()
+            ->result_array();
+
+        return $fallback;
     }
 
     public function getStaffDesignation()

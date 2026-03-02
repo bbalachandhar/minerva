@@ -10,6 +10,7 @@ if ($this->rbac->hasPrivilege('apply_leave', 'can_add') && $this->uri->segment(2
     </section>
     <!-- Main content -->
     <section class="content">
+        <div id="leave_feedback_container" style="display:none; margin-bottom:10px;"></div>
         <div class="row">
             <div class="col-md-12">
 
@@ -76,15 +77,18 @@ if ($value["status"] == "approved") {
                                                     <td class="pull-right no-print white-space-nowrap">
                                                         <a href="#leavedetails" onclick="getRecord('<?php echo $value["id"] ?>')" role="button" class="btn btn-default btn-xs" data-toggle="tooltip" title="<?php echo $this->lang->line('view'); ?>" ><i class="fa fa-reorder"></i></a>
 
-                                                        <?php if ($value["staff_id"] == $staff_id && $value['status'] == 'pending') {
-        ?>
-                                                            <?php
-if ($this->rbac->hasPrivilege('approve_leave_request', 'can_edit')) {
-            ?>
-                                                                <a href="#addleave" onclick="editRecord('<?php echo $value["id"] ?>')" role="button" class="btn btn-default btn-xs" data-toggle="tooltip" title="<?php echo $this->lang->line('edit'); ?>" ><i class="fa fa-pencil"></i></a>
-                                                            <?php }?>
+                                                        <?php
+                                                        $is_pre_recommender_stage = ($value['status'] == 'pending')
+                                                            && (empty($value['recommender_status']) || $value['recommender_status'] == 'pending')
+                                                            && (empty($value['approver_status']) || $value['approver_status'] == 'pending');
+                                                        $is_owner = ((int) $value["staff_id"] === (int) $staff_id)
+                                                            || ((int) ($value['applied_by'] ?? 0) === (int) $staff_id)
+                                                            || ((string) ($value['applied_by'] ?? '') === (string) $this->customlib->getAdminSessionUserName());
 
-                                                        <?php }?>
+                                                        if ($is_owner && $is_pre_recommender_stage) {
+                                                        ?>
+                                                            <a href="#addleave" onclick="editRecord('<?php echo $value["id"] ?>')" role="button" class="btn btn-default btn-xs" data-toggle="tooltip" title="<?php echo $this->lang->line('edit'); ?>" ><i class="fa fa-pencil"></i></a>
+                                                        <?php } ?>
                                                         <?php if (!empty($value['document_file'])) {?>
                                                             <a href="<?php echo base_url(); ?>admin/leaverequest/downloadleaverequestdoc/<?php echo $value['staff_id'] . "/" . $value['id']; ?>" class="btn btn-default btn-xs"  data-toggle="tooltip" title="<?php echo $this->lang->line('download'); ?>">
                                                                 <i class="fa fa-download"></i>
@@ -92,16 +96,16 @@ if ($this->rbac->hasPrivilege('approve_leave_request', 'can_edit')) {
                                                         <?php }
     ?>
                                                         <?php 
-                                                        // Strict Rule: Delete is only allowed if status is 'pending'
-                                                        if ($value['status'] == 'pending') {
-                                                            if ($value["applied_by"] == $this->customlib->getAdminSessionUserName()) {?>
-                                                                <a onclick="getDelete('<?php echo $value["id"] ?>')"  class="btn btn-default btn-xs" data-toggle="tooltip" title="<?php echo $this->lang->line('delete'); ?>" ><i class="fa fa-remove"></i></a>
-                                                            <?php } else {
-                                                                if ($this->rbac->hasPrivilege('approve_leave_request', 'can_delete')) { ?>
-                                                                    <a onclick="getDelete('<?php echo $value["id"] ?>','<?php echo $value["staff_id"] ?>')"  class="btn btn-default btn-xs" data-toggle="tooltip" title="<?php echo $this->lang->line('delete'); ?>" ><i class="fa fa-remove"></i></a>
-                                                                <?php }
-                                                            }
+                                                        // Applicant can delete before recommender action; admin with delete privilege can also delete in same stage
+                                                        if ($is_pre_recommender_stage) {
+                                                            if ($is_owner || $this->rbac->hasPrivilege('approve_leave_request', 'can_delete')) { ?>
+                                                                <a onclick="getDelete('<?php echo $value["id"] ?>','<?php echo $value["staff_id"] ?>')"  class="btn btn-default btn-xs" data-toggle="tooltip" title="<?php echo $this->lang->line('delete'); ?>" ><i class="fa fa-remove"></i></a>
+                                                            <?php }
                                                         }
+
+                                                        if ($is_owner && !$is_pre_recommender_stage) { ?>
+                                                            <span class="label label-default" data-toggle="tooltip" title="This request can no longer be edited/deleted once recommender action starts.">Locked after recommender action</span>
+                                                        <?php }
                                                         ?>
                                                     </td>
                                                 </tr>
@@ -199,23 +203,19 @@ $i++;
                                     <td colspan="3"><span id="approver_remark"></span></td>
                                 </tr>
                                 <tr id="action_row" style="display: none;">
-                                    <?php if ($this->rbac->hasPrivilege('approve_leave_request', 'can_edit')) {
-    ?>
-                                        <th><?php echo $this->lang->line('status'); ?></th>
-                                        <td>
-                                            <label class="radio-inline">
-                                                <input type="radio" value="<?php echo "pending"; ?>" name="status" checked ><?php echo $this->lang->line('pending'); ?>
-                                            </label>
-                                            <label class="radio-inline">
-                                                <input type="radio" value="<?php echo "approved"; ?>" name="status"><?php echo $this->lang->line('approve'); ?>
-                                            </label>
-                                            <label class="radio-inline">
-                                                <input type="radio" value="<?php echo "disapproved"; ?>" name="status"><?php echo $this->lang->line('disapprove'); ?>
-                                            </label>
-                                            <span class="text-danger"><?php echo form_error('status'); ?></span>
-                                        </td>
-                                    <?php }
-?>
+                                    <th><?php echo $this->lang->line('status'); ?></th>
+                                    <td>
+                                        <label class="radio-inline">
+                                            <input type="radio" value="<?php echo "pending"; ?>" name="status" checked ><?php echo $this->lang->line('pending'); ?>
+                                        </label>
+                                        <label class="radio-inline">
+                                            <input type="radio" value="<?php echo "approved"; ?>" name="status"><?php echo $this->lang->line('approve'); ?>
+                                        </label>
+                                        <label class="radio-inline">
+                                            <input type="radio" value="<?php echo "disapproved"; ?>" name="status"><?php echo $this->lang->line('disapprove'); ?>
+                                        </label>
+                                        <span class="text-danger"><?php echo form_error('status'); ?></span>
+                                    </td>
                                     <th id="note_label"><?php echo $this->lang->line('note'); ?></th>
                                     <td>
                                         <textarea class="form-control" style="resize: none;" rows="2" id="detailremark" name="detailremark" placeholder=""></textarea>
@@ -223,13 +223,9 @@ $i++;
                                     </td>
                                 </tr>
                                 <tr id="action_button_row" style="display: none;">
-                                    <?php
-if ($this->rbac->hasPrivilege('approve_leave_request', 'can_edit')) {
-    ?>
-                                        <td colspan="4">
-                                            <button type="button" style="width: auto;"  class="btn btn-primary submit_schsetting pull-right" data-loading-text="<i class='fa fa-circle-o-notch fa-spin'></i> <?php echo $this->lang->line('processing'); ?>"> <?php echo $this->lang->line('save'); ?></button>
-                                        </td>
-                                    <?php }?>
+                                    <td colspan="4">
+                                        <button type="button" style="width: auto;"  class="btn btn-primary submit_schsetting pull-right" data-loading-text="<i class='fa fa-circle-o-notch fa-spin'></i> <?php echo $this->lang->line('processing'); ?>"> <?php echo $this->lang->line('save'); ?></button>
+                                    </td>
                                 </tr>
                             </table>
                         </div>
@@ -286,7 +282,7 @@ if ($this->rbac->hasPrivilege('approve_leave_request', 'can_edit')) {
 <?php } ?>
                         <div class="form-group  col-xs-12 col-sm-12 col-md-12 col-lg-6">
                             <label><?php echo $this->lang->line('apply_date'); ?></label><small class="req"> *</small>
-                            <input type="text" id="applieddate" name="applieddate" value="<?php echo date($this->customlib->getSchoolDateFormat()) ?>" class="form-control date">
+                            <input type="text" id="applieddate" name="applieddate" value="<?php echo date($this->customlib->getSchoolDateFormat()) ?>" class="form-control" readonly>
                         </div>
                         <div class="form-group  col-xs-12 col-sm-12 col-md-12 col-lg-6 ">
                             <label>
@@ -308,26 +304,40 @@ if ($this->rbac->hasPrivilege('approve_leave_request', 'can_edit')) {
                           <div class="form-group col-xs-12 col-sm-12 col-md-12 col-lg-6">
                             <label><?php echo $this->lang->line('leave_from_date'); ?></label><small class="req"> *</small>
                                 <input type="text" readonly id="leave_from_date" name="leave_from_date" class="form-control date" >
+                                <input type="hidden" id="leave_from_date_iso" name="leave_from_date_iso" value="">
                             <!-- /.input group -->
                         </div>
                                                    <div class="form-group col-xs-12 col-sm-12 col-md-12 col-lg-6">
                                                      <label><?php echo $this->lang->line('leave_to_date'); ?></label><small class="req"> *</small>
                                                          <input type="text" readonly id="leave_to_date" name="leave_to_date" class="form-control date" >
+                                                         <input type="hidden" id="leave_to_date_iso" name="leave_to_date_iso" value="">
                                                      <!-- /.input group -->
                                                  </div>
+                        <div class="form-group col-xs-12 col-sm-12 col-md-12 col-lg-12">
+                            <p class="help-block" style="margin-bottom:0;">Hint: Leave is not allowed on dates already marked Present. If attendance is marked Half Day for a date, only half-day leave can be applied for that date.</p>
+                        </div>
+
+                        <div class="form-group col-xs-12 col-sm-12 col-md-12 col-lg-6" id="leave_duration_group" style="display:none;">
+                            <label>Leave Duration</label><small class="req"> *</small>
+                            <select name="leave_duration_type" id="leave_duration_type" class="form-control">
+                                <option value="full_day">Full Day</option>
+                                <option value="first_half">First Half</option>
+                                <option value="second_half">Second Half</option>
+                            </select>
+                            <p class="help-block" id="leave_duration_help" style="margin-bottom:0;">For half-day leave, from/to date must be same day.</p>
+                            <p class="help-block" style="margin-bottom:0;">Hint: Leave is not allowed on dates already marked Present. If attendance is marked Half Day for a date, only half-day leave can be applied for that date.</p>
+                        </div>
                          
                         <div class="form-group col-xs-12 col-sm-12 col-md-12 col-lg-6">
                             <label><?php echo $this->lang->line('recommender'); ?></label>
-                            <input type="text" class="form-control" value="<?php echo $recommender_info; ?>" readonly>
+                            <input type="text" class="form-control" id="recommender_display" value="<?php echo $recommender_info; ?>" readonly>
                         </div>
                         <div class="form-group col-xs-12 col-sm-12 col-md-12 col-lg-6">
                             <label><?php echo $this->lang->line('approver'); ?></label>
-                            <input type="text" class="form-control" value="<?php echo $approver_info; ?>" readonly>
+                            <input type="text" class="form-control" id="approver_display" value="<?php echo $approver_info; ?>" readonly>
+                            <div id="approver_config_warning" class="text-danger" style="margin-top:5px; display:none;">Leave approver is not configured. Please configure in System Settings → Leave Policy.</div>
                         </div>
-                        <?php if (isset($current_staff_details['role_id']) && $current_staff_details['role_id'] == 3) { ?>
-                        <?php if (isset($current_staff_details['role_id']) && $current_staff_details['role_id'] == 3) { ?>
-                        <?php if (isset($current_staff_details['role_id']) && $current_staff_details['role_id'] != 3) { ?>
-                        <div class="form-group col-xs-12 col-sm-12 col-md-12 col-lg-6">
+                        <div class="form-group col-xs-12 col-sm-12 col-md-12 col-lg-6" id="alternative_teacher_group" style="display:none;">
                             <label><?php echo $this->lang->line('alternative_teacher'); ?></label>
                             <select name="alternative_teacher_id" id="alternative_teacher_id" class="form-control">
                                 <option value=""><?php echo $this->lang->line('select'); ?></option>
@@ -337,12 +347,9 @@ if ($this->rbac->hasPrivilege('approve_leave_request', 'can_edit')) {
                             </select>
                             <span class="text-danger"><?php echo form_error('alternative_teacher_id'); ?></span>
                         </div>
-                        <?php } ?>
-                        <?php } ?>
-                        <?php } ?>
 
                                                  <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
-                                                     <h4 class="modal-title section-title"><?php echo $this->lang->line('substitution_details'); ?></h4>
+                                                     <h4 class="modal-title section-title" id="substitution_heading" style="display:none;"><?php echo $this->lang->line('substitution_details'); ?></h4>
                                                  </div>
                                                  <div id="timetable_section" class="col-xs-12 col-sm-12 col-md-12 col-lg-12" style="display: none;">
                                                      <div class="form-group">
@@ -395,6 +402,258 @@ if ($this->rbac->hasPrivilege('approve_leave_request', 'can_edit')) {
 </script>
 
 <script type="text/javascript">
+    var LEAVE_DATE_FORMAT = '<?php echo strtr($this->customlib->getSchoolDateFormat(), ['d' => 'dd', 'm' => 'mm', 'Y' => 'yyyy']); ?>';
+
+    function formatDateToIso(dateObj) {
+        if (!dateObj || Object.prototype.toString.call(dateObj) !== '[object Date]' || isNaN(dateObj.getTime())) {
+            return '';
+        }
+        var y = dateObj.getFullYear();
+        var m = ('0' + (dateObj.getMonth() + 1)).slice(-2);
+        var d = ('0' + dateObj.getDate()).slice(-2);
+        return y + '-' + m + '-' + d;
+    }
+
+    function syncLeaveIsoDates() {
+        var fromDateObj = null;
+        var toDateObj = null;
+
+        if (typeof $('#leave_from_date').datepicker === 'function') {
+            fromDateObj = $('#leave_from_date').datepicker('getDate');
+        }
+        if (typeof $('#leave_to_date').datepicker === 'function') {
+            toDateObj = $('#leave_to_date').datepicker('getDate');
+        }
+
+        $('#leave_from_date_iso').val(formatDateToIso(fromDateObj));
+        $('#leave_to_date_iso').val(formatDateToIso(toDateObj));
+    }
+
+    function initLeaveDatepickers() {
+        if (typeof $('#leave_from_date').datepicker !== 'function' || typeof $('#leave_to_date').datepicker !== 'function') {
+            return;
+        }
+
+        $('#leave_from_date').datepicker('destroy').datepicker({
+            autoclose: true,
+            format: LEAVE_DATE_FORMAT,
+            todayHighlight: true
+        });
+
+        $('#leave_to_date').datepicker('destroy').datepicker({
+            autoclose: true,
+            format: LEAVE_DATE_FORMAT,
+            todayHighlight: true
+        });
+
+        syncLeaveIsoDates();
+    }
+
+    var LEAVE_POLICY = {
+        substitutionRequiredRoles: <?php echo json_encode(array_values($leave_management_policy['substitution_required_roles'] ?? [])); ?>,
+        selfApproveRoles: <?php echo json_encode(array_values($leave_management_policy['self_approve_roles'] ?? [])); ?>,
+        pastDateAllowedRoles: <?php echo json_encode(array_values($leave_management_policy['past_date_allowed_roles'] ?? [])); ?>,
+        halfDayEnabled: <?php echo !empty($leave_management_policy['half_day_enabled']) ? 'true' : 'false'; ?>,
+        halfDayAllowedRoles: <?php echo json_encode(array_values($leave_management_policy['half_day_allowed_roles'] ?? [])); ?>,
+        halfDayAllowedTypes: <?php echo json_encode(array_values($leave_management_policy['half_day_allowed_types'] ?? [])); ?>
+    };
+    var CURRENT_USER_IS_ADMIN_OR_SUPERADMIN = <?php echo !empty($is_admin_or_super_admin) ? 'true' : 'false'; ?>;
+    var INITIAL_APPROVER_CONFIGURED = <?php echo !empty($leave_approver_configured) ? 'true' : 'false'; ?>;
+
+    function setPersistentLeaveFeedback(message, type) {
+        if (!window.sessionStorage) {
+            return;
+        }
+        var payload = {
+            message: message || '',
+            type: type || 'success'
+        };
+        sessionStorage.setItem('leave_feedback_message', JSON.stringify(payload));
+    }
+
+    function renderPersistentLeaveFeedback() {
+        if (!window.sessionStorage) {
+            return;
+        }
+
+        var raw = sessionStorage.getItem('leave_feedback_message');
+        if (!raw) {
+            return;
+        }
+
+        sessionStorage.removeItem('leave_feedback_message');
+
+        var payload = null;
+        try {
+            payload = JSON.parse(raw);
+        } catch (e) {
+            payload = null;
+        }
+
+        if (!payload || !payload.message) {
+            return;
+        }
+
+        var cssClass = payload.type === 'error' ? 'alert alert-danger alert-dismissible' : 'alert alert-success alert-dismissible';
+        var html = '';
+        html += '<div class="' + cssClass + '">';
+        html += '<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>';
+        html += payload.message;
+        html += '</div>';
+
+        $('#leave_feedback_container').html(html).show();
+
+        setTimeout(function () {
+            $('#leave_feedback_container .alert').fadeOut(300, function () {
+                $('#leave_feedback_container').hide().empty();
+            });
+        }, 3000);
+    }
+
+    function syncApproverConfigWarning(isConfigured) {
+        if (isConfigured) {
+            $('#approver_config_warning').hide();
+        } else {
+            $('#approver_config_warning').show();
+        }
+    }
+
+    function getSelectedRoleId() {
+        return parseInt($('#role').val(), 10) || 0;
+    }
+
+    function getSelectedLeaveTypeId() {
+        return parseInt($('#leave_type').val(), 10) || 0;
+    }
+
+    function shouldRequireSubstitution() {
+        var roleId = getSelectedRoleId();
+        var leaveTypeId = getSelectedLeaveTypeId();
+        if (!roleId || !leaveTypeId) {
+            return false;
+        }
+        if (LEAVE_POLICY.substitutionRequiredRoles.indexOf(roleId) === -1) {
+            return false;
+        }
+        var leaveTypeText = ($('#leave_type option:selected').text() || '').toLowerCase().trim();
+        if (leaveTypeText === 'on duty' || leaveTypeText === 'od') {
+            return false;
+        }
+        return true;
+    }
+
+    function canApplyHalfDay() {
+        if (!LEAVE_POLICY.halfDayEnabled) {
+            return false;
+        }
+
+        var roleId = getSelectedRoleId();
+        var leaveTypeId = getSelectedLeaveTypeId();
+        if (!roleId || !leaveTypeId) {
+            // Show half-day selector early; backend enforces exact role/type eligibility on submit.
+            return true;
+        }
+
+        if (LEAVE_POLICY.halfDayAllowedRoles.length > 0 && LEAVE_POLICY.halfDayAllowedRoles.indexOf(roleId) === -1) {
+            return false;
+        }
+        if (LEAVE_POLICY.halfDayAllowedTypes.length > 0 && LEAVE_POLICY.halfDayAllowedTypes.indexOf(leaveTypeId) === -1) {
+            return false;
+        }
+
+        return true;
+    }
+
+    function syncHalfDayDateBehavior() {
+        var duration = ($('#leave_duration_type').val() || 'full_day');
+        var isHalfDay = (duration === 'first_half' || duration === 'second_half');
+        if (isHalfDay) {
+            var fromDate = $('#leave_from_date').val();
+            if (fromDate) {
+                $('#leave_to_date').val(fromDate);
+            }
+            $('#leave_to_date').prop('readonly', true);
+            $('#leave_duration_help').text('Half-day leave applies only for a single date.');
+        } else {
+            $('#leave_to_date').prop('readonly', true);
+            $('#leave_duration_help').text('For half-day leave, from/to date must be same day.');
+        }
+    }
+
+    function toggleHalfDayUI() {
+        if (canApplyHalfDay()) {
+            $('#leave_duration_group').show();
+        } else {
+            $('#leave_duration_group').hide();
+            $('#leave_duration_type').val('full_day');
+        }
+        syncHalfDayDateBehavior();
+    }
+
+    function canApplyPastDates() {
+        if (CURRENT_USER_IS_ADMIN_OR_SUPERADMIN) {
+            return true;
+        }
+        var roleId = getSelectedRoleId();
+        if (!roleId) {
+            return false;
+        }
+        return LEAVE_POLICY.pastDateAllowedRoles.indexOf(roleId) !== -1;
+    }
+
+    function initEmployeeSearchDropdown() {
+        var $emp = $('#empname');
+        if (!$emp.length || !$emp.is('select')) {
+            return;
+        }
+        if (typeof $.fn.select2 !== 'function') {
+            return;
+        }
+
+        if ($emp.hasClass('select2-hidden-accessible')) {
+            $emp.select2('destroy');
+        }
+
+        $emp.select2({
+            width: '100%',
+            placeholder: '<?php echo addslashes($this->lang->line('name')); ?>',
+            allowClear: true
+        });
+    }
+
+    function applyPastDateRestrictionUI() {
+        var allowPast = canApplyPastDates();
+        var $from = $('#leave_from_date');
+        var $to = $('#leave_to_date');
+
+        if (typeof $from.datepicker === 'function' && typeof $to.datepicker === 'function') {
+            if (allowPast) {
+                $from.datepicker('setStartDate', null);
+                $to.datepicker('setStartDate', null);
+            } else {
+                var today = new Date();
+                today.setHours(0, 0, 0, 0);
+                $from.datepicker('setStartDate', today);
+                $to.datepicker('setStartDate', today);
+            }
+        }
+    }
+
+    function toggleSubstitutionUI() {
+        var shouldShow = shouldRequireSubstitution();
+        if (shouldShow) {
+            $('#substitution_heading').show();
+            $('#alternative_teacher_group').show();
+        } else {
+            $('#substitution_heading').hide();
+            $('#alternative_teacher_group').hide();
+            $('#timetable_section').hide();
+            $('#timetable_display').html('');
+            $('#substitution_fields').html('');
+            $('#alternative_teacher_id').val('');
+        }
+    }
+
     function getDelete(id,staff_id) {
         var result = confirm("<?php echo $this->lang->line('delete_confirm'); ?>");
         if (result) {
@@ -418,6 +677,7 @@ if ($this->rbac->hasPrivilege('approve_leave_request', 'can_edit')) {
     }
 
     $(document).ready(function () {
+        renderPersistentLeaveFeedback();
         getLeaveTypeDDL('<?php echo $staff_id ?>', '');
         $('.detail_popover').popover({
             placement: 'right',
@@ -450,18 +710,30 @@ if ($this->rbac->hasPrivilege('approve_leave_request', 'can_edit')) {
         // Ensure leave from/to dates are cleared/reset as well
         $('#leave_from_date').val('');
         $('#leave_to_date').val('');
+        $('#leave_from_date_iso').val('');
+        $('#leave_to_date_iso').val('');
         
         // Hide timetable section on new leave request
         $('#timetable_section').hide();
+        $('#substitution_heading').hide();
+        $('#alternative_teacher_group').hide();
+        $('#recommender_display').val('<?php echo addslashes($recommender_info); ?>');
+        $('#approver_display').val('<?php echo addslashes($approver_info); ?>');
+        $('#approver_config_warning').hide();
+        $('#leave_duration_type').val('full_day');
 
-        // Set the applieddate field to the current date using the datepicker's API
-        $('#applieddate').datepicker('setDate', 'now');
+        // Show current date in UI for fresh form (system date remains enforced in backend)
+        $('#applieddate').val('<?php echo date($this->customlib->getSchoolDateFormat()) ?>');
 
         $('#addleave').modal({
             show: true,
             backdrop: 'static',
             keyboard: false
         });
+
+        toggleSubstitutionUI();
+        toggleHalfDayUI();
+        applyPastDateRestrictionUI();
     }
 
     function getRecord(id) {
@@ -519,6 +791,7 @@ if ($this->rbac->hasPrivilege('approve_leave_request', 'can_edit')) {
                 
                 // Conditional display of action row and dynamic labels
                 var current_user_id = <?php echo $this->customlib->getStaffID(); ?>;
+                var can_manage_leave = <?php echo $this->rbac->hasPrivilege('approve_leave_request', 'can_edit') ? 'true' : 'false'; ?>;
                 var is_recommender = (result.recommender_id == current_user_id);
                 var is_approver = (result.approver_id == current_user_id);
 
@@ -571,6 +844,74 @@ if ($this->rbac->hasPrivilege('approve_leave_request', 'can_edit')) {
                     }
                     $('#action_row').show();
                     $('#action_button_row').show();
+                } else if (can_manage_leave && result.status != 'approved' && result.status != 'disapproved') {
+                    var recommenderStage = (result.recommender_status == 'pending' || result.recommender_status == '' || result.recommender_status == null) && result.approver_status == 'pending';
+                    var approverStage = (result.recommender_status == 'approved' || result.recommender_status == 'recommended') && result.approver_status == 'pending';
+
+                    if (recommenderStage) {
+                        $('#note_label').html('<?php echo $this->lang->line('recommender_remark'); ?>');
+                        statusRadioHtml = `
+                            <label class="radio-inline">
+                                <input type="radio" value="pending" name="status" >${'<?php echo $this->lang->line('recommend_pending'); ?>'}
+                            </label>
+                            <label class="radio-inline">
+                                <input type="radio" value="approved" name="status" >${'<?php echo $this->lang->line('recommend_approve'); ?>'}
+                            </label>
+                            <label class="radio-inline">
+                                <input type="radio" value="disapproved" name="status" >${'<?php echo $this->lang->line('recommend_disapprove'); ?>'}
+                            </label>
+                        `;
+                        if (result.recommender_status == 'approved' || result.recommender_status == 'recommended') {
+                            initialStatusValue = 'approved';
+                        } else if (result.recommender_status == 'disapproved' || result.recommender_status == 'rejected') {
+                            initialStatusValue = 'disapproved';
+                        } else {
+                            initialStatusValue = 'pending';
+                        }
+                    } else if (approverStage) {
+                        $('#note_label').html('<?php echo $this->lang->line('approver_remark'); ?>');
+                        statusRadioHtml = `
+                            <label class="radio-inline">
+                                <input type="radio" value="pending" name="status" >${'<?php echo $this->lang->line('final_pending'); ?>'}
+                            </label>
+                            <label class="radio-inline">
+                                <input type="radio" value="approved" name="status" >${'<?php echo $this->lang->line('final_approve'); ?>'}
+                            </label>
+                            <label class="radio-inline">
+                                <input type="radio" value="disapproved" name="status" >${'<?php echo $this->lang->line('final_disapprove'); ?>'}
+                            </label>
+                        `;
+                        if (result.approver_status == 'approved') {
+                            initialStatusValue = 'approved';
+                        } else if (result.approver_status == 'disapproved' || result.approver_status == 'rejected') {
+                            initialStatusValue = 'disapproved';
+                        } else {
+                            initialStatusValue = 'pending';
+                        }
+                    } else {
+                        $('#note_label').html('<?php echo $this->lang->line('note'); ?>');
+                        statusRadioHtml = `
+                            <label class="radio-inline">
+                                <input type="radio" value="pending" name="status" >${'<?php echo $this->lang->line('pending'); ?>'}
+                            </label>
+                            <label class="radio-inline">
+                                <input type="radio" value="approved" name="status" >${'<?php echo $this->lang->line('approve'); ?>'}
+                            </label>
+                            <label class="radio-inline">
+                                <input type="radio" value="disapproved" name="status" >${'<?php echo $this->lang->line('disapprove'); ?>'}
+                            </label>
+                        `;
+                        if (result.status == 'approved') {
+                            initialStatusValue = 'approved';
+                        } else if (result.status == 'disapproved' || result.status == 'rejected') {
+                            initialStatusValue = 'disapproved';
+                        } else {
+                            initialStatusValue = 'pending';
+                        }
+                    }
+
+                    $('#action_row').show();
+                    $('#action_button_row').show();
                 } else {
                     $('#action_row').hide();
                     $('#action_button_row').hide();
@@ -610,7 +951,7 @@ if ($this->rbac->hasPrivilege('approve_leave_request', 'can_edit')) {
                     });
                     errorMsg(message);
                 } else {
-                    successMsg(data.message);
+                    setPersistentLeaveFeedback(data.message, 'success');
                     window.location.reload(true);
                 }
 
@@ -653,7 +994,7 @@ if ($this->rbac->hasPrivilege('approve_leave_request', 'can_edit')) {
                         errorMsg(message);
                         $("#submitbtn").button('reset');
                     } else {
-                        successMsg(data.message);
+                        setPersistentLeaveFeedback(data.message, 'success');
                         window.location.reload(true);
                     }
                 },
@@ -684,6 +1025,7 @@ if ($this->rbac->hasPrivilege('approve_leave_request', 'can_edit')) {
                 });
 
                 $('#empname').append(div_data);
+                initEmployeeSearchDropdown();
             }
         });
     }
@@ -696,22 +1038,27 @@ if ($this->rbac->hasPrivilege('approve_leave_request', 'can_edit')) {
             $.ajax({
                 type: "POST",
                 url: base_url + "admin/leaverequest/getRecommenderApproverInfo",
-                data: {'staff_id': staff_id},
+                data: {'staff_id': staff_id, 'role_id': getSelectedRoleId()},
                 dataType: "json",
                 success: function (response) {
                     if (response.status === 'success') {
-                        $('input[name="recommender"]').val(response.recommender_info);
-                        $('input[name="approver"]').val(response.approver_info);
+                        $('#recommender_display').val(response.recommender_info);
+                        $('#approver_display').val(response.approver_info);
+                        syncApproverConfigWarning(!!response.approver_configured);
                     } else {
-                        $('input[name="recommender"]').val('<?php echo $this->lang->line('not_assigned'); ?>');
-                        $('input[name="approver"]').val('<?php echo $this->lang->line('not_assigned'); ?>');
+                        $('#recommender_display').val('<?php echo $this->lang->line('not_assigned'); ?>');
+                        $('#approver_display').val('<?php echo $this->lang->line('not_assigned'); ?>');
+                        syncApproverConfigWarning(false);
                     }
                 }
             });
         } else {
-            $('input[name="recommender"]').val('');
-            $('input[name="approver"]').val('');
+            $('#recommender_display').val('');
+            $('#approver_display').val('');
+            $('#approver_config_warning').hide();
         }
+
+        toggleSubstitutionUI();
     });
 
     function setEmployeeName(role, id = '') {
@@ -737,6 +1084,7 @@ if ($this->rbac->hasPrivilege('approve_leave_request', 'can_edit')) {
                 });
 
                 $('#empname').append(div_data);
+                initEmployeeSearchDropdown();
             }
         });
     }
@@ -783,6 +1131,8 @@ if ($this->rbac->hasPrivilege('approve_leave_request', 'can_edit')) {
 
                 $('#leave_from_date').val(result.leavefrom);
                 $('#leave_to_date').val(result.leaveto);
+                $('#leave_duration_type').val(result.leave_duration_type ? result.leave_duration_type : 'full_day');
+                syncLeaveIsoDates();
 
                 $('input[name="leaverequestid"]').val(id);
                 $('textarea[name="reason"]').text(result.employee_remark);
@@ -800,6 +1150,8 @@ if ($this->rbac->hasPrivilege('approve_leave_request', 'can_edit')) {
                         format: calendar_date_time_format
                     }
                 });
+
+                toggleHalfDayUI();
             }
         });
 
@@ -838,13 +1190,19 @@ if ($this->rbac->hasPrivilege('approve_leave_request', 'can_edit')) {
     }
 
     $(document).ready(function() {
+        initEmployeeSearchDropdown();
+        initLeaveDatepickers();
         // Event listeners for date fields
-        $('#leave_from_date, #leave_to_date, #empname').change(function() {
+        $('#leave_from_date, #leave_to_date, #empname, #role').change(function() {
+            syncLeaveIsoDates();
             var staff_id = $('#empname').val();
             var leave_from_date = $('#leave_from_date').val();
             var leave_to_date = $('#leave_to_date').val();
+            toggleSubstitutionUI();
+            toggleHalfDayUI();
+            applyPastDateRestrictionUI();
             
-            if (staff_id && leave_from_date && leave_to_date) {
+            if (staff_id && leave_from_date && leave_to_date && shouldRequireSubstitution()) {
                 loadTimetableAndSubstitutes(staff_id, leave_from_date, leave_to_date);
             } else {
                 $('#timetable_section').hide();
@@ -853,8 +1211,28 @@ if ($this->rbac->hasPrivilege('approve_leave_request', 'can_edit')) {
         });
 
         $(document).on('change', '#leave_type', function() {
+            toggleSubstitutionUI();
+            toggleHalfDayUI();
+            applyPastDateRestrictionUI();
+            var staff_id = $('#empname').val();
+            var leave_from_date = $('#leave_from_date').val();
+            var leave_to_date = $('#leave_to_date').val();
+            if (staff_id && leave_from_date && leave_to_date && shouldRequireSubstitution()) {
+                loadTimetableAndSubstitutes(staff_id, leave_from_date, leave_to_date);
+            } else {
+                $('#timetable_section').hide();
+            }
             updatePermissionQuota();
         });
+
+        toggleSubstitutionUI();
+        toggleHalfDayUI();
+        applyPastDateRestrictionUI();
+    });
+
+    $(document).on('change', '#leave_duration_type', function() {
+        syncHalfDayDateBehavior();
+        syncLeaveIsoDates();
     });
 
     function updatePermissionQuota() {
@@ -907,14 +1285,20 @@ if ($this->rbac->hasPrivilege('approve_leave_request', 'can_edit')) {
             data: {
                 staff_id: staff_id,
                 leave_from_date: leave_from_date,
-                leave_to_date: leave_to_date
+                leave_to_date: leave_to_date,
+                role_id: getSelectedRoleId(),
+                leave_type_id: getSelectedLeaveTypeId()
             },
             dataType: 'json',
             success: function(response) {
                 if (response.status === 'success') {
-                    $('#timetable_display').html(response.timetable_html);
-                    $('#substitution_fields').html(response.substitution_html);
-                    $('#timetable_section').show();
+                    if (shouldRequireSubstitution()) {
+                        $('#timetable_display').html(response.timetable_html);
+                        $('#substitution_fields').html(response.substitution_html);
+                        $('#timetable_section').show();
+                    } else {
+                        $('#timetable_section').hide();
+                    }
                 } else {
                     $('#timetable_section').hide();
                     errorMsg(response.message);

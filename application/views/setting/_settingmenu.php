@@ -40,6 +40,9 @@
             <li class="<?php echo set_SubSubmenu('schsettings/hiddenforms'); ?>">
                 <a class="<?php echo set_SubSubmenu('schsettings/hiddenforms'); ?>" href="<?php echo site_url('schsettings/hiddenforms') ?>">Hidden Form URLs</a>
             </li>
+            <li class="<?php echo set_SubSubmenu('schsettings/leavepolicy'); ?>">
+                <a class="<?php echo set_SubSubmenu('schsettings/leavepolicy'); ?>" href="<?php echo site_url('schsettings/leavepolicy') ?>">Leave Management Policy</a>
+            </li>
             
         </ul>
     </div>

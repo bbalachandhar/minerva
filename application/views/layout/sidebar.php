@@ -20,6 +20,26 @@
 <?php
 $side_list = side_menu_list(1);
 
+$CI = &get_instance();
+$leave_badges = [
+    'approve_leave_request' => 0,
+    'recommender_leave_requests' => 0,
+];
+$current_staff_id = (int) $this->customlib->getStaffID();
+$role_info = json_decode($this->customlib->getStaffRole());
+$role_name = strtolower(trim((string) ($role_info->name ?? '')));
+$is_admin_or_super_admin = in_array($role_name, ['admin', 'super admin'], true);
+if ($current_staff_id > 0) {
+    $CI->load->model('leaverequest_model');
+    if ($is_admin_or_super_admin) {
+        $leave_badges['approve_leave_request'] = $CI->leaverequest_model->count_all_approver_pending_leave_requests();
+        $leave_badges['recommender_leave_requests'] = $CI->leaverequest_model->count_all_recommender_pending_leave_requests();
+    } else {
+        $leave_badges['approve_leave_request'] = $CI->leaverequest_model->count_approver_pending_leave_requests($current_staff_id);
+        $leave_badges['recommender_leave_requests'] = $CI->leaverequest_model->count_recommender_pending_leave_requests($current_staff_id);
+    }
+}
+
 if (!empty($side_list)) {
     foreach ($side_list as $side_list_key => $side_list_value) {
 
@@ -30,6 +50,19 @@ if (!empty($side_list)) {
                 $cat_permission = access_permission_remove_comma($m_permission_value);
 
                 if ($this->rbac->hasPrivilege($cat_permission[0], $cat_permission[1])) {
+                    $module_access = true;
+                    break;
+                }
+            }
+        }
+
+        if (!$module_access && !empty($side_list_value->submenus)) {
+            foreach ($side_list_value->submenus as $submenu_probe) {
+                if (in_array((string) ($submenu_probe->url ?? ''), [
+                    'admin/staff/leaverequest',
+                    'admin/leaverequest/leaverequest',
+                    'admin/leaverequest/recommender_leave_requests'
+                ], true)) {
                     $module_access = true;
                     break;
                 }
@@ -75,6 +108,14 @@ foreach ($side_list_value->submenus as $submenu_key => $submenu_value) {
                             }
                         }
 
+                        if (!$sidebar_access && in_array((string) ($submenu_value->url ?? ''), [
+                            'admin/staff/leaverequest',
+                            'admin/leaverequest/leaverequest',
+                            'admin/leaverequest/recommender_leave_requests'
+                        ], true)) {
+                            $sidebar_access = true;
+                        }
+
                         if ($sidebar_access) {
                             if (!empty($submenu_value->permission_group_id)) {
                                 if (!$this->module_lib->hasActive($submenu_value->short_code)) {
@@ -94,7 +135,15 @@ foreach ($side_list_value->submenus as $submenu_key => $submenu_value) {
                                 $menu_url = site_url('admin/multibranch/branch/setting');
                             }
                             ?>
-                            <a href="<?php echo $menu_url; ?>"><i class="fa fa-angle-double-right"></i><?php echo $this->lang->line($submenu_value->lang_key); ?></a>
+                            <?php
+                            $badge_count = 0;
+                            if ($submenu_value->lang_key === 'approve_leave_request') {
+                                $badge_count = (int) ($leave_badges['approve_leave_request'] ?? 0);
+                            } elseif ($submenu_value->lang_key === 'recommender_leave_requests') {
+                                $badge_count = (int) ($leave_badges['recommender_leave_requests'] ?? 0);
+                            }
+                            ?>
+                            <a href="<?php echo $menu_url; ?>"><i class="fa fa-angle-double-right"></i><?php echo $this->lang->line($submenu_value->lang_key); ?><?php if ($badge_count > 0) { ?><small class="label pull-right bg-red"><?php echo $badge_count; ?></small><?php } ?></a>
                         </li>
 
                           <?php

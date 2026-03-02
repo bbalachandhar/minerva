@@ -197,6 +197,9 @@ $image=$this->media_storage->getImageURL("uploads/staff_images/" . $file);
                             <div class="col-md-12">
                                 <div style="background: #ffffff; border: 1px solid #e0e0e0; border-radius: 6px; padding: 15px;">
                                     <h5 style="margin: 0 0 15px 0; font-weight: 600; color: #333;"><?php echo $this->lang->line("attendance") ?></h5>
+                                    <div class="text-muted" style="font-size:11px; margin: 0 0 8px 0;">
+                                        P*: Present incl. half-day (after late/permission penalty). A*: Absent incl. half-day and late/permission penalty beyond limits. L: Late count. PR: Permission count. APR: Approved paid leaves. LOP: Loss Of Pay days before credit adjustment. AdjLOP: Total LOP adjusted by leave credits. NetLOP: Final LOP used for salary deduction. CrAdj: Leave-credit days used to adjust LOP this month (eligible leave types where Requires Balance Check = No and Loss Of Pay = No). CrBal: Remaining carry-forward leave credit.
+                                    </div>
                                     <div style="overflow-x: auto;">
                                         <table class="table table-bordered" style="font-size: 11px; margin-bottom: 0; border-collapse: collapse;">
                                             <thead>
@@ -213,6 +216,8 @@ $image=$this->media_storage->getImageURL("uploads/staff_images/" . $file);
                                                     <th style="padding: 8px 6px; text-align: center; border: 1px solid #e0e0e0; font-weight: 600; color: #495057;"><span data-toggle="tooltip" title="Actual Loss Of Pay Days">LOP</span></th>
                                                     <th style="padding: 8px 6px; text-align: center; border: 1px solid #e0e0e0; font-weight: 600; color: #495057;"><span data-toggle="tooltip" title="Adjusted LOP Days">AdjLOP</span></th>
                                                     <th style="padding: 8px 6px; text-align: center; border: 1px solid #e0e0e0; font-weight: 600; color: #495057;"><span data-toggle="tooltip" title="Net LOP Days (Used for Deduction)">NetLOP</span></th>
+                                                    <th style="padding: 8px 6px; text-align: center; border: 1px solid #e0e0e0; font-weight: 600; color: #495057;"><span data-toggle="tooltip" title="Leave-credit days adjusted in this month">CrAdj</span></th>
+                                                    <th style="padding: 8px 6px; text-align: center; border: 1px solid #e0e0e0; font-weight: 600; color: #495057;"><span data-toggle="tooltip" title="Carry-forward leave credit after this month">CrBal</span></th>
                                                     <th style="padding: 8px 6px; text-align: center; border: 1px solid #e0e0e0; font-weight: 600; color: #495057;"><span data-toggle="tooltip" title="Weekends">WE</span></th>
                                                 </tr>
                                             </thead>
@@ -250,7 +255,7 @@ if ($working_days <= 0) {
 $excess_late = $late_count > $max_late_allowed ? ($late_count - $max_late_allowed) : 0;
 $excess_permission = $permission_count > $max_permission_allowed ? ($permission_count - $max_permission_allowed) : 0;
 $late_permission_penalty = ($excess_late + $excess_permission) * $half_day_weight;
-$total_present = max(0, $total_present - $late_permission_penalty + $paid_leave_absent);
+$total_present = max(0, $total_present - $late_permission_penalty);
 $total_absent = $total_absent + $late_permission_penalty;
 $lop_days = $total_absent + (($first_half_absent + $second_half_absent) * $half_day_weight);
 
@@ -303,7 +308,24 @@ if ($is_current_payroll_month && !empty($payroll_lop_summary)) {
 // For current payroll month, use values from payslip; for other months, query monthly balance
 if ($is_current_payroll_month) {
     $adjusted_lop = floatval($employee_payroll['adjusted_lop_days'] ?? 0);
-    $net_lop = floatval($employee_payroll['net_lop_days'] ?? 0);
+    $net_lop = max(0, round(((float) $lop_days - (float) $adjusted_lop), 2));
+    $od_adjusted_days = 0;
+    $od_carry_forward_days = 0;
+
+    $CI =& get_instance();
+    $CI->db->select('SUM(smlb.used_for_lop_adjustment) as credit_adjusted, SUM(smlb.closing_balance) as credit_carry');
+    $CI->db->from('staff_monthly_leave_balance smlb');
+    $CI->db->join('leave_types lt', 'lt.id = smlb.leave_type_id', 'inner');
+    $CI->db->where('smlb.staff_id', (int) $result['id']);
+    $CI->db->where('smlb.month', (int) $month_num);
+    $CI->db->where('smlb.year', (int) $year_num);
+    $CI->db->where('lt.is_lop', 0);
+    $CI->db->where('lt.requires_balance_check', 0);
+    $credit_row = $CI->db->get()->row_array();
+    if (is_array($credit_row)) {
+        $od_adjusted_days = floatval($credit_row['credit_adjusted'] ?? 0);
+        $od_carry_forward_days = floatval($credit_row['credit_carry'] ?? 0);
+    }
 } else {
     // Get adjusted LOP from monthly balance for historical months
     $CI =& get_instance();
@@ -316,6 +338,22 @@ if ($is_current_payroll_month) {
     $lop_data = $lop_query->row_array();
     $adjusted_lop = floatval($lop_data['total_adjusted_lop'] ?? 0);
     $net_lop = max(0, $lop_days - $adjusted_lop);
+
+    $CI->db->select('SUM(smlb.used_for_lop_adjustment) as od_adjusted, SUM(smlb.closing_balance) as od_carry');
+    $CI->db->from('staff_monthly_leave_balance smlb');
+    $CI->db->join('leave_types lt', 'lt.id = smlb.leave_type_id', 'inner');
+    $CI->db->where('smlb.staff_id', $result['id']);
+    $CI->db->where('smlb.month', $month_num);
+    $CI->db->where('smlb.year', $year_num);
+    $CI->db->where('lt.is_lop', 0);
+    $CI->db->group_start();
+    $CI->db->where('LOWER(TRIM(lt.type))', 'on duty');
+    $CI->db->or_where('LOWER(TRIM(lt.type))', 'od');
+    $CI->db->group_end();
+    $od_query = $CI->db->get();
+    $od_data = $od_query->row_array();
+    $od_adjusted_days = floatval($od_data['od_adjusted'] ?? 0);
+    $od_carry_forward_days = floatval($od_data['od_carry'] ?? 0);
 }
 ?>
                                             <tr style="background: <?php echo ($attendence_key_index % 2 == 0) ? '#f9f9f9' : '#ffffff'; ?>;">
@@ -331,6 +369,8 @@ if ($is_current_payroll_month) {
                                                 <td style="padding: 8px 6px; text-align: center; border: 1px solid #e0e0e0; color: #666;"><?php echo rtrim(rtrim(number_format((float) $lop_days, 1, '.', ''), '0'), '.'); ?></td>
                                                 <td style="padding: 8px 6px; text-align: center; border: 1px solid #e0e0e0; color: #666;"><?php echo rtrim(rtrim(number_format((float) $adjusted_lop, 1, '.', ''), '0'), '.'); ?></td>
                                                 <td style="padding: 8px 6px; text-align: center; border: 1px solid #e0e0e0; color: #666;"><?php echo rtrim(rtrim(number_format((float) $net_lop, 1, '.', ''), '0'), '.'); ?></td>
+                                                <td style="padding: 8px 6px; text-align: center; border: 1px solid #e0e0e0; color: #666;"><?php echo rtrim(rtrim(number_format((float) $od_adjusted_days, 1, '.', ''), '0'), '.'); ?></td>
+                                                <td style="padding: 8px 6px; text-align: center; border: 1px solid #e0e0e0; color: #666;"><?php echo rtrim(rtrim(number_format((float) $od_carry_forward_days, 1, '.', ''), '0'), '.'); ?></td>
                                                 <td style="padding: 8px 6px; text-align: center; border: 1px solid #e0e0e0; color: #666;"><?php echo $weekend_count; ?></td>
                                             </tr>
                                             <?php
@@ -348,7 +388,7 @@ if ($is_current_payroll_month) {
                     <div class="box-body" style="padding: 15px; background-color: #f9fafb; border-top: 1px solid #e5e7eb;">
                         <div class="text-muted" style="font-size: 12px; line-height: 1.6;">
                             <strong>Legend:</strong> 
-                            P*: Present incl. half-day and approved paid leave on absent days. 
+                            P*: Present incl. half-day (after late/permission penalty). 
                             A*: Absent incl. half-day and late/permission penalty beyond limits. 
                             L: Late count. 
                             PR: Permission count. 

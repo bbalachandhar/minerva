@@ -184,20 +184,83 @@ class Leaverequest_model extends MY_model
         }
     }
 
-    public function check_if_leave_exists($staff_id, $leave_from, $leave_to)
+    public function check_if_leave_exists($staff_id, $leave_from, $leave_to, $exclude_id = null, $leave_duration_type = 'full_day')
     {
-        $this->db->where('staff_id', $staff_id);
-        $this->db->where("((leave_from <= '{$leave_from}' AND leave_to >= '{$leave_from}') OR (leave_from <= '{$leave_to}' AND leave_to >= '{$leave_to}') OR (leave_from >= '{$leave_from}' AND leave_to <= '{$leave_to}'))");
-        $query = $this->db->get('staff_leave_request');
-        return $query->num_rows() > 0;
+        $inactive_statuses = ['disapprove', 'disapproved', 'rejected', 'cancel', 'cancelled', 'canceled'];
+        $has_duration_column = $this->db->field_exists('leave_duration_type', 'staff_leave_request');
+
+        if ($has_duration_column) {
+            $this->db->select('id, leave_from, leave_to, leave_days, COALESCE(leave_duration_type, "full_day") as leave_duration_type', false);
+        } else {
+            $this->db->select('id, leave_from, leave_to, leave_days');
+        }
+        $this->db->from('staff_leave_request');
+        $this->db->where('staff_id', (int) $staff_id);
+        $this->db->where('leave_from <=', $leave_to);
+        $this->db->where('leave_to >=', $leave_from);
+        $this->db->where_not_in('LOWER(status)', $inactive_statuses);
+
+        if (!empty($exclude_id)) {
+            $this->db->where('id !=', (int) $exclude_id);
+        }
+
+        $rows = $this->db->get()->result_array();
+        if (empty($rows)) {
+            return false;
+        }
+
+        $new_duration = strtolower(trim((string) $leave_duration_type));
+        $is_new_half_day = in_array($new_duration, ['first_half', 'second_half'], true);
+
+        if (!$is_new_half_day) {
+            return true;
+        }
+
+        if ($leave_from !== $leave_to) {
+            return true;
+        }
+
+        $existing_half_count = 0;
+        foreach ($rows as $row) {
+            $existing_duration = strtolower(trim((string) ($row['leave_duration_type'] ?? 'full_day')));
+            if (!in_array($existing_duration, ['full_day', 'first_half', 'second_half'], true)) {
+                $existing_duration = 'full_day';
+            }
+
+            if ($row['leave_from'] !== $row['leave_to']) {
+                return true;
+            }
+
+            if ($existing_duration === 'full_day') {
+                return true;
+            }
+
+            if ($existing_duration === $new_duration) {
+                return true;
+            }
+
+            if (in_array($existing_duration, ['first_half', 'second_half'], true)) {
+                $existing_half_count++;
+            }
+        }
+
+        return $existing_half_count >= 2;
     }
 
     public function addLeaveRequest($data)
     {
+        $has_duration_column = $this->db->field_exists('leave_duration_type', 'staff_leave_request');
+        if (!$has_duration_column && isset($data['leave_duration_type'])) {
+            unset($data['leave_duration_type']);
+        }
+
         if (isset($data['id'])) {
-            // This is an update, no need to check for existing leave
+            $leave_exists = $this->check_if_leave_exists($data['staff_id'], $data['leave_from'], $data['leave_to'], $data['id'], $data['leave_duration_type'] ?? 'full_day');
+            if ($leave_exists) {
+                return false;
+            }
         } else {
-            $leave_exists = $this->check_if_leave_exists($data['staff_id'], $data['leave_from'], $data['leave_to']);
+            $leave_exists = $this->check_if_leave_exists($data['staff_id'], $data['leave_from'], $data['leave_to'], null, $data['leave_duration_type'] ?? 'full_day');
             if ($leave_exists) {
                 return false;
             }
@@ -315,6 +378,79 @@ class Leaverequest_model extends MY_model
             ->join("staff as approver", "approver.id = staff_leave_request.approver_id", "left")
             ->join("department", "department.id = staff.department", "left")
             ->where("staff_leave_request.recommender_id", $recommender_id)
+            ->where("staff_leave_request.recommender_status", "pending")
+            ->where("staff.is_active", "1")
+            ->order_by("staff_leave_request.id", "desc")
+            ->get("staff_leave_request");
+
+        $result = $query->result_array();
+        foreach ($result as $key => $value) {
+            $applied_by = $this->staff_model->get($value['applied_by']);
+            if (!empty($applied_by['employee_id'])) {
+                $result[$key]['applied_by'] = $applied_by['name'] . ' ' . $applied_by['surname'] . ' (' . $applied_by['employee_id'] . ')';
+            } else {
+                $result[$key]['applied_by'] = '';
+            }
+        }
+        return $result;
+    }
+
+    public function count_recommender_pending_leave_requests($recommender_id)
+    {
+        return (int) $this->db
+            ->from('staff_leave_request')
+            ->join('staff', 'staff.id = staff_leave_request.staff_id')
+            ->where('staff_leave_request.recommender_id', (int) $recommender_id)
+            ->where('staff_leave_request.recommender_status', 'pending')
+            ->where('staff.is_active', '1')
+            ->count_all_results();
+    }
+
+    public function count_all_recommender_pending_leave_requests()
+    {
+        return (int) $this->db
+            ->from('staff_leave_request')
+            ->join('staff', 'staff.id = staff_leave_request.staff_id')
+            ->where('staff_leave_request.recommender_status', 'pending')
+            ->where('staff.is_active', '1')
+            ->count_all_results();
+    }
+
+    public function count_approver_pending_leave_requests($approver_id)
+    {
+        return (int) $this->db
+            ->from('staff_leave_request')
+            ->join('staff', 'staff.id = staff_leave_request.staff_id')
+            ->where('staff_leave_request.approver_id', (int) $approver_id)
+            ->where('staff_leave_request.approver_status', 'pending')
+            ->where_in('staff_leave_request.recommender_status', ['approved', 'recommended'])
+            ->where('staff.is_active', '1')
+            ->count_all_results();
+    }
+
+    public function count_all_approver_pending_leave_requests()
+    {
+        return (int) $this->db
+            ->from('staff_leave_request')
+            ->join('staff', 'staff.id = staff_leave_request.staff_id')
+            ->where('staff_leave_request.approver_status', 'pending')
+            ->where_in('staff_leave_request.recommender_status', ['approved', 'recommended'])
+            ->where('staff.is_active', '1')
+            ->count_all_results();
+    }
+
+    public function get_all_recommender_pending_leave_requests()
+    {
+        $query = $this->db->select('staff.name,staff.surname,staff.employee_id,staff_leave_request.*,leave_types.type,
+            recommender.name as recommender_name, recommender.surname as recommender_surname,
+            approver.name as approver_name, approver.surname as approver_surname, department.department_name')
+            ->join("staff", "staff.id = staff_leave_request.staff_id")
+            ->join("leave_types", "leave_types.id = staff_leave_request.leave_type_id")
+            ->join("staff_roles", "staff_roles.staff_id = staff.id")
+            ->join("roles", "staff_roles.role_id = roles.id")
+            ->join("staff as recommender", "recommender.id = staff_leave_request.recommender_id", "left")
+            ->join("staff as approver", "approver.id = staff_leave_request.approver_id", "left")
+            ->join("department", "department.id = staff.department", "left")
             ->where("staff_leave_request.recommender_status", "pending")
             ->where("staff.is_active", "1")
             ->order_by("staff_leave_request.id", "desc")

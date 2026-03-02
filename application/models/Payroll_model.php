@@ -611,6 +611,216 @@ class Payroll_model extends MY_Model
         return $query->result_array();
     }
 
+    private function isOnDutyLeaveType($leave_type_name)
+    {
+        $normalized = strtolower(trim((string) $leave_type_name));
+        return in_array($normalized, ['on duty', 'od'], true);
+    }
+
+    private function getOnDutyLeaveTypeIds()
+    {
+        $has_balance_flag = $this->db->field_exists('requires_balance_check', 'leave_types');
+
+        $this->db->select('id, type, is_lop');
+        if ($has_balance_flag) {
+            $this->db->select('requires_balance_check');
+        }
+        $this->db->from('leave_types');
+        $this->db->where('is_lop', 0);
+        $rows = $this->db->get()->result_array();
+
+        $eligible_ids = [];
+        foreach ($rows as $row) {
+            if ($has_balance_flag) {
+                if ((int) ($row['requires_balance_check'] ?? 1) === 0) {
+                    $eligible_ids[] = (int) $row['id'];
+                }
+                continue;
+            }
+
+            // Backward-compatible fallback when balance flag column is unavailable.
+            $type_name = isset($row['type']) ? $row['type'] : '';
+            if ($this->isOnDutyLeaveType($type_name)) {
+                $eligible_ids[] = (int) $row['id'];
+            }
+        }
+
+        return array_values(array_unique($eligible_ids));
+    }
+
+    private function getLeaveTypeNamesByIds($leave_type_ids)
+    {
+        $ids = array_values(array_unique(array_filter(array_map('intval', (array) $leave_type_ids), function ($id) {
+            return $id > 0;
+        })));
+
+        if (empty($ids)) {
+            return [];
+        }
+
+        $this->db->select('id, type');
+        $this->db->from('leave_types');
+        $this->db->where_in('id', $ids);
+        $rows = $this->db->get()->result_array();
+
+        $map = [];
+        foreach ($rows as $row) {
+            $map[(int) $row['id']] = (string) ($row['type'] ?? '');
+        }
+
+        return $map;
+    }
+
+    private function buildLopAdjustmentLeavePool($staff_id, $od_type_ids, $od_balances)
+    {
+        $pool = [];
+        $seen = [];
+
+        $type_name_map = $this->getLeaveTypeNamesByIds(array_merge($od_type_ids, array_keys((array) $od_balances)));
+
+        foreach ((array) $od_type_ids as $od_type_id) {
+            $od_type_id = (int) $od_type_id;
+            if ($od_type_id <= 0 || isset($seen[$od_type_id])) {
+                continue;
+            }
+
+            $pool[] = [
+                'leave_type_id' => $od_type_id,
+                'type' => $type_name_map[$od_type_id] ?? 'OD',
+                'staff_id' => (int) $staff_id,
+            ];
+            $seen[$od_type_id] = true;
+        }
+
+        $paid_leaves = $this->getStaffPaidLeaves($staff_id);
+        foreach ($paid_leaves as $leave) {
+            $leave_type_id = (int) ($leave['leave_type_id'] ?? 0);
+            if ($leave_type_id <= 0 || isset($seen[$leave_type_id])) {
+                continue;
+            }
+
+            $pool[] = $leave;
+            $seen[$leave_type_id] = true;
+        }
+
+        usort($pool, function ($left, $right) use ($od_type_ids) {
+            $left_is_od = in_array((int) ($left['leave_type_id'] ?? 0), $od_type_ids, true) ? 1 : 0;
+            $right_is_od = in_array((int) ($right['leave_type_id'] ?? 0), $od_type_ids, true) ? 1 : 0;
+
+            if ($left_is_od !== $right_is_od) {
+                return $right_is_od - $left_is_od;
+            }
+
+            $left_type = strtolower(trim((string) ($left['type'] ?? '')));
+            $right_type = strtolower(trim((string) ($right['type'] ?? '')));
+            if ($left_type === $right_type) {
+                return 0;
+            }
+
+            return ($left_type < $right_type) ? -1 : 1;
+        });
+
+        return $pool;
+    }
+
+    private function getApprovedLeaveDaysForTypeInRange($staff_id, $leave_type_id, $start_date, $end_date)
+    {
+        $total_days = 0.0;
+
+        $this->db->select('leave_from, leave_to, leave_days, leave_duration_type');
+        $this->db->from('staff_leave_request');
+        $this->db->where('staff_id', (int) $staff_id);
+        $this->db->where('leave_type_id', (int) $leave_type_id);
+        $this->db->where_in('status', ['approve', 'approved']);
+        $this->db->where('leave_from <=', $end_date);
+        $this->db->where('leave_to >=', $start_date);
+        $query = $this->db->get();
+        $rows = $query->result_array();
+
+        foreach ($rows as $row) {
+            $leave_from = isset($row['leave_from']) ? (string) $row['leave_from'] : '';
+            $leave_to = isset($row['leave_to']) ? (string) $row['leave_to'] : '';
+            if ($leave_from === '' || $leave_to === '') {
+                continue;
+            }
+
+            $effective_from = max($leave_from, $start_date);
+            $effective_to = min($leave_to, $end_date);
+            if ($effective_from > $effective_to) {
+                continue;
+            }
+
+            $duration_type = strtolower(trim((string) ($row['leave_duration_type'] ?? 'full_day')));
+            if (in_array($duration_type, ['half_day', 'first_half', 'second_half'], true)) {
+                $total_days += 0.5;
+                continue;
+            }
+
+            $from_ts = strtotime($effective_from);
+            $to_ts = strtotime($effective_to);
+            if ($from_ts === false || $to_ts === false) {
+                continue;
+            }
+
+            $covered_days = (($to_ts - $from_ts) / 86400) + 1;
+            if ($covered_days > 0) {
+                $total_days += (float) $covered_days;
+            }
+        }
+
+        return round($total_days, 2);
+    }
+
+    private function syncOnDutyCreditsForMonth($staff_id, $month, $year, $simulate = false)
+    {
+        $month_int = (int) $month;
+        $year_int = (int) $year;
+        $start_date = date('Y-m-d', mktime(0, 0, 0, $month_int, 1, $year_int));
+        $end_date = date('Y-m-t', strtotime($start_date));
+
+        $od_type_ids = $this->getOnDutyLeaveTypeIds();
+        if (empty($od_type_ids)) {
+            return [];
+        }
+
+        $od_balances = [];
+        foreach ($od_type_ids as $leave_type_id) {
+            $approved_days = $this->getApprovedLeaveDaysForTypeInRange($staff_id, $leave_type_id, $start_date, $end_date);
+
+            if ($simulate) {
+                $balance = $this->getMonthlyBalanceSnapshot($staff_id, $leave_type_id, $year_int, $month_int);
+            } else {
+                $balance = $this->getOrCreateMonthlyBalance($staff_id, $leave_type_id, $year_int, $month_int);
+            }
+
+            if (!is_array($balance)) {
+                continue;
+            }
+
+            $opening_balance = (float) ($balance['opening_balance'] ?? 0);
+            $used_for_lop_adjustment = (float) ($balance['used_for_lop_adjustment'] ?? 0);
+            $used_for_leave_application = (float) ($balance['used_for_leave_application'] ?? 0);
+            $other_deductions = (float) ($balance['other_deductions'] ?? 0);
+            $closing_balance = $opening_balance + $approved_days - $used_for_lop_adjustment - $used_for_leave_application - $other_deductions;
+
+            $balance['earned_in_month'] = $approved_days;
+            $balance['closing_balance'] = $closing_balance;
+
+            if (!$simulate && !empty($balance['id'])) {
+                $this->db->where('id', $balance['id']);
+                $this->db->update('staff_monthly_leave_balance', [
+                    'earned_in_month' => $approved_days,
+                    'closing_balance' => $closing_balance,
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]);
+            }
+
+            $od_balances[(int) $leave_type_id] = $balance;
+        }
+
+        return $od_balances;
+    }
+
     /**
      * Get or create monthly leave balance for a staff member
      * If record doesn't exist, create from previous month's closing balance
@@ -807,13 +1017,22 @@ class Payroll_model extends MY_Model
             ];
         }
         
+        $od_type_ids = $this->getOnDutyLeaveTypeIds();
+        $od_balances = $this->syncOnDutyCreditsForMonth($staff_id, $month_int, $year_int, $simulate);
+
         if ($lop_days <= 0) {
+            $od_carry_forward_days = 0;
+            foreach ($od_balances as $od_balance) {
+                $od_carry_forward_days += (float) ($od_balance['closing_balance'] ?? 0);
+            }
             return [
                 'success' => true,
                 'actual_lop_days' => 0,
                 'adjusted_lop_days' => 0,
                 'net_lop_days' => 0,
-                'adjustments' => []
+                'adjustments' => [],
+                'od_adjusted_days' => 0,
+                'od_carry_forward_days' => max(0, round($od_carry_forward_days, 2))
             ];
         }
         
@@ -823,29 +1042,42 @@ class Payroll_model extends MY_Model
         
         // If auto adjust is disabled, return with no adjustments
         if ($auto_adjust != 1) {
+            $od_carry_forward_days = 0;
+            foreach ($od_balances as $od_balance) {
+                $od_carry_forward_days += (float) ($od_balance['closing_balance'] ?? 0);
+            }
             return [
                 'success' => true,
                 'actual_lop_days' => $lop_days,
                 'adjusted_lop_days' => 0,
                 'net_lop_days' => $lop_days,
                 'adjustments' => [],
+                'od_adjusted_days' => 0,
+                'od_carry_forward_days' => max(0, round($od_carry_forward_days, 2)),
                 'message' => 'Auto LOP adjustment is disabled'
             ];
         }
         
-        // Get all paid leave types for this staff
-        $paid_leaves = $this->getStaffPaidLeaves($staff_id);
+        // Build adjustment pool with OD first, then other paid leaves.
+        // OD is included even when no staff_leave_details row exists for OD.
+        $paid_leaves = $this->buildLopAdjustmentLeavePool($staff_id, $od_type_ids, $od_balances);
         
         $remaining_lop = $lop_days;
         $adjustments = [];
+        $od_adjusted_days = 0;
         
         foreach ($paid_leaves as $leave) {
             if ($remaining_lop <= 0) {
                 break;
             }
+
+            $leave_type_id = (int) ($leave['leave_type_id'] ?? 0);
+            $is_od_leave = in_array($leave_type_id, $od_type_ids, true);
             
             // Get or create monthly balance
-            if ($simulate) {
+            if ($simulate && isset($od_balances[$leave_type_id])) {
+                $balance = $od_balances[$leave_type_id];
+            } elseif ($simulate) {
                 $balance = $this->getMonthlyBalanceSnapshot($staff_id, $leave['leave_type_id'], $year_int, $month_int);
             } else {
                 $balance = $this->getOrCreateMonthlyBalance($staff_id, $leave['leave_type_id'], $year_int, $month_int);
@@ -895,6 +1127,14 @@ class Payroll_model extends MY_Model
                                       $to_adjust, $available, $new_closing, $payslip_id, 'payslip', 
                                       'LOP adjustment for payroll');
             }
+
+            if ($is_od_leave) {
+                $od_adjusted_days += (float) $to_adjust;
+                if (isset($od_balances[$leave_type_id])) {
+                    $od_balances[$leave_type_id]['used_for_lop_adjustment'] = $new_used_lop;
+                    $od_balances[$leave_type_id]['closing_balance'] = $new_closing;
+                }
+            }
             
             // Track adjustment
             $adjustments[] = [
@@ -909,13 +1149,31 @@ class Payroll_model extends MY_Model
         }
         
         $total_adjusted = $lop_days - $remaining_lop;
+        $od_carry_forward_days = 0;
+
+        if ($simulate) {
+            foreach ($od_balances as $od_balance) {
+                $od_carry_forward_days += (float) ($od_balance['closing_balance'] ?? 0);
+            }
+        } elseif (!empty($od_type_ids)) {
+            $this->db->select_sum('closing_balance', 'od_carry_forward');
+            $this->db->from('staff_monthly_leave_balance');
+            $this->db->where('staff_id', (int) $staff_id);
+            $this->db->where('year', $year_int);
+            $this->db->where('month', $month_int);
+            $this->db->where_in('leave_type_id', $od_type_ids);
+            $od_row = $this->db->get()->row_array();
+            $od_carry_forward_days = (float) ($od_row['od_carry_forward'] ?? 0);
+        }
         
         return [
             'success' => true,
             'actual_lop_days' => $lop_days,
             'adjusted_lop_days' => $total_adjusted,
             'net_lop_days' => $remaining_lop,
-            'adjustments' => $adjustments
+            'adjustments' => $adjustments,
+            'od_adjusted_days' => round($od_adjusted_days, 2),
+            'od_carry_forward_days' => max(0, round($od_carry_forward_days, 2))
         ];
     }
 

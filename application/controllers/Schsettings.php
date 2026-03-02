@@ -1430,6 +1430,190 @@ class Schsettings extends Admin_Controller
         $this->load->view('setting/hiddenforms');
         $this->load->view('layout/footer');
     }
+
+    public function leavepolicy()
+    {
+        $this->session->set_userdata('top_menu', 'System Settings');
+        $this->session->set_userdata('sub_menu', 'schsettings/index');
+        $this->session->set_userdata('subsub_menu', 'schsettings/leavepolicy');
+
+        $this->load->model('leavetypes_model');
+        $this->load->model('staff_model');
+        $setting = $this->setting_model->getSetting();
+        $all_roles = $this->role_model->get();
+        $leave_types = $this->leavetypes_model->getLeaveType();
+        $staff_list = $this->staff_model->get(null, 1);
+
+        $data = [];
+        $data['result'] = $setting;
+        $data['all_roles'] = $all_roles;
+        $data['leave_types'] = $leave_types;
+        $data['staff_list'] = $staff_list;
+        $data['leave_policy'] = $this->buildLeavePolicyForView($setting, $all_roles, $leave_types);
+
+        $this->load->view('layout/header', $data);
+        $this->load->view('setting/leavepolicy', $data);
+        $this->load->view('layout/footer', $data);
+    }
+    private function ensureLeavePolicyColumns()
+    {
+        $required = [
+            'leave_substitution_required_roles' => 'TEXT NULL',
+            'leave_substitution_exempt_types' => 'TEXT NULL',
+            'leave_self_approve_roles' => 'TEXT NULL',
+            'leave_workday_override_types' => 'VARCHAR(255) NULL',
+            'leave_past_date_allowed_roles' => 'TEXT NULL',
+            'leave_enable_half_day' => 'TINYINT(1) NOT NULL DEFAULT 1',
+            'leave_half_day_allowed_roles' => 'TEXT NULL',
+            'leave_half_day_allowed_types' => 'TEXT NULL',
+        ];
+
+        $existing_rows = $this->db->query("SHOW COLUMNS FROM sch_settings")->result_array();
+        $existing_cols = [];
+        foreach ($existing_rows as $row) {
+            $existing_cols[] = $row['Field'];
+        }
+
+        foreach ($required as $column => $definition) {
+            if (!in_array($column, $existing_cols, true)) {
+                $this->db->query("ALTER TABLE sch_settings ADD COLUMN {$column} {$definition}");
+            }
+        }
+    }
+
+    private function sanitizeIdCsvFromPost($post_key)
+    {
+        $value = $this->input->post($post_key);
+        $ids = is_array($value) ? $value : [];
+        $clean = [];
+        foreach ($ids as $id) {
+            $id = (int) $id;
+            if ($id > 0 && !in_array($id, $clean, true)) {
+                $clean[] = $id;
+            }
+        }
+        return implode(',', $clean);
+    }
+
+    private function normalizeOverrideLabels($value)
+    {
+        $parts = array_filter(array_map('trim', explode(',', (string) $value)));
+        $clean = [];
+        foreach ($parts as $part) {
+            $part = strtolower($part);
+            if ($part !== '' && !in_array($part, $clean, true)) {
+                $clean[] = $part;
+            }
+        }
+        return implode(',', $clean);
+    }
+
+    private function roleIdsByNames($all_roles, $names)
+    {
+        $target = array_map('strtolower', $names);
+        $ids = [];
+        foreach ($all_roles as $role) {
+            $name = strtolower(trim((string) ($role['name'] ?? '')));
+            if (in_array($name, $target, true)) {
+                $id = (int) ($role['id'] ?? 0);
+                if ($id > 0 && !in_array($id, $ids, true)) {
+                    $ids[] = $id;
+                }
+            }
+        }
+        return $ids;
+    }
+
+    private function leaveTypeIdsByNames($leave_types, $names)
+    {
+        $target = array_map('strtolower', $names);
+        $ids = [];
+        foreach ($leave_types as $leave_type) {
+            $name = strtolower(trim((string) ($leave_type['type'] ?? '')));
+            if (in_array($name, $target, true)) {
+                $id = (int) ($leave_type['id'] ?? 0);
+                if ($id > 0 && !in_array($id, $ids, true)) {
+                    $ids[] = $id;
+                }
+            }
+        }
+        return $ids;
+    }
+
+    private function csvToIntArray($csv)
+    {
+        $parts = array_filter(array_map('trim', explode(',', (string) $csv)));
+        $result = [];
+        foreach ($parts as $part) {
+            $id = (int) $part;
+            if ($id > 0 && !in_array($id, $result, true)) {
+                $result[] = $id;
+            }
+        }
+        return $result;
+    }
+
+    private function buildLeavePolicyForView($setting, $all_roles, $leave_types)
+    {
+        $required_roles_csv = (string) ($setting->leave_substitution_required_roles ?? '');
+        $self_approve_roles_csv = (string) ($setting->leave_self_approve_roles ?? '');
+        $override_types = trim((string) ($setting->leave_workday_override_types ?? ''));
+        $past_date_allowed_roles_csv = (string) ($setting->leave_past_date_allowed_roles ?? '');
+        $half_day_enabled = isset($setting->leave_enable_half_day) ? (int) $setting->leave_enable_half_day : 1;
+        $half_day_allowed_roles_csv = (string) ($setting->leave_half_day_allowed_roles ?? '');
+        $half_day_allowed_types_csv = (string) ($setting->leave_half_day_allowed_types ?? '');
+
+        if ($required_roles_csv === '') {
+            $required_roles_csv = implode(',', $this->roleIdsByNames($all_roles, ['teacher']));
+        }
+        if ($self_approve_roles_csv === '') {
+            $self_approve_roles_csv = implode(',', $this->roleIdsByNames($all_roles, ['principal']));
+        }
+        if ($past_date_allowed_roles_csv === '') {
+            $past_date_allowed_roles_csv = implode(',', $this->roleIdsByNames($all_roles, ['admin', 'super admin']));
+        }
+        if ($override_types === '') {
+            $override_types = 'compensation,comp-off,compoff,compensatory off';
+        }
+
+        return [
+            'substitution_required_roles' => $this->csvToIntArray($required_roles_csv),
+            'self_approve_roles' => $this->csvToIntArray($self_approve_roles_csv),
+            'past_date_allowed_roles' => $this->csvToIntArray($past_date_allowed_roles_csv),
+            'workday_override_types' => $override_types,
+            'half_day_enabled' => $half_day_enabled === 1,
+            'half_day_allowed_roles' => $this->csvToIntArray($half_day_allowed_roles_csv),
+            'half_day_allowed_types' => $this->csvToIntArray($half_day_allowed_types_csv),
+            'leave_approver_id' => isset($setting->leave_approver_id) ? (int) $setting->leave_approver_id : 0,
+        ];
+    }
+
+    public function saveleavepolicy()
+    {
+        if (!$this->rbac->hasPrivilege('general_setting', 'can_edit')) {
+            access_denied();
+        }
+
+        $this->ensureLeavePolicyColumns();
+
+        $setting = $this->setting_model->getSetting();
+        $setting_id = (int) ($setting->id ?? 1);
+
+        $data = [
+            'id' => $setting_id,
+            'leave_substitution_required_roles' => $this->sanitizeIdCsvFromPost('leave_substitution_required_roles'),
+            'leave_self_approve_roles' => $this->sanitizeIdCsvFromPost('leave_self_approve_roles'),
+            'leave_past_date_allowed_roles' => $this->sanitizeIdCsvFromPost('leave_past_date_allowed_roles'),
+            'leave_workday_override_types' => $this->normalizeOverrideLabels($this->input->post('leave_workday_override_types')),
+            'leave_enable_half_day' => $this->input->post('leave_enable_half_day') ? 1 : 0,
+            'leave_half_day_allowed_roles' => $this->sanitizeIdCsvFromPost('leave_half_day_allowed_roles'),
+            'leave_half_day_allowed_types' => $this->sanitizeIdCsvFromPost('leave_half_day_allowed_types'),
+            'leave_approver_id' => max(0, (int) $this->input->post('leave_approver_id')),
+        ];
+
+        $this->setting_model->add($data);
+        echo json_encode(['status' => 1, 'message' => $this->lang->line('success_message')]);
+    }
     
 
     // ========================================================================
