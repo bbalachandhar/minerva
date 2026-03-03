@@ -726,16 +726,28 @@ class Payroll_model extends MY_Model
     private function getApprovedLeaveDaysForTypeInRange($staff_id, $leave_type_id, $start_date, $end_date)
     {
         $total_days = 0.0;
-        $is_on_duty_type = false;
+        $is_movement_credit_type = false;
+        $settings = null;
+        $holiday_cache = [];
+        $has_balance_flag = $this->db->field_exists('requires_balance_check', 'leave_types');
 
-        $type_row = $this->db->select('type')->where('id', (int) $leave_type_id)->limit(1)->get('leave_types')->row_array();
+        $this->db->select('type, is_lop');
+        if ($has_balance_flag) {
+            $this->db->select('requires_balance_check');
+        }
+        $type_row = $this->db->where('id', (int) $leave_type_id)->limit(1)->get('leave_types')->row_array();
         $type_name = strtolower(trim((string) ($type_row['type'] ?? '')));
-        if (in_array($type_name, ['on duty', 'od'], true)) {
-            $is_on_duty_type = true;
+        $is_lop = (int) ($type_row['is_lop'] ?? 0);
+        if ($has_balance_flag) {
+            $requires_balance_check = (int) ($type_row['requires_balance_check'] ?? 1);
+            $is_movement_credit_type = ($is_lop === 0 && $requires_balance_check === 0);
+        } else {
+            $is_movement_credit_type = in_array($type_name, ['on duty', 'od'], true);
         }
 
         $present_dates = [];
-        if ($is_on_duty_type) {
+        if ($is_movement_credit_type) {
+            $settings = $this->setting_model->getSetting();
             $present_rows = $this->db->select('sa.date')
                 ->from('staff_attendance sa')
                 ->join('staff_attendance_type sat', 'sat.id = sa.staff_attendance_type_id', 'left')
@@ -782,17 +794,17 @@ class Payroll_model extends MY_Model
 
             $duration_type = strtolower(trim((string) ($row['leave_duration_type'] ?? 'full_day')));
             if (in_array($duration_type, ['half_day', 'first_half', 'second_half'], true)) {
-                if ($is_on_duty_type && isset($present_dates[$effective_from])) {
+                if ($is_movement_credit_type && isset($present_dates[$effective_from]) && !$this->isWeekendOrOfficialHolidayForPayroll($effective_from, $settings, $holiday_cache)) {
                     continue;
                 }
                 $total_days += 0.5;
                 continue;
             }
 
-            if ($is_on_duty_type) {
+            if ($is_movement_credit_type) {
                 $cursor = $effective_from;
                 while ($cursor <= $effective_to) {
-                    if (!isset($present_dates[$cursor])) {
+                    if (!isset($present_dates[$cursor]) || $this->isWeekendOrOfficialHolidayForPayroll($cursor, $settings, $holiday_cache)) {
                         $total_days += 1.0;
                     }
                     $cursor = date('Y-m-d', strtotime($cursor . ' +1 day'));
@@ -815,7 +827,120 @@ class Payroll_model extends MY_Model
         return round($total_days, 2);
     }
 
-    private function syncOnDutyCreditsForMonth($staff_id, $month, $year, $simulate = false)
+    private function isWeekendOrOfficialHolidayForPayroll($date_ymd, $settings = null, &$holiday_cache = [])
+    {
+        static $calendar_holidays = null;
+
+        $date_ymd = trim((string) $date_ymd);
+        if ($date_ymd === '') {
+            return false;
+        }
+
+        if (!is_array($holiday_cache)) {
+            $holiday_cache = [];
+        }
+
+        if ($settings === null) {
+            $settings = $this->setting_model->getSetting();
+        }
+
+        $weekend_days_str = isset($settings->weekend_days) && $settings->weekend_days !== '' ? (string) $settings->weekend_days : '0';
+        $weekend_days = array_map('intval', explode(',', $weekend_days_str));
+        $is_second_saturday_holiday = isset($settings->isSecondSaturdayHoliday) ? (int) $settings->isSecondSaturdayHoliday : 0;
+
+        $day_of_week = (int) date('w', strtotime($date_ymd));
+        $is_weekend = in_array($day_of_week, $weekend_days, true);
+        if (!$is_weekend && $is_second_saturday_holiday === 1 && $day_of_week === 6 && $this->isSecondSaturdayForPayroll($date_ymd)) {
+            $is_weekend = true;
+        }
+
+        if ($is_weekend) {
+            return true;
+        }
+
+        if (!array_key_exists($date_ymd, $holiday_cache)) {
+            $holiday_cache[$date_ymd] = false;
+            if ($calendar_holidays === null) {
+                $this->load->model('holiday_model');
+                $calendar_holidays = $this->holiday_model->get();
+                if (!is_array($calendar_holidays)) {
+                    $calendar_holidays = [];
+                }
+            }
+
+            foreach ($calendar_holidays as $holiday_row) {
+                $from_date = (string) ($holiday_row['from_date'] ?? '');
+                $to_date = (string) ($holiday_row['to_date'] ?? '');
+                if ($from_date === '' || $to_date === '') {
+                    continue;
+                }
+                if ($date_ymd < $from_date || $date_ymd > $to_date) {
+                    continue;
+                }
+
+                $type_label = strtolower(trim((string) ($holiday_row['type'] ?? '')));
+                if (!$this->isCompOffHolidayTypeForPayroll($type_label)) {
+                    $holiday_cache[$date_ymd] = true;
+                    break;
+                }
+            }
+        }
+
+        return (bool) $holiday_cache[$date_ymd];
+    }
+
+    private function isSecondSaturdayForPayroll($date_ymd)
+    {
+        $date_obj = DateTime::createFromFormat('Y-m-d', $date_ymd);
+        if (!$date_obj) {
+            return false;
+        }
+
+        $month_start = new DateTime($date_obj->format('Y-m-01'));
+        $count = 0;
+        while ($month_start <= $date_obj) {
+            if ((int) $month_start->format('w') === 6) {
+                $count++;
+            }
+            if ($month_start->format('Y-m-d') === $date_obj->format('Y-m-d')) {
+                break;
+            }
+            $month_start->modify('+1 day');
+        }
+
+        return $count === 2;
+    }
+
+    private function isCompOffHolidayTypeForPayroll($type_label)
+    {
+        static $override_types = null;
+        if ($override_types === null) {
+            $override_types = ['compensation', 'comp off', 'compoff', 'compensatory off'];
+            $setting = $this->setting_model->getSetting();
+            $configured = trim((string) ($setting->leave_workday_override_types ?? ''));
+            if ($configured !== '') {
+                $parsed = array_filter(array_map('trim', explode(',', strtolower($configured))));
+                if (!empty($parsed)) {
+                    $override_types = [];
+                    foreach ($parsed as $item) {
+                        $normalized_item = str_replace(['_', '-'], ' ', $item);
+                        $normalized_item = preg_replace('/\s+/', ' ', $normalized_item);
+                        if (!in_array($normalized_item, $override_types, true)) {
+                            $override_types[] = $normalized_item;
+                        }
+                    }
+                }
+            }
+        }
+
+        $normalized = strtolower(trim((string) $type_label));
+        $normalized = str_replace(['_', '-'], ' ', $normalized);
+        $normalized = preg_replace('/\s+/', ' ', $normalized);
+
+        return in_array($normalized, $override_types, true);
+    }
+
+    public function syncOnDutyCreditsForMonth($staff_id, $month, $year, $simulate = false)
     {
         $month_int = (int) $month;
         $year_int = (int) $year;

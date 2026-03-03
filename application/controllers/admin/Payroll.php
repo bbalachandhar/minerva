@@ -1724,6 +1724,7 @@ class Payroll extends Admin_Controller
 
         foreach ($staff_list as $staff) {
             if (!empty($staff['payslip_id']) && !$overwrite) {
+                $this->payroll_model->syncOnDutyCreditsForMonth((int) $staff['id'], (int) $month_numeric, (int) $year);
                 $skipped_existing++;
                 continue;
             }
@@ -1866,23 +1867,22 @@ class Payroll extends Admin_Controller
                 $this->db->update('staff_monthly_leave_balance');
             }
 
-            // Process LOP adjustment with monthly balance tracking
-            if ($actual_lop_days > 0) {
-                $adjusted_result = $this->payroll_model->processLOPWithMonthlyBalance($staff['id'], $actual_lop_days, $month_numeric, $year);
-                log_message('debug', 'LOP Adjustment Result for Staff ' . $staff['id'] . ': ' . json_encode($adjusted_result));
-                if ($adjusted_result !== false && is_array($adjusted_result) && $adjusted_result['success']) {
-                    $adjusted_lop_days = (float) ($adjusted_result['adjusted_lop_days'] ?? 0);
-                    if ($adjusted_lop_days < 0) {
-                        $adjusted_lop_days = 0;
-                    }
-                    if ($adjusted_lop_days > $actual_lop_days) {
-                        $adjusted_lop_days = $actual_lop_days;
-                    }
-                    $net_lop_days = max(0, round($actual_lop_days - $adjusted_lop_days, 2));
-                    log_message('debug', 'Staff ' . $staff['id'] . ' - Adjusted: ' . $adjusted_lop_days . ', Net: ' . $net_lop_days);
-                } else {
-                    log_message('error', 'LOP Adjustment Failed for Staff ' . $staff['id'] . ': ' . json_encode($adjusted_result));
+            // Process monthly balance sync and LOP adjustment.
+            // This must run even when actual LOP is zero so movement-credit rows are materialized.
+            $adjusted_result = $this->payroll_model->processLOPWithMonthlyBalance($staff['id'], $actual_lop_days, $month_numeric, $year);
+            log_message('debug', 'LOP Adjustment Result for Staff ' . $staff['id'] . ': ' . json_encode($adjusted_result));
+            if ($adjusted_result !== false && is_array($adjusted_result) && $adjusted_result['success']) {
+                $adjusted_lop_days = (float) ($adjusted_result['adjusted_lop_days'] ?? 0);
+                if ($adjusted_lop_days < 0) {
+                    $adjusted_lop_days = 0;
                 }
+                if ($adjusted_lop_days > $actual_lop_days) {
+                    $adjusted_lop_days = $actual_lop_days;
+                }
+                $net_lop_days = max(0, round($actual_lop_days - $adjusted_lop_days, 2));
+                log_message('debug', 'Staff ' . $staff['id'] . ' - Adjusted: ' . $adjusted_lop_days . ', Net: ' . $net_lop_days);
+            } else {
+                log_message('error', 'LOP Adjustment Failed for Staff ' . $staff['id'] . ': ' . json_encode($adjusted_result));
             }
 
             $full_gross_salary = (float) $basic + (float) $total_allowance;

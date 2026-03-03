@@ -969,9 +969,11 @@ class Leaverequest extends Admin_Controller
                                 }
     
                                 $leave_type_details = $this->staff_model->getLeaveType($leavetype);
-                                $is_on_duty_leave_type = $this->isOnDutyLeaveType((int) $leavetype);
+                                $is_lop_leave = (isset($leave_type_details['is_lop']) && $leave_type_details['is_lop'] == 1);
+                                $requires_balance_check = $this->leaveTypeRequiresBalanceCheck($leave_type_details);
+                                $allow_present_day_application = (!$requires_balance_check && !$is_lop_leave);
                                 $present_conflict = $this->getPresentAttendanceConflictDate($staff_id, $leavefrom, $leaveto);
-                                if (!empty($present_conflict) && !$is_on_duty_leave_type) {
+                                if (!empty($present_conflict) && !$allow_present_day_application) {
                                     $conflict_date = date($this->customlib->getSchoolDateFormat(), strtotime($present_conflict['date']));
                                     $msg = array(
                                         'leave_from_date' => 'Leave cannot be applied on a day marked Present. Attendance is already marked Present on ' . $conflict_date . '.',
@@ -980,8 +982,6 @@ class Leaverequest extends Admin_Controller
                                     echo json_encode($array);
                                     return;
                                 }
-                                $is_lop_leave = (isset($leave_type_details['is_lop']) && $leave_type_details['is_lop'] == 1);
-                                $requires_balance_check = $this->leaveTypeRequiresBalanceCheck($leave_type_details);
                             
                                 log_message('error', "Checking balance: Staff ID: $staff_id, Leave Type: $leavetype, Is LOP: " . ($is_lop_leave ? 'Yes' : 'No') . ", RequiresBalance: " . ($requires_balance_check ? 'Yes' : 'No') . ", Leave Days Requested: $leave_days");
                 
