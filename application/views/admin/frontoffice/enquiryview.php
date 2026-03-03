@@ -5,6 +5,9 @@
     </section>
     <style>
     .ml-20 { margin-left: 5rem; }
+    #enquirytable tbody tr.followup-today td { background-color: #fff9c4 !important; }
+    #enquirytable tbody tr.followup-overdue td { background-color: #f8d7da !important; }
+    #enquirytable tbody tr.status-application-done td { background-color: #dff0d8 !important; }
     </style>
     <section class="content">
         <div class="row">
@@ -71,14 +74,14 @@ if ($value["source"] == $source_select) {
                             </div>
                              <div class="col-sm-3 col-md-2 col-lg-2">
                                 <div class="form-group">
-                                    <label><?php echo $this->lang->line('enquiry_from_date'); ?><small class="req"> *</small></label>
+                                    <label><?php echo $this->lang->line('enquiry_from_date'); ?></label>
                                         <input type="text" autocomplete="off" name="from_date" class="form-control  date"  value="<?php echo set_value('from_date') ?>">
                                         <span class="text-danger"><?php echo form_error('from_date'); ?></span>
                                     </div>
                             </div>
                             <div class="col-sm-3 col-md-2 col-lg-2">
                                 <div class="form-group">
-                                    <label><?php echo $this->lang->line('enquiry_to_date'); ?><small class="req"> *</small></label>
+                                    <label><?php echo $this->lang->line('enquiry_to_date'); ?></label>
                                         <input type="text" autocomplete="off" name="to_date" class="form-control  date"  value="<?php echo set_value('to_date') ?>">
                                         <span class="text-danger"><?php echo form_error('to_date'); ?></span>
                                     </div>
@@ -150,15 +153,22 @@ if (empty($enquiry_list)) {
 } else {
     foreach ($enquiry_list as $key => $value) {
         $current_date = date("Y-m-d");
-        $next_date    = $value["next_date"];
-        if (empty($next_date)) {
-            $next_date = $value["follow_up_date"];
+        $next_followup_date = isset($value["next_date"]) ? trim((string) $value["next_date"]) : '';
+        $display_next_date = $next_followup_date;
+        if (empty($display_next_date)) {
+            $display_next_date = isset($value["follow_up_date"]) ? $value["follow_up_date"] : '';
         }
 
-        if ($next_date < $current_date) {
-            $class = "class='danger'";
-        } else {
-            $class = "";
+        $status_key = strtolower(trim((string) ($value["status"] ?? '')));
+        $class = "";
+        if ($status_key === 'application_done') {
+            $class = "class='status-application-done'";
+        } elseif (!empty($display_next_date) && $display_next_date !== '0000-00-00') {
+            if ($display_next_date === $current_date) {
+                $class = "class='followup-today'";
+            } elseif ($display_next_date < $current_date && $status_key === 'active') {
+                $class = "class='followup-overdue'";
+            }
         }
         ?>
                                                         <tr <?php echo $class ?>>
@@ -178,9 +188,9 @@ if (!empty($value["followupdate"])) {
             echo date($this->customlib->getSchoolDateFormat(), $this->customlib->dateyyyymmddTodateformat($value['followupdate']));
         }
         ?></td>
-                                                            <td class="mailbox-name"> <?php
-if (!empty($next_date) && $next_date != '0000-00-00') {
-            echo date($this->customlib->getSchoolDateFormat(), $this->customlib->dateyyyymmddTodateformat($next_date));
+                                                            <td class="mailbox-name" data-order="<?php echo (!empty($display_next_date) && $display_next_date != '0000-00-00') ? $display_next_date : '9999-12-31'; ?>"> <?php
+if (!empty($display_next_date) && $display_next_date != '0000-00-00') {
+            echo date($this->customlib->getSchoolDateFormat(), $this->customlib->dateyyyymmddTodateformat($display_next_date));
         }
         ?></td>
                                                             <td> <?php echo $enquiry_status[$value["status"]] ?></td>
@@ -650,8 +660,8 @@ if (!empty($next_date) && $next_date != '0000-00-00') {
             paging: true,
             bSort: true,
             info: false,
-            /* default ordering: show most recently submitted enquiry first */
-            order: [[4, 'desc']],
+            /* default ordering: next follow up date ascending */
+            order: [[6, 'asc']],
             dom: "Bfrtip",
             buttons: [
 

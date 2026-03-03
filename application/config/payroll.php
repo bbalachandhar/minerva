@@ -54,7 +54,7 @@ $config['enquiry_status'] = array(
     'active' => lang('active'),
     'passive' => lang('passive'),
     'dead' => lang('dead'),
-    'won' => lang('won'),
+    'application_done' => lang('application_done'),
     'lost' => lang('lost'),
 );
 $config['search_type'] = array(

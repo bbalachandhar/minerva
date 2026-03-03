@@ -1538,7 +1538,7 @@ class PublicAdmissionForm extends CI_Controller
             // Update enquiry status only when a valid enquiry_id is provided
             $enquiry_id = trim((string)$this->input->post('enquiry_id'));
             if ($enquiry_id !== '' && ctype_digit($enquiry_id)) {
-                $this->enquiry_model->enquiry_update($enquiry_id, array('status' => 'won'));
+                $this->enquiry_model->enquiry_update($enquiry_id, array('status' => 'application_done'));
             }
 
             // Save reference details
@@ -2102,7 +2102,7 @@ class PublicAdmissionForm extends CI_Controller
             // Update enquiry status only when a valid enquiry_id is provided
             $enquiry_id = trim((string)$this->input->post('enquiry_id'));
             if ($enquiry_id !== '' && ctype_digit($enquiry_id)) {
-                $this->enquiry_model->enquiry_update($enquiry_id, array('status' => 'won'));
+                $this->enquiry_model->enquiry_update($enquiry_id, array('status' => 'application_done'));
             }
 
             if (!empty($data['referral_name'])) {

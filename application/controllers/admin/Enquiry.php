@@ -33,23 +33,23 @@ class Enquiry extends Admin_Controller
         $data["source_select"]  = "";
         $data["status"]         = "active";
         $data['stff_list']      = $this->staff_model->get();
-        $this->form_validation->set_rules('from_date', $this->lang->line('enquiry_from_date'), 'trim|required|xss_clean');
-        $this->form_validation->set_rules('to_date', $this->lang->line('enquiry_to_date'), 'trim|required|xss_clean');
 
-        if ($this->form_validation->run() == true) {
+        if ($this->input->post('search') === 'search_filter') {
             $class                  = $this->input->post("class");
             $department_id          = $this->input->post("department_id");
             $source                 = $this->input->post("source");
             $status                 = $this->input->post("status");
-            $date_from              = date("Y-m-d", $this->customlib->datetostrtotime($this->input->post("from_date")));
-            $date_to                = date("Y-m-d", $this->customlib->datetostrtotime($this->input->post("to_date")));
+            $raw_date_from          = trim((string) $this->input->post("from_date"));
+            $raw_date_to            = trim((string) $this->input->post("to_date"));
+            $date_from              = !empty($raw_date_from) ? date("Y-m-d", $this->customlib->datetostrtotime($raw_date_from)) : '';
+            $date_to                = !empty($raw_date_to) ? date("Y-m-d", $this->customlib->datetostrtotime($raw_date_to)) : '';
             $data["source_select"]  = $source;
             $data["status"]         = $status;
             $data["selected_class"] = $class;
             $data["selected_department"] = $department_id;
             $enquiry_list           = $this->enquiry_model->searchEnquiry($class, $source, $date_from, $date_to, $status, $department_id);
         } else {
-            $enquiry_list = $this->enquiry_model->getenquiry_list(null, array('active', 'won'));
+            $enquiry_list = $this->enquiry_model->getenquiry_list(null, array('active'));
         }
         
         foreach ($enquiry_list as $key => $value) {

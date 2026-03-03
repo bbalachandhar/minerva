@@ -286,14 +286,12 @@ class enquiry_model extends MY_Model
         }
         
         if (!empty($status)) {
-            if ($status == 'active') { // If the selected status is 'active', show 'active' AND 'won'
-                $this->db->where_in("enquiry.status", array('active', 'won'));
-            } else if ($status != 'all') { // If a specific status other than 'active' or 'all' is selected
+            if ($status != 'all') {
                 $this->db->where("enquiry.status", $status);
             }
             // If $status is 'all', no 'where' clause is added, showing all records.
-        } else { // If $status is empty (e.g., initial load of search form with no selection, though controller sends 'active')
-            $this->db->where_in("enquiry.status", array('active', 'won'));
+        } else {
+            $this->db->where("enquiry.status", 'active');
         }
 
         if ((!empty($date_from)) && (!empty($date_to))) {
