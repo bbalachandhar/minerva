@@ -582,6 +582,13 @@ class Leaverequest extends Admin_Controller
             return;
         }
 
+        // For admin/super-admin override, always use strict stage-based fallback flow
+        // instead of personal recommender/approver branch matching.
+        if ($is_admin_override) {
+            $is_recommender = false;
+            $is_approver = false;
+        }
+
         if ($is_recommender) {
             // Map form status to DB ENUM for recommender
             if ($status == 'approved') {
@@ -695,7 +702,7 @@ class Leaverequest extends Admin_Controller
             $this->leaverequest_model->changeLeaveStatus($data, $leave_request_id);
 
             // Send notification to applicant on final decision
-            if ($is_approver && ($status == 'approved' || $status == 'disapproved')) {
+            if (($is_approver || $is_admin_override) && ($status == 'approved' || $status == 'disapproved')) {
                 $applicant_details = $this->staff_model->get($leave_request['staff_id']);
                 $message_to_applicant = "Dear " . $applicant_details['name'] . ",<br><br>Your leave request has been " . $status . ".<br><br>Thank you.";
                 $this->mailer->send_mail($applicant_details['email'], 'Leave Request Status Updated', $message_to_applicant);
