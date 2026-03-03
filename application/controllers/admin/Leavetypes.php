@@ -178,29 +178,36 @@ class LeaveTypes extends Admin_Controller
             $skipped_records = [];
 
             foreach ($result as $row_index => $row) {
-                $employee_no = $row['employee_no'] ?? null;
+                $employee_identifier = isset($row['employee_id']) ? trim((string) $row['employee_id']) : '';
                 $leave_type_id = $row['leavetype_id'] ?? null;
                 $days = $row['balance_days'] ?? null;
                 $month = $row['month'] ?? date('n'); // Default to current month
                 $year = $row['year'] ?? date('Y'); // Default to current year
 
-                if ($employee_no === null || $leave_type_id === null || $days === null || $employee_no === '' || $leave_type_id === '' || $days === '') {
+                if ($employee_identifier === '' || $leave_type_id === null || $days === null || $leave_type_id === '' || $days === '') {
                     $skipped_count++;
                     $skipped_records[] = [
                         'row' => $row_index + 2, // +2 because CSV starts at line 1 (header) and array is 0-indexed
-                        'employee_no' => $employee_no ?: 'N/A',
-                        'reason' => 'Missing required fields (employee_no, leavetype_id, or balance_days)'
+                        'employee_no' => $employee_identifier ?: 'N/A',
+                        'reason' => 'Missing required fields (employee_id/biometric_id, leavetype_id, or balance_days)'
                     ];
                     continue;
                 }
 
-                $staff = $this->staff_model->get_by_employee_id($employee_no);
+                $staff = $this->staff_model->get_by_employee_id($employee_identifier);
+                if (empty($staff) || empty($staff['id'])) {
+                    $staff_by_biometric = $this->staff_model->get_by_biometric_id($employee_identifier);
+                    if (!empty($staff_by_biometric) && isset($staff_by_biometric->id)) {
+                        $staff = (array) $staff_by_biometric;
+                    }
+                }
+
                 if (empty($staff) || empty($staff['id'])) {
                     $skipped_count++;
                     $skipped_records[] = [
                         'row' => $row_index + 2,
-                        'employee_no' => $employee_no,
-                        'reason' => 'Employee not found in system'
+                        'employee_no' => $employee_identifier,
+                        'reason' => 'Employee not found by employee_id or biometric_id'
                     ];
                     continue;
                 }
@@ -208,38 +215,26 @@ class LeaveTypes extends Admin_Controller
                 // Update yearly allocation in staff_leave_details
                 $this->leavetypes_model->update_staff_leave_details((int) $staff['id'], (int) $leave_type_id, $days, true);
                 
-                // Initialize or update monthly balance for the specified month/year
+                // Force reset mode: clear existing monthly history for this staff+leave type,
+                // then insert one fresh balance row for the uploaded month/year.
                 $this->db->where('staff_id', $staff['id']);
                 $this->db->where('leave_type_id', $leave_type_id);
-                $this->db->where('year', $year);
-                $this->db->where('month', $month);
-                $existing_balance = $this->db->get('staff_monthly_leave_balance')->row();
-                
-                if ($existing_balance) {
-                    // Update existing record
-                    $this->db->where('id', $existing_balance->id);
-                    $this->db->update('staff_monthly_leave_balance', [
-                        'opening_balance' => $days,
-                        'closing_balance' => $days,
-                        'updated_at' => date('Y-m-d H:i:s')
-                    ]);
-                } else {
-                    // Create new monthly balance record
-                    $this->db->insert('staff_monthly_leave_balance', [
-                        'staff_id' => $staff['id'],
-                        'leave_type_id' => $leave_type_id,
-                        'year' => $year,
-                        'month' => $month,
-                        'opening_balance' => $days,
-                        'earned_in_month' => 0,
-                        'used_for_lop_adjustment' => 0,
-                        'used_for_leave_application' => 0,
-                        'other_deductions' => 0,
-                        'closing_balance' => $days,
-                        'created_at' => date('Y-m-d H:i:s'),
-                        'updated_at' => date('Y-m-d H:i:s')
-                    ]);
-                }
+                $this->db->delete('staff_monthly_leave_balance');
+
+                $this->db->insert('staff_monthly_leave_balance', [
+                    'staff_id' => $staff['id'],
+                    'leave_type_id' => $leave_type_id,
+                    'year' => $year,
+                    'month' => $month,
+                    'opening_balance' => $days,
+                    'earned_in_month' => 0,
+                    'used_for_lop_adjustment' => 0,
+                    'used_for_leave_application' => 0,
+                    'other_deductions' => 0,
+                    'closing_balance' => $days,
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]);
                 
                 $processed_count++;
             }
@@ -276,17 +271,26 @@ class LeaveTypes extends Admin_Controller
     {
         $this->load->helper('download');
         $filepath = FCPATH . "uploads/sample_leave_allotment.csv";
+
+        $sample_content = "employee_id,leavetype_id,balance_days,month,year\n"
+            . "EMP001,1,12,3,2026\n"
+            . "BIO123,2,8,3,2026\n";
         
         if (!file_exists($filepath)) {
-            show_error('Sample file not found at: ' . $filepath);
-            return;
+            if (write_file($filepath, $sample_content) === false) {
+                show_error('Sample file not found and could not be created at: ' . $filepath);
+                return;
+            }
         }
         
         $data = file_get_contents($filepath);
         
         if ($data === false || empty($data)) {
-            show_error('Unable to read file or file is empty. Path: ' . $filepath . ', Size: ' . filesize($filepath));
-            return;
+            if (write_file($filepath, $sample_content) === false) {
+                show_error('Unable to read file or file is empty. Path: ' . $filepath);
+                return;
+            }
+            $data = file_get_contents($filepath);
         }
         
         $name = 'sample_leave_allotment.csv';

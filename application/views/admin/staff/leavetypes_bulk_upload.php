@@ -50,14 +50,15 @@
                                     <div class="well">
                                         <h4><i class="fa fa-info-circle"></i> <?php echo $this->lang->line('instructions'); ?></h4>
                                         <p><strong>CSV Format:</strong></p>
-                                        <p><code>employee_no,leavetype_id,balance_days,month,year</code></p>
+                                        <p><code>employee_id,leavetype_id,balance_days,month,year</code></p>
                                         <ul style="margin-top: 10px;">
-                                            <li><strong>employee_no:</strong> Staff Employee ID (e.g., EMP001)</li>
+                                            <li><strong>employee_id:</strong> Enter either <code>employee_id</code> or <code>biometric_id</code> value (e.g., EMP001 or BIO123).</li>
                                             <li><strong>leavetype_id:</strong> Leave Type ID - Check Leave Types page for IDs (e.g., 1 for Casual Leave, 2 for Sick Leave)</li>
                                             <li><strong>balance_days:</strong> Opening balance for the specified month (e.g., 12)</li>
                                             <li><strong>month:</strong> Month number 1-12 (e.g., 2 for February) - Optional, defaults to current month</li>
                                             <li><strong>year:</strong> 4-digit year (e.g., 2026) - Optional, defaults to current year</li>
                                         </ul>
+                                        <p><strong>Matching Logic:</strong> System checks <code>employee_id</code> first; if not found, it automatically checks <code>biometric_id</code>.</p>
                                         <p><strong>Note:</strong> This sets the opening balance for monthly leave tracking. The system will:</p>
                                         <ul>
                                             <li>Update yearly allocation in staff leave details</li>
