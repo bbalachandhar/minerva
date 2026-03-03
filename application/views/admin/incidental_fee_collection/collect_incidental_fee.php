@@ -155,6 +155,11 @@
                         <input id="amount_collected" name="amount_collected" type="number" class="form-control" />
                         <span class="text-danger"><?php echo form_error('amount_collected'); ?></span>
                     </div>
+                    <div class="form-group">
+                        <label for="bill_date">Bill Date</label>
+                        <input id="bill_date" name="bill_date" type="text" class="form-control" autocomplete="off" readonly />
+                        <span class="text-danger"></span>
+                    </div>
 
                     <div class="form-group">
                         <label for="payment_mode"><?php echo $this->lang->line('mode_of_payment'); ?></label>
@@ -280,6 +285,11 @@
                         <span class="text-danger"></span>
                     </div>
                     <div class="form-group">
+                        <label for="bill_date_non_student">Bill Date</label>
+                        <input id="bill_date_non_student" name="bill_date" type="text" class="form-control" autocomplete="off" readonly />
+                        <span class="text-danger"></span>
+                    </div>
+                    <div class="form-group">
                         <label for="payment_mode_non_student"><?php echo $this->lang->line('mode_of_payment'); ?></label>
                         <select id="payment_mode_non_student" name="payment_mode" class="form-control">
                             <option value="cash" selected><?php echo $this->lang->line('cash'); ?></option>
@@ -314,6 +324,56 @@
 
 <script type="text/javascript">
     $(document).ready(function () {
+        function initializeModernBillDatePicker(selector) {
+            if (!$(selector).length) {
+                return;
+            }
+            if (typeof $.fn.datepicker === 'function') {
+                $(selector).datepicker({
+                    autoclose: true,
+                    format: 'yyyy-mm-dd',
+                    todayHighlight: true
+                });
+            }
+        }
+
+        function setBillDateValue(selector, value) {
+            if (!$(selector).length) {
+                return;
+            }
+
+            $(selector).val(value);
+            if (typeof $.fn.datepicker === 'function') {
+                $(selector).datepicker('update', value);
+            }
+        }
+
+        function getTodayYmd() {
+            var today = new Date();
+            var month = String(today.getMonth() + 1).padStart(2, '0');
+            var day = String(today.getDate()).padStart(2, '0');
+            return today.getFullYear() + '-' + month + '-' + day;
+        }
+
+        function setDefaultStudentBillDate() {
+            setBillDateValue('#bill_date', getTodayYmd());
+        }
+
+        function setDefaultNonStudentBillDate() {
+            setBillDateValue('#bill_date_non_student', getTodayYmd());
+        }
+
+        initializeModernBillDatePicker('#bill_date');
+        initializeModernBillDatePicker('#bill_date_non_student');
+
+        $('#feeCollectionModal').on('shown.bs.modal', function () {
+            setDefaultStudentBillDate();
+        });
+
+        $('#nonStudentFeeCollectionModal').on('shown.bs.modal', function () {
+            setDefaultNonStudentBillDate();
+        });
+
         // Initialize DataTable
         $('#incidental_fee_table').DataTable({
             "destroy": true,
@@ -634,6 +694,7 @@
                         
                         // Reset form
                         form[0].reset();
+                        setDefaultStudentBillDate();
                         $('#feeCollectionModal').modal('hide');
                         
                         // Open receipt in new tab
@@ -704,6 +765,7 @@
                         $('#nonStudentFeeCollectionModal').modal('hide');
                         // Reset form
                         form[0].reset();
+                        setDefaultNonStudentBillDate();
                         $('#application_ref_no_non_student_group').hide();
                         
                         // Open receipt in new tab

@@ -109,7 +109,7 @@
                                 <thead>
                                     <tr>
                                         <th><?php echo $this->lang->line('incidental_report_receipt_no'); ?></th>
-                                        <th><?php echo $this->lang->line('date'); ?></th>
+                                        <th>Bill Date</th>
                                         <th><?php echo $this->lang->line('session'); ?></th>
                                         <th><?php echo $this->lang->line('student_name'); ?></th>
                                         <th><?php echo $this->lang->line('admission_no'); ?></th>
@@ -125,7 +125,15 @@
                                         <?php foreach ($collections as $collection) { ?>
                                             <tr>
                                                 <td><?php echo $collection['receipt_no']; ?></td>
-                                                <td><?php echo date($this->customlib->getSchoolDateFormat(), strtotime($collection['date_collected'])); ?></td>
+                                                <td>
+                                                    <?php
+                                                        if (!empty($collection['bill_date'])) {
+                                                            echo date($this->customlib->getSchoolDateFormat(), strtotime($collection['bill_date']));
+                                                        } else {
+                                                            echo 'N/A';
+                                                        }
+                                                    ?>
+                                                </td>
                                                 <td><?php echo $collection['session_name']; ?></td>
                                                 <td><?php 
                                                     if (!empty($collection['student_id'])) {

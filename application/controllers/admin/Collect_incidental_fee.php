@@ -35,6 +35,7 @@ class Collect_incidental_fee extends Admin_Controller {
         $this->form_validation->set_rules('session_id', $this->lang->line('session'), 'required|trim|xss_clean');
         $this->form_validation->set_rules('fee_type_id', $this->lang->line('fee_type'), 'required|trim|xss_clean');
         $this->form_validation->set_rules('amount_collected', $this->lang->line('amount_collected'), 'required|numeric|trim|xss_clean');
+        $this->form_validation->set_rules('bill_date', 'Bill Date', 'required|trim|regex_match[/^\d{4}-\d{2}-\d{2}$/]|xss_clean');
         $this->form_validation->set_rules('payment_mode', 'Payment Mode', 'required|trim|xss_clean');
         $this->form_validation->set_rules('application_ref_no', 'Application Ref No', 'trim|xss_clean');
 
@@ -62,6 +63,7 @@ class Collect_incidental_fee extends Admin_Controller {
                 'session_id' => $session_id,
                 'student_id' => $student_id,
                 'amount_collected' => $amount_collected,
+                'bill_date' => $this->input->post('bill_date'),
                 'collected_by' => $collected_by,
                 'receipt_no' => $receipt_no,
                 'payment_mode' => $payment_mode,
@@ -164,6 +166,7 @@ class Collect_incidental_fee extends Admin_Controller {
         $this->form_validation->set_rules('non_student_name', $this->lang->line('name'), 'required|trim|xss_clean');
         $this->form_validation->set_rules('fee_type_id', $this->lang->line('fee_type'), 'required|trim|xss_clean');
         $this->form_validation->set_rules('amount_collected', $this->lang->line('amount_collected'), 'required|numeric|trim|xss_clean');
+        $this->form_validation->set_rules('bill_date', 'Bill Date', 'required|trim|regex_match[/^\d{4}-\d{2}-\d{2}$/]|xss_clean');
         $this->form_validation->set_rules('payment_mode', 'Payment Mode', 'required|trim|xss_clean');
         $this->form_validation->set_rules('application_ref_no', 'Application Ref No', 'trim|xss_clean');
         // Notes is optional, so no rule needed unless specific validation is required
@@ -187,6 +190,7 @@ class Collect_incidental_fee extends Admin_Controller {
                 'incidental_fee_assignment_id' => NULL, // No assignment for non-students
                 'session_id'                   => $session_id,
                 'amount_collected'             => $this->input->post('amount_collected'),
+                'bill_date'                    => $this->input->post('bill_date'),
                 'collected_by'                 => $collected_by,
                 'receipt_no'                   => $receipt_no,
                 'payment_mode'                 => $payment_mode,
