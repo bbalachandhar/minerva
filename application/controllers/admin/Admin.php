@@ -899,49 +899,42 @@ class Admin extends Admin_Controller
             access_denied();
         }
 
-        $start_date = date('Y-m-01');
-        $end_date = date('Y-m-t');
-        $enquiry = $this->admin_model->getAllEnquiryCount($start_date, $end_date);
+        $enquiry = $this->admin_model->getAllEnquiryCount();
         $total_enquiry = isset($enquiry['total']) ? $enquiry['total'] : 0;
 
-        // fetch application stats
-        $appStats = $this->admin_model->getApplicationStats($start_date, $end_date);
-        $applications_total = isset($appStats['total']) ? $appStats['total'] : 0;
-        $applications_paid = isset($appStats['paid_count']) ? $appStats['paid_count'] : 0;
-        $applications_full = isset($appStats['full_paid_count']) ? $appStats['full_paid_count'] : 0;
-        $applications_partial = $applications_paid - $applications_full;
-        $applications_total_progress = $applications_total > 0 ? 100 : 0;
-        $applications_partial_progress = $applications_total > 0 ? round(($applications_partial * 100) / $applications_total, 2) : 0;
-        $applications_full_progress = $applications_total > 0 ? round(($applications_full * 100) / $applications_total, 2) : 0;
+        $paymentOverview = $this->admin_model->getOnlineStudentPaymentOverview();
+        $applications_total = isset($paymentOverview['applications_total']) ? (int) $paymentOverview['applications_total'] : 0;
+        $fully_paid = isset($paymentOverview['fully_paid']) ? (int) $paymentOverview['fully_paid'] : 0;
+        $partially_paid = isset($paymentOverview['partially_paid']) ? (int) $paymentOverview['partially_paid'] : 0;
+        $not_paid = isset($paymentOverview['not_paid']) ? (int) $paymentOverview['not_paid'] : 0;
+        $fully_paid_progress = isset($paymentOverview['fully_paid_progress']) ? (float) $paymentOverview['fully_paid_progress'] : 0;
+        $partially_paid_progress = isset($paymentOverview['partially_paid_progress']) ? (float) $paymentOverview['partially_paid_progress'] : 0;
+        $not_paid_progress = isset($paymentOverview['not_paid_progress']) ? (float) $paymentOverview['not_paid_progress'] : 0;
 
         if ($total_enquiry > 0) {
             $overview = array(
                 'total'            => $total_enquiry,
-                'won'              => $enquiry['complete'],
-                'won_progress'     => round(($enquiry['complete'] * 100) / $total_enquiry, 2),
-                'active'           => $enquiry['active'],
-                'active_progress'  => round(($enquiry['active'] * 100) / $total_enquiry, 2),
+                'won'              => $applications_total,
+                'won_progress'     => $total_enquiry > 0 ? round(($applications_total * 100) / $total_enquiry, 2) : 0,
+                'active'           => $fully_paid,
+                'active_progress'  => $fully_paid_progress,
                 // dead, lost and passive omitted
-                'applications_total'            => $applications_total,
-                'applications_total_progress'   => $applications_total_progress,
-                'applications_partial'          => $applications_partial,
-                'applications_partial_progress' => $applications_partial_progress,
-                'applications_full'             => $applications_full,
-                'applications_full_progress'    => $applications_full_progress,
+                'applications_total'            => $partially_paid,
+                'applications_total_progress'   => $partially_paid_progress,
+                'applications_partial'          => $not_paid,
+                'applications_partial_progress' => $not_paid_progress,
             );
         } else {
             $overview = array(
                 'total'            => 0,
-                'won'              => 0,
+                'won'              => $applications_total,
                 'won_progress'     => 0,
-                'active'           => 0,
-                'active_progress'  => 0,
-                'applications_total'            => $applications_total,
-                'applications_total_progress'   => $applications_total_progress,
-                'applications_partial'          => $applications_partial,
-                'applications_partial_progress' => $applications_partial_progress,
-                'applications_full'             => $applications_full,
-                'applications_full_progress'    => $applications_full_progress,
+                'active'           => $fully_paid,
+                'active_progress'  => $fully_paid_progress,
+                'applications_total'            => $partially_paid,
+                'applications_total_progress'   => $partially_paid_progress,
+                'applications_partial'          => $not_paid,
+                'applications_partial_progress' => $not_paid_progress,
             );
         }
 

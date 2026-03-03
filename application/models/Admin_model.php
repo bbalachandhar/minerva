@@ -233,10 +233,94 @@ class Admin_model extends CI_Model
         return $query->result_array();
     }
 
-    public function getAllEnquiryCount($start_date, $end_date)
+    public function getAllEnquiryCount($start_date = null, $end_date = null)
     {
-        $condition = " date_format(date,'%Y-%m-%d') between '" . $start_date . "' and '" . $end_date . "'";
-        return $this->db->select("SUM(CASE WHEN status = 'application_done' THEN 1  ELSE 0 END) AS 'complete',SUM(CASE WHEN status = 'active' THEN 1  ELSE 0 END) AS 'active',SUM(CASE WHEN status = 'passive' THEN 1  ELSE 0 END) AS 'passive',SUM(CASE WHEN status = 'dead' THEN 1  ELSE 0 END) AS 'dead',SUM(CASE WHEN status = 'lost' THEN 1  ELSE 0 END) AS 'lost',count(*) as total")->from('enquiry')->where($condition)->get()->row_array();
+        $this->db->select("SUM(CASE WHEN status = 'application_done' THEN 1  ELSE 0 END) AS 'complete',SUM(CASE WHEN status = 'active' THEN 1  ELSE 0 END) AS 'active',SUM(CASE WHEN status = 'passive' THEN 1  ELSE 0 END) AS 'passive',SUM(CASE WHEN status = 'dead' THEN 1  ELSE 0 END) AS 'dead',SUM(CASE WHEN status = 'lost' THEN 1  ELSE 0 END) AS 'lost',count(*) as total")->from('enquiry');
+
+        if (!empty($start_date) && !empty($end_date)) {
+            $condition = " date_format(date,'%Y-%m-%d') between '" . $start_date . "' and '" . $end_date . "'";
+            $this->db->where($condition);
+        }
+
+        return $this->db->get()->row_array();
+    }
+
+    public function getOnlineStudentPaymentOverview()
+    {
+        $students = $this->db->select('reference_no, course_fee_total')
+            ->from('online_admissions')
+            ->get()
+            ->result_array();
+
+        if (empty($students)) {
+            return array(
+                'applications_total' => 0,
+                'fully_paid' => 0,
+                'partially_paid' => 0,
+                'not_paid' => 0,
+                'fully_paid_progress' => 0,
+                'partially_paid_progress' => 0,
+                'not_paid_progress' => 0,
+            );
+        }
+
+        $reference_nos = array();
+        foreach ($students as $student) {
+            $ref = preg_replace('/\s+/', '', (string) ($student['reference_no'] ?? ''));
+            if ($ref !== '') {
+                $reference_nos[] = $ref;
+            }
+        }
+        $reference_nos = array_values(array_unique($reference_nos));
+
+        $paid_map = array();
+        if (!empty($reference_nos)) {
+            $paid_rows = $this->db
+                ->select('REPLACE(incidental_fee_collections.application_ref_no, " ", "") as app_ref, SUM(incidental_fee_collections.amount_collected) as paid_amount', false)
+                ->from('incidental_fee_collections')
+                ->join('incidental_fee_types', 'incidental_fee_types.id = incidental_fee_collections.incidental_fee_type_id', 'left')
+                ->where_in('REPLACE(incidental_fee_collections.application_ref_no, " ", "")', $reference_nos, false)
+                ->where('incidental_fee_collections.application_ref_no IS NOT NULL', null, false)
+                ->where('incidental_fee_collections.application_ref_no !=', '')
+                ->where('(LOWER(incidental_fee_types.title) LIKE "%tuition%" OR LOWER(incidental_fee_types.title) LIKE "%tution%" OR LOWER(incidental_fee_types.title) LIKE "%other fee%")', null, false)
+                ->group_by('REPLACE(incidental_fee_collections.application_ref_no, " ", "")', false)
+                ->get()
+                ->result_array();
+
+            foreach ($paid_rows as $row) {
+                $app_ref = (string) $row['app_ref'];
+                $paid_map[$app_ref] = (float) $row['paid_amount'];
+            }
+        }
+
+        $applications_total = count($students);
+        $fully_paid = 0;
+        $partially_paid = 0;
+        $not_paid = 0;
+
+        foreach ($students as $student) {
+            $app_ref = preg_replace('/\s+/', '', (string) ($student['reference_no'] ?? ''));
+            $course_fee = (isset($student['course_fee_total']) && $student['course_fee_total'] !== null && $student['course_fee_total'] !== '') ? (float) $student['course_fee_total'] : 0;
+            $paid_amount = isset($paid_map[$app_ref]) ? (float) $paid_map[$app_ref] : 0;
+
+            if ($paid_amount <= 0) {
+                $not_paid++;
+            } elseif ($course_fee > 0 && $paid_amount >= $course_fee) {
+                $fully_paid++;
+            } else {
+                $partially_paid++;
+            }
+        }
+
+        return array(
+            'applications_total' => $applications_total,
+            'fully_paid' => $fully_paid,
+            'partially_paid' => $partially_paid,
+            'not_paid' => $not_paid,
+            'fully_paid_progress' => $applications_total > 0 ? round(($fully_paid * 100) / $applications_total, 2) : 0,
+            'partially_paid_progress' => $applications_total > 0 ? round(($partially_paid * 100) / $applications_total, 2) : 0,
+            'not_paid_progress' => $applications_total > 0 ? round(($not_paid * 100) / $applications_total, 2) : 0,
+        );
     }
 
     /**
