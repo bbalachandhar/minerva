@@ -298,6 +298,9 @@ $i++;
                                 </select>
                             </div>
                             <small id="permission_quota_info" class="text-muted" style="display:none;"></small>
+                            <small id="od_present_info" class="text-info" style="display:none; margin-top:4px;">
+                                OD can be applied on Present attendance for official movement. Present-day OD is kept for audit and will not be used as payroll LOP credit.
+                            </small>
                             <div id="permission_quota_warning" class="text-danger" style="display:none;"></div>
                             <span class="text-danger"><?php echo form_error('leave_type'); ?></span>
                         </div>
@@ -1098,6 +1101,7 @@ $i++;
             success: function (result) {
                 $("#leavetypeddl").html(result);
                 updatePermissionQuota();
+                toggleOdPresentInfo();
             }
         });
     }
@@ -1214,6 +1218,7 @@ $i++;
             toggleSubstitutionUI();
             toggleHalfDayUI();
             applyPastDateRestrictionUI();
+            toggleOdPresentInfo();
             var staff_id = $('#empname').val();
             var leave_from_date = $('#leave_from_date').val();
             var leave_to_date = $('#leave_to_date').val();
@@ -1228,6 +1233,7 @@ $i++;
         toggleSubstitutionUI();
         toggleHalfDayUI();
         applyPastDateRestrictionUI();
+        toggleOdPresentInfo();
     });
 
     $(document).on('change', '#leave_duration_type', function() {
@@ -1275,6 +1281,15 @@ $i++;
                 }
             }
         });
+    }
+
+    function toggleOdPresentInfo() {
+        var leaveTypeText = ($('#leave_type option:selected').text() || '').toLowerCase().trim();
+        if (leaveTypeText === 'on duty' || leaveTypeText === 'od') {
+            $('#od_present_info').show();
+        } else {
+            $('#od_present_info').hide();
+        }
     }
 
     function loadTimetableAndSubstitutes(staff_id, leave_from_date, leave_to_date) {

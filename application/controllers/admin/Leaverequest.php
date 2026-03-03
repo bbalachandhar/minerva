@@ -969,8 +969,9 @@ class Leaverequest extends Admin_Controller
                                 }
     
                                 $leave_type_details = $this->staff_model->getLeaveType($leavetype);
+                                $is_on_duty_leave_type = $this->isOnDutyLeaveType((int) $leavetype);
                                 $present_conflict = $this->getPresentAttendanceConflictDate($staff_id, $leavefrom, $leaveto);
-                                if (!empty($present_conflict)) {
+                                if (!empty($present_conflict) && !$is_on_duty_leave_type) {
                                     $conflict_date = date($this->customlib->getSchoolDateFormat(), strtotime($present_conflict['date']));
                                     $msg = array(
                                         'leave_from_date' => 'Leave cannot be applied on a day marked Present. Attendance is already marked Present on ' . $conflict_date . '.',

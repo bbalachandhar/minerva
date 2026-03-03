@@ -726,6 +726,36 @@ class Payroll_model extends MY_Model
     private function getApprovedLeaveDaysForTypeInRange($staff_id, $leave_type_id, $start_date, $end_date)
     {
         $total_days = 0.0;
+        $is_on_duty_type = false;
+
+        $type_row = $this->db->select('type')->where('id', (int) $leave_type_id)->limit(1)->get('leave_types')->row_array();
+        $type_name = strtolower(trim((string) ($type_row['type'] ?? '')));
+        if (in_array($type_name, ['on duty', 'od'], true)) {
+            $is_on_duty_type = true;
+        }
+
+        $present_dates = [];
+        if ($is_on_duty_type) {
+            $present_rows = $this->db->select('sa.date')
+                ->from('staff_attendance sa')
+                ->join('staff_attendance_type sat', 'sat.id = sa.staff_attendance_type_id', 'left')
+                ->where('sa.staff_id', (int) $staff_id)
+                ->where('sa.date >=', $start_date)
+                ->where('sa.date <=', $end_date)
+                ->group_start()
+                ->where('LOWER(TRIM(sat.type))', 'present')
+                ->or_where('UPPER(TRIM(sat.key_value))', 'P')
+                ->group_end()
+                ->get()
+                ->result_array();
+
+            foreach ($present_rows as $present_row) {
+                $present_date = (string) ($present_row['date'] ?? '');
+                if ($present_date !== '') {
+                    $present_dates[$present_date] = true;
+                }
+            }
+        }
 
         $this->db->select('leave_from, leave_to, leave_days, leave_duration_type');
         $this->db->from('staff_leave_request');
@@ -752,7 +782,21 @@ class Payroll_model extends MY_Model
 
             $duration_type = strtolower(trim((string) ($row['leave_duration_type'] ?? 'full_day')));
             if (in_array($duration_type, ['half_day', 'first_half', 'second_half'], true)) {
+                if ($is_on_duty_type && isset($present_dates[$effective_from])) {
+                    continue;
+                }
                 $total_days += 0.5;
+                continue;
+            }
+
+            if ($is_on_duty_type) {
+                $cursor = $effective_from;
+                while ($cursor <= $effective_to) {
+                    if (!isset($present_dates[$cursor])) {
+                        $total_days += 1.0;
+                    }
+                    $cursor = date('Y-m-d', strtotime($cursor . ' +1 day'));
+                }
                 continue;
             }
 
