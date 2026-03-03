@@ -794,14 +794,14 @@ $i++;
                 
                 // Conditional display of action row and dynamic labels
                 var current_user_id = <?php echo $this->customlib->getStaffID(); ?>;
-                var can_manage_leave = <?php echo $this->rbac->hasPrivilege('approve_leave_request', 'can_edit') ? 'true' : 'false'; ?>;
+                var can_manage_leave = <?php echo ($this->rbac->hasPrivilege('approve_leave_request', 'can_edit') || !empty($is_admin_or_super_admin)) ? 'true' : 'false'; ?>;
                 var is_recommender = (result.recommender_id == current_user_id);
                 var is_approver = (result.approver_id == current_user_id);
 
                 var statusRadioHtml = '';
                 var initialStatusValue = '';
 
-                if (is_recommender && result.approver_status == 'pending' && result.recommender_status != 'disapproved' && result.recommender_status != 'rejected' && !(is_approver && (result.recommender_status == 'approved' || result.recommender_status == 'recommended'))) {
+                if (!can_manage_leave && is_recommender && result.approver_status == 'pending' && result.recommender_status != 'disapproved' && result.recommender_status != 'rejected' && !(is_approver && (result.recommender_status == 'approved' || result.recommender_status == 'recommended'))) {
                     $('#note_label').html('<?php echo $this->lang->line('recommender_remark'); ?>');
                     statusRadioHtml = `
                         <label class="radio-inline">
@@ -824,7 +824,7 @@ $i++;
                     }
                     $('#action_row').show();
                     $('#action_button_row').show();
-                } else if (is_approver && (result.recommender_status == 'approved' || result.recommender_status == 'recommended') && result.approver_status == 'pending') {
+                } else if (!can_manage_leave && is_approver && (result.recommender_status == 'approved' || result.recommender_status == 'recommended') && result.approver_status == 'pending') {
                     $('#note_label').html('<?php echo $this->lang->line('approver_remark'); ?>');
                     statusRadioHtml = `
                         <label class="radio-inline">
