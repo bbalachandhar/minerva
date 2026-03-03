@@ -32,7 +32,12 @@ class Enquiry extends Admin_Controller
         $data["selected_department"] = "";
         $data["source_select"]  = "";
         $data["status"]         = "active";
+        $data["last_follow_up_from"] = "";
+        $data["last_follow_up_to"]   = "";
         $data['stff_list']      = $this->staff_model->get();
+
+        $last_follow_up_from = '';
+        $last_follow_up_to   = '';
 
         if ($this->input->post('search') === 'search_filter') {
             $class                  = $this->input->post("class");
@@ -41,12 +46,18 @@ class Enquiry extends Admin_Controller
             $status                 = $this->input->post("status");
             $raw_date_from          = trim((string) $this->input->post("from_date"));
             $raw_date_to            = trim((string) $this->input->post("to_date"));
+            $raw_last_follow_up_from = trim((string) $this->input->post("last_follow_up_from"));
+            $raw_last_follow_up_to   = trim((string) $this->input->post("last_follow_up_to"));
             $date_from              = !empty($raw_date_from) ? date("Y-m-d", $this->customlib->datetostrtotime($raw_date_from)) : '';
             $date_to                = !empty($raw_date_to) ? date("Y-m-d", $this->customlib->datetostrtotime($raw_date_to)) : '';
+            $last_follow_up_from    = !empty($raw_last_follow_up_from) ? date("Y-m-d", $this->customlib->datetostrtotime($raw_last_follow_up_from)) : '';
+            $last_follow_up_to      = !empty($raw_last_follow_up_to) ? date("Y-m-d", $this->customlib->datetostrtotime($raw_last_follow_up_to)) : '';
             $data["source_select"]  = $source;
             $data["status"]         = $status;
             $data["selected_class"] = $class;
             $data["selected_department"] = $department_id;
+            $data["last_follow_up_from"] = $raw_last_follow_up_from;
+            $data["last_follow_up_to"]   = $raw_last_follow_up_to;
             $enquiry_list           = $this->enquiry_model->searchEnquiry($class, $source, $date_from, $date_to, $status, $department_id);
         } else {
             $enquiry_list = $this->enquiry_model->getenquiry_list(null, array('active'));
@@ -64,15 +75,24 @@ class Enquiry extends Admin_Controller
         $data['prefill_name']    = $this->input->get('name', TRUE);
         $data['prefill_email']   = $this->input->get('email', TRUE);
         $data['prefill_contact'] = $this->input->get('mobileno', TRUE);
-        
-        
-        foreach ($enquiry_list as $key => $value) {
-            $follow_up                          = $this->enquiry_model->getFollowByEnquiry($value["id"]);
-            $enquiry_list[$key]["followupdate"] = isset($follow_up["date"]) ? $follow_up["date"] : '';
-            $enquiry_list[$key]["next_date"]    = isset($follow_up["next_date"]) ? $follow_up["next_date"] : '';
-            $enquiry_list[$key]["response"]     = isset($follow_up["response"]) ? $follow_up["response"] : '';
-            $enquiry_list[$key]["note"]         = isset($follow_up["note"]) ? $follow_up["note"] : '';
-            $enquiry_list[$key]["followup_by"]  = isset($follow_up["followup_by"]) ? $follow_up["followup_by"] : '';
+
+        if (!empty($last_follow_up_from) || !empty($last_follow_up_to)) {
+            $enquiry_list = array_values(array_filter($enquiry_list, function ($item) use ($last_follow_up_from, $last_follow_up_to) {
+                $follow_up_date = isset($item['followupdate']) ? trim((string) $item['followupdate']) : '';
+                if ($follow_up_date === '' || $follow_up_date === '0000-00-00') {
+                    return false;
+                }
+
+                if (!empty($last_follow_up_from) && $follow_up_date < $last_follow_up_from) {
+                    return false;
+                }
+
+                if (!empty($last_follow_up_to) && $follow_up_date > $last_follow_up_to) {
+                    return false;
+                }
+
+                return true;
+            }));
         }
    
         

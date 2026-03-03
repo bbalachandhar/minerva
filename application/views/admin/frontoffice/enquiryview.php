@@ -5,9 +5,9 @@
     </section>
     <style>
     .ml-20 { margin-left: 5rem; }
-    #enquirytable tbody tr.followup-today td { background-color: #fff9c4 !important; }
-    #enquirytable tbody tr.followup-overdue td { background-color: #f8d7da !important; }
-    #enquirytable tbody tr.status-application-done td { background-color: #dff0d8 !important; }
+    #enquirytable tbody td.cell-alert-red { background-color: #c62828 !important; color: #ffffff !important; font-weight: 600; }
+    #enquirytable tbody td.cell-alert-yellow { background-color: #f9a825 !important; color: #000000 !important; font-weight: 600; }
+    #enquirytable tbody td.cell-alert-green { background-color: #2e7d32 !important; color: #ffffff !important; font-weight: 600; }
     </style>
     <section class="content">
         <div class="row">
@@ -88,6 +88,18 @@ if ($value["source"] == $source_select) {
                             </div>
                             <div class="col-sm-3 col-md-2 col-lg-2">
                                 <div class="form-group">
+                                    <label>Last Follow Up From</label>
+                                    <input type="text" autocomplete="off" name="last_follow_up_from" class="form-control date" value="<?php echo isset($last_follow_up_from) ? $last_follow_up_from : ''; ?>">
+                                </div>
+                            </div>
+                            <div class="col-sm-3 col-md-2 col-lg-2">
+                                <div class="form-group">
+                                    <label>Last Follow Up To</label>
+                                    <input type="text" autocomplete="off" name="last_follow_up_to" class="form-control date" value="<?php echo isset($last_follow_up_to) ? $last_follow_up_to : ''; ?>">
+                                </div>
+                            </div>
+                            <div class="col-sm-3 col-md-2 col-lg-2">
+                                <div class="form-group">
                                     <label><?php echo $this->lang->line('status'); ?></label>
                                     <select  id="status" name="status" class="form-control" >
                                         <option value=""><?php echo $this->lang->line('select') ?></option>
@@ -160,18 +172,22 @@ if (empty($enquiry_list)) {
         }
 
         $status_key = strtolower(trim((string) ($value["status"] ?? '')));
-        $class = "";
+        $followup_cell_class = '';
+        $status_cell_class = '';
         if ($status_key === 'application_done') {
-            $class = "class='status-application-done'";
+            $followup_cell_class = 'cell-alert-green';
+            $status_cell_class = 'cell-alert-green';
         } elseif (!empty($display_next_date) && $display_next_date !== '0000-00-00') {
             if ($display_next_date === $current_date) {
-                $class = "class='followup-today'";
+                $followup_cell_class = 'cell-alert-yellow';
+                $status_cell_class = 'cell-alert-yellow';
             } elseif ($display_next_date < $current_date && $status_key === 'active') {
-                $class = "class='followup-overdue'";
+                $followup_cell_class = 'cell-alert-red';
+                $status_cell_class = 'cell-alert-red';
             }
         }
         ?>
-                                                        <tr <?php echo $class ?>>
+                                                        <tr>
                                                             <td class="mailbox-name">
                                                                 <?php echo !empty($value['ref_no']) ? $value['ref_no'] : date('Y') . str_pad($value['id'], 6, '0', STR_PAD_LEFT); ?>
                                                             </td>
@@ -188,12 +204,12 @@ if (!empty($value["followupdate"])) {
             echo date($this->customlib->getSchoolDateFormat(), $this->customlib->dateyyyymmddTodateformat($value['followupdate']));
         }
         ?></td>
-                                                            <td class="mailbox-name" data-order="<?php echo (!empty($display_next_date) && $display_next_date != '0000-00-00') ? $display_next_date : '9999-12-31'; ?>"> <?php
+                                                            <td class="mailbox-name <?php echo $followup_cell_class; ?>" data-order="<?php echo (!empty($display_next_date) && $display_next_date != '0000-00-00') ? $display_next_date : '9999-12-31'; ?>"> <?php
 if (!empty($display_next_date) && $display_next_date != '0000-00-00') {
             echo date($this->customlib->getSchoolDateFormat(), $this->customlib->dateyyyymmddTodateformat($display_next_date));
         }
         ?></td>
-                                                            <td> <?php echo $enquiry_status[$value["status"]] ?></td>
+                                                            <td class="<?php echo $status_cell_class; ?>"> <?php echo $enquiry_status[$value["status"]] ?></td>
                                                             <td class="mailbox-date text-right white-space-nowrap">
                                                                                                                                 <?php if ($this->rbac->hasPrivilege('follow_up_admission_enquiry', 'can_view')) {?>
                                                                                                                                     <a class="btn btn-default btn-xs" onclick="follow_up('<?php echo $value['id']; ?>', '<?php echo $value['status']; ?>', '<?php echo $value['created_by']; ?>');"  data-target="#follow_up" data-toggle="modal"  title="<?php echo $this->lang->line('follow_up_admission_enquiry'); ?>">
