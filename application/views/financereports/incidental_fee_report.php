@@ -108,7 +108,8 @@
                             <table class="table table-striped table-bordered table-hover incidental-report-table">
                                 <thead>
                                     <tr>
-                                        <th><?php echo $this->lang->line('incidental_report_receipt_no'); ?></th>
+                                        <th>Bill No</th>
+                                        <th>App Ref No</th>
                                         <th>Bill Date</th>
                                         <th><?php echo $this->lang->line('session'); ?></th>
                                         <th><?php echo $this->lang->line('student_name'); ?></th>
@@ -124,7 +125,8 @@
                                     <tbody>
                                         <?php foreach ($collections as $collection) { ?>
                                             <tr>
-                                                <td><?php echo $collection['receipt_no']; ?></td>
+                                                <td><?php echo !empty($collection['receipt_no']) ? $collection['receipt_no'] : 'N/A'; ?></td>
+                                                <td><?php echo !empty($collection['application_ref_no']) ? $collection['application_ref_no'] : 'N/A'; ?></td>
                                                 <td>
                                                     <?php
                                                         if (!empty($collection['bill_date'])) {
@@ -152,6 +154,9 @@
                                                     <a href="<?php echo site_url('financereports/print_incidental_receipt/' . $collection['id']); ?>" class="btn btn-default btn-xs" data-toggle="tooltip" title="<?php echo $this->lang->line('print'); ?>" target="_blank">
                                                         <i class="fa fa-print"></i>
                                                     </a>
+                                                    <a href="javascript:void(0);" class="btn btn-info btn-xs edit-receipt-btn" data-id="<?php echo $collection['id']; ?>" data-app-ref="<?php echo htmlspecialchars($collection['application_ref_no'], ENT_QUOTES, 'UTF-8'); ?>" data-toggle="tooltip" title="Edit Application Ref No">
+                                                        <i class="fa fa-pencil"></i>
+                                                    </a>
                                                     <a href="<?php echo site_url('admin/collect_incidental_fee/revert/' . $collection['id']); ?>" class="btn btn-danger btn-xs" onclick="return confirm('Are you sure you want to revert this fee collection? This action cannot be undone.');" data-toggle="tooltip" title="<?php echo $this->lang->line('revert'); ?>">
                                                         <i class="fa fa-undo"></i>
                                                     </a>
@@ -161,7 +166,7 @@
                                 </tbody>
                                 <tfoot>
                                     <tr>
-                                        <th colspan="7" class="text-right"><?php echo $this->lang->line('total_amount_collected'); ?>:</th>
+                                        <th colspan="8" class="text-right"><?php echo $this->lang->line('total_amount_collected'); ?>:</th>
                                         <th><?php echo $total_amount_collected; ?></th>
                                         <th colspan="3"></th>
                                     </tr>
@@ -269,6 +274,44 @@ $(document).ready(function() {
                 }
             }
         ]
+    });
+
+    $(document).on('click', '.edit-receipt-btn', function () {
+        var collectionId = $(this).data('id');
+        var currentAppRef = $(this).data('app-ref');
+        var newAppRef = prompt('Edit Application Ref No', currentAppRef ? currentAppRef : '');
+
+        if (newAppRef === null) {
+            return;
+        }
+
+        newAppRef = $.trim(newAppRef);
+        if (newAppRef === '') {
+            errorMsg('Application reference number is required.');
+            return;
+        }
+
+        $.ajax({
+            url: baseurl + 'financereports/update_incidental_receipt_no',
+            type: 'POST',
+            dataType: 'json',
+            data: {
+                collection_id: collectionId,
+                application_ref_no: newAppRef,
+                '<?php echo $this->security->get_csrf_token_name(); ?>': '<?php echo $this->security->get_csrf_hash(); ?>'
+            },
+            success: function (response) {
+                if (response.status === 'success') {
+                    successMsg(response.message);
+                    window.location.reload();
+                } else {
+                    errorMsg(response.message ? response.message : 'Failed to update application reference number.');
+                }
+            },
+            error: function () {
+                errorMsg('Something went wrong while updating application reference number.');
+            }
+        });
     });
 });
 </script>

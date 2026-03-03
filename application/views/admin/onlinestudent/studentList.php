@@ -31,17 +31,15 @@
                                         <th><?php echo $this->lang->line('date_of_birth'); ?></th>
                                         <th><?php echo $this->lang->line('gender'); ?></th>
                                         <th>Quota Type</th>
+                                                                                <th>Course Fee</th>
+                                                                                <th>Paid Amount</th>
                                           <?php if ($sch_setting->mobile_no) {?>
                                         <th style="width:10%"><?php echo $this->lang->line('student_mobile_number'); ?></th>
                                        <?php }?>
-                                        <th><?php echo $this->lang->line('form_status'); ?></th>
+                                        <th>Form Status</th>
                                         <?php if ($sch_setting->online_admission_payment == 'yes') {?>
-                                            <th><?php echo $this->lang->line('payment_status'); ?></th>
+                                            <th>App. Fee</th>
                                             <?php }?>
-                                        <th><?php echo $this->lang->line('enrolled'); ?></th>
-                                        <th><?php echo $this->lang->line('created_at'); ?></th>
-                                        <th><?php echo $this->lang->line('updated_by'); ?></th>
-                                        <th><?php echo $this->lang->line('updated_at'); ?></th>
                                         <th class="text-right noExport"><?php echo $this->lang->line('action'); ?></th>
                                     </tr>
                                 </thead>

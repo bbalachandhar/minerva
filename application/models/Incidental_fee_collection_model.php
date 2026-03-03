@@ -41,6 +41,25 @@ class Incidental_fee_collection_model extends CI_Model {
         return $prefix . str_pad($new_num, 6, '0', STR_PAD_LEFT);
     }
 
+    public function receipt_no_exists($receipt_no, $exclude_id = null) {
+        $this->db->from('incidental_fee_collections');
+        $this->db->where('receipt_no', $receipt_no);
+        if (!empty($exclude_id)) {
+            $this->db->where('id !=', (int) $exclude_id);
+        }
+        return $this->db->count_all_results() > 0;
+    }
+
+    public function update_receipt_no($id, $receipt_no) {
+        $this->db->where('id', (int) $id);
+        return $this->db->update('incidental_fee_collections', ['receipt_no' => $receipt_no]);
+    }
+
+    public function update_application_ref_no($id, $application_ref_no) {
+        $this->db->where('id', (int) $id);
+        return $this->db->update('incidental_fee_collections', ['application_ref_no' => $application_ref_no]);
+    }
+
     // Method to get collections for reporting
     public function get_collections_report($filters = array()) {
         $this->db->select('incidental_fee_collections.*, incidental_fee_collections.non_student_name, incidental_fee_collections.payment_mode, incidental_fee_collections.application_ref_no, incidental_fee_types.title as fee_type_title, students.firstname, students.lastname, students.admission_no, classes.class as class_name, sections.section, sessions.session as session_name, staff.name as collected_by_name');

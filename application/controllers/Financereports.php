@@ -104,6 +104,37 @@ class Financereports extends Admin_Controller
         $this->load->view('layout/footer', $data);
     }
 
+    public function update_incidental_receipt_no()
+    {
+        if (!$this->rbac->hasPrivilege('incidental_fee_report', 'can_edit') && !$this->rbac->hasPrivilege('collect_incidental_fee', 'can_edit')) {
+            echo json_encode(['status' => 'fail', 'message' => $this->lang->line('access_denied')]);
+            return;
+        }
+
+        $collection_id = (int) $this->input->post('collection_id');
+        $application_ref_no = trim((string) $this->input->post('application_ref_no'));
+
+        if ($collection_id <= 0 || $application_ref_no === '') {
+            echo json_encode(['status' => 'fail', 'message' => 'Application reference number is required.']);
+            return;
+        }
+
+        if (strlen($application_ref_no) > 100 || !preg_match('/^[A-Za-z0-9\-\/]+$/', $application_ref_no)) {
+            echo json_encode(['status' => 'fail', 'message' => 'Invalid application reference number format.']);
+            return;
+        }
+
+        $this->load->model('incidental_fee_collection_model');
+
+        $updated = $this->incidental_fee_collection_model->update_application_ref_no($collection_id, $application_ref_no);
+
+        if ($updated) {
+            echo json_encode(['status' => 'success', 'message' => 'Application reference number updated successfully.']);
+        } else {
+            echo json_encode(['status' => 'fail', 'message' => 'Failed to update application reference number.']);
+        }
+    }
+
     public function reportduefees()
     {
         if (!$this->rbac->hasPrivilege('balance_fees_statement', 'can_view')) {

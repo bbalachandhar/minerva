@@ -461,6 +461,18 @@ class Onlinestudent extends Admin_Controller
         $m               = json_decode($student_result);
         $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
         $dt_data         = array();
+
+        $application_refs = array();
+        if (!empty($m->data)) {
+            foreach ($m->data as $entry) {
+                if (!empty($entry->reference_no)) {
+                    $application_refs[] = preg_replace('/\s+/', '', (string) $entry->reference_no);
+                }
+            }
+        }
+        $application_refs = array_values(array_unique($application_refs));
+        $paid_amount_map = $this->onlinestudent_model->get_incidental_paid_amount_by_application_refs($application_refs);
+
         if (!empty($m->data)) {
             foreach ($m->data as $key => $value) {
                 $editbtn   = '';
@@ -493,12 +505,6 @@ class Onlinestudent extends Admin_Controller
                     $printbtn = "";
                 }
 
-                if (($value->is_enroll)) {
-                    $enroll = "<i class='fa fa-check'></i><span style='display:none'>" . $this->lang->line('yes') . "</span>";
-                } else {
-                    $enroll = "<i class='fa fa-minus-circle'></i><span style='display:none'>" . $this->lang->line('no') . "</span>";
-                }
-
                 if ($value->dob != null) {
                     $dob = date($this->customlib->getSchoolDateFormat(), $this->customlib->dateyyyymmddTodateformat($value->dob));
                 } else {
@@ -511,7 +517,6 @@ class Onlinestudent extends Admin_Controller
                     $submit_date = "";
                 }
 
-                $created_at = "";
                 if ($value->document) {
                     $document = "<a href='" . site_url("admin/onlinestudent/onlineadmission_download/" . $value->id) . "' class='btn btn-default btn-xs mt5'  data-toggle='tooltip' title='" . $this->lang->line('download') . "'>
                          <i class='fa fa-download'></i> </a>";
@@ -538,14 +543,23 @@ class Onlinestudent extends Admin_Controller
                 $row[] = $this->lang->line(strtolower($value->gender));
                 $row[] = !empty($value->quota_type) ? $value->quota_type : "N/A";
 
+                $application_ref_no = !empty($value->reference_no) ? preg_replace('/\s+/', '', (string) $value->reference_no) : '';
+                $course_fee = (isset($value->course_fee_total) && $value->course_fee_total !== null && $value->course_fee_total !== '') ? (float) $value->course_fee_total : 0;
+                $paid_amount = (isset($paid_amount_map[$application_ref_no])) ? (float) $paid_amount_map[$application_ref_no] : 0;
+
+                $row[] = number_format($course_fee, 2, '.', '');
+                $row[] = number_format($paid_amount, 2, '.', '');
+
                 if ($sch_setting->mobile_no) {
                     $row[] = $value->mobileno;
                 }
 
-                if ($value->form_status == 1) {
-                    $row[] = '<span class="label label-success">' . $this->lang->line('submitted') . '  ' . $submit_date . '</span>';
-                } else if ($value->form_status == 0) {
-                    $row[] = '<span class="label label-danger">' . $this->lang->line('not_submitted') . '</span>';
+                if ($paid_amount <= 0) {
+                    $row[] = '<span class="label label-danger">Not Paid</span>';
+                } elseif ($course_fee > 0 && $paid_amount >= $course_fee) {
+                    $row[] = '<span class="label label-success">Fully Paid</span>';
+                } else {
+                    $row[] = '<span class="label label-warning">Partially Paid</span>';
                 }
 
                 if ($sch_setting->online_admission_payment == 'yes') {
@@ -564,11 +578,6 @@ class Onlinestudent extends Admin_Controller
                     }
                 }
 
-                $row[] = $enroll;
-                $row[] = date($this->customlib->getSchoolDateFormat(), $this->customlib->dateyyyymmddTodateformat(date("Y-m-d", strtotime($value->created_at))));
-                $row[] = $value->payment_updated_by_name;
-                $row[] = ($value->payment_updated_at != null) ? date($this->customlib->getSchoolDateFormat(), $this->customlib->dateyyyymmddTodateformat($value->payment_updated_at)) : '';
-                
                 $row[]     = $document . ' ' . $printbtn . ' ' . $editbtn . ' ' . $deletebtn . ' ' . $paybtn;
                 $dt_data[] = $row;
             }

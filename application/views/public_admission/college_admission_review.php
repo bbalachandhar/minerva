@@ -136,7 +136,14 @@
                 <div class="row">
                     <div class="col-md-9">
                         <h5 class="text-center mb-4 fw-bold">APPLICATION FORM FOR ADMISSION</h5>
+                        <?php
+                        $applied_course_name = 'Not Selected';
+                        if (isset($ug_course_id) && $ug_course_id && isset($course_names[$ug_course_id])) {
+                            $applied_course_name = $course_names[$ug_course_id];
+                        }
+                        ?>
                          <p><span class="data-label">Course Level:</span> <span class="data-value text-uppercase"><?php echo (isset($course_level) && !empty($course_level)) ? $course_level : 'N/A'; ?></span></p>
+                         <p><span class="data-label">Course applied:</span> <span class="data-value"><?php echo $applied_course_name; ?></span></p>
                          <p><span class="data-label">Quota Type:</span> <span class="data-value text-uppercase"><?php echo (isset($quota_type) && !empty($quota_type)) ? $quota_type : 'N/A'; ?></span></p>
                          <p><span class="data-label">Academic Year:</span> <span class="data-value">2026-2027</span></p>
                          <p><span class="data-label">Application Ref No:</span> <span class="data-value"><?php echo isset($reference_no) ? $reference_no : 'N/A'; ?></span></p>
@@ -205,13 +212,6 @@
                 <h5 class="mb-3">COURSE DETAILS</h5>
                 <div class="row">
                     <div class="col-md-12">
-                        <?php 
-                        $course_name = 'Not Selected';
-                        if (isset($ug_course_id) && $ug_course_id && isset($course_names[$ug_course_id])) {
-                            $course_name = $course_names[$ug_course_id];
-                        }
-                        ?>
-                        <p><span class="data-label">Course applied:</span> <span class="data-value"><?php echo $course_name; ?></span></p>
                         <p><span class="data-label">Name of the school of X std:</span> <span class="data-value"><?php echo !empty($school_name_x) ? $school_name_x : 'N/A'; ?></span></p>
                         <p><span class="data-label">Year of passing of X std:</span> <span class="data-value"><?php echo !empty($passing_year_x) ? $passing_year_x : 'N/A'; ?></span></p>
                         <p><span class="data-label">X marks (in %):</span> <span class="data-value"><?php echo ($tenth_marks_percentage !== null && $tenth_marks_percentage !== '') ? $tenth_marks_percentage : 'N/A'; ?></span></p>

@@ -130,6 +130,47 @@ class Onlinestudent_model extends MY_Model
         return $result;
     }
 
+    public function get_incidental_paid_amount_by_application_refs($reference_nos = array())
+    {
+        if (empty($reference_nos)) {
+            return array();
+        }
+
+        $normalized_refs = array();
+        foreach ($reference_nos as $ref) {
+            $ref = preg_replace('/\s+/', '', (string) $ref);
+            if ($ref !== '') {
+                $normalized_refs[] = $ref;
+            }
+        }
+        $normalized_refs = array_values(array_unique($normalized_refs));
+
+        if (empty($normalized_refs)) {
+            return array();
+        }
+
+        $this->db->select('incidental_fee_collections.application_ref_no, SUM(incidental_fee_collections.amount_collected) as paid_amount');
+        $this->db->from('incidental_fee_collections');
+        $this->db->join('incidental_fee_types', 'incidental_fee_types.id = incidental_fee_collections.incidental_fee_type_id', 'left');
+        $this->db->where_in('REPLACE(incidental_fee_collections.application_ref_no, " ", "")', $normalized_refs, false);
+        $this->db->where('incidental_fee_collections.application_ref_no IS NOT NULL', null, false);
+        $this->db->where('incidental_fee_collections.application_ref_no !=', '');
+        $this->db->where('(LOWER(incidental_fee_types.title) LIKE "%tuition%" OR LOWER(incidental_fee_types.title) LIKE "%tution%" OR LOWER(incidental_fee_types.title) LIKE "%other fee%")', null, false);
+        $this->db->group_by('incidental_fee_collections.application_ref_no');
+
+        $result = $this->db->get()->result_array();
+        $summary = array();
+        foreach ($result as $row) {
+            $normalized_key = preg_replace('/\s+/', '', (string) $row['application_ref_no']);
+            if (!isset($summary[$normalized_key])) {
+                $summary[$normalized_key] = 0;
+            }
+            $summary[$normalized_key] += (float) $row['paid_amount'];
+        }
+
+        return $summary;
+    }
+
     public function update($data,$fee_session_group_id,$transport_feemaster_id,$discount_id,$action = "save")
     {
         $record_update_status = true;
