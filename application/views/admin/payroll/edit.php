@@ -198,14 +198,15 @@ $image=$this->media_storage->getImageURL("uploads/staff_images/" . $file);
                                 <div style="background: #ffffff; border: 1px solid #e0e0e0; border-radius: 6px; padding: 15px;">
                                     <h5 style="margin: 0 0 15px 0; font-weight: 600; color: #333;"><?php echo $this->lang->line("attendance") ?></h5>
                                     <div class="text-muted" style="font-size:11px; margin: 0 0 8px 0;">
-                                        P*: Present incl. half-day (after late/permission penalty). A*: Absent incl. half-day and late/permission penalty beyond limits. L: Late count. PR: Permission count. APR: Approved paid leaves. LOP: Loss Of Pay days before credit adjustment. AdjLOP: Total LOP adjusted by leave credits. NetLOP: Final LOP used for salary deduction. CrAdj: Leave-credit days used to adjust LOP this month (eligible leave types where Requires Balance Check = No and Loss Of Pay = No). CrBal: Remaining carry-forward leave credit.
+                                        Sandwich Weekend Rule: Weekend is payable only if both previous and next working days are present-like (P/L/HD/FHP/SHP); otherwise weekend is counted in LOP. LOP shown below includes working-day absence, half-day impact, and non-payable weekends before leave-credit adjustment.
                                     </div>
                                     <div style="overflow-x: auto;">
                                         <table class="table table-bordered" style="font-size: 11px; margin-bottom: 0; border-collapse: collapse;">
                                             <thead>
                                                 <tr style="background: #f8f9fa;">
                                                     <th style="padding: 8px 6px; text-align: center; border: 1px solid #e0e0e0; font-weight: 600; color: #495057;"><?php echo $this->lang->line('month'); ?></th>
-                                                    <th style="padding: 8px 6px; text-align: center; border: 1px solid #e0e0e0; font-weight: 600; color: #495057;"><span data-toggle="tooltip" title="Total Working Days">WD</span></th>
+                                                    <th style="padding: 8px 6px; text-align: center; border: 1px solid #e0e0e0; font-weight: 600; color: #495057;"><span data-toggle="tooltip" title="Total Days In Month">WD</span></th>
+                                                    <th style="padding: 8px 6px; text-align: center; border: 1px solid #e0e0e0; font-weight: 600; color: #495057;"><span data-toggle="tooltip" title="Actual Working Days">AWD</span></th>
                                                     <th style="padding: 8px 6px; text-align: center; border: 1px solid #e0e0e0; font-weight: 600; color: #495057;"><span data-toggle="tooltip" title="Total Present (Including Half Day)">P*</span></th>
                                                     <th style="padding: 8px 6px; text-align: center; border: 1px solid #e0e0e0; font-weight: 600; color: #495057;"><span data-toggle="tooltip" title="Total Absent (Including Half Day)">A*</span></th>
                                                     <th style="padding: 8px 6px; text-align: center; border: 1px solid #e0e0e0; font-weight: 600; color: #495057;"><span data-toggle="tooltip" title="Half Day">HD</span></th>
@@ -218,7 +219,6 @@ $image=$this->media_storage->getImageURL("uploads/staff_images/" . $file);
                                                     <th style="padding: 8px 6px; text-align: center; border: 1px solid #e0e0e0; font-weight: 600; color: #495057;"><span data-toggle="tooltip" title="Net LOP Days (Used for Deduction)">NetLOP</span></th>
                                                     <th style="padding: 8px 6px; text-align: center; border: 1px solid #e0e0e0; font-weight: 600; color: #495057;"><span data-toggle="tooltip" title="Leave-credit days adjusted in this month">CrAdj</span></th>
                                                     <th style="padding: 8px 6px; text-align: center; border: 1px solid #e0e0e0; font-weight: 600; color: #495057;"><span data-toggle="tooltip" title="Carry-forward leave credit after this month">CrBal</span></th>
-                                                    <th style="padding: 8px 6px; text-align: center; border: 1px solid #e0e0e0; font-weight: 600; color: #495057;"><span data-toggle="tooltip" title="Weekends">WE</span></th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -243,10 +243,12 @@ $weekend_count = (int) ($attendence_value['sunday'] ?? 0);
 $first_half_absent = (int) ($attendence_value['first_half_absent'] ?? 0);
 $second_half_absent = (int) ($attendence_value['second_half_absent'] ?? 0);
 $paid_leave_absent = $month_paid_leave_absent[$attendence_key] ?? 0;
+$weekend_lop_days = 0.0;
 $days_in_period = (int) ($attendence_value['days_in_period'] ?? 0);
 if ($days_in_period <= 0) {
     $days_in_period = cal_days_in_month(CAL_GREGORIAN, (int) date("m", strtotime($attendence_key)), (int) date("Y", strtotime($attendence_key)));
 }
+$month_days = cal_days_in_month(CAL_GREGORIAN, (int) date("m", strtotime($attendence_key)), (int) date("Y", strtotime($attendence_key)));
 $working_days = (int) ($attendence_value['working_days'] ?? 0);
 if ($working_days <= 0) {
     $working_days = max(0, $days_in_period - $holiday_count - $weekend_count);
@@ -267,8 +269,8 @@ $is_current_payroll_month = (($month_name == $employee_payroll['month'] || $mont
 
 // For current payroll month, display exactly what payroll calculation uses
 if ($is_current_payroll_month && !empty($payroll_lop_summary)) {
-    if (isset($payroll_lop_summary['working_days'])) {
-        $working_days = (int) $payroll_lop_summary['working_days'];
+    if (isset($payroll_lop_summary['days_in_month'])) {
+        $month_days = (int) $payroll_lop_summary['days_in_month'];
     }
     if (isset($payroll_lop_summary['paid_days'])) {
         $total_present = (float) $payroll_lop_summary['paid_days'];
@@ -284,6 +286,9 @@ if ($is_current_payroll_month && !empty($payroll_lop_summary)) {
     }
     if (isset($payroll_lop_summary['sundays'])) {
         $weekend_count = (int) $payroll_lop_summary['sundays'];
+    }
+    if (isset($payroll_lop_summary['weekend_lop_days'])) {
+        $weekend_lop_days = (float) $payroll_lop_summary['weekend_lop_days'];
     }
     if (isset($payroll_lop_summary['approved_leave'])) {
         $approved_leave = (int) $payroll_lop_summary['approved_leave'];
@@ -304,6 +309,9 @@ if ($is_current_payroll_month && !empty($payroll_lop_summary)) {
         $permission_count = (int) ($payroll_lop_summary['first_half_permission'] ?? 0) + (int) ($payroll_lop_summary['second_half_permission'] ?? 0);
     }
 }
+
+// Show A* as total absence including non-payable sandwich weekends.
+$total_absent_display = (float) $total_absent + (float) $weekend_lop_days;
 
 // For current payroll month, use values from payslip; for other months, query monthly balance
 if ($is_current_payroll_month) {
@@ -358,9 +366,10 @@ if ($is_current_payroll_month) {
 ?>
                                             <tr style="background: <?php echo ($attendence_key_index % 2 == 0) ? '#f9f9f9' : '#ffffff'; ?>;">
                                                 <td style="padding: 8px 6px; text-align: center; border: 1px solid #e0e0e0; font-weight: 600; color: #333;"><?php echo date("F", strtotime($attendence_key)); ?></td>
+                                                <td style="padding: 8px 6px; text-align: center; border: 1px solid #e0e0e0; color: #666;"><?php echo $month_days; ?></td>
                                                 <td style="padding: 8px 6px; text-align: center; border: 1px solid #e0e0e0; color: #666;"><?php echo $working_days; ?></td>
                                                 <td style="padding: 8px 6px; text-align: center; border: 1px solid #e0e0e0; color: #666;"><?php echo rtrim(rtrim(number_format((float) $total_present, 1, '.', ''), '0'), '.'); ?></td>
-                                                <td style="padding: 8px 6px; text-align: center; border: 1px solid #e0e0e0; color: #666;"><?php echo rtrim(rtrim(number_format((float) $total_absent, 1, '.', ''), '0'), '.'); ?></td>
+                                                <td style="padding: 8px 6px; text-align: center; border: 1px solid #e0e0e0; color: #666;"><?php echo rtrim(rtrim(number_format((float) $total_absent_display, 1, '.', ''), '0'), '.'); ?></td>
                                                 <td style="padding: 8px 6px; text-align: center; border: 1px solid #e0e0e0; color: #666;"><?php echo $half_day; ?></td>
                                                 <td style="padding: 8px 6px; text-align: center; border: 1px solid #e0e0e0; color: #666;"><?php echo $holiday_count; ?></td>
                                                 <td style="padding: 8px 6px; text-align: center; border: 1px solid #e0e0e0; color: #666;"><?php echo $late_count; ?></td>
@@ -371,7 +380,6 @@ if ($is_current_payroll_month) {
                                                 <td style="padding: 8px 6px; text-align: center; border: 1px solid #e0e0e0; color: #666;"><?php echo rtrim(rtrim(number_format((float) $net_lop, 1, '.', ''), '0'), '.'); ?></td>
                                                 <td style="padding: 8px 6px; text-align: center; border: 1px solid #e0e0e0; color: #666;"><?php echo rtrim(rtrim(number_format((float) $od_adjusted_days, 1, '.', ''), '0'), '.'); ?></td>
                                                 <td style="padding: 8px 6px; text-align: center; border: 1px solid #e0e0e0; color: #666;"><?php echo rtrim(rtrim(number_format((float) $od_carry_forward_days, 1, '.', ''), '0'), '.'); ?></td>
-                                                <td style="padding: 8px 6px; text-align: center; border: 1px solid #e0e0e0; color: #666;"><?php echo $weekend_count; ?></td>
                                             </tr>
                                             <?php
                                             $attendence_key_index++;
@@ -389,13 +397,11 @@ if ($is_current_payroll_month) {
                         <div class="text-muted" style="font-size: 12px; line-height: 1.6;">
                             <strong>Legend:</strong> 
                             P*: Present incl. half-day (after late/permission penalty). 
-                            A*: Absent incl. half-day and late/permission penalty beyond limits. 
-                            L: Late count. 
-                            PR: Permission count. 
-                            APR: Approved paid leaves. 
-                            LOP: Actual Loss Of Pay days. 
-                            AdjLOP: Days adjusted with paid leaves. 
-                            NetLOP: Final LOP for salary deduction.
+                            A*: Absent incl. half-day and late/permission penalty. 
+                            Sandwich Rule: Weekend is payable only when both adjacent working days are present-like. 
+                            LOP: Actual LOP days after applying sandwich rule. 
+                            AdjLOP: LOP days adjusted with eligible leave credits. 
+                            NetLOP: Final LOP used for month-day prorata salary deduction.
                         </div>
                     </div>
                     <form class="form-horizontal" action="<?php echo site_url('admin/payroll/editpayroll') ?>" method="post"  id="employeeform">

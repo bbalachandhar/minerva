@@ -208,7 +208,12 @@ $months = array(
         <div id="employees-wrapper" style="display:none;">
             <div class="alert alert-info" style="margin-bottom:10px;">
                 <strong>Instructions:</strong>
-                Leave <strong>LOP Days</strong> empty to skip staff. Enter <strong>0</strong> for full attendance.
+                Leave <strong>LOP Days</strong> empty to skip staff. Enter <strong>0</strong> for full attendance.<br>
+                Enter LOP on <strong>calendar month days</strong> (payable days), not only working days.<br>
+                <strong>Salary Target Formula:</strong> Payable Days = Total Month Days - LOP Days. Example: Feb (28 days), to pay 4 days, enter <strong>LOP = 24</strong>.<br>
+                <strong>Sandwich Weekend Rule:</strong> Weekend is payable only if both adjacent working days are present-like (P/L/HD/FHP/SHP).<br>
+                Example 1: Fri Present + Mon Present ⇒ Sat/Sun payable (not added to LOP).<br>
+                Example 2: Fri Absent or Mon Absent ⇒ Sat/Sun non-payable and counted in LOP.<br>
                 Allowed values are half-step only: <strong>0, 0.5, 1, 1.5, ...</strong>
             </div>
             <div class="table-responsive">
@@ -393,9 +398,12 @@ $months = array(
             return;
         }
 
-        var workingDays = parseFloat($workingDays.val());
-        if (!isFinite(workingDays)) {
-            workingDays = null;
+        var maxLopDays = parseFloat($payableWorkingDays.val());
+        if (!isFinite(maxLopDays)) {
+            maxLopDays = parseFloat($workingDays.val());
+        }
+        if (!isFinite(maxLopDays)) {
+            maxLopDays = null;
         }
 
         var storedLopValues = getStoredLopValues();
@@ -420,7 +428,7 @@ $months = array(
                 '   <td>' + (emp.department ? emp.department : '-') + '</td>\n' +
                 '   <td class="text-center">' + attendancePercentage.toFixed(2) + '%</td>\n' +
                 '   <td class="text-center"><input type="number" class="form-control input-sm days-absent" min="0" step="0.5"' +
-                (workingDays !== null ? ' max="' + workingDays + '"' : '') + ' placeholder="e.g. 1 or 1.5" value="' + (lopDays === '' ? '' : lopDays) + '"></td>\n' +
+                (maxLopDays !== null ? ' max="' + maxLopDays + '"' : '') + ' placeholder="e.g. 1 or 1.5" value="' + (lopDays === '' ? '' : lopDays) + '"></td>\n' +
                 '</tr>');
         });
         $tableBody.html(rows.join('\n'));

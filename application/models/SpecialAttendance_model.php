@@ -44,16 +44,28 @@ class SpecialAttendance_model extends CI_Model {
 
         $working_days = $this->getWorkingDays($month, $year, $settings);
         $total_working_days = count($working_days);
+        $monthNum = $this->getMonthNumber($month, $year);
+        if ($monthNum === null) {
+            return [];
+        }
+        $total_days_in_month = cal_days_in_month(CAL_GREGORIAN, $monthNum, (int)$year);
 
         $lop = is_numeric($lop_days) ? (float)$lop_days : 0;
         if ($lop < 0) {
             $lop = 0;
         }
-        if ($lop > $total_working_days) {
-            $lop = (float)$total_working_days;
+        if ($lop > $total_days_in_month) {
+            $lop = (float)$total_days_in_month;
         }
 
-        $present_days_target = $total_working_days - $lop;
+        // LOP is treated on calendar-month basis for payroll prorata.
+        // Convert to payable day target, then cap to working days for punch generation.
+        $payable_days_target = (float)$total_days_in_month - $lop;
+        if ($payable_days_target < 0) {
+            $payable_days_target = 0;
+        }
+
+        $present_days_target = min((float)$total_working_days, $payable_days_target);
         if ($present_days_target <= 0) {
             return [];
         }
@@ -61,9 +73,8 @@ class SpecialAttendance_model extends CI_Model {
         $full_days = (int)floor($present_days_target);
         $has_half_day = (($present_days_target - $full_days) >= 0.5);
 
-        shuffle($working_days);
         $required_days = $full_days + ($has_half_day ? 1 : 0);
-        $selected_days = array_slice($working_days, 0, min($required_days, count($working_days)));
+        $selected_days = $this->selectSandwichAwareWorkingDays($working_days, $monthNum, (int)$year, $settings, $required_days);
         sort($selected_days);
 
         $punches = [];
@@ -92,6 +103,51 @@ class SpecialAttendance_model extends CI_Model {
         }
 
         return $punches;
+    }
+
+    private function selectSandwichAwareWorkingDays($working_days, $monthNum, $year, $settings, $required_days)
+    {
+        if ($required_days <= 0 || empty($working_days)) {
+            return [];
+        }
+
+        $required_days = min((int)$required_days, count($working_days));
+        $weekend_days = $this->getWeekendDays($monthNum, $year, $settings);
+        $weekend_lookup = array_fill_keys($weekend_days, true);
+
+        $non_bridge_days = [];
+        $bridge_days = [];
+
+        foreach ($working_days as $date) {
+            $prev_date = date('Y-m-d', strtotime($date . ' -1 day'));
+            $next_date = date('Y-m-d', strtotime($date . ' +1 day'));
+            $is_bridge_day = isset($weekend_lookup[$prev_date]) || isset($weekend_lookup[$next_date]);
+
+            if ($is_bridge_day) {
+                $bridge_days[] = $date;
+            } else {
+                $non_bridge_days[] = $date;
+            }
+        }
+
+        $selected = [];
+        foreach ($non_bridge_days as $date) {
+            if (count($selected) >= $required_days) {
+                break;
+            }
+            $selected[] = $date;
+        }
+
+        if (count($selected) < $required_days) {
+            foreach ($bridge_days as $date) {
+                if (count($selected) >= $required_days) {
+                    break;
+                }
+                $selected[] = $date;
+            }
+        }
+
+        return $selected;
     }
 
     private function getStaffAttendanceWindows($staff_id, $schedule, $settings) {
@@ -304,6 +360,41 @@ class SpecialAttendance_model extends CI_Model {
         }
         return null;
     }
+
+    private function getWeekendDays($monthNum, $year, $settings)
+    {
+        $weekendDaysStr = isset($settings->weekend_days) && !empty($settings->weekend_days) ? $settings->weekend_days : '0';
+        $weekendDays = array_map('intval', explode(',', $weekendDaysStr));
+        $isSecondSaturdayHoliday = isset($settings->isSecondSaturdayHoliday) ? (int)$settings->isSecondSaturdayHoliday : 0;
+
+        $holidayData = $this->getHolidayDates($monthNum, $year);
+        $compensationDates = $holidayData['compensation_dates'] ?? [];
+
+        $weekend_dates = [];
+        $daysInMonth = cal_days_in_month(CAL_GREGORIAN, $monthNum, (int)$year);
+        for ($d = 1; $d <= $daysInMonth; $d++) {
+            $date = sprintf('%04d-%02d-%02d', $year, $monthNum, $d);
+            $dow = (int)date('w', strtotime($date));
+            if (in_array($dow, $weekendDays, true)) {
+                $weekend_dates[] = $date;
+            }
+        }
+
+        if ($isSecondSaturdayHoliday) {
+            $secondSaturday = $this->getSecondSaturdayDate($monthNum, $year);
+            if (!empty($secondSaturday) && !in_array($secondSaturday, $weekend_dates, true)) {
+                $weekend_dates[] = $secondSaturday;
+            }
+        }
+
+        if (!empty($compensationDates)) {
+            $weekend_dates = array_values(array_diff($weekend_dates, $compensationDates));
+        }
+
+        sort($weekend_dates);
+        return array_values(array_unique($weekend_dates));
+    }
+
     private function randomizeTime($start, $end) {
         $start_ts = strtotime($start);
         $end_ts = strtotime($end);

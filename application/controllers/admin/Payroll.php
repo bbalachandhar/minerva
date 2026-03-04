@@ -313,6 +313,7 @@ class Payroll extends Admin_Controller
         $period = $this->getPayrollPeriodRange($month, $year);
         $days_in_period = (int) ($attendance['days_in_period'] ?? $this->getDaysInRange($period['start_date'], $period['end_date']));
         $working_days = (int) ($attendance['working_days'] ?? 0);
+        $context = null;
         if ($working_days === 0) {
             $context = $this->getWorkingDayContextRange($period['start_date'], $period['end_date']);
             $working_days = count($context['working_day_dates']);
@@ -362,12 +363,14 @@ class Payroll extends Admin_Controller
         $late_permission_penalty = ($late_half_days + $permission_half_days) * $half_day_weight;
 
         $paid_leave_absent = $this->getPaidLeaveAbsentCountRange($period['start_date'], $period['end_date'], $staff_id);
+        $weekend_lop_days = $this->getNonPayableWeekendCountRange($staff_id, $period['start_date'], $period['end_date'], $context);
 
         $total_present = max(0, $present + ($half_day * $half_day_weight) - $late_permission_penalty);
         $total_absent = $absent_working + ($half_day * $half_day_weight) + $late_permission_penalty;
 
         $lop_days = $total_absent
-            + (($first_half_absent + $second_half_absent) * $half_day_weight);
+            + (($first_half_absent + $second_half_absent) * $half_day_weight)
+            + $weekend_lop_days;
 
         $paid_days = $total_present;
         $od_adjusted_days = 0.0;
@@ -398,6 +401,7 @@ class Payroll extends Admin_Controller
             'sundays' => $sundays,
             'late_half_days' => $late_half_days,
             'permission_half_days' => $permission_half_days,
+            'weekend_lop_days' => $weekend_lop_days,
             'lop_days' => $lop_days,
             'paid_days' => $paid_days,
             'od_adjusted_days' => $od_adjusted_days,
@@ -601,6 +605,79 @@ class Payroll extends Admin_Controller
         }
 
         return max(0, $absent_count);
+    }
+
+    private function isAbsentForWeekendBridge(array $attendance_row)
+    {
+        $attendance_type_id = (int) ($attendance_row['staff_attendance_type_id'] ?? 0);
+        if (in_array($attendance_type_id, [3, 8, 10, 11], true)) {
+            return true;
+        }
+
+        $attendance_key = strtoupper(trim((string) ($attendance_row['key'] ?? '')));
+        return in_array($attendance_key, ['A', 'FHA', 'SHA'], true);
+    }
+
+    private function getNonPayableWeekendCountRange($staff_id, $start_date, $end_date, $context = null)
+    {
+        if ($context === null) {
+            $context = $this->getWorkingDayContextRange($start_date, $end_date);
+        }
+
+        $weekend_dates = $context['weekend_day_dates'] ?? [];
+        $working_dates = $context['working_day_dates'] ?? [];
+
+        if (empty($weekend_dates) || empty($working_dates)) {
+            return 0;
+        }
+
+        sort($weekend_dates);
+
+        $extended_start = date('Y-m-d', strtotime($start_date . ' -10 day'));
+        $extended_end = date('Y-m-d', strtotime($end_date . ' +10 day'));
+        $extended_context = $this->getWorkingDayContextRange($extended_start, $extended_end);
+        $working_dates_extended = $extended_context['working_day_dates'] ?? $working_dates;
+        sort($working_dates_extended);
+
+        $attendance_cache = [];
+        $non_payable_weekends = 0;
+
+        foreach ($weekend_dates as $weekend_date) {
+            $prev_working_date = null;
+            $next_working_date = null;
+
+            foreach ($working_dates_extended as $working_date) {
+                if ($working_date < $weekend_date) {
+                    $prev_working_date = $working_date;
+                    continue;
+                }
+
+                if ($working_date > $weekend_date) {
+                    $next_working_date = $working_date;
+                    break;
+                }
+            }
+
+            if (empty($prev_working_date) || empty($next_working_date)) {
+                continue;
+            }
+
+            if (!isset($attendance_cache[$prev_working_date])) {
+                $attendance_cache[$prev_working_date] = $this->staffattendancemodel->searchStaffattendance($prev_working_date, $staff_id, false);
+            }
+            if (!isset($attendance_cache[$next_working_date])) {
+                $attendance_cache[$next_working_date] = $this->staffattendancemodel->searchStaffattendance($next_working_date, $staff_id, false);
+            }
+
+            $prev_absent = $this->isAbsentForWeekendBridge((array) ($attendance_cache[$prev_working_date] ?? []));
+            $next_absent = $this->isAbsentForWeekendBridge((array) ($attendance_cache[$next_working_date] ?? []));
+
+            if ($prev_absent && $next_absent) {
+                $non_payable_weekends++;
+            }
+        }
+
+        return (float) max(0, $non_payable_weekends);
     }
 
     private function getPaidLeaveAbsentCount($month_num, $year, $staff_id, $context = null)

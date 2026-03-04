@@ -11,6 +11,20 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
     
     <section class="content">
         <div class="row">
+            <div class="col-md-12">
+                <div style="margin-bottom: 15px; padding: 15px; background: #fff8e1; border-left: 4px solid #ff9800; border-radius: 4px;">
+                    <h4 style="margin-top: 0; color: #e65100;"><i class="fa fa-info-circle"></i> Payroll Bulk Calculation Logic (Current)</h4>
+                    <p style="margin: 6px 0; color: #555;"><strong>1) Gross for payroll</strong> = Basic + applicable earnings (month value after increment merge/prorata).</p>
+                    <p style="margin: 6px 0; color: #555;"><strong>2) Actual LOP</strong> = working-day absences + half-day impact + <strong>non-payable weekends</strong>.</p>
+                    <p style="margin: 6px 0; color: #555;"><strong>3) Sandwich Weekend Rule</strong>: weekend is payable only if both adjacent working days are present-like (P/L/HD/FHP/SHP); else weekend is added to LOP.</p>
+                    <p style="margin: 6px 0; color: #555;"><strong>4) Net LOP</strong> = Actual LOP − eligible leave-credit adjustment (AdjLOP).</p>
+                    <p style="margin: 6px 0; color: #555;"><strong>5) LOP deduction</strong> = (Full Gross / Days in Month) × Net LOP (month-day prorata).</p>
+                    <p style="margin: 6px 0 0 0; color: #555;"><strong>6) Net salary</strong> = (DOJ-prorated gross − LOP deduction) − (manual deductions + EPF + ESI + TDS).</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
             <!-- EPF Settings -->
             <div class="col-md-6">
                 <div class="box box-primary">
