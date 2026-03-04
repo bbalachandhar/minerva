@@ -211,9 +211,11 @@ $months = array(
                 Leave <strong>LOP Days</strong> empty to skip staff. Enter <strong>0</strong> for full attendance.<br>
                 Enter LOP on <strong>calendar month days</strong> (payable days), not only working days.<br>
                 <strong>Salary Target Formula:</strong> Payable Days = Total Month Days - LOP Days. Example: Feb (28 days), to pay 4 days, enter <strong>LOP = 24</strong>.<br>
-                <strong>Sandwich Weekend Rule:</strong> Weekend is payable only if both adjacent working days are present-like (P/L/HD/FHP/SHP).<br>
-                Example 1: Fri Present + Mon Present ⇒ Sat/Sun payable (not added to LOP).<br>
-                Example 2: Fri Absent or Mon Absent ⇒ Sat/Sun non-payable and counted in LOP.<br>
+                <strong>Sandwich Weekend Rule (only rule):</strong> If both adjacent working days are absent, weekend is treated as LOP; otherwise weekend is payable.<br>
+                Example (Sunday-only weekend): Sat Absent + Mon Absent ⇒ Sat+Sun+Mon counted as LOP (3 days).<br>
+                Example (Sunday-only weekend): Sat Present + Mon Present ⇒ Sunday is payable (not added to LOP).<br>
+                Example (Saturday+Sunday weekend): Fri Absent + Mon Absent ⇒ Fri+Sat+Sun+Mon counted as LOP (4 days).<br>
+                Example (Saturday+Sunday weekend): Fri Present + Mon Present ⇒ Sat/Sun payable (not added to LOP).<br>
                 Allowed values are half-step only: <strong>0, 0.5, 1, 1.5, ...</strong>
             </div>
             <div class="table-responsive">
