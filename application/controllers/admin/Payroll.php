@@ -1944,25 +1944,31 @@ class Payroll extends Admin_Controller
 
             // Process monthly balance sync and LOP adjustment.
             // This must run even when actual LOP is zero so movement-credit rows are materialized.
-            $adjusted_result = $this->payroll_model->processLOPWithMonthlyBalance($staff['id'], $actual_lop_days, $month_numeric, $year);
-            log_message('debug', 'LOP Adjustment Result for Staff ' . $staff['id'] . ': ' . json_encode($adjusted_result));
-            if ($adjusted_result !== false && is_array($adjusted_result) && $adjusted_result['success']) {
-                $adjusted_lop_days = (float) ($adjusted_result['adjusted_lop_days'] ?? 0);
-                if ($adjusted_lop_days < 0) {
-                    $adjusted_lop_days = 0;
-                }
-                if ($adjusted_lop_days > $actual_lop_days) {
-                    $adjusted_lop_days = $actual_lop_days;
-                }
-                $net_lop_days = max(0, round($actual_lop_days - $adjusted_lop_days, 2));
-                log_message('debug', 'Staff ' . $staff['id'] . ' - Adjusted: ' . $adjusted_lop_days . ', Net: ' . $net_lop_days);
+            $month_num = date('n', strtotime($year . '-' . $month . '-01'));
+            $total_days_of_month = cal_days_in_month(CAL_GREGORIAN, $month_num, (int)$year);
+            if ($total_days_of_month > 0 && $actual_lop_days >= (float) $total_days_of_month) {
+                $adjusted_lop_days = 0;
+                $net_lop_days = $actual_lop_days;
+                log_message('debug', 'Staff ' . $staff['id'] . ' full-month LOP detected; forcing zero adjustment.');
             } else {
-                log_message('error', 'LOP Adjustment Failed for Staff ' . $staff['id'] . ': ' . json_encode($adjusted_result));
+                $adjusted_result = $this->payroll_model->processLOPWithMonthlyBalance($staff['id'], $actual_lop_days, $month_numeric, $year);
+                log_message('debug', 'LOP Adjustment Result for Staff ' . $staff['id'] . ': ' . json_encode($adjusted_result));
+                if ($adjusted_result !== false && is_array($adjusted_result) && $adjusted_result['success']) {
+                    $adjusted_lop_days = (float) ($adjusted_result['adjusted_lop_days'] ?? 0);
+                    if ($adjusted_lop_days < 0) {
+                        $adjusted_lop_days = 0;
+                    }
+                    if ($adjusted_lop_days > $actual_lop_days) {
+                        $adjusted_lop_days = $actual_lop_days;
+                    }
+                    $net_lop_days = max(0, round($actual_lop_days - $adjusted_lop_days, 2));
+                    log_message('debug', 'Staff ' . $staff['id'] . ' - Adjusted: ' . $adjusted_lop_days . ', Net: ' . $net_lop_days);
+                } else {
+                    log_message('error', 'LOP Adjustment Failed for Staff ' . $staff['id'] . ': ' . json_encode($adjusted_result));
+                }
             }
 
             $full_gross_salary = (float) $basic + (float) $total_allowance;
-            $month_num = date('n', strtotime($year . '-' . $month . '-01'));
-            $total_days_of_month = cal_days_in_month(CAL_GREGORIAN, $month_num, (int)$year);
             $prorata = $this->applyDojProrataToGross($full_gross_salary, $month_numeric, $year, $staff['date_of_joining'] ?? null);
 
             $doj_prorated_gross = isset($prorata['prorated_gross_salary']) ? (float) $prorata['prorated_gross_salary'] : (float) $full_gross_salary;
@@ -2394,8 +2400,12 @@ class Payroll extends Admin_Controller
         $actual_lop_days = !empty($lop_summary['lop_days']) ? (float) $lop_summary['lop_days'] : 0;
         $adjusted_lop_days = 0;
         $net_lop_days = $actual_lop_days;
+        $total_days_of_month = cal_days_in_month(CAL_GREGORIAN, (int) $month_num, (int) $year);
 
-        if ($actual_lop_days > 0) {
+        if ($total_days_of_month > 0 && $actual_lop_days >= (float) $total_days_of_month) {
+            $adjusted_lop_days = 0;
+            $net_lop_days = $actual_lop_days;
+        } elseif ($actual_lop_days > 0) {
             $adjusted_result = $this->payroll_model->previewLOPWithMonthlyBalance($staff_id, $actual_lop_days, $month_num, $year);
             if (!empty($adjusted_result['success'])) {
                 $net_lop_days = (float) $adjusted_result['net_lop_days'];
@@ -2413,7 +2423,6 @@ class Payroll extends Admin_Controller
         $esi_deduction = 0;
 
         $full_gross_salary = (float) $basic + (float) $total_allowance;
-        $total_days_of_month = cal_days_in_month(CAL_GREGORIAN, (int) $month_num, (int) $year);
         $prorata = $this->applyDojProrataToGross($full_gross_salary, $month_num, $year, $staff_data['date_of_joining'] ?? null);
 
         $doj_prorated_gross = isset($prorata['prorated_gross_salary']) ? (float) $prorata['prorated_gross_salary'] : (float) $full_gross_salary;

@@ -600,19 +600,11 @@ class Payroll_model extends MY_Model
      */
     public function getStaffPaidLeaves($staff_id)
     {
-        $has_balance_flag = $this->db->field_exists('requires_balance_check', 'leave_types');
-
         $this->db->select('staff_leave_details.*, leave_types.type, leave_types.is_lop');
-        if ($has_balance_flag) {
-            $this->db->select('leave_types.requires_balance_check');
-        }
         $this->db->from('staff_leave_details');
         $this->db->join('leave_types', 'leave_types.id = staff_leave_details.leave_type_id');
         $this->db->where('staff_leave_details.staff_id', $staff_id);
         $this->db->where('leave_types.is_lop', 0); // Only paid leaves (not LOP type)
-        if ($has_balance_flag) {
-            $this->db->where('leave_types.requires_balance_check', 0); // Only credit-style leaves eligible for LOP adjustment
-        }
         $this->db->order_by('leave_types.type', 'ASC'); // Alphabetical order
         $query = $this->db->get();
         
@@ -1181,6 +1173,7 @@ class Payroll_model extends MY_Model
     {
         $month_int = intval($month);
         $year_int = intval($year);
+        $days_in_month = cal_days_in_month(CAL_GREGORIAN, max(1, min(12, $month_int)), max(1970, $year_int));
         
         // Validate month/year
         $validation = $this->validateProcessingMonth($year_int, $month_int);
@@ -1210,6 +1203,24 @@ class Payroll_model extends MY_Model
                 'adjustments' => [],
                 'od_adjusted_days' => 0,
                 'od_carry_forward_days' => max(0, round($od_carry_forward_days, 2))
+            ];
+        }
+
+        if ($days_in_month > 0 && (float) $lop_days >= (float) $days_in_month) {
+            $od_carry_forward_days = 0;
+            foreach ($od_balances as $od_balance) {
+                $od_carry_forward_days += (float) ($od_balance['closing_balance'] ?? 0);
+            }
+
+            return [
+                'success' => true,
+                'actual_lop_days' => $lop_days,
+                'adjusted_lop_days' => 0,
+                'net_lop_days' => $lop_days,
+                'adjustments' => [],
+                'od_adjusted_days' => 0,
+                'od_carry_forward_days' => max(0, round($od_carry_forward_days, 2)),
+                'message' => 'Full-month LOP is not eligible for leave adjustment'
             ];
         }
         
