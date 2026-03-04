@@ -1890,20 +1890,16 @@ class Payroll extends Admin_Controller
             $total_days_of_month = cal_days_in_month(CAL_GREGORIAN, $month_num, (int)$year);
             $prorata = $this->applyDojProrataToGross($full_gross_salary, $month_numeric, $year, $staff['date_of_joining'] ?? null);
 
-            $doj_payable_days = isset($prorata['payable_days']) ? (float) $prorata['payable_days'] : (float) $total_days_of_month;
-            if ((float) $net_lop_days <= 0) {
-                $effective_payable_days = min((float) $total_days_of_month, $doj_payable_days);
-            } else {
-                $payable_days_from_attendance = (float) ($lop_summary['paid_days'] ?? 0);
-                $payable_days_from_attendance += (float) $adjusted_lop_days;
-                $payable_days_from_attendance = max(0, $payable_days_from_attendance);
-                $effective_payable_days = min((float) $total_days_of_month, $doj_payable_days, $payable_days_from_attendance);
-            }
+            $doj_prorated_gross = isset($prorata['prorated_gross_salary']) ? (float) $prorata['prorated_gross_salary'] : (float) $full_gross_salary;
+            $doj_prorated_gross = max(0, min((float) $full_gross_salary, $doj_prorated_gross));
 
-            $gross_salary = $total_days_of_month > 0
-                ? (($full_gross_salary / $total_days_of_month) * $effective_payable_days)
-                : 0;
-            $lop_deduction = max(0, $full_gross_salary - $gross_salary);
+            $lop_deduction = 0;
+            if ($total_days_of_month > 0 && (float) $net_lop_days > 0) {
+                $lop_deduction = (($full_gross_salary / $total_days_of_month) * (float) $net_lop_days);
+            }
+            $lop_deduction = max(0, min($lop_deduction, $doj_prorated_gross));
+
+            $gross_salary = max(0, $doj_prorated_gross - $lop_deduction);
 
             // Calculate EPF and TDS using the new library
             // EPF CALCULATION: Only if UAN is available for the staff
@@ -2345,20 +2341,16 @@ class Payroll extends Admin_Controller
         $total_days_of_month = cal_days_in_month(CAL_GREGORIAN, (int) $month_num, (int) $year);
         $prorata = $this->applyDojProrataToGross($full_gross_salary, $month_num, $year, $staff_data['date_of_joining'] ?? null);
 
-        $doj_payable_days = isset($prorata['payable_days']) ? (float) $prorata['payable_days'] : (float) $total_days_of_month;
-        if ((float) $net_lop_days <= 0) {
-            $effective_payable_days = min((float) $total_days_of_month, $doj_payable_days);
-        } else {
-            $payable_days_from_attendance = (float) ($lop_summary['paid_days'] ?? 0);
-            $payable_days_from_attendance += (float) $adjusted_lop_days;
-            $payable_days_from_attendance = max(0, $payable_days_from_attendance);
-            $effective_payable_days = min((float) $total_days_of_month, $doj_payable_days, $payable_days_from_attendance);
-        }
+        $doj_prorated_gross = isset($prorata['prorated_gross_salary']) ? (float) $prorata['prorated_gross_salary'] : (float) $full_gross_salary;
+        $doj_prorated_gross = max(0, min((float) $full_gross_salary, $doj_prorated_gross));
 
-        $gross_salary = $total_days_of_month > 0
-            ? (($full_gross_salary / $total_days_of_month) * $effective_payable_days)
-            : 0;
-        $lop_deduction = max(0, $full_gross_salary - $gross_salary);
+        $lop_deduction = 0;
+        if ($total_days_of_month > 0 && (float) $net_lop_days > 0) {
+            $lop_deduction = (($full_gross_salary / $total_days_of_month) * (float) $net_lop_days);
+        }
+        $lop_deduction = max(0, min($lop_deduction, $doj_prorated_gross));
+
+        $gross_salary = max(0, $doj_prorated_gross - $lop_deduction);
 
         $has_uan = isset($staff_data['uan_no']) && trim((string) $staff_data['uan_no']) !== '';
         $has_esi_no = isset($staff_data['esi_no']) && trim((string) $staff_data['esi_no']) !== '';
