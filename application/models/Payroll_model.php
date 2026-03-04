@@ -600,11 +600,19 @@ class Payroll_model extends MY_Model
      */
     public function getStaffPaidLeaves($staff_id)
     {
+        $has_balance_flag = $this->db->field_exists('requires_balance_check', 'leave_types');
+
         $this->db->select('staff_leave_details.*, leave_types.type, leave_types.is_lop');
+        if ($has_balance_flag) {
+            $this->db->select('leave_types.requires_balance_check');
+        }
         $this->db->from('staff_leave_details');
         $this->db->join('leave_types', 'leave_types.id = staff_leave_details.leave_type_id');
         $this->db->where('staff_leave_details.staff_id', $staff_id);
         $this->db->where('leave_types.is_lop', 0); // Only paid leaves (not LOP type)
+        if ($has_balance_flag) {
+            $this->db->where('leave_types.requires_balance_check', 0); // Only credit-style leaves eligible for LOP adjustment
+        }
         $this->db->order_by('leave_types.type', 'ASC'); // Alphabetical order
         $query = $this->db->get();
         
