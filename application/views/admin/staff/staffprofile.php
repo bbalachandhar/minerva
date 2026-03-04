@@ -670,9 +670,9 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                     <div class="staffprofile" style="background: linear-gradient(135deg, #2ecc71, #27ae60);">
                                         <h5><?php echo $this->lang->line('total_gross_salary'); ?></h5>
                                         <h4><?php
-                                            if (!empty($salary["earnings"])) {
-                                                // Gross Salary = Total Earnings - Total Deduction (Basic is already included in earnings)
-                                                $gross_salary = $salary["earnings"] - $salary["deduction"];
+                                            if (!empty($salary["earnings"]) || !empty($salary["basic_salary"])) {
+                                                // Gross Salary = Basic + Allowances (same as payroll edit screen)
+                                                $gross_salary = (float) $salary["basic_salary"] + (float) $salary["earnings"];
                                                 echo $currency_symbol . amountFormat($gross_salary);
                                             } else {
                                                 echo $currency_symbol . "0.00";

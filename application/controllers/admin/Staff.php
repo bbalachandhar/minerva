@@ -193,6 +193,7 @@ class Staff extends Admin_Controller
                 'net_salary'     => 0,
                 'earnings'       => 0,
                 'deduction'      => 0,
+                'basic_salary'   => 0,
                 'tax'            => 0,
                 'leave_deduction'=> 0,
             ];
@@ -203,6 +204,7 @@ class Staff extends Admin_Controller
         $salary['net_salary']      = isset($salary['net_salary']) ? $salary['net_salary'] : 0;
         $salary['earnings']        = isset($salary['earnings']) ? $salary['earnings'] : 0;
         $salary['deduction']       = isset($salary['deduction']) ? $salary['deduction'] : 0;
+        $salary['basic_salary']    = isset($salary['basic_salary']) ? $salary['basic_salary'] : 0;
         $salary['tax']             = isset($salary['tax']) ? $salary['tax'] : 0;
         $salary['leave_deduction'] = isset($salary['leave_deduction']) ? $salary['leave_deduction'] : 0;
 
