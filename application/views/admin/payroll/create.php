@@ -534,6 +534,7 @@ if (!empty($result["basic_salary"])) {
                                                     <input class="form-control" name="staff_id" value="<?php echo $result["id"]; ?>"  type="hidden" />
                                                     <input class="form-control" name="month" value="<?php echo $month; ?>"  type="hidden" />
                                                     <input class="form-control" name="year" value="<?php echo $year; ?>"  type="hidden" />
+                                                    <input class="form-control" name="payslip_id" value="<?php echo !empty($existing_payslip_id) ? (int)$existing_payslip_id : 0; ?>"  type="hidden" />
                                                     <input class="form-control" name="status" value="generated"  type="hidden" />
                                                     <input class="form-control" id="working_days" value="<?php echo $payroll_lop_summary['working_days']; ?>" type="hidden" />
                                                     <input class="form-control" id="paid_days" value="<?php echo $payroll_lop_summary['paid_days']; ?>" type="hidden" />

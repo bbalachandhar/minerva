@@ -110,17 +110,25 @@ class Payroll extends Admin_Controller
         $data["year"]   = $year;
         $data["earnings"]   = array();
         $data["deductions"] = array();
-        $data["is_calculated"] = false; // Track if payslip is already calculated
-        $last_payslip = $this->payroll_model->getLastPayslip($id);
+        $data["is_calculated"] = false; // Keep create form editable for selected month
+        $data["existing_payslip_id"] = 0;
+        $selected_month_payslip = $this->payroll_model->getPayslipByStaffMonthYear($id, $month, $year);
 
-        if(!empty($last_payslip)){
-            // Payslip already exists - it's calculated
-            $data["is_calculated"] = true;
-            if($last_payslip['basic'] > 0){
-                $data['result']['basic_salary'] = $last_payslip['basic'];
+        if (!empty($selected_month_payslip) && !empty($selected_month_payslip->id)) {
+            $data["existing_payslip_id"] = (int) $selected_month_payslip->id;
+            if ((float) $selected_month_payslip->basic > 0) {
+                $data['result']['basic_salary'] = (float) $selected_month_payslip->basic;
             }
-            $data["earnings"]   = $this->payroll_model->getAllowance($last_payslip['id'], 'positive');
-            // Note: Deductions are NOT copied from previous month - they are calculated fresh each month
+            $data["earnings"]   = $this->payroll_model->getAllowance((int) $selected_month_payslip->id, 'positive');
+            $data["deductions"] = $this->payroll_model->getAllowance((int) $selected_month_payslip->id, 'negative');
+        } else {
+            $last_payslip = $this->payroll_model->getLastPayslip($id);
+            if (!empty($last_payslip)) {
+                if ((float) $last_payslip['basic'] > 0) {
+                    $data['result']['basic_salary'] = (float) $last_payslip['basic'];
+                }
+                $data["earnings"] = $this->payroll_model->getAllowance((int) $last_payslip['id'], 'positive');
+            }
         }
 
         $alloted_leave = $this->staff_model->alloted_leave($id);
@@ -1583,6 +1591,7 @@ class Payroll extends Admin_Controller
         $month           = $this->input->post("month");
         $name            = $this->input->post("name");
         $year            = $this->input->post("year");      
+        $payslip_id      = (int) $this->input->post("payslip_id");
         $basic = $this->resolvePayrollBasicAmount($basic, null, (int) $staff_id);
         
         $leave_deduction = $this->input->post("leave_deduction");
@@ -1606,12 +1615,16 @@ class Payroll extends Admin_Controller
                 'leave_deduction'        => $leave_deduction,
             );
 
-            $checkForUpdate = $this->payroll_model->checkPayslip($month, $year, $staff_id);
- 
-            if ($checkForUpdate == true) {
+            $existing_month_payslip = $this->payroll_model->getPayslipByStaffMonthYear($staff_id, $month, $year);
+            if ($payslip_id <= 0 && !empty($existing_month_payslip) && !empty($existing_month_payslip->id)) {
+                $payslip_id = (int) $existing_month_payslip->id;
+            }
+            if ($payslip_id > 0) {
+                $data['id'] = $payslip_id;
+            }
 
-                $insert_id        = $this->payroll_model->createPayslip($data);
-                $payslipid        = $insert_id;
+            $insert_id        = $this->payroll_model->createPayslip($data);
+            $payslipid        = $insert_id;
                 
                 // Get staff data to calculate EPF/ESI based on dual checkpoints
                 $staff_data = $this->payroll_model->searchEmployeeById($staff_id);
@@ -1709,8 +1722,8 @@ class Payroll extends Admin_Controller
 
                 $this->ensureBasicAllowanceExists((int) $payslipid, (int) $staff_id, (float) $basic);
 
-                $this->session->set_flashdata('msg', '<div class="alert alert-success text-center">Payslip updated successfully.</div>');
-                $redirect_id = $id;
+                $this->session->set_flashdata('msg', '<div class="alert alert-success text-center">Payslip saved successfully.</div>');
+                $redirect_id = $payslipid;
                 if (empty($redirect_id)) {
                     $existing_payslip = $this->payroll_model->getPayslipByStaffMonthYear($staff_id, $month, $year);
                     if (!empty($existing_payslip) && !empty($existing_payslip->id)) {
@@ -1721,21 +1734,6 @@ class Payroll extends Admin_Controller
                     redirect('admin/payroll/edit/' . $redirect_id);
                 }
                 redirect('admin/payroll');
-            } else {
-
-                $this->session->set_flashdata("msg", '<div class="alert alert-warning text-center">' . $this->lang->line('payslip_already_generated') . '</div>');
-                $redirect_id = $id;
-                if (empty($redirect_id)) {
-                    $existing_payslip = $this->payroll_model->getPayslipByStaffMonthYear($staff_id, $month, $year);
-                    if (!empty($existing_payslip) && !empty($existing_payslip->id)) {
-                        $redirect_id = $existing_payslip->id;
-                    }
-                }
-                if (!empty($redirect_id)) {
-                    redirect('admin/payroll/edit/' . $redirect_id);
-                }
-                redirect('admin/payroll');
-            }
         }
     }
 
