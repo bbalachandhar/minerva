@@ -165,6 +165,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                 <thead>
                                     <tr>
                                         <th><?php echo $this->lang->line('name'); ?></th>
+                                        <th>DOJ</th>
                                         <th><?php echo $this->lang->line('month_year'); ?></th>
                                         <th>Category</th>
                                         <th><?php echo $this->lang->line('payslip'); ?> #</th>
@@ -172,7 +173,6 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                         <th class="text text-right"><?php echo $this->lang->line('earning'); ?> <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
                                         <th class="text text-right"><?php echo $this->lang->line('gross_salary'); ?> <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
                                         <th class="text text-right">No. Of Days</th>
-                                        <th class="text text-right">AWD</th>
                                         <th class="text text-right">Paid Days</th>
                                         <th class="text text-right">LOP Days</th>
                                         <th class="text text-right">LOP <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
@@ -199,7 +199,6 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                     $total_esi_wages = 0;
                                     $total_esi = 0;
                                     $total_no_of_days = 0;
-                                    $total_awd = 0;
                                     $total_paid_days = 0;
                                     $total_lop_days = 0;
 
@@ -284,7 +283,6 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                             }
 
                                             $total_no_of_days += $days_in_month;
-                                            $total_awd += $awd_days;
                                             $total_paid_days += $paid_days;
                                             $total_lop_days += $lop_days;
 
@@ -295,6 +293,15 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                                 <td style="text-transform: capitalize;">
                                                     <span data-toggle="popover" class="detail_popover" data-original-title="" title=""><a href="<?php echo base_url() ?>admin/staff/profile/<?php echo $value['staff_id']; ?>"><?php echo $value['name'] . " " . $value['surname']." (".$value['employee_id'].")"; ?></a></span>
                                                    
+                                                </td>
+                                                <td>
+                                                    <?php
+                                                    if (!empty($value['date_of_joining'])) {
+                                                        echo date($this->customlib->getSchoolDateFormat(), strtotime($value['date_of_joining']));
+                                                    } else {
+                                                        echo '-';
+                                                    }
+                                                    ?>
                                                 </td>
                                                 <td>
         <?php echo $this->lang->line(strtolower($value['month'])) . " - " . $value['year']; ?>
@@ -336,7 +343,6 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                                     ?>
                                                 </td>
                                                 <td class="text text-right"><?php echo $days_in_month > 0 ? rtrim(rtrim(number_format($days_in_month, 2, '.', ''), '0'), '.') : '-'; ?></td>
-                                                <td class="text text-right"><?php echo $awd_days > 0 ? rtrim(rtrim(number_format($awd_days, 2, '.', ''), '0'), '.') : '0'; ?></td>
                                                 <td class="text text-right"><?php echo $paid_days > 0 ? rtrim(rtrim(number_format($paid_days, 2, '.', ''), '0'), '.') : '0'; ?></td>
                                                 <td class="text text-right"><?php echo $lop_days > 0 ? rtrim(rtrim(number_format($lop_days, 2, '.', ''), '0'), '.') : '0'; ?></td>
                                                 <td class="text text-right">
@@ -399,12 +405,12 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                         <td></td>
                                         <td></td>
                                         <td></td>
+                                        <td></td>
                                         <td class="text-right"><?php echo $this->lang->line('grand_total'); ?> </td>
                                         <td class="text text-right"><?php if($basic > 0){ echo $currency_symbol . amountFormat($basic); } ?></td>
                                         <td class="text text-right"><?php if($earnings > 0){ echo $currency_symbol . amountFormat($earnings); } ?></td>
                                         <td class="text text-right"><?php if($grossTotal > 0){ echo $currency_symbol . amountFormat($grossTotal); } ?></td>
                                         <td class="text text-right"><?php if($total_no_of_days > 0){ echo rtrim(rtrim(number_format($total_no_of_days, 2, '.', ''), '0'), '.'); } ?></td>
-                                        <td class="text text-right"><?php if($total_awd > 0){ echo rtrim(rtrim(number_format($total_awd, 2, '.', ''), '0'), '.'); } ?></td>
                                         <td class="text text-right"><?php if($total_paid_days > 0){ echo rtrim(rtrim(number_format($total_paid_days, 2, '.', ''), '0'), '.'); }else{ echo '0'; } ?></td>
                                         <td class="text text-right"><?php if($total_lop_days > 0){ echo rtrim(rtrim(number_format($total_lop_days, 2, '.', ''), '0'), '.'); } ?></td>
                                         <td class="text text-right"><?php if($total_lop > 0){ echo $currency_symbol . amountFormat($total_lop); } ?></td>

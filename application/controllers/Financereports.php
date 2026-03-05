@@ -1358,6 +1358,16 @@ $data['department_id_selected'] = $this->input->post('department_id');
 
         $result              = $this->payroll_model->getbetweenpayrollReport($start_date, $end_date, $filter_month, $filter_year);
         if (!empty($result)) {
+            $result = array_values(array_filter($result, function ($row) {
+                $raw = $row['staff_is_active'] ?? 1;
+                if (is_bool($raw)) {
+                    return $raw;
+                }
+                $normalized = strtolower(trim((string) $raw));
+                return in_array($normalized, ['1', 'true', 'yes'], true);
+            }));
+        }
+        if (!empty($result)) {
             foreach ($result as &$row) {
                 $row['working_days'] = '';
                 if (!empty($row['month']) && !empty($row['year'])) {
@@ -1458,6 +1468,16 @@ $data['department_id_selected'] = $this->input->post('department_id');
 
         log_message('debug','epfreport fetch payroll range '.$start_date.' to '.$end_date);
         $result = $this->payroll_model->getbetweenpayrollReport($start_date, $end_date, $filter_month, $filter_year);
+        if (!empty($result)) {
+            $result = array_values(array_filter($result, function ($row) {
+                $raw = $row['staff_is_active'] ?? 1;
+                if (is_bool($raw)) {
+                    return $raw;
+                }
+                $normalized = strtolower(trim((string) $raw));
+                return in_array($normalized, ['1', 'true', 'yes'], true);
+            }));
+        }
         log_message('debug','epfreport result count:'.count($result));
 
         // attach working days and lop information from payslip
@@ -1564,6 +1584,16 @@ $data['department_id_selected'] = $this->input->post('department_id');
 
             log_message('debug','esireport fetch payroll range '.$start_date.' to '.$end_date);
             $result = $this->payroll_model->getbetweenpayrollReport($start_date, $end_date, $filter_month, $filter_year);
+            if (!empty($result)) {
+                $result = array_values(array_filter($result, function ($row) {
+                    $raw = $row['staff_is_active'] ?? 1;
+                    if (is_bool($raw)) {
+                        return $raw;
+                    }
+                    $normalized = strtolower(trim((string) $raw));
+                    return in_array($normalized, ['1', 'true', 'yes'], true);
+                }));
+            }
             log_message('debug','esireport result count:'.count($result));
 
             // reuse working days/LOP logic from EPF

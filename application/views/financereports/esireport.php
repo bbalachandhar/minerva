@@ -85,6 +85,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                     <thead>
                         <tr>
                             <th><?php echo $this->lang->line('name'); ?></th>
+                            <th>DOJ</th>
                             <th><?php echo $this->lang->line('employee_id'); ?></th>
                             <th>ESI No</th>
                             <th>Category</th>
@@ -172,6 +173,15 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                 ?>
                                 <tr>
                                     <td><?php echo $value['name'] . ' ' . $value['surname']; ?></td>
+                                    <td>
+                                        <?php
+                                        if (!empty($value['date_of_joining'])) {
+                                            echo date($this->customlib->getSchoolDateFormat(), strtotime($value['date_of_joining']));
+                                        } else {
+                                            echo '-';
+                                        }
+                                        ?>
+                                    </td>
                                     <td><?php echo $value['employee_id']; ?></td>
                                     <td><?php echo !empty($value['esi_no']) ? $value['esi_no'] : '-'; ?></td>
                                     <td>
@@ -202,6 +212,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                     </tbody>
                     <tfoot>
                         <tr class="box box-solid total-bg">
+                            <td></td>
                             <td></td>
                             <td></td>
                             <td class="text-right"><?php echo $this->lang->line('grand_total'); ?></td>
