@@ -345,18 +345,10 @@ class Specialattendance extends Admin_Controller
         $this->db->where('YEAR(date)', (int)$year);
         $this->db->delete('staff_attendance');
 
-        $dates = $this->db->select('DATE(punch_time) AS punch_date')
-            ->from('staff_biometric_punches_manual')
-            ->where_in('staff_id', $employee_ids)
-            ->where('source', 'special_attendance')
-            ->where('MONTH(punch_time)', $monthNumber)
-            ->where('YEAR(punch_time)', (int)$year)
-            ->group_by('DATE(punch_time)')
-            ->get()
-            ->result_array();
-
-        foreach ($dates as $row) {
-            $this->Attendance_model->process_daily_manual_attendance_for_staff($row['punch_date'], $employee_ids, 'special_attendance');
+        $daysInMonth = cal_days_in_month(CAL_GREGORIAN, $monthNumber, (int)$year);
+        for ($day = 1; $day <= $daysInMonth; $day++) {
+            $date = sprintf('%04d-%02d-%02d', (int)$year, (int)$monthNumber, (int)$day);
+            $this->Attendance_model->process_daily_manual_attendance_for_staff($date, $employee_ids, 'special_attendance');
         }
 
         echo json_encode(['status' => 'success', 'message' => 'Staff attendance processed']);

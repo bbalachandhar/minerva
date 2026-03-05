@@ -209,7 +209,7 @@ $months = array(
             <div class="alert alert-info" style="margin-bottom:10px;">
                 <strong>Instructions:</strong>
                 Leave <strong>LOP Days</strong> empty to skip staff. Enter <strong>0</strong> for full attendance.<br>
-                Enter LOP as <strong>exact days to deduct</strong> from working attendance (e.g. 1 = one day LOP, 4 = four days LOP).<br>
+                Enter LOP as <strong>target payroll LOP days</strong> for the month (e.g. 1 = pay approx 27/28 days in Feb, 21.5 = pay approx 6.5 days in Feb).<br>
                 <strong>Sandwich Weekend Rule (only rule):</strong> If both adjacent working days are absent, weekend is treated as LOP; otherwise weekend is payable.<br>
                 Example (Sunday-only weekend): Sat Absent + Mon Absent ⇒ Sat+Sun+Mon counted as LOP (3 days).<br>
                 Example (Sunday-only weekend): Sat Present + Mon Present ⇒ Sunday is payable (not added to LOP).<br>
@@ -399,9 +399,9 @@ $months = array(
             return;
         }
 
-        var maxLopDays = parseFloat($workingDays.val());
+        var maxLopDays = parseFloat($payableWorkingDays.val());
         if (!isFinite(maxLopDays)) {
-            maxLopDays = parseFloat($payableWorkingDays.val());
+            maxLopDays = parseFloat($workingDays.val());
         }
         if (!isFinite(maxLopDays)) {
             maxLopDays = null;

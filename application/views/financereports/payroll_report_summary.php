@@ -173,6 +173,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                         <th class="text text-right"><?php echo $this->lang->line('gross_salary'); ?> <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
                                         <th class="text text-right">No. Of Days</th>
                                         <th class="text text-right">AWD</th>
+                                        <th class="text text-right">Paid Days</th>
                                         <th class="text text-right">LOP Days</th>
                                         <th class="text text-right">LOP <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
                                         <th class="text text-right">EPF Wages (Gross - LOP) <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
@@ -199,6 +200,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                     $total_esi = 0;
                                     $total_no_of_days = 0;
                                     $total_awd = 0;
+                                    $total_paid_days = 0;
                                     $total_lop_days = 0;
 
                                     // compute later as we iterate rows
@@ -258,8 +260,32 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                                 $awd_days = 0;
                                             }
 
+                                            $paid_days = (float) $awd_days;
+                                            if (!empty($value['date_of_joining']) && $days_in_month > 0 && !empty($value['month']) && !empty($value['year'])) {
+                                                $doj_ts = strtotime($value['date_of_joining']);
+                                                if ($doj_ts !== false) {
+                                                    $month_start = sprintf('%04d-%02d-01', (int)$year_num, (int)$month_num);
+                                                    $month_end = date('Y-m-t', strtotime($month_start));
+                                                    $doj_date = date('Y-m-d', $doj_ts);
+
+                                                    if ($doj_date > $month_end) {
+                                                        $paid_days = 0;
+                                                    } elseif ($doj_date > $month_start) {
+                                                        $eligible_start = new DateTime($doj_date);
+                                                        $eligible_end = new DateTime($month_end);
+                                                        $eligible_days = (int)$eligible_start->diff($eligible_end)->days + 1;
+                                                        $paid_days = min((float)$paid_days, (float)$eligible_days);
+                                                    }
+                                                }
+                                            }
+
+                                            if ($paid_days < 0) {
+                                                $paid_days = 0;
+                                            }
+
                                             $total_no_of_days += $days_in_month;
                                             $total_awd += $awd_days;
+                                            $total_paid_days += $paid_days;
                                             $total_lop_days += $lop_days;
 
                                             $total = 0;
@@ -311,6 +337,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                                 </td>
                                                 <td class="text text-right"><?php echo $days_in_month > 0 ? rtrim(rtrim(number_format($days_in_month, 2, '.', ''), '0'), '.') : '-'; ?></td>
                                                 <td class="text text-right"><?php echo $awd_days > 0 ? rtrim(rtrim(number_format($awd_days, 2, '.', ''), '0'), '.') : '0'; ?></td>
+                                                <td class="text text-right"><?php echo $paid_days > 0 ? rtrim(rtrim(number_format($paid_days, 2, '.', ''), '0'), '.') : '0'; ?></td>
                                                 <td class="text text-right"><?php echo $lop_days > 0 ? rtrim(rtrim(number_format($lop_days, 2, '.', ''), '0'), '.') : '0'; ?></td>
                                                 <td class="text text-right">
                                                     <?php echo (!empty($value['leave_deduction']) && $value['leave_deduction'] > 0) ? amountFormat($value['leave_deduction']) : '-'; ?>
@@ -378,6 +405,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                         <td class="text text-right"><?php if($grossTotal > 0){ echo $currency_symbol . amountFormat($grossTotal); } ?></td>
                                         <td class="text text-right"><?php if($total_no_of_days > 0){ echo rtrim(rtrim(number_format($total_no_of_days, 2, '.', ''), '0'), '.'); } ?></td>
                                         <td class="text text-right"><?php if($total_awd > 0){ echo rtrim(rtrim(number_format($total_awd, 2, '.', ''), '0'), '.'); } ?></td>
+                                        <td class="text text-right"><?php if($total_paid_days > 0){ echo rtrim(rtrim(number_format($total_paid_days, 2, '.', ''), '0'), '.'); }else{ echo '0'; } ?></td>
                                         <td class="text text-right"><?php if($total_lop_days > 0){ echo rtrim(rtrim(number_format($total_lop_days, 2, '.', ''), '0'), '.'); } ?></td>
                                         <td class="text text-right"><?php if($total_lop > 0){ echo $currency_symbol . amountFormat($total_lop); } ?></td>
                                         <td class="text text-right"><?php if($total_epf_wages > 0){ echo $currency_symbol . amountFormat($total_epf_wages); } ?></td>

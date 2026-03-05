@@ -43,38 +43,30 @@ class SpecialAttendance_model extends CI_Model {
         $attendanceWindows = $this->getStaffAttendanceWindows($staff_id, $schedule, $settings);
 
         $working_days = $this->getWorkingDays($month, $year, $settings);
-        $total_working_days = count($working_days);
-
-        $lop = is_numeric($lop_days) ? (float)$lop_days : 0;
-        if ($lop < 0) {
-            $lop = 0;
-        }
-        if ($lop > $total_working_days) {
-            $lop = (float)$total_working_days;
-        }
-
-        // Treat input as direct LOP target on working-day attendance.
-        // Remaining working days are generated as present/half-present.
-        $present_days_target = (float)$total_working_days - $lop;
-        if ($present_days_target <= 0) {
-            return [];
-        }
-
-        $full_days = (int)floor($present_days_target);
-        $has_half_day = (($present_days_target - $full_days) >= 0.5);
-
-        $required_days = $full_days + ($has_half_day ? 1 : 0);
         $monthNum = $this->getMonthNumber($month, $year);
-        if ($monthNum === null) {
+        if ($monthNum === null || empty($working_days)) {
             return [];
         }
 
-        $selected_days = $this->selectSandwichAwareWorkingDays($working_days, $monthNum, (int)$year, $settings, $required_days);
-        sort($selected_days);
+        $weekend_days = $this->getWeekendDays($monthNum, (int)$year, $settings);
+        $target_lop = is_numeric($lop_days) ? (float)$lop_days : 0.0;
+        if ($target_lop < 0) {
+            $target_lop = 0.0;
+        }
+
+        $status_by_date = $this->planStatusesForTargetLop($working_days, $weekend_days, $target_lop);
+        if (empty($status_by_date)) {
+            return [];
+        }
 
         $punches = [];
-        foreach ($selected_days as $index => $date) {
-            $is_half_day = $has_half_day && ($index === (count($selected_days) - 1));
+        foreach ($working_days as $date) {
+            $status = $status_by_date[$date] ?? 'A';
+            if ($status === 'A') {
+                continue;
+            }
+
+            $is_half_day = ($status === 'H');
 
             $entryFrom = $attendanceWindows['entry_from'];
             $entryTo = $attendanceWindows['entry_to'];
@@ -98,6 +90,139 @@ class SpecialAttendance_model extends CI_Model {
         }
 
         return $punches;
+    }
+
+    private function planStatusesForTargetLop(array $working_days, array $weekend_days, $target_lop)
+    {
+        $n = count($working_days);
+        if ($n === 0) {
+            return [];
+        }
+
+        $target_units = (int) round(max(0, (float)$target_lop) * 2);
+        $working_lookup = array_fill_keys($working_days, true);
+        $weekend_lookup = array_fill_keys($weekend_days, true);
+
+        $weekend_gap_units = array_fill(0, max(0, $n - 1), 0);
+        for ($i = 1; $i < $n; $i++) {
+            $count = $this->countWeekendDaysBetween($working_days[$i - 1], $working_days[$i], $weekend_lookup, $working_lookup);
+            $weekend_gap_units[$i - 1] = max(0, (int)$count) * 2;
+        }
+
+        $max_units = 2 * $n;
+        foreach ($weekend_gap_units as $gap_units) {
+            $max_units += (int)$gap_units;
+        }
+        if ($target_units > $max_units) {
+            $target_units = $max_units;
+        }
+
+        $status_defs = [
+            'P' => ['units' => 0, 'absent' => 0],
+            'H' => ['units' => 1, 'absent' => 0],
+            'A' => ['units' => 2, 'absent' => 1],
+        ];
+
+        $dp = [];
+        $prev = [];
+
+        foreach ($status_defs as $status => $def) {
+            $u = $def['units'];
+            $a = $def['absent'];
+            if (!isset($dp[0])) {
+                $dp[0] = [];
+            }
+            if (!isset($dp[0][$u])) {
+                $dp[0][$u] = [];
+            }
+            $dp[0][$u][$a] = true;
+            $prev[0][$u][$a] = ['prev_units' => null, 'prev_absent' => null, 'status' => $status];
+        }
+
+        for ($i = 1; $i < $n; $i++) {
+            foreach ($dp[$i - 1] ?? [] as $used_units => $absent_states) {
+                foreach ($absent_states as $prev_absent => $_reachable) {
+                    foreach ($status_defs as $status => $def) {
+                        $pair_units = ((int)$prev_absent === 1 && (int)$def['absent'] === 1) ? (int)$weekend_gap_units[$i - 1] : 0;
+                        $new_units = (int)$used_units + (int)$def['units'] + $pair_units;
+                        if ($new_units > $max_units) {
+                            continue;
+                        }
+
+                        if (!isset($dp[$i])) {
+                            $dp[$i] = [];
+                        }
+                        if (!isset($dp[$i][$new_units])) {
+                            $dp[$i][$new_units] = [];
+                        }
+
+                        $new_absent = (int)$def['absent'];
+                        if (!isset($dp[$i][$new_units][$new_absent])) {
+                            $dp[$i][$new_units][$new_absent] = true;
+                            $prev[$i][$new_units][$new_absent] = [
+                                'prev_units' => (int)$used_units,
+                                'prev_absent' => (int)$prev_absent,
+                                'status' => $status,
+                            ];
+                        }
+                    }
+                }
+            }
+        }
+
+        $best_units = null;
+        $best_absent = null;
+        $best_diff = null;
+
+        foreach ($dp[$n - 1] ?? [] as $units => $absent_states) {
+            foreach ($absent_states as $absent => $_reachable) {
+                $diff = abs((int)$units - $target_units);
+                if ($best_diff === null || $diff < $best_diff || ($diff === $best_diff && (int)$units > (int)$best_units)) {
+                    $best_diff = $diff;
+                    $best_units = (int)$units;
+                    $best_absent = (int)$absent;
+                }
+            }
+        }
+
+        if ($best_units === null) {
+            return [];
+        }
+
+        $statuses = array_fill(0, $n, 'A');
+        $cur_units = $best_units;
+        $cur_absent = $best_absent;
+        for ($i = $n - 1; $i >= 0; $i--) {
+            $node = $prev[$i][$cur_units][$cur_absent] ?? null;
+            if (!$node) {
+                break;
+            }
+            $statuses[$i] = (string)$node['status'];
+            $cur_units = $node['prev_units'];
+            $cur_absent = $node['prev_absent'];
+            if ($cur_units === null || $cur_absent === null) {
+                break;
+            }
+        }
+
+        $result = [];
+        foreach ($working_days as $idx => $date) {
+            $result[$date] = $statuses[$idx] ?? 'A';
+        }
+        return $result;
+    }
+
+    private function countWeekendDaysBetween($start_date, $end_date, array $weekend_lookup, array $working_lookup)
+    {
+        $count = 0;
+        $cursor = date('Y-m-d', strtotime($start_date . ' +1 day'));
+        while ($cursor < $end_date) {
+            if (isset($weekend_lookup[$cursor]) && !isset($working_lookup[$cursor])) {
+                $count++;
+            }
+            $cursor = date('Y-m-d', strtotime($cursor . ' +1 day'));
+        }
+        return $count;
     }
 
     private function selectSandwichAwareWorkingDays($working_days, $monthNum, $year, $settings, $required_days)

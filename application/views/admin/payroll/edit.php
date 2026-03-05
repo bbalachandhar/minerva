@@ -208,6 +208,7 @@ $image=$this->media_storage->getImageURL("uploads/staff_images/" . $file);
                                                     <th style="padding: 8px 6px; text-align: center; border: 1px solid #e0e0e0; font-weight: 600; color: #495057;"><span data-toggle="tooltip" title="Total Days In Month">WD</span></th>
                                                     <th style="padding: 8px 6px; text-align: center; border: 1px solid #e0e0e0; font-weight: 600; color: #495057;"><span data-toggle="tooltip" title="Actual Working Days">AWD</span></th>
                                                     <th style="padding: 8px 6px; text-align: center; border: 1px solid #e0e0e0; font-weight: 600; color: #495057;"><span data-toggle="tooltip" title="Total Present (Including Half Day)">P*</span></th>
+                                                    <th style="padding: 8px 6px; text-align: center; border: 1px solid #e0e0e0; font-weight: 600; color: #495057;"><span data-toggle="tooltip" title="Paid Days = P* + Sandwich Valid Weekend Days">Paid Days</span></th>
                                                     <th style="padding: 8px 6px; text-align: center; border: 1px solid #e0e0e0; font-weight: 600; color: #495057;"><span data-toggle="tooltip" title="Total Absent (Including Half Day)">A*</span></th>
                                                     <th style="padding: 8px 6px; text-align: center; border: 1px solid #e0e0e0; font-weight: 600; color: #495057;"><span data-toggle="tooltip" title="Half Day">HD</span></th>
                                                     <th style="padding: 8px 6px; text-align: center; border: 1px solid #e0e0e0; font-weight: 600; color: #495057;"><span data-toggle="tooltip" title="Total Holidays">H</span></th>
@@ -312,6 +313,28 @@ if ($is_current_payroll_month && !empty($payroll_lop_summary)) {
 
 // Show A* as total absence including non-payable sandwich weekends.
 $total_absent_display = (float) $total_absent + (float) $weekend_lop_days;
+$sandwich_valid_days = max(0, (float) $weekend_count - (float) $weekend_lop_days);
+$paid_days_display = (float) $total_present + (float) $sandwich_valid_days;
+
+// Respect Date of Joining for paid days display.
+$date_of_joining = $result['date_of_joining'] ?? null;
+if (!empty($date_of_joining)) {
+    $doj_ts = strtotime($date_of_joining);
+    $month_start = date('Y-m-01', strtotime($attendence_key));
+    $month_end = date('Y-m-t', strtotime($attendence_key));
+
+    if ($doj_ts !== false) {
+        $doj_date = date('Y-m-d', $doj_ts);
+        if ($doj_date > $month_end) {
+            $paid_days_display = 0;
+        } elseif ($doj_date > $month_start) {
+            $eligible_start = new DateTime($doj_date);
+            $eligible_end = new DateTime($month_end);
+            $eligible_days = (int) $eligible_start->diff($eligible_end)->days + 1;
+            $paid_days_display = min((float) $paid_days_display, (float) $eligible_days);
+        }
+    }
+}
 
 // For current payroll month, use values from payslip; for other months, query monthly balance
 if ($is_current_payroll_month) {
@@ -369,6 +392,7 @@ if ($is_current_payroll_month) {
                                                 <td style="padding: 8px 6px; text-align: center; border: 1px solid #e0e0e0; color: #666;"><?php echo $month_days; ?></td>
                                                 <td style="padding: 8px 6px; text-align: center; border: 1px solid #e0e0e0; color: #666;"><?php echo $working_days; ?></td>
                                                 <td style="padding: 8px 6px; text-align: center; border: 1px solid #e0e0e0; color: #666;"><?php echo rtrim(rtrim(number_format((float) $total_present, 1, '.', ''), '0'), '.'); ?></td>
+                                                <td style="padding: 8px 6px; text-align: center; border: 1px solid #e0e0e0; color: #666;"><?php echo rtrim(rtrim(number_format((float) $paid_days_display, 1, '.', ''), '0'), '.'); ?></td>
                                                 <td style="padding: 8px 6px; text-align: center; border: 1px solid #e0e0e0; color: #666;"><?php echo rtrim(rtrim(number_format((float) $total_absent_display, 1, '.', ''), '0'), '.'); ?></td>
                                                 <td style="padding: 8px 6px; text-align: center; border: 1px solid #e0e0e0; color: #666;"><?php echo $half_day; ?></td>
                                                 <td style="padding: 8px 6px; text-align: center; border: 1px solid #e0e0e0; color: #666;"><?php echo $holiday_count; ?></td>
@@ -397,6 +421,7 @@ if ($is_current_payroll_month) {
                         <div class="text-muted" style="font-size: 12px; line-height: 1.6;">
                             <strong>Legend:</strong> 
                             P*: Present incl. half-day (after late/permission penalty). 
+                            Paid Days: P* + sandwich-valid weekend days (weekend days not counted in sandwich LOP). 
                             A*: Absent incl. half-day and late/permission penalty. 
                             Sandwich Rule: Weekend is payable only when both adjacent working days are present-like. 
                             LOP: Actual LOP days after applying sandwich rule. 
