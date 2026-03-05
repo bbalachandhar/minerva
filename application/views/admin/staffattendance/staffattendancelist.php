@@ -331,6 +331,7 @@
                                                     <th><?php echo $this->lang->line('total_hours'); ?></th>
                                                     <th><?php echo $this->lang->line('raw_punches'); ?></th>
                                                     <th class="text-right note-header" style="width:22%;"><?php echo $this->lang->line('note'); ?></th>
+                                                    <th><?php echo $this->lang->line('action'); ?></th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -498,6 +499,13 @@
                                                         <?php } else { ?>
                                                             <td class="text-right note-cell"><textarea class="form-control note-textarea" rows="2" name="remark<?php echo $value["staff_id"] ?>"><?php echo $value["remark"]; ?></textarea></td>
                                                         <?php } ?>
+                                                        <td>
+                                                            <?php if (($this->rbac->hasPrivilege('staff_attendance', 'can_add')) || ($this->rbac->hasPrivilege('staff_attendance', 'can_edit'))) { ?>
+                                                                <button type="button" class="btn btn-primary btn-xs btn-row-update" data-staff-id="<?php echo $value['staff_id']; ?>">
+                                                                    <i class="fa fa-save"></i> <?php echo $this->lang->line('update'); ?>
+                                                                </button>
+                                                            <?php } ?>
+                                                        </td>
                                                     </tr>
                                                 <?php
                                                     $row_count++;
@@ -896,7 +904,7 @@ setTimeout(function() {
     _pageLoadComplete = true;
 }, 500);
 
-function scheduleEvalForRow($row, staffId, dateRaw, inTime, outTime, showToast) {
+function scheduleEvalForRow($row, staffId, dateRaw, inTime, outTime, showToast, extraData) {
     // ignore if bulk save in progress
     if (window._staffAttendanceBulkSave) { return; }
     if (!staffId) { return; }
@@ -907,10 +915,15 @@ function scheduleEvalForRow($row, staffId, dateRaw, inTime, outTime, showToast) 
     }
     evalTimers[staffId] = setTimeout(function() {
         var $spinner = $row.find('.eval-spinner');
+        var $rowUpdateButton = $row.find('.btn-row-update');
         $spinner.show();
+        $rowUpdateButton.prop('disabled', true);
 
         // CALL the save+process endpoint (auto‑persist + reprocess)
         var dataToSend = { staff_id: staffId, date: dateRaw, in_time: inTime, out_time: outTime };
+        if (extraData && typeof extraData === 'object') {
+            $.extend(dataToSend, extraData);
+        }
         dataToSend[csrfName] = csrfHash;
 
         $.post(saveProcessUrl, dataToSend, function(resp) {
@@ -965,7 +978,7 @@ function scheduleEvalForRow($row, staffId, dateRaw, inTime, outTime, showToast) 
 
             // update remark input with appended audit text from DB (if present)
             if (resp.data.db_attendance && typeof resp.data.db_attendance.remark !== 'undefined') {
-                $row.find('input[name="remark' + staffId + '"]').val(resp.data.db_attendance.remark || '');
+                $row.find('textarea[name="remark' + staffId + '"]').val(resp.data.db_attendance.remark || '');
             }
 
             // show short success toast only when caller requested it (we show toast on blur/focusout only)
@@ -985,6 +998,7 @@ function scheduleEvalForRow($row, staffId, dateRaw, inTime, outTime, showToast) 
             // optional: show error toast
         }).always(function() {
             $spinner.hide();
+            $rowUpdateButton.prop('disabled', false);
         });
 
     }, 500);
@@ -1011,6 +1025,36 @@ $(document).on('change dp.change blur focusout', '.in_time, .out_time', function
     // show toast only when the user leaves the field (blur/focusout)
     var showToast = (e.type === 'blur' || e.type === 'focusout');
     scheduleEvalForRow($row, staffId, dateRaw, inTime, outTime, showToast);
+});
+
+// row-level safe update: persist only the selected row's attendance data
+$(document).on('click', '.btn-row-update', function(e) {
+    e.preventDefault();
+    if (window._staffAttendanceBulkSave) { return; }
+
+    var $row = $(this).closest('tr');
+    var staffId = $row.find("input[name='student_session[]']").val();
+    var dateRaw = $("input[name='date']").val();
+    if (!staffId || !dateRaw) {
+        toastr.error('Invalid row data');
+        return;
+    }
+
+    var $in = $row.find('#in_time_' + staffId);
+    var $out = $row.find('#out_time_' + staffId);
+    var inTime = $in.val();
+    var outTime = $out.val();
+    var attendanceTypeId = $row.find('input[name="attendencetype' + staffId + '"]:checked').val() || '';
+    var remark = $row.find('textarea[name="remark' + staffId + '"]').val() || '';
+
+    if (evalTimers[staffId]) {
+        clearTimeout(evalTimers[staffId]);
+    }
+
+    scheduleEvalForRow($row, staffId, dateRaw, inTime, outTime, true, {
+        attendance_type_id: attendanceTypeId,
+        remark: remark
+    });
 });
 
 </script>

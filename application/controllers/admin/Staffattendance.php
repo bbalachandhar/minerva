@@ -1167,6 +1167,8 @@ class Staffattendance extends Admin_Controller
         $date     = $this->input->post('date');
         $in_time  = $this->input->post('in_time');
         $out_time = $this->input->post('out_time');
+        $attendance_type_id = $this->input->post('attendance_type_id');
+        $manual_remark = $this->input->post('remark');
 
         if (empty($staff_id) || empty($date)) {
             echo json_encode(['status' => 'fail', 'message' => 'Invalid request']);
@@ -1181,8 +1183,8 @@ class Staffattendance extends Admin_Controller
         }
 
         // ensure times are saved as H:i:s or null
-        $in_time_val = (!isset($in_time) || trim($in_time) === '') ? null : date('H:i:s', strtotime($in_time));
-        $out_time_val = (!isset($out_time) || trim($out_time) === '') ? null : date('H:i:s', strtotime($out_time));
+        $in_time_val = (!isset($in_time) || trim($in_time) === '' || strtotime($in_time) === false) ? null : date('H:i:s', strtotime($in_time));
+        $out_time_val = (!isset($out_time) || trim($out_time) === '' || strtotime($out_time) === false) ? null : date('H:i:s', strtotime($out_time));
 
         // fetch existing punches for the staff/date
         $existing = $this->staff_biometric_punches_model->get_punches_by_staff_and_date($staff_id, $dateStr);
@@ -1219,7 +1221,7 @@ class Staffattendance extends Admin_Controller
         $raw_punches = $this->attendance_model->get_raw_biometric_punches_by_staff_id_and_date($staff_id, $dateStr);
         $db_attendance = $this->staffattendancemodel->getAttendanceByStaffIdAndDate($staff_id, $dateStr);
 
-        // Append audit remark (who & when) to staff_attendance.remark for manual punch saves
+        // Persist row-level update (attendance type / remark / times) with audit trail.
         try {
             $current_user = $this->customlib->getUserData();
             $auditor_name = isset($current_user['name']) ? $current_user['name'] : (isset($current_user['firstname']) ? $current_user['firstname'] : '');
@@ -1227,18 +1229,32 @@ class Staffattendance extends Admin_Controller
             $timestamp = date('d/m/Y h:i:s a'); // matches example: 15/02/2026 04:42:33 pm
             $audit_text = $auditor_name . '(' . $auditor_role . ') updated on ' . $timestamp . '.';
 
+            $attendance_type_id = (isset($attendance_type_id) && trim((string)$attendance_type_id) !== '') ? (int)$attendance_type_id : null;
+            $manual_remark = is_null($manual_remark) ? null : trim((string)$manual_remark);
+
             if ($db_attendance && isset($db_attendance['id'])) {
-                $existing_remark = trim(isset($db_attendance['remark']) ? $db_attendance['remark'] : '');
-                $new_remark = $existing_remark !== '' ? $existing_remark . ' | ' . $audit_text : $audit_text;
-                // persist updated remark
-                $this->staffattendancemodel->add(['id' => $db_attendance['id'], 'remark' => $new_remark]);
+                $base_remark = is_null($manual_remark) ? trim(isset($db_attendance['remark']) ? $db_attendance['remark'] : '') : $manual_remark;
+                $new_remark = $base_remark !== '' ? $base_remark . ' | ' . $audit_text : $audit_text;
+                $update_data = [
+                    'id' => $db_attendance['id'],
+                    'remark' => $new_remark,
+                    'in_time' => $in_time_val,
+                    'out_time' => $out_time_val,
+                ];
+                if (!is_null($attendance_type_id)) {
+                    $update_data['staff_attendance_type_id'] = $attendance_type_id;
+                }
+                $this->staffattendancemodel->add($update_data);
                 // refresh local copy
                 $db_attendance = $this->staffattendancemodel->getAttendanceByStaffIdAndDate($staff_id, $dateStr);
             } else {
                 // No attendance row exists (unlikely after processing) - create one with remark
                 $insert = [
                     'staff_id' => $staff_id,
-                    'remark' => $audit_text,
+                    'staff_attendance_type_id' => !is_null($attendance_type_id) ? $attendance_type_id : null,
+                    'remark' => !is_null($manual_remark) && $manual_remark !== '' ? ($manual_remark . ' | ' . $audit_text) : $audit_text,
+                    'in_time' => $in_time_val,
+                    'out_time' => $out_time_val,
                     'date' => $dateStr,
                 ];
                 $this->staffattendancemodel->add($insert);
