@@ -273,9 +273,6 @@ if ($is_current_payroll_month && !empty($payroll_lop_summary)) {
     if (isset($payroll_lop_summary['days_in_month'])) {
         $month_days = (int) $payroll_lop_summary['days_in_month'];
     }
-    if (isset($payroll_lop_summary['paid_days'])) {
-        $total_present = (float) $payroll_lop_summary['paid_days'];
-    }
     if (isset($payroll_lop_summary['absent'])) {
         $total_absent = (float) $payroll_lop_summary['absent'];
     }
@@ -316,26 +313,6 @@ $total_absent_display = (float) $total_absent + (float) $weekend_lop_days;
 $sandwich_valid_days = max(0, (float) $weekend_count - (float) $weekend_lop_days);
 $paid_days_display = (float) $total_present + (float) $sandwich_valid_days;
 
-// Respect Date of Joining for paid days display.
-$date_of_joining = $result['date_of_joining'] ?? null;
-if (!empty($date_of_joining)) {
-    $doj_ts = strtotime($date_of_joining);
-    $month_start = date('Y-m-01', strtotime($attendence_key));
-    $month_end = date('Y-m-t', strtotime($attendence_key));
-
-    if ($doj_ts !== false) {
-        $doj_date = date('Y-m-d', $doj_ts);
-        if ($doj_date > $month_end) {
-            $paid_days_display = 0;
-        } elseif ($doj_date > $month_start) {
-            $eligible_start = new DateTime($doj_date);
-            $eligible_end = new DateTime($month_end);
-            $eligible_days = (int) $eligible_start->diff($eligible_end)->days + 1;
-            $paid_days_display = min((float) $paid_days_display, (float) $eligible_days);
-        }
-    }
-}
-
 // For current payroll month, use values from payslip; for other months, query monthly balance
 if ($is_current_payroll_month) {
     $adjusted_lop = floatval($employee_payroll['adjusted_lop_days'] ?? 0);
@@ -357,6 +334,8 @@ if ($is_current_payroll_month) {
         $od_adjusted_days = floatval($credit_row['credit_adjusted'] ?? 0);
         $od_carry_forward_days = floatval($credit_row['credit_carry'] ?? 0);
     }
+
+    $paid_days_display = max(0, (float) $month_days - (float) $net_lop);
 } else {
     // Get adjusted LOP from monthly balance for historical months
     $CI =& get_instance();
@@ -385,6 +364,29 @@ if ($is_current_payroll_month) {
     $od_data = $od_query->row_array();
     $od_adjusted_days = floatval($od_data['od_adjusted'] ?? 0);
     $od_carry_forward_days = floatval($od_data['od_carry'] ?? 0);
+
+    $paid_days_display = max(0, (float) $month_days - (float) $net_lop);
+}
+
+// Ensure Paid Days never exceeds days in month and respect DOJ cap.
+$paid_days_display = min((float) $paid_days_display, (float) $month_days);
+$date_of_joining = $result['date_of_joining'] ?? null;
+if (!empty($date_of_joining)) {
+    $doj_ts = strtotime($date_of_joining);
+    $month_start = date('Y-m-01', strtotime($attendence_key));
+    $month_end = date('Y-m-t', strtotime($attendence_key));
+
+    if ($doj_ts !== false) {
+        $doj_date = date('Y-m-d', $doj_ts);
+        if ($doj_date > $month_end) {
+            $paid_days_display = 0;
+        } elseif ($doj_date > $month_start) {
+            $eligible_start = new DateTime($doj_date);
+            $eligible_end = new DateTime($month_end);
+            $eligible_days = (int) $eligible_start->diff($eligible_end)->days + 1;
+            $paid_days_display = min((float) $paid_days_display, (float) $eligible_days);
+        }
+    }
 }
 ?>
                                             <tr style="background: <?php echo ($attendence_key_index % 2 == 0) ? '#f9f9f9' : '#ffffff'; ?>;">
@@ -421,7 +423,7 @@ if ($is_current_payroll_month) {
                         <div class="text-muted" style="font-size: 12px; line-height: 1.6;">
                             <strong>Legend:</strong> 
                             P*: Present incl. half-day (after late/permission penalty). 
-                            Paid Days: P* + sandwich-valid weekend days (weekend days not counted in sandwich LOP). 
+                            Paid Days: Days in month (or DOJ-eligible days) minus NetLOP. 
                             A*: Absent incl. half-day and late/permission penalty. 
                             Sandwich Rule: Weekend is payable only when both adjacent working days are present-like. 
                             LOP: Actual LOP days after applying sandwich rule. 
