@@ -617,6 +617,31 @@ class Payroll_model extends MY_Model
         return in_array($normalized, ['on duty', 'od'], true);
     }
 
+    private function isManualSeedAllowedForLeaveType($leave_type_id)
+    {
+        $leave_type_id = (int) $leave_type_id;
+        if ($leave_type_id <= 0) {
+            return true;
+        }
+
+        $has_balance_flag = $this->db->field_exists('requires_balance_check', 'leave_types');
+        $this->db->select('type, is_lop');
+        if ($has_balance_flag) {
+            $this->db->select('requires_balance_check');
+        }
+        $row = $this->db->from('leave_types')->where('id', $leave_type_id)->limit(1)->get()->row_array();
+
+        if (!is_array($row)) {
+            return true;
+        }
+
+        if ($has_balance_flag) {
+            return (int) ($row['requires_balance_check'] ?? 1) === 1;
+        }
+
+        return !$this->isOnDutyLeaveType($row['type'] ?? '');
+    }
+
     private function getOnDutyLeaveTypeIds()
     {
         $has_balance_flag = $this->db->field_exists('requires_balance_check', 'leave_types');
@@ -1036,13 +1061,15 @@ class Payroll_model extends MY_Model
             $opening_balance = $prev_balance['closing_balance'];
         } else {
             // No previous month - get from staff_leave_details
-            $this->db->where('staff_id', $staff_id);
-            $this->db->where('leave_type_id', $leave_type_id);
-            $leave_query = $this->db->get('staff_leave_details');
-            
-            if ($leave_query->num_rows() > 0) {
-                $leave_data = $leave_query->row_array();
-                $opening_balance = floatval($leave_data['alloted_leave']);
+            if ($this->isManualSeedAllowedForLeaveType($leave_type_id)) {
+                $this->db->where('staff_id', $staff_id);
+                $this->db->where('leave_type_id', $leave_type_id);
+                $leave_query = $this->db->get('staff_leave_details');
+
+                if ($leave_query->num_rows() > 0) {
+                    $leave_data = $leave_query->row_array();
+                    $opening_balance = floatval($leave_data['alloted_leave']);
+                }
             }
         }
         
@@ -1109,13 +1136,15 @@ class Payroll_model extends MY_Model
             $prev_balance = $prev_query->row_array();
             $opening_balance = $prev_balance['closing_balance'];
         } else {
-            $this->db->where('staff_id', $staff_id);
-            $this->db->where('leave_type_id', $leave_type_id);
-            $leave_query = $this->db->get('staff_leave_details');
+            if ($this->isManualSeedAllowedForLeaveType($leave_type_id)) {
+                $this->db->where('staff_id', $staff_id);
+                $this->db->where('leave_type_id', $leave_type_id);
+                $leave_query = $this->db->get('staff_leave_details');
 
-            if ($leave_query->num_rows() > 0) {
-                $leave_data = $leave_query->row_array();
-                $opening_balance = floatval($leave_data['alloted_leave']);
+                if ($leave_query->num_rows() > 0) {
+                    $leave_data = $leave_query->row_array();
+                    $opening_balance = floatval($leave_data['alloted_leave']);
+                }
             }
         }
 

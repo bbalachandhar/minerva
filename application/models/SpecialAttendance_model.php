@@ -44,28 +44,18 @@ class SpecialAttendance_model extends CI_Model {
 
         $working_days = $this->getWorkingDays($month, $year, $settings);
         $total_working_days = count($working_days);
-        $monthNum = $this->getMonthNumber($month, $year);
-        if ($monthNum === null) {
-            return [];
-        }
-        $total_days_in_month = cal_days_in_month(CAL_GREGORIAN, $monthNum, (int)$year);
 
         $lop = is_numeric($lop_days) ? (float)$lop_days : 0;
         if ($lop < 0) {
             $lop = 0;
         }
-        if ($lop > $total_days_in_month) {
-            $lop = (float)$total_days_in_month;
+        if ($lop > $total_working_days) {
+            $lop = (float)$total_working_days;
         }
 
-        // LOP is treated on calendar-month basis for payroll prorata.
-        // Convert to payable day target, then cap to working days for punch generation.
-        $payable_days_target = (float)$total_days_in_month - $lop;
-        if ($payable_days_target < 0) {
-            $payable_days_target = 0;
-        }
-
-        $present_days_target = min((float)$total_working_days, $payable_days_target);
+        // Treat input as direct LOP target on working-day attendance.
+        // Remaining working days are generated as present/half-present.
+        $present_days_target = (float)$total_working_days - $lop;
         if ($present_days_target <= 0) {
             return [];
         }
@@ -74,6 +64,11 @@ class SpecialAttendance_model extends CI_Model {
         $has_half_day = (($present_days_target - $full_days) >= 0.5);
 
         $required_days = $full_days + ($has_half_day ? 1 : 0);
+        $monthNum = $this->getMonthNumber($month, $year);
+        if ($monthNum === null) {
+            return [];
+        }
+
         $selected_days = $this->selectSandwichAwareWorkingDays($working_days, $monthNum, (int)$year, $settings, $required_days);
         sort($selected_days);
 
@@ -130,8 +125,9 @@ class SpecialAttendance_model extends CI_Model {
             }
         }
 
+        // Keep bridge days present first to avoid accidental sandwich LOP expansion.
         $selected = [];
-        foreach ($non_bridge_days as $date) {
+        foreach ($bridge_days as $date) {
             if (count($selected) >= $required_days) {
                 break;
             }
@@ -139,7 +135,7 @@ class SpecialAttendance_model extends CI_Model {
         }
 
         if (count($selected) < $required_days) {
-            foreach ($bridge_days as $date) {
+            foreach ($non_bridge_days as $date) {
                 if (count($selected) >= $required_days) {
                     break;
                 }

@@ -39,6 +39,8 @@ class Specialattendance extends Admin_Controller
 
         $presentCounts = [];
         $presentEquivalent = [];
+        $enteredLopMap = [];
+        $enteredLopDetailsMap = [];
         $workingDays = null;
         if (!empty($month) && !empty($year) && !empty($employees)) {
             $this->load->model('StaffBiometricPunchesManual_model');
@@ -48,6 +50,8 @@ class Specialattendance extends Admin_Controller
             }, $employees);
             $presentCounts = $this->StaffBiometricPunchesManual_model->getSpecialAttendanceCounts($staffIds, $month, $year);
             $presentEquivalent = $this->StaffBiometricPunchesManual_model->getSpecialAttendancePresentEquivalent($staffIds, $month, $year);
+            $enteredLopMap = $this->StaffBiometricPunchesManual_model->getSpecialAttendanceInputMap($staffIds, $month, $year);
+            $enteredLopDetailsMap = $this->StaffBiometricPunchesManual_model->getSpecialAttendanceInputDetailsMap($staffIds, $month, $year);
             $workingDays = $this->SpecialAttendance_model->getWorkingDaysCount($month, $year);
         }
 
@@ -74,6 +78,17 @@ class Specialattendance extends Admin_Controller
             } else {
                 $emp['lop_days'] = null;
             }
+
+            if (array_key_exists((int)$emp['id'], $enteredLopMap)) {
+                $emp['entered_lop_days'] = (float)$enteredLopMap[(int)$emp['id']];
+            } else {
+                $emp['entered_lop_days'] = null;
+            }
+
+            $details = isset($enteredLopDetailsMap[(int)$emp['id']]) ? $enteredLopDetailsMap[(int)$emp['id']] : null;
+            $emp['entered_lop_reason'] = is_array($details) ? ($details['reason'] ?? '') : '';
+            $emp['entered_lop_admin_user_id'] = is_array($details) ? ($details['admin_user_id'] ?? null) : null;
+            $emp['entered_lop_updated_at'] = is_array($details) ? ($details['updated_at'] ?? '') : '';
 
             $listedEmployees[] = $emp;
         }
@@ -270,6 +285,7 @@ class Specialattendance extends Admin_Controller
                 $schedule = $this->StaffAttendanceSchedule_model->getByStaffId($emp_id);
                 $punches = $this->SpecialAttendance_model->generatePunchesFromLop($emp_id, $month, $year, $days, $schedule);
                 $this->StaffBiometricPunchesManual_model->replacePunches($emp_id, $month, $year, $punches, $admin_user_id, $reason);
+                $this->StaffBiometricPunchesManual_model->saveSpecialAttendanceInput($emp_id, $month, $year, $days, $reason, $admin_user_id);
             }
         }
         

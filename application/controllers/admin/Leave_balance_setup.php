@@ -100,10 +100,29 @@ class Leave_balance_setup extends Admin_Controller {
         $inserted_count = 0;
         $errors = [];
 
+        $manual_allowed_leave_type_ids = [];
+        $has_balance_flag = $this->db->field_exists('requires_balance_check', 'leave_types');
+        $this->db->select('id');
+        $this->db->from('leave_types');
+        if ($has_balance_flag) {
+            $this->db->where('requires_balance_check', 1);
+        }
+        $leave_type_rows = $this->db->get()->result_array();
+        foreach ($leave_type_rows as $leave_type_row) {
+            $manual_allowed_leave_type_ids[] = (int) ($leave_type_row['id'] ?? 0);
+        }
+        $manual_allowed_lookup = array_fill_keys($manual_allowed_leave_type_ids, true);
+
         $this->db->trans_start();
 
         foreach ($balances as $staff_id => $leave_types) {
             foreach ($leave_types as $leave_type_id => $balance) {
+                $leave_type_id = (int) $leave_type_id;
+
+                if (!isset($manual_allowed_lookup[$leave_type_id])) {
+                    continue;
+                }
+
                 // Skip if balance is empty or 0
                 if ($balance === '' || $balance === null) {
                     continue;

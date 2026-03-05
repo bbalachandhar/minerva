@@ -242,28 +242,14 @@ class Staff extends Admin_Controller
                     
                     // If monthly balance exists, show cumulative used and current closing balance
                     if (!empty($monthly_balance)) {
-                        // Sum all LOP adjustments and leave applications up to the latest processed month
-                        $this->db->select('SUM(used_for_lop_adjustment) as total_lop_used, SUM(used_for_leave_application) as total_leave_used');
-                        $this->db->where('staff_id', $id);
-                        $this->db->where('leave_type_id', $value["leave_type_id"]);
-                        
-                        // Filter by year and month
-                        $this->db->group_start();
-                        $this->db->where('year <', $monthly_balance['year']);
-                        $this->db->or_group_start();
-                        $this->db->where('year', $monthly_balance['year']);
-                        $this->db->where('month <=', $monthly_balance['month']);
-                        $this->db->group_end();
-                        $this->db->group_end();
-                        
-                        $cumulative = $this->db->get('staff_monthly_leave_balance')->row_array();
-                        
-                        $total_lop_used = isset($cumulative['total_lop_used']) ? (float)$cumulative['total_lop_used'] : 0;
-                        $total_leave_used = isset($cumulative['total_leave_used']) ? (float)$cumulative['total_leave_used'] : 0;
-                        $total_used = $total_lop_used + $total_leave_used;
-                        
-                        $leaveDetail[$i]['approve_leave'] = $total_used;
-                        $leaveDetail[$i]['available'] = $monthly_balance['closing_balance'];
+                        $opening_balance = isset($monthly_balance['opening_balance']) ? (float)$monthly_balance['opening_balance'] : 0;
+                        $used_lop = isset($monthly_balance['used_for_lop_adjustment']) ? (float)$monthly_balance['used_for_lop_adjustment'] : 0;
+                        $used_leave = isset($monthly_balance['used_for_leave_application']) ? (float)$monthly_balance['used_for_leave_application'] : 0;
+                        $available_balance = isset($monthly_balance['closing_balance']) ? (float)$monthly_balance['closing_balance'] : 0;
+
+                        $leaveDetail[$i]['alloted_leave'] = $opening_balance;
+                        $leaveDetail[$i]['approve_leave'] = $used_lop + $used_leave;
+                        $leaveDetail[$i]['available'] = $available_balance;
                     } else {
                         // No monthly balance yet, use leave applications count only
                         $approve_leave = isset($count_leaves[$i]['approve_leave']) ? (float)$count_leaves[$i]['approve_leave'] : 0;

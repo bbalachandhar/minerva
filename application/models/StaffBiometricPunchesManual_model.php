@@ -141,6 +141,117 @@ class StaffBiometricPunchesManual_model extends CI_Model {
         }
     }
 
+    public function saveSpecialAttendanceInput($staff_id, $month, $year, $lop_days, $reason = null, $admin_user_id = null) {
+        if (!$this->db->table_exists('special_attendance_inputs')) {
+            return false;
+        }
+
+        $monthNum = $this->getMonthNumber($month, $year);
+        if ($monthNum === null) {
+            return false;
+        }
+
+        $lop = is_numeric($lop_days) ? (float)$lop_days : 0;
+        if ($lop < 0) {
+            $lop = 0;
+        }
+
+        $this->db->where('staff_id', (int)$staff_id);
+        $this->db->where('month', (int)$monthNum);
+        $this->db->where('year', (int)$year);
+        $existing = $this->db->get('special_attendance_inputs')->row_array();
+
+        $payload = [
+            'staff_id' => (int)$staff_id,
+            'month' => (int)$monthNum,
+            'year' => (int)$year,
+            'lop_days' => $lop,
+            'reason' => (string)$reason,
+            'admin_user_id' => !empty($admin_user_id) ? (int)$admin_user_id : null,
+            'updated_at' => date('Y-m-d H:i:s'),
+        ];
+
+        if (!empty($existing['id'])) {
+            $this->db->where('id', (int)$existing['id']);
+            return (bool)$this->db->update('special_attendance_inputs', $payload);
+        }
+
+        $payload['created_at'] = date('Y-m-d H:i:s');
+        return (bool)$this->db->insert('special_attendance_inputs', $payload);
+    }
+
+    public function getSpecialAttendanceInputMap($staffIds, $month, $year) {
+        if (empty($staffIds)) {
+            return [];
+        }
+
+        if (!$this->db->table_exists('special_attendance_inputs')) {
+            return [];
+        }
+
+        $monthNum = $this->getMonthNumber($month, $year);
+        if ($monthNum === null) {
+            return [];
+        }
+
+        $rows = $this->db
+            ->select('staff_id, lop_days')
+            ->from('special_attendance_inputs')
+            ->where_in('staff_id', $staffIds)
+            ->where('month', (int)$monthNum)
+            ->where('year', (int)$year)
+            ->get()
+            ->result_array();
+
+        $result = [];
+        foreach ($rows as $row) {
+            $result[(int)$row['staff_id']] = isset($row['lop_days']) ? (float)$row['lop_days'] : 0.0;
+        }
+
+        return $result;
+    }
+
+    public function getSpecialAttendanceInputDetailsMap($staffIds, $month, $year) {
+        if (empty($staffIds)) {
+            return [];
+        }
+
+        if (!$this->db->table_exists('special_attendance_inputs')) {
+            return [];
+        }
+
+        $monthNum = $this->getMonthNumber($month, $year);
+        if ($monthNum === null) {
+            return [];
+        }
+
+        $rows = $this->db
+            ->select('staff_id, lop_days, reason, admin_user_id, created_at, updated_at')
+            ->from('special_attendance_inputs')
+            ->where_in('staff_id', $staffIds)
+            ->where('month', (int)$monthNum)
+            ->where('year', (int)$year)
+            ->get()
+            ->result_array();
+
+        $result = [];
+        foreach ($rows as $row) {
+            $staffId = (int)($row['staff_id'] ?? 0);
+            if ($staffId <= 0) {
+                continue;
+            }
+            $result[$staffId] = [
+                'lop_days' => isset($row['lop_days']) ? (float)$row['lop_days'] : 0.0,
+                'reason' => (string)($row['reason'] ?? ''),
+                'admin_user_id' => !empty($row['admin_user_id']) ? (int)$row['admin_user_id'] : null,
+                'created_at' => (string)($row['created_at'] ?? ''),
+                'updated_at' => (string)($row['updated_at'] ?? ''),
+            ];
+        }
+
+        return $result;
+    }
+
     private function getMonthNumber($month, $year) {
         if (is_numeric($month)) {
             $monthNum = (int)$month;

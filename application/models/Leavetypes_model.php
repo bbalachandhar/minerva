@@ -128,6 +128,20 @@ class Leavetypes_model extends MY_model
 
     public function update_staff_leave_details($staff_id, $leave_type_id, $days, $overwrite = false)
     {
+        $has_balance_flag = $this->db->field_exists('requires_balance_check', 'leave_types');
+        if ($has_balance_flag) {
+            $leave_type = $this->db->select('requires_balance_check')
+                ->from('leave_types')
+                ->where('id', (int) $leave_type_id)
+                ->limit(1)
+                ->get()
+                ->row_array();
+
+            if (is_array($leave_type) && (int) ($leave_type['requires_balance_check'] ?? 1) === 0) {
+                return;
+            }
+        }
+
         $this->db->where('staff_id', $staff_id);
         $this->db->where('leave_type_id', $leave_type_id);
         $q = $this->db->get('staff_leave_details');

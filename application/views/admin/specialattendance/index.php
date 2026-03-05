@@ -209,8 +209,7 @@ $months = array(
             <div class="alert alert-info" style="margin-bottom:10px;">
                 <strong>Instructions:</strong>
                 Leave <strong>LOP Days</strong> empty to skip staff. Enter <strong>0</strong> for full attendance.<br>
-                Enter LOP on <strong>calendar month days</strong> (payable days), not only working days.<br>
-                <strong>Salary Target Formula:</strong> Payable Days = Total Month Days - LOP Days. Example: Feb (28 days), to pay 4 days, enter <strong>LOP = 24</strong>.<br>
+                Enter LOP as <strong>exact days to deduct</strong> from working attendance (e.g. 1 = one day LOP, 4 = four days LOP).<br>
                 <strong>Sandwich Weekend Rule (only rule):</strong> If both adjacent working days are absent, weekend is treated as LOP; otherwise weekend is payable.<br>
                 Example (Sunday-only weekend): Sat Absent + Mon Absent ⇒ Sat+Sun+Mon counted as LOP (3 days).<br>
                 Example (Sunday-only weekend): Sat Present + Mon Present ⇒ Sunday is payable (not added to LOP).<br>
@@ -400,29 +399,40 @@ $months = array(
             return;
         }
 
-        var maxLopDays = parseFloat($payableWorkingDays.val());
+        var maxLopDays = parseFloat($workingDays.val());
         if (!isFinite(maxLopDays)) {
-            maxLopDays = parseFloat($workingDays.val());
+            maxLopDays = parseFloat($payableWorkingDays.val());
         }
         if (!isFinite(maxLopDays)) {
             maxLopDays = null;
         }
 
-        var storedLopValues = getStoredLopValues();
-
         var rows = [];
         $.each(employees, function(_, emp){
             var lopDays = '';
             var attendancePercentage = parseFloat(emp.attendance_percentage);
+            var lopTooltip = '';
             if (!isFinite(attendancePercentage)) {
                 attendancePercentage = 0;
             }
-            if (parseInt(emp.has_special_attendance, 10) === 1 && emp.lop_days !== null && typeof emp.lop_days !== 'undefined') {
-                lopDays = emp.lop_days;
+            if (emp.entered_lop_days !== null && typeof emp.entered_lop_days !== 'undefined' && emp.entered_lop_days !== '') {
+                lopDays = emp.entered_lop_days;
             }
-            var empKey = String(emp.id);
-            if (Object.prototype.hasOwnProperty.call(storedLopValues, empKey)) {
-                lopDays = storedLopValues[empKey];
+
+            if (emp.entered_lop_updated_at) {
+                lopTooltip = 'Last saved: ' + emp.entered_lop_updated_at;
+                if (emp.entered_lop_admin_user_id) {
+                    lopTooltip += ' | Admin ID: ' + emp.entered_lop_admin_user_id;
+                }
+                if (emp.entered_lop_reason) {
+                    lopTooltip += ' | Reason: ' + emp.entered_lop_reason;
+                }
+            }
+
+            if (parseInt(emp.has_special_attendance, 10) === 1 && emp.lop_days !== null && typeof emp.lop_days !== 'undefined') {
+                if (lopDays === '') {
+                    lopDays = emp.lop_days;
+                }
             }
             rows.push('<tr data-employee-id="' + emp.id + '">\n' +
                 '   <td>' + (emp.code ? emp.code : '-') + '</td>\n' +
@@ -430,6 +440,7 @@ $months = array(
                 '   <td>' + (emp.department ? emp.department : '-') + '</td>\n' +
                 '   <td class="text-center">' + attendancePercentage.toFixed(2) + '%</td>\n' +
                 '   <td class="text-center"><input type="number" class="form-control input-sm days-absent" min="0" step="0.5"' +
+                (lopTooltip ? ' title="' + String(lopTooltip).replace(/"/g, '&quot;') + '"' : '') +
                 (maxLopDays !== null ? ' max="' + maxLopDays + '"' : '') + ' placeholder="e.g. 1 or 1.5" value="' + (lopDays === '' ? '' : lopDays) + '"></td>\n' +
                 '</tr>');
         });

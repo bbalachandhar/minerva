@@ -329,6 +329,28 @@ class Staff_model extends MY_Model
         $this->db->trans_start();
         $this->db->trans_strict(false);
 
+        if (!empty($leave_array) && is_array($leave_array) && $this->db->field_exists('requires_balance_check', 'leave_types')) {
+            $allowed_leave_type_ids = [];
+            $rows = $this->db->select('id')
+                ->from('leave_types')
+                ->where('requires_balance_check', 1)
+                ->get()
+                ->result_array();
+            foreach ($rows as $row) {
+                $allowed_leave_type_ids[] = (int) ($row['id'] ?? 0);
+            }
+            $allowed_lookup = array_fill_keys($allowed_leave_type_ids, true);
+
+            $filtered_leave_array = [];
+            foreach ($leave_array as $leave_row) {
+                $leave_type_id = (int) ($leave_row['leave_type_id'] ?? 0);
+                if ($leave_type_id > 0 && isset($allowed_lookup[$leave_type_id])) {
+                    $filtered_leave_array[] = $leave_row;
+                }
+            }
+            $leave_array = $filtered_leave_array;
+        }
+
         if (isset($data['id']) && !empty($data['id'])) { // If 'id' is set, it's an update
             $staff_id = $data['id'];
             $this->db->where('id', $staff_id);
