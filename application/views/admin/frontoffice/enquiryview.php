@@ -133,6 +133,9 @@ if ($enkey == $status) {
                             <div class="box-header with-border">
                                 <h3 class="box-title titlefix"> <?php echo $this->lang->line('admission_enquiry'); ?></h3>
                                 <div class="box-tools pull-right">
+                                    <?php if ($this->rbac->hasPrivilege('admission_enquiry', 'can_view')) {?>
+                                        <a href="<?php echo site_url('admin/enquiry/bulk_meta_leads_upload'); ?>" class="btn btn-sm btn-info" style="margin-right: 6px;"><i class="fa fa-upload"></i> Bulk Upload - Meta Leads</a>
+                                    <?php }?>
                                     <?php if ($this->rbac->hasPrivilege('admission_enquiry', 'can_add')) {?>
                                         <button type="button" class="btn btn-sm btn-primary openmodal" ><i class="fa fa-plus"></i> <?php echo $this->lang->line('add'); ?></button>
                                     <?php }?>

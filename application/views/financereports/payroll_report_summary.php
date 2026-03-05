@@ -181,6 +181,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                         <th class="text text-right">ESI Wages (Gross - LOP, if Gross ≤ 21,000) <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
                                         <th class="text text-right">ESI (Employee) <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
                                         <th class="text text-right">Tax/TDS <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
+                                        <th class="text text-right">Professional Tax <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
                                         <th class="text text-right"><?php echo $this->lang->line('deduction'); ?> <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
                                         <th class="text text-right"><?php echo $this->lang->line('net_salary'); ?> <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
                                     </tr>
@@ -198,6 +199,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                     $total_employee_epf = 0;
                                     $total_esi_wages = 0;
                                     $total_esi = 0;
+                                    $total_professional_tax = 0;
                                     $total_no_of_days = 0;
                                     $total_paid_days = 0;
                                     $total_lop_days = 0;
@@ -237,6 +239,18 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                             $total_employee_epf += !empty($value["employee_epf"]) ? $value["employee_epf"] : 0;
                                             $total_esi_wages += !empty($value["esi_wage"]) ? $value["esi_wage"] : 0;
                                             $total_esi += !empty($value["esi_deduction"]) ? $value["esi_deduction"] : 0;
+
+                                            $professional_tax_value = isset($value['professional_tax']) ? (float)$value['professional_tax'] : 0;
+                                            if ($professional_tax_value <= 0 && !empty($value['deductions_breakdown']) && is_array($value['deductions_breakdown'])) {
+                                                foreach ($value['deductions_breakdown'] as $ded_row) {
+                                                    $ded_code = strtoupper(trim((string)($ded_row['allowance_type'] ?? '')));
+                                                    $ded_name = strtoupper(trim((string)($ded_row['allowance_type_name'] ?? '')));
+                                                    if ($ded_code === 'PT' || $ded_name === 'PROFESSIONAL TAX') {
+                                                        $professional_tax_value += (float)($ded_row['amount'] ?? 0);
+                                                    }
+                                                }
+                                            }
+                                            $total_professional_tax += $professional_tax_value;
 
                                             $days_in_month = 0;
                                             if (!empty($value['month']) && !empty($value['year'])) {
@@ -372,6 +386,9 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                                     ?>
                                                 </td>
                                                 <td class="text text-right">
+                                                    <?php echo ($professional_tax_value > 0) ? amountFormat($professional_tax_value) : '-'; ?>
+                                                </td>
+                                                <td class="text text-right">
                                                     <?php
                                                             // show total including leave deduction and statutory charges
                                                     $total_deduction = $value['total_deduction']
@@ -419,6 +436,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                         <td class="text text-right"><?php if($total_esi_wages > 0){ echo $currency_symbol . amountFormat($total_esi_wages); } ?></td>
                                         <td class="text text-right"><?php if($total_esi > 0){ echo $currency_symbol . amountFormat($total_esi); } ?></td>
                                         <td class="text text-right"><?php if($tax > 0){ echo $currency_symbol . amountFormat($tax); } ?></td>
+                                        <td class="text text-right"><?php if($total_professional_tax > 0){ echo $currency_symbol . amountFormat($total_professional_tax); } else { echo '-'; } ?></td>
                                         <td class="text text-right"><?php if($deduction > 0){ echo $currency_symbol . amountFormat($deduction); } ?></td>
                                         <td class="text text-right"><?php if($netTotal > 0){ echo $currency_symbol . amountFormat($netTotal); }  ?></td>
                                     </tr> 

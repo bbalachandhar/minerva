@@ -564,6 +564,14 @@ class Payroll_model extends MY_Model
              AND pat.allowance_code = "ESI" 
              AND pa.cal_type = "negative" 
              LIMIT 1) as esi_deduction,
+                COALESCE((SELECT SUM(pa_pt.amount) FROM payslip_allowance pa_pt
+                 LEFT JOIN payroll_allowance_types pat_pt ON pa_pt.allowance_type = pat_pt.allowance_code
+                 WHERE pa_pt.payslip_id = staff_payslip.id
+                 AND pa_pt.cal_type = "negative"
+                 AND (
+                     UPPER(pa_pt.allowance_type) = "PT"
+                     OR UPPER(COALESCE(pat_pt.allowance_name, "")) = "PROFESSIONAL TAX"
+                 )), 0) as professional_tax,
             COALESCE(staff.category_id, staff_designation.category_id) as category_id,
             sdc.name as staff_type,
             sdc.color as staff_type_color,

@@ -25,6 +25,7 @@ class Payroll extends Admin_Controller
         $this->payment_mode      = $this->config->item('payment_mode');
         $this->load->model("payroll_model");
         $this->load->model("payroll_increment_model");
+        $this->load->model("payroll_onetime_deduction_model");
         $this->load->model("staff_model");
         $this->load->model('staffattendancemodel');
         $this->payroll_status     = $this->config->item('payroll_status');
@@ -310,6 +311,123 @@ class Payroll extends Admin_Controller
             'staff_id' => $staff_id,
             'cal_type' => 'positive',
         ];
+    }
+
+    private function getManualDeductionCodeLookup()
+    {
+        static $manual_deduction_lookup = null;
+
+        if ($manual_deduction_lookup !== null) {
+            return $manual_deduction_lookup;
+        }
+
+        $manual_deduction_lookup = [];
+        $types = $this->payroll_model->getAllowanceTypes(null, false);
+        foreach ((array) $types as $type) {
+            $code = strtoupper(trim((string) ($type['allowance_code'] ?? '')));
+            $name = strtoupper(trim((string) ($type['allowance_name'] ?? '')));
+            if ($code === '') {
+                continue;
+            }
+
+            $is_statutory = !empty($type['is_statutory']);
+            if (in_array($code, ['EPF', 'ESI', 'TDS'], true)) {
+                continue;
+            }
+
+            if ($is_statutory && $code !== 'PT') {
+                continue;
+            }
+
+            $manual_deduction_lookup[$code] = $code;
+            $manual_deduction_lookup[$this->normalizeDeductionTypeKey($code)] = $code;
+            if ($name !== '') {
+                $manual_deduction_lookup[$name] = $code;
+                $manual_deduction_lookup[$this->normalizeDeductionTypeKey($name)] = $code;
+            }
+        }
+
+        // Always allow Professional Tax aliases for one-time uploads
+        $manual_deduction_lookup['PT'] = 'PT';
+        $manual_deduction_lookup['PROFESSIONAL TAX'] = 'PT';
+        $manual_deduction_lookup[$this->normalizeDeductionTypeKey('PROFESSIONAL TAX')] = 'PT';
+        $manual_deduction_lookup['P TAX'] = 'PT';
+        $manual_deduction_lookup[$this->normalizeDeductionTypeKey('P TAX')] = 'PT';
+
+        return $manual_deduction_lookup;
+    }
+
+    private function normalizeDeductionTypeKey($value)
+    {
+        $normalized = strtoupper(trim((string) $value));
+        $normalized = preg_replace('/^\xEF\xBB\xBF/', '', $normalized);
+        $normalized = str_replace(['_', '-', '.'], ' ', $normalized);
+        $normalized = preg_replace('/\s+/', ' ', $normalized);
+
+        return $normalized;
+    }
+
+    private function getOneTimeDeductionPayload($staff_id, $month, $year)
+    {
+        $month_num = (int) $month;
+        if ($month_num < 1 || $month_num > 12) {
+            $month_num = (int) date('n', strtotime($year . '-' . $month . '-01'));
+        }
+
+        $rows = $this->payroll_onetime_deduction_model->getByStaffMonth((int) $staff_id, $month_num, (int) $year);
+        if (empty($rows)) {
+            return ['rows' => [], 'total' => 0.0];
+        }
+
+        $allowed_codes = $this->getManualDeductionCodeLookup();
+        $normalized_rows = [];
+        $total = 0.0;
+
+        foreach ($rows as $row) {
+            $code = strtoupper(trim((string) ($row['deduction_type'] ?? '')));
+            $amount = (float) ($row['amount'] ?? 0);
+            if ($code === '' || $amount <= 0) {
+                continue;
+            }
+            if (!isset($allowed_codes[$code])) {
+                continue;
+            }
+
+            $normalized_rows[] = [
+                'deduction_type' => $code,
+                'amount' => $amount,
+                'remarks' => isset($row['remarks']) ? (string) $row['remarks'] : null,
+            ];
+            $total += $amount;
+        }
+
+        return [
+            'rows' => $normalized_rows,
+            'total' => (float) $total,
+        ];
+    }
+
+    private function addOneTimeDeductionsToPayslip($payslip_id, $staff_id, array $deduction_rows)
+    {
+        if ((int) $payslip_id <= 0 || (int) $staff_id <= 0 || empty($deduction_rows)) {
+            return;
+        }
+
+        foreach ($deduction_rows as $row) {
+            $code = strtoupper(trim((string) ($row['deduction_type'] ?? '')));
+            $amount = (float) ($row['amount'] ?? 0);
+            if ($code === '' || $amount <= 0) {
+                continue;
+            }
+
+            $this->payroll_model->add_allowance([
+                'payslip_id' => (int) $payslip_id,
+                'allowance_type' => $code,
+                'amount' => $amount,
+                'staff_id' => (int) $staff_id,
+                'cal_type' => 'negative',
+            ]);
+        }
     }
 
     private function getPayrollLopSummary($monthAttendance, $monthLeaves, $month, $year, $staff_id)
@@ -1178,7 +1296,7 @@ class Payroll extends Admin_Controller
         }
         
         if($tax){
-            $tax = convertCurrencyFormatToBaseAmount($tax);
+            $tax = $this->roundPayrollAmount(convertCurrencyFormatToBaseAmount($tax));
         }else{
             $tax = 0;  
         }
@@ -1835,6 +1953,7 @@ class Payroll extends Admin_Controller
             $allowances = [];
             $total_allowance = 0;
             $total_deduction = 0;
+            $onetime_deduction_rows = [];
             $da = 0;  // Initialize DA variable
             $tax = 0;
             $increment_amount = 0;  // Initialize increment variable
@@ -1920,6 +2039,10 @@ class Payroll extends Admin_Controller
             if ($is_increment_month && $increment_amount > 0) {
                 $total_allowance += $increment_amount;
             }
+
+            $onetime_payload = $this->getOneTimeDeductionPayload((int) $staff['id'], (int) $month_numeric, (int) $year);
+            $onetime_deduction_rows = $onetime_payload['rows'];
+            $total_deduction += (float) ($onetime_payload['total'] ?? 0);
 
             $monthLeaves = $this->monthLeaves($newdate, 3, $staff['id']);
             $lop_summary = $this->getPayrollLopSummary($monthAttendanceData, $monthLeaves, $month, $year, $staff['id']);
@@ -2033,6 +2156,7 @@ class Payroll extends Admin_Controller
                 // First month of year or no prior payslips - use simple annualized approach
                 $monthly_tds = $this->tax_epf_calculator->calculate_monthly_tds($gross_salary);
             }
+            $monthly_tds = $this->roundPayrollAmount($monthly_tds);
             
             // Gross salary is already prorated by payable present days, so don't deduct LOP again here
             $total_with_epf_tds_esi = (float) $employee_epf + (float) $esi_deduction + (float) $monthly_tds + (float) $total_deduction;
@@ -2056,7 +2180,7 @@ class Payroll extends Admin_Controller
                 'status' => 'generated',
                 'month' => $month,
                 'year' => $year,
-                'tax' => round($monthly_tds, 2),  // Store TDS instead of hardcoded tax
+                'tax' => $monthly_tds,  // Store rounded TDS
                 'leave_deduction' => $lop_deduction,
                 'actual_lop_days' => $actual_lop_days,
                 'adjusted_lop_days' => $adjusted_lop_days,
@@ -2195,12 +2319,15 @@ class Payroll extends Admin_Controller
                 $tds_data = array(
                     'payslip_id'        => $payslipid,
                     'allowance_type'    => $tds_code,  // Use code from database
-                    'amount'            => round($monthly_tds, 2),
+                    'amount'            => $monthly_tds,
                     'staff_id'          => $staff['id'],
                     'cal_type'          => 'negative',
                 );
                 $this->payroll_model->add_allowance($tds_data);
             }
+
+            // Add approved one-time deductions after statutory cleanup/addition
+            $this->addOneTimeDeductionsToPayslip((int) $payslipid, (int) $staff['id'], $onetime_deduction_rows);
 
             // Ensure BASIC earning row exists in payslip_allowance for consistent earnings rendering
             $this->ensureBasicAllowanceExists((int) $payslipid, (int) $staff['id'], (float) $basic);
@@ -2391,6 +2518,10 @@ class Payroll extends Admin_Controller
             }
         }
 
+        $onetime_payload = $this->getOneTimeDeductionPayload($staff_id, $month_numeric, $year);
+        $onetime_deduction_rows = $onetime_payload['rows'];
+        $total_deduction += (float) ($onetime_payload['total'] ?? 0);
+
         $month_num = $month_numeric;
         $newdate = date('Y-m-d', strtotime($year . '-' . $month . ' +1 month'));
         $monthAttendanceData = $this->monthAttendance($newdate, 3, $staff_id);
@@ -2466,6 +2597,7 @@ class Payroll extends Admin_Controller
         } else {
             $monthly_tds = $this->tax_epf_calculator->calculate_monthly_tds($gross_salary);
         }
+        $monthly_tds = $this->roundPayrollAmount($monthly_tds);
 
         // Gross salary is already prorated by payable present days, so don't deduct LOP again here
         $total_with_epf_tds_esi = (float) $employee_epf + (float) $esi_deduction + (float) $monthly_tds + (float) $total_deduction;
@@ -2526,6 +2658,8 @@ class Payroll extends Admin_Controller
                 }
             }
 
+            $this->addOneTimeDeductionsToPayslip((int) $payslip_id, (int) $staff_id, $onetime_deduction_rows);
+
             // ======== ADD ONLY APPLICABLE STATUTORY DEDUCTIONS ========
             // Get statutory allowance type codes from database
             $epf_code = $this->payroll_model->getStatutoryAllowanceCode('EPF');
@@ -2562,7 +2696,7 @@ class Payroll extends Admin_Controller
                 $tds_data = array(
                     'payslip_id'     => $payslip_id,
                     'allowance_type' => $tds_code,
-                    'amount'         => round($monthly_tds, 2),
+                    'amount'         => $monthly_tds,
                     'staff_id'       => $staff_id,
                     'cal_type'       => 'negative',
                 );
@@ -2583,7 +2717,7 @@ class Payroll extends Admin_Controller
                 'esi_wage'        => round($esi_wage, 2),
                 'employee_esi'    => round($esi_deduction, 2),
                 'employer_esi'    => $employer_esi,
-                'tax'             => round($monthly_tds, 2),
+                'tax'             => $monthly_tds,
             );
             $this->db->where('id', $payslip_id)->update('staff_payslip', $payslip_data);
         }
@@ -2602,7 +2736,7 @@ class Payroll extends Admin_Controller
             'esi_wage' => round($esi_wage, 2),
             'employee_esi' => round($esi_deduction, 2),
             'employer_esi' => $employer_esi,
-            'tds' => round($monthly_tds, 2),
+            'tds' => $monthly_tds,
             'actual_lop_days' => round($actual_lop_days, 2),
             'adjusted_lop_days' => round($adjusted_lop_days, 2),
             'net_lop_days' => round($net_lop_days, 2),
@@ -3401,6 +3535,323 @@ class Payroll extends Admin_Controller
         $this->load->view("layout/header", $data);
         $this->load->view("admin/payroll/bulk_add_increment", $data);
         $this->load->view("layout/footer", $data);
+    }
+
+    public function bulk_onetime_deduction()
+    {
+        if (!$this->rbac->hasPrivilege('staff_payroll', 'can_create')) {
+            access_denied();
+        }
+
+        $this->session->set_userdata('top_menu', 'HR');
+        $this->session->set_userdata('sub_menu', 'admin/payroll');
+
+        $data['page_title'] = 'Bulk Upload One-Time Deductions';
+        $data['monthlist'] = $this->customlib->getMonthDropdown();
+        $data['year'] = date('Y');
+
+        $this->load->view("layout/header", $data);
+        $this->load->view("admin/payroll/bulk_onetime_deduction", $data);
+        $this->load->view("layout/footer", $data);
+    }
+
+    public function download_onetime_deduction_template()
+    {
+        if (!$this->rbac->hasPrivilege('staff_payroll', 'can_create')) {
+            access_denied();
+        }
+
+        $filename = 'onetime_deduction_sample_template.csv';
+        $csv_rows = [
+            ['employee_id', 'amount', 'deduction_type', 'remarks'],
+            ['EMP001', '1500', 'ADVANCE', 'March one-time advance recovery'],
+            ['EMP002', '750', 'LOAN', 'One-time loan deduction'],
+        ];
+
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Pragma: no-cache');
+        header('Expires: 0');
+
+        $output = fopen('php://output', 'w');
+        foreach ($csv_rows as $row) {
+            fputcsv($output, $row);
+        }
+        fclose($output);
+        exit;
+    }
+
+    public function save_bulk_onetime_deduction()
+    {
+        if (!$this->rbac->hasPrivilege('staff_payroll', 'can_create')) {
+            access_denied();
+        }
+
+        $month = trim((string) $this->input->post('month'));
+        $year = (int) $this->input->post('year');
+        $default_deduction_type = strtoupper(trim((string) $this->input->post('deduction_type')));
+        $remarks = trim((string) $this->input->post('remarks'));
+
+        if ($month === '' || $year <= 0) {
+            $this->session->set_flashdata('error', 'Month and year are required.');
+            redirect('admin/payroll/bulk_onetime_deduction');
+        }
+
+        $month_numeric = (int) date('n', strtotime($year . '-' . $month . '-01'));
+        if ($month_numeric < 1 || $month_numeric > 12) {
+            $this->session->set_flashdata('error', 'Invalid month selected.');
+            redirect('admin/payroll/bulk_onetime_deduction');
+        }
+
+        if (!isset($_FILES['file']) || empty($_FILES['file']['name'])) {
+            $this->session->set_flashdata('error', 'Please upload a CSV file.');
+            redirect('admin/payroll/bulk_onetime_deduction');
+        }
+
+        $extension = strtolower(pathinfo($_FILES['file']['name'], PATHINFO_EXTENSION));
+        if ($extension !== 'csv') {
+            $this->session->set_flashdata('error', 'Only CSV files are allowed.');
+            redirect('admin/payroll/bulk_onetime_deduction');
+        }
+
+        $upload_dir = 'uploads/payroll_import/';
+        $this->customlib->ensureDirectoryExists($upload_dir);
+        $temp_name = 'onetime_deduction_' . time() . '_' . mt_rand(1000, 9999) . '.csv';
+        $file_path = $upload_dir . $temp_name;
+
+        if (!move_uploaded_file($_FILES['file']['tmp_name'], $file_path)) {
+            $this->session->set_flashdata('error', 'Unable to upload the file.');
+            redirect('admin/payroll/bulk_onetime_deduction');
+        }
+
+        $this->load->library('CSVReader');
+        $rows = $this->csvreader->parse_file($file_path, true);
+        if (empty($rows)) {
+            @unlink($file_path);
+            $this->session->set_flashdata('error', 'No records found in uploaded CSV.');
+            redirect('admin/payroll/bulk_onetime_deduction');
+        }
+
+        $valid_codes = $this->getManualDeductionCodeLookup();
+        if (empty($valid_codes)) {
+            @unlink($file_path);
+            $this->session->set_flashdata('error', 'No manual deduction types available. Please configure deduction allowance types first.');
+            redirect('admin/payroll/bulk_onetime_deduction');
+        }
+
+        $default_code = $default_deduction_type;
+        if ($default_code !== '') {
+            $default_lookup_key = $this->normalizeDeductionTypeKey($default_code);
+            $default_code = $valid_codes[$default_code] ?? ($valid_codes[$default_lookup_key] ?? '');
+        }
+        if ($default_deduction_type !== '' && $default_code === '') {
+            @unlink($file_path);
+            $this->session->set_flashdata('error', 'Default deduction type is invalid or statutory.');
+            redirect('admin/payroll/bulk_onetime_deduction');
+        }
+
+        $user_data = $this->customlib->getUserData();
+        $admin_id = isset($user_data['id']) ? (int) $user_data['id'] : 0;
+
+        $processed = 0;
+        $skipped = 0;
+        $errors = [];
+
+        $this->db->trans_start();
+        foreach ($rows as $index => $row) {
+            $employee_id = trim((string) ($row['employee_id'] ?? $row['staff_id'] ?? ''));
+            $row_code_raw = strtoupper(trim((string) ($row['deduction_type'] ?? $row['type'] ?? $default_code)));
+            $row_amount_raw = $row['amount'] ?? $row['deduction_amount'] ?? null;
+            $row_remarks = trim((string) ($row['remarks'] ?? $remarks));
+
+            if ($employee_id === '' || $row_code_raw === '' || $row_amount_raw === null || $row_amount_raw === '') {
+                $skipped++;
+                $errors[] = 'Row ' . ($index + 2) . ': missing employee_id/deduction_type/amount';
+                continue;
+            }
+
+            $row_code = $valid_codes[$row_code_raw] ?? ($valid_codes[$this->normalizeDeductionTypeKey($row_code_raw)] ?? '');
+            if ($row_code === '') {
+                $skipped++;
+                $errors[] = 'Row ' . ($index + 2) . ': invalid or statutory deduction type ' . $row_code_raw;
+                continue;
+            }
+
+            $amount = (float) convertCurrencyFormatToBaseAmount($row_amount_raw);
+            if ($amount <= 0) {
+                $skipped++;
+                $errors[] = 'Row ' . ($index + 2) . ': amount must be greater than 0';
+                continue;
+            }
+
+            $staff = $this->staff_model->get_by_employee_id($employee_id);
+            if (empty($staff)) {
+                $staff = $this->staff_model->get_by_biometric_id($employee_id);
+                if (is_object($staff)) {
+                    $staff = (array) $staff;
+                }
+            }
+
+            if (empty($staff) || empty($staff['id'])) {
+                $skipped++;
+                $errors[] = 'Row ' . ($index + 2) . ': employee not found (' . $employee_id . ')';
+                continue;
+            }
+
+            $saved = $this->payroll_onetime_deduction_model->upsertDeduction([
+                'staff_id' => (int) $staff['id'],
+                'month' => $month_numeric,
+                'year' => $year,
+                'deduction_type' => $row_code,
+                'amount' => $amount,
+                'remarks' => $row_remarks,
+                'admin_user_id' => $admin_id,
+            ]);
+
+            if ($saved) {
+                $processed++;
+            } else {
+                $skipped++;
+                $errors[] = 'Row ' . ($index + 2) . ': failed to save';
+            }
+        }
+        $this->db->trans_complete();
+        @unlink($file_path);
+
+        if ($processed > 0) {
+            $this->session->set_flashdata('success', 'One-time deductions uploaded successfully. Saved: ' . $processed . '.');
+        }
+
+        if ($skipped > 0) {
+            $error_preview = implode(' | ', array_slice($errors, 0, 8));
+            if (count($errors) > 8) {
+                $error_preview .= ' | ...';
+            }
+            $this->session->set_flashdata('error', 'Skipped: ' . $skipped . '. ' . $error_preview);
+        }
+
+        if ($processed === 0 && $skipped === 0) {
+            $this->session->set_flashdata('error', 'No valid rows found in file.');
+        }
+
+        redirect('admin/payroll/bulk_onetime_deduction');
+    }
+
+    public function pending_onetime_deductions()
+    {
+        if (!$this->rbac->hasPrivilege('staff_payroll', 'can_view')) {
+            access_denied();
+        }
+
+        $this->session->set_userdata('top_menu', 'HR');
+        $this->session->set_userdata('sub_menu', 'admin/payroll');
+
+        $data['page_title'] = 'Pending One-Time Deductions';
+        $data['deductions'] = $this->payroll_onetime_deduction_model->getPendingDeductions();
+
+        $this->load->view("layout/header", $data);
+        $this->load->view("admin/payroll/pending_onetime_deductions", $data);
+        $this->load->view("layout/footer", $data);
+    }
+
+    public function approve_onetime_deduction($id)
+    {
+        if (!$this->rbac->hasPrivilege('staff_payroll', 'can_edit')) {
+            access_denied();
+        }
+
+        $userdata = $this->customlib->getUserData();
+        $admin_id = (isset($userdata['id'])) ? (int) $userdata['id'] : 0;
+
+        $result = $this->payroll_onetime_deduction_model->approveDeduction((int) $id, $admin_id);
+        if ($result) {
+            $this->session->set_flashdata('success', 'One-time deduction approved successfully.');
+        } else {
+            $this->session->set_flashdata('error', 'Unable to approve deduction.');
+        }
+
+        redirect('admin/payroll/pending_onetime_deductions');
+    }
+
+    public function reject_onetime_deduction($id)
+    {
+        if (!$this->rbac->hasPrivilege('staff_payroll', 'can_edit')) {
+            access_denied();
+        }
+
+        $userdata = $this->customlib->getUserData();
+        $admin_id = (isset($userdata['id'])) ? (int) $userdata['id'] : 0;
+
+        $result = $this->payroll_onetime_deduction_model->rejectDeduction((int) $id, $admin_id);
+        if ($result) {
+            $this->session->set_flashdata('success', 'One-time deduction rejected.');
+        } else {
+            $this->session->set_flashdata('error', 'Unable to reject deduction.');
+        }
+
+        redirect('admin/payroll/pending_onetime_deductions');
+    }
+
+    public function approve_all_onetime_deductions()
+    {
+        if (!$this->rbac->hasPrivilege('staff_payroll', 'can_edit')) {
+            access_denied();
+        }
+
+        $pending = $this->payroll_onetime_deduction_model->getPendingDeductions();
+        if (empty($pending)) {
+            $this->session->set_flashdata('error', 'No pending one-time deductions found.');
+            redirect('admin/payroll/pending_onetime_deductions');
+        }
+
+        $userdata = $this->customlib->getUserData();
+        $admin_id = (isset($userdata['id'])) ? (int) $userdata['id'] : 0;
+
+        $approved_count = 0;
+        foreach ($pending as $row) {
+            if ($this->payroll_onetime_deduction_model->approveDeduction((int) $row['id'], $admin_id)) {
+                $approved_count++;
+            }
+        }
+
+        if ($approved_count > 0) {
+            $this->session->set_flashdata('success', 'Approved ' . $approved_count . ' one-time deduction(s).');
+        } else {
+            $this->session->set_flashdata('error', 'Unable to approve pending one-time deductions.');
+        }
+
+        redirect('admin/payroll/pending_onetime_deductions');
+    }
+
+    public function reject_all_onetime_deductions()
+    {
+        if (!$this->rbac->hasPrivilege('staff_payroll', 'can_edit')) {
+            access_denied();
+        }
+
+        $pending = $this->payroll_onetime_deduction_model->getPendingDeductions();
+        if (empty($pending)) {
+            $this->session->set_flashdata('error', 'No pending one-time deductions found.');
+            redirect('admin/payroll/pending_onetime_deductions');
+        }
+
+        $userdata = $this->customlib->getUserData();
+        $admin_id = (isset($userdata['id'])) ? (int) $userdata['id'] : 0;
+
+        $rejected_count = 0;
+        foreach ($pending as $row) {
+            if ($this->payroll_onetime_deduction_model->rejectDeduction((int) $row['id'], $admin_id)) {
+                $rejected_count++;
+            }
+        }
+
+        if ($rejected_count > 0) {
+            $this->session->set_flashdata('success', 'Rejected ' . $rejected_count . ' one-time deduction(s).');
+        } else {
+            $this->session->set_flashdata('error', 'Unable to reject pending one-time deductions.');
+        }
+
+        redirect('admin/payroll/pending_onetime_deductions');
     }
 
     /**

@@ -384,4 +384,146 @@ class Enquiry extends Admin_Controller
         echo json_encode($array);
     }
 
+    public function bulk_meta_leads_upload()
+    {
+        if (!$this->rbac->hasPrivilege('admission_enquiry', 'can_view')) {
+            access_denied();
+        }
+
+        $this->session->set_userdata('top_menu', 'front_office');
+        $this->session->set_userdata('sub_menu', 'admin/enquiry');
+
+        $data['preview_rows'] = [];
+        $data['preview_columns'] = [];
+        $data['preview_count'] = 0;
+
+        if ($this->input->method(TRUE) === 'POST') {
+            if (!isset($_FILES['meta_leads_file']) || empty($_FILES['meta_leads_file']['name'])) {
+                $this->session->set_flashdata('msg', '<div class="alert alert-danger text-center">Please select a CSV file.</div>');
+                redirect('admin/enquiry/bulk_meta_leads_upload');
+            }
+
+            $extension = strtolower(pathinfo($_FILES['meta_leads_file']['name'], PATHINFO_EXTENSION));
+            if ($extension !== 'csv') {
+                $this->session->set_flashdata('msg', '<div class="alert alert-danger text-center">Only CSV file is allowed.</div>');
+                redirect('admin/enquiry/bulk_meta_leads_upload');
+            }
+
+            $upload_dir = 'uploads/tmp/';
+            $this->customlib->ensureDirectoryExists($upload_dir);
+            $temp_name = 'meta_leads_preview_' . time() . '_' . mt_rand(1000, 9999) . '.csv';
+            $file_path = $upload_dir . $temp_name;
+
+            if (!move_uploaded_file($_FILES['meta_leads_file']['tmp_name'], $file_path)) {
+                $this->session->set_flashdata('msg', '<div class="alert alert-danger text-center">Unable to upload CSV file.</div>');
+                redirect('admin/enquiry/bulk_meta_leads_upload');
+            }
+
+            $parsed = $this->parseMetaLeadsCsvForPreview($file_path);
+            @unlink($file_path);
+
+            if (!$parsed['success']) {
+                $this->session->set_flashdata('msg', '<div class="alert alert-danger text-center">' . $parsed['message'] . '</div>');
+                redirect('admin/enquiry/bulk_meta_leads_upload');
+            }
+
+            $data['preview_rows'] = $parsed['rows'];
+            $data['preview_columns'] = $parsed['columns'];
+            $data['preview_count'] = $parsed['count'];
+            $data['is_preview'] = true;
+        }
+
+        $this->load->view('layout/header', $data);
+        $this->load->view('admin/frontoffice/bulk_meta_leads_upload', $data);
+        $this->load->view('layout/footer', $data);
+    }
+
+    public function download_meta_leads_template()
+    {
+        if (!$this->rbac->hasPrivilege('admission_enquiry', 'can_view')) {
+            access_denied();
+        }
+
+        $filename = 'meta_leads_sample_template.csv';
+        $rows = [
+            ['name', 'contact', 'email', 'source', 'enquiry_date', 'follow_up_date', 'city', 'state', 'course_level', 'admission_type', 'description'],
+            ['Aarthi S', '9876543210', 'aarthi@example.com', 'Meta Ads', date('Y-m-d'), date('Y-m-d', strtotime('+2 days')), 'Chennai', 'Tamil Nadu', 'ug', 'first_year', 'Interested in B.Com admissions'],
+            ['Karthik R', '9123456780', 'karthik@example.com', 'Meta Campaign', date('Y-m-d'), date('Y-m-d', strtotime('+3 days')), 'Coimbatore', 'Tamil Nadu', 'pg', 'first_year', 'Asked for MSc course details'],
+        ];
+
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Pragma: no-cache');
+        header('Expires: 0');
+
+        $output = fopen('php://output', 'w');
+        foreach ($rows as $row) {
+            fputcsv($output, $row);
+        }
+        fclose($output);
+        exit;
+    }
+
+    private function parseMetaLeadsCsvForPreview($file_path)
+    {
+        if (!is_readable($file_path)) {
+            return ['success' => false, 'message' => 'Uploaded file is not readable.'];
+        }
+
+        $handle = fopen($file_path, 'r');
+        if ($handle === false) {
+            return ['success' => false, 'message' => 'Unable to open uploaded CSV file.'];
+        }
+
+        $header = fgetcsv($handle);
+        if ($header === false || empty($header)) {
+            fclose($handle);
+            return ['success' => false, 'message' => 'CSV file is empty.'];
+        }
+
+        $columns = array_map(function ($value) {
+            return trim((string) $value);
+        }, $header);
+
+        $rows = [];
+        $count = 0;
+        while (($line = fgetcsv($handle)) !== false) {
+            if ($line === [null] || $line === false) {
+                continue;
+            }
+
+            $empty_line = true;
+            foreach ($line as $cell) {
+                if (trim((string) $cell) !== '') {
+                    $empty_line = false;
+                    break;
+                }
+            }
+            if ($empty_line) {
+                continue;
+            }
+
+            $count++;
+            if (count($rows) < 20) {
+                $assoc = [];
+                foreach ($columns as $index => $column_name) {
+                    $assoc[$column_name] = isset($line[$index]) ? trim((string) $line[$index]) : '';
+                }
+                $rows[] = $assoc;
+            }
+        }
+        fclose($handle);
+
+        if ($count === 0) {
+            return ['success' => false, 'message' => 'No data rows found in CSV.'];
+        }
+
+        return [
+            'success' => true,
+            'columns' => $columns,
+            'rows' => $rows,
+            'count' => $count,
+        ];
+    }
+
 }

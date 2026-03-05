@@ -27,6 +27,9 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                             <a href="<?php echo site_url('admin/payroll/bulk_add_increment'); ?>" class="btn btn-success btn-xs">
                                 <i class="fa fa-users"></i> Bulk Add (Multiple Staff)
                             </a>
+                            <a href="<?php echo site_url('admin/payroll/bulk_onetime_deduction'); ?>" class="btn btn-warning btn-xs">
+                                <i class="fa fa-upload"></i> One-Time Deduction Upload
+                            </a>
                         </div>
                     </div>
 

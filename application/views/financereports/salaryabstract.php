@@ -86,7 +86,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                             $bank_credit = 0;
                             $total_epf = 0;
                             $total_esi = 0;
-                            $total_prof_tax = 0; // unused
+                            $total_prof_tax = 0;
                             $total_income_tax = 0;
                             $total_gross = 0;
                             if(!empty($abstractList)){
@@ -94,6 +94,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                     $bank_credit += floatval($r['net_salary'] ?? 0);
                                     $total_epf += floatval($r['employee_epf'] ?? 0) + floatval($r['employer_pf'] ?? 0) + floatval($r['employer_eps'] ?? 0) + floatval($r['employer_edli'] ?? 0) + floatval($r['employer_admin'] ?? 0);
                                     $total_esi += floatval($r['employee_esi'] ?? 0) + floatval($r['employer_esi'] ?? 0);
+                                    $total_prof_tax += floatval($r['professional_tax'] ?? 0);
                                     $total_income_tax += floatval($r['tax'] ?? 0);
                                     $gross = floatval($r['basic'] ?? 0) + floatval($r['total_allowance'] ?? 0);
                                     $total_gross += $gross;
@@ -108,7 +109,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                     <tr><td>BANK CREDIT / Salary</td><td><?php echo amountFormat($bank_credit) ?: '0.00';?></td></tr>
                                     <tr><td>EPF EMPLOYER & EMPLOYEE CONTRIBUTION</td><td><?php echo amountFormat($total_epf) ?: '0.00';?></td></tr>
                                     <tr><td>ESIC EMPLOYER & EMPLOYEE CONTRIBUTION</td><td><?php echo amountFormat($total_esi) ?: '0.00';?></td></tr>
-                                    <tr><td>Professional Tax</td><td></td></tr>
+                                    <tr><td>Professional Tax</td><td><?php echo amountFormat($total_prof_tax) ?: '0.00';?></td></tr>
                                     <tr><td>Income Tax / TDS</td><td><?php echo amountFormat($total_income_tax) ?: '0.00';?></td></tr>
                                     <tr><td>&nbsp;</td><td>&nbsp;</td></tr>
                                 </tbody>
@@ -119,6 +120,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                     $grand_total += floatval($bank_credit);
                                     $grand_total += floatval($total_epf);
                                     $grand_total += floatval($total_esi);
+                                    $grand_total += floatval($total_prof_tax);
                                     $grand_total += floatval($total_income_tax);
                                     // note: do NOT add $total_gross here
                                     ?>

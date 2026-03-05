@@ -104,6 +104,12 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                             <a href="<?php echo site_url('admin/payroll/add_increment'); ?>" class="btn btn-default btn-xs">
                                 <i class="fa fa-user"></i> Single Staff
                             </a>
+                            <a href="<?php echo site_url('admin/payroll/bulk_onetime_deduction'); ?>" class="btn btn-warning btn-xs">
+                                <i class="fa fa-upload"></i> One-Time Deduction Upload
+                            </a>
+                            <a href="<?php echo site_url('admin/payroll/pending_onetime_deductions'); ?>" class="btn btn-info btn-xs">
+                                <i class="fa fa-clock-o"></i> Pending Deductions
+                            </a>
                         </div>
                     </div>
 

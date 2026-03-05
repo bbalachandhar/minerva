@@ -697,13 +697,20 @@ if (!empty($deductions)) {
                                                             <?php endforeach; ?>
                                                         </select>
                                                     <?php endif; ?>
+                                                    <?php
+                                                        $deduction_code = strtoupper(trim((string) (!empty($deduction_value['allowance_code']) ? $deduction_value['allowance_code'] : $deduction_value['allowance_type'])));
+                                                        $deduction_amount_value = (float) ($deduction_value['amount'] ?? 0);
+                                                        if ($deduction_code === 'TDS') {
+                                                            $deduction_amount_value = round($deduction_amount_value, 0, PHP_ROUND_HALF_UP);
+                                                        }
+                                                    ?>
                                                     <?php if($is_calculated): ?>
                                                         <div class="form-control modern-deduction-amount" style="background-color: #f5f5f5; border: none; cursor: not-allowed; text-align: right;">
-                                                            <?php echo convertBaseAmountCurrencyFormat($deduction_value['amount']) ?>
+                                                            <?php echo convertBaseAmountCurrencyFormat($deduction_amount_value) ?>
                                                         </div>
-                                                        <input type="hidden" name="deduction_amount[]" value="<?php echo $deduction_value['amount'] ?>">
+                                                        <input type="hidden" name="deduction_amount[]" value="<?php echo $deduction_amount_value ?>">
                                                     <?php else: ?>
-                                                        <input type="text" id="deduction_amount" name="deduction_amount[]" class="form-control modern-deduction-amount" value="<?php echo convertBaseAmountCurrencyFormat($deduction_value['amount']) ?>" placeholder="Amount">
+                                                        <input type="text" id="deduction_amount" name="deduction_amount[]" class="form-control modern-deduction-amount" value="<?php echo convertBaseAmountCurrencyFormat($deduction_amount_value) ?>" placeholder="Amount">
                                                     <?php endif; ?>
                                                     <?php if(!$is_calculated): ?>
                                                         <button type="button" onclick="delete_deduction_row(<?php echo $deduction_count ?>)" class="modern-item-delete" autocomplete="off"><i class="fa fa-trash"></i></button>
