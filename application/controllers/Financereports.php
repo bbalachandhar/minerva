@@ -54,53 +54,36 @@ class Financereports extends Admin_Controller
         $data['title'] = 'Incidental Fee Report';
         $data['fee_types'] = $this->incidental_fee_type_model->get();
         $data['classes'] = $this->class_model->get();
-        $data['searchlist'] = $this->customlib->get_searchtype();
-        $data['sch_setting'] = $this->sch_setting_detail;
+        $dates      = $this->customlib->get_betweendate('this_year');
+        $start_date = date('Y-m-d', strtotime($dates['from_date']));
+        $end_date   = date('Y-m-d', strtotime($dates['to_date']));
 
-        $current_session_id = $this->setting_model->getCurrentSession();
-        $data['current_session_id'] = $current_session_id;
+        $session_id  = $this->input->post('session_id');
+        $fee_type_id = $this->input->post('fee_type_id');
+        $class_id    = $this->input->post('class_id');
+        $student_id  = $this->input->post('student_id');
 
-        $this->form_validation->set_rules('search_type', $this->lang->line('search_duration'), 'trim|required|xss_clean');
+        $filters = array(
+            'session_id' => $session_id,
+            'fee_type_id' => $fee_type_id,
+            'class_id' => $class_id,
+            'student_id' => $student_id,
+            'start_date' => $start_date,
+            'end_date' => $end_date,
+        );
 
-        if ($this->form_validation->run() == FALSE) {
-            $data['collections'] = array();
-            $data['assignments'] = array();
-        } else {
-            $search_type = $this->input->post('search_type');
-            $session_id = $current_session_id;
-            $fee_type_id = $this->input->post('fee_type_id');
-            $class_id = $this->input->post('class_id');
-            $student_id = $this->input->post('student_id');
+        $data['collections'] = $this->incidental_fee_collection_model->get_collections_report($filters);
 
-            $dates = $this->customlib->get_betweendate($search_type);
-            $start_date = date('Y-m-d', strtotime($dates['from_date']));
-            $end_date = date('Y-m-d', strtotime($dates['to_date']));
-
-            $filters = array(
-                'session_id' => $session_id,
-                'fee_type_id' => $fee_type_id,
-                'class_id' => $class_id,
-                'student_id' => $student_id,
-                'start_date' => $start_date,
-                'end_date' => $end_date
-            );
-
-            $data['collections'] = $this->incidental_fee_collection_model->get_collections_report($filters);
-
-            $total_amount_collected = 0;
-            if (!empty($data['collections'])) {
-                foreach ($data['collections'] as $collection) {
-                    $total_amount_collected += $collection['amount_collected'];
-                }
+        $total_amount_collected = 0;
+        if (!empty($data['collections'])) {
+            foreach ($data['collections'] as $collection) {
+                $total_amount_collected += $collection['amount_collected'];
             }
-            $data['total_amount_collected'] = $total_amount_collected;
-            // For assignments report, we might need a separate method in the model
-            // For now, let's focus on collections report first.
-            // $data['assignments'] = $this->incidental_fee_assignment_model->get_assignments_report($filters);
         }
+        $data['total_amount_collected'] = $total_amount_collected;
 
         $this->load->view('layout/header', $data);
-        $this->load->view('financereports/incidental_fee_report', $data); // New view for incidental reports
+        $this->load->view('financereports/incidental_fee_report', $data);
         $this->load->view('layout/footer', $data);
     }
 
@@ -694,47 +677,7 @@ $data['department_id_selected'] = $this->input->post('department_id');
         }
 
         $data['collect_by']  = $this->studentfeemaster_model->get_feesreceived_by();
-        $data['searchlist']  = $this->customlib->get_searchtype();
-        $data['group_by']    = $this->customlib->get_groupby();
-        $feetype             = $this->feetype_model->get();
-        $tnumber = count($feetype);
-        $feetype[$tnumber] = array('id' => 'transport_fees', 'type' => 'Transport Fees');
-
-        $data['feetypeList'] = $feetype;
-        $this->session->set_userdata('top_menu', 'Reports');
-        $this->session->set_userdata('sub_menu', 'Reports/finance');
-        $this->session->set_userdata('subsub_menu', 'Reports/finance/collection_report');
-        $subtotal = false;
-
-        if (isset($_POST['search_type']) && $_POST['search_type'] != '') {
-            $dates               = $this->customlib->get_betweendate($_POST['search_type']);
-            $data['search_type'] = $_POST['search_type'];
-        } else {
-            $dates               = $this->customlib->get_betweendate('this_year');
-            $data['search_type'] = '';
-        }
-
-        if (isset($_POST['collect_by']) && $_POST['collect_by'] != '') {
-            $data['received_by'] = $received_by = $_POST['collect_by'];
-        } else {
-            $data['received_by'] = $received_by = '';
-        }
-
-        if (isset($_POST['feetype_id']) && $_POST['feetype_id'] != '') {
-            $feetype_id = $_POST['feetype_id'];
-        } else {
-            $feetype_id = "";
-        }
-
-        if (isset($_POST['group']) && $_POST['group'] != '') {
-            $data['group_byid'] = $group = $_POST['group'];
-            $subtotal           = true;
-        } else {
-            $data['group_byid'] = $group = '';
-        }
-
-        $collect_by = array();
-        $collection = array();
+        $dates      = $this->customlib->get_betweendate('this_year');
         $start_date = date('Y-m-d', strtotime($dates['from_date']));
         $end_date   = date('Y-m-d', strtotime($dates['to_date']));
 
@@ -1125,6 +1068,7 @@ $data['department_id_selected'] = $this->input->post('department_id');
         $start_date = date('Y-m-d', strtotime($dates['from_date']));
         $end_date   = date('Y-m-d', strtotime($dates['to_date']));
 
+        
         $data['label'] = date($this->customlib->getSchoolDateFormat(), strtotime($start_date)) . " " . $this->lang->line('to') . " " . date($this->customlib->getSchoolDateFormat(), strtotime($end_date));
 
         $incomeList = $this->income_model->search("", $start_date, $end_date);
@@ -1331,32 +1275,24 @@ $data['department_id_selected'] = $this->input->post('department_id');
         $this->session->set_userdata('top_menu', 'Reports');
         $this->session->set_userdata('sub_menu', 'Reports/finance');
         $this->session->set_userdata('subsub_menu', 'Reports/finance/payrollreportsummary');
-        $data['searchlist']  = $this->customlib->get_searchtype();
-        $data['date_type']   = $this->customlib->date_type();
-        $data['date_typeid'] = '';
+        $filter_category        = $this->input->post('filter_category') ?: [];
+        $filter_category        = is_array($filter_category) ? array_map('intval', array_filter($filter_category)) : [];
+        $data['filter_category'] = $filter_category;
+        $data['categories']      = $this->db->select('id, name')->order_by('id')->get('staff_designation_category')->result_array();
 
-        $filter_month = $this->input->post('filter_month');
-        $filter_year = $this->input->post('filter_year');
+        $filter_month         = $this->input->post('filter_month');
+        $filter_year          = $this->input->post('filter_year');
         $data['filter_month'] = $filter_month;
-        $data['filter_year'] = $filter_year;
+        $data['filter_year']  = $filter_year;
 
-        if (isset($_POST['search_type']) && $_POST['search_type'] != '') {
-
-            $dates               = $this->customlib->get_betweendate($_POST['search_type']);
-            $data['search_type'] = $_POST['search_type'];
-        } else {
-
-            $dates               = $this->customlib->get_betweendate('this_year');
-            $data['search_type'] = '';
-        }
-
+        $dates      = $this->customlib->get_betweendate('this_year');
         $start_date = date('Y-m-d', strtotime($dates['from_date']));
         $end_date   = date('Y-m-d', strtotime($dates['to_date']));
 
         $data['label']        = date($this->customlib->getSchoolDateFormat(), strtotime($start_date)) . " " . $this->lang->line('to') . " " . date($this->customlib->getSchoolDateFormat(), strtotime($end_date));
         $data['payment_mode'] = $this->payment_mode;
 
-        $result              = $this->payroll_model->getbetweenpayrollReport($start_date, $end_date, $filter_month, $filter_year);
+        $result              = $this->payroll_model->getbetweenpayrollReport($start_date, $end_date, $filter_month, $filter_year, $data['filter_category']);
         if (!empty($result)) {
             $result = array_values(array_filter($result, function ($row) {
                 $raw = $row['staff_is_active'] ?? 1;
@@ -1442,6 +1378,11 @@ $data['department_id_selected'] = $this->input->post('department_id');
             $data['date_type']   = $this->customlib->date_type();
             $data['date_typeid'] = '';
 
+            $filter_category        = $this->input->post('filter_category') ?: [];
+            $filter_category        = is_array($filter_category) ? array_map('intval', array_filter($filter_category)) : [];
+            $data['filter_category'] = $filter_category;
+            $data['categories']      = $this->db->select('id, name')->order_by('id')->get('staff_designation_category')->result_array();
+
             // month/year filters
             $filter_month = $this->input->post('filter_month');
             $filter_year  = $this->input->post('filter_year');
@@ -1467,7 +1408,7 @@ $data['department_id_selected'] = $this->input->post('department_id');
         $data['label'] = date($this->customlib->getSchoolDateFormat(), strtotime($start_date)) . " " . $this->lang->line('to') . " " . date($this->customlib->getSchoolDateFormat(), strtotime($end_date));
 
         log_message('debug','epfreport fetch payroll range '.$start_date.' to '.$end_date);
-        $result = $this->payroll_model->getbetweenpayrollReport($start_date, $end_date, $filter_month, $filter_year);
+        $result = $this->payroll_model->getbetweenpayrollReport($start_date, $end_date, $filter_month, $filter_year, $filter_category);
         if (!empty($result)) {
             $result = array_values(array_filter($result, function ($row) {
                 $raw = $row['staff_is_active'] ?? 1;
@@ -1558,6 +1499,11 @@ $data['department_id_selected'] = $this->input->post('department_id');
             $data['date_type']   = $this->customlib->date_type();
             $data['date_typeid'] = '';
 
+            $filter_category        = $this->input->post('filter_category') ?: [];
+            $filter_category        = is_array($filter_category) ? array_map('intval', array_filter($filter_category)) : [];
+            $data['filter_category'] = $filter_category;
+            $data['categories']      = $this->db->select('id, name')->order_by('id')->get('staff_designation_category')->result_array();
+
             // month/year filters
             $filter_month = $this->input->post('filter_month');
             $filter_year  = $this->input->post('filter_year');
@@ -1583,7 +1529,7 @@ $data['department_id_selected'] = $this->input->post('department_id');
             $data['label'] = date($this->customlib->getSchoolDateFormat(), strtotime($start_date)) . " " . $this->lang->line('to') . " " . date($this->customlib->getSchoolDateFormat(), strtotime($end_date));
 
             log_message('debug','esireport fetch payroll range '.$start_date.' to '.$end_date);
-            $result = $this->payroll_model->getbetweenpayrollReport($start_date, $end_date, $filter_month, $filter_year);
+            $result = $this->payroll_model->getbetweenpayrollReport($start_date, $end_date, $filter_month, $filter_year, $filter_category);
             if (!empty($result)) {
                 $result = array_values(array_filter($result, function ($row) {
                     $raw = $row['staff_is_active'] ?? 1;
@@ -1669,6 +1615,11 @@ $data['department_id_selected'] = $this->input->post('department_id');
             $data['date_type']   = $this->customlib->date_type();
             $data['date_typeid'] = '';
 
+            $filter_category        = $this->input->post('filter_category') ?: [];
+            $filter_category        = is_array($filter_category) ? array_map('intval', array_filter($filter_category)) : [];
+            $data['filter_category'] = $filter_category;
+            $data['categories']      = $this->db->select('id, name')->order_by('id')->get('staff_designation_category')->result_array();
+
             $filter_month = $this->input->post('filter_month');
             $filter_year  = $this->input->post('filter_year');
             // preserve original for label
@@ -1707,7 +1658,7 @@ $data['department_id_selected'] = $this->input->post('department_id');
             // make range available to view for troubleshooting
             $data['start_date'] = $start_date;
             $data['end_date'] = $end_date;
-            $result = $this->payroll_model->getbetweenpayrollReport($start_date, $end_date, $filter_month, $filter_year);
+            $result = $this->payroll_model->getbetweenpayrollReport($start_date, $end_date, $filter_month, $filter_year, $filter_category);
             log_message('debug','salaryabstract result count:'.count($result));
 
             // add working days for each row (optional)

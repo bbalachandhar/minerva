@@ -21,6 +21,7 @@
                             <a href="<?php echo base_url(); ?>admin/payroll/payrollreport_generated"><i class="fa fa-file-text-o"></i> Generated Payroll Report</a>
                         </li>
                     <?php } ?>
+                    <li class="col-lg-4 col-md-4 col-sm-6 <?php echo set_SubSubmenu('Reports/human_resource/staff_birthday_list'); ?>"><a href="<?php echo base_url(); ?>report/staff_birthday_list"><i class="fa fa-birthday-cake"></i> Staff Birthday List</a></li>
                 </ul>
             </div>
         </div>

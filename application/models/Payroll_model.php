@@ -531,7 +531,7 @@ class Payroll_model extends MY_Model
         return $query->result_array();
     }
 
-    public function getbetweenpayrollReport($start_date, $end_date, $filter_month = null, $filter_year = null)
+    public function getbetweenpayrollReport($start_date, $end_date, $filter_month = null, $filter_year = null, $category_id = null)
     {      
         
         $condition = "date_format(staff_payslip.payment_date,'%Y-%m-%d') between '" . $start_date . "' and '" . $end_date . "'";
@@ -553,6 +553,15 @@ class Payroll_model extends MY_Model
         // Add year filter if provided
         if (!empty($filter_year)) {
             $condition .= " AND staff_payslip.year = '" . $this->db->escape_str($filter_year) . "'";
+        }
+
+        // Add category filter if provided (supports single value or array)
+        if (!empty($category_id)) {
+            $ids = is_array($category_id) ? array_map('intval', $category_id) : [intval($category_id)];
+            $ids = array_filter($ids);
+            if (!empty($ids)) {
+                $condition .= " AND COALESCE(staff.category_id, staff_designation.category_id) IN (" . implode(',', $ids) . ")";
+            }
         }
        
         // Get ESI deduction from payslip_allowance (subquery) - for backward compatibility

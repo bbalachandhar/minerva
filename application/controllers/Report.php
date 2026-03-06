@@ -539,6 +539,56 @@ class Report extends Admin_Controller
         $this->load->view('layout/footer');
     }
 
+    public function staff_birthday_list()
+    {
+        $this->session->set_userdata('top_menu', 'Reports');
+        $this->session->set_userdata('sub_menu', 'Reports/human_resource');
+        $this->session->set_userdata('subsub_menu', 'Reports/human_resource/staff_birthday_list');
+
+        $data['from_date']  = '';
+        $data['to_date']    = '';
+        $data['resultlist'] = [];
+
+        if ($this->input->post('from_date') && $this->input->post('to_date')) {
+            $from_date         = $this->customlib->dateFormatToYYYYMMDD($this->input->post('from_date'));
+            $to_date           = $this->customlib->dateFormatToYYYYMMDD($this->input->post('to_date'));
+            $data['from_date'] = $this->input->post('from_date');
+            $data['to_date']   = $this->input->post('to_date');
+
+            // Compare only month-day (ignore year) — handle cross-year ranges
+            $from_md = date('md', strtotime($from_date));
+            $to_md   = date('md', strtotime($to_date));
+
+            if ($from_md <= $to_md) {
+                // Normal range e.g. Jan–Dec within same year
+                $where = "DATE_FORMAT(s.dob, '%m%d') BETWEEN '{$from_md}' AND '{$to_md}'";
+            } else {
+                // Cross-year range e.g. Nov–Feb
+                $where = "(DATE_FORMAT(s.dob, '%m%d') >= '{$from_md}' OR DATE_FORMAT(s.dob, '%m%d') <= '{$to_md}')";
+            }
+
+            $query = $this->db->query(
+                "SELECT s.employee_id,
+                        CONCAT(s.name, ' ', s.surname) AS staff_name,
+                        d.department_name,
+                        sd.designation,
+                        s.dob
+                 FROM staff s
+                 LEFT JOIN department d ON s.department = d.id
+                 LEFT JOIN staff_designation sd ON s.designation = sd.id
+                 WHERE s.dob IS NOT NULL
+                   AND {$where}
+                 ORDER BY DATE_FORMAT(s.dob, '%m%d')"
+            );
+            $data['resultlist'] = $query->result_array();
+        }
+
+        $data['sch_setting'] = $this->sch_setting_detail;
+        $this->load->view('layout/header', $data);
+        $this->load->view('reports/staff_birthday_list', $data);
+        $this->load->view('layout/footer', $data);
+    }
+
     public function library()
     {
         $this->session->set_userdata('top_menu', 'Reports');

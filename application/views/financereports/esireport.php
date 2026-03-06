@@ -18,19 +18,15 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                     <form role="form" action="<?php echo site_url('financereports/esireport') ?>" method="post" class="">
                         <div class="box-body row">
                             <?php echo $this->customlib->getCSRF(); ?>
-                            <div class="col-sm-6 col-md-3" >
+                            <div class="col-sm-6 col-md-3">
                                 <div class="form-group">
-                                    <label><?php echo $this->lang->line('search_type'); ?></label>
-                                    <select class="form-control" name="search_type" onchange="showdate(this.value)">
-                                        <?php foreach ($searchlist as $key => $search) { ?>
-                                            <option value="<?php echo $key ?>" <?php
-                                            if ((isset($search_type)) && ($search_type == $key)) {
-                                                echo "selected";
-                                            }
-                                            ?>><?php echo $search ?></option>
-                                        <?php } ?>
+                                    <label>Category</label>
+                                    <select class="form-control" name="filter_category[]" multiple="multiple" size="4">
+                                        <?php foreach ($categories as $cat): ?>
+                                        <option value="<?php echo $cat['id']; ?>" <?php echo (isset($filter_category) && is_array($filter_category) && in_array($cat['id'], $filter_category)) ? 'selected' : ''; ?>><?php echo htmlspecialchars($cat['name']); ?></option>
+                                        <?php endforeach; ?>
                                     </select>
-                                    <span class="text-danger"><?php echo form_error('search_type'); ?></span>
+                                    <small class="text-muted">Hold Ctrl/Cmd to select multiple</small>
                                 </div>
                             </div>
                             <div class="col-sm-6 col-md-2" >
@@ -62,9 +58,6 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                         ?>
                                     </select>
                                 </div>
-                            </div>
-                            <div id='date_result'>
-
                             </div>
                             <div class="form-group">
                                 <div class="col-sm-12">
