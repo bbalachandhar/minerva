@@ -446,14 +446,17 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
     $(document).ready(function () {
         var schoolName = "<?php echo addslashes($this->sch_setting_detail->name);?>";
         var schoolAddr = "<?php echo addslashes($this->sch_setting_detail->address);?>";
-        var headerMsg = schoolName + "\n" + schoolAddr + "\n" + "Payroll Report Summary" + "\n";
+        var reportName = 'Payroll Report Summary';
+        var headerMsg = schoolName + "\n" + schoolAddr + "\n" + reportName + "\n";
         $('.example').DataTable({
             dom: 'Bfrtip',
             buttons: [
-                'copy', 'csv',
+                { extend: 'copy', filename: reportName },
+                { extend: 'csv', filename: reportName },
                 {
                     extend: 'excelHtml5',
                     title: '',
+                    filename: reportName,
                     messageTop: headerMsg,
                     customize: function (xlsx) {
                         var sheet = xlsx.xl.worksheets['sheet1.xml'];
@@ -477,11 +480,12 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                 {
                     extend: 'pdfHtml5',
                     title: '',
+                    filename: reportName,
                     customize: function(doc) {
                         doc.content.splice(0,0,
                             { text: schoolName, style: 'dtHeader' },
                             { text: schoolAddr, style: 'dtSubHeader' },
-                            { text: 'Payroll Report Summary', style: 'dtSubHeader' },
+                            { text: reportName, style: 'dtSubHeader' },
                             { text: '\n' }
                         );
                         doc.styles.dtHeader = { fontSize: 16, bold: true, alignment: 'center' };

@@ -168,13 +168,15 @@ $_esi_employer_rate  = isset($_esi_cfg['employer_contribution_rate'])  ? $_esi_c
     $(document).ready(function () {
         var schoolName = "<?php echo addslashes($this->sch_setting_detail->name);?>";
         var schoolAddr = "<?php echo addslashes($this->sch_setting_detail->address);?>";
-        var headerMsg = schoolName + "\n" + schoolAddr + "\n" + "Salary Abstract Report" + "\n";
+        var reportName = 'Salary Abstract Report';
+        var headerMsg = schoolName + "\n" + schoolAddr + "\n" + reportName + "\n";
         $('.example').DataTable({
             dom: 'Bfrtip',
             buttons: [
-                'copy','csv',
+                {extend:'copy',filename:reportName},
+                {extend:'csv',filename:reportName},
                 {
-                    extend:'excelHtml5', title:'', messageTop:headerMsg,
+                    extend:'excelHtml5', title:'', filename:reportName, messageTop:headerMsg,
                     customize:function(xlsx){
                         var sheet = xlsx.xl.worksheets['sheet1.xml'];
                         $('row c[r^="A1"]',sheet).attr('s','22');
@@ -182,11 +184,11 @@ $_esi_employer_rate  = isset($_esi_cfg['employer_contribution_rate'])  ? $_esi_c
                     exportOptions:{format:{body:function(d){return d.replace(/(<([^>]+)>)/ig,'');},footer:function(d){return d.replace(/(<([^>]+)>)/ig,'');}}},footer:true
                 },
                 {
-                    extend:'pdfHtml5', title:'', customize:function(doc){
+                    extend:'pdfHtml5', title:'', filename:reportName, customize:function(doc){
                         doc.content.splice(0,0,
                             {text:schoolName,style:'dtHeader'},
                             {text:schoolAddr,style:'dtSubHeader'},
-                            {text:'Salary Abstract Report',style:'dtSubHeader'},
+                            {text:reportName,style:'dtSubHeader'},
                             {text:'\n'}
                         );
                         doc.styles.dtHeader={fontSize:16,bold:true,alignment:'center'};
