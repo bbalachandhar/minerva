@@ -589,34 +589,7 @@ class Auth
 
     public function addonchk($prod = null, $return_url = false)
     {
-        if ($prod != null) {
-            $addon_prod = $this->CI->config->item('addon_prod');
-            $addon_ver  = $this->CI->config->item('addon_ver');
-
-
-            $products   = array();
-
-            if (!empty($addon_ver)) {
-                foreach ($addon_ver as $ver_key => $ver_value) {
-                    $key         = $addon_prod[$ver_key];
-                    $decrypt_val = $this->CI->aes->decode($ver_value, $key);
-
-                    if ($decrypt_val !== "") {
-                        $arr               = explode('!!', $decrypt_val);
-                        $products[$arr[0]] = $arr[1];
-
-                        if (($arr[0] == $prod || $arr[0] == "ssabp") && $arr[1] == base_url()) {
-                            return true;
-                        }
-                    }
-                }
-            }
-        }
-        if ($return_url) {
-            redirect($return_url);
-            exit;
-        }
-        return false;
+        return true;
     }
 
     public function userlogout()

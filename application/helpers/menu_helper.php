@@ -394,7 +394,11 @@ if (!function_exists('main_menu_array')) {
                             'term'          => array('index'),               
                             'template'      => array('index','templatewiserank'),               
                             'report'        => array('index','templatewise','examsubject'),               
-                            'setting'       => array('index'),                              
+                            'setting'       => array('index'),
+                            'cbsecategory'  => array('index'),
+                            'cbseadmitcard' => array('admitcard','index','edit'),
+                            'schedule'      => array('index'),
+                            'chart'         => array('index'),
                         ),
                         
                         'hall_management' => array(

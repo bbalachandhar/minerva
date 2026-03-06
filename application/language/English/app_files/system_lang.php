@@ -3095,3 +3095,15 @@ $lang['days_present'] = "Days Present";
 $lang['generate_attendance'] = "Generate Attendance";
 $lang['attendance_generated_successfully'] = "Attendance generated successfully";
 $lang['error_occurred'] = "An error occurred. Please try again.";
+
+// CBSE module compatibility keys (added without replacing existing language entries)
+$lang['candidates'] = "Candidates";
+$lang['category_name'] = "Category Name";
+$lang['error_occured'] = "An error occurred. Please try again.";
+$lang['exam_grading'] = "Exam Grading";
+$lang['exams'] = "Exams";
+$lang['or'] = "Or";
+$lang['range_description'] = "Range Description";
+$lang['range_name'] = "Range Name";
+$lang['storage'] = "Storage";
+$lang['student_fee1'] = "Student Fee";

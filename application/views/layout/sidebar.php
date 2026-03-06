@@ -93,17 +93,9 @@ foreach ($side_list_value->submenus as $submenu_key => $submenu_value) {
                             foreach ($sidebar_permission as $sidebar_permission_key => $sidebar_permission_value) {
                                 $sidebar_cat_permission = access_permission_remove_comma($sidebar_permission_value);
 
-                                if ($submenu_value->addon_permission != "") {
-                                    if ($this->rbac->hasPrivilege($sidebar_cat_permission[0], $sidebar_cat_permission[1])
-                                        && $this->auth->addonchk($submenu_value->addon_permission, false)) {
-                                        $sidebar_access = true;
-                                        break;
-                                    }
-                                } else {
-                                    if ($this->rbac->hasPrivilege($sidebar_cat_permission[0], $sidebar_cat_permission[1])) {
-                                        $sidebar_access = true;
-                                        break;
-                                    }
+                                if ($this->rbac->hasPrivilege($sidebar_cat_permission[0], $sidebar_cat_permission[1])) {
+                                    $sidebar_access = true;
+                                    break;
                                 }
                             }
                         }
