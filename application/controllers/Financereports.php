@@ -1661,6 +1661,18 @@ $data['department_id_selected'] = $this->input->post('department_id');
             $result = $this->payroll_model->getbetweenpayrollReport($start_date, $end_date, $filter_month, $filter_year, $filter_category);
             log_message('debug','salaryabstract result count:'.count($result));
 
+            // Filter out inactive staff (same as payroll summary)
+            if (!empty($result)) {
+                $result = array_values(array_filter($result, function ($row) {
+                    $raw = $row['staff_is_active'] ?? 1;
+                    if (is_bool($raw)) {
+                        return $raw;
+                    }
+                    $normalized = strtolower(trim((string) $raw));
+                    return in_array($normalized, ['1', 'true', 'yes'], true);
+                }));
+            }
+
             // add working days for each row (optional)
             if (!empty($result)) {
                 foreach ($result as &$row) {
