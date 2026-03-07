@@ -1379,20 +1379,16 @@ $data['department_id_selected'] = $this->input->post('department_id');
         $data['filter_month'] = $filter_month;
         $data['filter_year']  = $filter_year;
 
-        $filter_banks = $this->input->post('filter_banks') ?: [];
-        $filter_banks = is_array($filter_banks) ? array_values(array_filter(array_map('trim', $filter_banks))) : [];
-        if (in_array('__all__', $filter_banks, true)) {
-            $filter_banks = [];
-        }
-        $data['filter_banks'] = $filter_banks;
         $data['banks'] = $this->db->distinct()
             ->select('bank_name')
             ->from('staff')
-            ->where('bank_name IS NOT NULL', null, false)
-            ->where('bank_name !=', '')
             ->order_by('bank_name', 'ASC')
             ->get()
             ->result_array();
+
+        $filter_banks = $this->input->post('filter_banks') ?: [];
+        $filter_banks = is_array($filter_banks) ? array_values(array_filter(array_map('trim', $filter_banks))) : [];
+        $data['filter_banks'] = $filter_banks;
 
         $dates      = $this->customlib->get_betweendate('this_year');
         $start_date = date('Y-m-d', strtotime($dates['from_date']));

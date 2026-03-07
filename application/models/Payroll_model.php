@@ -567,17 +567,31 @@ class Payroll_model extends MY_Model
         // Add bank name filter if provided (supports one or many bank names)
         if (!empty($bank_names)) {
             $banks = is_array($bank_names) ? $bank_names : [$bank_names];
-            $banks = array_values(array_filter(array_map(function ($bank) {
-                return trim((string) $bank);
+            $include_empty_bank = false;
+            $banks = array_values(array_filter(array_map(function ($bank) use (&$include_empty_bank) {
+                $bank = trim((string) $bank);
+                if ($bank === '__empty__') {
+                    $include_empty_bank = true;
+                    return '';
+                }
+                return $bank;
             }, $banks), function ($bank) {
                 return $bank !== '';
             }));
 
-            if (!empty($banks)) {
-                $escaped_banks = array_map(function ($bank) {
-                    return "'" . $this->db->escape_str($bank) . "'";
-                }, $banks);
-                $condition .= " AND staff.bank_name IN (" . implode(',', $escaped_banks) . ")";
+            if (!empty($banks) || $include_empty_bank) {
+                $bank_conditions = [];
+                if (!empty($banks)) {
+                    $escaped_banks = array_map(function ($bank) {
+                        return "'" . $this->db->escape_str($bank) . "'";
+                    }, $banks);
+                    $bank_conditions[] = "staff.bank_name IN (" . implode(',', $escaped_banks) . ")";
+                }
+                if ($include_empty_bank) {
+                    $bank_conditions[] = "staff.bank_name IS NULL";
+                    $bank_conditions[] = "TRIM(COALESCE(staff.bank_name, '')) = ''";
+                }
+                $condition .= " AND (" . implode(' OR ', $bank_conditions) . ")";
             }
         }
        

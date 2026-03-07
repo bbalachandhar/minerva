@@ -71,7 +71,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                 <div class="form-group">
                                     <label><?php echo $this->lang->line('bank_name'); ?></label>
                                     <select class="form-control" name="filter_banks[]" multiple="multiple" size="5">
-                                        <option value="__all__" <?php echo empty($filter_banks) ? 'selected' : ''; ?>>All Banks</option>
+                                        <option value="__empty__" <?php echo (!empty($filter_banks) && in_array('__empty__', $filter_banks, true)) ? 'selected' : ''; ?>>[EMPTY / NULL BANK NAME]</option>
                                         <?php if (!empty($banks)) {
                                             foreach ($banks as $bank) {
                                                 $bank_name = trim((string) ($bank['bank_name'] ?? ''));
@@ -83,7 +83,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                             }
                                         } ?>
                                     </select>
-                                    <small class="text-muted">Select one or more banks. Keep All Banks selected for no bank filter.</small>
+                                    <small class="text-muted">Select one or more banks. Use [EMPTY / NULL BANK NAME] for blank entries. For all banks, select all options.</small>
                                 </div>
                             </div>
 
