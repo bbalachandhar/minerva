@@ -138,7 +138,7 @@ $_esi_employer_rate  = isset($_esi_cfg['employer_contribution_rate'])  ? $_esi_c
                                     $grand_total += floatval($total_income_tax);
                                     // note: do NOT add $total_gross here
                                     ?>
-                                    <tr><td><strong>Gross Salary</strong></td><td><strong><?php echo amountFormat($grand_total) ?: '0.00';?></strong></td></tr>
+                                    <tr><td><strong>Total</strong></td><td><strong><?php echo amountFormat($grand_total) ?: '0.00';?></strong></td></tr>
                                 </tfoot>
                             </table>
                         </div>

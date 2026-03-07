@@ -531,7 +531,7 @@ class Payroll_model extends MY_Model
         return $query->result_array();
     }
 
-    public function getbetweenpayrollReport($start_date, $end_date, $filter_month = null, $filter_year = null, $category_id = null)
+    public function getbetweenpayrollReport($start_date, $end_date, $filter_month = null, $filter_year = null, $category_id = null, $bank_names = null)
     {      
         
         $condition = "date_format(staff_payslip.payment_date,'%Y-%m-%d') between '" . $start_date . "' and '" . $end_date . "'";
@@ -563,10 +563,27 @@ class Payroll_model extends MY_Model
                 $condition .= " AND COALESCE(staff.category_id, staff_designation.category_id) IN (" . implode(',', $ids) . ")";
             }
         }
+
+        // Add bank name filter if provided (supports one or many bank names)
+        if (!empty($bank_names)) {
+            $banks = is_array($bank_names) ? $bank_names : [$bank_names];
+            $banks = array_values(array_filter(array_map(function ($bank) {
+                return trim((string) $bank);
+            }, $banks), function ($bank) {
+                return $bank !== '';
+            }));
+
+            if (!empty($banks)) {
+                $escaped_banks = array_map(function ($bank) {
+                    return "'" . $this->db->escape_str($bank) . "'";
+                }, $banks);
+                $condition .= " AND staff.bank_name IN (" . implode(',', $escaped_banks) . ")";
+            }
+        }
        
         // Get ESI deduction from payslip_allowance (subquery) - for backward compatibility
         // Read ESI values directly from staff_payslip table (employee_esi and employer_esi)
-        $this->db->select('staff.id,staff.employee_id,staff.name,staff.surname,staff.uan_no,staff.esi_no,staff.date_of_joining,staff.is_active as staff_is_active,staff_payslip.*,
+        $this->db->select('staff.id,staff.employee_id,staff.name,staff.surname,staff.uan_no,staff.esi_no,staff.date_of_joining,staff.bank_name,staff.bank_branch,staff.ifsc_code,staff.bank_account_no,staff.is_active as staff_is_active,staff_payslip.*,
             (SELECT pa.amount FROM payslip_allowance pa 
              INNER JOIN payroll_allowance_types pat ON pa.allowance_type = pat.allowance_code 
              WHERE pa.payslip_id = staff_payslip.id 

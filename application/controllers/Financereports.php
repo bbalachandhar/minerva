@@ -1363,6 +1363,70 @@ $data['department_id_selected'] = $this->input->post('department_id');
         $this->load->view('layout/footer', $data);
     }
 
+    public function payrollbankcopy()
+    {
+        $this->session->set_userdata('top_menu', 'Reports');
+        $this->session->set_userdata('sub_menu', 'Reports/finance');
+        $this->session->set_userdata('subsub_menu', 'Reports/finance/payrollbankcopy');
+
+        $filter_category         = $this->input->post('filter_category') ?: [];
+        $filter_category         = is_array($filter_category) ? array_map('intval', array_filter($filter_category)) : [];
+        $data['filter_category'] = $filter_category;
+        $data['categories']      = $this->db->select('id, name')->order_by('id')->get('staff_designation_category')->result_array();
+
+        $filter_month         = $this->input->post('filter_month');
+        $filter_year          = $this->input->post('filter_year');
+        $data['filter_month'] = $filter_month;
+        $data['filter_year']  = $filter_year;
+
+        $filter_banks = $this->input->post('filter_banks') ?: [];
+        $filter_banks = is_array($filter_banks) ? array_values(array_filter(array_map('trim', $filter_banks))) : [];
+        if (in_array('__all__', $filter_banks, true)) {
+            $filter_banks = [];
+        }
+        $data['filter_banks'] = $filter_banks;
+        $data['banks'] = $this->db->distinct()
+            ->select('bank_name')
+            ->from('staff')
+            ->where('bank_name IS NOT NULL', null, false)
+            ->where('bank_name !=', '')
+            ->order_by('bank_name', 'ASC')
+            ->get()
+            ->result_array();
+
+        $dates      = $this->customlib->get_betweendate('this_year');
+        $start_date = date('Y-m-d', strtotime($dates['from_date']));
+        $end_date   = date('Y-m-d', strtotime($dates['to_date']));
+
+        $data['label'] = date($this->customlib->getSchoolDateFormat(), strtotime($start_date)) . " " . $this->lang->line('to') . " " . date($this->customlib->getSchoolDateFormat(), strtotime($end_date));
+
+        $result = $this->payroll_model->getbetweenpayrollReport(
+            $start_date,
+            $end_date,
+            $filter_month,
+            $filter_year,
+            $data['filter_category'],
+            $filter_banks
+        );
+        if (!empty($result)) {
+            $result = array_values(array_filter($result, function ($row) {
+                $raw = $row['staff_is_active'] ?? 1;
+                if (is_bool($raw)) {
+                    return $raw;
+                }
+
+                $normalized = strtolower(trim((string) $raw));
+                return in_array($normalized, ['1', 'true', 'yes'], true);
+            }));
+        }
+
+        $data['payrollList'] = $result;
+
+        $this->load->view('layout/header', $data);
+        $this->load->view('financereports/payroll_bank_copy', $data);
+        $this->load->view('layout/footer', $data);
+    }
+
     /**
      * EPF report: filter by date range and optional month/year
      * shows basic payroll fields along with EPF contributions and working days.
