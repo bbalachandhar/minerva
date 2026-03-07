@@ -132,7 +132,7 @@
     if ($template['background_img'] != "") {
     ?>
 
-      <img src="<?php echo base_url('uploads/cbseexam/template/background_img/' . $template['background_img']) ?>" class="tcmybg" width="100%" height="100%">
+      <img src="<?php echo $this->media_storage->getImageURL('uploads/cbseexam/template/background_img/' . $template['background_img']) ?>" class="tcmybg" width="100%" height="100%">
     <?php
     }
     ?>
@@ -143,7 +143,7 @@
       ?>
 
         <div class="text-center" >
-          <img src="<?php echo base_url('uploads/cbseexam/template/header_image/' . $template['header_image']) ?>" width="100%" height="auto">
+          <img src="<?php echo $this->media_storage->getImageURL('uploads/cbseexam/template/header_image/' . $template['header_image']) ?>" width="100%" height="auto">
         </div>
       <?php
       }
@@ -464,7 +464,7 @@
                   if ($template['left_sign'] != "") {
                   ?>
                       <td valign="top" width="32%" class="signature">
-              <img src="<?php echo base_url('uploads/cbseexam/template/left_sign/'.$template['left_sign']) ?>" width="100" height="50" style="padding-bottom: 5px;">
+              <img src="<?php echo $this->media_storage->getImageURL('uploads/cbseexam/template/left_sign/'.$template['left_sign']) ?>" width="100" height="50" style="padding-bottom: 5px;">
               <p class="fw-bold"><?php echo $this->lang->line('signature_of_class_teacher'); ?></p>
             </td>
                   <?php
@@ -474,7 +474,7 @@
                   if ($template['middle_sign'] != "") {
                   ?>
                      <td valign="top" width="32%" class="signature text-center">
-              <img src="<?php echo base_url('uploads/cbseexam/template/middle_sign/'.$template['middle_sign']) ?>" width="100" height="50" style="padding-bottom: 5px;">
+              <img src="<?php echo $this->media_storage->getImageURL('uploads/cbseexam/template/middle_sign/'.$template['middle_sign']) ?>" width="100" height="50" style="padding-bottom: 5px;">
               <p class="fw-bold"><?php echo $this->lang->line('signature_of_principal'); ?></p>
             </td>
                   <?php
@@ -484,7 +484,7 @@
                   if ($template['right_sign'] != "") {
                   ?>
                     <td valign="top" width="32%" class="signature text-right">
-              <img src="<?php echo base_url('uploads/cbseexam/template/right_sign/'.$template['right_sign']) ?>" width="100" height="50" style="padding-bottom: 5px;">
+              <img src="<?php echo $this->media_storage->getImageURL('uploads/cbseexam/template/right_sign/'.$template['right_sign']) ?>" width="100" height="50" style="padding-bottom: 5px;">
               <p class="fw-bold"><?php echo $this->lang->line('signature_of_principal'); ?></p>
             </td>
                   <?php

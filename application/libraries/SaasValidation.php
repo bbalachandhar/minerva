@@ -17,6 +17,62 @@ class SaasValidation
       
     }
 
+    /**
+     * Backward-compatible callback used by CBSE controllers.
+     * Validates whether current uploaded files can fit in the storage quota.
+     */
+    public function validateCanUploadFile($str, $params_array)
+    {
+        if (!$this->sass_enabled) {
+            return true;
+        }
+
+        if (!is_array($params_array)) {
+            $params_array = array_map('trim', explode(',', (string) $params_array));
+        }
+
+        $uploaded_size = 0;
+        foreach ($params_array as $field_name) {
+            if (isset($_FILES[$field_name]) && !empty($_FILES[$field_name]['name']) && (int) $_FILES[$field_name]['size'] > 0) {
+                $uploaded_size += ((float) $_FILES[$field_name]['size']) / 1024 / 1024;
+            }
+        }
+
+        if ($uploaded_size <= 0) {
+            return true;
+        }
+
+        return $this->getStorageLimit('storage', $uploaded_size);
+    }
+
+    /**
+     * Backward-compatible helper used by CBSE controllers.
+     * Reserves storage quota for currently uploaded files.
+     */
+    public function updateStorageLimit($resource, $fields)
+    {
+        if (!$this->sass_enabled) {
+            return true;
+        }
+
+        if (!is_array($fields)) {
+            $fields = array_map('trim', explode(',', (string) $fields));
+        }
+
+        $uploaded_size = 0;
+        foreach ($fields as $field_name) {
+            if (isset($_FILES[$field_name]) && !empty($_FILES[$field_name]['name']) && (int) $_FILES[$field_name]['size'] > 0) {
+                $uploaded_size += ((float) $_FILES[$field_name]['size']) / 1024 / 1024;
+            }
+        }
+
+        if ($uploaded_size <= 0) {
+            return true;
+        }
+
+        return $this->updateResouceQuota($resource, $uploaded_size);
+    }
+
 
     public function getResourceLimit($resource, $insert_qty)
     {

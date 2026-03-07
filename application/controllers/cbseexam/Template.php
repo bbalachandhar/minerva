@@ -11,12 +11,30 @@ class Template extends MY_Addon_CBSEController
     {
         parent::__construct();
         $this->load->library('SaasValidation');
+        $this->load->library('media_storage');
     }
 
     public function validateCanUploadFile($str, $params_string)
     {
         $params_array = array_map('trim', explode(',', $params_string));
         return $this->saasvalidation->validateCanUploadFile($str, $params_array);
+    }
+
+    private function getUploadFileName($upload_result)
+    {
+        if (is_array($upload_result)) {
+            if (!empty($upload_result['status']) && isset($upload_result['message']) && is_string($upload_result['message'])) {
+                return $upload_result['message'];
+            }
+            $message = isset($upload_result['message']) ? (string) $upload_result['message'] : $this->lang->line('error_occurred_please_try_again');
+            throw new Exception($message);
+        }
+
+        if (is_string($upload_result)) {
+            return $upload_result;
+        }
+
+        throw new Exception($this->lang->line('error_occurred_please_try_again'));
     }
 
     public function index()
@@ -170,14 +188,16 @@ class Template extends MY_Addon_CBSEController
 
             if (isset($_FILES["header_image"]) && !empty($_FILES["header_image"]['name'])) {
                 
-                $img_name = $this->media_storage->fileupload("header_image", "./uploads/cbseexam/template/header_image/");
+                $upload_result = $this->media_storage->fileupload("header_image", "./uploads/cbseexam/template/header_image/");
+                $img_name = $this->getUploadFileName($upload_result);
                 $data['header_image'] = $img_name;
                 if (IsNullOrEmptyString($img_name)) {  // check upload image has not uploaded successfully
                     $total_documents_failed_size += $this->media_storage->getTmpFileSize('header_image');  // get temp size of image because of image not uploaded 
                 }
             }
             if (isset($_FILES["left_sign"]) && !empty($_FILES["left_sign"]['name'])) {
-                $img_name = $this->media_storage->fileupload("left_sign", "./uploads/cbseexam/template/left_sign/");
+                $upload_result = $this->media_storage->fileupload("left_sign", "./uploads/cbseexam/template/left_sign/");
+                $img_name = $this->getUploadFileName($upload_result);
                 $data['left_sign'] = $img_name;
                 if (IsNullOrEmptyString($img_name)) {  // check upload image has not uploaded successfully
                     $total_documents_failed_size += $this->media_storage->getTmpFileSize('left_sign');  // get temp size of image because of image not uploaded 
@@ -185,7 +205,8 @@ class Template extends MY_Addon_CBSEController
             }
             if (isset($_FILES["middle_sign"]) && !empty($_FILES["middle_sign"]['name'])) {
                
-                $img_name = $this->media_storage->fileupload("middle_sign", "./uploads/cbseexam/template/middle_sign/");
+                $upload_result = $this->media_storage->fileupload("middle_sign", "./uploads/cbseexam/template/middle_sign/");
+                $img_name = $this->getUploadFileName($upload_result);
                 $data['middle_sign'] = $img_name;
                 if (IsNullOrEmptyString($img_name)) {  // check upload image has not uploaded successfully
                     $total_documents_failed_size += $this->media_storage->getTmpFileSize('middle_sign');  // get temp size of image because of image not uploaded 
@@ -193,7 +214,8 @@ class Template extends MY_Addon_CBSEController
             }
             if (isset($_FILES["right_sign"]) && !empty($_FILES["right_sign"]['name'])) {
 
-                $img_name = $this->media_storage->fileupload("right_sign", "./uploads/cbseexam/template/right_sign/");
+                $upload_result = $this->media_storage->fileupload("right_sign", "./uploads/cbseexam/template/right_sign/");
+                $img_name = $this->getUploadFileName($upload_result);
                 $data['right_sign'] = $img_name;
                 if (IsNullOrEmptyString($img_name)) {  // check upload image has not uploaded successfully
                     $total_documents_failed_size += $this->media_storage->getTmpFileSize('right_sign');  // get temp size of image because of image not uploaded 
@@ -201,7 +223,8 @@ class Template extends MY_Addon_CBSEController
             }
             if (isset($_FILES["background_img"]) && !empty($_FILES["background_img"]['name'])) {
 
-                $img_name = $this->media_storage->fileupload("background_img", "./uploads/cbseexam/template/background_img/");
+                $upload_result = $this->media_storage->fileupload("background_img", "./uploads/cbseexam/template/background_img/");
+                $img_name = $this->getUploadFileName($upload_result);
                 $data['background_img'] = $img_name;
                 if (IsNullOrEmptyString($img_name)) {  // check upload image has not uploaded successfully
                     $total_documents_failed_size += $this->media_storage->getTmpFileSize('background_img');  // get temp size of image because of image not uploaded 
@@ -363,7 +386,8 @@ class Template extends MY_Addon_CBSEController
 
             if (isset($_FILES["header_image"]) && !empty($_FILES["header_image"]['name'])) {
                 $prev_file_size += $this->media_storage->getUploadedFileSize($result['header_image'],'uploads/cbseexam/template/header_image');
-                $header_image            = $this->media_storage->fileupload("header_image", "./uploads/cbseexam/template/header_image/");
+                $upload_result = $this->media_storage->fileupload("header_image", "./uploads/cbseexam/template/header_image/");
+                $header_image = $this->getUploadFileName($upload_result);
                 $insert_data['header_image'] = $header_image;
                 if (!IsNullOrEmptyString($header_image)) {
                     $total_image_upload_size += $this->media_storage->getTmpFileSize('header_image');
@@ -375,7 +399,8 @@ class Template extends MY_Addon_CBSEController
             if (isset($_FILES["left_logo"]) && !empty($_FILES["left_logo"]['name'])) {
 
                 $prev_file_size += $this->media_storage->getUploadedFileSize($result['left_logo'],'uploads/cbseexam/template/left_logo');
-                $left_logo            = $this->media_storage->fileupload("left_logo", "./uploads/cbseexam/template/left_logo/");
+                $upload_result = $this->media_storage->fileupload("left_logo", "./uploads/cbseexam/template/left_logo/");
+                $left_logo = $this->getUploadFileName($upload_result);
                 $insert_data['left_logo'] = $left_logo;
                 if (!IsNullOrEmptyString($left_logo)) {
                     $total_image_upload_size += $this->media_storage->getTmpFileSize('left_logo');
@@ -386,7 +411,8 @@ class Template extends MY_Addon_CBSEController
             
             if (isset($_FILES["right_logo"]) && !empty($_FILES["right_logo"]['name'])) {
                 $prev_file_size += $this->media_storage->getUploadedFileSize($result['right_logo'],'uploads/cbseexam/template/right_logo');
-                $right_logo            = $this->media_storage->fileupload("right_logo", "./uploads/cbseexam/template/right_logo/");
+                $upload_result = $this->media_storage->fileupload("right_logo", "./uploads/cbseexam/template/right_logo/");
+                $right_logo = $this->getUploadFileName($upload_result);
                 $insert_data['right_logo'] = $right_logo;
                 if (!IsNullOrEmptyString($right_logo)) {
                     $total_image_upload_size += $this->media_storage->getTmpFileSize('right_logo');
@@ -397,7 +423,8 @@ class Template extends MY_Addon_CBSEController
             
             if (isset($_FILES["left_sign"]) && !empty($_FILES["left_sign"]['name'])) {
                 $prev_file_size += $this->media_storage->getUploadedFileSize($result['left_sign'],'uploads/cbseexam/template/left_sign');
-                $left_sign            = $this->media_storage->fileupload("left_sign", "./uploads/cbseexam/template/left_sign/");
+                $upload_result = $this->media_storage->fileupload("left_sign", "./uploads/cbseexam/template/left_sign/");
+                $left_sign = $this->getUploadFileName($upload_result);
                 $insert_data['left_sign'] = $left_sign;
                 if (!IsNullOrEmptyString($left_sign)) {
                     $total_image_upload_size += $this->media_storage->getTmpFileSize('left_sign');
@@ -408,7 +435,8 @@ class Template extends MY_Addon_CBSEController
             
             if (isset($_FILES["middle_sign"]) && !empty($_FILES["middle_sign"]['name'])) {
                 $prev_file_size += $this->media_storage->getUploadedFileSize($result['middle_sign'],'uploads/cbseexam/template/middle_sign');
-                $middle_sign            = $this->media_storage->fileupload("middle_sign", "./uploads/cbseexam/template/middle_sign/");
+                $upload_result = $this->media_storage->fileupload("middle_sign", "./uploads/cbseexam/template/middle_sign/");
+                $middle_sign = $this->getUploadFileName($upload_result);
                 $insert_data['middle_sign'] = $middle_sign;
                 if (!IsNullOrEmptyString($middle_sign)) {
                     $total_image_upload_size += $this->media_storage->getTmpFileSize('middle_sign');
@@ -419,7 +447,8 @@ class Template extends MY_Addon_CBSEController
             
             if (isset($_FILES["right_sign"]) && !empty($_FILES["right_sign"]['name'])) {
                 $prev_file_size += $this->media_storage->getUploadedFileSize($result['right_sign'],'uploads/cbseexam/template/right_sign');
-                $right_sign            = $this->media_storage->fileupload("right_sign", "./uploads/cbseexam/template/right_sign/");
+                $upload_result = $this->media_storage->fileupload("right_sign", "./uploads/cbseexam/template/right_sign/");
+                $right_sign = $this->getUploadFileName($upload_result);
                 $insert_data['right_sign'] = $right_sign;
                 if (!IsNullOrEmptyString($right_sign)) {
                     $total_image_upload_size += $this->media_storage->getTmpFileSize('right_sign');
@@ -430,7 +459,8 @@ class Template extends MY_Addon_CBSEController
             
             if (isset($_FILES["background_img"]) && !empty($_FILES["background_img"]['name'])) {
                 $prev_file_size += $this->media_storage->getUploadedFileSize($result['background_img'],'uploads/cbseexam/template/background_img');
-                $background_img            = $this->media_storage->fileupload("background_img", "./uploads/cbseexam/template/background_img/");
+                $upload_result = $this->media_storage->fileupload("background_img", "./uploads/cbseexam/template/background_img/");
+                $background_img = $this->getUploadFileName($upload_result);
                 $insert_data['background_img'] = $background_img;
                 if (!IsNullOrEmptyString($background_img)) {
                     $total_image_upload_size += $this->media_storage->getTmpFileSize('background_img');

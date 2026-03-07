@@ -2140,23 +2140,29 @@ class Payroll extends Admin_Controller
             
             // Calculate TDS using YTD (Year-To-Date) approach for accurate mid-year increment handling
             $month_num = date('n', strtotime($year . '-' . $month . '-01'));
-            $ytd_data = $this->payroll_model->getYTDIncome($staff['id'], $year, $month_num - 1); // -1 because current month hasn't been paid yet
-            
-            // Use YTD TDS calculation
-            if ($ytd_data['gross'] > 0 && $month_num > 1) {
-                // Employee has prior income this year - use YTD projection
-                $tds_result = $this->tax_epf_calculator->calculate_tds_ytd(
-                    $ytd_income = $ytd_data['gross'],
-                    $current_month_gross = $gross_salary,
-                    $current_month = $month_num,
-                    $total_months = 12
-                );
-                $monthly_tds = $tds_result['monthly_tds'];
+            // Check for flat TDS percentage override set on the staff profile
+            $flat_tds_pct = isset($staff['tds_percentage']) && $staff['tds_percentage'] !== null ? (float)$staff['tds_percentage'] : 0;
+            if ($flat_tds_pct > 0) {
+                // Flat % on gross salary — skip new-regime slab calculation entirely
+                $monthly_tds = $this->roundPayrollAmount($gross_salary * ($flat_tds_pct / 100));
             } else {
-                // First month of year or no prior payslips - use simple annualized approach
-                $monthly_tds = $this->tax_epf_calculator->calculate_monthly_tds($gross_salary);
+                $ytd_data = $this->payroll_model->getYTDIncome($staff['id'], $year, $month_num - 1); // -1 because current month hasn't been paid yet
+                // Use YTD TDS calculation
+                if ($ytd_data['gross'] > 0 && $month_num > 1) {
+                    // Employee has prior income this year - use YTD projection
+                    $tds_result = $this->tax_epf_calculator->calculate_tds_ytd(
+                        $ytd_income = $ytd_data['gross'],
+                        $current_month_gross = $gross_salary,
+                        $current_month = $month_num,
+                        $total_months = 12
+                    );
+                    $monthly_tds = $tds_result['monthly_tds'];
+                } else {
+                    // First month of year or no prior payslips - use simple annualized approach
+                    $monthly_tds = $this->tax_epf_calculator->calculate_monthly_tds($gross_salary);
+                }
+                $monthly_tds = $this->roundPayrollAmount($monthly_tds);
             }
-            $monthly_tds = $this->roundPayrollAmount($monthly_tds);
             
             // Gross salary is already prorated by payable present days, so don't deduct LOP again here
             $total_with_epf_tds_esi = (float) $employee_epf + (float) $esi_deduction + (float) $monthly_tds + (float) $total_deduction;
@@ -2585,19 +2591,26 @@ class Payroll extends Admin_Controller
             $esi_deduction = $this->tax_epf_calculator->calculate_employee_esi($esi_wage);
         }
 
-        $ytd_data = $this->payroll_model->getYTDIncome($staff_id, $year, $month_num - 1);
-        if ($ytd_data['gross'] > 0 && $month_num > 1) {
-            $tds_result = $this->tax_epf_calculator->calculate_tds_ytd(
-                $ytd_income = $ytd_data['gross'],
-                $current_month_gross = $gross_salary,
-                $current_month = $month_num,
-                $total_months = 12
-            );
-            $monthly_tds = $tds_result['monthly_tds'];
+        // Check for flat TDS percentage override set on the staff profile
+        $flat_tds_pct = isset($staff_data['tds_percentage']) && $staff_data['tds_percentage'] !== null ? (float)$staff_data['tds_percentage'] : 0;
+        if ($flat_tds_pct > 0) {
+            // Flat % on gross salary — skip new-regime slab calculation entirely
+            $monthly_tds = $this->roundPayrollAmount($gross_salary * ($flat_tds_pct / 100));
         } else {
-            $monthly_tds = $this->tax_epf_calculator->calculate_monthly_tds($gross_salary);
+            $ytd_data = $this->payroll_model->getYTDIncome($staff_id, $year, $month_num - 1);
+            if ($ytd_data['gross'] > 0 && $month_num > 1) {
+                $tds_result = $this->tax_epf_calculator->calculate_tds_ytd(
+                    $ytd_income = $ytd_data['gross'],
+                    $current_month_gross = $gross_salary,
+                    $current_month = $month_num,
+                    $total_months = 12
+                );
+                $monthly_tds = $tds_result['monthly_tds'];
+            } else {
+                $monthly_tds = $this->tax_epf_calculator->calculate_monthly_tds($gross_salary);
+            }
+            $monthly_tds = $this->roundPayrollAmount($monthly_tds);
         }
-        $monthly_tds = $this->roundPayrollAmount($monthly_tds);
 
         // Gross salary is already prorated by payable present days, so don't deduct LOP again here
         $total_with_epf_tds_esi = (float) $employee_epf + (float) $esi_deduction + (float) $monthly_tds + (float) $total_deduction;

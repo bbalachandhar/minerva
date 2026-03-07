@@ -524,6 +524,13 @@ if ($staff["marital_status"] == $mavalue) {
                                                         </div>
                                                     </div>
                                                 </div>
+                                                <div class="col-md-4">
+                                                    <div class="form-group">
+                                                        <label for="tds_percentage">TDS % (Flat Override)</label>
+                                                        <input id="tds_percentage" name="tds_percentage" type="number" step="0.01" min="0" max="100" class="form-control" value="<?php echo isset($staff['tds_percentage']) ? $staff['tds_percentage'] : ''; ?>" placeholder="e.g. 5 or 10" />
+                                                        <small class="text-muted">If set, applies flat % on gross salary instead of the new-regime slab. Leave blank for slab-based TDS.</small>
+                                                    </div>
+                                                </div>
                                             </div>
                                             <div class="row around10">
                                                 <?php if ($sch_setting->staff_basic_salary) {?>

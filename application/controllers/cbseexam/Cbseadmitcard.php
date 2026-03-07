@@ -21,6 +21,24 @@ class Cbseadmitcard extends Admin_Controller
         $params_array = array_map('trim', explode(',', $params_string));
         return $this->saasvalidation->validateCanUploadFile($str, $params_array);
     }
+
+    private function getUploadFileName($upload_result)
+    {
+        if (is_array($upload_result)) {
+            if (!empty($upload_result['status']) && isset($upload_result['message']) && is_string($upload_result['message'])) {
+                return $upload_result['message'];
+            }
+
+            $message = isset($upload_result['message']) ? (string) $upload_result['message'] : $this->lang->line('error_occurred_please_try_again');
+            throw new Exception($message);
+        }
+
+        if (is_string($upload_result)) {
+            return $upload_result;
+        }
+
+        throw new Exception($this->lang->line('error_occurred_please_try_again'));
+    }
     
 
     public function index()
@@ -137,28 +155,32 @@ class Cbseadmitcard extends Admin_Controller
             $this->saasvalidation->updateStorageLimit('storage', $storage_array); // update resource quota initially 
 
             if (isset($_FILES["left_logo"]) && !empty($_FILES["left_logo"]['name'])) {
-                $img_name                 = $this->media_storage->fileupload("left_logo", "./uploads/cbseexam/admit_card/");
+                $upload_result            = $this->media_storage->fileupload("left_logo", "./uploads/cbseexam/admit_card/");
+                $img_name                 = $this->getUploadFileName($upload_result);
                 $insert_data['left_logo'] = $img_name;
                 if (IsNullOrEmptyString($img_name)) {  // check upload image has not uploaded successfully
                     $total_documents_failed_size += $this->media_storage->getTmpFileSize('left_logo');  // get temp size of image because of image not uploaded 
                 }
             }
             if (isset($_FILES["right_logo"]) && !empty($_FILES["right_logo"]['name'])) {
-                $img_name                  = $this->media_storage->fileupload("right_logo", "./uploads/cbseexam/admit_card/");
+                $upload_result             = $this->media_storage->fileupload("right_logo", "./uploads/cbseexam/admit_card/");
+                $img_name                  = $this->getUploadFileName($upload_result);
                 $insert_data['right_logo'] = $img_name;
                 if (IsNullOrEmptyString($img_name)) {  // check upload image has not uploaded successfully
                     $total_documents_failed_size += $this->media_storage->getTmpFileSize('right_logo');  // get temp size of image because of image not uploaded 
                 }
             }
             if (isset($_FILES["sign"]) && !empty($_FILES["sign"]['name'])) {
-                $img_name            = $this->media_storage->fileupload("sign", "./uploads/cbseexam/admit_card/");
+                $upload_result       = $this->media_storage->fileupload("sign", "./uploads/cbseexam/admit_card/");
+                $img_name            = $this->getUploadFileName($upload_result);
                 $insert_data['sign'] = $img_name;
                  if (IsNullOrEmptyString($img_name)) {  // check upload image has not uploaded successfully
                     $total_documents_failed_size += $this->media_storage->getTmpFileSize('sign');  // get temp size of image because of image not uploaded 
                 }
             }
             if (isset($_FILES["background_img"]) && !empty($_FILES["background_img"]['name'])) {
-                $img_name                      = $this->media_storage->fileupload("background_img", "./uploads/cbseexam/admit_card/");
+                $upload_result                 = $this->media_storage->fileupload("background_img", "./uploads/cbseexam/admit_card/");
+                $img_name                      = $this->getUploadFileName($upload_result);
                 $insert_data['background_img'] = $img_name;
                 if (IsNullOrEmptyString($img_name)) {  // check upload image has not uploaded successfully
                     $total_documents_failed_size += $this->media_storage->getTmpFileSize('background_img');  // get temp size of image because of image not uploaded 
@@ -376,7 +398,8 @@ class Cbseadmitcard extends Admin_Controller
 
             if (isset($_FILES["left_logo"]) && $_FILES['left_logo']['name'] != '' && (!empty($_FILES['left_logo']['name']))) {
                 $prev_file_size += $this->media_storage->getUploadedFileSize($this->data['admitcard']->left_logo,'uploads/cbseexam/admit_card');
-                $left_img_name            = $this->media_storage->fileupload("left_logo", "./uploads/cbseexam/admit_card/");
+                $upload_result            = $this->media_storage->fileupload("left_logo", "./uploads/cbseexam/admit_card/");
+                $left_img_name            = $this->getUploadFileName($upload_result);
                 $insert_data['left_logo'] = $left_img_name;
                 if (!IsNullOrEmptyString($left_img_name)) {
                     $total_image_upload_size += $this->media_storage->getTmpFileSize('left_logo');
@@ -392,7 +415,8 @@ class Cbseadmitcard extends Admin_Controller
 
             if (isset($_FILES["right_logo"]) && $_FILES['right_logo']['name'] != '' && (!empty($_FILES['right_logo']['name']))) {
                 $prev_file_size += $this->media_storage->getUploadedFileSize($this->data['admitcard']->right_logo,'uploads/cbseexam/admit_card');
-                $right_img_name = $this->media_storage->fileupload("right_logo", "./uploads/cbseexam/admit_card/");
+                $upload_result = $this->media_storage->fileupload("right_logo", "./uploads/cbseexam/admit_card/");
+                $right_img_name = $this->getUploadFileName($upload_result);
                 $insert_data['right_logo'] = $right_img_name;
                 if (!IsNullOrEmptyString($right_img_name)) {
                     $total_image_upload_size += $this->media_storage->getTmpFileSize('right_logo');
@@ -406,7 +430,8 @@ class Cbseadmitcard extends Admin_Controller
 
             if (isset($_FILES["sign"]) && $_FILES['sign']['name'] != '' && (!empty($_FILES['sign']['name']))) {
                 $prev_file_size += $this->media_storage->getUploadedFileSize($this->data['admitcard']->sign,'uploads/cbseexam/admit_card');
-                $sign_img_name = $this->media_storage->fileupload("sign", "./uploads/cbseexam/admit_card/");
+                $upload_result = $this->media_storage->fileupload("sign", "./uploads/cbseexam/admit_card/");
+                $sign_img_name = $this->getUploadFileName($upload_result);
                 $insert_data['sign'] = $sign_img_name;
                 if (!IsNullOrEmptyString($sign_img_name)) {
                     $total_image_upload_size += $this->media_storage->getTmpFileSize('sign');
@@ -420,7 +445,8 @@ class Cbseadmitcard extends Admin_Controller
 
             if (isset($_FILES["background_img"]) && $_FILES['background_img']['name'] != '' && (!empty($_FILES['background_img']['name']))) {
                 $prev_file_size += $this->media_storage->getUploadedFileSize($this->data['admitcard']->background_img,'uploads/cbseexam/admit_card');
-                $background_img_name = $this->media_storage->fileupload("background_img", "./uploads/cbseexam/admit_card/");
+                $upload_result = $this->media_storage->fileupload("background_img", "./uploads/cbseexam/admit_card/");
+                $background_img_name = $this->getUploadFileName($upload_result);
                 $insert_data['background_img'] = $background_img_name;
                 if (!IsNullOrEmptyString($background_img_name)) {
                     $total_image_upload_size += $this->media_storage->getTmpFileSize('background_img');

@@ -122,4 +122,37 @@ class Media_storage
         return false;
     }
 
+    public function getTmpFileSize($media_name)
+    {
+        if (!isset($_FILES[$media_name]) || !is_array($_FILES[$media_name])) {
+            return 0;
+        }
+
+        $bytes = isset($_FILES[$media_name]['size']) ? (float) $_FILES[$media_name]['size'] : 0;
+        if ($bytes <= 0) {
+            return 0;
+        }
+
+        return $bytes / 1024 / 1024;
+    }
+
+    public function getUploadedFileSize($file_name, $path = "")
+    {
+        if (IsNullOrEmptyString($file_name)) {
+            return 0;
+        }
+
+        $file_path = rtrim($this->_CI->customlib->getFolderPath() . $path, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $file_name;
+        if (!file_exists($file_path)) {
+            return 0;
+        }
+
+        $bytes = (float) @filesize($file_path);
+        if ($bytes <= 0) {
+            return 0;
+        }
+
+        return $bytes / 1024 / 1024;
+    }
+
 }

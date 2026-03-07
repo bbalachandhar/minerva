@@ -1472,6 +1472,8 @@ class Staff extends Admin_Controller
             $esi_no = $this->input->post("esi_no");
             $is_epf_enabled = $this->input->post("is_epf_enabled") ? 1 : 0;
             $is_esi_enabled = $this->input->post("is_esi_enabled") ? 1 : 0;
+            $tds_pct_raw = $this->input->post("tds_percentage");
+            $tds_percentage = ($tds_pct_raw !== '' && $tds_pct_raw !== false && $tds_pct_raw !== null && is_numeric($tds_pct_raw)) ? round((float)$tds_pct_raw, 2) : null;
             $payscale = $this->input->post("payscale");
             $aadhaar_no = $this->input->post("aadhaar_no");
             $religion = $this->input->post("religion");
@@ -1519,6 +1521,7 @@ class Staff extends Admin_Controller
                 'is_epf_enabled' => $is_epf_enabled,
                 'is_esi_enabled' => $is_esi_enabled,
                 'category_id' => $category_id,
+                'tds_percentage' => $tds_percentage,
             );
 
             if (isset($surname)) {

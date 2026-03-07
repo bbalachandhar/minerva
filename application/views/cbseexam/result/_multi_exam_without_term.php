@@ -132,7 +132,7 @@ foreach ($result as $student_key => $student_value) {
       if ($template['header_image'] != "") {
       ?>
 
-        <img width="100%" max-width="100%" src="<?php echo base_url("/uploads/cbseexam/template/header_image/" . $template['header_image']) ?>" />
+        <img width="100%" max-width="100%" src="<?php echo $this->media_storage->getImageURL("uploads/cbseexam/template/header_image/" . $template['header_image']) ?>" />
 
       <?php
       }
@@ -514,7 +514,7 @@ foreach ($result as $student_key => $student_value) {
                   <?php
                   if ($template['left_sign'] != "") {
                   ?>
-                    <img src="<?php echo base_url('uploads/cbseexam/template/left_sign/' . $template['left_sign']) ?>" width="100" height="50" style="padding-bottom: 5px;">
+                    <img src="<?php echo $this->media_storage->getImageURL('uploads/cbseexam/template/left_sign/' . $template['left_sign']) ?>" width="100" height="50" style="padding-bottom: 5px;">
                     <p class="fw-bold"><?php echo $this->lang->line('signature_of_class_teacher'); ?></p>
                   <?php
                   }
@@ -525,7 +525,7 @@ foreach ($result as $student_key => $student_value) {
                   <?php
                   if ($template['middle_sign'] != "") {
                   ?>
-                    <img src="<?php echo base_url('uploads/cbseexam/template/middle_sign/' . $template['middle_sign']) ?>" width="100" height="50" style="padding-bottom: 5px;">
+                    <img src="<?php echo $this->media_storage->getImageURL('uploads/cbseexam/template/middle_sign/' . $template['middle_sign']) ?>" width="100" height="50" style="padding-bottom: 5px;">
                     <p class="fw-bold"><?php echo $this->lang->line('signature_of_principal'); ?></p>
                   <?php
                   }
@@ -535,7 +535,7 @@ foreach ($result as $student_key => $student_value) {
                   <?php
                   if ($template['right_sign'] != "") {
                   ?>
-                    <img src="<?php echo base_url('uploads/cbseexam/template/right_sign/' . $template['right_sign']) ?>" width="100" height="50" style="padding-bottom: 5px;">
+                    <img src="<?php echo $this->media_storage->getImageURL('uploads/cbseexam/template/right_sign/' . $template['right_sign']) ?>" width="100" height="50" style="padding-bottom: 5px;">
                     <p class="fw-bold"><?php echo $this->lang->line('signature_of_principal'); ?></p>
                   <?php
                   }

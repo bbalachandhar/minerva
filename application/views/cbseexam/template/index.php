@@ -1,6 +1,52 @@
 <script src="<?php echo base_url(); ?>backend/plugins/ckeditor/ckeditor.js"></script>
 <script src="<?php echo base_url(); ?>backend/js/ckeditor_config.js"></script>
 <?php $this->load->view('layout/cbseexam_css.php'); ?>
+<style>
+    #myModal .modal-dialog.modal-full-width,
+    #editModal .modal-dialog.modal-full-width {
+        width: 95%;
+        max-width: 95%;
+        margin: 15px auto;
+    }
+
+    #myModal .modal-header,
+    #editModal .modal-header {
+        position: relative;
+        padding-right: 50px;
+    }
+
+    #myModal .modal-header .close,
+    #editModal .modal-header .close {
+        position: absolute;
+        right: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        margin: 0;
+        opacity: 1;
+        color: #000;
+        font-size: 28px;
+        line-height: 1;
+        text-shadow: none;
+        z-index: 2;
+    }
+
+    #myModal .modal-header .close:hover,
+    #myModal .modal-header .close:focus,
+    #editModal .modal-header .close:hover,
+    #editModal .modal-header .close:focus {
+        color: #000;
+        opacity: 1;
+    }
+
+    @media (max-width: 767px) {
+        #myModal .modal-dialog.modal-full-width,
+        #editModal .modal-dialog.modal-full-width {
+            width: calc(100% - 20px);
+            max-width: calc(100% - 20px);
+            margin: 10px auto;
+        }
+    }
+</style>
 <div class="content-wrapper">
     <!-- Main content -->
     <section class="content">

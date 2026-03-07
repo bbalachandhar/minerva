@@ -10,6 +10,7 @@ class Result extends MY_Addon_CBSEController
     public function __construct()
     {
         parent::__construct();
+        $this->load->library('media_storage');
        
         $this->sch_setting_detail = $this->setting_model->getSetting();
     }
@@ -32,7 +33,7 @@ class Result extends MY_Addon_CBSEController
         $stylesheet = file_get_contents(base_url() . 'backend/cbse_pdf_style.css'); // external css
         if ($data['template']['background_img'] != "") {
 
-            $mpdf->SetDefaultBodyCSS('background', "url('" . base_url("/uploads/cbseexam/template/background_img/" . $data['template']['background_img']) . "')");
+            $mpdf->SetDefaultBodyCSS('background', "url('" . $this->media_storage->getImageURL("uploads/cbseexam/template/background_img/" . $data['template']['background_img']) . "')");
             $mpdf->SetDefaultBodyCSS('background-image-resize', 6);
         }
         $mpdf->WriteHTML($stylesheet, 1); // Writing style to pdf
@@ -2307,7 +2308,7 @@ class Result extends MY_Addon_CBSEController
             $stylesheet = file_get_contents(base_url() . 'backend/cbse_pdf_style.css'); // external css
             if ($data['template']['background_img'] != "") {
 
-                $mpdf->SetDefaultBodyCSS('background', "url('" . base_url("/uploads/cbseexam/template/background_img/" . $data['template']['background_img']) . "')");
+                $mpdf->SetDefaultBodyCSS('background', "url('" . $this->media_storage->getImageURL("uploads/cbseexam/template/background_img/" . $data['template']['background_img']) . "')");
                 $mpdf->SetDefaultBodyCSS('background-image-resize', 6);
             }
             $mpdf->WriteHTML($stylesheet, 1); // Writing style to pdf
