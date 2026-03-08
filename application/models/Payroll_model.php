@@ -533,7 +533,11 @@ class Payroll_model extends MY_Model
         }
         
         if ($exclude_statutory) {
-            $this->db->where('is_statutory', 0); // Exclude EPF, ESI, TDS (auto-calculated)
+            // Keep PT available as a manual deduction while excluding auto-calculated statutory items.
+            $this->db->group_start();
+            $this->db->where('is_statutory', 0);
+            $this->db->or_where('allowance_code', 'PT');
+            $this->db->group_end();
         }
         
         $this->db->order_by('display_order', 'ASC');

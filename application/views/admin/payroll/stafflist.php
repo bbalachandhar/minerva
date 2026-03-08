@@ -122,9 +122,6 @@ if ($year == date("Y")) {
                                                     <label class="checkbox-inline" style="margin:0; white-space:nowrap;">
                                                         <input type="checkbox" name="bulk_overwrite" value="1"> Overwrite existing payslips
                                                     </label>
-                                                    <label class="checkbox-inline" style="margin:0; white-space:nowrap;">
-                                                        <input type="checkbox" name="bulk_allow_unpaid_prev" value="1"> Allow calculate with previous month unpaid
-                                                    </label>
                                                     <button type="submit" name="bulk_calculate" value="1" formaction="<?php echo site_url('admin/payroll/bulkcalculate') ?>" class="btn btn-success btn-sm"><i class="fa fa-calculator"></i> Bulk Calculate</button>
                                                 </div>
                                                 <div style="display:flex; align-items:center; gap:8px; padding:6px 8px; border:1px solid #d2d6de; border-radius:4px; background:#fff;">

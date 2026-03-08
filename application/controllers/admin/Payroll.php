@@ -332,6 +332,24 @@ class Payroll extends Admin_Controller
         ]);
     }
 
+    private function getExistingProfessionalTaxAmount($payslip_id)
+    {
+        $payslip_id = (int) $payslip_id;
+        if ($payslip_id <= 0) {
+            return 0;
+        }
+
+        $row = $this->db->select('SUM(amount) AS total_pt')
+            ->from('payslip_allowance')
+            ->where('payslip_id', $payslip_id)
+            ->where('cal_type', 'negative')
+            ->where('allowance_type', 'PT')
+            ->get()
+            ->row_array();
+
+        return isset($row['total_pt']) ? (float) $row['total_pt'] : 0;
+    }
+
     private function mergeAmountIntoAllowanceCode(array &$allowances, $allowance_code, $amount, $staff_id)
     {
         $allowance_code = strtoupper(trim((string) $allowance_code));
@@ -1299,9 +1317,22 @@ class Payroll extends Admin_Controller
                 $total_deduction = 0;  
         }
         
-        // Recalculate total_deduction from individual deductions (manual deductions only, not EPF/ESI)
+        // Recalculate total_deduction from individual deductions (manual deductions only, not EPF/ESI/TDS)
         $deduction_type_id = $this->input->post("deduction_type_id");
         $deduction_amount = $this->input->post("deduction_amount");
+        $existing_pt_amount = $this->getExistingProfessionalTaxAmount((int) $id);
+        $pt_in_form = false;
+        $month_num_for_pt = date('n', strtotime($year . '-' . $month . '-01'));
+        $onetime_payload_for_pt = $this->getOneTimeDeductionPayload((int) $staff_id, (int) $month_num_for_pt, (int) $year);
+        $onetime_deduction_rows = (array) ($onetime_payload_for_pt['rows'] ?? []);
+        $onetime_deduction_total = (float) ($onetime_payload_for_pt['total'] ?? 0);
+        $has_onetime_pt = false;
+        foreach ((array) ($onetime_payload_for_pt['rows'] ?? []) as $pt_row) {
+            if (strtoupper(trim((string) ($pt_row['deduction_type'] ?? ''))) === 'PT') {
+                $has_onetime_pt = true;
+                break;
+            }
+        }
         if (!empty($deduction_type_id) && !empty($deduction_amount)) {
             $allowance_types = $this->payroll_model->getAllowanceTypes(null, false);
             $type_map = [];
@@ -1317,16 +1348,29 @@ class Payroll extends Admin_Controller
                 }
                 
                 $code = $type_map[$type_id] ?? '';
-                // Skip statutory deductions (EPF/ESI are auto-calculated, not manual)
-                if (in_array($code, ['EPF', 'ESI'], true)) {
+                // Keep PT as manual deduction; skip only auto-calculated statutory deductions.
+                if (in_array($code, ['EPF', 'ESI', 'TDS'], true)) {
                     continue;
                 }
-                
+
+                if ($code === 'PT') {
+                    if ($has_onetime_pt) {
+                        continue;
+                    }
+                    $pt_in_form = true;
+                }
+
                 $amount = convertCurrencyFormatToBaseAmount($deduction_amount[$idx]);
                 $recalc_deduction += (float)$amount;
             }
             $total_deduction = (float)$recalc_deduction;
         }
+
+        if (!$pt_in_form && !$has_onetime_pt && $existing_pt_amount > 0) {
+            $total_deduction += (float) $existing_pt_amount;
+        }
+
+        $total_deduction += $onetime_deduction_total;
         
         if($basic){
                 $basic = convertCurrencyFormatToBaseAmount($basic);
@@ -1546,6 +1590,7 @@ class Payroll extends Admin_Controller
         $deduction_type_id = $this->input->post("deduction_type_id");
         $deduction_amount = $this->input->post("deduction_amount");
         
+        $pt_saved_from_form = false;
         if (!empty($deduction_type_id) && !empty($deduction_amount)) {
             $deduction_type_map = [];
             foreach ($allowance_types as $type) {
@@ -1560,11 +1605,18 @@ class Payroll extends Admin_Controller
                 $type_id = (int) $deduction_type_id[$idx];
                 $type_code = $deduction_type_map[$type_id] ?? '';
                 
-                // Skip statutory deductions - they are auto-calculated below
-                if (in_array($type_code, ['EPF', 'ESI', 'TDS', 'PT'], true)) {
+                // Keep PT as manual deduction; skip only auto-calculated statutory deductions.
+                if (in_array($type_code, ['EPF', 'ESI', 'TDS'], true)) {
                     continue;
                 }
-                
+
+                if ($type_code === 'PT') {
+                    if ($has_onetime_pt) {
+                        continue;
+                    }
+                    $pt_saved_from_form = true;
+                }
+
                 if (!isset($deduction_amount[$idx])) {
                     continue;
                 }
@@ -1582,6 +1634,22 @@ class Payroll extends Admin_Controller
                     $saved_deductions_count++;
                 }
             }
+        }
+
+        // Re-apply approved one-time deductions every calculate/save cycle.
+        $this->addOneTimeDeductionsToPayslip((int) $payslipid, (int) $staff_id, $onetime_deduction_rows);
+        $saved_deductions_count += count($onetime_deduction_rows);
+
+        if (!$pt_saved_from_form && !$has_onetime_pt && $existing_pt_amount > 0) {
+            $pt_data = array(
+                'payslip_id'     => $payslipid,
+                'allowance_type' => 'PT',
+                'amount'         => round($existing_pt_amount, 2),
+                'staff_id'       => $staff_id,
+                'cal_type'       => 'negative',
+            );
+            $this->payroll_model->add_allowance($pt_data);
+            $saved_deductions_count++;
         }
 
         // ======== ADD ONLY APPLICABLE STATUTORY DEDUCTIONS ========
@@ -1968,39 +2036,36 @@ class Payroll extends Admin_Controller
         $year = $this->input->post('year');
         $role = $this->input->post('role');
         $overwrite = $this->input->post('bulk_overwrite') ? true : false;
-        $allow_unpaid_previous = $this->input->post('bulk_allow_unpaid_prev') ? true : false;
 
         if (empty($month) || empty($year) || $month === 'select' || $year === 'select') {
             $this->session->set_flashdata('msg', '<div class="alert alert-warning text-center">Please select month and year for bulk calculation.</div>');
             redirect('admin/payroll');
         }
 
-        if (!$allow_unpaid_previous) {
-            $selected_date = DateTime::createFromFormat('Y-F-j', $year . '-' . $month . '-1');
-            if (!$selected_date) {
-                $selected_date = DateTime::createFromFormat('Y-m-j', $year . '-' . date('n', strtotime($month)) . '-1');
+        $selected_date = DateTime::createFromFormat('Y-F-j', $year . '-' . $month . '-1');
+        if (!$selected_date) {
+            $selected_date = DateTime::createFromFormat('Y-m-j', $year . '-' . date('n', strtotime($month)) . '-1');
+        }
+
+        if ($selected_date) {
+            $prev_date = clone $selected_date;
+            $prev_date->modify('-1 month');
+            $prev_month = $prev_date->format('F');
+            $prev_year = $prev_date->format('Y');
+
+            $prev_staff_list = $this->payroll_model->searchEmployee($prev_month, $prev_year, '', $role);
+            $pending_prev_count = 0;
+            foreach ((array) $prev_staff_list as $prev_staff) {
+                $prev_payslip_id = isset($prev_staff['payslip_id']) ? (int) $prev_staff['payslip_id'] : 0;
+                $prev_status = strtolower(trim((string) ($prev_staff['status'] ?? '')));
+                if ($prev_payslip_id > 0 && $prev_status !== 'paid') {
+                    $pending_prev_count++;
+                }
             }
 
-            if ($selected_date) {
-                $prev_date = clone $selected_date;
-                $prev_date->modify('-1 month');
-                $prev_month = $prev_date->format('F');
-                $prev_year = $prev_date->format('Y');
-
-                $prev_staff_list = $this->payroll_model->searchEmployee($prev_month, $prev_year, '', $role);
-                $pending_prev_count = 0;
-                foreach ((array) $prev_staff_list as $prev_staff) {
-                    $prev_payslip_id = isset($prev_staff['payslip_id']) ? (int) $prev_staff['payslip_id'] : 0;
-                    $prev_status = strtolower(trim((string) ($prev_staff['status'] ?? '')));
-                    if ($prev_payslip_id > 0 && $prev_status !== 'paid') {
-                        $pending_prev_count++;
-                    }
-                }
-
-                if ($pending_prev_count > 0) {
-                    $this->session->set_flashdata('msg', '<div class="alert alert-warning text-center">Previous month (' . $prev_month . ' ' . $prev_year . ') has ' . $pending_prev_count . ' unpaid/generated payslips. Mark them as paid first (Bulk Mark as Paid), or tick "Allow calculate with previous month unpaid" to continue.</div>');
-                    redirect('admin/payroll/search/' . $month . '/' . $year . '/' . $role);
-                }
+            if ($pending_prev_count > 0) {
+                $this->session->set_flashdata('msg', '<div class="alert alert-warning text-center">Bulk calculation stopped: Previous month (' . $prev_month . ' ' . $prev_year . ') still has ' . $pending_prev_count . ' generated/unpaid payslip(s). Until those payslips are marked as Paid, their net salary and TDS are skipped from YTD, which can lead to incorrect TDS calculation for the selected month. Please complete payment posting first using Bulk Mark as Paid, then run Bulk Calculate again.</div>');
+                redirect('admin/payroll/search/' . $month . '/' . $year . '/' . $role);
             }
         }
         
@@ -2693,6 +2758,8 @@ class Payroll extends Admin_Controller
             }
         }
 
+        $existing_pt_amount = $this->getExistingProfessionalTaxAmount((int) $payslip_id);
+        $pt_in_payload = false;
         if (!empty($deduction_type_id)) {
             foreach ($deduction_type_id as $j => $type_id) {
                 $type_id = (int) $type_id;
@@ -2706,8 +2773,13 @@ class Payroll extends Admin_Controller
                     continue;
                 }
 
-                if (!empty($type['is_statutory'])) {
+                $code = strtoupper(trim($type['allowance_code'] ?? ''));
+                if (in_array($code, ['EPF', 'ESI', 'TDS'], true)) {
                     continue;
+                }
+
+                if ($code === 'PT') {
+                    $pt_in_payload = true;
                 }
 
                 $total_deduction += (float) $amount;
@@ -2717,6 +2789,17 @@ class Payroll extends Admin_Controller
         $onetime_payload = $this->getOneTimeDeductionPayload($staff_id, $month_numeric, $year);
         $onetime_deduction_rows = $onetime_payload['rows'];
         $total_deduction += (float) ($onetime_payload['total'] ?? 0);
+        $has_onetime_pt = false;
+        foreach ((array) $onetime_deduction_rows as $pt_row) {
+            if (strtoupper(trim((string) ($pt_row['deduction_type'] ?? ''))) === 'PT') {
+                $has_onetime_pt = true;
+                break;
+            }
+        }
+
+        if (!$pt_in_payload && !$has_onetime_pt && $existing_pt_amount > 0) {
+            $total_deduction += (float) $existing_pt_amount;
+        }
 
         $month_num = $month_numeric;
         $newdate = date('Y-m-d', strtotime($year . '-' . $month . ' +1 month'));
@@ -2841,6 +2924,7 @@ class Payroll extends Admin_Controller
             $deduction_type_id = $this->input->post('deduction_type_id');
             $deduction_amount = $this->input->post('deduction_amount');
             
+            $pt_saved_from_form = false;
             if (!empty($deduction_type_id) && !empty($deduction_amount)) {
                 // Build allowance type map for code lookup
                 $type_code_map = [];
@@ -2855,11 +2939,15 @@ class Payroll extends Admin_Controller
                     }
                     
                     $type_code = $type_code_map[$type_id] ?? '';
-                    // Skip statutory deductions - they are auto-calculated below
-                    if (in_array($type_code, ['EPF', 'ESI', 'TDS', 'PT'], true)) {
+                    // Keep PT as manual deduction; skip only auto-calculated statutory deductions.
+                    if (in_array($type_code, ['EPF', 'ESI', 'TDS'], true)) {
                         continue;
                     }
-                    
+
+                    if ($type_code === 'PT') {
+                        $pt_saved_from_form = true;
+                    }
+
                     $amount = convertCurrencyFormatToBaseAmount($deduction_amount[$idx]);
                     $deduction_data = array(
                         'payslip_id'     => $payslip_id,
@@ -2870,6 +2958,17 @@ class Payroll extends Admin_Controller
                     );
                     $this->payroll_model->add_allowance($deduction_data);
                 }
+            }
+
+            if (!$pt_saved_from_form && !$has_onetime_pt && $existing_pt_amount > 0) {
+                $pt_data = array(
+                    'payslip_id'     => $payslip_id,
+                    'allowance_type' => 'PT',
+                    'amount'         => round($existing_pt_amount, 2),
+                    'staff_id'       => $staff_id,
+                    'cal_type'       => 'negative',
+                );
+                $this->payroll_model->add_allowance($pt_data);
             }
 
             $this->addOneTimeDeductionsToPayslip((int) $payslip_id, (int) $staff_id, $onetime_deduction_rows);
