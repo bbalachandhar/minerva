@@ -1027,6 +1027,19 @@ class Staff extends Admin_Controller
             $esi_no            = $this->input->post("esi_no");
             $is_epf_enabled    = $this->input->post("is_epf_enabled") ? 1 : 0;
             $is_esi_enabled    = $this->input->post("is_esi_enabled") ? 1 : 0;
+            $opening_ytd_income_raw = $this->input->post("opening_ytd_income");
+            $opening_ytd_income = ($opening_ytd_income_raw !== '' && $opening_ytd_income_raw !== false && $opening_ytd_income_raw !== null && is_numeric($opening_ytd_income_raw)) ? round((float)$opening_ytd_income_raw, 2) : null;
+            $opening_ytd_tax_raw = $this->input->post("opening_ytd_tax_deducted");
+            $opening_ytd_tax = ($opening_ytd_tax_raw !== '' && $opening_ytd_tax_raw !== false && $opening_ytd_tax_raw !== null && is_numeric($opening_ytd_tax_raw)) ? round((float)$opening_ytd_tax_raw, 2) : null;
+            $opening_ytd_fy_start_year_raw = $this->input->post("opening_ytd_fy_start_year");
+            $opening_ytd_fy_start_year = ($opening_ytd_fy_start_year_raw !== '' && $opening_ytd_fy_start_year_raw !== false && $opening_ytd_fy_start_year_raw !== null && is_numeric($opening_ytd_fy_start_year_raw)) ? (int)$opening_ytd_fy_start_year_raw : null;
+            $has_opening_ytd = ((float)($opening_ytd_income ?? 0) > 0) || ((float)($opening_ytd_tax ?? 0) > 0);
+            if ($has_opening_ytd && empty($opening_ytd_fy_start_year)) {
+                $opening_ytd_fy_start_year = ((int)date('n') >= 4) ? (int)date('Y') : ((int)date('Y') - 1);
+            }
+            if (!$has_opening_ytd) {
+                $opening_ytd_fy_start_year = null;
+            }
 
             $aadhaar_no = $this->input->post('aadhaar_no');
             $religion = $this->input->post('religion');
@@ -1131,6 +1144,9 @@ class Staff extends Admin_Controller
 
             $data_insert['is_epf_enabled'] = $is_epf_enabled;
             $data_insert['is_esi_enabled'] = $is_esi_enabled;
+            $data_insert['opening_ytd_income'] = $opening_ytd_income;
+            $data_insert['opening_ytd_tax_deducted'] = $opening_ytd_tax;
+            $data_insert['opening_ytd_fy_start_year'] = $opening_ytd_fy_start_year;
 
             if (isset($basic_salary)) {
                 $data_insert['basic_salary'] = $basic_salary;
@@ -1474,6 +1490,19 @@ class Staff extends Admin_Controller
             $is_esi_enabled = $this->input->post("is_esi_enabled") ? 1 : 0;
             $tds_pct_raw = $this->input->post("tds_percentage");
             $tds_percentage = ($tds_pct_raw !== '' && $tds_pct_raw !== false && $tds_pct_raw !== null && is_numeric($tds_pct_raw)) ? round((float)$tds_pct_raw, 2) : null;
+            $opening_ytd_income_raw = $this->input->post("opening_ytd_income");
+            $opening_ytd_income = ($opening_ytd_income_raw !== '' && $opening_ytd_income_raw !== false && $opening_ytd_income_raw !== null && is_numeric($opening_ytd_income_raw)) ? round((float)$opening_ytd_income_raw, 2) : null;
+            $opening_ytd_tax_raw = $this->input->post("opening_ytd_tax_deducted");
+            $opening_ytd_tax = ($opening_ytd_tax_raw !== '' && $opening_ytd_tax_raw !== false && $opening_ytd_tax_raw !== null && is_numeric($opening_ytd_tax_raw)) ? round((float)$opening_ytd_tax_raw, 2) : null;
+            $opening_ytd_fy_start_year_raw = $this->input->post("opening_ytd_fy_start_year");
+            $opening_ytd_fy_start_year = ($opening_ytd_fy_start_year_raw !== '' && $opening_ytd_fy_start_year_raw !== false && $opening_ytd_fy_start_year_raw !== null && is_numeric($opening_ytd_fy_start_year_raw)) ? (int)$opening_ytd_fy_start_year_raw : null;
+            $has_opening_ytd = ((float)($opening_ytd_income ?? 0) > 0) || ((float)($opening_ytd_tax ?? 0) > 0);
+            if ($has_opening_ytd && empty($opening_ytd_fy_start_year)) {
+                $opening_ytd_fy_start_year = ((int)date('n') >= 4) ? (int)date('Y') : ((int)date('Y') - 1);
+            }
+            if (!$has_opening_ytd) {
+                $opening_ytd_fy_start_year = null;
+            }
             $payscale = $this->input->post("payscale");
             $aadhaar_no = $this->input->post("aadhaar_no");
             $religion = $this->input->post("religion");
@@ -1522,6 +1551,9 @@ class Staff extends Admin_Controller
                 'is_esi_enabled' => $is_esi_enabled,
                 'category_id' => $category_id,
                 'tds_percentage' => $tds_percentage,
+                'opening_ytd_income' => $opening_ytd_income,
+                'opening_ytd_tax_deducted' => $opening_ytd_tax,
+                'opening_ytd_fy_start_year' => $opening_ytd_fy_start_year,
             );
 
             if (isset($surname)) {

@@ -290,7 +290,7 @@ foreach ($new_tax_regime['slabs'] as $i => $slab) {
                                         <strong>Problem with Simple Method:</strong> If an employee gets a salary increment mid-year, the simple method assumes they earned that higher salary for all 12 months, resulting in <span style="background: #ffe6e6; padding: 2px 4px;">OVERCHARGING of TDS</span>.
                                     </p>
                                     <p style="margin: 8px 0; color: #555; font-size: 12px;">
-                                        <strong>YTD Solution:</strong> Uses actual income earned from January to current month, providing <span style="background: #e6ffe6; padding: 2px 4px;">ACCURATE TDS</span> based on real earnings.
+                                        <strong>YTD Solution:</strong> Uses actual income earned from April (FY start) to current month, providing <span style="background: #e6ffe6; padding: 2px 4px;">ACCURATE TDS</span> based on real earnings.
                                     </p>
                                 </div>
 
@@ -298,13 +298,38 @@ foreach ($new_tax_regime['slabs'] as $i => $slab) {
                                 <div style="margin-top: 20px; padding: 15px; background: #e3f2fd; border-left: 4px solid #2196F3; border-radius: 4px;">
                                     <h5 style="margin-top: 0; color: #1565c0;">How YTD Calculation Works:</h5>
                                     <ol style="margin: 0; padding-left: 20px; color: #555; font-size: 12px;">
-                                        <li style="margin: 8px 0;"><strong>Step 1:</strong> Fetch all payslips from January to previous month</li>
+                                        <li style="margin: 8px 0;"><strong>Step 1:</strong> Fetch all payslips from April to previous month in the same FY</li>
                                         <li style="margin: 8px 0;"><strong>Step 2:</strong> Calculate total YTD gross income</li>
                                         <li style="margin: 8px 0;"><strong>Step 3:</strong> Add projected income for remaining months (at current salary)</li>
                                         <li style="margin: 8px 0;"><strong>Step 4:</strong> Calculate tax on projected annual income</li>
                                         <li style="margin: 8px 0;"><strong>Step 5:</strong> Apply Section 87A rebate if eligible</li>
-                                        <li style="margin: 8px 0;"><strong>Step 6:</strong> Divide by 12 to get monthly TDS</li>
+                                        <li style="margin: 8px 0;"><strong>Step 6:</strong> Deduct already-paid TDS and spread balance across remaining FY months</li>
                                     </ol>
+                                </div>
+
+                                <div style="margin-top: 15px; padding: 15px; background: #fff8e1; border-left: 4px solid #ffb300; border-radius: 4px;">
+                                    <h5 style="margin-top: 0; color: #ef6c00;"><i class="fa fa-info-circle"></i> Onboarding Instruction (Important)</h5>
+                                    <p style="margin: 8px 0; color: #555; font-size: 12px;">
+                                        When a client starts payroll in the middle or last month of FY, update these fields in <strong>Staff Edit -> Payroll</strong>:
+                                    </p>
+                                    <ul style="margin: 0; padding-left: 20px; color: #555; font-size: 12px;">
+                                        <li style="margin: 8px 0;"><strong>Opening FY YTD Income:</strong> Total gross paid from April to previous month.</li>
+                                        <li style="margin: 8px 0;"><strong>Opening FY TDS Already Deducted:</strong> Only income-tax (TDS) already deducted from April to previous month.</li>
+                                        <li style="margin: 8px 0;"><strong>Opening Balance FY Start Year:</strong> Enter FY start year (for FY 2025-26 use 2025). Opening values apply only in that FY.</li>
+                                        <li style="margin: 8px 0;"><strong>Do not enter:</strong> Net salary, PF, ESI, loan deductions, or other non-tax deductions in <code>opening_ytd_tax_deducted</code>.</li>
+                                    </ul>
+                                </div>
+
+                                <div style="margin-top: 15px; padding: 15px; background: #f3f8ff; border-left: 4px solid #1e88e5; border-radius: 4px;">
+                                    <h5 style="margin-top: 0; color: #0d47a1;"><i class="fa fa-tasks"></i> Monthly HR Workflow (Required)</h5>
+                                    <ol style="margin: 0; padding-left: 20px; color: #555; font-size: 12px;">
+                                        <li style="margin: 8px 0;"><strong>Step 1:</strong> Run <strong>Bulk Calculate</strong> for the payroll month.</li>
+                                        <li style="margin: 8px 0;"><strong>Step 2:</strong> After bank transfer is completed, run <strong>Bulk Mark as Paid</strong> with payment mode/date/note.</li>
+                                        <li style="margin: 8px 0;"><strong>Step 3:</strong> Only then proceed to next month calculation.</li>
+                                    </ol>
+                                    <p style="margin: 10px 0 0; color: #444; font-size: 12px;">
+                                        <strong>Note:</strong> YTD TDS considers only payslips with <code>status = paid</code>. Generated/unpaid payslips are excluded until marked paid.
+                                    </p>
                                 </div>
 
                                 <!-- BENEFITS -->
@@ -396,12 +421,12 @@ foreach ($new_tax_regime['slabs'] as $i => $slab) {
                         <div style="margin-top: 20px; padding: 15px; background: #e3f2fd; border-left: 4px solid #2196F3; border-radius: 4px;">
                             <h4 style="margin-top: 0; color: #1565c0;">How YTD Calculation Works:</h4>
                             <ol style="margin: 0; padding-left: 20px; color: #555; font-size: 12px;">
-                                <li style="margin: 8px 0;"><strong>Step 1:</strong> Fetch all payslips from January to previous month</li>
+                                <li style="margin: 8px 0;"><strong>Step 1:</strong> Fetch all payslips from April to previous month in the same FY</li>
                                 <li style="margin: 8px 0;"><strong>Step 2:</strong> Calculate total YTD gross income</li>
                                 <li style="margin: 8px 0;"><strong>Step 3:</strong> Add projected income for remaining months (at current salary)</li>
                                 <li style="margin: 8px 0;"><strong>Step 4:</strong> Calculate tax on projected annual income</li>
                                 <li style="margin: 8px 0;"><strong>Step 5:</strong> Apply Section 87A rebate if eligible</li>
-                                <li style="margin: 8px 0;"><strong>Step 6:</strong> Divide by 12 to get monthly TDS</li>
+                                <li style="margin: 8px 0;"><strong>Step 6:</strong> Deduct already-paid TDS and spread balance across remaining FY months</li>
                             </ol>
                         </div>
 

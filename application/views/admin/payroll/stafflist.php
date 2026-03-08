@@ -117,12 +117,23 @@ if ($year == date("Y")) {
                                 <?php if ($this->rbac->hasPrivilege('staff_payroll', 'can_add')) {?>
                                     <div class="col-md-12">
                                         <div class="form-group">
-                                            <div class="pull-right" style="margin-top:6px;">
-                                                <label class="checkbox-inline" style="margin-right:8px;">
-                                                    <input type="checkbox" name="bulk_overwrite" value="1"> Overwrite existing payslips
-                                                </label>
-                                                <button type="submit" name="bulk_calculate" value="1" formaction="<?php echo site_url('admin/payroll/bulkcalculate') ?>" class="btn btn-success btn-sm"><i class="fa fa-calculator"></i> Bulk Calculate</button>
+                                            <div class="pull-right" style="margin-top:6px; display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+                                                <div style="display:flex; align-items:center; gap:8px; padding:6px 8px; border:1px solid #d2d6de; border-radius:4px; background:#f7f7f7;">
+                                                    <label class="checkbox-inline" style="margin:0; white-space:nowrap;">
+                                                        <input type="checkbox" name="bulk_overwrite" value="1"> Overwrite existing payslips
+                                                    </label>
+                                                    <label class="checkbox-inline" style="margin:0; white-space:nowrap;">
+                                                        <input type="checkbox" name="bulk_allow_unpaid_prev" value="1"> Allow calculate with previous month unpaid
+                                                    </label>
+                                                    <button type="submit" name="bulk_calculate" value="1" formaction="<?php echo site_url('admin/payroll/bulkcalculate') ?>" class="btn btn-success btn-sm"><i class="fa fa-calculator"></i> Bulk Calculate</button>
+                                                </div>
+                                                <div style="display:flex; align-items:center; gap:8px; padding:6px 8px; border:1px solid #d2d6de; border-radius:4px; background:#fff;">
+                                                    <button type="button" id="openBulkMarkPaidModal" class="btn btn-primary btn-sm"><i class="fa fa-money"></i> Bulk Mark as Paid</button>
+                                                </div>
                                             </div>
+                                            <input type="hidden" name="bulk_payment_mode" id="bulk_payment_mode_hidden" value="" />
+                                            <input type="hidden" name="bulk_payment_date" id="bulk_payment_date_hidden" value="" />
+                                            <input type="hidden" name="bulk_payment_note" id="bulk_payment_note_hidden" value="" />
                                         </div>
                                     </div>
                                 <?php }?>
@@ -317,6 +328,46 @@ foreach ($payment_mode as $pkey => $pvalue) {
     </div>
 </div>
 
+<div id="bulkmarkpaidmodal" class="modal fade" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title">Bulk Mark as Paid</h4>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="form-group col-xs-12 col-sm-12 col-md-12 col-lg-6">
+                        <label><?php echo $this->lang->line("month_year") ?: 'Month - Year'; ?></label>
+                        <input type="text" id="bulk_month_year_preview" class="form-control" readonly style="background:#f5f5f5;" />
+                    </div>
+                    <div class="form-group col-xs-12 col-sm-12 col-md-12 col-lg-6">
+                        <label><?php echo $this->lang->line('payment_mode'); ?> *</label>
+                        <select id="bulk_payment_mode_modal" class="form-control">
+                            <option value=""><?php echo $this->lang->line('select'); ?></option>
+                            <?php foreach ($payment_mode as $pkey => $pvalue) { ?>
+                                <option value="<?php echo $pkey; ?>"><?php echo $pvalue; ?></option>
+                            <?php } ?>
+                        </select>
+                    </div>
+                    <div class="form-group col-xs-12 col-sm-12 col-md-12 col-lg-6">
+                        <label><?php echo $this->lang->line('payment_date'); ?> *</label>
+                        <input type="text" id="bulk_payment_date_modal" class="form-control date" value="<?php echo $this->customlib->dateformat(date('Y-m-d')); ?>" />
+                    </div>
+                    <div class="form-group col-xs-12 col-sm-12 col-md-12 col-lg-6">
+                        <label><?php echo $this->lang->line('note'); ?></label>
+                        <input type="text" id="bulk_payment_note_modal" class="form-control" placeholder="<?php echo $this->lang->line('note'); ?>" />
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                <button type="button" id="confirmBulkMarkPaid" class="btn btn-primary">Mark as Paid</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script type="text/javascript">
     function getRecord(id, year) {
         $('input[name="amount"]').val('');
@@ -482,6 +533,46 @@ if (isset($_POST["year"])) {
                 $this.button('reset');
             }
         });
+    });
+
+    $(document).on('click', '#openBulkMarkPaidModal', function () {
+        var monthText = $('select[name="month"] option:selected').text();
+        var yearText = $('select[name="year"] option:selected').text();
+
+        if (!monthText || monthText.toLowerCase() === 'select' || !yearText || yearText.toLowerCase() === 'select') {
+            errorMsg('Please select month and year before bulk mark as paid.');
+            return;
+        }
+
+        $('#bulk_month_year_preview').val(monthText + ' - ' + yearText);
+        $('#bulkmarkpaidmodal').modal({
+            show: true,
+            backdrop: 'static',
+            keyboard: false
+        });
+    });
+
+    $(document).on('click', '#confirmBulkMarkPaid', function () {
+        var paymentMode = $('#bulk_payment_mode_modal').val();
+        var paymentDate = $('#bulk_payment_date_modal').val();
+        var paymentNote = $('#bulk_payment_note_modal').val();
+
+        if (!paymentMode) {
+            errorMsg('Payment mode is required.');
+            return;
+        }
+        if (!paymentDate) {
+            errorMsg('Payment date is required.');
+            return;
+        }
+
+        $('#bulk_payment_mode_hidden').val(paymentMode);
+        $('#bulk_payment_date_hidden').val(paymentDate);
+        $('#bulk_payment_note_hidden').val(paymentNote);
+
+        var $form = $('#form1');
+        $form.attr('action', '<?php echo site_url('admin/payroll/bulkmarkpaid'); ?>');
+        $form.trigger('submit');
     });
 
     function getSectionByClass(class_id, section_id) {

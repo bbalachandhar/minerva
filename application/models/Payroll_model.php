@@ -72,6 +72,22 @@ class Payroll_model extends MY_Model
         $this->db->trans_start(); # Starting Transaction
         $this->db->trans_strict(false); # See Note 01. If you wish can remove as well
         //=======================Code Start===========================
+        if ((!isset($data['id']) || $data['id'] === '' || $data['id'] === null)
+            && isset($data['staff_id']) && isset($data['month']) && isset($data['year'])) {
+            $existing = $this->db->select('id')
+                ->from('staff_payslip')
+                ->where('staff_id', (int) $data['staff_id'])
+                ->where('month', (string) $data['month'])
+                ->where('year', (string) $data['year'])
+                ->limit(1)
+                ->get()
+                ->row_array();
+
+            if (!empty($existing['id'])) {
+                $data['id'] = (int) $existing['id'];
+            }
+        }
+
         if (isset($data['id']) && $data['id'] != '') {
             $this->db->where('id', $data['id']);
             $this->db->update('staff_payslip', $data);
@@ -320,15 +336,79 @@ class Payroll_model extends MY_Model
     }
 
     /**
-     * Get Year-To-Date (YTD) gross income for a staff member
-     * Useful for mid-year increment TDS calculations
-     * 
-     * @param int $staff_id Staff ID
-     * @param int $year Financial year
-     * @param int $current_month Current month number (1-12)
-     * @return array ['gross' => total_ytd_gross, 'payslips' => count, 'months' => array of month data]
+     * Build month/year pairs for FY period.
+     *
+     * @param int $year Calendar year of payroll run
+     * @param int $current_month Calendar month (1-12) of payroll run
+     * @param int $fy_start_month FY start month (India default: 4 = April)
+     * @param bool $include_current_month Include payroll month in YTD range
+     * @return array
      */
-    public function getYTDIncome($staff_id, $year = null, $current_month = null)
+    private function getFyPeriodMonths($year, $current_month, $fy_start_month = 4, $include_current_month = false)
+    {
+        $year = (int) $year;
+        $current_month = (int) $current_month;
+        $fy_start_month = (int) $fy_start_month;
+
+        if ($year <= 0) {
+            $year = (int) date('Y');
+        }
+        if ($current_month < 1 || $current_month > 12) {
+            $current_month = (int) date('n');
+        }
+        if ($fy_start_month < 1 || $fy_start_month > 12) {
+            $fy_start_month = 4;
+        }
+
+        $current_date = DateTime::createFromFormat('Y-n-j', $year . '-' . $current_month . '-1');
+        if (!$current_date) {
+            $current_date = new DateTime(date('Y-m-01'));
+        }
+
+        $fy_start_year = ((int) $current_date->format('n') >= $fy_start_month)
+            ? (int) $current_date->format('Y')
+            : ((int) $current_date->format('Y') - 1);
+
+        $fy_start_date = DateTime::createFromFormat('Y-n-j', $fy_start_year . '-' . $fy_start_month . '-1');
+        if (!$fy_start_date) {
+            return array();
+        }
+
+        $range_end = clone $current_date;
+        if (!$include_current_month) {
+            $range_end->modify('-1 month');
+        }
+
+        if ($range_end < $fy_start_date) {
+            return array();
+        }
+
+        $periods = array();
+        $cursor = clone $fy_start_date;
+        while ($cursor <= $range_end) {
+            $periods[] = array(
+                'year' => (int) $cursor->format('Y'),
+                'month' => $cursor->format('F'),
+            );
+            $cursor->modify('+1 month');
+        }
+
+        return $periods;
+    }
+
+    /**
+     * Get Year-To-Date (YTD) payroll data for a staff member in India FY mode.
+     * FY window defaults to April-March.
+     *
+     * @param int $staff_id Staff ID
+     * @param int $year Calendar year of payroll run
+     * @param int $current_month Payroll month number (1-12)
+     * @param int $fy_start_month FY start month (default April)
+    * @param bool $include_current_month Include current payroll month in YTD window
+    * @param bool $only_paid Include only paid payslips in YTD (default true)
+     * @return array ['gross' => total_ytd_gross, 'tax_deducted' => total_tax, 'payslips' => count, 'months' => array]
+     */
+    public function getYTDIncome($staff_id, $year = null, $current_month = null, $fy_start_month = 4, $include_current_month = false, $only_paid = true)
     {
         if ($year === null) {
             $year = date('Y');
@@ -336,52 +416,76 @@ class Payroll_model extends MY_Model
         if ($current_month === null) {
             $current_month = date('n');
         }
-        
-        $this->db->select('id, basic, total_allowance, total_deduction, month, net_salary, (basic + total_allowance - total_deduction) as gross_salary');
+
+        $periods = $this->getFyPeriodMonths($year, $current_month, $fy_start_month, $include_current_month);
+
+        if (empty($periods)) {
+            return array(
+                'gross' => 0,
+                'tax_deducted' => 0,
+                'payslips' => 0,
+                'months' => array(),
+                'current_month' => (int) $current_month,
+                'year' => (int) $year,
+                'fy_start_month' => (int) $fy_start_month,
+            );
+        }
+
+        $this->db->select('id, basic, total_allowance, total_deduction, month, year, net_salary, tax, status, (basic + total_allowance - total_deduction) as gross_salary');
         $this->db->from('staff_payslip');
         $this->db->where('staff_id', $staff_id);
-        $this->db->where('year', $year);
-        
-        // Get month indices for the months up to current month
-        $month_names = array('', 'January', 'February', 'March', 'April', 'May', 'June', 
-                            'July', 'August', 'September', 'October', 'November', 'December');
-        
-        // Build WHERE IN clause for months from January to current month
-        $months_to_include = array_slice($month_names, 1, $current_month);
-        
-        if (!empty($months_to_include)) {
-            $this->db->where_in('month', $months_to_include);
+        if ($only_paid) {
+            $this->db->where('status', 'paid');
         }
-        
-        $this->db->order_by('month', 'ASC');
+        $this->db->group_start();
+        foreach ($periods as $index => $period) {
+            if ($index === 0) {
+                $this->db->group_start();
+            } else {
+                $this->db->or_group_start();
+            }
+            $this->db->where('year', (int) $period['year']);
+            $this->db->where('month', $period['month']);
+            $this->db->group_end();
+        }
+        $this->db->group_end();
+        $this->db->order_by('year', 'ASC');
+        $this->db->order_by('FIELD(month, "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December")', 'ASC', false);
         $query = $this->db->get();
-        
+
         $ytd_gross = 0;
+        $ytd_tax = 0;
         $payslip_count = 0;
         $month_data = array();
-        
+
         if ($query->num_rows() > 0) {
             foreach ($query->result() as $payslip) {
-                $gross = $payslip->basic + $payslip->total_allowance - $payslip->total_deduction;
+                $gross = (float) $payslip->basic + (float) $payslip->total_allowance - (float) $payslip->total_deduction;
                 $ytd_gross += $gross;
+                $ytd_tax += (float) $payslip->tax;
                 $payslip_count++;
-                
+
                 $month_data[] = array(
                     'payslip_id' => $payslip->id,
                     'month' => $payslip->month,
+                    'year' => (int) $payslip->year,
                     'basic' => $payslip->basic,
                     'gross_salary' => $gross,
                     'net_salary' => $payslip->net_salary,
+                    'tax' => $payslip->tax,
+                    'status' => isset($payslip->status) ? $payslip->status : null,
                 );
             }
         }
-        
+
         return array(
             'gross' => $ytd_gross,
+            'tax_deducted' => $ytd_tax,
             'payslips' => $payslip_count,
             'months' => $month_data,
-            'current_month' => $current_month,
-            'year' => $year,
+            'current_month' => (int) $current_month,
+            'year' => (int) $year,
+            'fy_start_month' => (int) $fy_start_month,
         );
     }
 

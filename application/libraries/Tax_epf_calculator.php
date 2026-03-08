@@ -305,17 +305,57 @@ class Tax_epf_calculator
     }
 
     /**
+     * Convert calendar month to FY month index.
+     * Example for India FY (start April): Apr=1 ... Mar=12.
+     *
+     * @param int $calendar_month Calendar month (1-12)
+     * @param int $fy_start_month FY start month (default 4)
+     * @return int
+     */
+    public function get_fy_month_index($calendar_month, $fy_start_month = 4)
+    {
+        $calendar_month = (int) $calendar_month;
+        $fy_start_month = (int) $fy_start_month;
+
+        if ($calendar_month < 1 || $calendar_month > 12) {
+            $calendar_month = (int) date('n');
+        }
+        if ($fy_start_month < 1 || $fy_start_month > 12) {
+            $fy_start_month = 4;
+        }
+
+        if ($calendar_month >= $fy_start_month) {
+            return ($calendar_month - $fy_start_month) + 1;
+        }
+
+        return (12 - $fy_start_month + 1) + $calendar_month;
+    }
+
+    /**
      * Calculate TDS using Year-To-Date (YTD) approach
      * Properly handles mid-year salary increments/decrements
      * 
      * @param float $ytd_income Year-to-date income (actual income earned till current month)
      * @param float $current_month_gross Current month's gross salary
-     * @param int $current_month Month number (1-12)
+     * @param int $current_month Month number within FY (1-12)
      * @param int $total_months Total months in the year (default 12)
+     * @param float $tax_already_deducted TDS already deducted before current month
      * @return array ['annual_tax' => tax, 'monthly_tds' => monthly_tds, 'tds_method' => 'YTD']
      */
-    public function calculate_tds_ytd($ytd_income, $current_month_gross, $current_month = 11, $total_months = 12)
+    public function calculate_tds_ytd($ytd_income, $current_month_gross, $current_month = 11, $total_months = 12, $tax_already_deducted = 0)
     {
+        $current_month = (int) $current_month;
+        $total_months = (int) $total_months;
+        if ($total_months <= 0) {
+            $total_months = 12;
+        }
+        if ($current_month < 1) {
+            $current_month = 1;
+        }
+        if ($current_month > $total_months) {
+            $current_month = $total_months;
+        }
+
         // Project remaining months with current salary
         $remaining_months = $total_months - $current_month + 1;
         $projected_annual_income = $ytd_income + ($current_month_gross * $remaining_months);
@@ -323,10 +363,10 @@ class Tax_epf_calculator
         // Calculate tax on projected annual income
         $tds_result = $this->calculate_new_regime_tds($projected_annual_income);
         $annual_tax = $tds_result['tax'];
-        
-        // Calculate remaining tax to be deducted
-        // (This would be more accurate if we knew tax paid in previous months)
-        $monthly_tds = round($annual_tax / $total_months, 2);
+
+        // Deduct already-paid tax and spread only pending amount over remaining FY months.
+        $remaining_tax = max(0, (float) $annual_tax - (float) $tax_already_deducted);
+        $monthly_tds = ($remaining_months > 0) ? round($remaining_tax / $remaining_months, 2) : 0;
         
         return array(
             'annual_tax' => $annual_tax,
@@ -335,6 +375,8 @@ class Tax_epf_calculator
             'ytd_income' => $ytd_income,
             'projected_annual' => $projected_annual_income,
             'months_remaining' => $remaining_months,
+            'remaining_tax' => $remaining_tax,
+            'tax_already_deducted' => (float) $tax_already_deducted,
         );
     }
 

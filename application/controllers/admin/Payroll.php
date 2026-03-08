@@ -32,6 +32,51 @@ class Payroll extends Admin_Controller
         $this->sch_setting_detail = $this->setting_model->getSetting();
     }
 
+    /**
+     * Return FY start year for a given calendar month/year.
+     */
+    private function getFyStartYear($year, $month_num, $fy_start_month = 4)
+    {
+        $year = (int) $year;
+        $month_num = (int) $month_num;
+        $fy_start_month = (int) $fy_start_month;
+
+        if ($year <= 0) {
+            $year = (int) date('Y');
+        }
+        if ($month_num < 1 || $month_num > 12) {
+            $month_num = (int) date('n');
+        }
+        if ($fy_start_month < 1 || $fy_start_month > 12) {
+            $fy_start_month = 4;
+        }
+
+        return ($month_num >= $fy_start_month) ? $year : ($year - 1);
+    }
+
+    /**
+     * Opening YTD values should apply only for the tagged FY cycle.
+     */
+    private function getApplicableOpeningYtd($staff_row, $year, $month_num, $fy_start_month = 4)
+    {
+        $opening_income = isset($staff_row['opening_ytd_income']) ? max(0, (float) $staff_row['opening_ytd_income']) : 0;
+        $opening_tax = isset($staff_row['opening_ytd_tax_deducted']) ? max(0, (float) $staff_row['opening_ytd_tax_deducted']) : 0;
+        $opening_fy_start_year = isset($staff_row['opening_ytd_fy_start_year']) ? (int) $staff_row['opening_ytd_fy_start_year'] : 0;
+        $current_fy_start_year = $this->getFyStartYear($year, $month_num, $fy_start_month);
+
+        if ($opening_fy_start_year > 0 && $opening_fy_start_year === $current_fy_start_year) {
+            return array(
+                'income' => $opening_income,
+                'tax' => $opening_tax,
+            );
+        }
+
+        return array(
+            'income' => 0,
+            'tax' => 0,
+        );
+    }
+
     public function index()
     {
 
@@ -1298,7 +1343,7 @@ class Payroll extends Admin_Controller
         if($tax){
             $tax = $this->roundPayrollAmount(convertCurrencyFormatToBaseAmount($tax));
         }else{
-            $tax = 0;  
+            $tax = 0;
         }
 
         if($leave_deduction){
@@ -1363,6 +1408,42 @@ class Payroll extends Admin_Controller
         if ($esi_wage > 0) {
             $employer_esi = round($esi_wage * 0.0325, 0);
         }
+
+        // Recompute TDS server-side using FY-aware YTD logic so edit flow is consistent with bulk flow.
+        $flat_tds_pct = isset($staff_data['tds_percentage']) && $staff_data['tds_percentage'] !== null ? (float) $staff_data['tds_percentage'] : 0;
+        if ($flat_tds_pct > 0) {
+            $tax = $this->roundPayrollAmount($gross_salary * ($flat_tds_pct / 100));
+        } else {
+            $fy_start_month = 4;
+            $fy_month_index = $this->tax_epf_calculator->get_fy_month_index($month_numeric, $fy_start_month);
+            $ytd_data = $this->payroll_model->getYTDIncome($staff_id, $year, $month_numeric, $fy_start_month, false, true);
+
+            $opening_ytd = $this->getApplicableOpeningYtd($staff_data, (int) $year, (int) $month_numeric, (int) $fy_start_month);
+            $opening_ytd_income = (float) $opening_ytd['income'];
+            $opening_ytd_tax = (float) $opening_ytd['tax'];
+
+            $effective_ytd_income = (float) ($ytd_data['gross'] ?? 0) + max(0, $opening_ytd_income);
+            $effective_tax_paid = (float) ($ytd_data['tax_deducted'] ?? 0) + max(0, $opening_ytd_tax);
+
+            if ($effective_ytd_income > 0 && $fy_month_index > 1) {
+                $tds_result = $this->tax_epf_calculator->calculate_tds_ytd(
+                    $ytd_income = $effective_ytd_income,
+                    $current_month_gross = $gross_salary,
+                    $current_month = $fy_month_index,
+                    $total_months = 12,
+                    $tax_already_deducted = $effective_tax_paid
+                );
+                $tax = $tds_result['monthly_tds'];
+            } else {
+                $tax = $this->tax_epf_calculator->calculate_monthly_tds($gross_salary);
+            }
+            $tax = $this->roundPayrollAmount($tax);
+        }
+
+        // Keep net salary aligned with current calculated statutory values.
+        $net_salary = $this->roundPayrollAmount(
+            (float) $gross_salary - ((float) $total_deduction + (float) $employee_epf + (float) $employee_esi + (float) $tax)
+        );
 
             $data = array(
                 'id'              => $id,
@@ -1887,10 +1968,40 @@ class Payroll extends Admin_Controller
         $year = $this->input->post('year');
         $role = $this->input->post('role');
         $overwrite = $this->input->post('bulk_overwrite') ? true : false;
+        $allow_unpaid_previous = $this->input->post('bulk_allow_unpaid_prev') ? true : false;
 
         if (empty($month) || empty($year) || $month === 'select' || $year === 'select') {
             $this->session->set_flashdata('msg', '<div class="alert alert-warning text-center">Please select month and year for bulk calculation.</div>');
             redirect('admin/payroll');
+        }
+
+        if (!$allow_unpaid_previous) {
+            $selected_date = DateTime::createFromFormat('Y-F-j', $year . '-' . $month . '-1');
+            if (!$selected_date) {
+                $selected_date = DateTime::createFromFormat('Y-m-j', $year . '-' . date('n', strtotime($month)) . '-1');
+            }
+
+            if ($selected_date) {
+                $prev_date = clone $selected_date;
+                $prev_date->modify('-1 month');
+                $prev_month = $prev_date->format('F');
+                $prev_year = $prev_date->format('Y');
+
+                $prev_staff_list = $this->payroll_model->searchEmployee($prev_month, $prev_year, '', $role);
+                $pending_prev_count = 0;
+                foreach ((array) $prev_staff_list as $prev_staff) {
+                    $prev_payslip_id = isset($prev_staff['payslip_id']) ? (int) $prev_staff['payslip_id'] : 0;
+                    $prev_status = strtolower(trim((string) ($prev_staff['status'] ?? '')));
+                    if ($prev_payslip_id > 0 && $prev_status !== 'paid') {
+                        $pending_prev_count++;
+                    }
+                }
+
+                if ($pending_prev_count > 0) {
+                    $this->session->set_flashdata('msg', '<div class="alert alert-warning text-center">Previous month (' . $prev_month . ' ' . $prev_year . ') has ' . $pending_prev_count . ' unpaid/generated payslips. Mark them as paid first (Bulk Mark as Paid), or tick "Allow calculate with previous month unpaid" to continue.</div>');
+                    redirect('admin/payroll/search/' . $month . '/' . $year . '/' . $role);
+                }
+            }
         }
         
         // Convert month name to numeric for monthly balance tracking
@@ -2138,7 +2249,7 @@ class Payroll extends Admin_Controller
                 $esi_deduction = $this->tax_epf_calculator->calculate_employee_esi($esi_wage);
             }
             
-            // Calculate TDS using YTD (Year-To-Date) approach for accurate mid-year increment handling
+            // Calculate TDS using India FY (April-March) YTD approach.
             $month_num = date('n', strtotime($year . '-' . $month . '-01'));
             // Check for flat TDS percentage override set on the staff profile
             $flat_tds_pct = isset($staff['tds_percentage']) && $staff['tds_percentage'] !== null ? (float)$staff['tds_percentage'] : 0;
@@ -2146,19 +2257,31 @@ class Payroll extends Admin_Controller
                 // Flat % on gross salary — skip new-regime slab calculation entirely
                 $monthly_tds = $this->roundPayrollAmount($gross_salary * ($flat_tds_pct / 100));
             } else {
-                $ytd_data = $this->payroll_model->getYTDIncome($staff['id'], $year, $month_num - 1); // -1 because current month hasn't been paid yet
-                // Use YTD TDS calculation
-                if ($ytd_data['gross'] > 0 && $month_num > 1) {
-                    // Employee has prior income this year - use YTD projection
+                $fy_start_month = 4;
+                $fy_month_index = $this->tax_epf_calculator->get_fy_month_index($month_num, $fy_start_month);
+
+                // Get prior months from the same FY (excluding current payroll month).
+                $ytd_data = $this->payroll_model->getYTDIncome($staff['id'], $year, $month_num, $fy_start_month, false, true);
+
+                // Opening balances allow onboarding clients to carry already-paid income and tax.
+                $opening_ytd = $this->getApplicableOpeningYtd($staff, (int) $year, (int) $month_num, (int) $fy_start_month);
+                $opening_ytd_income = (float) $opening_ytd['income'];
+                $opening_ytd_tax = (float) $opening_ytd['tax'];
+
+                $effective_ytd_income = (float) ($ytd_data['gross'] ?? 0) + max(0, $opening_ytd_income);
+                $effective_tax_paid = (float) ($ytd_data['tax_deducted'] ?? 0) + max(0, $opening_ytd_tax);
+
+                if ($effective_ytd_income > 0 && $fy_month_index > 1) {
                     $tds_result = $this->tax_epf_calculator->calculate_tds_ytd(
-                        $ytd_income = $ytd_data['gross'],
+                        $ytd_income = $effective_ytd_income,
                         $current_month_gross = $gross_salary,
-                        $current_month = $month_num,
-                        $total_months = 12
+                        $current_month = $fy_month_index,
+                        $total_months = 12,
+                        $tax_already_deducted = $effective_tax_paid
                     );
                     $monthly_tds = $tds_result['monthly_tds'];
                 } else {
-                    // First month of year or no prior payslips - use simple annualized approach
+                    // FY first month without prior data - use simple annualized approach.
                     $monthly_tds = $this->tax_epf_calculator->calculate_monthly_tds($gross_salary);
                 }
                 $monthly_tds = $this->roundPayrollAmount($monthly_tds);
@@ -2354,6 +2477,73 @@ class Payroll extends Admin_Controller
         }
         if ($zero_salary_generated > 0) {
             $message .= '<div class="alert alert-info text-center">Zero-salary payslips generated (no attendance): ' . $zero_salary_generated . '.</div>';
+        }
+        $this->session->set_flashdata('msg', $message);
+
+        redirect('admin/payroll/search/' . $month . '/' . $year . '/' . $role);
+    }
+
+    public function bulkmarkpaid()
+    {
+        if (!$this->rbac->hasPrivilege('staff_payroll', 'can_add')) {
+            access_denied();
+        }
+
+        $month = $this->input->post('month');
+        $year = $this->input->post('year');
+        $role = $this->input->post('role');
+        $payment_mode = $this->input->post('bulk_payment_mode');
+        $payment_date_raw = $this->input->post('bulk_payment_date');
+        $payment_note = $this->input->post('bulk_payment_note');
+
+        if (empty($month) || empty($year) || $month === 'select' || $year === 'select') {
+            $this->session->set_flashdata('msg', '<div class="alert alert-warning text-center">Please select month and year before bulk mark as paid.</div>');
+            redirect('admin/payroll');
+        }
+
+        $valid_months = array_keys((array) $this->customlib->getMonthDropdown());
+        if (!in_array($month, $valid_months, true) || !preg_match('/^\d{4}$/', (string) $year)) {
+            $this->session->set_flashdata('msg', '<div class="alert alert-warning text-center">Invalid month/year provided for bulk mark as paid.</div>');
+            redirect('admin/payroll');
+        }
+
+        if (empty($payment_mode) || empty($payment_date_raw)) {
+            $this->session->set_flashdata('msg', '<div class="alert alert-warning text-center">Payment mode and payment date are required for bulk mark as paid.</div>');
+            redirect('admin/payroll/search/' . $month . '/' . $year . '/' . $role);
+        }
+
+        $payment_date = $this->customlib->dateFormatToYYYYMMDD($payment_date_raw);
+        if (empty($payment_date)) {
+            $this->session->set_flashdata('msg', '<div class="alert alert-warning text-center">Invalid payment date provided.</div>');
+            redirect('admin/payroll/search/' . $month . '/' . $year . '/' . $role);
+        }
+
+        $staff_list = $this->payroll_model->searchEmployee($month, $year, '', $role);
+        $updated = 0;
+        $skipped = 0;
+
+        foreach ($staff_list as $staff) {
+            $payslip_id = isset($staff['payslip_id']) ? (int) $staff['payslip_id'] : 0;
+            $status = strtolower(trim((string) ($staff['status'] ?? '')));
+
+            if ($payslip_id <= 0 || $status === '' || $status === 'paid') {
+                $skipped++;
+                continue;
+            }
+
+            $data = array(
+                'payment_mode' => $payment_mode,
+                'payment_date' => $payment_date,
+                'remark' => $payment_note,
+                'status' => 'paid',
+            );
+            $this->payroll_model->paymentSuccess($data, $payslip_id);
+            $updated++;
+        }
+
+        $message = '<div class="alert alert-success text-center">Bulk mark as paid completed. Updated: ' . $updated . '.</div>';
+        if ($skipped > 0) {
+            $message .= '<div class="alert alert-info text-center">Skipped: ' . $skipped . ' (already paid or no payslip).</div>';
         }
         $this->session->set_flashdata('msg', $message);
 
@@ -2597,13 +2787,24 @@ class Payroll extends Admin_Controller
             // Flat % on gross salary — skip new-regime slab calculation entirely
             $monthly_tds = $this->roundPayrollAmount($gross_salary * ($flat_tds_pct / 100));
         } else {
-            $ytd_data = $this->payroll_model->getYTDIncome($staff_id, $year, $month_num - 1);
-            if ($ytd_data['gross'] > 0 && $month_num > 1) {
+            $fy_start_month = 4;
+            $fy_month_index = $this->tax_epf_calculator->get_fy_month_index($month_num, $fy_start_month);
+            $ytd_data = $this->payroll_model->getYTDIncome($staff_id, $year, $month_num, $fy_start_month, false, true);
+
+            $opening_ytd = $this->getApplicableOpeningYtd($staff_data, (int) $year, (int) $month_num, (int) $fy_start_month);
+            $opening_ytd_income = (float) $opening_ytd['income'];
+            $opening_ytd_tax = (float) $opening_ytd['tax'];
+
+            $effective_ytd_income = (float) ($ytd_data['gross'] ?? 0) + max(0, $opening_ytd_income);
+            $effective_tax_paid = (float) ($ytd_data['tax_deducted'] ?? 0) + max(0, $opening_ytd_tax);
+
+            if ($effective_ytd_income > 0 && $fy_month_index > 1) {
                 $tds_result = $this->tax_epf_calculator->calculate_tds_ytd(
-                    $ytd_income = $ytd_data['gross'],
+                    $ytd_income = $effective_ytd_income,
                     $current_month_gross = $gross_salary,
-                    $current_month = $month_num,
-                    $total_months = 12
+                    $current_month = $fy_month_index,
+                    $total_months = 12,
+                    $tax_already_deducted = $effective_tax_paid
                 );
                 $monthly_tds = $tds_result['monthly_tds'];
             } else {

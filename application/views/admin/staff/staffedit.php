@@ -531,6 +531,28 @@ if ($staff["marital_status"] == $mavalue) {
                                                         <small class="text-muted">If set, applies flat % on gross salary instead of the new-regime slab. Leave blank for slab-based TDS.</small>
                                                     </div>
                                                 </div>
+                                                <div class="col-md-4">
+                                                    <div class="form-group">
+                                                        <label for="opening_ytd_income">Opening FY YTD Income (Apr to previous month)</label>
+                                                        <input id="opening_ytd_income" name="opening_ytd_income" type="number" step="0.01" min="0" class="form-control" value="<?php echo isset($staff['opening_ytd_income']) ? $staff['opening_ytd_income'] : ''; ?>" placeholder="e.g. 990000" />
+                                                        <small class="text-muted">Enter cumulative gross salary already paid from April to previous month (before this system go-live).</small>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <div class="form-group">
+                                                        <label for="opening_ytd_tax_deducted">Opening FY TDS Already Deducted</label>
+                                                        <input id="opening_ytd_tax_deducted" name="opening_ytd_tax_deducted" type="number" step="0.01" min="0" class="form-control" value="<?php echo isset($staff['opening_ytd_tax_deducted']) ? $staff['opening_ytd_tax_deducted'] : ''; ?>" placeholder="e.g. 42500" />
+                                                        <small class="text-muted">Enter only cumulative income-tax (TDS) already deducted. Do not enter net salary, PF, ESI, or other deductions.</small>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <div class="form-group">
+                                                        <label for="opening_ytd_fy_start_year">Opening Balance FY Start Year</label>
+                                                        <?php $default_opening_fy_year = ((int)date('n') >= 4) ? (int)date('Y') : ((int)date('Y') - 1); ?>
+                                                        <input id="opening_ytd_fy_start_year" name="opening_ytd_fy_start_year" type="number" min="2000" max="2100" class="form-control" value="<?php echo !empty($staff['opening_ytd_fy_start_year']) ? (int)$staff['opening_ytd_fy_start_year'] : $default_opening_fy_year; ?>" placeholder="e.g. 2025" />
+                                                        <small class="text-muted">Use FY start year only (for 2025-26 enter 2025). Opening values apply only for this FY and auto-stop in next FY.</small>
+                                                    </div>
+                                                </div>
                                             </div>
                                             <div class="row around10">
                                                 <?php if ($sch_setting->staff_basic_salary) {?>
