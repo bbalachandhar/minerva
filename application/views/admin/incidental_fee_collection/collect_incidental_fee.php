@@ -119,6 +119,42 @@
             </div>
         </div>
     </section>
+
+    <!-- Recent Collections Table -->
+    <section class="content" style="padding-top:0;">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="box box-info">
+                    <div class="box-header with-border">
+                        <h3 class="box-title"><i class="fa fa-list"></i> Recent Incidental Fee Collections</h3>
+                        <div class="box-tools pull-right">
+                            <button type="button" class="btn btn-xs btn-default" id="reloadCollectionsTable"><i class="fa fa-refresh"></i> Refresh</button>
+                        </div>
+                    </div>
+                    <div class="box-body">
+                        <table id="recentCollectionsTable" class="table table-bordered table-striped table-hover" style="width:100%;">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Receipt No</th>
+                                    <th>Name</th>
+                                    <th>Fee Type</th>
+                                    <th>Amount</th>
+                                    <th>Payment Mode</th>
+                                    <th>Bill Date</th>
+                                    <th>Collected By</th>
+                                    <th>Print</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recentCollectionsBody">
+                                <tr><td colspan="9" class="text-center">Loading...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
 </div>
 
 <!-- Fee Collection Modal -->
@@ -152,12 +188,12 @@
                     </div>
                     <div class="form-group">
                         <label for="amount_collected"><?php echo $this->lang->line('amount_collected'); ?></label>
-                        <input id="amount_collected" name="amount_collected" type="number" class="form-control" />
+                        <input id="amount_collected" name="amount_collected" type="text" inputmode="decimal" class="form-control amount-numeric-only" />
                         <span class="text-danger"><?php echo form_error('amount_collected'); ?></span>
                     </div>
                     <div class="form-group">
                         <label for="bill_date">Bill Date</label>
-                        <input id="bill_date" name="bill_date" type="text" class="form-control" autocomplete="off" readonly />
+                        <input id="bill_date" name="bill_date" type="text" class="form-control" autocomplete="off" />
                         <span class="text-danger"></span>
                     </div>
 
@@ -281,12 +317,12 @@
                     </div>
                     <div class="form-group">
                         <label for="amount_collected_non_student"><?php echo $this->lang->line('amount_collected'); ?></label>
-                        <input id="amount_collected_non_student" name="amount_collected" type="number" step="0.01" class="form-control" />
+                        <input id="amount_collected_non_student" name="amount_collected" type="text" inputmode="decimal" class="form-control amount-numeric-only" />
                         <span class="text-danger"></span>
                     </div>
                     <div class="form-group">
                         <label for="bill_date_non_student">Bill Date</label>
-                        <input id="bill_date_non_student" name="bill_date" type="text" class="form-control" autocomplete="off" readonly />
+                        <input id="bill_date_non_student" name="bill_date" type="text" class="form-control" autocomplete="off" />
                         <span class="text-danger"></span>
                     </div>
                     <div class="form-group">
@@ -322,6 +358,23 @@
     </div>
 </div>
 
+<!-- Receipt Success Modal -->
+<div class="modal fade" id="incidentalReceiptSuccessModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-sm" role="document">
+        <div class="modal-content">
+            <div class="modal-header" style="background:#5cb85c;color:#fff;">
+                <button type="button" class="close" data-dismiss="modal"><span style="color:#fff;">&times;</span></button>
+                <h4 class="modal-title"><i class="fa fa-check-circle"></i> Fee Collected</h4>
+            </div>
+            <div class="modal-body" id="incidentalReceiptSuccessBody"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                <a id="incidentalReceiptPrintBtn" href="#" target="_blank" class="btn btn-primary"><i class="fa fa-print"></i> Print Receipt</a>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script type="text/javascript">
     $(document).ready(function () {
         function initializeModernBillDatePicker(selector) {
@@ -334,7 +387,19 @@
                     format: 'yyyy-mm-dd',
                     todayHighlight: true
                 });
+            } else {
+                // Fallback to native picker if bootstrap-datepicker is unavailable.
+                $(selector).attr('type', 'date');
             }
+        }
+
+        function sanitizeAmountValue(value) {
+            value = String(value || '').replace(/[^0-9.]/g, '');
+            var parts = value.split('.');
+            if (parts.length > 2) {
+                value = parts[0] + '.' + parts.slice(1).join('');
+            }
+            return value;
         }
 
         function setBillDateValue(selector, value) {
@@ -365,6 +430,12 @@
 
         initializeModernBillDatePicker('#bill_date');
         initializeModernBillDatePicker('#bill_date_non_student');
+        setDefaultStudentBillDate();
+        setDefaultNonStudentBillDate();
+
+        $(document).on('input', '.amount-numeric-only', function () {
+            this.value = sanitizeAmountValue(this.value);
+        });
 
         $('#feeCollectionModal').on('shown.bs.modal', function () {
             setDefaultStudentBillDate();
@@ -567,7 +638,7 @@
                                 student_table_html += '<tr>';
                                 student_table_html += '<td>' + student.admission_no + '</td>';
                                 student_table_html += '<td>' + student.firstname + ' ' + student.lastname + '</td>';
-                                student_table_html += '<td><input type="number" step="0.01" name="amounts[' + student.student_session_id + ']" class="form-control" value="' + amount_value + '"></td>';
+                                student_table_html += '<td><input type="text" inputmode="decimal" name="amounts[' + student.student_session_id + ']" class="form-control amount-numeric-only" value="' + amount_value + '"></td>';
                                 student_table_html += '</tr>';
                             });
                             $('#save_class_wise_fees_btn').show();
@@ -629,7 +700,6 @@
                 }
             });
         });
-    });
 
         // Handle fee type change for showing/hiding application ref no field
         function checkIfApplicationRefNoRequired(feeTypeName) {
@@ -659,6 +729,43 @@
             }
         });
 
+        function openReceiptUrl(response) {
+            console.log('[Receipt DEBUG] openReceiptUrl called', JSON.stringify(response));
+            var collectionId = response && (response.collection_id || response.id);
+            var receiptUrl = response && response.receipt_url ? response.receipt_url : '';
+            if (!receiptUrl && collectionId) {
+                receiptUrl = baseurl + 'financereports/print_incidental_receipt/' + collectionId;
+            }
+            console.log('[Receipt DEBUG] receiptUrl =', receiptUrl);
+
+            if (!receiptUrl) {
+                errorMsg('Receipt could not be opened. Missing collection id.');
+                return;
+            }
+
+            // Hidden form submit opens a new tab without being blocked by popup blockers
+            var f = document.createElement('form');
+            f.method = 'GET';
+            f.action = receiptUrl;
+            f.target = '_blank';
+            document.body.appendChild(f);
+            console.log('[Receipt DEBUG] submitting form to', receiptUrl);
+            f.submit();
+            document.body.removeChild(f);
+        }
+
+        function showReceiptLink(receiptUrl) {
+            $('#incidental-receipt-alert').remove();
+            var $alert = $('<div id="incidental-receipt-alert" style="position:fixed;top:70px;right:20px;z-index:10000;min-width:280px;">' +
+                '<div class="alert alert-success alert-dismissible">' +
+                '<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>' +
+                '<strong>Fee collected!</strong><br>' +
+                '<a href="' + receiptUrl + '" target="_blank" class="btn btn-primary btn-sm" style="margin-top:6px;">Print Receipt</a>' +
+                '</div></div>');
+            $('body').append($alert);
+            setTimeout(function () { $alert.fadeOut(400, function () { $alert.remove(); }); }, 15000);
+        }
+
         // Handle form submission
         var isSubmittingStudentFee = false; // Flag to prevent duplicate submissions
         
@@ -669,7 +776,11 @@
             if (isSubmittingStudentFee) {
                 return false;
             }
-            
+
+            if (!$('#bill_date').val().trim()) {
+                setDefaultStudentBillDate();
+            }
+
             isSubmittingStudentFee = true;
             var $submitBtn = $(this).find('button[type="submit"]');
             $submitBtn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> ' + $submitBtn.text());
@@ -696,11 +807,8 @@
                         form[0].reset();
                         setDefaultStudentBillDate();
                         $('#feeCollectionModal').modal('hide');
-                        
-                        // Open receipt in new tab
-                        setTimeout(function() {
-                            window.open(baseurl + 'admin/collect_incidental_fee/receipt/' + response.collection_id, '_blank');
-                        }, 500);
+                        loadCollectionsTable();
+                        openReceiptUrl(response);
                     } else {
                         errorMsg(response.message);
                     }
@@ -730,13 +838,17 @@
             if (isSubmittingNonStudentFee) {
                 return false;
             }
+
+            if (!$('#bill_date_non_student').val().trim()) {
+                setDefaultNonStudentBillDate();
+            }
             
             // Check if application ref no is required and empty
             if ($('#application_ref_no_non_student_group').is(':visible') && $('#application_ref_no_non_student').val().trim() === '') {
                 errorMsg('<?php echo $this->lang->line('application_ref_no'); ?> is required for this fee type');
                 return false;
             }
-            
+
             isSubmittingNonStudentFee = true;
             var $submitBtn = $(this).find('button[type="submit"]');
             $submitBtn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> ' + $submitBtn.text());
@@ -767,11 +879,8 @@
                         form[0].reset();
                         setDefaultNonStudentBillDate();
                         $('#application_ref_no_non_student_group').hide();
-                        
-                        // Open receipt in new tab
-                        setTimeout(function() {
-                            window.open(baseurl + 'admin/collect_incidental_fee/receipt/' + response.collection_id, '_blank');
-                        }, 500);
+                        loadCollectionsTable();
+                        openReceiptUrl(response);
                     } else {
                         errorMsg(response.message);
                     }
@@ -790,6 +899,71 @@
                 }
             });
         });
+
+        // ── Recent Collections DataTable ──────────────────────────
+        var collectionsTable = null;
+
+        function loadCollectionsTable() {
+            $.ajax({
+                url: baseurl + 'admin/collect_incidental_fee/getRecentCollections',
+                type: 'GET',
+                dataType: 'json',
+                success: function(res) {
+                    if (!res || res.status !== 'success') {
+                        var msg = (res && res.message) ? res.message : 'Failed to load records.';
+                        $('#recentCollectionsBody').html('<tr><td colspan="9" class="text-center text-danger">' + msg + '</td></tr>');
+                        if (collectionsTable) { collectionsTable.destroy(); collectionsTable = null; }
+                        return;
+                    }
+                    var rows = '';
+                    if (!res.data || res.data.length === 0) {
+                        rows = '<tr><td colspan="9" class="text-center">No records found.</td></tr>';
+                        $('#recentCollectionsBody').html(rows);
+                        if (collectionsTable) { collectionsTable.destroy(); collectionsTable = null; }
+                        return;
+                    }
+                    $.each(res.data, function(i, r) {
+                        var name = r.non_student_name
+                            ? r.non_student_name
+                            : (r.firstname || '') + ' ' + (r.lastname || '');
+                        var amount = parseFloat(r.amount_collected);
+                        if (isNaN(amount)) {
+                            amount = 0;
+                        }
+                        var printUrl = baseurl + 'financereports/print_incidental_receipt/' + r.id;
+                        rows += '<tr>'
+                            + '<td>' + r.id + '</td>'
+                            + '<td>' + (r.receipt_no || '') + '</td>'
+                            + '<td>' + name.trim() + '</td>'
+                            + '<td>' + (r.fee_type_title || '') + '</td>'
+                            + '<td>&#8377;' + amount.toFixed(2) + '</td>'
+                            + '<td>' + (r.payment_mode || '') + '</td>'
+                            + '<td>' + (r.bill_date || '') + '</td>'
+                            + '<td>' + (r.collected_by_name || '') + '</td>'
+                            + '<td><a href="' + printUrl + '" target="_blank" class="btn btn-xs btn-primary" title="Print Receipt"><i class="fa fa-print"></i></a></td>'
+                            + '</tr>';
+                    });
+                    $('#recentCollectionsBody').html(rows);
+                    if (collectionsTable) { collectionsTable.destroy(); collectionsTable = null; }
+                    collectionsTable = $('#recentCollectionsTable').DataTable({
+                        order: [[0, 'desc']],
+                        pageLength: 10,
+                        columnDefs: [{ orderable: false, targets: 8 }]
+                    });
+                },
+                error: function() {
+                    $('#recentCollectionsBody').html('<tr><td colspan="9" class="text-center text-danger">Failed to load records.</td></tr>');
+                }
+            });
+        }
+
+        loadCollectionsTable();
+
+        $('#reloadCollectionsTable').on('click', function() {
+            loadCollectionsTable();
+        });
+
+    });
 </script>
 
 

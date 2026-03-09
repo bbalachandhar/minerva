@@ -22,6 +22,10 @@ class Collect_incidental_fee extends Admin_Controller {
             access_denied();
         }
 
+        if (!$this->input->post('bill_date')) {
+            $_POST['bill_date'] = date('Y-m-d');
+        }
+
         $this->session->set_userdata('top_menu', 'Fees Collection');
         $this->session->set_userdata('sub_menu', 'admin/collect_incidental_fee');
 
@@ -91,10 +95,13 @@ class Collect_incidental_fee extends Admin_Controller {
                 if ($this->db->trans_status() === FALSE) {
                     echo json_encode(array('status' => 'error', 'message' => $this->lang->line('error_collecting_fee')));
                 } else {
+                    $collection_id = (int) $collection_id;
                     $response = array(
                         'status' => 'success',
                         'message' => $this->lang->line('fee_collected_successfully'),
                         'collection_id' => $collection_id,
+                        'id' => $collection_id,
+                        'receipt_url' => site_url('financereports/print_incidental_receipt/' . $collection_id),
                         'receipt_no' => $receipt_no,
                         'payment_mode' => $payment_mode,
                         'amount_collected' => $amount_collected
@@ -163,6 +170,10 @@ class Collect_incidental_fee extends Admin_Controller {
             exit();
         }
 
+        if (!$this->input->post('bill_date')) {
+            $_POST['bill_date'] = date('Y-m-d');
+        }
+
         $this->form_validation->set_rules('non_student_name', $this->lang->line('name'), 'required|trim|xss_clean');
         $this->form_validation->set_rules('fee_type_id', $this->lang->line('fee_type'), 'required|trim|xss_clean');
         $this->form_validation->set_rules('amount_collected', $this->lang->line('amount_collected'), 'required|numeric|trim|xss_clean');
@@ -209,10 +220,13 @@ class Collect_incidental_fee extends Admin_Controller {
                     echo json_encode(array('status' => 'error', 'message' => $this->lang->line('error_collecting_fee')));
                 } else {
                     $amount_collected = $this->input->post('amount_collected');
+                    $collection_id = (int) $collection_id;
                     $response = array(
                         'status' => 'success',
                         'message' => $this->lang->line('fee_collected_successfully'),
                         'collection_id' => $collection_id,
+                        'id' => $collection_id,
+                        'receipt_url' => site_url('financereports/print_incidental_receipt/' . $collection_id),
                         'receipt_no' => $receipt_no,
                         'payment_mode' => $payment_mode,
                         'amount_collected' => $amount_collected
@@ -224,6 +238,22 @@ class Collect_incidental_fee extends Admin_Controller {
                 echo json_encode(array('status' => 'error', 'message' => $this->lang->line('error_collecting_fee')));
             }
         }
+    }
+
+    public function getRecentCollections() {
+        if (!$this->rbac->hasPrivilege('collect_incidental_fee', 'can_view')) {
+            echo json_encode(['status' => 'error', 'message' => $this->lang->line('access_denied')]);
+            return;
+        }
+        $collections = $this->incidental_fee_collection_model->get_collections_report(array());
+        $collections = array_values(array_filter($collections, function ($row) {
+            return isset($row['incidental_fee_type_id']) && (int) $row['incidental_fee_type_id'] > 0;
+        }));
+        usort($collections, function ($a, $b) {
+            return (int) ($b['id'] ?? 0) - (int) ($a['id'] ?? 0);
+        });
+        header('Content-Type: application/json');
+        echo json_encode(['status' => 'success', 'data' => $collections]);
     }
 
     public function receipt($collection_id) {

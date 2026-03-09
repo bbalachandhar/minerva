@@ -2954,6 +2954,7 @@ $lang['no_student_or_class_selected'] = 'No student or class selected.';
 $lang['fee_assigned_successfully'] = 'Fee Assigned Successfully';
 $lang['no_fee_assigned'] = 'No Fee Assigned';
 $lang['error_collecting_fee'] = 'Error collecting fee.';
+$lang['fee_collected_successfully'] = 'Fee Collected Successfully';
 $lang['incidental_fee_report'] = 'Incidental Fee Collection Report';
 $lang['add_incidental_fee_type'] = 'Add Incidental Fee Type';
 $lang['edit_incidental_fee_type'] = 'Edit Incidental Fee Type';
