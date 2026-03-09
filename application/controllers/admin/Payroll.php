@@ -3,6 +3,7 @@
 
 class Payroll extends Admin_Controller
 {
+    private $payrollFyStartMonth = null;
 
     public function __construct()
     {
@@ -52,6 +53,27 @@ class Payroll extends Admin_Controller
         }
 
         return ($month_num >= $fy_start_month) ? $year : ($year - 1);
+    }
+
+    private function getConfiguredPayrollFyStartMonth()
+    {
+        if ($this->payrollFyStartMonth !== null) {
+            return (int) $this->payrollFyStartMonth;
+        }
+
+        $fy_start_month = 4;
+        if ($this->db->field_exists('payroll_fy_start_month', 'sch_settings')) {
+            $row = $this->db->select('payroll_fy_start_month')->from('sch_settings')->limit(1)->get()->row();
+            if ($row && isset($row->payroll_fy_start_month)) {
+                $candidate = (int) $row->payroll_fy_start_month;
+                if ($candidate >= 1 && $candidate <= 12) {
+                    $fy_start_month = $candidate;
+                }
+            }
+        }
+
+        $this->payrollFyStartMonth = $fy_start_month;
+        return $fy_start_month;
     }
 
     /**
@@ -1458,7 +1480,7 @@ class Payroll extends Admin_Controller
         if ($flat_tds_pct > 0) {
             $tax = $this->roundPayrollAmount($gross_salary * ($flat_tds_pct / 100));
         } else {
-            $fy_start_month = 4;
+            $fy_start_month = $this->getConfiguredPayrollFyStartMonth();
             $fy_month_index = $this->tax_epf_calculator->get_fy_month_index($month_numeric, $fy_start_month);
             $ytd_data = $this->payroll_model->getYTDIncome($staff_id, $year, $month_numeric, $fy_start_month, false, true);
 
@@ -2322,7 +2344,7 @@ class Payroll extends Admin_Controller
                 // Flat % on gross salary — skip new-regime slab calculation entirely
                 $monthly_tds = $this->roundPayrollAmount($gross_salary * ($flat_tds_pct / 100));
             } else {
-                $fy_start_month = 4;
+                $fy_start_month = $this->getConfiguredPayrollFyStartMonth();
                 $fy_month_index = $this->tax_epf_calculator->get_fy_month_index($month_num, $fy_start_month);
 
                 // Get prior months from the same FY (excluding current payroll month).
@@ -2870,7 +2892,7 @@ class Payroll extends Admin_Controller
             // Flat % on gross salary — skip new-regime slab calculation entirely
             $monthly_tds = $this->roundPayrollAmount($gross_salary * ($flat_tds_pct / 100));
         } else {
-            $fy_start_month = 4;
+            $fy_start_month = $this->getConfiguredPayrollFyStartMonth();
             $fy_month_index = $this->tax_epf_calculator->get_fy_month_index($month_num, $fy_start_month);
             $ytd_data = $this->payroll_model->getYTDIncome($staff_id, $year, $month_num, $fy_start_month, false, true);
 

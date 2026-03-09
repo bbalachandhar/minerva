@@ -204,6 +204,42 @@
                                                     <?php } ?>
                                                 </small>
                                             </div>
+                                            <label class="col-sm-2">Payroll FY Start Month</label>
+                                            <div class="col-sm-4">
+                                                <?php
+                                                $months = array(
+                                                    1 => 'January', 2 => 'February', 3 => 'March', 4 => 'April',
+                                                    5 => 'May', 6 => 'June', 7 => 'July', 8 => 'August',
+                                                    9 => 'September', 10 => 'October', 11 => 'November', 12 => 'December'
+                                                );
+                                                $selected_fy_start = isset($result->payroll_fy_start_month) ? (int) $result->payroll_fy_start_month : 4;
+                                                ?>
+                                                <select name="payroll_fy_start_month" id="payroll_fy_start_month" class="form-control">
+                                                    <?php foreach ($months as $month_num => $month_name) { ?>
+                                                        <option value="<?php echo $month_num; ?>" <?php echo ($selected_fy_start === $month_num) ? 'selected' : ''; ?>>
+                                                            <?php echo $month_name; ?>
+                                                        </option>
+                                                    <?php } ?>
+                                                </select>
+                                                <small class="text-muted">Payroll month from this month will be treated as FY month 1.</small>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-12">
+                                        <div class="form-group row">
+                                            <label class="col-sm-2">Payroll FY End Month (Auto)</label>
+                                            <div class="col-sm-4">
+                                                <?php $selected_fy_end = isset($result->payroll_fy_end_month) ? (int) $result->payroll_fy_end_month : 3; ?>
+                                                <select name="payroll_fy_end_month" id="payroll_fy_end_month" class="form-control" disabled>
+                                                    <?php foreach ($months as $month_num => $month_name) { ?>
+                                                        <option value="<?php echo $month_num; ?>" <?php echo ($selected_fy_end === $month_num) ? 'selected' : ''; ?>>
+                                                            <?php echo $month_name; ?>
+                                                        </option>
+                                                    <?php } ?>
+                                                </select>
+                                                <small class="text-muted" id="payrollFySuggestionText">Auto-calculated as one month before FY start (e.g. Apr start => Mar end).</small>
+                                            </div>
                                         </div>
                                     </div>
 
@@ -774,6 +810,42 @@ function get_student_input_value($array, $find_time)
 
 <script type="text/javascript">
     var base_url = '<?php echo base_url(); ?>';
+
+    function getPayrollMonthName(monthNum) {
+        var names = {
+            1: 'January', 2: 'February', 3: 'March', 4: 'April',
+            5: 'May', 6: 'June', 7: 'July', 8: 'August',
+            9: 'September', 10: 'October', 11: 'November', 12: 'December'
+        };
+        return names[monthNum] || 'Month';
+    }
+
+    function getSuggestedFyEndMonth(startMonth) {
+        return ((startMonth + 10) % 12) + 1;
+    }
+
+    function applyFyEndMonthSuggestion(forceSetEnd) {
+        var startMonth = parseInt($('#payroll_fy_start_month').val(), 10);
+        if (isNaN(startMonth) || startMonth < 1 || startMonth > 12) {
+            startMonth = 4;
+        }
+
+        var suggestedEndMonth = getSuggestedFyEndMonth(startMonth);
+        var $endMonth = $('#payroll_fy_end_month');
+        var currentEndMonth = parseInt($endMonth.val(), 10);
+
+        $endMonth.val(String(suggestedEndMonth));
+        currentEndMonth = suggestedEndMonth;
+
+        var suggestion = 'Auto-set end month for ' + getPayrollMonthName(startMonth) + ' start is ' + getPayrollMonthName(suggestedEndMonth) + '.';
+        $('#payrollFySuggestionText').text(suggestion);
+    }
+
+    $('#payroll_fy_start_month').on('change', function () {
+        applyFyEndMonthSuggestion(true);
+    });
+
+    applyFyEndMonthSuggestion(false);
  
     $(".edit_attendancetype").on('click', function (e) {
         var $this = $(this);

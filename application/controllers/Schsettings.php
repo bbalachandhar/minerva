@@ -732,6 +732,27 @@ class Schsettings extends Admin_Controller
         }
         $setting->base_url    = ($setting->base_url == "") ? base_url() : $setting->base_url;
         $setting->folder_path = FCPATH;
+
+        // Payroll FY start/end are optional columns; default to Apr-Mar when not present.
+        if (!isset($setting->payroll_fy_start_month)) {
+            $setting->payroll_fy_start_month = 4;
+        }
+        if (!isset($setting->payroll_fy_end_month)) {
+            $setting->payroll_fy_end_month = 3;
+        }
+        if ($this->db->field_exists('payroll_fy_start_month', 'sch_settings') && $this->db->field_exists('payroll_fy_end_month', 'sch_settings')) {
+            $fy_row = $this->db->select('payroll_fy_start_month, payroll_fy_end_month')->from('sch_settings')->limit(1)->get()->row();
+            if ($fy_row) {
+                $start_m = (int) $fy_row->payroll_fy_start_month;
+                $end_m = (int) $fy_row->payroll_fy_end_month;
+                if ($start_m >= 1 && $start_m <= 12) {
+                    $setting->payroll_fy_start_month = $start_m;
+                }
+                if ($end_m >= 1 && $end_m <= 12) {
+                    $setting->payroll_fy_end_month = $end_m;
+                }
+            }
+        }
         $data['result']       = $setting;
         $this->load->view('layout/header');
         $this->load->view('setting/studentguardianpanel', $data);
@@ -1058,6 +1079,14 @@ class Schsettings extends Admin_Controller
                 }
             }
 
+            $payroll_fy_start_month = (int) $this->input->post('payroll_fy_start_month');
+            if ($payroll_fy_start_month < 1 || $payroll_fy_start_month > 12) {
+                $payroll_fy_start_month = 4;
+            }
+
+            // Keep FY range consistent: end month is always start month - 1.
+            $payroll_fy_end_month = (($payroll_fy_start_month + 10) % 12) + 1;
+
             $data = array(
                 'id'               => $this->input->post('sch_id'),
                 'attendence_type'  => $this->input->post('attendence_type'),
@@ -1073,6 +1102,13 @@ class Schsettings extends Admin_Controller
                 'payroll_cutoff_day' => $cutoff_day,
                 'auto_adjust_lop_with_leaves' => $this->input->post('auto_adjust_lop_with_leaves') ? 1 : 0,
             );
+
+            if ($this->db->field_exists('payroll_fy_start_month', 'sch_settings')) {
+                $data['payroll_fy_start_month'] = $payroll_fy_start_month;
+            }
+            if ($this->db->field_exists('payroll_fy_end_month', 'sch_settings')) {
+                $data['payroll_fy_end_month'] = $payroll_fy_end_month;
+            }
             
             $this->setting_model->add($data);
                     $period_attendance=0;
