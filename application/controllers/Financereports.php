@@ -52,11 +52,28 @@ class Financereports extends Admin_Controller
         $this->load->model('student_model');
 
         $data['title'] = 'Incidental Fee Report';
+        $data['searchlist'] = $this->customlib->get_searchtype();
         $data['fee_types'] = $this->incidental_fee_type_model->get();
         $data['classes'] = $this->class_model->get();
-        $dates      = $this->customlib->get_betweendate('this_year');
-        $start_date = date('Y-m-d', strtotime($dates['from_date']));
-        $end_date   = date('Y-m-d', strtotime($dates['to_date']));
+        $data['current_session_id'] = $this->current_session;
+
+        if (isset($_POST['search_type']) && $_POST['search_type'] != '') {
+            $search_type = $this->input->post('search_type');
+            if ($search_type == 'period') {
+                $start_date = $this->input->post('date_from');
+                $end_date = $this->input->post('date_to');
+            } else {
+                $dates = $this->customlib->get_betweendate($search_type);
+                $start_date = date('Y-m-d', strtotime($dates['from_date']));
+                $end_date = date('Y-m-d', strtotime($dates['to_date']));
+            }
+            $data['search_type'] = $search_type;
+        } else {
+            $dates = $this->customlib->get_betweendate('this_year');
+            $start_date = date('Y-m-d', strtotime($dates['from_date']));
+            $end_date = date('Y-m-d', strtotime($dates['to_date']));
+            $data['search_type'] = 'this_year';
+        }
 
         $session_id  = $this->input->post('session_id');
         $fee_type_id = $this->input->post('fee_type_id');
@@ -676,18 +693,44 @@ $data['department_id_selected'] = $this->input->post('department_id');
             access_denied();
         }
 
+        $data['searchlist'] = $this->customlib->get_searchtype();
+        $data['group_by'] = $this->customlib->get_groupby();
+        $data['feetypeList'] = $this->feetype_model->get();
         $data['collect_by']  = $this->studentfeemaster_model->get_feesreceived_by();
-        $dates      = $this->customlib->get_betweendate('this_year');
-        $start_date = date('Y-m-d', strtotime($dates['from_date']));
-        $end_date   = date('Y-m-d', strtotime($dates['to_date']));
+
+        if (isset($_POST['search_type']) && $_POST['search_type'] != '') {
+            $search_type = $this->input->post('search_type');
+            if ($search_type == 'period') {
+                $start_date = $this->input->post('date_from');
+                $end_date = $this->input->post('date_to');
+            } else {
+                $dates = $this->customlib->get_betweendate($search_type);
+                $start_date = date('Y-m-d', strtotime($dates['from_date']));
+                $end_date = date('Y-m-d', strtotime($dates['to_date']));
+            }
+            $data['search_type'] = $search_type;
+        } else {
+            $dates = $this->customlib->get_betweendate('this_year');
+            $start_date = date('Y-m-d', strtotime($dates['from_date']));
+            $end_date = date('Y-m-d', strtotime($dates['to_date']));
+            $data['search_type'] = 'this_year';
+        }
 
         $this->form_validation->set_rules('search_type', $this->lang->line('search_duration'), 'trim|required|xss_clean');
 
         $data['classlist']        = $this->class_model->get();
         $data['selected_section'] = '';
+        $data['results'] = array();
+        $subtotal = 0;
+
+        $feetype_id = $this->input->post('feetype_id');
+        $received_by = $this->input->post('collect_by');
+        $group = $this->input->post('group');
+        $data['received_by'] = $received_by;
+        $data['group_byid'] = $group;
 
         if ($this->form_validation->run() == false) {
-            $data['results'] = array();
+            $collection = array();
         } else {
 
             $class_id   = $this->input->post('class_id');
@@ -696,6 +739,12 @@ $data['department_id_selected'] = $this->input->post('department_id');
             $data['selected_section'] = $section_id;
 
             $data['results'] = $this->studentfeemaster_model->getFeeCollectionReport($start_date, $end_date, $feetype_id, $received_by, $group, $class_id, $section_id);
+
+            if (!empty($data['results'])) {
+                foreach ($data['results'] as $row) {
+                    $subtotal += ((float) $row['amount'] + (float) $row['amount_fine']);
+                }
+            }
 
             if ($group != '') {
 
