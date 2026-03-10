@@ -1113,6 +1113,12 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                 </div><!--./col-md-3-->
                             </div>
                             <div class="row" style="margin-top: 20px;">
+                                <div class="col-md-12" style="margin-bottom: 10px;">
+                                    <div class="btn-group" id="att_view_toggle">
+                                        <button type="button" class="btn btn-sm btn-primary active" id="btn_year_view" onclick="switchAttView('year')"><i class="fa fa-calendar"></i> Year View</button>
+                                        <button type="button" class="btn btn-sm btn-default" id="btn_month_view" onclick="switchAttView('month')"><i class="fa fa-list"></i> Month View</button>
+                                    </div>
+                                </div>
                                 <div class="col-md-3 col-sm-3">
                                     <form id="" action="" method="">
                                         <div class="form-group">
@@ -1133,7 +1139,17 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                         </div>
                                     </form>
                                 </div>
-                                <div class="col-md-9 col-sm-9">
+                                <div class="col-md-3 col-sm-3" id="att_month_selector" style="display:none;">
+                                    <div class="form-group">
+                                        <label class="sess18">Month</label>
+                                        <select class="form-control" id="attendance_month" onchange="renderMonthView()">
+                                            <?php for ($mi = 1; $mi <= 12; $mi++) { ?>
+                                                <option value="<?php echo $mi; ?>" <?php echo ($mi == date('n')) ? 'selected' : ''; ?>><?php echo date('F', mktime(0,0,0,$mi,1)); ?></option>
+                                            <?php } ?>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 col-sm-6">
                                     <div class="halfday pull-right">
                                         <?php
                                         foreach ($attendencetypeslist as $key_type => $value_type) {
@@ -1150,6 +1166,26 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                     </div>
                                 </div>
                             </div>
+                            <?php
+                            // Embed attendance data as JS for client-side month view rendering
+                            $att_js_data = [];
+                            foreach ($resultlist as $d => $r) {
+                                if (!empty($r['key'])) {
+                                    $att_js_data[$d] = [
+                                        'key'      => $r['key'],
+                                        'in_time'  => isset($r['in_time'])  ? $r['in_time']  : '',
+                                        'out_time' => isset($r['out_time']) ? $r['out_time'] : '',
+                                    ];
+                                }
+                            }
+                            ?>
+                            <script>
+                                window.staffAttData = <?php echo json_encode($att_js_data); ?>;
+                                window.staffHolidayDates = <?php echo json_encode($holiday_dates_year); ?>;
+                                window.staffWeekendDates = <?php echo json_encode($weekend_day_dates_year); ?>;
+                                window.staffCompDates    = <?php echo json_encode($compensation_dates_year); ?>;
+                                window.staffId           = <?php echo (int)$staff['id']; ?>;
+                            </script>
                             <div style="position: relative;" class="row">
                                 <div class="modal_inner_loader displaynone"></div>
                                 <div id="ajaxattendance" class="table-responsive mt10">
@@ -1203,12 +1239,15 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                                                 $display_class = 'att-cell-absent';
                                                             }
                                                         }
+                                                        $tooltip_title = '';
+                                                        if (!empty($display_key) && !in_array($display_key, ['H', 'W']) && isset($resultlist[$att_dates])) {
+                                                            $in_t  = !empty($resultlist[$att_dates]['in_time'])  ? $resultlist[$att_dates]['in_time']  : '-';
+                                                            $out_t = !empty($resultlist[$att_dates]['out_time']) ? $resultlist[$att_dates]['out_time'] : '-';
+                                                            $tooltip_title = 'In: ' . $in_t . ' | Out: ' . $out_t;
+                                                        }
                                                     ?>
                                                         <td>
-                                                            <span data-toggle="popover" class="detail_popover" data-original-title="" title=""><a href="#" class="att-cell <?php echo $display_class; ?>"><?php
-                                                                                                                                                                                echo $display_key;
-                                                                                                                                                                                ?></a>
-                                                            </span>
+                                                            <span <?php if ($tooltip_title): ?>data-toggle="tooltip" data-placement="top" title="<?php echo htmlspecialchars($tooltip_title, ENT_QUOTES); ?>"<?php endif; ?>><a href="#" class="att-cell <?php echo $display_class; ?>"><?php echo $display_key; ?></a></span>
                                                         </td>
                                                     <?php
                                                     } ?>
@@ -1218,6 +1257,20 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                             }
                                             ?>
                                         </tbody>
+                                    </table>
+                                </div>
+                                <div id="monthattendance" style="display:none;" class="mt10">
+                                    <table class="table table-bordered table-hover table-condensed" id="monthattendancetable">
+                                        <thead>
+                                            <tr>
+                                                <th>Date</th>
+                                                <th>Day</th>
+                                                <th>Status</th>
+                                                <th><i class="fa fa-sign-in"></i> In Time</th>
+                                                <th><i class="fa fa-sign-out"></i> Out Time</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="monthattendancebody"></tbody>
                                     </table>
                                 </div>
                             </div>
@@ -1832,16 +1885,8 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
 
 <script>
     $(document).ready(function() {
-        $('.detail_popover').popover({
-            placement: 'right',
-            title: '',
-            trigger: 'hover',
-            container: 'body',
-            html: true,
-            content: function() {
-                return $(this).closest('td').find('.fee_detail_popover').html();
-            }
-        });
+        // Tooltips for in/out punch times on year view cells
+        $('[data-toggle="tooltip"]').tooltip({container: 'body'});
     });
 
     function getRecord(id) {
@@ -1878,6 +1923,60 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
         });
     };
 
+    /* ---- Attendance view toggle ---- */
+    function switchAttView(view) {
+        if (view === 'year') {
+            $('#btn_year_view').addClass('active btn-primary').removeClass('btn-default');
+            $('#btn_month_view').removeClass('active btn-primary').addClass('btn-default');
+            $('#att_month_selector').hide();
+            $('#ajaxattendance').show();
+            $('#monthattendance').hide();
+        } else {
+            $('#btn_month_view').addClass('active btn-primary').removeClass('btn-default');
+            $('#btn_year_view').removeClass('active btn-primary').addClass('btn-default');
+            $('#att_month_selector').show();
+            $('#ajaxattendance').hide();
+            $('#monthattendance').show();
+            renderMonthView();
+        }
+    }
+
+    function renderMonthView() {
+        var year  = parseInt($('#attendance_year').val()) || new Date().getFullYear();
+        var month = parseInt($('#attendance_month').val()) || (new Date().getMonth() + 1);
+        var days  = new Date(year, month, 0).getDate();
+        var dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+        var rows = '';
+        for (var d = 1; d <= days; d++) {
+            var dateStr = year + '-' + String(month).padStart(2,'0') + '-' + String(d).padStart(2,'0');
+            var dayName = dayNames[new Date(dateStr).getDay()];
+            var statusLabel = '', statusClass = '', inTime = '-', outTime = '-';
+            if (window.staffHolidayDates && window.staffHolidayDates.indexOf(dateStr) !== -1) {
+                statusLabel = 'Holiday'; statusClass = 'label label-info';
+            } else if (window.staffWeekendDates && window.staffWeekendDates.indexOf(dateStr) !== -1) {
+                statusLabel = 'Weekend'; statusClass = 'label label-default';
+            } else if (window.staffAttData && window.staffAttData[dateStr]) {
+                var rec = window.staffAttData[dateStr];
+                statusLabel = rec.key;
+                if (rec.key === 'P')  statusClass = 'label label-success';
+                else if (rec.key === 'HD') statusClass = 'label label-warning';
+                else if (rec.key === 'A')  statusClass = 'label label-danger';
+                else statusClass = 'label label-default';
+                if (rec.in_time)  inTime  = rec.in_time;
+                if (rec.out_time) outTime = rec.out_time;
+            }
+            var isToday = (dateStr === new Date().toISOString().slice(0,10));
+            rows += '<tr' + (isToday ? ' class="info"' : '') + '>'
+                  + '<td>' + dateStr + '</td>'
+                  + '<td>' + dayName + '</td>'
+                  + '<td>' + (statusLabel ? '<span class="' + statusClass + '">' + statusLabel + '</span>' : '') + '</td>'
+                  + '<td>' + inTime + '</td>'
+                  + '<td>' + outTime + '</td>'
+                  + '</tr>';
+        }
+        $('#monthattendancebody').html(rows);
+    }
+
     function ajax_attendance(id, year) {
 
         $.ajax({
@@ -1895,17 +1994,24 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
             },
             success: function(result) {
                 $("#ajaxattendance").html(result.page);
+                // Update JS data for month view
+                if (result.att_data)    window.staffAttData      = result.att_data;
+                if (result.holidays)    window.staffHolidayDates = result.holidays;
+                if (result.weekends)    window.staffWeekendDates = result.weekends;
+                if (result.comp_dates)  window.staffCompDates    = result.comp_dates;
+                // Re-init tooltips on newly loaded content
+                $('#ajaxattendance [data-toggle="tooltip"]').tooltip({container:'body'});
+                // Re-render month view if active
+                if ($('#monthattendance').is(':visible')) renderMonthView();
                 $('.modal_inner_loader').fadeOut("slow");
             },
-            error: function(xhr) { // if error occured
+            error: function(xhr) {
                 alert("Error occured.please try again");
                 $('.modal_inner_loader').fadeOut("slow");
             },
             complete: function() {
                 $('.modal_inner_loader').fadeOut("slow");
             }
-
-
         });
     }
 

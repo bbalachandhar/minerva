@@ -418,7 +418,6 @@ $lang['clickatell_sms_gateway'] = "Clickatell Sms Gateway";
 $lang['clickatell_username'] = "Clickatell Username";
 $lang['whatsapp_gateway'] = "WhatsApp Gateway";
 $lang['whatsapp_setting'] = "WhatsApp Setting";
-$lang['ask_eva_whatsapp'] = "AskEva WhatsApp";
 $lang['whatsapp_token'] = "WhatsApp API Token";
 $lang['whatsapp_sender'] = "WhatsApp Sender Number";
 $lang['whatsapp'] = "WhatsApp";

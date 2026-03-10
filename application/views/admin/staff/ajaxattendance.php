@@ -47,11 +47,15 @@ foreach ($monthlist as $key => $value) {
                     $display_class = 'att-cell-absent';
                 }
             }
+            $tooltip_title = '';
+            if (!empty($display_key) && !in_array($display_key, ['H', 'W']) && isset($resultlist[$att_dates])) {
+                $in_t  = !empty($resultlist[$att_dates]['in_time'])  ? $resultlist[$att_dates]['in_time']  : '-';
+                $out_t = !empty($resultlist[$att_dates]['out_time']) ? $resultlist[$att_dates]['out_time'] : '-';
+                $tooltip_title = 'In: ' . $in_t . ' | Out: ' . $out_t;
+            }
             ?>
-                        <td><span data-toggle="popover" class="detail_popover" data-original-title="" title=""><a href="#" class="att-cell <?php echo $display_class; ?>"><?php
-echo $display_key;
-            ?></a></span>
-                            <div class="fee_detail_popover" style="display: none"><?php echo $resultlist[$att_dates]["remark"]; ?></div>
+                        <td>
+                            <span <?php if ($tooltip_title): ?>data-toggle="tooltip" data-placement="top" title="<?php echo htmlspecialchars($tooltip_title, ENT_QUOTES); ?>"<?php endif; ?>><a href="#" class="att-cell <?php echo $display_class; ?>"><?php echo $display_key; ?></a></span>
                         </td>
                     <?php }?>
                 </tr>

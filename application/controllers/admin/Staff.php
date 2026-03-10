@@ -902,6 +902,19 @@ class Staff extends Admin_Controller
             $data["date_array"]       = $date_array;
 
             $page = $this->load->view("admin/staff/ajaxattendance", $data, true);
+
+            // Build compact att_data for client-side month view
+            $att_data_js = [];
+            foreach ($res as $d => $r) {
+                if (!empty($r['key'])) {
+                    $att_data_js[$d] = [
+                        'key'      => $r['key'],
+                        'in_time'  => isset($r['in_time'])  ? $r['in_time']  : '',
+                        'out_time' => isset($r['out_time']) ? $r['out_time'] : '',
+                    ];
+                }
+            }
+
             return $this->output
                 ->set_content_type('application/json')
                 ->set_status_header(200)
@@ -910,6 +923,10 @@ class Staff extends Admin_Controller
                     'countAttendance'     => $countAttendance[$year],
                     'page'                => $page,
                     'compensation_dates'  => $compensation_dates_year,
+                    'att_data'            => $att_data_js,
+                    'holidays'            => $holiday_dates_year,
+                    'weekends'            => $weekend_day_dates_year,
+                    'comp_dates'          => $compensation_dates_year,
                 )));
         }
     }

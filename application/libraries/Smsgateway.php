@@ -40,25 +40,28 @@ class Smsgateway
     {
         $sms_detail = $this->_CI->smsconfig_model->getActiveSMS();
 
-        // if active provider is whatsapp, send via Askeva and return
+        // If active provider is WhatsApp, send via configured endpoint and return.
         if (!empty($sms_detail) && $sms_detail->type == 'whatsapp') {
             $token = $sms_detail->api_id;
-            $url   = "https://backend.askeva.io/v1/message/send-message?token=" . urlencode($token);
-            // Askeva does not allow underscores in template names, so strip them
-            $askeva_name = $template_id ? str_replace('_', '', $template_id) : '';
+            $base_url = trim((string) $sms_detail->url);
+            if ($base_url === '') {
+                return true;
+            }
+            $separator = (strpos($base_url, '?') !== false) ? '&' : '?';
+            $url = $base_url . $separator . 'token=' . urlencode($token);
+            $template_name = $template_id ? (string) $template_id : '';
             $payload = array(
                 'to' => $send_to,
                 'type' => 'template',
                 'template' => array(
                     'language' => array('policy'=>'deterministic','code'=>'en'),
-                    'name' => $askeva_name,
+                    'name' => $template_name,
                 ),
             );
             // build parameter list from detail array (preserve order)
             if (!empty($detail) && is_array($detail)) {
                 $params = array();
                 foreach ($detail as $k => $v) {
-                    // remove underscores from key just in case, though Askeva ignores it
                     $params[] = array('type' => 'text', 'text' => $v);
                 }
                 if (!empty($params)) {

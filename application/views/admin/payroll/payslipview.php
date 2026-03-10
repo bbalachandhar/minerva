@@ -271,9 +271,9 @@ $j++;
 ?>
                         <tr>
                             <th><?php echo $this->lang->line('total_earning'); ?></th>
-                            <th class="pttright reborder"><?php echo amountFormat($result["total_allowance"]); ?></th>
+                            <th class="pttright reborder"><?php $total_earning_sum = 0; foreach ($positive_allowance as $pa) { $total_earning_sum += (float)$pa['amount']; } echo amountFormat($total_earning_sum); ?></th>
                             <th class="pttleft"><?php echo $this->lang->line('total_deduction'); ?></th>
-                            <th class="text-right"><?php echo amountFormat($result["total_deduction"]); ?></th>
+                            <th class="text-right"><?php $total_deduction_sum = 0; foreach ($negative_allowance as $na) { $total_deduction_sum += (float)$na['amount']; } echo amountFormat($total_deduction_sum); ?></th>
                         </tr>
                     </table>
                     
@@ -312,41 +312,19 @@ echo amountFormat($gross_salary);?></td>
                             <th width="20%">Employee Contribution - EPF 12% (<?php echo $currency_symbol; ?>)</th>
                             <td class="text-right"><?php echo amountFormat($result["employee_epf"]); ?></td>
                         </tr>
-                        <tr>
-                            <th width="20%">Employer Contribution - PF 3.67% (<?php echo $currency_symbol; ?>)</th>
-                            <td class="text-right"><?php echo amountFormat($result["employer_pf"]); ?></td>
-                        </tr>
-                        <tr>
-                            <th width="20%">Employer Contribution - EPS 8.33% (<?php echo $currency_symbol; ?>)</th>
-                            <td class="text-right"><?php echo amountFormat($result["employer_eps"]); ?></td>
-                        </tr>
-                        <tr>
-                            <th width="20%">Employer Contribution - EDLI (Insurance) 0.5% (<?php echo $currency_symbol; ?>)</th>
-                            <td class="text-right"><?php echo amountFormat($result["employer_edli"] ?? 0); ?></td>
-                        </tr>
-                        <tr>
-                            <th width="20%">Employer Contribution - Admin Charges 0.5% (<?php echo $currency_symbol; ?>)</th>
-                            <td class="text-right"><?php echo amountFormat($result["employer_admin"] ?? 0); ?></td>
-                        </tr>
                         <?php } ?>
                         
                         <!-- TDS Deduction -->
-                        <?php if (!empty($result["tds"])) {?>
+                        <?php if (!empty($result["tax"]) && (float)$result["tax"] > 0) {?>
                             <tr>
                                 <th width="20%">TDS - Tax Deducted at Source (<?php echo $currency_symbol; ?>)</th>
-                                <td class="text-right"><?php echo amountFormat($result["tds"]); ?></td>
-                            </tr>
-                        <?php } elseif (!empty($result["tax"])) {?>
-                            <tr>
-                                <th width="20%"><?php echo $this->lang->line('tax'); ?> (<?php echo $currency_symbol; ?>)</th>
                                 <td class="text-right"><?php echo amountFormat($result["tax"]); ?></td>
                             </tr>
-                        <?php }
-?>
+                        <?php } ?>
                         
-                        <tr>
+                        <tr style="font-weight: bold;">
                             <th width="20%"><?php echo $this->lang->line('net_salary'); ?> (<?php echo $currency_symbol; ?>)</th>
-                            <td class="text-right"><?php echo amountFormat($result["net_salary"]); ?>
+                            <td class="text-right" style="font-size: 1.1em;"><?php echo amountFormat($result["net_salary"]); ?>
                         </td>
                         </tr>
                         <tr>
