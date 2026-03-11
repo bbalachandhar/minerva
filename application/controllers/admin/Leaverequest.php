@@ -701,6 +701,11 @@ class Leaverequest extends Admin_Controller
             }
             $this->leaverequest_model->changeLeaveStatus($data, $leave_request_id);
 
+            // Log audit credit for OD/CPL-type leaves at the moment of final approval
+            if (isset($data['status']) && $data['status'] === 'approved') {
+                $this->leaverequest_model->logLeaveApprovalCredit($leave_request_id, $current_user_id);
+            }
+
             // Send notification to applicant on final decision
             if (($is_approver || $is_admin_override) && ($status == 'approved' || $status == 'disapproved')) {
                 $applicant_details = $this->staff_model->get($leave_request['staff_id']);
