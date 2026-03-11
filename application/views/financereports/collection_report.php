@@ -166,7 +166,7 @@ if (empty($results)) {
    
 
                             <a class="btn btn-default btn-xs pull-right" id="print" onclick="printDiv()" ><i class="fa fa-print"></i></a>
-                            <a class="btn btn-default btn-xs pull-right" id="btnExport" onclick="fnExcelReport();"> <i class="fa fa-file-excel-o"></i> </a>
+                            <a class="btn btn-default btn-xs pull-right" id="btnExport" onclick="fnExcelReport('Fee Collection Report');"> <i class="fa fa-file-excel-o"></i> </a>
 
                             <table class="table table-striped table-bordered table-hover " id="headerTable">
                                 <thead class="header">
@@ -325,6 +325,8 @@ $count++;
 <iframe id="txtArea1" style="display:none"></iframe>
 
 <script>
+
+window.excelExportFileName = 'Fee Collection Report';
 
 $(document).ready(function(){
     var class_id = $('#class_id').val();

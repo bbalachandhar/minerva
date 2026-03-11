@@ -319,7 +319,8 @@ $report_heading = !empty($report_heading) ? $report_heading : $this->lang->line(
                                                                                                         $is_weekend_or_holiday = true;
                                                                                                     } elseif ($normalized_key === 'P') {
                                                                                                         $cell_class = 'att-present';
-                                                                                                        $tooltip_text = 'Present';
+                                                                                                        $variant_labels = ['FHL' => 'First Half Late', 'FHP' => 'First Half Permission', 'SHL' => 'Second Half Late', 'SHP' => 'Second Half Permission'];
+                                                                                                        $tooltip_text = $variant_labels[$attendance_key] ?? 'Present';
                                                                                                     } elseif ($attendance_key === 'HD') {
                                                                                                         $cell_class = 'att-half-day';
                                                                                                         $out_time = $attendance_row['out_time'] ?? null;
@@ -336,7 +337,13 @@ $report_heading = !empty($report_heading) ? $report_heading : $this->lang->line(
                                                                                                         $tooltip_text = 'N/A';
                                                                                                     }
                                                                                                     if (!$is_weekend_or_holiday && $attendance_key && $normalized_key && !in_array($attendance_key, ['HD', 'HO'], true)) {
-                                                                                                        $display_key = $normalized_key;
+                                                                                                        // Show the specific key (FHL, SHL, FHP, SHP) instead of collapsing to P.
+                                                                                                        // Only normalize FHA/SHA to A for simpler display.
+                                                                                                        if (in_array($attendance_key, ['FHA', 'SHA'], true)) {
+                                                                                                            $display_key = 'A';
+                                                                                                        } else {
+                                                                                                            $display_key = $attendance_key;
+                                                                                                        }
                                                                                                     }
                                                                                                 ?>
                                                                                                     <td class="tdcls text text-center <?php echo $cell_class; ?>">

@@ -340,6 +340,35 @@ class Staff extends Admin_Controller
         $newdate       = date("Y-m-d", strtotime($date . "+1 month"));
 
         $data["countAttendance"]  = $attendence_count;
+        // Derive accurate attendance keys from punch times (mirrors biometric processing logic).
+        // Only applies to biometric records with valid in_time. Admin role (ID 1) used when no role mapped.
+        $this->load->model('staffAttendaceSetting_model');
+        $session_rows_profile = $this->staffattendancemodel->getAttendanceRowsInRange($id, $year.'-01-01', $year.'-12-31');
+        $punch_map_profile = [];
+        foreach ($session_rows_profile as $sr) {
+            $punch_map_profile[$sr['date']] = [
+                'in_time'              => $sr['in_time'],
+                'out_time'             => $sr['out_time'],
+                'biometric_attendence' => $sr['biometric_attendence'],
+            ];
+        }
+        $att_role_settings_raw = $this->staffAttendaceSetting_model->getRoleAttendanceSetting();
+        $att_role_settings_map = [];
+        foreach ($att_role_settings_raw as $rs) {
+            $att_role_settings_map[$rs->role_id][$rs->staff_attendence_type_id] = ['from' => $rs->entry_time_from, 'to' => $rs->entry_time_to];
+        }
+        $staff_role_id_profile = !empty($staff_info['role_id']) ? (int)$staff_info['role_id'] : 1;
+        foreach ($res as $d => &$r) {
+            if (empty($r['key'])) continue;
+            $punch = isset($punch_map_profile[$d]) ? $punch_map_profile[$d] : null;
+            if (!$punch || empty($punch['in_time']) || empty($punch['biometric_attendence'])) continue;
+            $derived = $this->_derive_att_key_from_punches(
+                $punch['in_time'], $punch['out_time'],
+                $staff_role_id_profile, $att_role_settings_map, $this->sch_setting_detail
+            );
+            if ($derived !== null) { $r['key'] = $derived; }
+        }
+        unset($r);
         $data["resultlist"]       = $res;
         $data["attendence_array"] = range(01, 31);
         $data["date_array"]       = $date_array;
@@ -897,6 +926,36 @@ class Staff extends Admin_Controller
             $countAttendance         = $this->countAttendance($year, $id);
             $data["countAttendance"] = $countAttendance;         
             $data["id"]               = $id;
+            // Derive accurate attendance keys from punch times (mirrors biometric processing logic).
+            // Only applies to biometric records with valid in_time. Admin role (ID 1) used when no role mapped.
+            $session_rows_ajax = $this->staffattendancemodel->getAttendanceRowsInRange($id, $year.'-01-01', $year.'-12-31');
+            $punch_map_ajax = [];
+            foreach ($session_rows_ajax as $sr) {
+                $punch_map_ajax[$sr['date']] = [
+                    'in_time'              => $sr['in_time'],
+                    'out_time'             => $sr['out_time'],
+                    'biometric_attendence' => $sr['biometric_attendence'],
+                ];
+            }
+            $this->load->model('staffAttendaceSetting_model');
+            $att_role_settings_raw_ajax = $this->staffAttendaceSetting_model->getRoleAttendanceSetting();
+            $att_role_settings_map_ajax = [];
+            foreach ($att_role_settings_raw_ajax as $rs) {
+                $att_role_settings_map_ajax[$rs->role_id][$rs->staff_attendence_type_id] = ['from' => $rs->entry_time_from, 'to' => $rs->entry_time_to];
+            }
+            $staff_info_ajax = $this->staff_model->getProfile($id);
+            $staff_role_id_ajax = !empty($staff_info_ajax['role_id']) ? (int)$staff_info_ajax['role_id'] : 1;
+            foreach ($res as $d => &$r) {
+                if (empty($r['key'])) continue;
+                $punch = isset($punch_map_ajax[$d]) ? $punch_map_ajax[$d] : null;
+                if (!$punch || empty($punch['in_time']) || empty($punch['biometric_attendence'])) continue;
+                $derived = $this->_derive_att_key_from_punches(
+                    $punch['in_time'], $punch['out_time'],
+                    $staff_role_id_ajax, $att_role_settings_map_ajax, $settings
+                );
+                if ($derived !== null) { $r['key'] = $derived; }
+            }
+            unset($r);
             $data["resultlist"]       = $res;
             $data["attendence_array"] = $attendence_array;
             $data["date_array"]       = $date_array;
@@ -2772,6 +2831,136 @@ class Staff extends Admin_Controller
             return FALSE;
         } else {
             return TRUE;
+        }
+    }
+
+    /**
+     * Derive the display attendance key from raw punch times.
+     * Mirrors _process_staff_attendance_from_punches logic — read-only, never writes to DB.
+     * Falls back to Admin role (ID 1) when $role_id is empty/null.
+     *
+     * Returns: 'P', 'FHL', 'FHP', 'SHL', 'SHP', 'HD', 'A', or null (no punch data).
+     */
+    private function _derive_att_key_from_punches($in_time, $out_time, $role_id, $role_settings, $settings)
+    {
+        if (empty($in_time)) return null;
+        if (empty($role_id)) $role_id = 1; // Default to Admin role
+
+        $morning_session_status  = 8; // FHA default
+        $afternoon_session_status = 9; // SHA default
+        $second_half_start = false;
+
+        // --- Morning: find which schedule window in_time falls into ---
+        $morning_type_id = null;
+        if (!empty($role_settings[$role_id])) {
+            foreach ($role_settings[$role_id] as $type_id => $window) {
+                if (!empty($window['from']) && !empty($window['to'])
+                    && strtotime($in_time) >= strtotime($window['from'])
+                    && strtotime($in_time) <= strtotime($window['to'])) {
+                    $morning_type_id = (int)$type_id;
+                    break;
+                }
+            }
+        }
+        if ($morning_type_id !== null) {
+            if ($morning_type_id === 4) {        // HD window = direct second-half arrival
+                $morning_session_status  = 8;    // FHA
+                $afternoon_session_status = 1;   // P
+                $second_half_start = true;
+            } elseif ($morning_type_id === 6) {  // SHL window = second-half late arrival
+                $morning_session_status  = 8;    // FHA
+                $afternoon_session_status = 6;   // SHL
+                $second_half_start = true;
+            } else {
+                $morning_session_status = $morning_type_id;
+            }
+        } else {
+            // Outside all windows: check early-arrival (before present window start)
+            $present_window = isset($role_settings[$role_id][1]) ? $role_settings[$role_id][1] : null;
+            if ($present_window && !empty($present_window['from'])
+                && strtotime($in_time) < strtotime($present_window['from'])) {
+                $morning_session_status = 1; // Early → Present
+            } else {
+                // Past SHL window end → both halves absent
+                $shl_window = isset($role_settings[$role_id][6]) ? $role_settings[$role_id][6] : null;
+                if ($shl_window && !empty($shl_window['to'])
+                    && strtotime($in_time) > strtotime($shl_window['to'])) {
+                    $morning_session_status  = 8;
+                    $afternoon_session_status = 9;
+                    $second_half_start = true;
+                } else {
+                    $morning_session_status = 8;
+                }
+            }
+        }
+
+        // --- Afternoon: classify departure time using cutoff boundaries only.
+        // Schedule windows (P, FHL, FHP, HD, SHL) are ARRIVAL windows — never use them
+        // to classify out_time, otherwise e.g. a 13:22 departure wrongly matches the
+        // SHL arrival window (13:21-13:30) and produces an incorrect SHL result.
+        if (!empty($out_time) && !$second_half_start) {
+            $shp_window = isset($role_settings[$role_id][7]) ? $role_settings[$role_id][7] : null;
+
+            // Step 1: SHP departure window (e.g. 15:15-16:15)
+            $in_shp = $shp_window && !empty($shp_window['from']) && !empty($shp_window['to'])
+                && strtotime($out_time) >= strtotime($shp_window['from'])
+                && strtotime($out_time) <= strtotime($shp_window['to']);
+            if ($in_shp) {
+                $afternoon_session_status = 7; // SHP
+            } else {
+                // Step 2: second-half floor = earliest start of HD(4) / SHL(6) arrival windows.
+                // Departing before this means the person never worked the afternoon.
+                $second_half_floor_ts = null;
+                foreach ([4, 6] as $_sh_type) {
+                    if (!empty($role_settings[$role_id][$_sh_type]['from'])) {
+                        $_ts = strtotime($role_settings[$role_id][$_sh_type]['from']);
+                        if ($_ts !== false && ($second_half_floor_ts === null || $_ts < $second_half_floor_ts)) {
+                            $second_half_floor_ts = $_ts;
+                        }
+                    }
+                }
+                // Fallback to settings field only if no HD/SHL windows exist
+                if ($second_half_floor_ts === null && !empty($settings->morning_session_end_time)) {
+                    $second_half_floor_ts = strtotime($settings->morning_session_end_time);
+                }
+
+                if ($second_half_floor_ts !== null && strtotime($out_time) < $second_half_floor_ts) {
+                    $afternoon_session_status = 9; // SHA – departed before second half began
+                } else {
+                    // Step 3: full-day boundary = SHP window end, then evening_session_end_time.
+                    // Departing at or after this = full afternoon present.
+                    $present_cutoff = null;
+                    if ($shp_window && !empty($shp_window['to'])) {
+                        $present_cutoff = $shp_window['to'];
+                    } elseif (!empty($settings->evening_session_end_time)) {
+                        $present_cutoff = $settings->evening_session_end_time;
+                    }
+                    if ($present_cutoff && strtotime($out_time) >= strtotime($present_cutoff)) {
+                        $afternoon_session_status = 1; // P – full day
+                    } else {
+                        $afternoon_session_status = 9; // SHA – left early in afternoon
+                    }
+                }
+            }
+        }
+        // No out_time → afternoon_session_status stays SHA (9)
+
+        // --- Determine display key ---
+        $morning_session_status  = (int)$morning_session_status;
+        $afternoon_session_status = (int)$afternoon_session_status;
+        $first_half_present  = in_array($morning_session_status,  [1, 2, 5], true); // P, FHL, FHP
+        $second_half_present = in_array($afternoon_session_status, [1, 6, 7], true); // P, SHL, SHP
+
+        if ($first_half_present && $second_half_present) {
+            if ($morning_session_status === 2) return 'FHL';
+            if ($morning_session_status === 5) return 'FHP';
+            if ($afternoon_session_status === 6) return 'SHL';
+            if ($afternoon_session_status === 7) return 'SHP';
+            return 'P';
+        } elseif ($first_half_present || $second_half_present) {
+            return 'HD';
+        } else {
+            return 'A';
         }
     }
 }

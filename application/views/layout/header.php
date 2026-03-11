@@ -64,7 +64,7 @@ $this->load->view('layout/theme');
         <script src="<?php echo base_url(); ?>backend/js/school-admin-custom.js?v=<?php echo time(); ?>"></script>
         <script src="<?php echo base_url(); ?>backend/toast-alert/toastr.js"></script>
         <script src="<?php echo base_url(); ?>backend/js/sstoast.js"></script>
-        <script src="<?php echo base_url(); ?>backend/js/export_lib.js"></script>
+        <script src="<?php echo base_url(); ?>backend/js/export_lib.js?v=2"></script>
         
         <!-- fullCalendar -->
         <link rel="stylesheet" href="<?php echo base_url() ?>backend/fullcalendar/dist/fullcalendar.min.css">

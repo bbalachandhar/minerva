@@ -1946,30 +1946,82 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
         var month = parseInt($('#attendance_month').val()) || (new Date().getMonth() + 1);
         var days  = new Date(year, month, 0).getDate();
         var dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+        // Debug: log data availability
+        console.log('[MonthView] year='+year+' month='+month+' days='+days);
+        console.log('[MonthView] staffAttData=', window.staffAttData);
+        console.log('[MonthView] holidayDates=', window.staffHolidayDates);
+        console.log('[MonthView] weekendDates=', window.staffWeekendDates);
+
+        // Map key codes to full descriptions
+        var statusMap = {
+            'P'   : ['Present',  'label-success'],
+            'A'   : ['Absent',   'label-danger'],
+            'HD'  : ['Half Day', 'label-warning'],
+            'L'   : ['Leave',    'label-default'],
+            'H'   : ['Holiday',  'label-info'],
+            'W'   : ['Weekend',  'label-default'],
+        };
+
+        // Present-with-qualifier keys: rendered as P (description)
+        var presentVariants = {
+            'FHL' : 'First Half Late',
+            'SHL' : 'Second Half Late',
+            'FHP' : 'First Half Permission',
+            'SHP' : 'Second Half Permission',
+            'SHA' : 'Second Half Absent',
+            'FHA' : 'First Half Absent',
+        };
+
         var rows = '';
         for (var d = 1; d <= days; d++) {
             var dateStr = year + '-' + String(month).padStart(2,'0') + '-' + String(d).padStart(2,'0');
             var dayName = dayNames[new Date(dateStr).getDay()];
-            var statusLabel = '', statusClass = '', inTime = '-', outTime = '-';
+            var keyCode = '', labelClass = 'label-default', fullLabel = '', qualifier = '', inTime = '-', outTime = '-';
+
             if (window.staffHolidayDates && window.staffHolidayDates.indexOf(dateStr) !== -1) {
-                statusLabel = 'Holiday'; statusClass = 'label label-info';
+                keyCode = 'H'; fullLabel = 'Holiday'; labelClass = 'label-info';
             } else if (window.staffWeekendDates && window.staffWeekendDates.indexOf(dateStr) !== -1) {
-                statusLabel = 'Weekend'; statusClass = 'label label-default';
+                keyCode = 'W'; fullLabel = 'Weekend'; labelClass = 'label-default';
             } else if (window.staffAttData && window.staffAttData[dateStr]) {
                 var rec = window.staffAttData[dateStr];
-                statusLabel = rec.key;
-                if (rec.key === 'P')  statusClass = 'label label-success';
-                else if (rec.key === 'HD') statusClass = 'label label-warning';
-                else if (rec.key === 'A')  statusClass = 'label label-danger';
-                else statusClass = 'label label-default';
+                keyCode = rec.key;
+                if (presentVariants[keyCode]) {
+                    // Render as P (qualifier)
+                    fullLabel  = 'Present';
+                    labelClass = 'label-success';
+                    qualifier  = presentVariants[keyCode];
+                } else if (statusMap[keyCode]) {
+                    fullLabel  = statusMap[keyCode][0];
+                    labelClass = statusMap[keyCode][1];
+                } else {
+                    fullLabel  = keyCode;
+                    labelClass = 'label-default';
+                }
                 if (rec.in_time)  inTime  = rec.in_time;
                 if (rec.out_time) outTime = rec.out_time;
             }
+
+            var statusCell = '';
+            if (keyCode) {
+                // For present-variants: show "P – First Half Late"
+                // For others: show "A – Absent", "HD – Half Day", etc.
+                var badgeText  = qualifier ? 'P' : keyCode;
+                var detailText = qualifier ? qualifier : fullLabel;
+                statusCell = '<span class="label ' + labelClass + '" style="font-size:11px;letter-spacing:0.5px;padding:3px 6px;">'
+                           + badgeText + '</span>';
+                if (detailText && detailText !== badgeText) {
+                    statusCell += '<span style="font-size:12px;color:#444;"> &ndash; ' + detailText + '</span>';
+                }
+            } else {
+                statusCell = '<span style="color:#bbb;font-size:11px;">–</span>';
+            }
+
             var isToday = (dateStr === new Date().toISOString().slice(0,10));
             rows += '<tr' + (isToday ? ' class="info"' : '') + '>'
                   + '<td>' + dateStr + '</td>'
                   + '<td>' + dayName + '</td>'
-                  + '<td>' + (statusLabel ? '<span class="' + statusClass + '">' + statusLabel + '</span>' : '') + '</td>'
+                  + '<td style="white-space:nowrap;">' + statusCell + '</td>'
                   + '<td>' + inTime + '</td>'
                   + '<td>' + outTime + '</td>'
                   + '</tr>';

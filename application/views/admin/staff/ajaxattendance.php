@@ -15,6 +15,7 @@
         <?php
 if (!empty($resultlist)) {
     $j = 0;
+    $present_variant_keys = ['FHL', 'SHL', 'FHP', 'SHP', 'FHA', 'SHA'];
     for ($i = 1; $i <= 31; $i++) {
         ?>
                 <tr>
@@ -39,7 +40,7 @@ foreach ($monthlist as $key => $value) {
             } elseif (array_key_exists($att_dates, $resultlist) && !empty($resultlist[$att_dates]["key"]) && !in_array($att_dates, $holiday_dates_year, true)) {
                 // Only show database record if it's NOT a holiday
                 $display_key = $resultlist[$att_dates]["key"];
-                if ($display_key === 'P') {
+                if ($display_key === 'P' || in_array($display_key, $present_variant_keys)) {
                     $display_class = 'att-cell-present';
                 } elseif ($display_key === 'HD') {
                     $display_class = 'att-cell-halfday';

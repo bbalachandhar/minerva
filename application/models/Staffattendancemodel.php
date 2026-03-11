@@ -243,7 +243,7 @@ class Staffattendancemodel extends MY_Model {
 
     public function getAttendanceRowsInRange($staff_id, $start_date, $end_date)
     {
-        $this->db->select('date,in_time,out_time,staff_attendance_type_id,session_attendance_data');
+        $this->db->select('date,in_time,out_time,staff_attendance_type_id,session_attendance_data,biometric_attendence');
         $this->db->from('staff_attendance');
         $this->db->where('staff_id', $staff_id);
         $this->db->where('date >=', $start_date);
