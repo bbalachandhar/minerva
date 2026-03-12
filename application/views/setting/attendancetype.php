@@ -260,6 +260,23 @@
                                             </div>
                                         </div>
                                     </div>
+                                    <div class="col-md-12">
+                                        <div class="form-group row">
+                                            <label class="col-sm-2">Auto Adjust LOP with Pre-allotted Leaves</label>
+                                            <div class="col-sm-10">
+                                                <div class="material-switch">
+                                                    <input id="auto_adjust_lop_with_preallotted_leaves" name="auto_adjust_lop_with_preallotted_leaves" type="checkbox" class="chk" value="1" <?php echo (isset($result->auto_adjust_lop_with_preallotted_leaves) && $result->auto_adjust_lop_with_preallotted_leaves == 1) ? 'checked="checked"' : ''; ?>>
+                                                    <label for="auto_adjust_lop_with_preallotted_leaves" class="label-success"></label>
+                                                </div>
+                                                <div style="margin-top: 5px;">
+                                                    <small class="text-muted">
+                                                        <strong>When Enabled (ON):</strong> Payroll automatically deducts absent days from pre-allotted leave balances (CL, ML, etc.) without requiring leave applications.<br>
+                                                        <strong>When Disabled (OFF, Recommended):</strong> Staff must apply for leave and get approval; balance is deducted at approval time. This follows industry-standard practice.
+                                                    </small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                
                                 </div><!--./row--> 
                             </div><!-- /.box-body -->
@@ -863,6 +880,19 @@ function get_student_input_value($array, $find_time)
         if (!hasAutoAdjust) {
             formData.push({
                 name: 'auto_adjust_lop_with_leaves',
+                value: '0'
+            });
+        }
+
+        // Check if auto_adjust_lop_with_preallotted_leaves checkbox exists in form data
+        var hasAutoAdjustPreallotted = formData.some(function(item) {
+            return item.name === 'auto_adjust_lop_with_preallotted_leaves';
+        });
+
+        // If checkbox is not in the data (unchecked), add it with value 0
+        if (!hasAutoAdjustPreallotted) {
+            formData.push({
+                name: 'auto_adjust_lop_with_preallotted_leaves',
                 value: '0'
             });
         }

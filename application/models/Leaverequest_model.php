@@ -469,9 +469,18 @@ class Leaverequest_model extends MY_model
     }
 
     /**
-     * Log an audit entry when an OD/CPL (requires_balance_check=0) leave is approved.
-     * This is an approval-time snapshot for audit purposes.
-     * The authoritative balance computation still happens during payroll sync.
+     * Called after a non-LOP leave is finally approved.
+     *
+     * For requires_balance_check=0 (OD/CPL):
+     *   Logs LEAVE_APPROVED_CREDIT — the earned credit audit trail.
+     *   Balance computation remains authoritative at payroll sync time.
+     *
+     * For requires_balance_check=1 (CL/ML and any pre-allotted paid leave):
+     *   Immediately deducts from used_for_leave_application in staff_monthly_leave_balance
+     *   so the employee sees their balance reduced right away.
+     *   Logs LEAVE_APPLICATION_DEBIT for the audit trail.
+     *   Payroll will then exclude approved-leave absent days from LOP count
+     *   to prevent double deduction.
      *
      * @param int $leave_request_id
      * @param int $approver_id  The user who triggered the final approval
@@ -479,7 +488,6 @@ class Leaverequest_model extends MY_model
      */
     public function logLeaveApprovalCredit($leave_request_id, $approver_id)
     {
-        // Load leave request
         $leave_req = $this->get_staff_leave($leave_request_id);
         if (empty($leave_req)) {
             return false;
@@ -494,9 +502,13 @@ class Leaverequest_model extends MY_model
             return false;
         }
 
-        // Only proceed for leave types that credit balance (requires_balance_check=0, is_lop=0)
         $has_balance_flag = $this->db->field_exists('requires_balance_check', 'leave_types');
-        $this->db->select('type, is_lop' . ($has_balance_flag ? ', requires_balance_check' : ''));
+        $has_credit_source_flag = $this->db->field_exists('credit_source_type_id', 'leave_types');
+        $this->db->select(
+            'type, is_lop'
+            . ($has_balance_flag ? ', requires_balance_check' : '')
+            . ($has_credit_source_flag ? ', credit_source_type_id' : '')
+        );
         $type_row = $this->db->where('id', $leave_type_id)->limit(1)->get('leave_types')->row_array();
 
         if (empty($type_row)) {
@@ -504,6 +516,10 @@ class Leaverequest_model extends MY_model
         }
 
         $is_lop = (int) ($type_row['is_lop'] ?? 0);
+        if ($is_lop !== 0) {
+            return false; // LOP-type leaves never earn or consume balance
+        }
+
         if ($has_balance_flag) {
             $requires_balance_check = (int) ($type_row['requires_balance_check'] ?? 1);
         } else {
@@ -511,16 +527,17 @@ class Leaverequest_model extends MY_model
             $requires_balance_check = in_array($type_name, ['on duty', 'od'], true) ? 0 : 1;
         }
 
-        if ($is_lop !== 0 || $requires_balance_check !== 0) {
-            // Not a credit-type leave — nothing to log
-            return false;
+        // Detect credit-consumer type (e.g. CPL consuming OD credit pool)
+        $credit_source_type_id = null;
+        if ($has_credit_source_flag && !empty($type_row['credit_source_type_id'])) {
+            $credit_source_type_id = (int) $type_row['credit_source_type_id'];
         }
+        $is_credit_consumer = $credit_source_type_id !== null;
 
-        // Derive month/year from leave_from
         $month = (int) date('m', strtotime($leave_from));
         $year  = (int) date('Y', strtotime($leave_from));
 
-        // Look up the monthly balance row if it exists (payroll sync may not have run yet)
+        // Look up or create the monthly balance row
         $balance_row = $this->db
             ->where('staff_id', $staff_id)
             ->where('leave_type_id', $leave_type_id)
@@ -530,23 +547,191 @@ class Leaverequest_model extends MY_model
             ->get('staff_monthly_leave_balance')
             ->row_array();
 
-        $balance_id     = !empty($balance_row) ? (int) $balance_row['id'] : null;
-        $balance_before = !empty($balance_row) ? (float) ($balance_row['closing_balance'] ?? 0) : 0.0;
-        $balance_after  = $balance_before + $leave_days;
+        if ($requires_balance_check === 0) {
+            // OD (pure credit-earner) — audit only; payroll sync is authoritative.
+            // Note: CPL (credit-consumer) is handled separately below.
+            if (!$is_credit_consumer) {
+                $balance_id     = !empty($balance_row) ? (int) $balance_row['id'] : null;
+                $balance_before = !empty($balance_row) ? (float) ($balance_row['closing_balance'] ?? 0) : 0.0;
+                $balance_after  = $balance_before + $leave_days;
+
+                $reason = sprintf(
+                    'Leave approved: %s to %s (%s days) — %s',
+                    $leave_req['leave_from'],
+                    $leave_req['leave_to'],
+                    $leave_days,
+                    $type_row['type']
+                );
+
+                return $this->db->insert('staff_leave_balance_audit', [
+                    'balance_id'     => $balance_id,
+                    'staff_id'       => $staff_id,
+                    'leave_type_id'  => $leave_type_id,
+                    'action_type'    => 'LEAVE_APPROVED_CREDIT',
+                    'amount'         => $leave_days,
+                    'balance_before' => $balance_before,
+                    'balance_after'  => $balance_after,
+                    'reference_id'   => $leave_request_id,
+                    'reference_type' => 'leave_request',
+                    'performed_by'   => $approver_id,
+                    'reason'         => $reason,
+                ]);
+            }
+        }
+
+        // --- Credit-consumer type (e.g. CPL consuming OD earned credit) ---
+        if ($is_credit_consumer) {
+            // Find the source type (OD) monthly balance row for the same month/year.
+            $src_balance_row = $this->db
+                ->where('staff_id', $staff_id)
+                ->where('leave_type_id', $credit_source_type_id)
+                ->where('year', $year)
+                ->where('month', $month)
+                ->limit(1)
+                ->get('staff_monthly_leave_balance')
+                ->row_array();
+
+            $src_balance_id = null;
+            $src_before     = 0.0;
+            $src_after      = 0.0;
+
+            if (!empty($src_balance_row)) {
+                $src_balance_id = (int) $src_balance_row['id'];
+                $old_used       = (float) ($src_balance_row['used_for_leave_application'] ?? 0);
+                $new_used       = $old_used + $leave_days;
+                $src_before     = (float) ($src_balance_row['closing_balance'] ?? 0);
+                $src_after      = max(0, $src_before - $leave_days);
+
+                $this->db->where('id', $src_balance_id)->update('staff_monthly_leave_balance', [
+                    'used_for_leave_application' => $new_used,
+                    'closing_balance'            => $src_after,
+                    'updated_at'                 => date('Y-m-d H:i:s'),
+                ]);
+            }
+
+            $src_type_row = $this->db
+                ->select('type')
+                ->where('id', $credit_source_type_id)
+                ->limit(1)
+                ->get('leave_types')
+                ->row_array();
+            $src_type_name = $src_type_row['type'] ?? 'OD';
+
+            return $this->db->insert('staff_leave_balance_audit', [
+                'balance_id'     => $src_balance_id,
+                'staff_id'       => $staff_id,
+                'leave_type_id'  => $credit_source_type_id,
+                'action_type'    => 'CREDIT_POOL_DEBIT',
+                'amount'         => $leave_days,
+                'balance_before' => $src_before,
+                'balance_after'  => $src_after,
+                'reference_id'   => $leave_request_id,
+                'reference_type' => 'leave_request',
+                'performed_by'   => $approver_id,
+                'reason'         => sprintf(
+                    '%s approved: consumed %s %s credit (%s to %s)',
+                    $type_row['type'],
+                    $leave_days,
+                    $src_type_name,
+                    $leave_req['leave_from'],
+                    $leave_req['leave_to']
+                ),
+            ]);
+        }
+
+        // --- requires_balance_check = 1 (CL, ML, etc.) ---
+        // When auto-adjust mode is ON (setting=1), payroll handles deduction via
+        // buildLopAdjustmentLeavePool; just write an audit note and return.
+        // When application-driven mode is OFF (setting=0, recommended), deduct immediately.
+        $CI = &get_instance();
+        $settings = $CI->setting_model->getSetting();
+        $auto_adjust_preallotted = (int)($settings->auto_adjust_lop_with_preallotted_leaves ?? 0);
+
+        if ($auto_adjust_preallotted === 1) {
+            $balance_id     = !empty($balance_row) ? (int) $balance_row['id'] : null;
+            $balance_before = !empty($balance_row) ? (float) ($balance_row['closing_balance'] ?? 0) : 0.0;
+            $reason = sprintf(
+                'Leave approved (auto-deduct mode): %s to %s (%s days) — %s',
+                $leave_req['leave_from'],
+                $leave_req['leave_to'],
+                $leave_days,
+                $type_row['type']
+            );
+            return $this->db->insert('staff_leave_balance_audit', [
+                'balance_id'     => $balance_id,
+                'staff_id'       => $staff_id,
+                'leave_type_id'  => $leave_type_id,
+                'action_type'    => 'LEAVE_APPROVED_AUDIT',
+                'amount'         => $leave_days,
+                'balance_before' => $balance_before,
+                'balance_after'  => $balance_before,
+                'reference_id'   => $leave_request_id,
+                'reference_type' => 'leave_request',
+                'performed_by'   => $approver_id,
+                'reason'         => $reason,
+            ]);
+        }
+
+        // Application-driven mode: immediately deduct so the employee sees the
+        // reduced balance right away, without waiting for payroll.
+
+        if (empty($balance_row)) {
+            // Row doesn't exist yet. Seed opening_balance from staff_leave_details.
+            $allotted = 0.0;
+            $allot_row = $this->db
+                ->where('staff_id', $staff_id)
+                ->where('leave_type_id', $leave_type_id)
+                ->limit(1)
+                ->get('staff_leave_details')
+                ->row_array();
+            if (!empty($allot_row)) {
+                $allotted = (float) ($allot_row['alloted_leave'] ?? 0);
+            }
+
+            $new_row = [
+                'staff_id'                  => $staff_id,
+                'leave_type_id'             => $leave_type_id,
+                'year'                      => $year,
+                'month'                     => $month,
+                'opening_balance'           => $allotted,
+                'earned_in_month'           => 0,
+                'used_for_lop_adjustment'   => 0,
+                'used_for_leave_application'=> $leave_days,
+                'other_deductions'          => 0,
+                'closing_balance'           => max(0, $allotted - $leave_days),
+                'notes'                     => 'Auto-created on leave approval ' . date('Y-m-d H:i:s'),
+            ];
+            $this->db->insert('staff_monthly_leave_balance', $new_row);
+            $balance_id     = $this->db->insert_id();
+            $balance_before = $allotted;
+            $balance_after  = max(0, $allotted - $leave_days);
+        } else {
+            $balance_id  = (int) $balance_row['id'];
+            $old_used    = (float) ($balance_row['used_for_leave_application'] ?? 0);
+            $new_used    = $old_used + $leave_days;
+            $balance_before = (float) ($balance_row['closing_balance'] ?? 0);
+            $balance_after  = max(0, $balance_before - $leave_days);
+
+            $this->db->where('id', $balance_id)->update('staff_monthly_leave_balance', [
+                'used_for_leave_application' => $new_used,
+                'closing_balance'            => $balance_after,
+                'updated_at'                 => date('Y-m-d H:i:s'),
+            ]);
+        }
 
         $reason = sprintf(
-            'Leave approved: %s to %s (%s days) — %s',
+            'Leave application approved: %s to %s (%s days) — %s',
             $leave_req['leave_from'],
             $leave_req['leave_to'],
             $leave_days,
             $type_row['type']
         );
 
-        $data = [
+        return $this->db->insert('staff_leave_balance_audit', [
             'balance_id'     => $balance_id,
             'staff_id'       => $staff_id,
             'leave_type_id'  => $leave_type_id,
-            'action_type'    => 'LEAVE_APPROVED_CREDIT',
+            'action_type'    => 'LEAVE_APPLICATION_DEBIT',
             'amount'         => $leave_days,
             'balance_before' => $balance_before,
             'balance_after'  => $balance_after,
@@ -554,9 +739,7 @@ class Leaverequest_model extends MY_model
             'reference_type' => 'leave_request',
             'performed_by'   => $approver_id,
             'reason'         => $reason,
-        ];
-
-        return $this->db->insert('staff_leave_balance_audit', $data);
+        ]);
     }
 
 }

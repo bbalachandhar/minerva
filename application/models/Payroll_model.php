@@ -756,7 +756,10 @@ class Payroll_model extends MY_Model
      */
     public function getStaffPaidLeaves($staff_id)
     {
-        $this->db->select('staff_leave_details.*, leave_types.type, leave_types.is_lop');
+        $has_credit_source_col = $this->db->field_exists('credit_source_type_id', 'leave_types');
+        $select = 'staff_leave_details.*, leave_types.type, leave_types.is_lop';
+        if ($has_credit_source_col) { $select .= ', leave_types.credit_source_type_id'; }
+        $this->db->select($select);
         $this->db->from('staff_leave_details');
         $this->db->join('leave_types', 'leave_types.id = staff_leave_details.leave_type_id');
         $this->db->where('staff_leave_details.staff_id', $staff_id);
@@ -874,6 +877,35 @@ class Payroll_model extends MY_Model
         }
 
         $paid_leaves = $this->getStaffPaidLeaves($staff_id);
+
+        // In application-driven mode (auto_adjust_lop_with_preallotted_leaves=0),
+        // exclude requires_balance_check=1 types (CL, ML, etc.) from the pool.
+        // Their balance was already deducted at approval time; payroll must not
+        // also try to offset LOP with them to avoid double deduction.
+        $settings = $this->setting_model->getSetting();
+        $auto_adjust_preallotted = (int)($settings->auto_adjust_lop_with_preallotted_leaves ?? 0);
+        if ($auto_adjust_preallotted === 0 && $this->db->field_exists('requires_balance_check', 'leave_types')) {
+            $preallotted_ids = $this->db
+                ->select('id')
+                ->where('requires_balance_check', 1)
+                ->where('is_lop', 0)
+                ->get('leave_types')
+                ->result_array();
+            $preallotted_ids = array_column($preallotted_ids, 'id');
+            $paid_leaves = array_filter($paid_leaves, function ($leave) use ($preallotted_ids) {
+                return !in_array((int)($leave['leave_type_id'] ?? 0), $preallotted_ids, true);
+            });
+        }
+
+        // Always exclude credit-consumer types (e.g. CPL consuming OD credit).
+        // Their credit was already deducted from the OD pool at approval time;
+        // including CPL days in the LOP adjustment pool would double-offset.
+        if ($this->db->field_exists('credit_source_type_id', 'leave_types')) {
+            $paid_leaves = array_filter($paid_leaves, function ($leave) {
+                return empty($leave['credit_source_type_id']);
+            });
+        }
+
         foreach ($paid_leaves as $leave) {
             $leave_type_id = (int) ($leave['leave_type_id'] ?? 0);
             if ($leave_type_id <= 0 || isset($seen[$leave_type_id])) {

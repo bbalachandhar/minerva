@@ -302,6 +302,7 @@ $i++;
                                 OD can be applied on Present attendance for official movement. Present-day OD is kept for audit and will not be used as payroll LOP credit.
                             </small>
                             <div id="permission_quota_warning" class="text-danger" style="display:none;"></div>
+                            <div id="leave_balance_info_panel" style="display:none; margin-top:8px; padding:8px 12px; border-left:3px solid #ccc; background:#f9f9f9; font-size:13px;"></div>
                             <span class="text-danger"><?php echo form_error('leave_type'); ?></span>
                         </div>
                           <div class="form-group col-xs-12 col-sm-12 col-md-12 col-lg-6">
@@ -1062,6 +1063,8 @@ $i++;
         }
 
         toggleSubstitutionUI();
+        // Reset balance panel when staff changes (leave type will also change)
+        $('#leave_balance_info_panel').hide().html('');
     });
 
     function setEmployeeName(role, id = '') {
@@ -1228,6 +1231,7 @@ $i++;
                 $('#timetable_section').hide();
             }
             updatePermissionQuota();
+            updateLeaveBalanceInfo();
         });
 
         toggleSubstitutionUI();
@@ -1292,7 +1296,76 @@ $i++;
         }
     }
 
-    function loadTimetableAndSubstitutes(staff_id, leave_from_date, leave_to_date) {
+    function updateLeaveBalanceInfo() {
+        var staff_id = $('#empname').val();
+        var leave_type_id = $('#leave_type').val();
+        var panel = $('#leave_balance_info_panel');
+
+        panel.hide().html('');
+
+        if (!staff_id || !leave_type_id) {
+            return;
+        }
+
+        $.ajax({
+            url: '<?php echo base_url() ?>admin/leaverequest/leaveTypeBalanceInfo',
+            type: 'POST',
+            dataType: 'json',
+            data: { staff_id: staff_id, leave_type_id: leave_type_id },
+            success: function (r) {
+                if (!r || r.status !== 'success') { return; }
+
+                var html = '';
+                if (r.is_credit_earn) {
+                    panel.css('border-left-color', '#00a65a');
+                    html += '<strong style="color:#00a65a;">&#9650; Credit-Earning Leave</strong> &nbsp;';
+                    html += '<span>' + r.type_label + ' earns credit that offsets Loss of Pay at payroll.</span><br>';
+                    if (r.allotted > 0) {
+                        html += '<span>Allotted: <strong>' + r.allotted + '</strong> &nbsp;|&nbsp; '
+                             + 'Used (approved): <strong>' + r.used_approved + '</strong></span><br>';
+                    }
+                } else if (r.is_balance_consume) {
+                    var availColor = r.available > 0 ? '#333' : '#c0392b';
+                    panel.css('border-left-color', r.available > 0 ? '#3c8dbc' : '#c0392b');
+                    html += '<strong>Balance: ' + r.type_label + '</strong><br>';
+                    html += '<span>Allotted: <strong>' + r.allotted + '</strong> &nbsp;|&nbsp; '
+                         + 'Approved used: <strong>' + r.used_approved + '</strong>';
+                    if (r.used_pending > 0) {
+                        html += ' &nbsp;|&nbsp; Pending (reserved): <strong>' + r.used_pending + '</strong>';
+                    }
+                    html += ' &nbsp;|&nbsp; <span style="color:' + availColor + ';">Available: <strong>' + r.available + '</strong></span></span><br>';
+                    if (r.application_driven) {
+                        html += '<small class="text-info">Balance deducted immediately upon approval.</small>';
+                    }
+                    if (r.available <= 0) {
+                        html += '<br><small class="text-danger"><strong>Insufficient balance.</strong> Your request may be rejected.</small>';
+                    }
+                } else if (r.is_credit_consumer) {
+                    var availColor = r.available > 0 ? '#333' : '#c0392b';
+                    panel.css('border-left-color', r.available > 0 ? '#00a65a' : '#c0392b');
+                    html += '<strong>' + r.type_label + ' (Credit Consumer)</strong> &mdash; uses your <em>' + r.source_type_name + '</em> credit<br>';
+                    html += '<span>Earned ' + r.source_type_name + ' credit: <strong>' + r.allotted + '</strong>';
+                    html += ' &nbsp;|&nbsp; Used (approved): <strong>' + r.used_approved + '</strong>';
+                    if (r.used_pending > 0) { html += ' &nbsp;|&nbsp; Pending: <strong>' + r.used_pending + '</strong>'; }
+                    html += ' &nbsp;|&nbsp; <span style="color:' + availColor + ';">Available: <strong>' + r.available + '</strong></span></span><br>';
+                    html += '<small class="text-info">Credit deducted from your ' + r.source_type_name + ' pool upon approval.</small>';
+                    if (r.available <= 0) {
+                        html += '<br><small class="text-danger"><strong>No credit available.</strong> Apply for ' + r.source_type_name + ' first.</small>';
+                    }
+                } else if (r.is_lop) {
+                    panel.css('border-left-color', '#f39c12');
+                    html += '<strong style="color:#f39c12;">Loss of Pay</strong> &nbsp;';
+                    html += '<span>Apply only when unable to cover with available paid leave.</span>';
+                }
+
+                if (html) {
+                    panel.html(html).show();
+                }
+            }
+        });
+    }
+
+
         var base_url = '<?php echo base_url() ?>';
         $.ajax({
             url: base_url + 'admin/leaverequest/getTimetableAndSubstitutes',

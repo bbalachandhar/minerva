@@ -576,10 +576,18 @@ class Payroll extends Admin_Controller
         $paid_leave_absent = $this->getPaidLeaveAbsentCountRange($period['start_date'], $period['end_date'], $staff_id);
         $weekend_lop_days = $this->getNonPayableWeekendCountRange($staff_id, $period['start_date'], $period['end_date'], $context);
 
+        // Absent days covered by explicitly approved pre-allotted leaves (requires_balance_check=1).
+        // Only subtract from LOP when application-driven mode is active (setting=0).
+        // In auto-adjust mode (setting=1), buildLopAdjustmentLeavePool handles CL/ML at payroll.
+        $auto_adjust_preallotted = (int)($this->sch_setting_detail->auto_adjust_lop_with_preallotted_leaves ?? 0);
+        $preallotted_leave_absent = ($auto_adjust_preallotted === 0)
+            ? $this->getPreallottedLeaveAbsentCountRange($period['start_date'], $period['end_date'], $staff_id, $context)
+            : 0.0;
+
         $total_present = max(0, $present + ($half_day * $half_day_weight) - $late_permission_penalty);
         $total_absent = $absent_working + ($half_day * $half_day_weight) + $late_permission_penalty;
 
-        $lop_days = $total_absent
+        $lop_days = max(0, $total_absent - $preallotted_leave_absent)
             + (($first_half_absent + $second_half_absent) * $half_day_weight)
             + $weekend_lop_days;
 
@@ -608,6 +616,7 @@ class Payroll extends Admin_Controller
             'second_half_permission' => $second_half_permission,
             'approved_leave' => $approved_leave,
             'paid_leave_absent' => $paid_leave_absent,
+            'preallotted_leave_absent' => $preallotted_leave_absent,
             'holidays' => $holidays,
             'sundays' => $sundays,
             'late_half_days' => $late_half_days,
@@ -922,6 +931,40 @@ class Payroll extends Admin_Controller
         return $paid_leave_absent;
     }
 
+    /**
+     * Count absent working days that are covered by an approved pre-allotted
+     * leave (requires_balance_check=1) such as CL or ML.
+     * These days must be excluded from LOP because the balance is already
+     * deducted at approval time via used_for_leave_application.
+     */
+    private function getPreallottedLeaveAbsentCountRange($start_date, $end_date, $staff_id, $context = null)
+    {
+        if ($context === null) {
+            $context = $this->getWorkingDayContextRange($start_date, $end_date);
+        }
+
+        $working_day_dates = $context['working_day_dates'];
+        $credits = $this->getApprovedPaidLeaveCreditsByRange($start_date, $end_date, $staff_id, true);
+        if (empty($credits)) {
+            return 0.0;
+        }
+
+        $working_day_lookup = array_fill_keys($working_day_dates, true);
+        $absent_covered = 0.0;
+        foreach ($credits as $leave_date => $credit) {
+            if (!isset($working_day_lookup[$leave_date])) {
+                continue;
+            }
+            $attendance_row = $this->staffattendancemodel->searchStaffattendance($leave_date, $staff_id, false);
+            $attendance_key = $attendance_row['key'] ?? null;
+            if ($attendance_key === 'A') {
+                $absent_covered += max(0, min(1, (float) $credit));
+            }
+        }
+
+        return $absent_covered;
+    }
+
     private function getApprovedPaidLeaveDates($month_num, $year, $staff_id)
     {
         $start_date = $year . '-' . sprintf('%02d', $month_num) . '-01';
@@ -938,7 +981,13 @@ class Payroll extends Admin_Controller
         }));
     }
 
-    private function getApprovedPaidLeaveCreditsByRange($start_date, $end_date, $staff_id)
+    /**
+     * Returns approved paid-leave credits keyed by date.
+     * When $balance_check_only = true, only includes leave types where
+     * requires_balance_check = 1 (CL, ML etc.) — used to prevent double
+     * deduction when the employee has explicitly applied for leave.
+     */
+    private function getApprovedPaidLeaveCreditsByRange($start_date, $end_date, $staff_id, $balance_check_only = false)
     {
         $has_duration_column = $this->db->field_exists('leave_duration_type', 'staff_leave_request');
         if ($has_duration_column) {
@@ -951,6 +1000,16 @@ class Payroll extends Admin_Controller
         $this->db->where('staff_leave_request.staff_id', $staff_id);
         $this->db->where_in('staff_leave_request.status', ['approve', 'approved']);
         $this->db->where('leave_types.is_lop', 0);
+        if ($balance_check_only) {
+            $has_rc = $this->db->field_exists('requires_balance_check', 'leave_types');
+            $has_cs = $this->db->field_exists('credit_source_type_id', 'leave_types');
+            if ($has_rc || $has_cs) {
+                $conditions = [];
+                if ($has_rc) { $conditions[] = 'leave_types.requires_balance_check = 1'; }
+                if ($has_cs) { $conditions[] = 'leave_types.credit_source_type_id IS NOT NULL'; }
+                $this->db->where('(' . implode(' OR ', $conditions) . ')', null, false);
+            }
+        }
         $this->db->where('staff_leave_request.leave_from <=', $end_date);
         $this->db->where('staff_leave_request.leave_to >=', $start_date);
         $rows = $this->db->get()->result_array();
