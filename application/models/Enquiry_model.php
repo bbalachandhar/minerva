@@ -89,7 +89,7 @@ class enquiry_model extends MY_Model
 
     {
 
-        $this->db->select('enquiry.*,classes.class as classname,staff.id as staff_id,staff.name as staff_name,staff.surname as staff_surname,staff.employee_id,online_admission_courses.course_name as admission_course_name')->
+        $this->db->select('enquiry.*,classes.class as classname,staff.id as staff_id,staff.name as staff_name,staff.surname as staff_surname,staff.employee_id,online_admission_courses.course_name as admission_course_name,online_admission_courses.mgt_fee as course_fee')->
 
             join("classes", "enquiry.class_id = classes.id", "left")->
 

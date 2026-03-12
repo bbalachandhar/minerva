@@ -118,8 +118,10 @@ if (!empty($next_date)) {
                 <h5><span class="text-dark"><?php echo $this->lang->line('source'); ?>:</span> <?php echo $enquiry_data['source']; ?></h5>
                 <h5><span class="text-dark"><?php echo $this->lang->line('email'); ?>:</span> <?php echo $enquiry_data['email']; ?></h5>
                 <h5><span class="text-dark"><?php echo $this->lang->line('address'); ?>:</span> <?php echo $enquiry_data['address']; ?></h5>
-                <h5><span class="text-dark"><?php echo $this->lang->line('class'); ?>:</span> <?php echo $enquiry_data['classname']; ?></h5>
-                <h5><span class="text-dark"><?php echo $this->lang->line('number_of_child'); ?>:</span> <?php echo $enquiry_data['no_of_child']; ?></h5>
+                <h5><span class="text-dark">Course:</span> <?php echo !empty($enquiry_data['admission_course_name']) ? $enquiry_data['admission_course_name'] : $enquiry_data['classname']; ?></h5>
+                <?php if (!empty($enquiry_data['course_fee'])): ?>
+                <h5><span class="text-dark">Course Fee:</span> &#8377;<?php echo number_format($enquiry_data['course_fee'], 0); ?></h5>
+                <?php endif; ?>
                 <h5><span class="text-dark"><?php echo $this->lang->line('description'); ?>:</span> <?php echo $enquiry_data['description']; ?></h5>
                 <h5><span class="text-dark"><?php echo $this->lang->line('note'); ?>:</span> <?php echo $enquiry_data['note']; ?></h5>
                 <h5><span class="text-dark"><?php echo $this->lang->line('created_by'); ?>:</span>

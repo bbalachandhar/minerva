@@ -1365,7 +1365,7 @@ $i++;
         });
     }
 
-
+    function loadTimetableAndSubstitutes(staff_id, leave_from_date, leave_to_date) {
         var base_url = '<?php echo base_url() ?>';
         $.ajax({
             url: base_url + 'admin/leaverequest/getTimetableAndSubstitutes',

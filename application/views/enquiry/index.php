@@ -10,13 +10,14 @@ if (validation_errors()) {
         <div class="col-md-6">
             <div class="form-group">
                 <label for="name">Name <span class="text-danger">*</span></label>
-                <input type="text" class="form-control" name="name" value="<?php echo set_value('name'); ?>">
+                <input type="text" class="form-control" name="name" value="<?php echo set_value('name'); ?>" required>
             </div>
         </div>
         <div class="col-md-6">
             <div class="form-group">
                 <label for="contact">Phone <span class="text-danger">*</span></label>
-                <input type="text" class="form-control" name="contact" value="<?php echo set_value('contact'); ?>">
+                <input type="tel" class="form-control" name="contact" id="contact" value="<?php echo set_value('contact'); ?>" maxlength="10" pattern="[0-9]{10}" required>
+                <small class="text-muted">Enter 10-digit mobile number</small>
             </div>
         </div>
     </div>
@@ -30,10 +31,10 @@ if (validation_errors()) {
         <div class="col-md-6">
             <div class="form-group">
                 <label for="source">Source <span class="text-danger">*</span></label>
-                <select name="source" class="form-control">
+                <select name="source" class="form-control" required>
                     <option value="">Select Source</option>
                     <?php foreach ($sourcelist as $source): ?>
-                        <option value="<?php echo $source['source']; ?>" <?php echo set_select('source', $source['source']); ?>><?php echo $source['source']; ?></option>
+                        <option value="<?php echo $source['source']; ?>" <?php echo set_select('source', $source['source'], strtolower($source['source']) === 'website'); ?>><?php echo $source['source']; ?></option>
                     <?php endforeach; ?>
                 </select>
             </div>
@@ -54,6 +55,7 @@ if (validation_errors()) {
                 <select name="city" id="city" class="form-control">
                     <option value="">Select City</option>
                 </select>
+                <input type="text" class="form-control mt-2" name="city_custom" id="city_other_text" placeholder="Enter your city" style="display:none;">
             </div>
         </div>
     </div>
@@ -93,7 +95,7 @@ if (validation_errors()) {
         <div class="col-md-12">
             <div class="form-group">
                 <label for="admission_course_id">Course <span class="text-danger">*</span></label>
-                <select name="admission_course_id" id="admission_course_id" class="form-control">
+                <select name="admission_course_id" id="admission_course_id" class="form-control" required>
                     <option value="">Select Course Type First</option>
                 </select>
             </div>
@@ -190,6 +192,26 @@ $(document).ready(function() {
                 citySelect.appendChild(option);
             });
         }
+        // Always append Others option
+        const othersOption = document.createElement('option');
+        othersOption.value = 'Others';
+        othersOption.textContent = 'Others';
+        citySelect.appendChild(othersOption);
+        $('#city_other_text').hide().val('');
+    });
+
+    // Show/hide city custom text field
+    $('#city').on('change', function() {
+        if ($(this).val() === 'Others') {
+            $('#city_other_text').show().attr('required', true);
+        } else {
+            $('#city_other_text').hide().removeAttr('required').val('');
+        }
+    });
+
+    // Phone: digits only
+    $('#contact').on('input', function() {
+        this.value = this.value.replace(/[^0-9]/g, '').substring(0, 10);
     });
 });
 </script>

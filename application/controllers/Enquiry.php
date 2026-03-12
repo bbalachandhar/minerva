@@ -47,7 +47,7 @@ class Enquiry extends CI_Controller
 
         // Form validation rules
         $this->form_validation->set_rules('name', 'Name', 'trim|required|xss_clean');
-        $this->form_validation->set_rules('contact', 'Phone', 'trim|required|numeric|xss_clean');
+        $this->form_validation->set_rules('contact', 'Phone', 'trim|required|numeric|min_length[10]|max_length[10]|xss_clean');
         $this->form_validation->set_rules('email', 'Email', 'trim|valid_email|xss_clean');
         $this->form_validation->set_rules('source', 'Source', 'trim|required|xss_clean');
         $this->form_validation->set_rules('admission_course_id', 'Course', 'trim|required|xss_clean');
@@ -72,12 +72,15 @@ class Enquiry extends CI_Controller
             $course_level = $course_data ? $course_data['course_level'] : null;
             $admission_type = $course_data ? $course_data['admission_type'] : null;
             
+            $city_raw = $this->input->post('city');
+            $city = ($city_raw === 'Others') ? $this->input->post('city_custom') : $city_raw;
+
             $enquiry = array(
                 'name'           => $this->input->post('name'),
                 'contact'        => $this->input->post('contact'),
                 'address'        => $this->input->post('address'),
                 'state'          => $this->input->post('state'),
-                'city'           => $this->input->post('city'),
+                'city'           => $city,
                 'reference'      => $this->input->post('reference'),
                 'date'           => date('Y-m-d'),
                 'description'    => $this->input->post('description'),

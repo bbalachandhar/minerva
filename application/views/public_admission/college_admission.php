@@ -267,7 +267,7 @@
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label class="form-label">Course apply*</label>
-                                <select class="form-control" name="ug_course" id="ug_course" tabindex="5">
+                                <select class="form-control" name="ug_course" id="ug_course" tabindex="5" required>
                                     <option value="">Select a Course</option>
                                     <?php if (!empty($ug_first_year_courses)) { ?>
                                         <?php foreach ($ug_first_year_courses as $course) { ?>
@@ -299,7 +299,7 @@
                                 <select class="form-control" id="quota_type" name="quota_type" required tabindex="6">
                                     <option value="">Select Quota</option>
                                     <option value="government">Government</option>
-                                    <option value="management">Management</option>
+                                    <option value="management" selected>Management</option>
                                 </select>
                             </div>
                         </div>
