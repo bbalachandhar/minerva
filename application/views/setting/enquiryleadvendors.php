@@ -118,6 +118,9 @@
                         <div class="input-group">
                             <input type="text" class="form-control" name="api_key" id="lead_vendor_api_key" autocomplete="off" placeholder="Enter or autogenerate a key">
                             <span class="input-group-btn">
+                                <button type="button" class="btn btn-default" id="copyApiKeyBtn" title="Copy key to clipboard" disabled>
+                                    <i class="fa fa-clipboard"></i> Copy
+                                </button>
                                 <button type="button" class="btn btn-default" id="generateApiKeyBtn" title="Autogenerate strong API key">
                                     <i class="fa fa-refresh"></i> Generate
                                 </button>
@@ -155,7 +158,9 @@
         $('#lead_vendor_id').val(0);
         $('#leadVendorModalTitle').text('Add Lead Vendor');
         $('#apiKeyRequiredMark').show();
-        $('#apiKeyHelpText').text('Provide a secure key. It will be stored as hash only.');
+        $('#apiKeyHelpText').html('Provide a secure key. It will be stored as hash only.');
+        $('#lead_vendor_api_key').prop('disabled', false).val('').attr('placeholder', 'Enter or autogenerate a key');
+        $('#copyApiKeyBtn').prop('disabled', true);
         $('#lead_vendor_is_active').prop('checked', true);
     }
 
@@ -178,7 +183,10 @@
         $('#lead_vendor_is_active').prop('checked', isActive);
         $('#leadVendorModalTitle').text('Edit Lead Vendor');
         $('#apiKeyRequiredMark').hide();
-        $('#apiKeyHelpText').text('Leave blank to keep existing key. Enter a value to rotate key.');
+        // Lock the key field — hash is stored, original cannot be retrieved
+        $('#lead_vendor_api_key').prop('disabled', true).val('').attr('placeholder', '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022 Key is already set');
+        $('#copyApiKeyBtn').prop('disabled', true);
+        $('#apiKeyHelpText').html('Key is stored securely. <a href="#" id="changeKeyLink">Change / Rotate key</a>');
 
         $('#leadVendorModal').modal('show');
     }
@@ -202,7 +210,35 @@
         for (var i = 0; i < array.length; i++) {
             key += chars[array[i] % chars.length];
         }
-        $('#lead_vendor_api_key').val(key);
+        $('#lead_vendor_api_key').prop('disabled', false).val(key);
+        $('#copyApiKeyBtn').prop('disabled', false);
+    });
+
+    $('#lead_vendor_api_key').on('input', function() {
+        $('#copyApiKeyBtn').prop('disabled', $(this).val().length === 0);
+    });
+
+    $(document).on('click', '#changeKeyLink', function(e) {
+        e.preventDefault();
+        $('#lead_vendor_api_key').prop('disabled', false).val('').attr('placeholder', 'Enter new key or autogenerate').focus();
+        $('#apiKeyHelpText').html('Enter a new key to rotate. Leave blank to keep existing key.');
+        $('#copyApiKeyBtn').prop('disabled', true);
+    });
+
+    $('#copyApiKeyBtn').on('click', function() {
+        var key = $('#lead_vendor_api_key').val();
+        if (!key) return;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(key).then(function() {
+                successMsg('API key copied to clipboard.');
+            });
+        } else {
+            // Fallback for non-secure contexts
+            var $tmp = $('<textarea>').val(key).appendTo('body').select();
+            document.execCommand('copy');
+            $tmp.remove();
+            successMsg('API key copied to clipboard.');
+        }
     });
 
     $('#addLeadVendorBtn').on('click', function() {
