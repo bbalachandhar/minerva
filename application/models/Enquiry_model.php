@@ -89,7 +89,7 @@ class enquiry_model extends MY_Model
 
     {
 
-        $this->db->select('enquiry.*,classes.class as classname,staff.id as staff_id,staff.name as staff_name,staff.surname as staff_surname,staff.employee_id,online_admission_courses.course_name as admission_course_name,online_admission_courses.mgt_fee as course_fee,lead_api_vendors.vendor_name as lead_vendor_name,lead_api_vendors.vendor_code as lead_vendor_code')->
+        $this->db->select('enquiry.*,classes.class as classname,staff.id as staff_id,staff.name as staff_name,staff.surname as staff_surname,staff.employee_id,online_admission_courses.course_name as admission_course_name,online_admission_courses.mgt_fee as course_fee,lv.vendor_name as lead_vendor_name,lv.vendor_code as lead_vendor_code,dsv.vendor_name as duplicate_source_vendor_name,dsv.vendor_code as duplicate_source_vendor_code')->
 
             join("classes", "enquiry.class_id = classes.id", "left")->
 
@@ -97,7 +97,9 @@ class enquiry_model extends MY_Model
             
             join("online_admission_courses", "enquiry.admission_course_id = online_admission_courses.id", "left")->
 
-            join("lead_api_vendors", "lead_api_vendors.id = enquiry.lead_vendor_id", "left");
+            join("lead_api_vendors lv", "lv.id = enquiry.lead_vendor_id", "left")->
+
+            join("lead_api_vendors dsv", "dsv.id = enquiry.duplicate_source_vendor_id", "left");
 
             
 
@@ -133,9 +135,9 @@ class enquiry_model extends MY_Model
 
         
 
-        // primary sort by enquiry `date` (newest first) then by id
-        $this->db->order_by("enquiry.date", "desc");
+        // primary sort: last inserted first, secondary: newest date first
         $this->db->order_by("enquiry.id", "desc");
+        $this->db->order_by("enquiry.date", "desc");
 
         $query = $this->db->get("enquiry");
 
@@ -279,10 +281,11 @@ class enquiry_model extends MY_Model
 
     public function searchEnquiry($class, $source, $date_from, $date_to, $status = 'active', $department_id = null, $lead_vendor_id = null)
     {
-        $this->db->select('enquiry.*,classes.class as classname,online_admission_courses.course_name as admission_course_name,lead_api_vendors.vendor_name as lead_vendor_name,lead_api_vendors.vendor_code as lead_vendor_code')
+        $this->db->select('enquiry.*,classes.class as classname,online_admission_courses.course_name as admission_course_name,lv.vendor_name as lead_vendor_name,lv.vendor_code as lead_vendor_code,dsv.vendor_name as duplicate_source_vendor_name,dsv.vendor_code as duplicate_source_vendor_code')
             ->join("classes", "classes.id = enquiry.class_id", "left")
             ->join("online_admission_courses", "enquiry.admission_course_id = online_admission_courses.id", "left")
-            ->join("lead_api_vendors", "lead_api_vendors.id = enquiry.lead_vendor_id", "left");
+            ->join("lead_api_vendors lv", "lv.id = enquiry.lead_vendor_id", "left")
+            ->join("lead_api_vendors dsv", "dsv.id = enquiry.duplicate_source_vendor_id", "left");
 
         if (!empty($class)) {
             $this->db->where("enquiry.class_id", $class);
@@ -314,13 +317,9 @@ class enquiry_model extends MY_Model
             $this->db->where('enquiry.lead_vendor_id', (int) $lead_vendor_id);
         }
 
-        // ensure search results are newest-first by enquiry date
-        $this->db->order_by("enquiry.date", "desc");
+        // last inserted first, secondary: newest date
         $this->db->order_by("enquiry.id", "desc");
-
-        // default ordering for search results: newest enquiry date first
         $this->db->order_by("enquiry.date", "desc");
-        $this->db->order_by("enquiry.id", "desc");
 
         $query = $this->db->get("enquiry");
         return $query->result_array();

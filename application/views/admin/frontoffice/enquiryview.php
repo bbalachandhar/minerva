@@ -166,6 +166,7 @@ if ($enkey == $status) {
                                                     <th><?php echo $this->lang->line('phone'); ?></th>
                                                     <th><?php echo $this->lang->line('source'); ?></th>
                                                     <th>Lead Vendor</th>
+                                                    <th>Dup. Source</th>
                                                     <th><?php echo $this->lang->line('enquiry_date'); ?></th>
                                                     <th><?php echo $this->lang->line('last_follow_up_date'); ?></th>
                                                     <th><?php echo $this->lang->line('next_follow_up_date'); ?></th>
@@ -211,7 +212,19 @@ if (empty($enquiry_list)) {
                                                             <td class="mailbox-name"><?php echo $value['name']; ?> </td>
                                                             <td class="mailbox-name"><?php echo $value['contact']; ?> </td>
                                                             <td class="mailbox-name"><?php echo $value['source']; ?></td>
-                                                            <td class="mailbox-name"><?php echo !empty($value['lead_vendor_name']) ? html_escape($value['lead_vendor_name']) : '-'; ?></td>
+                                                            <td class="mailbox-name">
+                                                                <?php if (!empty($value['duplicate_source_vendor_id'])): ?>
+                                                                    <span class="label label-warning" title="This record was a duplicate when submitted">Duplicate</span><br>
+                                                                <?php endif; ?>
+                                                                <?php echo !empty($value['lead_vendor_name']) ? html_escape($value['lead_vendor_name']) : '-'; ?>
+                                                            </td>
+                                                            <td class="mailbox-name">
+                                                                <?php if (!empty($value['duplicate_source_vendor_id'])): ?>
+                                                                    <span title="Original record was first submitted by this vendor"><?php echo html_escape($value['duplicate_source_vendor_name']); ?></span>
+                                                                <?php else: ?>
+                                                                    <span class="text-muted">-</span>
+                                                                <?php endif; ?>
+                                                            </td>
                                                             <td class="mailbox-name" data-order="<?php echo $value['date']; ?>"> <?php
 if (!empty($value["date"])) {
             echo date($this->customlib->getSchoolDateFormat(), $this->customlib->dateyyyymmddTodateformat($value['date']));
@@ -694,8 +707,8 @@ if (!empty($display_next_date) && $display_next_date != '0000-00-00') {
             paging: true,
             bSort: true,
             info: false,
-            /* default ordering: next follow up date ascending */
-            order: [[6, 'asc']],
+            /* default ordering: enquiry date descending (newest first) */
+            order: [[6, 'desc']],
             dom: "Bfrtip",
             buttons: [
 
