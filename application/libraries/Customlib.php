@@ -956,24 +956,31 @@ class Customlib
             return null;
         }
 
-        $date = str_replace('-', '/', $date);
-
         $schoolDateFormat = $this->getSchoolDateFormat();
 
-        // Try to parse the date using the school's configured format
+        // 1. Try exact school format on the original input (preserves - separators).
         $dateTime = DateTime::createFromFormat($schoolDateFormat, $date);
-
-        // If parsing was successful and the date is valid according to the format
         if ($dateTime && $dateTime->format($schoolDateFormat) === $date) {
             return $dateTime->getTimestamp();
         }
 
-        // Fallback: Try common date formats if the school format doesn't match the input
+        // 2. Normalise separators and try the slash version of the school format.
+        $date_slashed  = str_replace('-', '/', $date);
+        $format_slashed = str_replace('-', '/', $schoolDateFormat);
+        $dateTime = DateTime::createFromFormat($format_slashed, $date_slashed);
+        if ($dateTime && $dateTime->format($format_slashed) === $date_slashed) {
+            return $dateTime->getTimestamp();
+        }
+
+        // 3. Fallback: try common formats — d/m/Y is listed before m/d/Y so that
+        //    a day-first school setting (e.g. d-m-Y) doesn't get mis-parsed.
         $commonFormats = [
             'Y/m/d', // e.g., 2023/10/27
-            'm/d/Y', // e.g., 10/27/2023
-            'd/m/Y', // e.g., 27/10/2023
+            'd/m/Y', // e.g., 27/10/2023  (day-first — matches most non-US locales)
+            'm/d/Y', // e.g., 10/27/2023  (month-first — US format, checked last)
         ];
+
+        $date = $date_slashed; // work with the slash-normalised form for the rest
 
         foreach ($commonFormats as $format) {
             $dateTime = DateTime::createFromFormat($format, $date);

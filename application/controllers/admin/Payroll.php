@@ -629,126 +629,424 @@ class Payroll extends Admin_Controller
         ];
     }
 
-    private function getLateAndPermissionCountsRange($staff_id, $start_date, $end_date)
+    /**
+     * Build attendance counts using the same punch-derived interpretation as report UI.
+     */
+    private function getDerivedAttendanceSummaryForPeriod($staff_id, $start_date, $end_date, $working_day_dates = null, $context = null)
     {
-        $result = [
-            'is_computed' => false,
-            'late_computed' => false,
-            'permission_computed' => false,
-            'late' => null,
-            'permission_total' => null,
-            'first_half_permission' => null,
-            'second_half_permission' => null,
+        if ($context === null) {
+            $context = $this->getWorkingDayContextRange($start_date, $end_date);
+        }
+
+        if ($working_day_dates === null) {
+            $working_day_dates = $context['working_day_dates'] ?? [];
+        }
+
+        $type_maps = $this->getPayrollAttendanceTypeMaps();
+        $by_config_key = [];
+        foreach ($this->staff_attendance as $att_key => $unused) {
+            if ($att_key !== 'holiday') {
+                $by_config_key[$att_key] = 0;
+            }
+        }
+
+        $rows = $this->staffattendancemodel->getAttendanceRowsInRange($staff_id, $start_date, $end_date);
+        $key_by_date = [];
+        foreach ((array) $rows as $row) {
+            $row_date = (string) ($row['date'] ?? '');
+            if ($row_date === '') {
+                continue;
+            }
+
+            $key_by_date[$row_date] = $this->getNormalizedAttendanceKeyForPayrollRow(
+                (array) $row,
+                (int) $staff_id,
+                null,
+                $type_maps
+            );
+        }
+
+        $by_display_key = [];
+        foreach ((array) $working_day_dates as $work_date) {
+            $att_key = strtoupper(trim((string) ($key_by_date[$work_date] ?? 'A')));
+            if ($att_key === '') {
+                $att_key = 'A';
+            }
+
+            $by_display_key[$att_key] = (int) ($by_display_key[$att_key] ?? 0) + 1;
+
+            $config_key = $type_maps['key_value_to_config_key'][$att_key] ?? null;
+            if ($config_key !== null && array_key_exists($config_key, $by_config_key)) {
+                $by_config_key[$config_key]++;
+            }
+        }
+
+        return [
+            'by_config_key' => $by_config_key,
+            'by_display_key' => $by_display_key,
+            'key_by_date' => $key_by_date,
+        ];
+    }
+
+    private function getPayrollAttendanceTypeMaps()
+    {
+        static $cache = null;
+        if ($cache !== null) {
+            return $cache;
+        }
+
+        $id_to_key_value = [];
+        $key_value_to_config_key = [];
+        $types = $this->staffattendancemodel->getStaffAttendanceType();
+        foreach ((array) $types as $type_row) {
+            $id = (int) ($type_row['id'] ?? 0);
+            $key_value = strtoupper(trim((string) ($type_row['key_value'] ?? '')));
+            $config_key = str_replace(' ', '_', strtolower((string) ($type_row['type'] ?? '')));
+
+            if ($id > 0 && $key_value !== '') {
+                $id_to_key_value[$id] = $key_value;
+            }
+            if ($key_value !== '') {
+                $key_value_to_config_key[$key_value] = $config_key;
+            }
+        }
+
+        $cache = [
+            'id_to_key_value' => $id_to_key_value,
+            'key_value_to_config_key' => $key_value_to_config_key,
         ];
 
-        $role_ids = [];
-        $role_rows = $this->db->select('role_id')
-            ->from('staff_roles')
-            ->where('staff_id', $staff_id)
-            ->get()
-            ->result_array();
-        foreach ($role_rows as $role_row) {
-            $rid = isset($role_row['role_id']) ? (int) $role_row['role_id'] : 0;
-            if ($rid > 0 && !in_array($rid, $role_ids, true)) {
-                $role_ids[] = $rid;
-            }
+        return $cache;
+    }
+
+    private function getAdminRoleIdForPayroll()
+    {
+        static $admin_role_id = null;
+        if ($admin_role_id !== null) {
+            return (int) $admin_role_id;
         }
 
         $admin_role_row = $this->db->query("SELECT id FROM roles WHERE LOWER(name)='admin' ORDER BY id ASC LIMIT 1")->row_array();
-        $admin_role_id = isset($admin_role_row['id']) ? (int) $admin_role_row['id'] : 0;
-        if ($admin_role_id > 0 && !in_array($admin_role_id, $role_ids, true)) {
-            $role_ids[] = $admin_role_id;
+        $admin_role_id = isset($admin_role_row['id']) ? (int) $admin_role_row['id'] : 1;
+        if ($admin_role_id <= 0) {
+            $admin_role_id = 1;
         }
 
-        if (empty($role_ids)) {
-            return $result;
+        return (int) $admin_role_id;
+    }
+
+    private function getPrimaryRoleIdForStaffPayroll($staff_id)
+    {
+        $role_row = $this->db->select('role_id')
+            ->from('staff_roles')
+            ->where('staff_id', (int) $staff_id)
+            ->order_by('id', 'asc')
+            ->limit(1)
+            ->get()
+            ->row_array();
+
+        $role_id = (int) ($role_row['role_id'] ?? 0);
+        if ($role_id <= 0) {
+            $role_id = $this->getAdminRoleIdForPayroll();
+        }
+
+        return $role_id;
+    }
+
+    private function getRoleAttendanceSettingsForPayroll()
+    {
+        static $cache = null;
+        if ($cache !== null) {
+            return $cache;
         }
 
         $this->load->model('staffAttendaceSetting_model');
-        $attendance_types = $this->staffattendancemodel->getStaffAttendanceType();
-        $type_map = [];
-        foreach ($attendance_types as $type_row) {
-            $key_value = strtoupper(trim($type_row['key_value'] ?? ''));
-            if (!empty($key_value)) {
-                $type_map[$key_value] = (int) $type_row['id'];
+        $raw = $this->staffAttendaceSetting_model->getRoleAttendanceSetting();
+        $map = [];
+        foreach ((array) $raw as $row) {
+            $role_id = (int) ($row->role_id ?? 0);
+            $type_id = (int) ($row->staff_attendence_type_id ?? 0);
+            if ($role_id <= 0 || $type_id <= 0) {
+                continue;
+            }
+
+            $map[$role_id][$type_id] = [
+                'from' => $row->entry_time_from ?? null,
+                'to' => $row->entry_time_to ?? null,
+            ];
+        }
+
+        $cache = $map;
+        return $cache;
+    }
+
+    private function getPayrollSettingsForAttendanceDerivation()
+    {
+        static $cache = null;
+        if ($cache !== null) {
+            return $cache;
+        }
+
+        $cache = $this->setting_model->getSetting();
+        return $cache;
+    }
+
+    private function hasValidPunchForPayroll(array $attendance_row)
+    {
+        $in_time = trim((string) ($attendance_row['in_time'] ?? ''));
+        $out_time = trim((string) ($attendance_row['out_time'] ?? ''));
+
+        if ($in_time !== '' && $in_time !== '00:00:00') {
+            return true;
+        }
+        if ($out_time !== '' && $out_time !== '00:00:00') {
+            return true;
+        }
+
+        return false;
+    }
+
+    private function getNormalizedAttendanceKeyForPayrollRow(array $attendance_row, $staff_id, $role_id = null, $type_maps = null)
+    {
+        if ($type_maps === null) {
+            $type_maps = $this->getPayrollAttendanceTypeMaps();
+        }
+
+        $attendance_key = strtoupper(trim((string) ($attendance_row['key'] ?? '')));
+        if ($attendance_key === '') {
+            $attendance_type_id = (int) ($attendance_row['staff_attendance_type_id'] ?? 0);
+            if ($attendance_type_id > 0) {
+                $attendance_key = strtoupper(trim((string) ($type_maps['id_to_key_value'][$attendance_type_id] ?? '')));
             }
         }
 
-        $late_settings = ['FHL' => false, 'SHL' => false];
-        $permission_settings = ['FHP' => false, 'SHP' => false];
+        $effective_role_id = (int) $role_id;
+        if ($effective_role_id <= 0) {
+            $effective_role_id = (int) ($attendance_row['role_id'] ?? 0);
+        }
+        if ($effective_role_id <= 0) {
+            $effective_role_id = $this->getPrimaryRoleIdForStaffPayroll((int) $staff_id);
+        }
 
-        foreach ($role_ids as $candidate_role_id) {
-            $candidate_fhl = !empty($type_map['FHL']) ? $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($candidate_role_id, $type_map['FHL']) : false;
-            $candidate_shl = !empty($type_map['SHL']) ? $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($candidate_role_id, $type_map['SHL']) : false;
-            $candidate_fhp = !empty($type_map['FHP']) ? $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($candidate_role_id, $type_map['FHP']) : false;
-            $candidate_shp = !empty($type_map['SHP']) ? $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($candidate_role_id, $type_map['SHP']) : false;
+        $role_settings = $this->getRoleAttendanceSettingsForPayroll();
+        if (empty($role_settings[$effective_role_id])) {
+            $effective_role_id = $this->getAdminRoleIdForPayroll();
+        }
 
-            if (empty($late_settings['FHL']) && empty($late_settings['SHL']) && (!empty($candidate_fhl) || !empty($candidate_shl))) {
-                $late_settings['FHL'] = $candidate_fhl;
-                $late_settings['SHL'] = $candidate_shl;
-            }
-
-            if (empty($permission_settings['FHP']) && empty($permission_settings['SHP']) && (!empty($candidate_fhp) || !empty($candidate_shp))) {
-                $permission_settings['FHP'] = $candidate_fhp;
-                $permission_settings['SHP'] = $candidate_shp;
-            }
-
-            if ((!empty($late_settings['FHL']) || !empty($late_settings['SHL'])) && (!empty($permission_settings['FHP']) || !empty($permission_settings['SHP']))) {
-                break;
+        // Keep payroll aligned with report UI: derive keys from biometric punch windows.
+        $is_biometric = !empty($attendance_row['biometric_attendence']);
+        $in_time = $attendance_row['in_time'] ?? '';
+        $out_time = $attendance_row['out_time'] ?? '';
+        if ($is_biometric && !empty($in_time)) {
+            $derived = $this->deriveAttendanceKeyFromPunchesForPayroll(
+                $in_time,
+                $out_time,
+                $effective_role_id,
+                $role_settings,
+                $this->getPayrollSettingsForAttendanceDerivation()
+            );
+            if ($derived !== null) {
+                $attendance_key = $derived;
             }
         }
 
-        $has_late_mapping = !empty($late_settings['FHL']) || !empty($late_settings['SHL']);
-        $has_permission_mapping = !empty($permission_settings['FHP']) || !empty($permission_settings['SHP']);
+        if ($attendance_key === '') {
+            $attendance_key = 'A';
+        }
 
-        $rows = $this->staffattendancemodel->getAttendanceRowsInRange($staff_id, $start_date, $end_date);
-        $computed = [
-            'late' => 0,
-            'permission_total' => 0,
-            'first_half_permission' => 0,
-            'second_half_permission' => 0,
-        ];
-        foreach ($rows as $row) {
-            $in_time = $row['in_time'] ?? '';
-            $out_time = $row['out_time'] ?? '';
+        if (in_array($attendance_key, ['P', 'FHL', 'SHL', 'FHP', 'SHP', 'HD'], true)
+            && !$this->hasValidPunchForPayroll($attendance_row)) {
+            $attendance_key = 'A';
+        }
 
-            if ($has_late_mapping) {
-                $late_for_day = 0;
-                if (!empty($in_time)) {
-                    if (!empty($late_settings['SHL']) && $this->timeInRangeForPayroll($in_time, $late_settings['SHL']->entry_time_from, $late_settings['SHL']->entry_time_to)) {
-                        $late_for_day = 1;
-                    } elseif (!empty($late_settings['FHL']) && $this->timeInRangeForPayroll($in_time, $late_settings['FHL']->entry_time_from, $late_settings['FHL']->entry_time_to)) {
-                        $late_for_day = 1;
+        return $attendance_key;
+    }
+
+    // Mirrors Attendencereports::_derive_att_key_from_punches.
+    private function deriveAttendanceKeyFromPunchesForPayroll($in_time, $out_time, $role_id, $role_settings, $settings)
+    {
+        if (empty($in_time)) {
+            return null;
+        }
+
+        if (empty($role_id)) {
+            $role_id = 1;
+        }
+
+        $morning_session_status = 8;
+        $afternoon_session_status = 9;
+        $second_half_start = false;
+
+        $morning_type_id = null;
+        if (!empty($role_settings[$role_id])) {
+            foreach ($role_settings[$role_id] as $type_id => $window) {
+                if (!empty($window['from']) && !empty($window['to'])
+                    && strtotime($in_time) >= strtotime($window['from'])
+                    && strtotime($in_time) <= strtotime($window['to'])) {
+                    $morning_type_id = (int) $type_id;
+                    break;
+                }
+            }
+        }
+
+        if ($morning_type_id !== null) {
+            if ($morning_type_id === 4) {
+                $morning_session_status = 8;
+                $afternoon_session_status = 1;
+                $second_half_start = true;
+            } elseif ($morning_type_id === 6) {
+                $morning_session_status = 8;
+                $afternoon_session_status = 6;
+                $second_half_start = true;
+            } else {
+                $morning_session_status = $morning_type_id;
+            }
+        } else {
+            $present_window = isset($role_settings[$role_id][1]) ? $role_settings[$role_id][1] : null;
+            if ($present_window && !empty($present_window['from'])
+                && strtotime($in_time) < strtotime($present_window['from'])) {
+                $morning_session_status = 1;
+            } else {
+                $shl_window = isset($role_settings[$role_id][6]) ? $role_settings[$role_id][6] : null;
+                if ($shl_window && !empty($shl_window['to'])
+                    && strtotime($in_time) > strtotime($shl_window['to'])) {
+                    $morning_session_status = 8;
+                    $afternoon_session_status = 9;
+                    $second_half_start = true;
+                } else {
+                    $morning_session_status = 8;
+                }
+            }
+        }
+
+        if (!empty($out_time) && !$second_half_start) {
+            $shp_window = isset($role_settings[$role_id][7]) ? $role_settings[$role_id][7] : null;
+
+            $in_shp = $shp_window && !empty($shp_window['from']) && !empty($shp_window['to'])
+                && strtotime($out_time) >= strtotime($shp_window['from'])
+                && strtotime($out_time) <= strtotime($shp_window['to']);
+
+            if ($in_shp) {
+                $afternoon_session_status = 7;
+            } else {
+                $second_half_floor_ts = null;
+                foreach ([4, 6] as $second_half_type) {
+                    if (!empty($role_settings[$role_id][$second_half_type]['from'])) {
+                        $ts = strtotime($role_settings[$role_id][$second_half_type]['from']);
+                        if ($ts !== false && ($second_half_floor_ts === null || $ts < $second_half_floor_ts)) {
+                            $second_half_floor_ts = $ts;
+                        }
                     }
                 }
-                $computed['late'] += $late_for_day;
-            }
 
-            if ($has_permission_mapping) {
-                if (!empty($in_time) && !empty($permission_settings['FHP']) && $this->timeInRangeForPayroll($in_time, $permission_settings['FHP']->entry_time_from, $permission_settings['FHP']->entry_time_to)) {
-                    $computed['first_half_permission']++;
-                    $computed['permission_total']++;
+                if ($second_half_floor_ts === null && !empty($settings->morning_session_end_time)) {
+                    $second_half_floor_ts = strtotime($settings->morning_session_end_time);
                 }
-                if (!empty($out_time) && !empty($permission_settings['SHP']) && $this->timeInRangeForPayroll($out_time, $permission_settings['SHP']->entry_time_from, $permission_settings['SHP']->entry_time_to)) {
-                    $computed['second_half_permission']++;
-                    $computed['permission_total']++;
+
+                if ($second_half_floor_ts !== null && strtotime($out_time) < $second_half_floor_ts) {
+                    $afternoon_session_status = 9;
+                } else {
+                    $present_cutoff = null;
+                    if ($shp_window && !empty($shp_window['to'])) {
+                        $present_cutoff = $shp_window['to'];
+                    } elseif (!empty($settings->evening_session_end_time)) {
+                        $present_cutoff = $settings->evening_session_end_time;
+                    }
+
+                    if ($present_cutoff && strtotime($out_time) >= strtotime($present_cutoff)) {
+                        $afternoon_session_status = 1;
+                    } else {
+                        $afternoon_session_status = 9;
+                    }
                 }
             }
         }
 
-        $result['is_computed'] = $has_late_mapping || $has_permission_mapping;
-        if ($has_late_mapping) {
-            $result['late_computed'] = true;
-            $result['late'] = $computed['late'];
-        }
-        if ($has_permission_mapping) {
-            $result['permission_computed'] = true;
-            $result['permission_total'] = $computed['permission_total'];
-            $result['first_half_permission'] = $computed['first_half_permission'];
-            $result['second_half_permission'] = $computed['second_half_permission'];
+        $morning_session_status = (int) $morning_session_status;
+        $afternoon_session_status = (int) $afternoon_session_status;
+        $first_half_present = in_array($morning_session_status, [1, 2, 5], true);
+        $second_half_present = in_array($afternoon_session_status, [1, 6, 7], true);
+
+        if ($first_half_present && $second_half_present) {
+            if ($morning_session_status === 2) {
+                return 'FHL';
+            }
+            if ($morning_session_status === 5) {
+                return 'FHP';
+            }
+            if ($afternoon_session_status === 6) {
+                return 'SHL';
+            }
+            if ($afternoon_session_status === 7) {
+                return 'SHP';
+            }
+            return 'P';
         }
 
-        return $result;
+        if ($first_half_present || $second_half_present) {
+            return 'HD';
+        }
+
+        return 'A';
+    }
+
+    private function getLateAndPermissionCountsRange($staff_id, $start_date, $end_date)
+    {
+        $summary = $this->getDerivedAttendanceSummaryForPeriod((int) $staff_id, $start_date, $end_date);
+        $by_key = $summary['by_display_key'] ?? [];
+
+        $late_count = (int) (($by_key['FHL'] ?? 0) + ($by_key['SHL'] ?? 0));
+        $first_half_permission = (int) ($by_key['FHP'] ?? 0);
+        $second_half_permission = (int) ($by_key['SHP'] ?? 0);
+        $permission_total = $first_half_permission + $second_half_permission;
+
+        // Payroll rule: second-half late punch-ins should consume late quota
+        // even if the day is finally treated as half-day (HD) for attendance.
+        $rows = $this->staffattendancemodel->getAttendanceRowsInRange((int) $staff_id, $start_date, $end_date);
+        if (!empty($rows)) {
+            $context = $this->getWorkingDayContextRange($start_date, $end_date);
+            $working_lookup = array_fill_keys($context['working_day_dates'] ?? [], true);
+            $type_maps = $this->getPayrollAttendanceTypeMaps();
+            $role_id = $this->getPrimaryRoleIdForStaffPayroll((int) $staff_id);
+            $role_settings = $this->getRoleAttendanceSettingsForPayroll();
+            $shl_window = $role_settings[$role_id][6] ?? null;
+
+            if (!empty($shl_window['from']) && !empty($shl_window['to'])) {
+                $extra_second_half_late = 0;
+                foreach ((array) $rows as $row) {
+                    $row_date = (string) ($row['date'] ?? '');
+                    if ($row_date === '' || !isset($working_lookup[$row_date])) {
+                        continue;
+                    }
+
+                    if (empty($row['biometric_attendence'])) {
+                        continue;
+                    }
+
+                    $normalized_key = $this->getNormalizedAttendanceKeyForPayrollRow((array) $row, (int) $staff_id, $role_id, $type_maps);
+                    if ($normalized_key !== 'HD') {
+                        continue;
+                    }
+
+                    $in_time = trim((string) ($row['in_time'] ?? ''));
+                    if ($this->timeInRangeForPayroll($in_time, $shl_window['from'], $shl_window['to'])) {
+                        $extra_second_half_late++;
+                    }
+                }
+
+                $late_count += (int) $extra_second_half_late;
+            }
+        }
+
+        return [
+            'is_computed' => true,
+            'late_computed' => true,
+            'permission_computed' => true,
+            'late' => $late_count,
+            'permission_total' => $permission_total,
+            'first_half_permission' => $first_half_permission,
+            'second_half_permission' => $second_half_permission,
+        ];
     }
 
     private function timeInRangeForPayroll($time, $from, $to)
@@ -813,29 +1111,16 @@ class Payroll extends Admin_Controller
     {
         $period = $this->getPayrollPeriodRange($month_num, $year);
         $context = $this->getWorkingDayContextRange($period['start_date'], $period['end_date']);
-        $working_day_dates = $context['working_day_dates'];
-        $absent_count = 0;
-
-        foreach ($working_day_dates as $work_date) {
-            $attendance_row = $this->staffattendancemodel->searchStaffattendance($work_date, $staff_id, false);
-            $attendance_key = $attendance_row['key'] ?? null;
-            if ($attendance_key === 'A') {
-                $absent_count++;
-            }
-        }
+        $summary = $this->getDerivedAttendanceSummaryForPeriod((int) $staff_id, $period['start_date'], $period['end_date'], $context['working_day_dates'], $context);
+        $absent_count = (int) (($summary['by_display_key']['A'] ?? 0));
 
         return max(0, $absent_count);
     }
 
-    private function isAbsentForWeekendBridge(array $attendance_row)
+    private function isAbsentForWeekendBridge(array $attendance_row, $staff_id)
     {
-        $attendance_type_id = (int) ($attendance_row['staff_attendance_type_id'] ?? 0);
-        if (in_array($attendance_type_id, [3, 8, 10, 11], true)) {
-            return true;
-        }
-
-        $attendance_key = strtoupper(trim((string) ($attendance_row['key'] ?? '')));
-        return in_array($attendance_key, ['A', 'FHA', 'SHA'], true);
+        $attendance_key = $this->getNormalizedAttendanceKeyForPayrollRow((array) $attendance_row, (int) $staff_id);
+        return !in_array($attendance_key, ['P', 'FHL', 'SHL', 'FHP', 'SHP', 'HD'], true);
     }
 
     private function getNonPayableWeekendCountRange($staff_id, $start_date, $end_date, $context = null)
@@ -889,8 +1174,8 @@ class Payroll extends Admin_Controller
                 $attendance_cache[$next_working_date] = $this->staffattendancemodel->searchStaffattendance($next_working_date, $staff_id, false);
             }
 
-            $prev_absent = $this->isAbsentForWeekendBridge((array) ($attendance_cache[$prev_working_date] ?? []));
-            $next_absent = $this->isAbsentForWeekendBridge((array) ($attendance_cache[$next_working_date] ?? []));
+            $prev_absent = $this->isAbsentForWeekendBridge((array) ($attendance_cache[$prev_working_date] ?? []), (int) $staff_id);
+            $next_absent = $this->isAbsentForWeekendBridge((array) ($attendance_cache[$next_working_date] ?? []), (int) $staff_id);
 
             if ($prev_absent && $next_absent) {
                 $non_payable_weekends++;
@@ -922,7 +1207,7 @@ class Payroll extends Admin_Controller
                 continue;
             }
             $attendance_row = $this->staffattendancemodel->searchStaffattendance($leave_date, $staff_id, false);
-            $attendance_key = $attendance_row['key'] ?? null;
+            $attendance_key = $this->getNormalizedAttendanceKeyForPayrollRow((array) $attendance_row, (int) $staff_id);
             if ($attendance_key === 'A') {
                 $paid_leave_absent += max(0, min(1, (float) $credit));
             }
@@ -956,7 +1241,7 @@ class Payroll extends Admin_Controller
                 continue;
             }
             $attendance_row = $this->staffattendancemodel->searchStaffattendance($leave_date, $staff_id, false);
-            $attendance_key = $attendance_row['key'] ?? null;
+            $attendance_key = $this->getNormalizedAttendanceKeyForPayrollRow((array) $attendance_row, (int) $staff_id);
             if ($attendance_key === 'A') {
                 $absent_covered += max(0, min(1, (float) $credit));
             }
@@ -1833,28 +2118,22 @@ class Payroll extends Admin_Controller
             $working_day_dates = $context['working_day_dates'];
 
 
-            $attendance_types_from_db = $this->staffattendancemodel->getStaffAttendanceType();
-            $att_key_to_id_map = [];
-            foreach ($attendance_types_from_db as $type_row) {
-                $config_key = str_replace(" ", "_", strtolower($type_row['type']));
-                $att_key_to_id_map[$config_key] = $type_row['id'];
-            }
+            $derived_summary = $this->getDerivedAttendanceSummaryForPeriod(
+                (int) $emp,
+                $period['start_date'],
+                $period['end_date'],
+                $working_day_dates,
+                $context
+            );
 
             foreach ($this->staff_attendance as $att_key => $att_value_from_config) {
-                $attendance_type_id_for_query = $att_key_to_id_map[$att_key] ?? null;
-
                 if ($att_key == 'holiday') {
                     $r[$att_key] = count($holidays_for_H_column); // Now this only counts "other leaves"
                     $r['sunday'] = count($weekend_day_dates); // Weekend days count
                     continue;
                 }
 
-                if ($attendance_type_id_for_query !== null) {
-                    $s = $this->payroll_model->count_attendance_range($period['start_date'], $period['end_date'], $emp, $attendance_type_id_for_query);
-                    $r[$att_key] = $s;
-                } else {
-                    $r[$att_key] = 0;
-                }
+                $r[$att_key] = (int) ($derived_summary['by_config_key'][$att_key] ?? 0);
             }
 
             $r['days_in_period'] = $this->getDaysInRange($period['start_date'], $period['end_date']);
@@ -3103,6 +3382,9 @@ class Payroll extends Admin_Controller
                 'total_allowance' => round($total_allowance, 2),
                 'total_deduction' => round($total_deduction, 2),
                 'leave_deduction' => round($lop_deduction, 2),
+                'actual_lop_days' => round($actual_lop_days, 2),
+                'adjusted_lop_days' => round($adjusted_lop_days, 2),
+                'net_lop_days' => round($net_lop_days, 2),
                 'net_salary'      => $this->roundPayrollAmount($net_salary),
                 'epf_wage'        => round($epf_wage, 2),
                 'employee_epf'    => round($employee_epf, 2),

@@ -135,16 +135,34 @@ class Leaverequest extends Admin_Controller
         return true;
     }
 
+    private function isMovementCreditType($leave_type_details)
+    {
+        if (!is_array($leave_type_details)) {
+            return false;
+        }
+
+        $type_name = strtolower(trim((string) ($leave_type_details['type'] ?? '')));
+        return in_array($type_name, ['on duty', 'od'], true);
+    }
+
     /**
      * Returns the credit_source_type_id for a leave type definition array,
      * or null if the type is not a credit-consumer.
-     * CPL: credit_source_type_id = OD.id — CPL consumes OD earned credit.
+        * CPL / comp-off types are treated as standalone claim-based types here.
      */
     private function leaveTypeCreditSourceId($leave_type_details)
     {
         if (!is_array($leave_type_details)) {
             return null;
         }
+
+        // Comp-off style leave types such as CPL are standalone claim-based leave
+        // in this setup and must not be tied to OD source-credit consumption.
+        $type_name = strtolower(trim((string) ($leave_type_details['type'] ?? '')));
+        if (in_array($type_name, ['cpl', 'comp off', 'compensatory off', 'compensatory leave'], true)) {
+            return null;
+        }
+
         if (!$this->db->field_exists('credit_source_type_id', 'leave_types')) {
             return null;
         }
@@ -415,6 +433,7 @@ class Leaverequest extends Admin_Controller
         $data["status"]        = $this->status;
         $data['leave_management_policy'] = $this->getLeaveManagementPolicy();
         $data['is_admin_or_super_admin'] = $is_admin_or_super_admin;
+        $data['sch_setting_detail'] = $this->sch_setting_detail;
 
         // Fetch staff details, timetable, and potential substitutes
         if ($current_staff_id === 0) {
@@ -484,6 +503,9 @@ class Leaverequest extends Admin_Controller
     public function countLeave($id)
     {
         $lid               = $this->input->post("lid");
+        // 'claim_leave' = no-balance claim-based types such as OD/CPL.
+        // 'adjust_lop'  = show all leave types; paid/non-paid behavior is handled by type rules at submit
+        $mode              = $this->input->post("mode") ?: 'claim_leave';
         $alloted_leavetype = $this->leaverequest_model->allotedLeaveType($id);
         $all_leavetypes    = $this->staff_model->getLeaveType();
 
@@ -502,11 +524,21 @@ class Leaverequest extends Admin_Controller
                 
                 $is_allotted = isset($allotted_map[$value['id']]);
                 $is_lop = isset($value['is_lop']) && $value['is_lop'] == 1;
-                // Credit-consumer types (CPL): consume from a source type's credit pool
+                // Source-credit consumer types: consume from another leave type's credit pool.
                 $credit_src = $this->leaveTypeCreditSourceId($value);
                 $is_credit_consumer = !$is_lop && $credit_src !== null;
-                // Pure credit-earning types (OD): requires_balance_check=0, no credit_source_type_id
-                $is_credit_earn = !$is_lop && !$is_credit_consumer && $this->leaveTypeRequiresBalanceCheck($value) === false;
+                $is_claim_based = !$is_lop && !$is_credit_consumer && $this->leaveTypeRequiresBalanceCheck($value) === false;
+                $is_movement_credit = $is_claim_based && $this->isMovementCreditType($value);
+
+                // --- Mode-based filtering ---
+                if ($mode === 'claim_leave') {
+                    // Claim Leave: only requires_balance_check=0 / claim-based types.
+                    // i.e. requires_balance_check = No
+                    if (!$is_claim_based && !$is_credit_consumer) {
+                        continue;
+                    }
+                }
+                // Adjust mode intentionally shows all leave types; payroll impact is decided by leave type rules.
 
                 if ($is_lop) {
                     if ($is_allotted) {
@@ -530,7 +562,7 @@ class Leaverequest extends Admin_Controller
                         );
                     }
                 } elseif ($is_credit_consumer) {
-                    // CPL: consumes OD credit pool — show available pool balance
+                    // Source-credit consumer type — show available source pool balance
                     $pool_balance = $this->getAvailableCreditPoolBalance($id, $credit_src);
                     $src_type = $this->staff_model->getLeaveType($credit_src);
                     $src_name = $src_type['type'] ?? 'OD';
@@ -539,16 +571,44 @@ class Leaverequest extends Admin_Controller
                         'type'    => $value['type'],
                         'display' => $value['type'] . ' (' . $pool_balance . ' ' . $src_name . ' credit available)',
                     );
-                } elseif ($is_credit_earn) {
-                    // OD: credit-earning. Show allotted days as reference; no balance gate.
+                } elseif ($is_movement_credit) {
+                    // OD: movement-credit type. Show allotted days as reference only.
                     $suffix = $is_allotted
-                        ? ' (' . $allotted_map[$value['id']]['alloted_leave'] . ' allotted) [Credit Earn]'
-                        : ' [Credit Earn]';
+                        ? ' (' . $allotted_map[$value['id']]['alloted_leave'] . ' allotted) [OD Claim]'
+                        : ' [OD Claim]';
                     $leave_types_to_display[$value['id']] = array(
                         'id'      => $value['id'],
                         'type'    => $value['type'],
                         'display' => $value['type'] . $suffix,
                     );
+                } elseif ($is_claim_based) {
+                    // CPL / claim-based types in Claim mode should appear as plain names (no count suffix).
+                    // This avoids confusion like "CPL (0)" while users are applying for CPL itself.
+                    if ($mode === 'claim_leave') {
+                        $leave_types_to_display[$value['id']] = array(
+                            'id' => $value['id'],
+                            'type' => $value['type'],
+                            'display' => $value['type']
+                        );
+                    } else {
+                        if ($is_allotted) {
+                            $allotted_leave_days = $allotted_map[$value['id']]['alloted_leave'];
+                            $count_leaves = $this->leaverequest_model->countLeavesData($id, $value["id"]);
+                            $approve_leave = !empty($count_leaves['approve_leave']) ? $count_leaves['approve_leave'] : 0;
+                            $available = $allotted_leave_days - $approve_leave;
+                            $leave_types_to_display[$value['id']] = array(
+                                'id' => $value['id'],
+                                'type' => $value['type'],
+                                'display' => $value['type'] . " (" . $available . ")"
+                            );
+                        } else {
+                            $leave_types_to_display[$value['id']] = array(
+                                'id' => $value['id'],
+                                'type' => $value['type'],
+                                'display' => $value['type'] . " (0)"
+                            );
+                        }
+                    }
                 } else {
                     // Regular allotted leave (CL / ML etc.)
                     if ($is_allotted) {
@@ -565,7 +625,6 @@ class Leaverequest extends Admin_Controller
                             );
                         }
                     } else { // Not LOP and not allotted
-                        // Display with 0 available
                         $leave_types_to_display[$value['id']] = array(
                             'id' => $value['id'],
                             'type' => $value['type'],
@@ -612,11 +671,11 @@ class Leaverequest extends Admin_Controller
         $requires_balance_check = $this->leaveTypeRequiresBalanceCheck($leave_type);
         $credit_source_type_id  = $this->leaveTypeCreditSourceId($leave_type);
         $is_credit_consumer     = !$is_lop && $credit_source_type_id !== null;
-        // OD is credit-earning; CPL is credit-consuming (not credit-earning)
-        $is_credit_earn         = !$is_lop && !$is_credit_consumer && !$requires_balance_check;
+        $is_claim_based         = !$is_lop && !$is_credit_consumer && !$requires_balance_check;
+        $is_movement_credit     = $is_claim_based && $this->isMovementCreditType($leave_type);
 
         if ($is_credit_consumer) {
-            // --- CPL / credit-consumer ---
+            // --- Source-credit consumer ---
             $source_type   = $this->staff_model->getLeaveType($credit_source_type_id);
             $source_name   = $source_type['type'] ?? 'OD';
 
@@ -707,9 +766,13 @@ class Leaverequest extends Admin_Controller
 
         if ($is_lop) {
             $note = 'This is a Loss of Pay leave type. Apply only when unable to use paid leave.';
-        } elseif ($is_credit_earn) {
-            $note = 'This is a <strong>credit-earning</strong> leave type (e.g. On Duty). '
-                . 'Each approved request adds to your credit pool, which can then be used via CPL.';
+        } elseif ($is_movement_credit) {
+            $note = 'This is an <strong>On Duty / movement</strong> type. '
+                . 'Approved requests on non-present days may be counted for payroll LOP adjustment. '
+                . 'OD approved on a normal Present working day is kept only for audit and is not used for LOP adjustment.';
+        } elseif ($is_claim_based) {
+            $note = 'This is a <strong>claim-based leave</strong> type. '
+                . 'It is applied and tracked as its own leave bucket and is not shown as On Duty credit.';
         } elseif ($application_driven) {
             $note = 'Balance will be <strong>deducted immediately upon approval</strong>. '
                 . 'Pending requests are reserved (not yet deducted).';
@@ -721,7 +784,8 @@ class Leaverequest extends Admin_Controller
             'status'             => 'success',
             'type_label'         => htmlspecialchars((string)($leave_type['type'] ?? ''), ENT_QUOTES),
             'is_lop'             => $is_lop,
-            'is_credit_earn'     => $is_credit_earn,
+            'is_credit_earn'     => $is_movement_credit,
+            'is_claim_based'     => $is_claim_based && !$is_movement_credit,
             'is_credit_consumer' => false,
             'is_balance_consume' => !$is_lop && $requires_balance_check,
             'application_driven' => $application_driven,
@@ -1071,6 +1135,7 @@ class Leaverequest extends Admin_Controller
         public function addLeave()
         {
             log_message('error', 'addLeave called');
+            $request_type = $this->input->post('request_type') ?: 'claim_leave';
             $role         = $this->input->post("role");
             $empid        = $this->input->post("empname");
             $leavetype    = $this->input->post("leave_type");
@@ -1144,7 +1209,7 @@ class Leaverequest extends Admin_Controller
                 $can_apply_past_by_selected_role = $this->canApplyPastDateByPolicy((int) $role, $policy);
                 $can_apply_past_by_logged_in_user = $this->currentUserIsAdminOrSuperAdmin();
 
-                if (!empty($leavefrom) && !($can_apply_past_by_selected_role || $can_apply_past_by_logged_in_user)) {
+                if (!empty($leavefrom) && $request_type !== 'adjust_lop' && !($can_apply_past_by_selected_role || $can_apply_past_by_logged_in_user)) {
                     $today = date('Y-m-d');
                     if ($leavefrom < $today) {
                         $msg = array(

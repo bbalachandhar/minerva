@@ -804,10 +804,14 @@ class Payroll_model extends MY_Model
     private function getOnDutyLeaveTypeIds()
     {
         $has_balance_flag = $this->db->field_exists('requires_balance_check', 'leave_types');
+        $has_credit_source_col = $this->db->field_exists('credit_source_type_id', 'leave_types');
 
         $this->db->select('id, type, is_lop');
         if ($has_balance_flag) {
             $this->db->select('requires_balance_check');
+        }
+        if ($has_credit_source_col) {
+            $this->db->select('credit_source_type_id');
         }
         $this->db->from('leave_types');
         $this->db->where('is_lop', 0);
@@ -816,7 +820,11 @@ class Payroll_model extends MY_Model
         $eligible_ids = [];
         foreach ($rows as $row) {
             if ($has_balance_flag) {
-                if ((int) ($row['requires_balance_check'] ?? 1) === 0) {
+                $is_credit_earner = ((int) ($row['requires_balance_check'] ?? 1) === 0);
+                $is_credit_consumer = $has_credit_source_col && !empty($row['credit_source_type_id']);
+
+                // OD set must include only credit-earning types, not consumer types like CPL.
+                if ($is_credit_earner && !$is_credit_consumer) {
                     $eligible_ids[] = (int) $row['id'];
                 }
                 continue;
@@ -878,33 +886,11 @@ class Payroll_model extends MY_Model
 
         $paid_leaves = $this->getStaffPaidLeaves($staff_id);
 
-        // In application-driven mode (auto_adjust_lop_with_preallotted_leaves=0),
-        // exclude requires_balance_check=1 types (CL, ML, etc.) from the pool.
-        // Their balance was already deducted at approval time; payroll must not
-        // also try to offset LOP with them to avoid double deduction.
-        $settings = $this->setting_model->getSetting();
-        $auto_adjust_preallotted = (int)($settings->auto_adjust_lop_with_preallotted_leaves ?? 0);
-        if ($auto_adjust_preallotted === 0 && $this->db->field_exists('requires_balance_check', 'leave_types')) {
-            $preallotted_ids = $this->db
-                ->select('id')
-                ->where('requires_balance_check', 1)
-                ->where('is_lop', 0)
-                ->get('leave_types')
-                ->result_array();
-            $preallotted_ids = array_column($preallotted_ids, 'id');
-            $paid_leaves = array_filter($paid_leaves, function ($leave) use ($preallotted_ids) {
-                return !in_array((int)($leave['leave_type_id'] ?? 0), $preallotted_ids, true);
-            });
-        }
+        // Rule: LOP adjustment eligibility is based only on leave_types.is_lop = 0.
+        // Do not exclude by requires_balance_check / pre-allotted settings here.
 
-        // Always exclude credit-consumer types (e.g. CPL consuming OD credit).
-        // Their credit was already deducted from the OD pool at approval time;
-        // including CPL days in the LOP adjustment pool would double-offset.
-        if ($this->db->field_exists('credit_source_type_id', 'leave_types')) {
-            $paid_leaves = array_filter($paid_leaves, function ($leave) {
-                return empty($leave['credit_source_type_id']);
-            });
-        }
+        // Keep credit-consumer types (e.g. CPL) in the LOP adjustment pool.
+        // Business flow: CPL should be eligible to offset LOP if balance is available.
 
         foreach ($paid_leaves as $leave) {
             $leave_type_id = (int) ($leave['leave_type_id'] ?? 0);

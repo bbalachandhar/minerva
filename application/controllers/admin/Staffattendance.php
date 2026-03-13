@@ -449,18 +449,20 @@ class Staffattendance extends Admin_Controller
             return;
         }
 
-        // normalize dates to YYYY-MM-DD
-        try {
-            $from_date = date('Y-m-d', $this->customlib->datetostrtotime($from_date_raw));
-            $to_date = date('Y-m-d', $this->customlib->datetostrtotime($to_date_raw));
-            log_message('debug', "fetch_punches_between_dates: Raw dates from UI - From: {$from_date_raw}, To: {$to_date_raw}");
-            log_message('debug', "fetch_punches_between_dates: Normalized dates - From: {$from_date}, To: {$to_date}");
-        } catch (Exception $e) {
-            log_message('error', "fetch_punches_between_dates: Date parsing error - " . $e->getMessage());
+        // Normalize and validate dates from UI format.
+        $from_ts = $this->customlib->datetostrtotime($from_date_raw);
+        $to_ts = $this->customlib->datetostrtotime($to_date_raw);
+        if ($from_ts === false || $to_ts === false || !is_numeric($from_ts) || !is_numeric($to_ts)) {
+            log_message('error', "fetch_punches_between_dates: Invalid date input - From: {$from_date_raw}, To: {$to_date_raw}");
             ob_end_clean();
             echo json_encode(['status' => 'fail', 'message' => 'Invalid date format']);
             return;
         }
+
+        $from_date = date('Y-m-d', (int)$from_ts);
+        $to_date = date('Y-m-d', (int)$to_ts);
+        log_message('debug', "fetch_punches_between_dates: Raw dates from UI - From: {$from_date_raw}, To: {$to_date_raw}");
+        log_message('debug', "fetch_punches_between_dates: Normalized dates - From: {$from_date}, To: {$to_date}");
 
         if (strtotime($from_date) > strtotime($to_date)) {
             ob_end_clean();
@@ -485,8 +487,9 @@ class Staffattendance extends Admin_Controller
             'password' => $active_device['password'],
         ]);
 
-        // Reset existing raw punches in the range
-        $this->staff_biometric_punches_model->delete_punches_between_dates($from_date, $to_date);
+        // Reset existing raw punches only in the selected range.
+        $deleted_rows = $this->staff_biometric_punches_model->delete_punches_between_dates($from_date, $to_date);
+        log_message('info', "fetch_punches_between_dates: Deleted {$deleted_rows} raw punches between {$from_date} and {$to_date}");
 
         log_message('debug', "fetch_punches_between_dates: Calling biometric API with FromDateTime: {$fromDateTime}, ToDateTime: {$toDateTime}");
         $start_time = microtime(true);

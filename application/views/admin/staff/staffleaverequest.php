@@ -239,6 +239,15 @@ $i++;
 <div id="addleave" class="modal fade " role="dialog">
     <div class="modal-dialog modal-dialog2 modal-lg">
         <div class="modal-content">
+            <?php
+            $auto_adjust_paid_enabled = false;
+            if (isset($sch_setting_detail) && is_object($sch_setting_detail)) {
+                $auto_adjust_paid_enabled = ((int) ($sch_setting_detail->auto_adjust_lop_with_leaves ?? 0) === 1);
+            } else {
+                $live_setting = $this->setting_model->getSetting();
+                $auto_adjust_paid_enabled = ((int) ($live_setting->auto_adjust_lop_with_leaves ?? 0) === 1);
+            }
+            ?>
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal">&times;</button>
                 <h4 class="modal-title"><?php echo $this->lang->line('add_details'); ?></h4>
@@ -246,6 +255,25 @@ $i++;
             <div class="modal-body">
                 <div class="row">
                     <form role="form" id="addleave_form" method="post" enctype="multipart/form-data" action="">
+                        <!-- Request Type Picker -->
+                        <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12" style="margin-bottom:10px;">
+                            <label><strong>Request Type</strong> <small class="req"> *</small></label>
+                            <div class="btn-group btn-group-justified" data-toggle="buttons" style="margin-top:5px; display:table; width:100%;">
+                                <?php if ($auto_adjust_paid_enabled) { ?>
+                                <label class="btn btn-default active" id="btn_rt_claim" style="text-align:left; padding:10px 15px; white-space:normal;">
+                                    <input type="radio" name="request_type" value="claim_leave" checked>
+                                    <i class="fa fa-calendar-plus-o" style="font-size:15px;"></i> <strong>Claim Leave</strong>
+                                    <div class="text-muted" style="font-weight:normal; font-size:12px; margin-top:2px;">Apply for claim-based leaves such as OD and CPL.</div>
+                                </label>
+                                <?php } else { ?>
+                                <label class="btn btn-default active" id="btn_rt_lop" style="text-align:left; padding:10px 15px; white-space:normal;">
+                                    <input type="radio" name="request_type" value="adjust_lop" checked>
+                                    <i class="fa fa-exchange" style="font-size:15px;"></i> <strong>Apply Leave / Adjust Lop Absense</strong>
+                                    <div class="text-muted" style="font-weight:normal; font-size:12px; margin-top:2px;">All leave types are available. Paid leaves adjust payroll LOP; non-paid leaves stay as leave-management records.</div>
+                                </label>
+                                <?php } ?>
+                            </div>
+                        </div>
 <?php if ($this->rbac->hasPrivilege('approve_leave_request', 'can_add')) { ?>
                         <div class="form-group  col-xs-12 col-sm-12 col-md-12 col-lg-6">
                             <label>
@@ -305,14 +333,27 @@ $i++;
                             <div id="leave_balance_info_panel" style="display:none; margin-top:8px; padding:8px 12px; border-left:3px solid #ccc; background:#f9f9f9; font-size:13px;"></div>
                             <span class="text-danger"><?php echo form_error('leave_type'); ?></span>
                         </div>
+
+                        <!-- LOP Adjust Section -->
+                        <div id="lop_section" style="display:none;">
+                            <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
+                                <div class="alert alert-info" style="margin-bottom:10px;">
+                                    <i class="fa fa-info-circle"></i>
+                                    <strong>Adjust LOP Absence:</strong> Select the absent date in Leave From Date. Leave To Date will be auto-set to the same date.
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Leave Date Range Section (used by both request types) -->
+                        <div id="claim_dates_section">
                           <div class="form-group col-xs-12 col-sm-12 col-md-12 col-lg-6">
-                            <label><?php echo $this->lang->line('leave_from_date'); ?></label><small class="req"> *</small>
+                                                        <label id="leave_from_date_label"><?php echo $this->lang->line('leave_from_date'); ?></label><small class="req"> *</small>
                                 <input type="text" readonly id="leave_from_date" name="leave_from_date" class="form-control date" >
                                 <input type="hidden" id="leave_from_date_iso" name="leave_from_date_iso" value="">
                             <!-- /.input group -->
                         </div>
                                                    <div class="form-group col-xs-12 col-sm-12 col-md-12 col-lg-6">
-                                                     <label><?php echo $this->lang->line('leave_to_date'); ?></label><small class="req"> *</small>
+                                                                                                         <label id="leave_to_date_label"><?php echo $this->lang->line('leave_to_date'); ?></label><small class="req"> *</small>
                                                          <input type="text" readonly id="leave_to_date" name="leave_to_date" class="form-control date" >
                                                          <input type="hidden" id="leave_to_date_iso" name="leave_to_date_iso" value="">
                                                      <!-- /.input group -->
@@ -331,6 +372,7 @@ $i++;
                             <p class="help-block" id="leave_duration_help" style="margin-bottom:0;">For half-day leave, from/to date must be same day.</p>
                             <p class="help-block" style="margin-bottom:0;">Hint: Leave is not allowed on dates already marked Present. If attendance is marked Half Day for a date, only half-day leave can be applied for that date.</p>
                         </div>
+                        </div><!-- end #claim_dates_section -->
                          
                         <div class="form-group col-xs-12 col-sm-12 col-md-12 col-lg-6">
                             <label><?php echo $this->lang->line('recommender'); ?></label>
@@ -407,6 +449,7 @@ $i++;
 
 <script type="text/javascript">
     var LEAVE_DATE_FORMAT = '<?php echo strtr($this->customlib->getSchoolDateFormat(), ['d' => 'dd', 'm' => 'mm', 'Y' => 'yyyy']); ?>';
+    var AUTO_ADJUST_LOP_WITH_PAID_LEAVES = <?php echo $auto_adjust_paid_enabled ? 'true' : 'false'; ?>;
 
     function formatDateToIso(dateObj) {
         if (!dateObj || Object.prototype.toString.call(dateObj) !== '[object Date]' || isNaN(dateObj.getTime())) {
@@ -442,12 +485,22 @@ $i++;
             autoclose: true,
             format: LEAVE_DATE_FORMAT,
             todayHighlight: true
+        }).on('changeDate', function () {
+            syncLeaveIsoDates();
+            if (($('input[name="request_type"]:checked').val() || 'claim_leave') === 'adjust_lop') {
+                var fromDate = $('#leave_from_date').val();
+                var fromIso = $('#leave_from_date_iso').val();
+                $('#leave_to_date').val(fromDate);
+                $('#leave_to_date_iso').val(fromIso);
+            }
         });
 
         $('#leave_to_date').datepicker('destroy').datepicker({
             autoclose: true,
             format: LEAVE_DATE_FORMAT,
             todayHighlight: true
+        }).on('changeDate', function () {
+            syncLeaveIsoDates();
         });
 
         syncLeaveIsoDates();
@@ -627,6 +680,10 @@ $i++;
 
     function applyPastDateRestrictionUI() {
         var allowPast = canApplyPastDates();
+        var reqType = $('input[name="request_type"]:checked').val() || 'claim_leave';
+        if (reqType === 'adjust_lop') {
+            allowPast = true;
+        }
         var $from = $('#leave_from_date');
         var $to = $('#leave_to_date');
 
@@ -656,6 +713,44 @@ $i++;
             $('#substitution_fields').html('');
             $('#alternative_teacher_id').val('');
         }
+    }
+
+    function toggleRequestTypeUI(type) {
+        if (type === 'adjust_lop') {
+            $('#lop_section').show();
+            $('#claim_dates_section').show();
+            $('#leave_duration_group').hide();
+            $('#leave_duration_type').val('full_day');
+            $('#leave_from_date_label').text('Absent Date (LOP) to Adjust');
+            $('#leave_to_date_label').text('Adjusted Through Leave Date');
+            // Adjust mode is single-day only.
+            var fromDate = $('#leave_from_date').val();
+            var fromIso = $('#leave_from_date_iso').val();
+            if (fromDate || fromIso) {
+                $('#leave_to_date').val(fromDate);
+                $('#leave_to_date_iso').val(fromIso);
+            }
+
+            // No substitution needed for a past-date LOP adjustment
+            $('#substitution_heading').hide();
+            $('#alternative_teacher_group').hide();
+            $('#timetable_section').hide();
+            $('#timetable_display').html('');
+            $('#substitution_fields').html('');
+            $('#alternative_teacher_id').val('');
+        } else {
+            $('#lop_section').hide();
+            $('#claim_dates_section').show();
+            $('#leave_from_date_label').text('<?php echo addslashes($this->lang->line('leave_from_date')); ?>');
+            $('#leave_to_date_label').text('<?php echo addslashes($this->lang->line('leave_to_date')); ?>');
+            toggleHalfDayUI();
+        }
+        // Reload leave type DDL filtered for the active mode
+        var staffId = $('#empname').val();
+        if (staffId) {
+            getLeaveTypeDDL(staffId, '');
+        }
+        applyPastDateRestrictionUI();
     }
 
     function getDelete(id,staff_id) {
@@ -728,6 +823,20 @@ $i++;
 
         // Show current date in UI for fresh form (system date remains enforced in backend)
         $('#applieddate').val('<?php echo date($this->customlib->getSchoolDateFormat()) ?>');
+
+        // Reset request type based on attendance auto-adjust setting.
+        // ON  => Claim Leave flow only
+        // OFF => Apply Leave / Adjust LOP flow only
+        var defaultReqType = AUTO_ADJUST_LOP_WITH_PAID_LEAVES ? 'claim_leave' : 'adjust_lop';
+        $('input[name="request_type"][value="' + defaultReqType + '"]').prop('checked', true);
+        if (defaultReqType === 'claim_leave') {
+            $('#btn_rt_claim').addClass('active');
+            $('#btn_rt_lop').removeClass('active');
+        } else {
+            $('#btn_rt_lop').addClass('active');
+            $('#btn_rt_claim').removeClass('active');
+        }
+        toggleRequestTypeUI(defaultReqType);
 
         $('#addleave').modal({
             show: true,
@@ -977,6 +1086,14 @@ $i++;
     $(document).ready(function (e) {
         $("#addleave_form").on('submit', (function (e) {
             e.preventDefault();
+            // If Adjust LOP mode, sync the single absent date to leave_from/to fields before submitting
+            var reqType = $('input[name="request_type"]:checked').val() || 'claim_leave';
+            if (reqType === 'adjust_lop') {
+                var fromDisplay = $('#leave_from_date').val();
+                var fromIso = $('#leave_from_date_iso').val();
+                $('#leave_to_date').val(fromDisplay);
+                $('#leave_to_date_iso').val(fromIso);
+            }
             $.ajax({
                 url: "<?php echo site_url("admin/leaverequest/addLeave") ?>",
                 type: "POST",
@@ -1010,6 +1127,13 @@ $i++;
     }
             });
         }));
+
+        // Toggle UI when request type changes (Claim Leave vs Adjust LOP)
+        $('input[name="request_type"]').on('change', function () {
+            var type = $(this).val();
+            $(this).closest('label').addClass('active').siblings('label').removeClass('active');
+            toggleRequestTypeUI(type);
+        });
     });
 
     function getEmployeeName(role) {
@@ -1097,10 +1221,11 @@ $i++;
 
     function getLeaveTypeDDL(id, lid = '') {
         var base_url = '<?php echo base_url() ?>';
+        var mode = $('input[name="request_type"]:checked').val() || 'claim_leave';
         $.ajax({
             url: base_url + 'admin/leaverequest/countLeave/' + id,
             type: 'POST',
-            data: {lid: lid},
+            data: {lid: lid, mode: mode},
             success: function (result) {
                 $("#leavetypeddl").html(result);
                 updatePermissionQuota();
@@ -1318,11 +1443,25 @@ $i++;
                 var html = '';
                 if (r.is_credit_earn) {
                     panel.css('border-left-color', '#00a65a');
-                    html += '<strong style="color:#00a65a;">&#9650; Credit-Earning Leave</strong> &nbsp;';
-                    html += '<span>' + r.type_label + ' earns credit that offsets Loss of Pay at payroll.</span><br>';
+                    html += '<strong style="color:#00a65a;">&#9650; On Duty / Movement Leave</strong> &nbsp;';
+                    html += '<span>' + r.type_label + ' may offset Loss of Pay at payroll only when it qualifies under attendance rules.</span><br>';
                     if (r.allotted > 0) {
                         html += '<span>Allotted: <strong>' + r.allotted + '</strong> &nbsp;|&nbsp; '
                              + 'Used (approved): <strong>' + r.used_approved + '</strong></span><br>';
+                    }
+                } else if (r.is_claim_based) {
+                    var availColor = r.available > 0 ? '#333' : '#c0392b';
+                    panel.css('border-left-color', r.available > 0 ? '#00a65a' : '#c0392b');
+                    html += '<strong>' + r.type_label + ' (Claim-Based Leave)</strong><br>';
+                    html += '<span>Allotted: <strong>' + r.allotted + '</strong> &nbsp;|&nbsp; '
+                         + 'Approved used: <strong>' + r.used_approved + '</strong>';
+                    if (r.used_pending > 0) {
+                        html += ' &nbsp;|&nbsp; Pending: <strong>' + r.used_pending + '</strong>';
+                    }
+                    html += ' &nbsp;|&nbsp; <span style="color:' + availColor + ';">Available: <strong>' + r.available + '</strong></span></span><br>';
+                    html += '<small class="text-info">This leave is tracked as its own leave bucket and is not linked to On Duty credit.</small>';
+                    if (r.available <= 0) {
+                        html += '<br><small class="text-danger"><strong>No balance available.</strong></small>';
                     }
                 } else if (r.is_balance_consume) {
                     var availColor = r.available > 0 ? '#333' : '#c0392b';

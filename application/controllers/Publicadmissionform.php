@@ -1459,6 +1459,9 @@ class PublicAdmissionForm extends CI_Controller
             echo json_encode($array);
         } else {
             $data = $this->input->post();
+            if (($data['city'] ?? '') === 'Others') {
+                $data['city'] = trim($data['city_custom'] ?? '');
+            }
             $photo_name = '';
             if (isset($_FILES["user_image"]) && !empty($_FILES['user_image']['name'])) {
                 $upload_result = $this->media_storage->fileupload("user_image", "./uploads/student_images/online_admission_image/");
@@ -2019,6 +2022,9 @@ class PublicAdmissionForm extends CI_Controller
             echo json_encode($array);
         } else {
             $data = $this->input->post();
+            if (($data['city'] ?? '') === 'Others') {
+                $data['city'] = trim($data['city_custom'] ?? '');
+            }
             $photo_name = '';
             if (isset($_FILES["user_image"]) && !empty($_FILES['user_image']['name'])) {
                 $upload_result = $this->media_storage->fileupload("user_image", "./uploads/student_images/online_admission_image/");

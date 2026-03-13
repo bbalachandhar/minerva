@@ -409,6 +409,7 @@
                             <select class="form-control" id="city" name="city" required tabindex="18">
                                 <option value="">Select City</option>
                             </select>
+                            <input type="text" class="form-control mt-2" id="city_other_text" name="city_custom" placeholder="Enter your city" style="display:none;">
                         </div>
                     </div>
                     <div class="row">
@@ -1548,13 +1549,7 @@ $(document).ready(function() {
     });
 
     $('#dob').on('change', function() {
-        const dob = new Date($(this).val()), today = new Date();
-        const minAgeDate = new Date(today.getFullYear() - 17, today.getMonth(), today.getDate());
         $('#dob_error').text('');
-        if (dob > minAgeDate) {
-            $('#dob_error').text('Applicant must be at least 17 years old.');
-            $(this).val('');
-        }
     });
 
     // Load India states and cities
@@ -1596,6 +1591,19 @@ $(document).ready(function() {
                 option.textContent = city;
                 citySelect.appendChild(option);
             });
+        }
+        const othersOpt = document.createElement('option');
+        othersOpt.value = 'Others';
+        othersOpt.textContent = 'Others';
+        citySelect.appendChild(othersOpt);
+        $('#city_other_text').hide().val('').removeAttr('required');
+    });
+
+    $('#city').on('change', function() {
+        if ($(this).val() === 'Others') {
+            $('#city_other_text').show().attr('required', true);
+        } else {
+            $('#city_other_text').hide().val('').removeAttr('required');
         }
     });
 

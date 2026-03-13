@@ -1101,8 +1101,11 @@ class Schsettings extends Admin_Controller
                 'max_permission_allowed' => $this->input->post('max_permission_allowed'),
                 'payroll_cutoff_day' => $cutoff_day,
                 'auto_adjust_lop_with_leaves' => $this->input->post('auto_adjust_lop_with_leaves') ? 1 : 0,
-                'auto_adjust_lop_with_preallotted_leaves' => $this->input->post('auto_adjust_lop_with_preallotted_leaves') ? 1 : 0,
             );
+
+            if ($this->db->field_exists('auto_adjust_lop_with_preallotted_leaves', 'sch_settings')) {
+                $data['auto_adjust_lop_with_preallotted_leaves'] = $this->input->post('auto_adjust_lop_with_preallotted_leaves') ? 1 : 0;
+            }
 
             if ($this->db->field_exists('payroll_fy_start_month', 'sch_settings')) {
                 $data['payroll_fy_start_month'] = $payroll_fy_start_month;
