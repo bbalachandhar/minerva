@@ -54,3 +54,4 @@ $route['default_controller'] = 'welcome';
 $route['404_override'] = 'handler/show_404';
 $route['translate_uri_dashes'] = FALSE;
 $route['student/update_profile_picture'] = 'student/update_profile_picture';
+$route['lead/enquiry'] = 'leadapi/create_enquiry';

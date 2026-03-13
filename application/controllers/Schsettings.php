@@ -1670,6 +1670,176 @@ class Schsettings extends Admin_Controller
         $this->setting_model->add($data);
         echo json_encode(['status' => 1, 'message' => $this->lang->line('success_message')]);
     }
+
+    // ========================================================================
+    // Enquiry Lead Gen Vendor Management
+    // ========================================================================
+
+    private function ensureLeadVendorTable()
+    {
+        $this->db->query("CREATE TABLE IF NOT EXISTS lead_api_vendors (
+            id INT(11) NOT NULL AUTO_INCREMENT,
+            vendor_code VARCHAR(50) NOT NULL,
+            vendor_name VARCHAR(100) NOT NULL,
+            api_key_hash VARCHAR(255) NOT NULL,
+            is_active TINYINT(1) NOT NULL DEFAULT 1,
+            created_by INT(11) NOT NULL DEFAULT 1,
+            last_used_at DATETIME NULL,
+            created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            UNIQUE KEY uniq_vendor_code (vendor_code)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    }
+
+    private function getLeadVendors()
+    {
+        return $this->db
+            ->select('id, vendor_code, vendor_name, is_active, created_by, last_used_at, created_at, updated_at')
+            ->from('lead_api_vendors')
+            ->order_by('vendor_name', 'ASC')
+            ->get()
+            ->result_array();
+    }
+
+    public function enquiryleadvendors()
+    {
+        if (!$this->rbac->hasPrivilege('general_setting', 'can_view')) {
+            access_denied();
+        }
+
+        $this->session->set_userdata('top_menu', 'System Settings');
+        $this->session->set_userdata('sub_menu', 'schsettings/index');
+        $this->session->set_userdata('subsub_menu', 'schsettings/enquiryleadvendors');
+
+        $this->ensureLeadVendorTable();
+
+        $data = [];
+        $data['lead_vendors'] = $this->getLeadVendors();
+
+        $this->load->view('layout/header', $data);
+        $this->load->view('setting/enquiryleadvendors', $data);
+        $this->load->view('layout/footer', $data);
+    }
+
+    public function ajax_save_lead_vendor()
+    {
+        if (!$this->rbac->hasPrivilege('general_setting', 'can_edit')) {
+            access_denied();
+        }
+
+        $this->ensureLeadVendorTable();
+
+        $id = (int) $this->input->post('id');
+        $vendor_name = trim((string) $this->input->post('vendor_name'));
+        $vendor_code_raw = trim((string) $this->input->post('vendor_code'));
+        $vendor_code = strtolower(preg_replace('/[^a-zA-Z0-9_-]/', '', $vendor_code_raw));
+        $api_key = trim((string) $this->input->post('api_key'));
+        $is_active = $this->input->post('is_active') ? 1 : 0;
+
+        if ($vendor_name === '') {
+            echo json_encode(['status' => 'fail', 'message' => 'Vendor name is required.']);
+            return;
+        }
+
+        if ($vendor_code === '') {
+            echo json_encode(['status' => 'fail', 'message' => 'Vendor code is required (letters/numbers/_/-).']);
+            return;
+        }
+
+        if ($id <= 0 && $api_key === '') {
+            echo json_encode(['status' => 'fail', 'message' => 'API key is required while creating a vendor.']);
+            return;
+        }
+
+        $this->db->from('lead_api_vendors');
+        $this->db->where('vendor_code', $vendor_code);
+        if ($id > 0) {
+            $this->db->where('id !=', $id);
+        }
+        $exists = $this->db->count_all_results();
+
+        if ($exists > 0) {
+            echo json_encode(['status' => 'fail', 'message' => 'Vendor code already exists. Use a unique code.']);
+            return;
+        }
+
+        $data = [
+            'vendor_code' => $vendor_code,
+            'vendor_name' => $vendor_name,
+            'is_active' => $is_active,
+        ];
+
+        $api_key_updated = false;
+        if ($api_key !== '') {
+            $data['api_key_hash'] = password_hash($api_key, PASSWORD_BCRYPT);
+            $api_key_updated = true;
+        }
+
+        if ($id > 0) {
+            $this->db->where('id', $id);
+            $this->db->update('lead_api_vendors', $data);
+            $message = 'Vendor updated successfully.';
+        } else {
+            $created_by = (int) $this->customlib->getStaffID();
+            $data['created_by'] = $created_by > 0 ? $created_by : 1;
+            $this->db->insert('lead_api_vendors', $data);
+            $id = (int) $this->db->insert_id();
+            $message = 'Vendor created successfully.';
+        }
+
+        echo json_encode([
+            'status' => 'success',
+            'message' => $message,
+            'id' => $id,
+            'api_key_updated' => $api_key_updated ? 1 : 0,
+        ]);
+    }
+
+    public function ajax_toggle_lead_vendor()
+    {
+        if (!$this->rbac->hasPrivilege('general_setting', 'can_edit')) {
+            access_denied();
+        }
+
+        $this->ensureLeadVendorTable();
+
+        $id = (int) $this->input->post('id');
+        $is_active = $this->input->post('is_active') ? 1 : 0;
+
+        if ($id <= 0) {
+            echo json_encode(['status' => 'fail', 'message' => 'Invalid vendor id.']);
+            return;
+        }
+
+        $this->db->where('id', $id);
+        $this->db->update('lead_api_vendors', ['is_active' => $is_active]);
+
+        echo json_encode([
+            'status' => 'success',
+            'message' => $is_active ? 'Vendor activated successfully.' : 'Vendor deactivated successfully.',
+        ]);
+    }
+
+    public function ajax_delete_lead_vendor()
+    {
+        if (!$this->rbac->hasPrivilege('general_setting', 'can_edit')) {
+            access_denied();
+        }
+
+        $this->ensureLeadVendorTable();
+
+        $id = (int) $this->input->post('id');
+        if ($id <= 0) {
+            echo json_encode(['status' => 'fail', 'message' => 'Invalid vendor id.']);
+            return;
+        }
+
+        $this->db->where('id', $id);
+        $this->db->delete('lead_api_vendors');
+
+        echo json_encode(['status' => 'success', 'message' => 'Vendor deleted successfully.']);
+    }
     
 
     // ========================================================================

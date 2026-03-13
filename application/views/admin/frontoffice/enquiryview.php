@@ -72,6 +72,19 @@ if ($value["source"] == $source_select) {
                                     <span class="text-danger"><?php echo form_error('source'); ?></span>
                                 </div>
                             </div>
+                            <div class="col-sm-6 col-md-2 col-lg-2">
+                                <div class="form-group">
+                                    <label>Lead Vendor</label>
+                                    <select id="lead_vendor_id" name="lead_vendor_id" class="form-control">
+                                        <option value=""><?php echo $this->lang->line('select'); ?></option>
+                                        <?php foreach (($lead_vendor_list ?? []) as $vendor) { ?>
+                                            <option value="<?php echo (int) $vendor['id']; ?>" <?php echo ((int) ($selected_lead_vendor ?? 0) === (int) $vendor['id']) ? 'selected' : ''; ?>>
+                                                <?php echo html_escape($vendor['vendor_name'] . ' (' . $vendor['vendor_code'] . ')'); ?>
+                                            </option>
+                                        <?php } ?>
+                                    </select>
+                                </div>
+                            </div>
                              <div class="col-sm-3 col-md-2 col-lg-2">
                                 <div class="form-group">
                                     <label><?php echo $this->lang->line('enquiry_from_date'); ?></label>
@@ -152,6 +165,7 @@ if ($enkey == $status) {
                                                     <th><?php echo $this->lang->line('name'); ?></th>
                                                     <th><?php echo $this->lang->line('phone'); ?></th>
                                                     <th><?php echo $this->lang->line('source'); ?></th>
+                                                    <th>Lead Vendor</th>
                                                     <th><?php echo $this->lang->line('enquiry_date'); ?></th>
                                                     <th><?php echo $this->lang->line('last_follow_up_date'); ?></th>
                                                     <th><?php echo $this->lang->line('next_follow_up_date'); ?></th>
@@ -197,6 +211,7 @@ if (empty($enquiry_list)) {
                                                             <td class="mailbox-name"><?php echo $value['name']; ?> </td>
                                                             <td class="mailbox-name"><?php echo $value['contact']; ?> </td>
                                                             <td class="mailbox-name"><?php echo $value['source']; ?></td>
+                                                            <td class="mailbox-name"><?php echo !empty($value['lead_vendor_name']) ? html_escape($value['lead_vendor_name']) : '-'; ?></td>
                                                             <td class="mailbox-name" data-order="<?php echo $value['date']; ?>"> <?php
 if (!empty($value["date"])) {
             echo date($this->customlib->getSchoolDateFormat(), $this->customlib->dateyyyymmddTodateformat($value['date']));

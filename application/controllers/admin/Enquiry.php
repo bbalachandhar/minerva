@@ -31,10 +31,18 @@ class Enquiry extends Admin_Controller
         $data["selected_class"] = "";
         $data["selected_department"] = "";
         $data["source_select"]  = "";
+        $data["selected_lead_vendor"] = "";
         $data["status"]         = "active";
         $data["last_follow_up_from"] = "";
         $data["last_follow_up_to"]   = "";
         $data['stff_list']      = $this->staff_model->get();
+        $this->ensureLeadVendorTable();
+        $data['lead_vendor_list'] = $this->db
+            ->select('id, vendor_name, vendor_code')
+            ->from('lead_api_vendors')
+            ->order_by('vendor_name', 'ASC')
+            ->get()
+            ->result_array();
 
         $last_follow_up_from = '';
         $last_follow_up_to   = '';
@@ -43,6 +51,7 @@ class Enquiry extends Admin_Controller
             $class                  = $this->input->post("class");
             $department_id          = $this->input->post("department_id");
             $source                 = $this->input->post("source");
+            $lead_vendor_id         = (int) $this->input->post("lead_vendor_id");
             $status                 = $this->input->post("status");
             $raw_date_from          = trim((string) $this->input->post("from_date"));
             $raw_date_to            = trim((string) $this->input->post("to_date"));
@@ -53,12 +62,13 @@ class Enquiry extends Admin_Controller
             $last_follow_up_from    = !empty($raw_last_follow_up_from) ? date("Y-m-d", $this->customlib->datetostrtotime($raw_last_follow_up_from)) : '';
             $last_follow_up_to      = !empty($raw_last_follow_up_to) ? date("Y-m-d", $this->customlib->datetostrtotime($raw_last_follow_up_to)) : '';
             $data["source_select"]  = $source;
+            $data["selected_lead_vendor"] = $lead_vendor_id;
             $data["status"]         = $status;
             $data["selected_class"] = $class;
             $data["selected_department"] = $department_id;
             $data["last_follow_up_from"] = $raw_last_follow_up_from;
             $data["last_follow_up_to"]   = $raw_last_follow_up_to;
-            $enquiry_list           = $this->enquiry_model->searchEnquiry($class, $source, $date_from, $date_to, $status, $department_id);
+            $enquiry_list           = $this->enquiry_model->searchEnquiry($class, $source, $date_from, $date_to, $status, $department_id, $lead_vendor_id);
         } else {
             $enquiry_list = $this->enquiry_model->getenquiry_list(null, array('active'));
         }
@@ -116,6 +126,23 @@ class Enquiry extends Admin_Controller
         $this->load->view('layout/header');
         $this->load->view('admin/frontoffice/enquiryview', $data);
         $this->load->view('layout/footer');
+    }
+
+    private function ensureLeadVendorTable()
+    {
+        $this->db->query("CREATE TABLE IF NOT EXISTS lead_api_vendors (
+            id INT(11) NOT NULL AUTO_INCREMENT,
+            vendor_code VARCHAR(50) NOT NULL,
+            vendor_name VARCHAR(100) NOT NULL,
+            api_key_hash VARCHAR(255) NOT NULL,
+            is_active TINYINT(1) NOT NULL DEFAULT 1,
+            created_by INT(11) NOT NULL DEFAULT 1,
+            last_used_at DATETIME NULL,
+            created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            UNIQUE KEY uniq_vendor_code (vendor_code)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
     }
 
     public function add()
