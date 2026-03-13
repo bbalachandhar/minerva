@@ -115,7 +115,14 @@
 
                     <div class="form-group">
                         <label for="lead_vendor_api_key">API Key <span class="text-danger" id="apiKeyRequiredMark">*</span></label>
-                        <input type="text" class="form-control" name="api_key" id="lead_vendor_api_key" autocomplete="off">
+                        <div class="input-group">
+                            <input type="text" class="form-control" name="api_key" id="lead_vendor_api_key" autocomplete="off" placeholder="Enter or autogenerate a key">
+                            <span class="input-group-btn">
+                                <button type="button" class="btn btn-default" id="generateApiKeyBtn" title="Autogenerate strong API key">
+                                    <i class="fa fa-refresh"></i> Generate
+                                </button>
+                            </span>
+                        </div>
                         <p class="help-block" id="apiKeyHelpText">Provide a secure key. It will be stored as hash only.</p>
                     </div>
 
@@ -185,6 +192,17 @@
         if ($(this).val() !== cleaned) {
             $(this).val(cleaned);
         }
+    });
+
+    $('#generateApiKeyBtn').on('click', function() {
+        var chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()-_=+[]{}|;:,.<>?';
+        var key = '';
+        var array = new Uint8Array(48);
+        window.crypto.getRandomValues(array);
+        for (var i = 0; i < array.length; i++) {
+            key += chars[array[i] % chars.length];
+        }
+        $('#lead_vendor_api_key').val(key);
     });
 
     $('#addLeadVendorBtn').on('click', function() {
