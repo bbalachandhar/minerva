@@ -18,6 +18,23 @@ class Enquiry extends Admin_Controller
         $this->enquiry_status = $this->config->item('enquiry_status');
     }
 
+    /**
+     * Assigned dropdown source for admission enquiry screens.
+     * Returns only staff whose role name is 'admission wing' (case-insensitive).
+     */
+    private function getAdmissionWingStaffList()
+    {
+        $staff_list = $this->staff_model->get();
+        if (empty($staff_list) || !is_array($staff_list)) {
+            return [];
+        }
+
+        return array_values(array_filter($staff_list, function ($staff) {
+            $role_name = strtolower(trim((string) ($staff['user_type'] ?? '')));
+            return $role_name === 'admission wing';
+        }));
+    }
+
     public function index()
     {
 
@@ -35,7 +52,7 @@ class Enquiry extends Admin_Controller
         $data["status"]         = "active";
         $data["last_follow_up_from"] = "";
         $data["last_follow_up_to"]   = "";
-        $data['stff_list']      = $this->staff_model->get();
+        $data['stff_list']      = $this->getAdmissionWingStaffList();
         $this->ensureLeadVendorTable();
         $data['lead_vendor_list'] = $this->db
             ->select('id, vendor_name, vendor_code')
@@ -303,7 +320,7 @@ class Enquiry extends Admin_Controller
         $data['Reference']    = $this->enquiry_model->get_reference();        
         $data['class_list']   = $this->enquiry_model->getclasses();        
         $data['enquiry_data'] = $this->enquiry_model->getenquiry_list($id, $status);
-        $data['stff_list']    = $this->staff_model->get();
+        $data['stff_list']    = $this->getAdmissionWingStaffList();
         
         // Load course data for dropdowns
         $data['ug_first_year_courses'] = $this->Onlineadmissioncourses_model->getActiveCourses('ug', 'first_year');
