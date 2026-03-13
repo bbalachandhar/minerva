@@ -7,6 +7,9 @@
                     <div class="box-header with-border">
                         <h3 class="box-title titlefix"><i class="fa fa-plug"></i> Enquiry Lead Gen Vendors</h3>
                         <div class="box-tools pull-right">
+                            <a href="<?php echo site_url('schsettings/enquiryleadvendorinstructions'); ?>" class="btn btn-default btn-sm" style="margin-right: 6px;">
+                                <i class="fa fa-book"></i> Instructions
+                            </a>
                             <button type="button" class="btn btn-primary btn-sm" id="addLeadVendorBtn">
                                 <i class="fa fa-plus"></i> Add Vendor
                             </button>

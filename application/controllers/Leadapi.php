@@ -13,11 +13,17 @@ class Leadapi extends CI_Controller
 
     public function create_enquiry()
     {
-        $method = $this->input->server('REQUEST_METHOD');
+        $method = strtoupper((string) $this->input->server('REQUEST_METHOD'));
+
+        if ($method === 'OPTIONS') {
+            $this->output->set_status_header(200)->set_output('');
+            return;
+        }
+
         if ($method !== 'POST') {
             return $this->respond(405, [
                 'status' => 0,
-                'message' => 'Method not allowed. Use POST.',
+                'message' => 'Method not allowed. Received: ' . $method . '. This endpoint only accepts POST requests.',
             ]);
         }
 
@@ -103,7 +109,9 @@ class Leadapi extends CI_Controller
             strlen($mobile_digits) >= 10 ? substr($mobile_digits, -10) : '',
         ])));
 
-        $this->db->select('id, name, contact, email, date, ref_no');
+        $this->db->select('e.id, e.name, e.contact, e.email, e.date, e.ref_no, e.lead_vendor_id, v.vendor_name as lead_vendor_name');
+        $this->db->from('enquiry e');
+        $this->db->join('lead_api_vendors v', 'v.id = e.lead_vendor_id', 'left');
         if (!empty($mobile_variants) && $email_raw !== '') {
             $this->db->group_start()
                 ->where_in('contact', $mobile_variants)
@@ -115,8 +123,10 @@ class Leadapi extends CI_Controller
             $this->db->where('LOWER(email)', $email_raw);
         }
 
-        $duplicate_rows = $this->db->order_by('id', 'DESC')->limit(10)->get('enquiry')->result_array();
+        $duplicate_rows = $this->db->order_by('e.id', 'ASC')->limit(50)->get()->result_array();
         $duplicate_entries = [];
+        $duplicate_source_vendor_id = null;
+        $duplicate_source_vendor_name = '';
         foreach ($duplicate_rows as $duplicate_row) {
             $matched_by = [];
             if (in_array((string) ($duplicate_row['contact'] ?? ''), $mobile_variants, true)) {
@@ -125,6 +135,25 @@ class Leadapi extends CI_Controller
             if ($email_raw !== '' && strtolower((string) ($duplicate_row['email'] ?? '')) === $email_raw) {
                 $matched_by[] = 'emailid';
             }
+
+            $row_vendor_id = (int) ($duplicate_row['lead_vendor_id'] ?? 0);
+            $current_vendor_id = (int) ($vendor['id'] ?? 0);
+            if ($row_vendor_id > 0) {
+                if ($duplicate_source_vendor_id === null) {
+                    $duplicate_source_vendor_id = $row_vendor_id;
+                    $duplicate_source_vendor_name = (string) ($duplicate_row['lead_vendor_name'] ?? '');
+                }
+                if (
+                    $current_vendor_id > 0 &&
+                    $row_vendor_id !== $current_vendor_id &&
+                    $duplicate_source_vendor_id === $current_vendor_id
+                ) {
+                    // Prefer source from another vendor when both self and external matches exist.
+                    $duplicate_source_vendor_id = $row_vendor_id;
+                    $duplicate_source_vendor_name = (string) ($duplicate_row['lead_vendor_name'] ?? '');
+                }
+            }
+
             $duplicate_entries[] = [
                 'id' => (int) $duplicate_row['id'],
                 'name' => (string) ($duplicate_row['name'] ?? ''),
@@ -132,8 +161,14 @@ class Leadapi extends CI_Controller
                 'email' => (string) ($duplicate_row['email'] ?? ''),
                 'date' => (string) ($duplicate_row['date'] ?? ''),
                 'ref_no' => (string) ($duplicate_row['ref_no'] ?? ''),
+                'lead_vendor_id' => $row_vendor_id > 0 ? $row_vendor_id : null,
+                'lead_vendor_name' => (string) ($duplicate_row['lead_vendor_name'] ?? ''),
                 'matched_by' => $matched_by,
             ];
+        }
+
+        if (count($duplicate_entries) > 10) {
+            $duplicate_entries = array_slice($duplicate_entries, 0, 10);
         }
 
         $program_name = trim((string) ($param['programname'] ?? ''));
@@ -215,6 +250,10 @@ class Leadapi extends CI_Controller
             'ref_no' => $reference_no,
         ];
 
+        if ($this->db->field_exists('duplicate_source_vendor_id', 'enquiry')) {
+            $enquiry_data['duplicate_source_vendor_id'] = $duplicate_source_vendor_id;
+        }
+
         $this->db->insert('enquiry', $enquiry_data);
         $insert_id = (int) $this->db->insert_id();
 
@@ -238,6 +277,8 @@ class Leadapi extends CI_Controller
             'message' => $has_duplicate ? 'Enquiry created successfully. Duplicate entries found.' : 'Enquiry created successfully.',
             'duplicate' => $has_duplicate ? 1 : 0,
             'duplicate_count' => count($duplicate_entries),
+            'duplicate_source_vendor_id' => $duplicate_source_vendor_id,
+            'duplicate_source_vendor_name' => $duplicate_source_vendor_name,
             'existing_duplicates' => $duplicate_entries,
             'data' => [
                 'enquiry_id' => $insert_id,

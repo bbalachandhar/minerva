@@ -1722,6 +1722,33 @@ class Schsettings extends Admin_Controller
         $this->load->view('layout/footer', $data);
     }
 
+    public function enquiryleadvendorinstructions()
+    {
+        if (!$this->rbac->hasPrivilege('general_setting', 'can_view')) {
+            access_denied();
+        }
+
+        $this->session->set_userdata('top_menu', 'System Settings');
+        $this->session->set_userdata('sub_menu', 'schsettings/index');
+        $this->session->set_userdata('subsub_menu', 'schsettings/enquiryleadvendors');
+
+        $doc_path = FCPATH . 'docs/lead_enquiry_api_vendor_integration.md';
+        $doc_text = 'Instruction document not found at: ' . $doc_path;
+        if (is_file($doc_path) && is_readable($doc_path)) {
+            $content = file_get_contents($doc_path);
+            if ($content !== false && trim($content) !== '') {
+                $doc_text = $content;
+            }
+        }
+
+        $data = [];
+        $data['doc_text'] = $doc_text;
+
+        $this->load->view('layout/header', $data);
+        $this->load->view('setting/enquiryleadvendorinstructions', $data);
+        $this->load->view('layout/footer', $data);
+    }
+
     public function ajax_save_lead_vendor()
     {
         if (!$this->rbac->hasPrivilege('general_setting', 'can_edit')) {
