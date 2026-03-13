@@ -63,6 +63,73 @@ class Leaverequest extends Admin_Controller
         return $ids;
     }
 
+    private function getStaffDepartmentId($staff_id, $staff_details = null)
+    {
+        $staff_id = (int) $staff_id;
+        if ($staff_id <= 0) {
+            return 0;
+        }
+
+        if (is_array($staff_details) && isset($staff_details['department']) && is_numeric($staff_details['department'])) {
+            $department_id = (int) $staff_details['department'];
+            if ($department_id > 0) {
+                return $department_id;
+            }
+        }
+
+        $row = $this->db->select('department')->where('id', $staff_id)->limit(1)->get('staff')->row_array();
+        return isset($row['department']) ? (int) $row['department'] : 0;
+    }
+
+    private function resolveRecommenderApproverIds($staff_id, $selected_role_id = 0)
+    {
+        $staff_id = (int) $staff_id;
+        $selected_role_id = (int) $selected_role_id;
+
+        $recommender_id = 0;
+        $approver_id = 0;
+        $staff_details = $this->staff_model->get($staff_id);
+
+        $setting = $this->setting_model->getSetting();
+        if ($setting && !empty($setting->leave_approver_id)) {
+            $approver_id = (int) $setting->leave_approver_id;
+        }
+
+        $policy = $this->getLeaveManagementPolicy();
+        if ($staff_id > 0 && in_array($selected_role_id, $policy['self_approve_roles'], true)) {
+            return [
+                'recommender_id' => $staff_id,
+                'approver_id' => $staff_id,
+            ];
+        }
+
+        // If selected employee is the configured approver, keep both stages as self.
+        if ($staff_id > 0 && $approver_id > 0 && $staff_id === $approver_id) {
+            return [
+                'recommender_id' => $approver_id,
+                'approver_id' => $approver_id,
+            ];
+        }
+
+        $department_id = $this->getStaffDepartmentId($staff_id, $staff_details);
+        if ($department_id > 0) {
+            $this->load->model('department_model');
+            $department = $this->department_model->getDepartmentType($department_id);
+            if ($department && !empty($department['dept_head_id'])) {
+                $recommender_id = (int) $department['dept_head_id'];
+            }
+        }
+
+        if ($recommender_id <= 0 && $approver_id > 0) {
+            $recommender_id = $approver_id;
+        }
+
+        return [
+            'recommender_id' => $recommender_id,
+            'approver_id' => $approver_id,
+        ];
+    }
+
     private function getLeaveManagementPolicy()
     {
         $setting = $this->setting_model->getSetting();
@@ -454,32 +521,25 @@ class Leaverequest extends Admin_Controller
         $potential_substitutes = [];
         $recommender_staff = null;
         $approver_staff = null;
-        if ($staff_details && $staff_details['department']) {
-            $potential_substitutes = $this->staff_model->getEmployeeByDepartment($staff_details['department'], $current_staff_id);
-
-            // Fetch Recommender (HOD) details
-            $this->load->model('department_model');
-            $department = $this->department_model->getDepartmentType($staff_details['department']);
-            if ($department && $department['dept_head_id']) {
-                $recommender_details = $this->staff_model->get($department['dept_head_id']);
-                if (!empty($recommender_details) && is_array($recommender_details)) {
-                    $recommender_staff = $recommender_details;
-                }
-            }
+        $department_id = $this->getStaffDepartmentId($current_staff_id, $staff_details);
+        if ($department_id > 0) {
+            $potential_substitutes = $this->staff_model->getEmployeeByDepartment($department_id, $current_staff_id);
         }
         $data['potential_substitutes'] = $potential_substitutes;
 
-        // Fetch Approver details (from school settings)
-        $setting = $this->setting_model->getSetting();
-        if ($setting && !empty($setting->leave_approver_id)) {
-            $approver_details = $this->staff_model->get($setting->leave_approver_id);
-            if (!empty($approver_details) && is_array($approver_details)) {
-                $approver_staff = $approver_details;
+        $routing = $this->resolveRecommenderApproverIds($current_staff_id, 0);
+        if (!empty($routing['recommender_id'])) {
+            $recommender_details = $this->staff_model->get((int) $routing['recommender_id']);
+            if (!empty($recommender_details) && is_array($recommender_details)) {
+                $recommender_staff = $recommender_details;
             }
         }
 
-        if (empty($recommender_staff) && !empty($approver_staff)) {
-            $recommender_staff = $approver_staff;
+        if (!empty($routing['approver_id'])) {
+            $approver_details = $this->staff_model->get((int) $routing['approver_id']);
+            if (!empty($approver_details) && is_array($approver_details)) {
+                $approver_staff = $approver_details;
+            }
         }
 
         if (!empty($recommender_staff)) {
@@ -1042,33 +1102,20 @@ class Leaverequest extends Admin_Controller
             $result->leave_duration_type = 'full_day';
         }
 
-        // Self-Healing: If recommender_id is missing, try to fix it based on current staff department
+        // Self-Healing: If recommender_id is missing, resolve using current policy rules.
         if (empty($result->recommender_id)) {
-            $staff_details = $this->staff_model->get($result->staff_id);
-            if ($staff_details && $staff_details['department']) {
-                $this->load->model('department_model');
-                $department = $this->department_model->getDepartmentType($staff_details['department']);
-                $new_recommender_id = null;
-                
-                if ($department && !empty($department['dept_head_id'])) {
-                    $new_recommender_id = $department['dept_head_id'];
-                }
-                
-                // Fallback to Approver
-                if (empty($new_recommender_id) && !empty($result->approver_id)) {
-                    $new_recommender_id = $result->approver_id;
-                }
+            $routing = $this->resolveRecommenderApproverIds((int) $result->staff_id, 0);
+            $new_recommender_id = (int) ($routing['recommender_id'] ?? 0);
 
-                if (!empty($new_recommender_id)) {
-                    // Update the database
-                    $this->db->where('id', $id)->update('staff_leave_request', ['recommender_id' => $new_recommender_id]);
-                    // Update the result object so the UI works immediately
-                    $result->recommender_id = $new_recommender_id;
-                    $recommender = $this->staff_model->get($new_recommender_id); // Fetch new details for UI
-                    if($recommender){
-                         $result->recommender_name = $recommender['name'];
-                         $result->recommender_surname = $recommender['surname'];
-                    }
+            if (!empty($new_recommender_id)) {
+                // Update the database
+                $this->db->where('id', $id)->update('staff_leave_request', ['recommender_id' => $new_recommender_id]);
+                // Update the result object so the UI works immediately
+                $result->recommender_id = $new_recommender_id;
+                $recommender = $this->staff_model->get($new_recommender_id); // Fetch new details for UI
+                if ($recommender) {
+                    $result->recommender_name = $recommender['name'];
+                    $result->recommender_surname = $recommender['surname'];
                 }
             }
         }
@@ -1326,29 +1373,9 @@ class Leaverequest extends Admin_Controller
     					}	
     					
                         // Determine Recommender and Approver
-                        $staff_details = $this->staff_model->get($staff_id);
-                        $recommender_id = null;
-                        if ($staff_details && $staff_details['department']) {
-                            $this->load->model('department_model');
-                            $department = $this->department_model->getDepartmentType($staff_details['department']);
-                            if ($department && !empty($department['dept_head_id'])) {
-                                $recommender_id = $department['dept_head_id'];
-                            }
-                        }
-    
-                        $setting = $this->setting_model->getSetting();
-                        $approver_id = isset($setting->leave_approver_id) ? $setting->leave_approver_id : null;
-
-                            if (in_array((int) $role, $policy['self_approve_roles'], true)) {
-                                $recommender_id = $staff_id;
-                                $approver_id = $staff_id;
-                            }
-
-                        // Fallback: If no recommender found (e.g. no Dept Head), use Approver as Recommender
-                        if (empty($recommender_id) && !empty($approver_id)) {
-                            $recommender_id = $approver_id;
-                            log_message('error', 'No Recommender (HOD) found. Falling back to Approver ID: ' . $approver_id);
-                        }
+                        $routing = $this->resolveRecommenderApproverIds($staff_id, (int) $role);
+                        $recommender_id = (int) ($routing['recommender_id'] ?? 0);
+                        $approver_id = (int) ($routing['approver_id'] ?? 0);
     
 					if (!empty($request_id)) {				 
 
@@ -1560,7 +1587,10 @@ class Leaverequest extends Admin_Controller
                 if ($staff_details) {
                     $this->load->model('subjecttimetable_model');
                     $staff_timetable = $this->subjecttimetable_model->getStaffTimetable($staff_id, $leave_from_db, $leave_to_db);
-                    $potential_substitutes = $this->staff_model->getEmployeeByDepartment($staff_details['department'], $staff_id);
+                    $department_id = $this->getStaffDepartmentId($staff_id, $staff_details);
+                    $potential_substitutes = $department_id > 0
+                        ? $this->staff_model->getEmployeeByDepartment($department_id, $staff_id)
+                        : [];
 
     
                     if (!empty($staff_timetable)) {
@@ -1691,51 +1721,20 @@ class Leaverequest extends Admin_Controller
                 $staff_details = $this->staff_model->get($staff_id);
 
                 if ($staff_details) {
-                        $policy = $this->getLeaveManagementPolicy();
-                        if (in_array($selected_role_id, $policy['self_approve_roles'], true)) {
-                        $self_label = $staff_details['name'] . ' ' . $staff_details['surname'] . ' (' . $staff_details['designation'] . ')';
-                        echo json_encode([
-                            'status' => 'success',
-                            'recommender_info' => $self_label,
-                            'approver_info' => $self_label,
-                            'approver_configured' => true,
-                        ]);
-                        return;
-                    }
- 
-                    // Fetch Recommender (HOD) details
- 
-                    $this->load->model('department_model');
- 
-                    $department = $this->department_model->getDepartmentType($staff_details['department']);
-  
-                    if ($department && $department['dept_head_id']) {
- 
-                        $recommender_details = $this->staff_model->get($department['dept_head_id']);
+                    $routing = $this->resolveRecommenderApproverIds($staff_id, $selected_role_id);
 
+                    if (!empty($routing['recommender_id'])) {
+                        $recommender_details = $this->staff_model->get((int) $routing['recommender_id']);
                         if (!empty($recommender_details) && is_array($recommender_details)) {
                             $recommender_info = $recommender_details['name'] . ' ' . $recommender_details['surname'] . ' (' . $recommender_details['designation'] . ')';
                         }
-
-    
                     }
 
-                    // Fetch Approver details (from school settings)
- 
-                    $setting = $this->setting_model->getSetting();
-  
-                    if ($setting && !empty($setting->leave_approver_id)) {
- 
-                        $approver_details = $this->staff_model->get($setting->leave_approver_id);
-
+                    if (!empty($routing['approver_id'])) {
+                        $approver_details = $this->staff_model->get((int) $routing['approver_id']);
                         if (!empty($approver_details) && is_array($approver_details)) {
                             $approver_info = $approver_details['name'] . ' ' . $approver_details['surname'] . ' (' . $approver_details['designation'] . ')';
                         }
- 
-                    }
-
-                    if ($recommender_info === $this->lang->line('not_assigned') && $approver_info !== $this->lang->line('not_assigned')) {
-                        $recommender_info = $approver_info;
                     }
  
                 }
@@ -1825,14 +1824,15 @@ class Leaverequest extends Admin_Controller
         $data['current_staff_details'] = $staff_details;
 
         $potential_substitutes = [];
-        if ($staff_details && $staff_details['department']) {
-            $potential_substitutes = $this->staff_model->getEmployeeByDepartment($staff_details['department'], $current_user_id);
+        $department_id = $this->getStaffDepartmentId((int) $userdata['id'], $staff_details);
+        if ($department_id > 0) {
+            $potential_substitutes = $this->staff_model->getEmployeeByDepartment($department_id, $current_user_id);
         }
         $data['potential_substitutes'] = $potential_substitutes;
 
-        if ($staff_details && $staff_details['department']) {
+        if ($department_id > 0) {
             $this->load->model('department_model');
-            $department = $this->department_model->getDepartmentType($staff_details['department']);
+            $department = $this->department_model->getDepartmentType($department_id);
             if ($department && $department['dept_head_id']) {
                 $recommender_details = $this->staff_model->get($department['dept_head_id']);
                 if ($recommender_details && is_array($recommender_details)) {

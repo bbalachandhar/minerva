@@ -138,6 +138,12 @@
                 placeholder: 'Select one or more',
                 allowClear: true
             });
+
+            $('#leave_approver_id').select2({
+                width: '100%',
+                placeholder: 'Search by name, employee ID or designation...',
+                allowClear: true
+            });
         }
 
         $('#leavePolicyForm').on('submit', function(e) {

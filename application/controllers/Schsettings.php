@@ -1484,6 +1484,22 @@ class Schsettings extends Admin_Controller
         $leave_types = $this->leavetypes_model->getLeaveType();
         $staff_list = $this->staff_model->get(null, 1);
 
+        // Ensure leave policy columns exist in DB, then fetch them separately
+        // because getSetting()'s hardcoded SELECT does not include these columns.
+        $this->ensureLeavePolicyColumns();
+        $lp_cols = $this->db
+            ->select('leave_substitution_required_roles, leave_self_approve_roles, leave_past_date_allowed_roles, leave_workday_override_types, leave_enable_half_day, leave_half_day_allowed_roles, leave_half_day_allowed_types')
+            ->from('sch_settings')
+            ->order_by('id', 'ASC')
+            ->limit(1)
+            ->get()
+            ->row();
+        if ($lp_cols) {
+            foreach ((array) $lp_cols as $col => $val) {
+                $setting->$col = $val;
+            }
+        }
+
         $data = [];
         $data['result'] = $setting;
         $data['all_roles'] = $all_roles;
