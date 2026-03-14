@@ -43,6 +43,12 @@
             <li class="<?php echo set_SubSubmenu('schsettings/leavepolicy'); ?>">
                 <a class="<?php echo set_SubSubmenu('schsettings/leavepolicy'); ?>" href="<?php echo site_url('schsettings/leavepolicy') ?>">Leave Management Policy</a>
             </li>
+            <li class="<?php echo set_SubSubmenu('schsettings/poapprovalfallback'); ?>">
+                <a class="<?php echo set_SubSubmenu('schsettings/poapprovalfallback'); ?>" href="<?php echo site_url('schsettings/poapprovalfallback') ?>">PO Approval Fallback</a>
+            </li>
+            <li class="<?php echo set_SubSubmenu('schsettings/indentapprovalfallback'); ?>">
+                <a class="<?php echo set_SubSubmenu('schsettings/indentapprovalfallback'); ?>" href="<?php echo site_url('schsettings/indentapprovalfallback') ?>">Indent Approval Fallback</a>
+            </li>
             <li class="<?php echo set_SubSubmenu('schsettings/enquiryleadvendors'); ?>">
                 <a class="<?php echo set_SubSubmenu('schsettings/enquiryleadvendors'); ?>" href="<?php echo site_url('schsettings/enquiryleadvendors') ?>">Enquiry Lead Gen Vendors</a>
             </li>

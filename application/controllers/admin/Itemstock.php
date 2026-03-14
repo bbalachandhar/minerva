@@ -54,6 +54,13 @@ class Itemstock extends Admin_Controller
                 'quantity'       => $this->input->post('symbol') . $this->input->post('quantity'),
                 'purchase_price' => convertCurrencyFormatToBaseAmount($this->input->post('purchase_price')),
                 'date'           => date('Y-m-d', $this->customlib->datetostrtotime($this->input->post('date'))),
+                'batch_no'       => $this->input->post('batch_no'),
+                'manufacturing_date' => $this->normalizeOptionalDate($this->input->post('manufacturing_date')),
+                'expiry_date'    => $this->normalizeOptionalDate($this->input->post('expiry_date')),
+                'warranty_upto'  => $this->normalizeOptionalDate($this->input->post('warranty_upto')),
+                'license_key'    => $this->input->post('license_key'),
+                'license_valid_from' => $this->normalizeOptionalDate($this->input->post('license_valid_from')),
+                'license_valid_till' => $this->normalizeOptionalDate($this->input->post('license_valid_till')),
                 'description'    => $this->input->post('description'),
                 'attachment'     => $img_name,
             );
@@ -195,6 +202,13 @@ class Itemstock extends Admin_Controller
                 'quantity'       => $this->input->post('symbol') . $this->input->post('quantity'),
                 'purchase_price' => convertCurrencyFormatToBaseAmount($this->input->post('purchase_price')),
                 'date'           => date('Y-m-d', $this->customlib->datetostrtotime($this->input->post('date'))),
+                'batch_no'       => $this->input->post('batch_no'),
+                'manufacturing_date' => $this->normalizeOptionalDate($this->input->post('manufacturing_date')),
+                'expiry_date'    => $this->normalizeOptionalDate($this->input->post('expiry_date')),
+                'warranty_upto'  => $this->normalizeOptionalDate($this->input->post('warranty_upto')),
+                'license_key'    => $this->input->post('license_key'),
+                'license_valid_from' => $this->normalizeOptionalDate($this->input->post('license_valid_from')),
+                'license_valid_till' => $this->normalizeOptionalDate($this->input->post('license_valid_till')),
                 'description'    => $this->input->post('description'),
             );
 
@@ -224,6 +238,15 @@ class Itemstock extends Admin_Controller
             $this->session->set_flashdata('msg', '<div class="alert alert-success text-left">' . $this->lang->line('update_message') . '</div>');
             redirect('admin/itemstock/index');
         }
+    }
+
+    private function normalizeOptionalDate($input)
+    {
+        if ($input === null || trim($input) === '') {
+            return null;
+        }
+
+        return date('Y-m-d', $this->customlib->datetostrtotime($input));
     }
 
 }

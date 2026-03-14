@@ -77,6 +77,14 @@ $count++;
                         <div class="box-header ptbnull">
                             <h3 class="box-title titlefix"> <?php echo $this->lang->line('item_list'); ?></h3>
                             <div class="box-tools pull-right">
+                                <?php if ($this->rbac->hasPrivilege('item', 'can_add')) { ?>
+                                    <a href="<?php echo site_url('admin/inventoryimport/item'); ?>" class="btn btn-info btn-sm">
+                                        <i class="fa fa-upload"></i> Bulk Upload
+                                    </a>
+                                    <a href="<?php echo site_url('admin/inventoryimport/downloadsample/item'); ?>" class="btn btn-default btn-sm">
+                                        <i class="fa fa-download"></i> Sample CSV
+                                    </a>
+                                <?php } ?>
                             </div><!-- /.box-tools -->
                         </div><!-- /.box-header -->
                         <div class="box-body">

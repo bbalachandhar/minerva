@@ -76,7 +76,8 @@ if (!empty($side_list)) {
                     <li class="treeview <?php echo activate_main_menu($side_list_value->activate_menu); ?>">
 
                         <a href="#">
-                            <i class="<?php echo $side_list_value->icon; ?>"></i> <span><?php echo $this->lang->line($side_list_value->lang_key); ?></span> <i class="fa fa-angle-left pull-right"></i>
+                            <?php $menu_label = $this->lang->line($side_list_value->lang_key); ?>
+                            <i class="<?php echo $side_list_value->icon; ?>"></i> <span><?php echo !empty($menu_label) ? $menu_label : $side_list_value->menu; ?></span> <i class="fa fa-angle-left pull-right"></i>
                         </a>
 
                                                     <?php
@@ -135,7 +136,8 @@ foreach ($side_list_value->submenus as $submenu_key => $submenu_value) {
                                 $badge_count = (int) ($leave_badges['recommender_leave_requests'] ?? 0);
                             }
                             ?>
-                            <a href="<?php echo $menu_url; ?>"><i class="fa fa-angle-double-right"></i><?php echo $this->lang->line($submenu_value->lang_key); ?><?php if ($badge_count > 0) { ?><small class="label pull-right bg-red"><?php echo $badge_count; ?></small><?php } ?></a>
+                            <?php $submenu_label = $this->lang->line($submenu_value->lang_key); ?>
+                            <a href="<?php echo $menu_url; ?>"><i class="fa fa-angle-double-right"></i><?php echo !empty($submenu_label) ? $submenu_label : $submenu_value->menu; ?><?php if ($badge_count > 0) { ?><small class="label pull-right bg-red"><?php echo $badge_count; ?></small><?php } ?></a>
                         </li>
 
                           <?php

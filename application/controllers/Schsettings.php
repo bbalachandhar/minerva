@@ -1537,6 +1537,27 @@ class Schsettings extends Admin_Controller
         }
     }
 
+    private function ensurePOApprovalFallbackColumns()
+    {
+        $required = [
+            'po_fallback_use_department_head_l1' => 'TINYINT(1) NOT NULL DEFAULT 1',
+            'po_fallback_l2_staff_id' => 'INT(11) NULL',
+            'po_fallback_superadmin_can_override_l1' => 'TINYINT(1) NOT NULL DEFAULT 1',
+        ];
+
+        $existing_rows = $this->db->query("SHOW COLUMNS FROM sch_settings")->result_array();
+        $existing_cols = [];
+        foreach ($existing_rows as $row) {
+            $existing_cols[] = $row['Field'];
+        }
+
+        foreach ($required as $column => $definition) {
+            if (!in_array($column, $existing_cols, true)) {
+                $this->db->query("ALTER TABLE sch_settings ADD COLUMN {$column} {$definition}");
+            }
+        }
+    }
+
     private function sanitizeIdCsvFromPost($post_key)
     {
         $value = $this->input->post($post_key);
@@ -1644,6 +1665,45 @@ class Schsettings extends Admin_Controller
         ];
     }
 
+    private function buildPOApprovalFallbackPolicyForView($setting)
+    {
+        return [
+            'use_department_head_l1' => isset($setting->po_fallback_use_department_head_l1) ? (int) $setting->po_fallback_use_department_head_l1 === 1 : true,
+            'l2_staff_id' => isset($setting->po_fallback_l2_staff_id) ? (int) $setting->po_fallback_l2_staff_id : 0,
+            'superadmin_can_override_l1' => isset($setting->po_fallback_superadmin_can_override_l1) ? (int) $setting->po_fallback_superadmin_can_override_l1 === 1 : true,
+        ];
+    }
+
+    private function ensureIndentApprovalFallbackColumns()
+    {
+        $required = [
+            'indent_fallback_use_department_head_l1' => 'TINYINT(1) NOT NULL DEFAULT 1',
+            'indent_fallback_l2_staff_id' => 'INT(11) NULL',
+            'indent_fallback_superadmin_can_override_l1' => 'TINYINT(1) NOT NULL DEFAULT 1',
+        ];
+
+        $existing_rows = $this->db->query('SHOW COLUMNS FROM sch_settings')->result_array();
+        $existing_cols = [];
+        foreach ($existing_rows as $row) {
+            $existing_cols[] = $row['Field'];
+        }
+
+        foreach ($required as $column => $definition) {
+            if (!in_array($column, $existing_cols, true)) {
+                $this->db->query("ALTER TABLE sch_settings ADD COLUMN {$column} {$definition}");
+            }
+        }
+    }
+
+    private function buildIndentApprovalFallbackPolicyForView($setting)
+    {
+        return [
+            'use_department_head_l1' => isset($setting->indent_fallback_use_department_head_l1) ? (int) $setting->indent_fallback_use_department_head_l1 === 1 : true,
+            'l2_staff_id' => isset($setting->indent_fallback_l2_staff_id) ? (int) $setting->indent_fallback_l2_staff_id : 0,
+            'superadmin_can_override_l1' => isset($setting->indent_fallback_superadmin_can_override_l1) ? (int) $setting->indent_fallback_superadmin_can_override_l1 === 1 : true,
+        ];
+    }
+
     public function saveleavepolicy()
     {
         if (!$this->rbac->hasPrivilege('general_setting', 'can_edit')) {
@@ -1665,6 +1725,166 @@ class Schsettings extends Admin_Controller
             'leave_half_day_allowed_roles' => $this->sanitizeIdCsvFromPost('leave_half_day_allowed_roles'),
             'leave_half_day_allowed_types' => $this->sanitizeIdCsvFromPost('leave_half_day_allowed_types'),
             'leave_approver_id' => max(0, (int) $this->input->post('leave_approver_id')),
+        ];
+
+        $this->setting_model->add($data);
+        echo json_encode(['status' => 1, 'message' => $this->lang->line('success_message')]);
+    }
+
+    public function poapprovalfallback()
+    {
+        if (!$this->rbac->hasPrivilege('general_setting', 'can_view')) {
+            access_denied();
+        }
+
+        $this->session->set_userdata('top_menu', 'System Settings');
+        $this->session->set_userdata('sub_menu', 'schsettings/index');
+        $this->session->set_userdata('subsub_menu', 'schsettings/poapprovalfallback');
+
+        $this->load->model('staff_model');
+
+        $setting = $this->setting_model->getSetting();
+        $staff_list = $this->staff_model->get(null, 1);
+
+        $this->ensurePOApprovalFallbackColumns();
+        $po_cols = $this->db
+            ->select('po_fallback_use_department_head_l1, po_fallback_l2_staff_id, po_fallback_superadmin_can_override_l1')
+            ->from('sch_settings')
+            ->order_by('id', 'ASC')
+            ->limit(1)
+            ->get()
+            ->row();
+        if ($po_cols) {
+            foreach ((array) $po_cols as $col => $val) {
+                $setting->$col = $val;
+            }
+        }
+
+        $data = [];
+        $data['result'] = $setting;
+        $data['staff_list'] = $staff_list;
+        $data['po_fallback_policy'] = $this->buildPOApprovalFallbackPolicyForView($setting);
+
+        $this->load->view('layout/header', $data);
+        $this->load->view('setting/poapprovalfallback', $data);
+        $this->load->view('layout/footer', $data);
+    }
+
+    public function savepoapprovalfallback()
+    {
+        if (!$this->rbac->hasPrivilege('general_setting', 'can_edit')) {
+            access_denied();
+        }
+
+        $this->ensurePOApprovalFallbackColumns();
+
+        $setting = $this->setting_model->getSetting();
+        $setting_id = (int) ($setting->id ?? 1);
+        $l2_staff_id = max(0, (int) $this->input->post('po_fallback_l2_staff_id'));
+
+        if ($l2_staff_id <= 0) {
+            echo json_encode(['status' => 0, 'message' => 'PO Approver L2 is required.']);
+            return;
+        }
+
+        $l2_staff = $this->db
+            ->select('id')
+            ->from('staff')
+            ->where('id', $l2_staff_id)
+            ->where('is_active', 1)
+            ->limit(1)
+            ->get()
+            ->row_array();
+        if (empty($l2_staff)) {
+            echo json_encode(['status' => 0, 'message' => 'Selected PO Approver L2 must be an active staff member.']);
+            return;
+        }
+
+        $data = [
+            'id' => $setting_id,
+            'po_fallback_use_department_head_l1' => $this->input->post('po_fallback_use_department_head_l1') ? 1 : 0,
+            'po_fallback_l2_staff_id' => $l2_staff_id,
+            'po_fallback_superadmin_can_override_l1' => $this->input->post('po_fallback_superadmin_can_override_l1') ? 1 : 0,
+        ];
+
+        $this->setting_model->add($data);
+        echo json_encode(['status' => 1, 'message' => $this->lang->line('success_message')]);
+    }
+
+    public function indentapprovalfallback()
+    {
+        if (!$this->rbac->hasPrivilege('general_setting', 'can_view')) {
+            access_denied();
+        }
+
+        $this->session->set_userdata('top_menu', 'System Settings');
+        $this->session->set_userdata('sub_menu', 'schsettings/index');
+        $this->session->set_userdata('subsub_menu', 'schsettings/indentapprovalfallback');
+
+        $this->load->model('staff_model');
+
+        $setting = $this->setting_model->getSetting();
+        $staff_list = $this->staff_model->get(null, 1);
+
+        $this->ensureIndentApprovalFallbackColumns();
+        $indent_cols = $this->db
+            ->select('indent_fallback_use_department_head_l1, indent_fallback_l2_staff_id, indent_fallback_superadmin_can_override_l1')
+            ->from('sch_settings')
+            ->order_by('id', 'ASC')
+            ->limit(1)
+            ->get()
+            ->row();
+        if ($indent_cols) {
+            foreach ((array) $indent_cols as $col => $val) {
+                $setting->$col = $val;
+            }
+        }
+
+        $data = [];
+        $data['result'] = $setting;
+        $data['staff_list'] = $staff_list;
+        $data['indent_fallback_policy'] = $this->buildIndentApprovalFallbackPolicyForView($setting);
+
+        $this->load->view('layout/header', $data);
+        $this->load->view('setting/indentapprovalfallback', $data);
+        $this->load->view('layout/footer', $data);
+    }
+
+    public function saveindentapprovalfallback()
+    {
+        if (!$this->rbac->hasPrivilege('general_setting', 'can_edit')) {
+            access_denied();
+        }
+
+        $this->ensureIndentApprovalFallbackColumns();
+
+        $setting = $this->setting_model->getSetting();
+        $setting_id = (int) ($setting->id ?? 1);
+        $l2_staff_id = max(0, (int) $this->input->post('indent_fallback_l2_staff_id'));
+
+        if ($l2_staff_id <= 0) {
+            echo json_encode(['status' => 0, 'message' => 'Indent Approver L2 is required.']);
+            return;
+        }
+
+        $l2_staff = $this->db
+            ->select('id')
+            ->from('staff')
+            ->where('id', $l2_staff_id)
+            ->where('is_active', 1)
+            ->limit(1)
+            ->get()
+            ->row_array();
+        if (empty($l2_staff)) {
+            echo json_encode(['status' => 0, 'message' => 'Selected Indent Approver L2 must be an active staff member.']);
+            return;
+        }
+
+        $data = [
+            'id' => $setting_id,
+            'indent_fallback_use_department_head_l1' => $this->input->post('indent_fallback_use_department_head_l1') ? 1 : 0,
+            'indent_fallback_l2_staff_id' => $l2_staff_id,
+            'indent_fallback_superadmin_can_override_l1' => $this->input->post('indent_fallback_superadmin_can_override_l1') ? 1 : 0,
         ];
 
         $this->setting_model->add($data);

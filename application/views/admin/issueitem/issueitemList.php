@@ -23,6 +23,50 @@
                         </div>
                     </div><!-- /.box-header -->
                     <div class="box-body">
+                        <div class="row" style="margin-bottom:12px;">
+                            <div class="col-md-2 col-sm-6">
+                                <label>Target</label>
+                                <select id="filter_issue_target_type" class="form-control input-sm">
+                                    <option value="">All</option>
+                                    <option value="staff">Staff</option>
+                                    <option value="place">Place</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2 col-sm-6">
+                                <label>Location Type</label>
+                                <select id="filter_issue_location_type" class="form-control input-sm">
+                                    <option value="">All</option>
+                                    <option value="Lab">Lab</option>
+                                    <option value="Class Room">Class Room</option>
+                                    <option value="Department">Department</option>
+                                    <option value="Office">Office</option>
+                                    <option value="Library">Library</option>
+                                    <option value="Store">Store</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2 col-sm-6">
+                                <label>Place Name</label>
+                                <input type="text" id="filter_issue_place_name" class="form-control input-sm" placeholder="Chemistry Lab">
+                            </div>
+                            <div class="col-md-2 col-sm-6">
+                                <label>Floor</label>
+                                <input type="text" id="filter_issue_floor" class="form-control input-sm" placeholder="2">
+                            </div>
+                            <div class="col-md-2 col-sm-6">
+                                <label>Room No</label>
+                                <input type="text" id="filter_issue_room_no" class="form-control input-sm" placeholder="204">
+                            </div>
+                            <div class="col-md-2 col-sm-6" style="padding-top:24px;">
+                                <button type="button" id="btn_issue_filter" class="btn btn-info btn-sm">
+                                    <i class="fa fa-filter"></i> Filter
+                                </button>
+                                <button type="button" id="btn_issue_filter_reset" class="btn btn-default btn-sm">
+                                    <i class="fa fa-undo"></i> Reset
+                                </button>
+                            </div>
+                        </div>
+
                         <div class="mailbox-messages table-responsive overflow-visible">
                                  <table class="table table-striped table-bordered table-hover item-list" data-export-title="<?php echo $this->lang->line('issue_item_list'); ?>">
                                 <thead>
@@ -151,8 +195,36 @@
 <script>
     ( function ( $ ) {
     'use strict';
+
+    function buildIssueListParams() {
+        return {
+            issue_target_type: $('#filter_issue_target_type').val(),
+            issue_location_type: $('#filter_issue_location_type').val(),
+            issue_place_name: $('#filter_issue_place_name').val(),
+            issue_floor: $('#filter_issue_floor').val(),
+            issue_room_no: $('#filter_issue_room_no').val()
+        };
+    }
+
+    function loadIssueList() {
+        initDatatable('item-list', 'admin/issueitem/getitemlist', buildIssueListParams(), [], 100);
+    }
+
     $(document).ready(function () {
-        initDatatable('item-list','admin/issueitem/getitemlist',[],[],100);
+        loadIssueList();
+
+        $('#btn_issue_filter').on('click', function () {
+            loadIssueList();
+        });
+
+        $('#btn_issue_filter_reset').on('click', function () {
+            $('#filter_issue_target_type').val('');
+            $('#filter_issue_location_type').val('');
+            $('#filter_issue_place_name').val('');
+            $('#filter_issue_floor').val('');
+            $('#filter_issue_room_no').val('');
+            loadIssueList();
+        });
     });
 } ( jQuery ) )
 </script>

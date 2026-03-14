@@ -267,6 +267,10 @@ if (!function_exists('main_menu_array')) {
                 'itemcategory'   => array('index','edit'),    
                 'itemstore'      => array('index','edit','create'),    
                 'itemsupplier'   => array('index','edit','create'),    
+                'inventorydashboard' => array('index'),
+                'inventoryindent' => array('index','approvals'),
+                'inventoryprocurement' => array('purchaseorders','goodsreceipts','createpo','storepo','creategrn','storegrn','poapprovals','podecision','poitems'),
+                'assetmanagement' => array('register','assignment','transfer','maintenance'),
             ), 
              
             'transport' => array(               

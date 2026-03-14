@@ -1240,7 +1240,7 @@ class Staff_model extends MY_Model
         $this->db->select("CONCAT_WS(' ',staff.name,staff.surname) as name,staff.employee_id,roles.id as role_id,staff.id");
         $this->db->from('staff');
         $this->db->join("staff_roles", "staff_roles.staff_id = staff.id", "left");
-        $this->db->join("roles", "roles.role_id = roles.id", "left");
+        $this->db->join("roles", "staff_roles.role_id = roles.id", "left");
         $this->db->where('staff.is_active', 1);
         $query = $this->db->get();
         return $query->result_array();

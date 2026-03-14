@@ -45,18 +45,39 @@ class Issueitem extends Admin_Controller
 
     public function add()
     {
-        $this->form_validation->set_rules('account_type', $this->lang->line('user_type'), 'required|trim|xss_clean');
-        $this->form_validation->set_rules('issue_to', $this->lang->line('issue_to'), 'required|trim|xss_clean');
+        $this->form_validation->set_rules('issue_target_type', 'Issue Target Type', 'required|trim|in_list[staff,place]|xss_clean');
         $this->form_validation->set_rules('issue_by', $this->lang->line('issue_by'), 'required|trim|xss_clean');
         $this->form_validation->set_rules('issue_date', $this->lang->line('issue_date'), 'required|trim|xss_clean');
         $this->form_validation->set_rules('item_category_id', $this->lang->line('item_category'), 'required|trim|xss_clean');
         $this->form_validation->set_rules('item_id', $this->lang->line('item'), 'required|trim|xss_clean');
         $this->form_validation->set_rules('quantity', $this->lang->line('quantity'), 'trim|integer|required|xss_clean|callback_check_available_quantity');
 
+        $issue_target_type = $this->input->post('issue_target_type');
+        if ($issue_target_type === 'staff') {
+            $this->form_validation->set_rules('account_type', $this->lang->line('user_type'), 'required|trim|xss_clean');
+            $this->form_validation->set_rules('issue_to', $this->lang->line('issue_to'), 'required|trim|xss_clean');
+        } elseif ($issue_target_type === 'place') {
+            $this->form_validation->set_rules('issue_location_type', 'Issue Location Type', 'required|trim|xss_clean');
+            $this->form_validation->set_rules('issue_place_name', 'Place Name', 'required|trim|xss_clean');
+            $this->form_validation->set_rules('issue_floor', 'Floor', 'trim|xss_clean');
+            $this->form_validation->set_rules('issue_room_no', 'Room Number', 'trim|xss_clean');
+            $this->form_validation->set_rules('issue_block', 'Block/Wing', 'trim|xss_clean');
+            $this->form_validation->set_rules('issue_building', 'Building Name', 'trim|xss_clean');
+            $this->form_validation->set_rules('issue_location_note', 'Location Note', 'trim|xss_clean');
+        }
+
         if ($this->form_validation->run() == false) {
             $data = array(
-                'account_type'     => form_error('account_type'),
-                'issue_to'         => form_error('issue_to'),
+                'issue_target_type' => form_error('issue_target_type'),
+                'account_type'      => form_error('account_type'),
+                'issue_to'          => form_error('issue_to'),
+                'issue_location_type' => form_error('issue_location_type'),
+                'issue_place_name'    => form_error('issue_place_name'),
+                'issue_floor'         => form_error('issue_floor'),
+                'issue_room_no'       => form_error('issue_room_no'),
+                'issue_block'         => form_error('issue_block'),
+                'issue_building'      => form_error('issue_building'),
+                'issue_location_note' => form_error('issue_location_note'),
                 'issue_by'         => form_error('issue_by'),
                 'issue_date'       => form_error('issue_date'),
                 'item_category_id' => form_error('item_category_id'),
@@ -71,14 +92,46 @@ class Issueitem extends Admin_Controller
 
                 $return_date = date('Y-m-d', $this->customlib->datetostrtotime($this->input->post('return_date')));
             }
+
+            $issue_to_staff_id = null;
+            $issue_type = null;
+            $issue_location_type = null;
+            $issue_place_name = null;
+            $issue_floor = null;
+            $issue_room_no = null;
+            $issue_block = null;
+            $issue_building = null;
+            $issue_location_note = null;
+
+            if ($issue_target_type === 'staff') {
+                $issue_to_staff_id = (int) $this->input->post('issue_to');
+                $issue_type = (int) $this->input->post('account_type');
+            } else {
+                $issue_location_type = $this->input->post('issue_location_type');
+                $issue_place_name = $this->input->post('issue_place_name');
+                $issue_floor = $this->input->post('issue_floor');
+                $issue_room_no = $this->input->post('issue_room_no');
+                $issue_block = $this->input->post('issue_block');
+                $issue_building = $this->input->post('issue_building');
+                $issue_location_note = $this->input->post('issue_location_note');
+            }
+
             $data = array(
-                'issue_to'         => $this->input->post('issue_to'),
+                'issue_to'         => $issue_to_staff_id,
                 'issue_by'         => $this->input->post('issue_by'),
                 'issue_date'       => date('Y-m-d', $this->customlib->datetostrtotime($this->input->post('issue_date'))),
                 'return_date'      => $return_date,
                 'note'             => $this->input->post('note'),
                 'quantity'         => $this->input->post('quantity'),
-                'issue_type'       => $this->input->post('account_type'),
+                'issue_type'       => $issue_type,
+                'issue_target_type' => $issue_target_type,
+                'issue_location_type' => $issue_location_type,
+                'issue_place_name' => $issue_place_name,
+                'issue_floor' => $issue_floor,
+                'issue_room_no' => $issue_room_no,
+                'issue_block' => $issue_block,
+                'issue_building' => $issue_building,
+                'issue_location_note' => $issue_location_note,
                 'item_category_id' => $this->input->post('item_category_id'),
                 'item_id'          => $this->input->post('item_id'),
             );
@@ -146,7 +199,15 @@ class Issueitem extends Admin_Controller
 
     public function getitemlist()
     {
-        $m               = $this->itemissue_model->getitemlist();
+        $filters = array(
+            'issue_target_type' => $this->input->post('issue_target_type'),
+            'issue_location_type' => $this->input->post('issue_location_type'),
+            'issue_place_name' => $this->input->post('issue_place_name'),
+            'issue_floor' => $this->input->post('issue_floor'),
+            'issue_room_no' => $this->input->post('issue_room_no'),
+        );
+
+        $m               = $this->itemissue_model->getitemlist($filters);
         $m               = json_decode($m);
         $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
         $dt_data         = array();
@@ -180,7 +241,11 @@ class Issueitem extends Admin_Controller
                 }
                 $row[] = date($this->customlib->getSchoolDateFormat(), $this->customlib->dateyyyymmddTodateformat($value->issue_date)) . " - " . $return_date;
 
-                $row[] = $value->staff_name . " " . $value->surname . " (" . $value->employee_id . ")";
+                $issue_to_display = trim((string) ($value->issue_to_display ?? ''));
+                if ($issue_to_display === '') {
+                    $issue_to_display = '-';
+                }
+                $row[] = $issue_to_display;
                 $row[] = $value->issueby_staff_name . " " . $value->issueby_surname . " (" . $value->issueby_employee_id . ")";
                 $row[]     = $value->quantity;
                 $row[]     = $is_return;

@@ -67,6 +67,16 @@ if ($this->rbac->hasPrivilege('store', 'can_add')) {
                 <div class="box box-primary" id="exphead">
                     <div class="box-header ptbnull">
                         <h3 class="box-title titlefix"><?php echo $this->lang->line('item_store_list'); ?></h3>
+                        <div class="box-tools pull-right">
+                            <?php if ($this->rbac->hasPrivilege('store', 'can_add')) { ?>
+                                <a href="<?php echo site_url('admin/inventoryimport/itemstore'); ?>" class="btn btn-info btn-sm">
+                                    <i class="fa fa-upload"></i> Bulk Upload
+                                </a>
+                                <a href="<?php echo site_url('admin/inventoryimport/downloadsample/itemstore'); ?>" class="btn btn-default btn-sm">
+                                    <i class="fa fa-download"></i> Sample CSV
+                                </a>
+                            <?php } ?>
+                        </div>
                     </div><!-- /.box-header -->
                     <div class="box-body  ">
                         <div class="mailbox-messages">

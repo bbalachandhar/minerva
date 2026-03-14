@@ -116,6 +116,34 @@ if (set_value('store_id') == $itemstore['id']) {
                                     <span class="text-danger"><?php echo form_error('date'); ?></span>
                                 </div>
                                 <div class="form-group">
+                                    <label for="batch_no">Batch No</label>
+                                    <input id="batch_no" name="batch_no" placeholder="e.g. BATCH-2026-001" type="text" class="form-control" value="<?php echo set_value('batch_no'); ?>" />
+                                </div>
+                                <div class="form-group">
+                                    <label for="manufacturing_date">Manufacturing Date</label>
+                                    <input id="manufacturing_date" name="manufacturing_date" placeholder="" type="text" class="form-control date" value="<?php echo set_value('manufacturing_date'); ?>" readonly="readonly" />
+                                </div>
+                                <div class="form-group">
+                                    <label for="expiry_date">Expiry Date</label>
+                                    <input id="expiry_date" name="expiry_date" placeholder="" type="text" class="form-control date" value="<?php echo set_value('expiry_date'); ?>" readonly="readonly" />
+                                </div>
+                                <div class="form-group">
+                                    <label for="warranty_upto">Warranty Upto</label>
+                                    <input id="warranty_upto" name="warranty_upto" placeholder="" type="text" class="form-control date" value="<?php echo set_value('warranty_upto'); ?>" readonly="readonly" />
+                                </div>
+                                <div class="form-group">
+                                    <label for="license_key">License Number/Key</label>
+                                    <input id="license_key" name="license_key" placeholder="e.g. LIC-XYZ-2048" type="text" class="form-control" value="<?php echo set_value('license_key'); ?>" />
+                                </div>
+                                <div class="form-group">
+                                    <label for="license_valid_from">License Valid From</label>
+                                    <input id="license_valid_from" name="license_valid_from" placeholder="" type="text" class="form-control date" value="<?php echo set_value('license_valid_from'); ?>" readonly="readonly" />
+                                </div>
+                                <div class="form-group">
+                                    <label for="license_valid_till">License Valid Till</label>
+                                    <input id="license_valid_till" name="license_valid_till" placeholder="" type="text" class="form-control date" value="<?php echo set_value('license_valid_till'); ?>" readonly="readonly" />
+                                </div>
+                                <div class="form-group">
                                     <label for="exampleInputEmail1"><?php echo $this->lang->line('attach_document'); ?></label>
                                     <input id="item_photo" name="item_photo" placeholder="" type="file" class="filestyle form-control" data-height="40"  value="<?php echo set_value('item_photo'); ?>" />
                                     <span class="text-danger"><?php echo form_error('item_photo'); ?></span>
@@ -147,6 +175,14 @@ if ($this->rbac->hasPrivilege('item_stock', 'can_add')) {
                     <div class="box-header ptbnull">
                         <h3 class="box-title titlefix"> <?php echo $this->lang->line('item_stock_list'); ?></h3>
                         <div class="box-tools pull-right">
+                            <?php if ($this->rbac->hasPrivilege('item_stock', 'can_add')) { ?>
+                                <a href="<?php echo site_url('admin/inventoryimport/itemstock'); ?>" class="btn btn-info btn-sm">
+                                    <i class="fa fa-upload"></i> Bulk Upload
+                                </a>
+                                <a href="<?php echo site_url('admin/inventoryimport/downloadsample/itemstock'); ?>" class="btn btn-default btn-sm">
+                                    <i class="fa fa-download"></i> Sample CSV
+                                </a>
+                            <?php } ?>
                         </div><!-- /.box-tools -->
                     </div><!-- /.box-header -->
                     <div class="box-body">
@@ -172,11 +208,52 @@ if (empty($itemlist)) {
 
                                         <?php
 } else {
+    $today_ts = strtotime(date('Y-m-d'));
+    $expiring_threshold_ts = strtotime('+30 days', $today_ts);
     foreach ($itemlist as $items) {
+        $expiry_status_label = '';
+        $expiry_status_class = '';
+        $license_status_label = '';
+        $license_status_class = '';
+        $row_has_expiry_alert = false;
+
+        if (isset($items['expiry_date']) && $items['expiry_date'] !== '' && $items['expiry_date'] != '0000-00-00') {
+            $expiry_ts = strtotime($items['expiry_date']);
+            if ($expiry_ts !== false) {
+                if ($expiry_ts < $today_ts) {
+                    $expiry_status_label = 'Expired';
+                    $expiry_status_class = 'label-danger';
+                    $row_has_expiry_alert = true;
+                } elseif ($expiry_ts <= $expiring_threshold_ts) {
+                    $days_left = (int) floor(($expiry_ts - $today_ts) / 86400);
+                    $expiry_status_label = 'Expiring in ' . $days_left . ' day' . ($days_left == 1 ? '' : 's');
+                    $expiry_status_class = 'label-warning';
+                    $row_has_expiry_alert = true;
+                }
+            }
+        }
+
+        if (isset($items['license_valid_till']) && $items['license_valid_till'] !== '' && $items['license_valid_till'] != '0000-00-00') {
+            $license_ts = strtotime($items['license_valid_till']);
+            if ($license_ts !== false) {
+                if ($license_ts < $today_ts) {
+                    $license_status_label = 'License Expired';
+                    $license_status_class = 'label-danger';
+                    $row_has_expiry_alert = true;
+                } elseif ($license_ts <= $expiring_threshold_ts) {
+                    $days_left = (int) floor(($license_ts - $today_ts) / 86400);
+                    $license_status_label = 'License expires in ' . $days_left . ' day' . ($days_left == 1 ? '' : 's');
+                    $license_status_class = 'label-warning';
+                    $row_has_expiry_alert = true;
+                }
+            }
+        }
         ?>
-                                            <tr>
+                                            <tr class="<?php echo $row_has_expiry_alert ? 'expiry-alert-row' : ''; ?>">
                                                 <td class="mailbox-name">
                                                     <a href="#" data-toggle="popover" class="detail_popover"><?php echo $items['name'] ?></a>
+                                                    <?php if ($expiry_status_label !== '') { ?><br><span class="label <?php echo $expiry_status_class; ?>"><?php echo $expiry_status_label; ?></span><?php } ?>
+                                                    <?php if ($license_status_label !== '') { ?><br><span class="label <?php echo $license_status_class; ?>"><?php echo $license_status_label; ?></span><?php } ?>
 
                                                     <div class="fee_detail_popover" style="display: none">
                                                         <?php
@@ -190,6 +267,13 @@ if ($items['description'] == "") {
                                                             <?php
 }
         ?>
+                                                        <?php if (isset($items['batch_no']) && $items['batch_no'] !== '') { ?><p><strong>Batch:</strong> <?php echo $items['batch_no']; ?></p><?php } ?>
+                                                        <?php if (isset($items['manufacturing_date']) && $items['manufacturing_date'] !== '' && $items['manufacturing_date'] != '0000-00-00') { ?><p><strong>Mfg Date:</strong> <?php echo $this->customlib->dateformat($items['manufacturing_date']); ?></p><?php } ?>
+                                                        <?php if (isset($items['expiry_date']) && $items['expiry_date'] !== '' && $items['expiry_date'] != '0000-00-00') { ?><p><strong>Expiry:</strong> <?php echo $this->customlib->dateformat($items['expiry_date']); ?></p><?php } ?>
+                                                        <?php if (isset($items['warranty_upto']) && $items['warranty_upto'] !== '' && $items['warranty_upto'] != '0000-00-00') { ?><p><strong>Warranty Upto:</strong> <?php echo $this->customlib->dateformat($items['warranty_upto']); ?></p><?php } ?>
+                                                        <?php if (isset($items['license_key']) && $items['license_key'] !== '') { ?><p><strong>License No/Key:</strong> <?php echo $items['license_key']; ?></p><?php } ?>
+                                                        <?php if (isset($items['license_valid_from']) && $items['license_valid_from'] !== '' && $items['license_valid_from'] != '0000-00-00') { ?><p><strong>License From:</strong> <?php echo $this->customlib->dateformat($items['license_valid_from']); ?></p><?php } ?>
+                                                        <?php if (isset($items['license_valid_till']) && $items['license_valid_till'] !== '' && $items['license_valid_till'] != '0000-00-00') { ?><p><strong>License Till:</strong> <?php echo $this->customlib->dateformat($items['license_valid_till']); ?></p><?php } ?>
                                                     </div>
                                                 </td>
                                                 <td class="mailbox-name">
@@ -326,6 +410,12 @@ if ($items['description'] == "") {
 
     });
 </script>
+
+<style>
+    .expiry-alert-row td {
+        background-color: #fff8e1;
+    }
+</style>
 
 <script>
     $(function(){
