@@ -258,7 +258,7 @@ class Hostelroom extends Admin_Controller
     public function download_sample()
     {
         $this->load->helper('download');
-        $filepath = "./uploads/school_content/hostel_room_sample.csv";
+        $filepath = "./backend/import/hostel_room_sample.csv";
         $data     = file_get_contents($filepath);
         $name     = 'hostel_room_sample.csv';
         force_download($name, $data);

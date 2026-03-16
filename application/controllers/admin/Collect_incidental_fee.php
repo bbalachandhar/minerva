@@ -8,6 +8,7 @@ class Collect_incidental_fee extends Admin_Controller {
         $this->load->model('incidental_fee_type_model');
         $this->load->model('incidental_fee_assignment_model');
         $this->load->model('incidental_fee_collection_model');
+        $this->load->model('onlinestudent_model');
         $this->load->model('session_model');
         $this->load->model('class_model');
         $this->load->model('student_model');
@@ -193,14 +194,49 @@ class Collect_incidental_fee extends Admin_Controller {
             $receipt_no = $this->incidental_fee_collection_model->get_receipt_no();
             $payment_mode = $this->input->post('payment_mode');
             $application_ref_no = $this->input->post('application_ref_no');
+            $application_ref_no = trim((string) $application_ref_no);
+            $fee_type_id = (int) $this->input->post('fee_type_id');
+            $amount_collected = (float) $this->input->post('amount_collected');
+
+            $fee_type = $this->incidental_fee_type_model->get($fee_type_id);
+            $fee_type_title = isset($fee_type['title']) ? $fee_type['title'] : '';
+            $application_ref_required = $this->isApplicationRefRequiredForFeeType($fee_type_title);
+
+            $online_admission = null;
+            if ($application_ref_required) {
+                if ($application_ref_no === '') {
+                    $this->db->trans_rollback();
+                    echo json_encode(array('status' => 'error', 'message' => 'Application Reference No is required for this fee type.'));
+                    return;
+                }
+
+                $online_admission = $this->getOnlineAdmissionByReference($application_ref_no);
+                if (empty($online_admission)) {
+                    $this->db->trans_rollback();
+                    echo json_encode(array('status' => 'error', 'message' => 'No online application found for the given Application Reference No.'));
+                    return;
+                }
+
+                $due_summary = $this->getApplicationDueSummary($online_admission, $application_ref_no);
+                if ($amount_collected > (float) ($due_summary['remaining_fee'] ?? 0)) {
+                    $this->db->trans_rollback();
+                    echo json_encode(array('status' => 'error', 'message' => 'Collected amount cannot exceed remaining payable amount.'));
+                    return;
+                }
+            }
+
+            $non_student_name = trim((string) $this->input->post('non_student_name'));
+            if ($application_ref_required && empty($non_student_name) && !empty($online_admission)) {
+                $non_student_name = trim((string) ($online_admission['applicant_name'] ?? ''));
+            }
 
             $insert_data = array(
                 'student_id'                   => NULL, // Explicitly NULL for non-students
-                'non_student_name'             => $this->input->post('non_student_name'),
+                'non_student_name'             => $non_student_name,
                 'incidental_fee_type_id'       => $this->input->post('fee_type_id'),
                 'incidental_fee_assignment_id' => NULL, // No assignment for non-students
                 'session_id'                   => $session_id,
-                'amount_collected'             => $this->input->post('amount_collected'),
+                'amount_collected'             => $amount_collected,
                 'bill_date'                    => $this->input->post('bill_date'),
                 'collected_by'                 => $collected_by,
                 'receipt_no'                   => $receipt_no,
@@ -219,7 +255,6 @@ class Collect_incidental_fee extends Admin_Controller {
                 if ($this->db->trans_status() === FALSE) {
                     echo json_encode(array('status' => 'error', 'message' => $this->lang->line('error_collecting_fee')));
                 } else {
-                    $amount_collected = $this->input->post('amount_collected');
                     $collection_id = (int) $collection_id;
                     $response = array(
                         'status' => 'success',
@@ -240,6 +275,46 @@ class Collect_incidental_fee extends Admin_Controller {
         }
     }
 
+    public function findApplicationByReference()
+    {
+        if (!$this->rbac->hasPrivilege('collect_incidental_fee', 'can_view')) {
+            echo json_encode(array('status' => 'error', 'message' => $this->lang->line('access_denied')));
+            return;
+        }
+
+        $reference_no = trim((string) $this->input->post('application_ref_no'));
+        if ($reference_no === '') {
+            echo json_encode(array('status' => 'error', 'message' => 'Application Reference No is required.'));
+            return;
+        }
+
+        $online_admission = $this->getOnlineAdmissionByReference($reference_no);
+        if (empty($online_admission)) {
+            echo json_encode(array('status' => 'error', 'message' => 'No online application found for the given Application Reference No.'));
+            return;
+        }
+
+        $due_summary = $this->getApplicationDueSummary($online_admission, $reference_no);
+
+        echo json_encode(array(
+            'status' => 'success',
+            'application' => array(
+                'id' => (int) $online_admission['id'],
+                'reference_no' => $online_admission['reference_no'],
+                'applicant_name' => $online_admission['applicant_name'],
+                'mobileno' => $online_admission['mobileno'],
+                'course_name' => $online_admission['course_name'],
+                'course_fee_total' => $due_summary['course_fee_total'],
+                'application_fee_amount' => $due_summary['application_fee_amount'],
+                'total_payable_amount' => $due_summary['total_payable_amount'],
+                'total_paid_so_far' => $due_summary['total_paid_so_far'],
+                'remaining_fee' => $due_summary['remaining_fee'],
+            ),
+            'online_payment_history' => $due_summary['online_payment_history'],
+            'incidental_payment_history' => $due_summary['incidental_payment_history'],
+        ));
+    }
+
     public function getRecentCollections() {
         if (!$this->rbac->hasPrivilege('collect_incidental_fee', 'can_view')) {
             echo json_encode(['status' => 'error', 'message' => $this->lang->line('access_denied')]);
@@ -254,6 +329,126 @@ class Collect_incidental_fee extends Admin_Controller {
         });
         header('Content-Type: application/json');
         echo json_encode(['status' => 'success', 'data' => $collections]);
+    }
+
+    private function isApplicationRefRequiredForFeeType($fee_type_title)
+    {
+        $title = strtolower(trim((string) $fee_type_title));
+        if ($title === '') {
+            return false;
+        }
+
+        return (strpos($title, 'application fee') !== false)
+            || (strpos($title, 'tuition fee') !== false)
+            || (strpos($title, 'tution fee') !== false)
+            || (strpos($title, 'other fee') !== false);
+    }
+
+    private function getOnlineAdmissionByReference($reference_no)
+    {
+        $normalized = preg_replace('/\s+/', '', (string) $reference_no);
+
+        $this->db->select('online_admissions.id, online_admissions.reference_no, online_admissions.firstname, online_admissions.middlename, online_admissions.lastname, online_admissions.mobileno, online_admissions.quota_type, online_admissions.course_fee_total, online_admission_courses.course_name, online_admission_courses.govt_fee, online_admission_courses.mgt_fee');
+        $this->db->from('online_admissions');
+        $this->db->join('online_admission_courses', 'online_admission_courses.id = COALESCE(online_admissions.admission_course_id, online_admissions.ug_course_id)', 'left');
+        $this->db->where('REPLACE(online_admissions.reference_no, " ", "") =', $normalized, false);
+        $this->db->limit(1);
+        $row = $this->db->get()->row_array();
+
+        if (empty($row)) {
+            return null;
+        }
+
+        $course_fee_total = isset($row['course_fee_total']) ? (float) $row['course_fee_total'] : 0;
+        if ($course_fee_total <= 0) {
+            $quota_type = strtolower(trim((string) ($row['quota_type'] ?? '')));
+            if ($quota_type === 'management') {
+                $course_fee_total = (float) ($row['mgt_fee'] ?? 0);
+            } else {
+                $course_fee_total = (float) ($row['govt_fee'] ?? 0);
+            }
+        }
+
+        $applicant_name = trim(
+            (string) ($row['firstname'] ?? '') . ' ' .
+            (string) ($row['middlename'] ?? '') . ' ' .
+            (string) ($row['lastname'] ?? '')
+        );
+
+        $row['course_fee_total'] = $course_fee_total;
+        $row['applicant_name'] = $applicant_name;
+
+        return $row;
+    }
+
+    private function getOnlineApplicationPaymentHistory($online_admission_id)
+    {
+        if ((int) $online_admission_id <= 0) {
+            return array();
+        }
+
+        $this->db->select('id, paid_amount, payment_mode, payment_type, transaction_id, note, date');
+        $this->db->from('online_admission_payment');
+        $this->db->where('online_admission_id', (int) $online_admission_id);
+        $this->db->order_by('date', 'ASC');
+        return $this->db->get()->result_array();
+    }
+
+    private function getIncidentalFeeHistoryByReference($reference_no)
+    {
+        $normalized = preg_replace('/\s+/', '', (string) $reference_no);
+        if ($normalized === '') {
+            return array();
+        }
+
+        $this->db->select('incidental_fee_collections.id, incidental_fee_collections.amount_collected, incidental_fee_collections.bill_date, incidental_fee_collections.payment_mode, incidental_fee_types.title as fee_type_title');
+        $this->db->from('incidental_fee_collections');
+        $this->db->join('incidental_fee_types', 'incidental_fee_types.id = incidental_fee_collections.incidental_fee_type_id', 'left');
+        $this->db->where('REPLACE(incidental_fee_collections.application_ref_no, " ", "") =', $normalized, false);
+        $this->db->order_by('incidental_fee_collections.bill_date', 'ASC');
+        $this->db->order_by('incidental_fee_collections.id', 'ASC');
+        return $this->db->get()->result_array();
+    }
+
+    private function getConfiguredOnlineApplicationAmount()
+    {
+        $setting = $this->setting_model->getSetting();
+        return isset($setting->online_admission_amount) ? (float) $setting->online_admission_amount : 0.0;
+    }
+
+    private function getApplicationDueSummary($online_admission, $reference_no)
+    {
+        $online_payment_history = $this->getOnlineApplicationPaymentHistory((int) ($online_admission['id'] ?? 0));
+        $incidental_history = $this->getIncidentalFeeHistoryByReference($reference_no);
+
+        $online_paid_total = 0.0;
+        foreach ($online_payment_history as $row) {
+            $online_paid_total += (float) ($row['paid_amount'] ?? 0);
+        }
+
+        $incidental_paid_total = 0.0;
+        foreach ($incidental_history as $row) {
+            $incidental_paid_total += (float) ($row['amount_collected'] ?? 0);
+        }
+
+        $course_fee_total = (float) ($online_admission['course_fee_total'] ?? 0);
+        $application_fee_amount = $this->getConfiguredOnlineApplicationAmount();
+        $total_payable_amount = $course_fee_total + $application_fee_amount;
+        $total_paid_so_far = $online_paid_total + $incidental_paid_total;
+        $remaining_fee = $total_payable_amount - $total_paid_so_far;
+        if ($remaining_fee < 0) {
+            $remaining_fee = 0.0;
+        }
+
+        return array(
+            'online_payment_history' => $online_payment_history,
+            'incidental_payment_history' => $incidental_history,
+            'course_fee_total' => $course_fee_total,
+            'application_fee_amount' => $application_fee_amount,
+            'total_payable_amount' => $total_payable_amount,
+            'total_paid_so_far' => $total_paid_so_far,
+            'remaining_fee' => $remaining_fee,
+        );
     }
 
     public function receipt($collection_id) {

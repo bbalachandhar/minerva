@@ -1,0 +1,7 @@
+asset_tag,assignee_type,employee_id,location_code,assigned_on
+MECE-PC-0001,place,,CSE-LAB-1,2022-04-15
+MECE-PC-0002,place,,CSE-LAB-1,2022-04-15
+MECE-LT-0001,staff,EMP001,,2023-09-01
+MECE-PRJ-0001,place,,SEMINAR-HALL-1,2021-06-20
+MECE-UPS-0001,place,,SERVER-ROOM,2021-06-20
+MECE-SW-0001,place,,SERVER-ROOM,2020-03-10

@@ -65,7 +65,7 @@ class Toyyibpay extends Admin_Controller {
 
               $curl = curl_init();
               curl_setopt($curl, CURLOPT_POST, 1);
-              curl_setopt($curl, CURLOPT_URL, 'https://dev.toyyibpay.com/index.php/api/createBill');  
+              curl_setopt($curl, CURLOPT_URL, 'https://toyyibpay.com/index.php/api/createBill');  
               curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
               curl_setopt($curl, CURLOPT_POSTFIELDS, $payment_data);
 
@@ -105,7 +105,7 @@ class Toyyibpay extends Admin_Controller {
                     $result=$obj->msg;  
                     
                 }else{
-                  $url = "https://dev.toyyibpay.com/".$obj[0]->BillCode;
+                  $url = "https://toyyibpay.com/".$obj[0]->BillCode;
                     header("Location: $url");
                 }             
             }
@@ -141,7 +141,7 @@ class Toyyibpay extends Admin_Controller {
                 );
                 $this->course_model->add($payment_data);
 
-               $this->load->view('course_payment/paymentsuccess');
+               $this->load->view('course_payment/course_payment/paymentsuccess');
             }elseif($parameter_data['payment_status']=='CANCELLED'){
                 $this->gateway_ins_model->deleteBygateway_ins_id($parameter_data['id']); 
                 redirect(base_url("course_payment/course_payment/paymentfailed"));

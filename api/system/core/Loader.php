@@ -49,6 +49,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
  * @author		EllisLab Dev Team
  * @link		https://codeigniter.com/userguide3/libraries/loader.html
  */
+#[\AllowDynamicProperties]
 class CI_Loader {
 
 	// All these are set automatically. Don't mess with them.
@@ -124,29 +125,6 @@ class CI_Loader {
 		'unit_test' => 'unit',
 		'user_agent' => 'agent'
 	);
-
-	// Dynamically created properties that need explicit declaration for PHP 8.2+ compatibility
-	public $email;
-	public $Setting_model; // Note: case-sensitive for some systems
-	public $customlib;
-	public $setting_model;
-	public $student_model;
-	public $customfield_model;
-	public $load;
-	public $log;
-	public $utf8;
-	public $benchmark;
-	public $config;
-	public $hooks;
-	public $lang;
-	public $uri;
-	public $router;
-	public $output;
-	public $security;
-	public $input;
-	public $form_validation;
-	public $session;
-	public $db;
 
 	// --------------------------------------------------------------------
 

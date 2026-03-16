@@ -1,0 +1,9 @@
+asset_tag,asset_name,item_name,item_category,serial_no,model_no,brand_name,supplier_name,purchase_date,purchase_cost,capitalization_date,warranty_start,warranty_end,current_status,location_code,remarks
+MECE-PC-0001,Dell OptiPlex 3080 1,Desktop Computer,IT Equipment,SN3080001,OptiPlex 3080,Dell,ABC Traders,2022-04-01,38000,2022-04-01,2022-04-01,2025-04-01,in_stock,CSE-LAB-1,CSE Lab Row A Seat 1
+MECE-PC-0002,Dell OptiPlex 3080 2,Desktop Computer,IT Equipment,SN3080002,OptiPlex 3080,Dell,ABC Traders,2022-04-01,38000,2022-04-01,2022-04-01,2025-04-01,in_stock,CSE-LAB-1,CSE Lab Row A Seat 2
+MECE-LT-0001,HP EliteBook 840 G8,Laptop,IT Equipment,CNBY123401,EliteBook 840 G8,HP,XYZ Solutions,2023-08-15,65000,2023-08-15,2023-08-15,2026-08-15,assigned,STAFF-ROOM,Issued to faculty
+MECE-PRJ-0001,Epson EB-X41 Projector,Projector,IT Equipment,XEPJ00101,EB-X41,Epson,ABC Traders,2021-06-10,42000,2021-06-10,2021-06-10,2024-06-10,in_stock,SEMINAR-HALL-1,
+MECE-UPS-0001,APC BX600CI UPS,UPS,IT Equipment,APC60001,BX600CI,APC,Power Systems,2021-06-10,4500,2021-06-10,2021-06-10,2024-06-10,in_stock,SERVER-ROOM,Server room UPS
+MECE-SW-0001,Cisco SG250-18 Switch,Network Switch,IT Equipment,FOC2101ABCD,SG250-18,Cisco,Network Solutions,2020-03-01,28000,2020-03-01,2020-03-01,2023-03-01,in_stock,SERVER-ROOM,24-port managed switch
+MECE-LATH-0001,HMT Lathe Machine,Lathe Machine,Mechanical Equipment,HMT45001,4.5ft Centre Lathe,HMT,Machinery House,2018-07-01,185000,2018-07-01,2018-07-01,2021-07-01,in_stock,MECH-WORKSHOP,
+MECE-OSC-0001,Tektronix TDS1022B,Oscilloscope,Electronics Equipment,C050001,TDS1022B,Tektronix,Scientific Instruments,2019-11-20,35000,2019-11-20,2019-11-20,2022-11-20,in_stock,ECE-LAB-1,2-channel 60MHz

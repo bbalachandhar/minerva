@@ -1,0 +1,3 @@
+asset_id,to_location_id,target_type,transfer_date,to_assignee_id,transferred_by,approved_by,status,remarks
+1,2,staff,2026-03-15,3,1,1,completed,Transferred to staff in new location
+2,1,place,2026-03-15,,1,1,completed,Transferred back to lab location

@@ -67,7 +67,7 @@
                 <h3 class="box-title">Quick Links</h3>
             </div>
             <div class="box-body">
-                <a class="btn btn-default btn-sm" href="<?php echo site_url('admin/item'); ?>">Items</a>
+                <a class="btn btn-default btn-sm" href="<?php echo site_url('admin/item'); ?>">Item Master</a>
                 <a class="btn btn-default btn-sm" href="<?php echo site_url('admin/itemcategory'); ?>">Categories</a>
                 <a class="btn btn-default btn-sm" href="<?php echo site_url('admin/itemstock'); ?>">Stock Inward</a>
                 <a class="btn btn-default btn-sm" href="<?php echo site_url('admin/issueitem'); ?>">Issue / Return</a>

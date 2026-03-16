@@ -103,6 +103,7 @@ if (set_value('store_id') == $itemstore['id']) {
                                         </span>
                                         <input id="quantity" name="quantity" placeholder="" type="text" class="form-control miplusinput"  value="<?php echo set_value('quantity'); ?>" />
                                     </div>
+                                    <small class="text-muted">Enter quantity as a positive number. Use the +/- selector to choose inward or outward adjustment.</small>
                                     <span class="text-danger"><?php echo form_error('quantity'); ?></span>
                                 </div>
                                 <div class="form-group">

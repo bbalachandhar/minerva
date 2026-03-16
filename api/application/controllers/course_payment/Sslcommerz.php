@@ -115,7 +115,7 @@ class Sslcommerz extends Admin_Controller {
                 'payment_mode' => 'Sslcommerz',
             );
             $this->course_model->add($payment_data);
-            $this->load->view('course_payment/paymentsuccess');
+            $this->load->view('course_payment/course_payment/paymentsuccess');
         } else {
           redirect(base_url("course_payment/course_payment/paymentfailed"));
         }

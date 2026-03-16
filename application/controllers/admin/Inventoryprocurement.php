@@ -318,7 +318,7 @@ class Inventoryprocurement extends Admin_Controller
         return $rows;
     }
 
-    private function createAssetsForReceiptLine($grn_no, $po, $po_line, $accepted_qty, $grn_date)
+    private function createAssetsForReceiptLine($grn_no, $po, $po_line, $accepted_qty, $grn_date, $item_stock_id = null)
     {
         if (!$this->db->table_exists('inv_assets') || empty($po_line['item_id']) || $accepted_qty <= 0) {
             return;
@@ -352,6 +352,7 @@ class Inventoryprocurement extends Admin_Controller
                 'asset_tag' => $asset_tag,
                 'asset_name' => (string) ($item['name'] ?? $po_line['item_name']),
                 'item_id' => (int) $po_line['item_id'],
+                'item_stock_id' => !empty($item_stock_id) ? (int) $item_stock_id : null,
                 'category_id' => !empty($item['item_category_id']) ? (int) $item['item_category_id'] : null,
                 'supplier_id' => !empty($po['supplier_id']) ? (int) $po['supplier_id'] : null,
                 'purchase_order_id' => (int) $po['id'],
@@ -972,6 +973,7 @@ class Inventoryprocurement extends Admin_Controller
 
             if (!empty($line['item_id']) && $accepted_qty > 0) {
                 $stock_qty = (int) floor($accepted_qty);
+                $item_stock_id = null;
                 if ($stock_qty > 0) {
                     $this->db->insert('item_stock', [
                         'item_id' => (int) $line['item_id'],
@@ -984,9 +986,11 @@ class Inventoryprocurement extends Admin_Controller
                         'attachment' => null,
                         'description' => 'Auto inward from GRN ' . $grn_no,
                     ]);
+
+                    $item_stock_id = (int) $this->db->insert_id();
                 }
 
-                $this->createAssetsForReceiptLine($grn_no, $po, $line, $accepted_qty, $grn_date);
+                $this->createAssetsForReceiptLine($grn_no, $po, $line, $accepted_qty, $grn_date, $item_stock_id);
             }
 
             $accepted_total_for_grn += $accepted_qty;

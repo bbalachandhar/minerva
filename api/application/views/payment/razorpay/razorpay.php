@@ -89,13 +89,14 @@
                                                 var product_id = <?php echo $merchant_order_id; ?>;
                                                 var options = {
                                                     "key": "<?php echo $key_id; ?>",
-                                                    "amount": "<?php echo convertBaseAmountCurrencyFormat($total); ?>", // 2000 paise = INR 20
+                                                    "amount": "<?php echo convertBaseAmountCurrencyFormat($total)*100; ?>", // 2000 paise = INR 20
                                                     "name": "<?php echo $name; ?>",
                                                     "description": "<?php echo $title; ?>",
                                                     "currency": "<?php echo $currency_code; ?>",
                                                     "image": "https://www.73lines.com/web/image/12427",
                                                     "callback_url": SITEURL + 'gateway/razorpay/callback',
                                                     "redirect": true,
+                                                    "order_id": '<?php echo $order_id; ?>',
                                                     "handler": function (response) {
 
 

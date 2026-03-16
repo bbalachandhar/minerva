@@ -90,7 +90,7 @@ class Ccavenue extends Admin_Controller {
                     'payment_mode' => 'CCAvenue',
                 );
             $this->course_model->add($payment_data);
-            $this->load->view('course_payment/paymentsuccess');
+            $this->load->view('course_payment/course_payment/paymentsuccess');
 
         } else if ($veriChecksum == TRUE && $AuthDesc === "B") {
             $this->session->set_flashdata('message', 'Thank you for shopping with us.We will keep you posted regarding the status of your order through e-mail');

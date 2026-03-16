@@ -107,7 +107,7 @@ class Cashfree extends Admin_Controller {
 
     public function success() {
         $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, 'https://sandbox.cashfree.com/pg/orders/'.$_GET['order_id']);
+        curl_setopt($ch, CURLOPT_URL, 'https://api.cashfree.com/pg/orders/'.$_GET['order_id']);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
         curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'GET');
         $headers = array();
@@ -141,7 +141,7 @@ class Cashfree extends Admin_Controller {
                 $inserted_id = $this->course_model->add($payment_data);
 
                 if ($inserted_id) { 
-                    $this->load->view('course_payment/paymentsuccess');                     
+                    $this->load->view('course_payment/course_payment/paymentsuccess');                     
                 } else {
                   redirect(base_url("course_payment/course_payment/paymentfailed"));
                 }

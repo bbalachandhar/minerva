@@ -26,7 +26,8 @@ class Itemstock extends Admin_Controller
 
         $this->form_validation->set_rules('item_id', $this->lang->line('item'), 'trim|required|xss_clean');
         $this->form_validation->set_rules('date', $this->lang->line('date'), 'trim|required|xss_clean');
-        
+
+        $this->form_validation->set_rules('symbol', 'Symbol', 'trim|required|xss_clean');
         $this->form_validation->set_rules('quantity', $this->lang->line('quantity'), 'trim|required|numeric|xss_clean');
         $this->form_validation->set_rules('purchase_price', $this->lang->line('purchase_price'), 'trim|required|numeric|xss_clean');
         $this->form_validation->set_rules('item_category_id', $this->lang->line('item_category'), 'trim|required|xss_clean');
@@ -45,13 +46,15 @@ class Itemstock extends Admin_Controller
                             }
                             $img_name = $upload_result['message'];
             $store_id = ($this->input->post('store_id')) ? $this->input->post('store_id') : null;
-            
+            $normalized_symbol = $this->normalizeStockSymbol($this->input->post('symbol'));
+            $signed_quantity   = $this->buildSignedQuantity($normalized_symbol, $this->input->post('quantity'));
+
             $data     = array(
                 'item_id'        => $this->input->post('item_id'),
-                'symbol'         => $this->input->post('symbol'),
+                'symbol'         => $normalized_symbol,
                 'supplier_id'    => $this->input->post('supplier_id'),
                 'store_id'       => $store_id,
-                'quantity'       => $this->input->post('symbol') . $this->input->post('quantity'),
+                'quantity'       => $signed_quantity,
                 'purchase_price' => convertCurrencyFormatToBaseAmount($this->input->post('purchase_price')),
                 'date'           => date('Y-m-d', $this->customlib->datetostrtotime($this->input->post('date'))),
                 'batch_no'       => $this->input->post('batch_no'),
@@ -184,6 +187,7 @@ class Itemstock extends Admin_Controller
         $this->form_validation->set_rules('item_id', $this->lang->line('item'), 'trim|required|xss_clean');
         $this->form_validation->set_rules('date', $this->lang->line('date'), 'trim|required|xss_clean');
         $this->form_validation->set_rules('item_category_id', $this->lang->line('item_category'), 'trim|required|xss_clean');
+        $this->form_validation->set_rules('symbol', 'Symbol', 'trim|required|xss_clean');
         $this->form_validation->set_rules('purchase_price', $this->lang->line('price'), 'trim|required|numeric|xss_clean');
         $this->form_validation->set_rules('quantity', $this->lang->line('quantity'), 'trim|required|numeric|xss_clean');
 
@@ -193,13 +197,15 @@ class Itemstock extends Admin_Controller
             $this->load->view('layout/footer', $data);
         } else {
             $store_id = ($this->input->post('store_id')) ? $this->input->post('store_id') : null;
+            $normalized_symbol = $this->normalizeStockSymbol($this->input->post('symbol'));
+            $signed_quantity   = $this->buildSignedQuantity($normalized_symbol, $this->input->post('quantity'));
             $data     = array(
                 'id'             => $id,
                 'item_id'        => $this->input->post('item_id'),
-                'symbol'         => $this->input->post('symbol'),
+                'symbol'         => $normalized_symbol,
                 'supplier_id'    => $this->input->post('supplier_id'),
                 'store_id'       => $store_id,
-                'quantity'       => $this->input->post('symbol') . $this->input->post('quantity'),
+                'quantity'       => $signed_quantity,
                 'purchase_price' => convertCurrencyFormatToBaseAmount($this->input->post('purchase_price')),
                 'date'           => date('Y-m-d', $this->customlib->datetostrtotime($this->input->post('date'))),
                 'batch_no'       => $this->input->post('batch_no'),
@@ -247,6 +253,21 @@ class Itemstock extends Admin_Controller
         }
 
         return date('Y-m-d', $this->customlib->datetostrtotime($input));
+    }
+
+    private function normalizeStockSymbol($input)
+    {
+        return trim((string) $input) === '-' ? '-' : '+';
+    }
+
+    private function buildSignedQuantity($symbol, $rawQuantity)
+    {
+        // Quantity field should be magnitude only; sign comes from the dropdown.
+        $magnitude = abs((float) $rawQuantity);
+        $signed = ($symbol === '-') ? -$magnitude : $magnitude;
+
+        // item_stock.quantity is int(11), so persist integer quantity.
+        return (int) round($signed);
     }
 
 }

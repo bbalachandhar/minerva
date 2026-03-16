@@ -4,15 +4,15 @@ defined('BASEPATH') or exit('No direct script access allowed');
 
 class Auth_model extends CI_Model
 {
-    public $client_service;
-    public $auth_key;
+
+    public $client_service               = "smartschool";
+    public $auth_key                     = "schoolAdmin@";
+    public $security_authentication_flag = 0;
 
     public function __construct()
     {
         parent::__construct();
-        $this->load->model(array('user_model', 'setting_model', 'student_model', 'staff_model'));
-        $this->client_service = $this->config->item('auth_client_service');
-        $this->auth_key = $this->config->item('auth_key');
+        $this->load->model(array('user_model', 'setting_model', 'student_model'));
     }
 
     public function check_auth_client()
@@ -209,6 +209,7 @@ class Auth_model extends CI_Model
                                 'name'       => $std_val->firstname . " " . $std_val->lastname,
                                 'image'      => $std_val->image,
                                 'student_session_id'      => $std_val->student_session_id,
+								'admission_no'      => $std_val->admission_no,
                             );
                             $child_student[] = $child;
                             $stds            = array(
@@ -328,15 +329,6 @@ class Auth_model extends CI_Model
         return array('status' => 200, 'message' => 'Successfully logout.');
     }
 
-    public function staff_logout($deviceToken)
-    {
-        $staff_id = $this->input->get_request_header('User-ID', true);
-        $token    = $this->input->get_request_header('Authorization', true);
-        $this->db->where('id', $staff_id)->update('staff', array('app_key' => null));
-        $this->db->where('users_id', $staff_id)->where('token', $token)->delete('users_authentication');
-        return array('status' => 200, 'message' => 'Successfully logout.');
-    }
-
     public function auth()
     {
         if ($this->security_authentication_flag) {
@@ -359,80 +351,5 @@ class Auth_model extends CI_Model
             return array('status' => 200, 'message' => 'Authorized.');
         }
     }
-
-    public function staff_login($email, $password, $app_key)
-    {
-        $login_post = array(
-            'email' => $email,
-            'password' => $password,
-        );
-
-        $result = $this->staff_model->checkLogin($login_post);
-
-        if (empty($result)) {
-            return array('status' => 0, 'message' => 'Invalid Email or Password');
-        } elseif ($result->is_active != 1) {
-            return array('status' => 0, 'message' => 'Your account is disabled please contact to administrator');
-        } else {
-            $setting_result = $this->setting_model->get();
-            $token = $this->getToken();
-
-            // Language Fallback Logic
-            if ($result->language_id == null || $result->language_id == 0) {
-                $lang_id = $setting_result[0]['lang_id'];
-                $language = $setting_result[0]['language'];
-                $is_rtl = $setting_result[0]['is_rtl'];
-                $default_lang_details = $this->db->select('short_code')->from('languages')->where('id', $lang_id)->get()->row();
-                $short_code = $default_lang_details->short_code ?? '';
-            } else {
-                $lang_id = $result->language_id;
-                $language = $result->language;
-                $is_rtl = $result->is_rtl;
-                $staff_lang_details = $this->db->select('short_code')->from('languages')->where('id', $lang_id)->get()->row();
-                $short_code = $staff_lang_details->short_code ?? '';
-            }
-
-            $image = $result->image;
-
-            $this->db->trans_start();
-
-            $this->db->insert('users_authentication', array(
-                'users_id' => $result->id,
-                'token' => $token,
-                'expired_at' => date("Y-m-d H:i:s", strtotime('+8760 hours'))
-            ));
-
-            $this->db->where('id', $result->id);
-            $this->db->update('staff', ['app_key' => $app_key]);
-
-            $session_data = array(
-                'id' => $result->id,
-                'role' => 'staff',
-                'username' => $result->name . " " . $result->surname,
-                'email' => $result->email,
-                'employee_id' => $result->employee_id,
-                'contact_no' => $result->contact_no,
-                'date_format' => $setting_result[0]['date_format'],
-                'currency_symbol' => $setting_result[0]['currency_symbol'],
-                'timezone' => $setting_result[0]['timezone'],
-                'sch_name' => $setting_result[0]['name'],
-                'language' => array('lang_id' => $lang_id, 'language' => $language, 'short_code' => $short_code, 'is_rtl' => $is_rtl),
-                'is_rtl' => $is_rtl,
-                'theme' => $setting_result[0]['theme'],
-                'image' => $image,
-                'gender' => $result->gender,
-                'start_week' => $setting_result[0]['start_week'],
-            );
-
-            if ($this->db->trans_status() === false) {
-                $this->db->trans_rollback();
-                return array('status' => 0, 'message' => 'Internal server error.');
-            } else {
-                $this->db->trans_commit();
-                return array('status' => 1, 'message' => 'Successfully login.', 'id' => $result->id, 'token' => $token, 'role' => 'staff', 'record' => $session_data);
-            }
-        }
-    }
-
 
 }

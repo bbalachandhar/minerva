@@ -25,17 +25,16 @@ function two_digit_float($number)
 }
 function findExamGrade($exam_grade, $exam_type, $percentage) {
 
-    foreach ($exam_grade as $exam_grade_key => $exam_grade_value) {
-        if ($exam_grade_value['exam_key'] == $exam_type) {
-
-            if (!empty($exam_grade_value['exam_grade_values'])) {
+    foreach ($exam_grade as $exam_grade_key => $exam_grade_value) { 
+        // if ($exam_grade_value['exam_key'] == $exam_type) { 
+            if (!empty($exam_grade_value['exam_grade_values'])) {				
                 foreach ($exam_grade_value['exam_grade_values'] as $grade_key => $grade_value) {
                     if ($grade_value->mark_from >= $percentage && $grade_value->mark_upto <= $percentage) {
                         return $grade_value->name;
                     }
                 }
             }
-        }
+        // }
     }
     return "-";
 }
@@ -175,10 +174,19 @@ function getSecondsFromHMS($time) {
     return $seconds;
 }
 
-function getHMSFromSeconds($seconds) {
-  $t = round($seconds);
-  return sprintf('%02d:%02d:%02d', ($t/3600),($t/60%60), $t%60);
-}
+ 
+
+    function getHMSFromSeconds($seconds)
+    {
+        $t = max(0, (int) round($seconds)); // prevent negative + force int
+
+        $hours = (int) floor($t / 3600);
+        $minutes = (int) floor(($t % 3600) / 60);
+        $secs = (int) ($t % 60);
+
+        return sprintf('%02d:%02d:%02d', $hours, $minutes, $secs);
+    }
+
 
     function getFullName($firstname, $middlename, $lastname, $is_middlename,$is_lastname)
     {
@@ -253,6 +261,12 @@ function indian_money_format($num)
     }
     return "$thecash.$des"; // writes the final format where $currency is the currency symbol.
 
+}
+
+
+function IsNullOrEmptyString($str)
+{
+    return ($str === null || trim($str) === '');
 }
 
     ?>

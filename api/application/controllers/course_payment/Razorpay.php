@@ -63,6 +63,6 @@ class Razorpay extends Admin_Controller {
     This is used to show success page status
     */
     public function success() {
-        $this->load->view('course_payment/paymentsuccess');
+        $this->load->view('course_payment/course_payment/paymentsuccess');
     }
 }

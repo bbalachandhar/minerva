@@ -113,13 +113,13 @@ class Paypal extends Admin_Controller {
                     $send_to = $params['guardian_phone'];
                     $inserted_id = $this->studentfeemaster_model->fee_deposit($data, $send_to, "");
                     $invoice_detail = json_decode($inserted_id);
-                    redirect("payment/successinvoice/" . $invoice_detail->invoice_id . "/" . $invoice_detail->sub_invoice_id, "refresh");
+                    redirect("course_payment/course_payment/paymentsuccess/", "refresh");
                 }
             }
         } elseif ($response->isRedirect()) {
             $response->redirect();
         } else {
-            redirect('payment/paymentfailed', 'refresh');
+            redirect('course_payment/course_payment/paymentfailed', 'refresh');
         }
     }
 }

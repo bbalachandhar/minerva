@@ -31,7 +31,7 @@
                                     </ul>
                                 </div>
                                 <div class="form-group">
-                                    <a href="<?php echo base_url(); ?>uploads/sample_files/sample_subjects.csv" class="btn btn-default btn-sm">
+                                    <a href="<?php echo base_url(); ?>backend/import/sample_subjects.csv" class="btn btn-default btn-sm">
                                         <i class="fa fa-download"></i> <?php echo $this->lang->line('download_sample_file'); ?>
                                     </a>
                                 </div>

@@ -109,7 +109,7 @@ class Paystack extends Admin_Controller {
                             'payment_mode' => 'Paystack',
                         );
                         $this->course_model->add($payment_data);
-                        $this->load->view('course_payment/paymentsuccess');
+                        $this->load->view('course_payment/course_payment/paymentsuccess');
                     } else {
                         // the transaction was not successful, do not deliver value'
                         //uncomment this line to inspect the result, to check why it failed.

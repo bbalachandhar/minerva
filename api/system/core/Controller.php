@@ -1,4 +1,5 @@
 <?php
+
 /**
  * CodeIgniter
  *
@@ -36,7 +37,7 @@
  * @since	Version 1.0.0
  * @filesource
  */
-defined('BASEPATH') OR exit('No direct script access allowed');
+defined('BASEPATH') or exit('No direct script access allowed');
 
 /**
  * Application Controller Class
@@ -50,7 +51,10 @@ defined('BASEPATH') OR exit('No direct script access allowed');
  * @author		EllisLab Dev Team
  * @link		https://codeigniter.com/userguide3/general/controllers.html
  */
-class CI_Controller {
+
+#[\AllowDynamicProperties]
+class CI_Controller
+{
 
 	/**
 	 * Reference to the CI singleton
@@ -65,22 +69,23 @@ class CI_Controller {
 	 * @var	CI_Loader
 	 */
 	public $load;
-
-	// Common CodeIgniter Libraries
+	public $benchmark;
+	public $hooks;
+	public $config;
 	public $log;
 	public $utf8;
-	public $benchmark;
-	public $config;
-	public $hooks;
-	public $lang;
 	public $uri;
-	public $router;
-	public $output;
 	public $security;
 	public $input;
-	public $form_validation;
+	public $lang;
+	public $email;
+	public $router;
+	public $output;
 	public $session;
-	public $db;
+	public $form_validation;
+	public $pagination;
+	public $upload;
+	public $agent;
 
 	/**
 	 * Class constructor
@@ -89,17 +94,16 @@ class CI_Controller {
 	 */
 	public function __construct()
 	{
-		self::$instance =& $this;
+		self::$instance = &$this;
 
 		// Assign all the class objects that were instantiated by the
 		// bootstrap file (CodeIgniter.php) to local class variables
 		// so that CI can run as one big super object.
-		foreach (is_loaded() as $var => $class)
-		{
-			$this->$var =& load_class($class);
+		foreach (is_loaded() as $var => $class) {
+			$this->$var = &load_class($class);
 		}
 
-		$this->load =& load_class('Loader', 'core');
+		$this->load = &load_class('Loader', 'core');
 		$this->load->initialize();
 		log_message('info', 'Controller Class Initialized');
 	}
@@ -116,5 +120,4 @@ class CI_Controller {
 	{
 		return self::$instance;
 	}
-
 }

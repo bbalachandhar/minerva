@@ -7,6 +7,14 @@
     <!-- Main content -->
     <section class="content">
         <div class="row">
+            <div class="col-md-12">
+                <div class="callout callout-info" style="margin-bottom: 15px;">
+                    <strong>Note:</strong> This screen maintains the item catalog (master data). It does not create one record per physical asset unit.
+                    Use Asset Register bulk upload or GRN asset creation for per-device tracking.
+                </div>
+            </div>
+        </div>
+        <div class="row">
             <div class="col-md-4">
                 <!-- Horizontal Form -->
                 <div class="box box-primary">

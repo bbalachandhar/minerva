@@ -15,7 +15,7 @@ class Course_model extends CI_Model
 
     public function coursedetail($courseid)
     {
-        $this->db->select('online_courses.*,online_course_class_sections.id as class_sections_id,classes.class,staff.name,staff.surname,staff.image,staff.gender,sections.section,class_sections.class_id,class_sections.section_id')->from('online_courses');
+        $this->db->select('online_courses.*,online_course_class_sections.id as class_sections_id,classes.class,staff.name,staff.surname,staff.image,staff.gender,staff.employee_id,sections.section,class_sections.class_id,class_sections.section_id')->from('online_courses');
         $this->db->where('online_courses.id', $courseid);
         $this->db->join('staff', 'staff.id = online_courses.teacher_id', 'left');
         $this->db->join('online_course_class_sections', 'online_course_class_sections.course_id = online_courses.id', 'left');
@@ -219,7 +219,8 @@ class Course_model extends CI_Model
         $query = $this->db->get();
         return $query->result_array();
     }
-   public function numberofexam($sectionid)
+	
+    public function numberofexam($sectionid)
     {
         $this->db->select('online_course_exam.*')->from('online_course_exam');
         $this->db->where('online_course_exam.course_section_id', $sectionid);
@@ -227,6 +228,14 @@ class Course_model extends CI_Model
         return $query->result_array();
     }
 
+    public function get_lesson_attachments_by_lessonid($lesson_id){
+        $this->db->select('online_course_lesson_attachment.*');
+        $this->db->from('online_course_lesson_attachment');
+        $this->db->where('online_course_lesson_attachment.lesson_id', $lesson_id);
+        $query = $this->db->get();
+        return $query->result_array();        
+    }
+    
     public function lessonquizbysection($sectionid, $student_id, $course_id) 
     {
         $this->db->select('online_course_lesson.id as lesson_id,online_course_lesson.lesson_title,online_course_lesson.lesson_type,online_course_lesson.thumbnail,online_course_lesson.summary,online_course_lesson.attachment,online_course_lesson.video_provider,online_course_lesson.video_url,online_course_lesson.video_id,online_course_lesson.duration,online_course_quiz.id as quiz_id,online_course_quiz.quiz_title,course_lesson_quiz_order.id,course_lesson_quiz_order.type,course_lesson_quiz_order.order,course_lesson_quiz_order.course_section_id,course_lesson_quiz_order.lesson_quiz_id,online_course_assignment.assignment_title,online_course_assignment.assignment_date,online_course_assignment.submit_date,online_course_assignment.marks,online_course_assignment.description,online_course_assignment.document,online_course_assignment.evaluated_by,online_course_assignment.id as course_assignment_id, online_course_exam.id as course_exam_id,online_course_exam.exam as course_exam_name,online_course_exam.exam_from,online_course_exam.exam_to,online_course_exam.duration as exam_duration,online_course_exam.passing_percentage,online_course_exam.description as exam_description,online_course_exam.is_quiz,online_course_exam.is_active');
@@ -241,7 +250,9 @@ class Course_model extends CI_Model
         $query  = $this->db->get();
         $result = $query->result();
         foreach ($result as $key => $result_value) {
-            if ($result_value->video_provider == 's3_bucket') {
+            $result[$key]->video_url = '';
+            
+            if ($result_value->video_provider == 's3_bucket' and $result_value->type == 'lesson') {
                 $result[$key]->video_url = $this->aws3->generateUrl($result_value->video_id);
             }
             
@@ -470,7 +481,7 @@ class Course_model extends CI_Model
     
     public function get($id = null)
     {
-        $this->db->select('pickup_point.name as pickup_point_name,student_session.route_pickup_point_id,student_session.transport_fees,students.app_key,students.parent_app_key,student_session.vehroute_id,vehicle_routes.route_id,vehicle_routes.vehicle_id,transport_route.route_title,vehicles.vehicle_no,hostel_rooms.room_no,vehicles.driver_name,vehicles.driver_contact,vehicles.vehicle_model,vehicles.manufacture_year,vehicles.driver_licence,vehicles.vehicle_photo,hostel.id as `hostel_id`,hostel.hostel_name,room_types.id as `room_type_id`,room_types.room_type ,students.hostel_room_id,student_session.id as `student_session_id`,student_session.fees_discount,classes.id AS `class_id`,classes.class,sections.id AS `section_id`,sections.section,students.id,students.admission_no,students.roll_no,students.admission_no,students.admission_date,students.firstname,students.middlename,  students.lastname,students.image,students.mobileno, students.email ,students.state,students.city,students.pincode,students.note,students.religion,students.cast, school_houses.house_name,students.dob,students.current_address,students.previous_school,           students.guardian_is,students.parent_id,  students.permanent_address,students.category_id,students.adhar_no,students.samagra_id,students.bank_account_no,students.bank_name, students.ifsc_code , students.guardian_name , students.father_pic ,students.height ,students.weight,students.measurement_date, students.mother_pic , students.guardian_pic , students.guardian_relation,students.guardian_phone,students.guardian_address,students.is_active ,students.created_at ,students.updated_at,students.father_name,students.father_phone,students.blood_group,students.school_house_id,students.father_occupation,students.mother_name,students.mother_phone,students.mother_occupation,students.guardian_occupation,students.gender,students.guardian_is,students.rte,students.guardian_email, users.username,users.password,users.id as user_id,students.dis_reason,students.dis_note,students.disable_at,IFNULL(currencies.short_name,0) as currency_name,IFNULL(currencies.symbol,0) as symbol,IFNULL(currencies.base_price,0) as base_price,IFNULL(currencies.id,0) as `currency_id`')->from('students');
+        $this->db->select('pickup_point.name as pickup_point_name,student_session.route_pickup_point_id,student_session.transport_fees,students.app_key,students.parent_app_key,student_session.vehroute_id,vehicle_routes.route_id,vehicle_routes.vehicle_id,transport_route.route_title,vehicles.vehicle_no,hostel_rooms.room_no,vehicles.driver_name,vehicles.driver_contact,vehicles.vehicle_model,vehicles.manufacture_year,vehicles.driver_licence,vehicles.vehicle_photo,hostel.id as `hostel_id`,hostel.hostel_name,room_types.id as `room_type_id`,room_types.room_type ,students.hostel_room_id,student_session.id as `student_session_id`,student_session.fees_discount,classes.id AS `class_id`,classes.class,sections.id AS `section_id`,sections.section,students.id,students.admission_no,students.roll_no,students.admission_no,students.admission_date,students.firstname,students.middlename,  students.lastname,students.image,students.mobileno, students.email ,students.state,students.city,students.pincode,students.note,students.religion,students.cast, school_houses.house_name,students.dob,students.current_address,students.previous_school, students.guardian_is,students.parent_id,  students.permanent_address,students.category_id,students.adhar_no,students.samagra_id,students.bank_account_no,students.bank_name, students.ifsc_code , students.guardian_name , students.father_pic ,students.height ,students.weight,students.measurement_date, students.mother_pic , students.guardian_pic , students.guardian_relation,students.guardian_phone,students.guardian_address,students.is_active ,students.created_at ,students.updated_at,students.father_name,students.father_phone,students.blood_group,students.school_house_id,students.father_occupation,students.mother_name,students.mother_phone,students.mother_occupation,students.guardian_occupation,students.gender,students.guardian_is,students.rte,students.guardian_email, users.username,users.password,users.id as user_id,students.dis_reason,students.dis_note,students.disable_at,IFNULL(currencies.short_name,0) as currency_name,IFNULL(currencies.symbol,0) as symbol,IFNULL(currencies.base_price,0) as base_price,IFNULL(currencies.id,0) as `currency_id`')->from('students');
         $this->db->join('student_session', 'student_session.student_id = students.id');
         $this->db->join('classes', 'student_session.class_id = classes.id');
         $this->db->join('sections', 'sections.id = student_session.section_id');
@@ -894,11 +905,9 @@ class Course_model extends CI_Model
     }
    
 	public function get_student_assignment_status($assignment_id,$student_id)
-    {
-         
+    {        
         
-        $this->db->where('online_course_assignment_submit.student_id',$student_id);
-        
+        $this->db->where('online_course_assignment_submit.student_id',$student_id);        
         $this->db->select('*,(select `online_course_assignment_evaluation`.`date` from online_course_assignment_evaluation where 
             online_course_assignment_evaluation.assignment_id = online_course_assignment_submit.assignment_id and 
             online_course_assignment_evaluation.guest_id=online_course_assignment_submit.guest_id and 
@@ -912,8 +921,27 @@ class Course_model extends CI_Model
         return $query->result_array();
     }
 
+    public function getcoursecompletiondate($course_id,$student_guest_id) {
+       
+        $this->db->select('*');
+        $this->db->from('course_progress');
+        $this->db->where('student_id',$student_guest_id);  
+        $this->db->where('course_id',$course_id);
+        $this->db->order_by("completion_date", 'desc');
+        $this->db->limit(1);
+        $query = $this->db->get();
+        return $query->row_array();
+    }
 
-
+    public function getcoursestartdate($course_id,$student_guest_id) {
+       
+        $this->db->select('*');
+        $this->db->from('online_course_start_date');
+        $this->db->where('student_id',$student_guest_id);
+        $this->db->where('course_id',$course_id);
+        $query = $this->db->get();
+        return $query->row_array();
+    }
 	
     
 }

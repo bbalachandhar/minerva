@@ -5,62 +5,16 @@ defined('BASEPATH') or exit('No direct script access allowed');
 class Webservice extends CI_Controller
 {
 
-    public $email;
-    public $Setting_model;
-    public $customlib;
-    public $mailer;
-    public $enc_lib;
-    public $user_model;
-    public $student_model;
-    public $auth_model;
-    public $route_model;
-    public $attendencetype_model;
-    public $studentfeemaster_model;
-    public $feediscount_model;
-    public $teachersubject_model;
-    public $timetable_model;
-    public $examgroup_model;
-    public $staff_model;
-    public $webservice_model;
-    public $grade_model;
-    public $librarymember_model;
-    public $bookissue_model;
-    public $homework_model;
-    public $event_model;
-    public $vehroute_model;
-    public $timeline_model;
-    public $module_model;
-    public $paymentsetting_model;
-    public $customfield_model;
-    public $subjecttimetable_model;
-    public $onlineexam_model;
-    public $leave_model;
-    public $chatuser_model;
-    public $conference_model;
-    public $syllabus_model;
-    public $gmeet_model;
-    public $category_model;
-    public $student_edit_field_model;
-    public $filetype_model;
-    public $course_model;
-    public $video_tutorial_model;
-    public $visitors_model;
-    public $pickuppoint_model;
-    public $assign_incident_model;
-    public $offlinePayment_model;
-    public $studentAppliedDiscount_model;
-    public $emailconfig_model;
-    public $mail_config;
-    public $setting_model;
-    public $security_authentication_flag;
-
     public function __construct()
     {
         parent::__construct();
         $this->load->library('mailer');
         $this->load->library(array('customlib', 'enc_lib'));
 
-        $this->load->model(array('auth_model', 'route_model', 'student_model', 'setting_model', 'attendencetype_model', 'studentfeemaster_model', 'feediscount_model', 'teachersubject_model', 'timetable_model', 'user_model', 'examgroup_model', 'webservice_model', 'grade_model', 'librarymember_model', 'bookissue_model', 'homework_model', 'event_model', 'vehroute_model', 'timeline_model', 'module_model', 'paymentsetting_model', 'customfield_model', 'subjecttimetable_model', 'onlineexam_model', 'leave_model', 'chatuser_model', 'conference_model', 'syllabus_model', 'gmeet_model', 'category_model', 'student_edit_field_model', 'filetype_model', 'course_model', 'video_tutorial_model', 'visitors_model', 'pickuppoint_model', 'staff_model', 'assign_incident_model', 'offlinePayment_model', 'studentAppliedDiscount_model'));
+        $this->load->model(array('auth_model', 'route_model', 'student_model', 'setting_model', 'attendencetype_model', 'studentfeemaster_model', 'feediscount_model', 'teachersubject_model', 'timetable_model', 'user_model', 'examgroup_model', 'webservice_model', 'grade_model', 'librarymember_model', 'bookissue_model', 'homework_model', 'event_model', 'vehroute_model', 'timeline_model', 'module_model', 'paymentsetting_model', 'customfield_model', 'subjecttimetable_model', 'onlineexam_model', 'leave_model', 'chatuser_model', 'conference_model', 'syllabus_model', 'gmeet_model', 'category_model', 'student_edit_field_model', 'filetype_model', 'course_model', 'video_tutorial_model', 'visitors_model', 'pickuppoint_model', 'staff_model', 'assign_incident_model', 'offlinePayment_model', 'studentAppliedDiscount_model','coursecertificate_model'));
+
+        $this->load->library('SaasValidation');
+        $this->load->library('media_storage');
 
         $setting = $this->setting_model->getSchoolDetail();
 
@@ -69,6 +23,12 @@ class Webservice extends CI_Controller
         } else {
             date_default_timezone_set('UTC');
         }
+    }
+
+    public function validateCanUploadFile($str, $params_string)
+    {
+        $params_array = array_map('trim', explode(',', $params_string));
+        return $this->saasvalidation->validateCanUploadFile($str, $params_array);
     }
 
     public function geeee()
@@ -131,6 +91,11 @@ class Webservice extends CI_Controller
                     $this->form_validation->set_rules('student_id', 'Student ID', 'required|trim');
                     $this->form_validation->set_rules('reason', 'Reason', 'required|trim');
                     $this->form_validation->set_rules('file', 'File', 'callback_handle_upload_file');
+
+                    // SaaS Validation Rule
+                    $storage_array = "file";
+                    $this->form_validation->set_rules('validate_storage', 'Storage', "callback_validateCanUploadFile[$storage_array]");
+
                     if ($this->form_validation->run() == false) {
 
                         $sss = array(
@@ -140,6 +105,7 @@ class Webservice extends CI_Controller
                             'student_id' => form_error('student_id'),
                             'reason' => form_error('reason'),
                             'file' => form_error('file'),
+                            'validate_storage' => form_error('validate_storage'),
                         );
                         $array = array('status' => '0', 'error' => $sss);
                     } else {
@@ -170,14 +136,26 @@ class Webservice extends CI_Controller
                         }
 
                         $upload_path = $this->config->item('upload_path') . "/student_leavedocuments/";
-                        $this->customlib->ensureDirectoryExists($upload_path);
+
+                        // SaaS Quota Reservation
+                        $storage_array = ['file'];
+                        $this->saasvalidation->updateStorageLimit('storage', $storage_array);
 
                         if (isset($_FILES["file"]) && !empty($_FILES['file']['name'])) {
                             $fileInfo = pathinfo($_FILES["file"]["name"]);
                             $img_name = $leave_id . '.' . $fileInfo['extension'];
-                            move_uploaded_file($_FILES["file"]["tmp_name"], $upload_path . $img_name);
-                            $data = array('id' => $leave_id, 'docs' => $img_name);
-                            $this->leave_model->add($data);
+
+                            if (move_uploaded_file($_FILES["file"]["tmp_name"], $upload_path . $img_name)) {
+                                $data = array('id' => $leave_id, 'docs' => $img_name);
+                                $this->leave_model->add($data);
+                            } else {
+                                // Upload Failed - Rollback Quota
+                                // Calculate size in KB to rollback
+                                if (isset($_FILES['file']['size']) && $_FILES['file']['size'] > 0) {
+                                    $file_size_kb = round($_FILES['file']['size'] / 1024);
+                                    $this->saasvalidation->deleteResouceQuota('storage', $file_size_kb);
+                                }
+                            }
                         }
 
                         $array = array('status' => '1', 'msg' => 'Success');
@@ -284,6 +262,10 @@ class Webservice extends CI_Controller
                     $this->form_validation->set_rules('to_date', 'To', 'required|trim');
                     $this->form_validation->set_rules('apply_date', 'Apply Date', 'required|trim');
 
+                    // SaaS Validation Rule
+                    $storage_array = "file";
+                    $this->form_validation->set_rules('validate_storage', 'Storage', "callback_validateCanUploadFile[$storage_array]");
+
                     if ($this->form_validation->run() == false) {
 
                         $sss = array(
@@ -291,6 +273,7 @@ class Webservice extends CI_Controller
                             'from_date' => form_error('from_date'),
                             'to_date' => form_error('to_date'),
                             'apply_date' => form_error('apply_date'),
+                            'validate_storage' => form_error('validate_storage'),
                         );
                         $array = array('status' => '0', 'error' => $sss);
                     } else {
@@ -304,15 +287,51 @@ class Webservice extends CI_Controller
                             'reason' => $this->input->post('reason'),
                         );
                         $upload_path = $this->config->item('upload_path') . "/student_leavedocuments/";
-                        $this->customlib->ensureDirectoryExists($upload_path);
 
                         $this->leave_model->add($data);
                         if (isset($_FILES["file"]) && !empty($_FILES['file']['name'])) {
                             $fileInfo = pathinfo($_FILES["file"]["name"]);
                             $img_name = $leave_id . '.' . $fileInfo['extension'];
-                            move_uploaded_file($_FILES["file"]["tmp_name"], $upload_path . $img_name);
-                            $data = array('id' => $leave_id, 'docs' => $img_name);
-                            $this->leave_model->add($data);
+
+                            // SaaS Logic: Differential Update
+                            $prev_file_size = 0;
+                            $current_leave = $this->leave_model->get($leave_id);
+
+                            if (!empty($current_leave['docs'])) {
+                                $upload_path_dir = $this->config->item('upload_path') . "/student_leavedocuments/";
+                                $file_url = $upload_path_dir . $current_leave['docs'];
+                                if (file_exists($file_url)) {
+                                    $prev_file_size = round(filesize($file_url) / 1024);
+                                }
+                            }
+
+                            $new_file_size = round($_FILES['file']['size'] / 1024);
+
+                            if (move_uploaded_file($_FILES["file"]["tmp_name"], $upload_path . $img_name)) {
+
+                                // Upload Success - Update Quota
+                                if ($prev_file_size > $new_file_size) {
+                                    $diff = $prev_file_size - $new_file_size;
+                                    $this->saasvalidation->deleteResouceQuota('storage', $diff);
+                                } elseif ($new_file_size > $prev_file_size) {
+                                    $diff = $new_file_size - $prev_file_size;
+                                    $this->saasvalidation->updateResouceQuota('storage', $diff);
+                                }
+
+                                // Delete old file if name is different (e.g., extension changed)
+                                if (!empty($current_leave['docs']) && $current_leave['docs'] != $img_name) {
+                                    $old_file_url = $this->config->item('upload_path') . "/student_leavedocuments/" . $current_leave['docs'];
+                                    if (file_exists($old_file_url)) {
+                                        unlink($old_file_url);
+                                    }
+                                }
+
+                                $data = array('id' => $leave_id, 'docs' => $img_name);
+                                $this->leave_model->add($data);
+
+                            } else {
+                                // Upload Failed - No Quota Change needed as we haven't committed the new file size to SaaS/DB
+                            }
                         }
 
                         $array = array('status' => '1', 'msg' => 'Success');
@@ -323,31 +342,33 @@ class Webservice extends CI_Controller
         }
     }
 
-    public function find_subject_array_exists($subject_id, $subjects){
+    public function find_subject_array_exists($subject_id, $subjects)
+    {
 
-        foreach ($subjects as $subject_key => $subject_value) {           
-            if($subject_value['subject_id'] == $subject_id){
-              return true;
+        foreach ($subjects as $subject_key => $subject_value) {
+            if ($subject_value['subject_id'] == $subject_id) {
+                return true;
             }
         }
 
-		return false;
+        return false;
 
     }
 
-    public function findSubjectAssessmentNotExists($cbse_exam_assessment_type_id, $subjects,$subject_id){
+    public function findSubjectAssessmentNotExists($cbse_exam_assessment_type_id, $subjects, $subject_id)
+    {
 
         foreach ($subjects as $subject_key => $subject_value) {
-           
-            if($subject_value['subject_id']== $subject_id){
-       
-                if(!array_key_exists($cbse_exam_assessment_type_id, $subject_value['exam_assessments'])){
-                    return ['subject_key'=>$subject_key];
+
+            if ($subject_value['subject_id'] == $subject_id) {
+
+                if (!array_key_exists($cbse_exam_assessment_type_id, $subject_value['exam_assessments'])) {
+                    return ['subject_key' => $subject_key];
                 }
             }
         }
 
-      return NULL;
+        return NULL;
 
     }
 
@@ -364,6 +385,18 @@ class Webservice extends CI_Controller
                 if ($response['status'] == 200) {
                     $params = json_decode(file_get_contents('php://input'), true);
                     $leave_id = $params['leave_id'];
+
+                    // SaaS Logic: Clean up storage & quota
+                    $leave_data = $this->leave_model->get($leave_id);
+                    if (!empty($leave_data['docs'])) {
+                        $file_path = $this->config->item('upload_path') . "/student_leavedocuments/" . $leave_data['docs'];
+                        if (file_exists($file_path)) {
+                            $file_size_kb = round(filesize($file_path) / 1024);
+                            $this->saasvalidation->deleteResouceQuota('storage', $file_size_kb);
+                            unlink($file_path);
+                        }
+                    }
+
                     $this->leave_model->delete($leave_id);
 
                     json_output($response['status'], array('result' => 'Success'));
@@ -410,7 +443,7 @@ class Webservice extends CI_Controller
                     $student_fields = $this->setting_model->student_fields();
                     $student_array = array();
                     $student_result = $this->student_model->get($studentId);
-
+					 
                     if ($student_result->category == '') {
                         $student_result->category = '';
                     }
@@ -513,16 +546,16 @@ class Webservice extends CI_Controller
 
                     $student_result->barcode = "/uploads/student_id_card/barcodes/" . $studentId . ".png";
                     $student_result->qrcode = "/uploads/student_id_card/qrcode/" . $studentId . ".png";
-                    
+
                     $ModuleExistOrNot = $this->module_model->getModuleExistOrNot($user_type, 'behaviour_records');
 
                     if (!empty($ModuleExistOrNot)) {
                         $behaviou_score_result = $this->assign_incident_model->totalpoints($studentId)['totalpoints'];
-						if(!empty($behaviou_score_result)){
-							$student_result->behaviou_score = $behaviou_score_result;
-						}else{
-							$student_result->behaviou_score = '';
-						}						
+                        if (!empty($behaviou_score_result)) {
+                            $student_result->behaviou_score = $behaviou_score_result;
+                        } else {
+                            $student_result->behaviou_score = '';
+                        }
                     } else {
                         $student_result->behaviou_score = '';
                     }
@@ -531,7 +564,7 @@ class Webservice extends CI_Controller
                     $student_array['student_fields'] = $student_fields;
 
                     $custom_fields_data = $this->customfield_model->get_custom_table_values($studentId, 'students');
-                    $custom_fields =array();
+                    $custom_fields = array();
                     if (!empty($custom_fields_data)) {
                         foreach ($custom_fields_data as $custom_key => $custom_value) {
                             if ($custom_value->field_value == null) {
@@ -556,6 +589,7 @@ class Webservice extends CI_Controller
             json_output(400, array('status' => 400, 'message' => 'Bad request.'));
         } else {
             $check_auth_client = $this->auth_model->check_auth_client();
+
             if ($check_auth_client == true) {
 
                 $_POST = json_decode(file_get_contents("php://input"), true);
@@ -582,7 +616,7 @@ class Webservice extends CI_Controller
                         'start_date' => $this->input->post('date'),
                         'end_date' => $this->input->post('date'),
                         'event_type' => 'task',
-                        'is_active' => 'no',
+                        'is_active' => 'yes',
                         'event_for' => $this->input->post('user_id'),
                         'event_color' => '#000',
                     );
@@ -753,23 +787,6 @@ class Webservice extends CI_Controller
                                 $resp = array('status' => 200, 'message' => "Sending of message failed, Please contact to Admin.");
                             }
                         }
-                        // attempt SMS/WhatsApp as well
-                        $sms_detail = $this->smsconfig_model->getActiveSMS();
-                        $phone = '';
-                        if (isset($result->mobileno)) {
-                            $phone = $result->mobileno;
-                        } elseif (isset($result->guardian_phone)) {
-                            $phone = $result->guardian_phone;
-                        }
-                        if (!empty($phone) && !empty($sms_detail)) {
-                            // prepare detail parameters for SMS gateway
-                            $params = array(
-                                'name' => $name,
-                                'school_name' => $this->customlib->getSchoolName(),
-                                'resetPassLink' => $resetPassLink,
-                            );
-                            $this->smsgateway->sendSMS($phone, $params, $template->template_id, $template->template);
-                        }
                     } else {
                         $respStatus = 200;
                         $resp = array('status' => 200, 'message' => "Sending of message failed, Please contact to Admin.");
@@ -828,7 +845,7 @@ class Webservice extends CI_Controller
                     $student_session_id = $student->student_session_id;
                     $student_attendence = $this->attendencetype_model->getAttendencePercentage($date_from, $date_to, $student_session_id);
                     $student_homework = $this->homework_model->getStudentHomeworkPercentage($student_session_id, $student->class_id, $student->section_id);
-                    
+
                     if ($student_attendence->present_attendance > 0 && $student_attendence->total_count > 0) {
                         $attendence_percentage = $student_attendence->present_attendance / $student_attendence->total_count * 100;
                     }
@@ -860,7 +877,7 @@ class Webservice extends CI_Controller
 
                                     $date_list[date('Y-m-d', $st)] = date('Y-m-d', $st);
                                     $evt_array[] = date('Y-m-d', $st);
-                                    
+
                                 }
                             }
 
@@ -917,6 +934,29 @@ class Webservice extends CI_Controller
             }
         }
     }
+	
+	public function getHomeworkById()
+    {
+        $method = $this->input->server('REQUEST_METHOD');
+        if ($method != 'POST') {
+            json_output(400, array('status' => 400, 'message' => 'Bad request.'));
+        } else {
+            $check_auth_client = $this->auth_model->check_auth_client();
+            if ($check_auth_client == true) {
+                $response = $this->auth_model->auth();
+                if ($response['status'] == 200) {
+                    $_POST = json_decode(file_get_contents("php://input"), true);
+                    $homework_id = $this->input->post('homework_id');                 
+
+                    $resulthomework = $this->homework_model->getHomeworkById($homework_id); 
+
+                    $data["homeworklist"] = $resulthomework;                   
+
+                    json_output($response['status'], $data);
+                }
+            }
+		}
+	}
 
     public function getHomework()
     {
@@ -1005,7 +1045,8 @@ class Webservice extends CI_Controller
         }
     }
 
-    public function addaa()
+
+    public function addhomework()
     {
         $method = $this->input->server('REQUEST_METHOD');
 
@@ -1028,6 +1069,9 @@ class Webservice extends CI_Controller
                         $this->form_validation->set_rules('file', 'File', 'callback_handle_upload_file');
                     }
 
+                    $storage_array = "file";
+                    $this->form_validation->set_rules('validate_storage', $this->lang->line('storage'), "callback_validateCanUploadFile[$storage_array]");
+
                     if ($this->form_validation->run() == false) {
 
                         $sss = array(
@@ -1035,36 +1079,56 @@ class Webservice extends CI_Controller
                             'homework_id' => form_error('homework_id'),
                             'message' => form_error('message'),
                             'file' => form_error('file'),
+                            'validate_storage' => form_error('validate_storage'),
                         );
                         $array = array('status' => '0', 'error' => $sss);
                     } else {
-                        //==================
-                        $upload_path = $this->config->item('upload_path') . "/homework/assignment/";
-                        $this->customlib->ensureDirectoryExists($upload_path);
+                        try {
 
-                        if (isset($_FILES["file"]) && !empty($_FILES['file']['name'])) {
-                            $time = md5($_FILES["file"]['name'] . microtime());
-                            $fileInfo = pathinfo($_FILES["file"]["name"]);
-                            $img_name = $time . '.' . $fileInfo['extension'];
-                            move_uploaded_file($_FILES["file"]["tmp_name"], $upload_path . $img_name);
-                            $data_insert = array(
-                                'homework_id' => $this->input->post('homework_id'),
-                                'student_id' => $this->input->post('student_id'),
-                                'message' => $this->input->post('message'),
-                                'docs' => $img_name,
-                                'file_name' => $_FILES['file']['name'],
-                            );
-                            $this->homework_model->add($data_insert);
-                        } else {
-                            $data_insert = array(
-                                'homework_id' => $this->input->post('homework_id'),
-                                'student_id' => $this->input->post('student_id'),
-                                'message' => $this->input->post('message')
-                            );
-                            $this->homework_model->add($data_insert);
+                            $total_documents_failed_size = 0;
+                            $storage_array = ['file'];
+                            $this->saasvalidation->updateStorageLimit('storage', $storage_array);
+
+                            //==================
+                            $upload_path = $this->config->item('upload_path') . "/homework/assignment/";
+
+                            if (isset($_FILES["file"]) && !empty($_FILES['file']['name'])) {
+
+                                $img_name = $this->media_storage->fileupload("file", $upload_path);
+
+                                if ($img_name != '') {
+                                    $img_name = $img_name;
+                                }
+
+                                if (IsNullOrEmptyString($img_name)) {  // check upload image has not uploaded successfully
+                                    $total_documents_failed_size += $this->media_storage->getTmpFileSize('file');  // get temp size of image because of image not uploaded 
+                                }
+                                if ($total_documents_failed_size > 0) {
+                                    $this->saasvalidation->deleteResouceQuota('storage', $total_documents_failed_size);
+                                }
+
+                                $data_insert = array(
+                                    'homework_id' => $this->input->post('homework_id'),
+                                    'student_id' => $this->input->post('student_id'),
+                                    'message' => $this->input->post('message'),
+                                    'docs' => $img_name,
+                                    'file_name' => $_FILES['file']['name'],
+                                );
+                                $this->homework_model->add($data_insert);
+                            } else {
+                                $data_insert = array(
+                                    'homework_id' => $this->input->post('homework_id'),
+                                    'student_id' => $this->input->post('student_id'),
+                                    'message' => $this->input->post('message')
+                                );
+                                $this->homework_model->add($data_insert);
+                            }
+
+                            $array = array('status' => '1', 'msg' => 'Success');
+                        } catch (Exception $e) {
+                            $array = array('status' => '0', 'error' => $e->getMessage());
                         }
 
-                        $array = array('status' => '1', 'msg' => 'Success');
                     }
                     json_output(200, $array);
                 }
@@ -1073,7 +1137,6 @@ class Webservice extends CI_Controller
     }
 
     // ---------------- Online Exam ------------------
-
     public function getOnlineExam()
     {
         $method = $this->input->server('REQUEST_METHOD');
@@ -1189,6 +1252,7 @@ class Webservice extends CI_Controller
                     $exam_id = $params['exam_id'];
                     $exam = $this->onlineexam_model->get($exam_id);
                     $resp['question_result'] = $this->onlineexam_model->getResultByStudent($onlineexam_student_id, $exam_id);
+
                     $onlineexamStudent = $this->onlineexam_model->getExamByOnlineexamStudent($onlineexam_student_id);
                     $dispaly_negative_marks = $exam['is_neg_marking'];
                     $exam_total_scored = 0;
@@ -1206,6 +1270,10 @@ class Webservice extends CI_Controller
 
                             $total_marks_json = $this->getMarks($question_value);
                             $total_marks_array = (json_decode($total_marks_json));
+
+                            $resp['question_result'][$result_key]->scr_marks = $total_marks_array->scr_marks;
+
+
                             $exam_total_marks = $exam_total_marks + $total_marks_array->get_marks;
                             $exam_total_scored = $exam_total_scored + $total_marks_array->scr_marks;
                             if ($question_value->question_type == "descriptive") {
@@ -1258,72 +1326,116 @@ class Webservice extends CI_Controller
                 }
             }
         }
-    }
+    }     
+	
+	public function saveOnlineExam()
+	{
+		if ($this->input->server('REQUEST_METHOD') != 'POST') {
+			json_output(400, ['status' => 400, 'message' => 'Bad request.']);
+			return;
+		}
 
-    public function saveOnlineExam()
-    {
-        $method = $this->input->server('REQUEST_METHOD');
-        if ($method != 'POST') {
-            json_output(400, array('status' => 400, 'message' => 'Bad request.'));
-        } else {
-            $check_auth_client = $this->auth_model->check_auth_client();
-            if ($check_auth_client == true) {
-                $response = $this->auth_model->auth();
-                if ($response['status'] == 200) {
-                    $question_rows = (json_decode($this->input->post('rows')));
+		if (!$this->auth_model->check_auth_client()) {
+			return;
+		}
 
-                    foreach ($question_rows as $question_key => $question_value) {
-                        if ($question_value->question_type == "descriptive") {
-                            $qid = $question_value->onlineexam_question_id;
-                            if ((isset($_FILES["attachment_" . $qid]) && !empty($_FILES["attachment_" . $qid]['name']))) {
-                                //===============
-                                $file_name = $_FILES["attachment_" . $qid]["name"];
-                                $fileInfo = pathinfo($_FILES["attachment_" . $qid]["name"]);
-                                $upload_file_name = time() . uniqid(rand()) . '.' . $fileInfo['extension'];
-                                $upload_path = $this->config->item('upload_path') . "/onlinexam_images/";
-                                $this->customlib->ensureDirectoryExists($upload_path);
+		$response = $this->auth_model->auth();
+		if ($response['status'] != 200) {
+			return;
+		}
 
-                                move_uploaded_file($_FILES["attachment_" . $qid]["tmp_name"], $upload_path . $upload_file_name);
-                                $question_value->attachment_name = $file_name;
-                                $question_value->attachment_upload_name = $upload_file_name;
-                                //================
-                            } else {
-                                $question_value->attachment_name = "";
-                                $question_value->attachment_upload_name = "";
-                            }
-                        } else {
-                            $question_value->attachment_name = "";
-                            $question_value->attachment_upload_name = "";
-                        }
+		$params = json_decode(file_get_contents('php://input'), true);
+		//$question_rows = $params['rows'];
+		$question_rows = $this->input->post('rows'); 
+		$file_keys = [];
+		$total_upload_size_kb = 0;
 
-                        unset($question_value->question_type);
-                    }
+		foreach ($question_rows as $q_key => $q_val) {
 
-                    $onlineexam_student_id = $this->input->post('onlineexam_student_id');
+			if ($q_val['question_type'] == "descriptive") {
 
-                    $resp = array();
-                    if (!empty($question_rows)) {
-                        $save_result = array();
+				$qid_key = "attachment_" . $q_val['onlineexam_question_id'];
 
-                        $insert_result = $this->onlineexam_model->add($question_rows, $onlineexam_student_id);
-                        $this->onlineexam_model->updateExamSubmitted($onlineexam_student_id);
-                        if ($insert_result == 1) {
-                            $resp = array('status' => 1, 'msg' => 'record inserted');
-                        } else if ($insert_result == 2) {
-                            $resp = array('status' => 2, 'msg' => 'record already submitted');
-                        } else if ($insert_result == 0) {
-                            $resp = array('status' => 2, 'msg' => 'something wrong');
-                        }
-                    } else {
-                        $this->onlineexam_model->updateExamSubmitted($onlineexam_student_id);
-                        $resp = array('status' => 1, 'msg' => 'record inserted');
-                    }
+				if (isset($_FILES[$qid_key]) && !empty($_FILES[$qid_key]['name'])) {
+					$file_keys[] = $qid_key;
 
-                    json_output($response['status'], $resp);
-                }
-            }
-        }
-    }
+					if (!empty($_FILES[$qid_key]['size'])) {
+						$total_upload_size_kb += ceil($_FILES[$qid_key]['size'] / 1024);
+					}
+				}
+			}
+		}
+
+		 
+		if ($this->saasvalidation->sass_enabled && !empty($file_keys)) {
+			$limit_status = $this->saasvalidation->getResourceLimit('storage');
+
+			if (!empty($limit_status['status']) &&
+				($limit_status['usage'] + $total_upload_size_kb) > $limit_status['limit']) {
+				json_output(200, ['status' => 0, 'msg' => 'Storage Limit Exceeded']);
+				return;
+			}
+		}
+
+		 
+		if (!empty($file_keys)) {
+			$this->saasvalidation->updateStorageLimit('storage', $file_keys);
+		}
+
+		$total_failed_size = 0;
+
+		 
+		foreach ($question_rows as $key => $question_value) {
+
+			if ($question_value['question_type'] == "descriptive") {
+
+				$qid = $question_value['onlineexam_question_id'];
+				$file_key = "attachment_" . $qid;
+
+				if (isset($_FILES[$file_key]) && !empty($_FILES[$file_key]['name'])) {
+
+					$file_name = $_FILES[$file_key]['name'];
+					$fileInfo  = pathinfo($file_name);
+					$upload_file_name = time() . uniqid() . '.' . $fileInfo['extension'];
+					$upload_path = $this->config->item('upload_path') . "/onlinexam_images/";
+
+					if (move_uploaded_file($_FILES[$file_key]['tmp_name'], $upload_path . $upload_file_name)) {
+						$question_rows[$key]['attachment_name'] = $file_name;
+						$question_rows[$key]['attachment_upload_name'] = $upload_file_name;
+					} else {
+						$total_failed_size += $_FILES[$file_key]['size'];
+						$question_rows[$key]['attachment_name'] = "";
+						$question_rows[$key]['attachment_upload_name'] = "";
+					}
+				} else {
+					$question_rows[$key]['attachment_name'] = "";
+					$question_rows[$key]['attachment_upload_name'] = "";
+				}
+			} else {
+				$question_rows[$key]['attachment_name'] = "";
+				$question_rows[$key]['attachment_upload_name'] = "";
+			}
+			 
+			unset($question_rows[$key]['question_type']);
+		}
+
+	 
+		if ($total_failed_size > 0) {
+			$this->saasvalidation->deleteResouceQuota('storage',round($total_failed_size / 1024));
+		}
+
+		$onlineexam_student_id = $this->input->post('onlineexam_student_id');
+		 
+		$insert_result = $this->onlineexam_model->add($question_rows,$onlineexam_student_id);
+
+		$this->onlineexam_model->updateExamSubmitted($onlineexam_student_id);
+
+		json_output(200, [
+			'status' => $insert_result == 1 ? 1 : 0,
+			'msg'    => $insert_result == 1 ? 'record inserted' : 'something wrong'
+		]);
+	}
+
 
     public function getExamList()
     {
@@ -1474,7 +1586,7 @@ class Webservice extends CI_Controller
                                     $is_duplicate = true;
                                 }
                             }
-							
+
                             if (!$is_duplicate) {
                                 if (array_key_exists($res_value->staff_id, $class_teacher)) {
 
@@ -1685,42 +1797,63 @@ class Webservice extends CI_Controller
     {
         $method = $this->input->server('REQUEST_METHOD');
         if ($method != 'POST') {
-            json_output(400, array('status' => 400, 'message' => 'Bad request.'));
-        } else {
-            $check_auth_client = $this->auth_model->check_auth_client();
-            if ($check_auth_client == true) {
-                $response = $this->auth_model->auth();
-                if ($response['status'] == 200) {
-
-                    $params = json_decode(file_get_contents('php://input'), true);
-                    $student_id = $params['student_id'];
-                    $student = $this->student_model->get($student_id);
-                    $vec_route_id = $student->vehroute_id;
-                    $listroute = $this->vehroute_model->listroute();
-
-                    if ($vec_route_id != "") {
-                        if (!empty($listroute)) {
-                            foreach ($listroute as $listroute_key => $listroute_value) {
-
-                                if (!empty($listroute_value['vehicles'])) {
-                                    foreach ($listroute_value['vehicles'] as $route_key => $route_value) {
-                                        if ($route_value->vec_route_id == $vec_route_id) {
-                                            $route_value->assigned = "yes";
-                                            break;
-                                        } else {
-                                            $route_value->assigned = "no";
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    json_output($response['status'], $listroute);
-                }
-            }
+            json_output(400, ['status' => 400, 'message' => 'Bad request']);
+            return;
         }
+
+        if ($this->auth_model->check_auth_client() !== true) {
+            return;
+        }
+
+        $response = $this->auth_model->auth();
+        if ($response['status'] != 200) {
+            json_output($response['status'], $response);
+            return;
+        }
+
+        $params = json_decode(file_get_contents('php://input'), true);
+        $student_id = $params['student_id'] ?? null;
+
+        if (empty($student_id)) {
+            json_output(400, ['message' => 'student_id required']);
+            return;
+        }
+
+        $student = $this->student_model->get($student_id);
+        if (!$student || empty($student->vehroute_id)) {
+            json_output(200, []);
+            return;
+        }
+
+        $vec_route_id = $student->vehroute_id;
+
+        $this->db->select('route_id')
+            ->from('vehicle_routes')
+            ->where('id', $vec_route_id);
+        $routeRow = $this->db->get()->row();
+
+        if (!$routeRow) {
+            json_output(200, []);
+            return;
+        }
+
+        $route_id = $routeRow->route_id;
+
+        $vehicles = $this->vehroute_model->getVechileByRoute($route_id);
+
+        foreach ($vehicles as $vehicle) {
+            $vehicle->assigned = ($vehicle->vec_route_id == $vec_route_id) ? 'yes' : 'no';
+        }
+
+        $route = $this->db->where('id', $route_id)
+            ->get('transport_route')
+            ->row_array();
+
+        $route['vehicles'] = $vehicles;
+
+        json_output(200, [$route]);
     }
+
 
     public function getHostelList()
     {
@@ -1799,7 +1932,7 @@ class Webservice extends CI_Controller
                 if ($response['status'] == 200) {
                     $params = json_decode(file_get_contents('php://input'), true);
 
-                    $id = $params['id'];             
+                    $id = $params['id'];
                     $resp = $this->webservice_model->getShareContentDocumentsByID($id);
                     json_output($response['status'], $resp);
                 }
@@ -2199,9 +2332,9 @@ class Webservice extends CI_Controller
                     $data = array();
                     $pay_method = $this->paymentsetting_model->getActiveMethod();
                     $_POST = json_decode(file_get_contents("php://input"), true);
-                    $student_id = $this->input->post('student_id');
+                    $student_id = $this->input->post('student_id');  
                     $student = $this->student_model->get($student_id);
-
+ 
                     $transport_fees = $this->studentfeemaster_model->getStudentTransportFeesByStudentSessionId($student->student_session_id, $student->route_pickup_point_id);
                     $student_due_fee = $this->studentfeemaster_model->getStudentFees($student->student_session_id);
 
@@ -2277,11 +2410,11 @@ class Webservice extends CI_Controller
                             }
                         }
                     }
-  
+
                     if (!empty($student_due_fee)) {
                         foreach ($student_due_fee as $student_due_fee_key => $student_due_fee_value) {
                             foreach ($student_due_fee_value->fees as $each_fees_key => $each_fees_value) {
-                            
+
                                 $amt = 0;
                                 $total_paid = 0;
                                 $total_discount = 0;
@@ -2295,33 +2428,33 @@ class Webservice extends CI_Controller
                                 $each_fees_value->status = 'unpaid';
                                 $grand_amt = $grand_amt + $each_fees_value->amount;
                                 // code added
-                                    if (($each_fees_value->due_date != "0000-00-00" && $each_fees_value->due_date != null) && (strtotime($each_fees_value->due_date) < strtotime(date('Y-m-d')))) {
-                                      // get cumulative fine amount as delay days 
-                                        if($each_fees_value->fine_type=='cumulative'){
-                                            
-                                            $date1=date_create("$each_fees_value->due_date");
-                                            $date2=date_create(date('Y-m-d'));
-                                            $diff=date_diff($date1,$date2);
-                                            $due_days= $diff->format("%a");
+                                if (($each_fees_value->due_date != "0000-00-00" && $each_fees_value->due_date != null) && (strtotime($each_fees_value->due_date) < strtotime(date('Y-m-d')))) {
+                                    // get cumulative fine amount as delay days 
+                                    if ($each_fees_value->fine_type == 'cumulative') {
 
-                                            if($this->customlib->get_cumulative_fine_amount($each_fees_value->fee_groups_feetype_id,$due_days)){
-                                                $due_fine_amount=$this->customlib->get_cumulative_fine_amount($each_fees_value->fee_groups_feetype_id,$due_days);
-                                            }else{
-                                                $due_fine_amount=0;
-                                            }
-                                            $fees_fine_amount       = $due_fine_amount;
-                                            $total_fees_fine_amount = $total_fees_fine_amount + $due_fine_amount;
-                            
-                                        }else if($each_fees_value->fine_type=='fix' || $each_fees_value->fine_type=='percentage'){
-                                            $fees_fine_amount       = $each_fees_value->fine_amount;
-                                            $total_fees_fine_amount = $total_fees_fine_amount + $each_fees_value->fine_amount;
+                                        $date1 = date_create("$each_fees_value->due_date");
+                                        $date2 = date_create(date('Y-m-d'));
+                                        $diff = date_diff($date1, $date2);
+                                        $due_days = $diff->format("%a");
+
+                                        if ($this->customlib->get_cumulative_fine_amount($each_fees_value->fee_groups_feetype_id, $due_days)) {
+                                            $due_fine_amount = $this->customlib->get_cumulative_fine_amount($each_fees_value->fee_groups_feetype_id, $due_days);
+                                        } else {
+                                            $due_fine_amount = 0;
                                         }
-                                        // get cumulative fine amount as delay days
-                                    }
-                                    $each_fees_value->fees_fine_amount = $fees_fine_amount;
-                                    // code added
+                                        $fees_fine_amount = $due_fine_amount;
+                                        $total_fees_fine_amount = $total_fees_fine_amount + $due_fine_amount;
 
-                                    if(is_string($each_fees_value->amount_detail) && is_array(json_decode($each_fees_value->amount_detail, true)) && (json_last_error() == JSON_ERROR_NONE)) {
+                                    } else if ($each_fees_value->fine_type == 'fix' || $each_fees_value->fine_type == 'percentage') {
+                                        $fees_fine_amount = $each_fees_value->fine_amount;
+                                        $total_fees_fine_amount = $total_fees_fine_amount + $each_fees_value->fine_amount;
+                                    }
+                                    // get cumulative fine amount as delay days
+                                }
+                                $each_fees_value->fees_fine_amount = $fees_fine_amount;
+                                // code added
+
+                                if (is_string($each_fees_value->amount_detail) && is_array(json_decode($each_fees_value->amount_detail, true)) && (json_last_error() == JSON_ERROR_NONE)) {
                                     $fess_list = json_decode($each_fees_value->amount_detail);
 
                                     foreach ($fess_list as $fee_key => $fee_value) {
@@ -2334,7 +2467,7 @@ class Webservice extends CI_Controller
 
                                         $grand_total_fine = $grand_total_fine + $fee_value->amount_fine;
                                         $total_fine = $total_fine + $fee_value->amount_fine;
-										
+
                                     }
 
                                     $each_fees_value->total_amount_paid = number_format((float) $total_paid, 2, '.', '');
@@ -2375,7 +2508,7 @@ class Webservice extends CI_Controller
                 }
             }
         }
-    } 
+    }
 
     public function class_schedule()
     {
@@ -2453,7 +2586,7 @@ class Webservice extends CI_Controller
                                 } elseif ($exam_result_value->get_marks < $exam_result_value->min_marks) {
                                     $exam->exam_result_status = "fail";
                                 }
-								
+
                                 $exam->total_max_marks = $exam->total_max_marks + $exam_result_value->max_marks;
                                 $exam->total_get_marks = $exam->total_get_marks + $exam_result_value->get_marks;
                                 $percentage = ($exam_result_value->get_marks * 100) / $exam_result_value->max_marks;
@@ -2488,7 +2621,7 @@ class Webservice extends CI_Controller
 
                                 if ($exam_result->passing_percentage <= $exam->percentage) {
                                     $exam->exam_result_status = "pass";
-                                } else {                                                                      
+                                } else {
                                     $exam->exam_result_status = "fail";
                                 }
                             }
@@ -2621,13 +2754,13 @@ class Webservice extends CI_Controller
                                     $consolidate_result->consolidate_result['result'] = $consolidate_get_total . "/" . $consolidate_max_total;
                                     $consolidate_result->consolidate_result['grade'] = findExamGrade($exam_grade, $exam_result->exam_type, $consolidate_get_total_percentage);
                                     $consolidate_result->consolidate_result['result_status'] = $consolidate_result_status;
-                                } elseif ($exam_result->exam_type == "gpa") {                                   
+                                } elseif ($exam_result->exam_type == "gpa") {
 
                                     $consolidate_result->consolidate_result['result'] = $consolidate_get_total . "/" . $consolidate_subjects_total;
                                     $consolidate_result->consolidate_result['grade'] = findExamGrade($exam_grade, $exam_result->exam_type, $consolidate_get_total_percentage);
-                                    
+
                                 }
-                                
+
                             }
                             $exam->consolidated_exam_result = $consolidate_result;
                         }
@@ -2756,7 +2889,7 @@ class Webservice extends CI_Controller
                     } elseif ($user_type == "Staff") {
                         $insert_data['staff_id'] = $user_id;
                     }
-					
+
                     $insert_message = array(
                         'message' => 'you are now connected on chat',
                         'chat_user_id' => 0,
@@ -2822,8 +2955,8 @@ class Webservice extends CI_Controller
                 }
             }
         }
-    }    
-        
+    }
+
     public function getzoomsettings()
     {
         $method = $this->input->server('REQUEST_METHOD');
@@ -2834,7 +2967,7 @@ class Webservice extends CI_Controller
             if ($check_auth_client == true) {
                 $response = $this->auth_model->auth();
                 if ($response['status'] == 200) {
-                    $_POST = json_decode(file_get_contents("php://input"), true);                    
+                    $_POST = json_decode(file_get_contents("php://input"), true);
                     $live_classes = $this->conference_model->getzoomsettings();
 
                     $data["live_classes"] = $live_classes;
@@ -2843,7 +2976,7 @@ class Webservice extends CI_Controller
             }
         }
     }
-    
+
     public function livehistory()
     {
         $method = $this->input->server('REQUEST_METHOD');
@@ -2888,8 +3021,8 @@ class Webservice extends CI_Controller
                 }
             }
         }
-    }    
-    
+    }
+
     public function getgmeetsettings()
     {
         $method = $this->input->server('REQUEST_METHOD');
@@ -2900,7 +3033,7 @@ class Webservice extends CI_Controller
             if ($check_auth_client == true) {
                 $response = $this->auth_model->auth();
                 if ($response['status'] == 200) {
-                    $_POST = json_decode(file_get_contents("php://input"), true);                    
+                    $_POST = json_decode(file_get_contents("php://input"), true);
                     $live_classes = $this->gmeet_model->getgmeetsettings();
                     $data["live_classes"] = $live_classes;
                     json_output($response['status'], $data);
@@ -2931,7 +3064,7 @@ class Webservice extends CI_Controller
             }
         }
     }
-    
+
     public function checkProfileUpdate()
     {
         $method = $this->input->server('REQUEST_METHOD');
@@ -3025,6 +3158,11 @@ class Webservice extends CI_Controller
                     if (isset($post_data['guardian_phone'])) {
                         $this->form_validation->set_rules('guardian_phone', 'guardian_phone', 'trim|required|xss_clean');
                     }
+
+                    $storage_array = "file,father_pic,mother_pic,guardian_pic";
+
+                    $this->form_validation->set_rules('validate_storage', $this->lang->line('storage'), "callback_validateCanUploadFile[$storage_array]");
+
                     if ($this->form_validation->run() == false) {
 
                         $validation_error = array();
@@ -3047,6 +3185,9 @@ class Webservice extends CI_Controller
                         if (isset($post_data['guardian_phone'])) {
                             $validation_error['guardian_phone'] = form_error('guardian_phone');
                         }
+
+                        $validation_error['validate_storage'] = form_error('validate_storage');
+
                         $array = array('status' => '0', 'error' => $validation_error);
                     } else {
 
@@ -3242,38 +3383,56 @@ class Webservice extends CI_Controller
                         }
 
                         $this->student_model->add($data);
-                        $this->customlib->ensureDirectoryExists('./uploads/student_images/');
 
-                        if (isset($_FILES["file"]) && !empty($_FILES['file']['name'])) {
-                            $fileInfo = pathinfo($_FILES["file"]["name"]);
-                            $img_name = $student_id . '.' . $fileInfo['extension'];
-                            move_uploaded_file($_FILES["file"]["tmp_name"], "./uploads/student_images/" . $img_name);
-                            $data_img = array('id' => $student_id, 'image' => 'uploads/student_images/' . $img_name);
-                            $this->student_model->add($data_img);
+                        $student = $this->student_model->get($student_id);
+                        $upload_path = $this->config->item('upload_path') . "/uploads/student_images/";
+
+
+                        $total_prev_size = 0;
+                        $total_new_size = 0;
+
+                        $image_fields = [
+                            'file' => 'image',
+                            'father_pic' => 'father_pic',
+                            'mother_pic' => 'mother_pic',
+                            'guardian_pic' => 'guardian_pic'
+                        ];
+
+                        foreach ($image_fields as $input_name => $db_column) {
+                            if (isset($_FILES[$input_name]) && !empty($_FILES[$input_name]['name'])) {
+
+                                $old_file = $student->{$db_column};
+                                if (!empty($old_file)) {
+                                    $total_prev_size += $this->media_storage->getUploadedFileSize($old_file, '');
+                                }
+
+                                $img_name = $this->media_storage->fileupload($input_name, $upload_path);
+
+                                if (!IsNullOrEmptyString($img_name)) {
+
+                                    $total_new_size += $this->media_storage->getTmpFileSize($input_name);
+
+                                    $data_img = array('id' => $student_id, $db_column => 'uploads/student_images/' . $img_name);
+                                    $this->student_model->add($data_img);
+
+                                    if (!empty($old_file)) {
+                                        $old_file_path = FCPATH . $old_file;
+                                        if (file_exists($old_file_path)) {
+                                            unlink($old_file_path);
+                                        } elseif (file_exists($old_file)) {
+                                            unlink($old_file);
+                                        }
+                                    }
+                                }
+                            }
                         }
 
-                        if (isset($_FILES["father_pic"]) && !empty($_FILES['father_pic']['name'])) {
-                            $fileInfo = pathinfo($_FILES["father_pic"]["name"]);
-                            $img_name = $student_id . "father" . '.' . $fileInfo['extension'];
-                            move_uploaded_file($_FILES["father_pic"]["tmp_name"], "./uploads/student_images/" . $img_name);
-                            $data_img = array('id' => $student_id, 'father_pic' => 'uploads/student_images/' . $img_name);
-                            $this->student_model->add($data_img);
-                        }
-
-                        if (isset($_FILES["mother_pic"]) && !empty($_FILES['mother_pic']['name'])) {
-                            $fileInfo = pathinfo($_FILES["mother_pic"]["name"]);
-                            $img_name = $student_id . "mother" . '.' . $fileInfo['extension'];
-                            move_uploaded_file($_FILES["mother_pic"]["tmp_name"], "./uploads/student_images/" . $img_name);
-                            $data_img = array('id' => $student_id, 'mother_pic' => 'uploads/student_images/' . $img_name);
-                            $this->student_model->add($data_img);
-                        }
-
-                        if (isset($_FILES["guardian_pic"]) && !empty($_FILES['guardian_pic']['name'])) {
-                            $fileInfo = pathinfo($_FILES["guardian_pic"]["name"]);
-                            $img_name = $student_id . "guardian" . '.' . $fileInfo['extension'];
-                            move_uploaded_file($_FILES["guardian_pic"]["tmp_name"], "./uploads/student_images/" . $img_name);
-                            $data_img = array('id' => $student_id, 'guardian_pic' => 'uploads/student_images/' . $img_name);
-                            $this->student_model->add($data_img);
+                        if ($total_prev_size > $total_new_size) {
+                            $diff = $total_prev_size - $total_new_size;
+                            $this->saasvalidation->deleteResouceQuota('storage', $diff);
+                        } elseif ($total_new_size > $total_prev_size) {
+                            $diff = $total_new_size - $total_prev_size;
+                            $this->saasvalidation->updateResouceQuota('storage', $diff);
                         }
 
                         $array = array('status' => '1', 'msg' => 'Record Updated Successfully');
@@ -3335,7 +3494,7 @@ class Webservice extends CI_Controller
                 return json_encode(array('get_marks' => $question->marks, 'scr_marks' => $question->score_marks));
 
             } elseif ($question->question_type == "multichoice") {
-                
+
                 $cr_ans = json_decode($question->correct);
                 $sel_ans = json_decode($question->select_option);
                 if ($this->array_equal($cr_ans, $sel_ans)) {
@@ -3386,7 +3545,9 @@ class Webservice extends CI_Controller
                         $student_id = $this->input->post('student_id');
                         $title = $this->input->post('title');
                         $upload_path = $this->config->item('upload_path') . "/student_documents/" . $student_id . "/";
-                        $this->customlib->ensureDirectoryExists($upload_path);
+                        if (!is_dir($upload_path) && !mkdir($upload_path)) {
+                            die("Error creating folder $upload_path");
+                        }
 
                         if (isset($_FILES["file"]) && !empty($_FILES['file']['name'])) {
                             $fileInfo = pathinfo($_FILES["file"]["name"]);
@@ -3409,7 +3570,7 @@ class Webservice extends CI_Controller
 
     /**
      * This function is used to get online course list based on student class_id and section_id
-     */    
+     */
     public function courselist()
     {
         $method = $this->input->server('REQUEST_METHOD');
@@ -3429,50 +3590,50 @@ class Webservice extends CI_Controller
                     $courselist = $this->course_model->courselistforstudent($class_id, $section_id);
                     $course_list = array();
                     foreach ($courselist as $key => $courselist_value) {
-						
-						$assignment_count=0;
-                        $quiz_count=0;
-                        $exam_count=0;
-                        $lesson_count=0;						
-						
+
+                        $assignment_count = 0;
+                        $quiz_count = 0;
+                        $exam_count = 0;
+                        $lesson_count = 0;
+
                         $lesson_count = count($this->course_model->totallessonbycourse($courselist_value['id']));
-						
+
                         $courselist_value['total_lesson'] = ($lesson_count);
                         $courselist_value['total_hour_count'] = $this->course_model->counthours($courselist_value['id']);
                         $courselist_value['paidstatus'] = $this->course_model->paidstatus($courselist_value['id'], $student_id);
                         $courseprogresscount_array = $this->course_model->courseprogresscount($courselist_value['id'], $student_id);
-						
-                        $courseprogresscount=0;
-                        foreach($courseprogresscount_array as $k=>$val){
-                            $lesson_quiz_type=$val['lesson_quiz_type'];
-                            if($lesson_quiz_type==1){
+
+                        $courseprogresscount = 0;
+                        foreach ($courseprogresscount_array as $k => $val) {
+                            $lesson_quiz_type = $val['lesson_quiz_type'];
+                            if ($lesson_quiz_type == 1) {
                                 $courseprogresscount++;
                             }
-                            if($lesson_quiz_type==2 && $this->customlib->get_online_course_curriculam_status("online_course_quiz")==""){
+                            if ($lesson_quiz_type == 2 && $this->customlib->get_online_course_curriculam_status("online_course_quiz") == "") {
                                 $courseprogresscount++;
                             }
-                            if($lesson_quiz_type==3 && $this->customlib->get_online_course_curriculam_status("online_course_assignment")==""){
+                            if ($lesson_quiz_type == 3 && $this->customlib->get_online_course_curriculam_status("online_course_assignment") == "") {
                                 $courseprogresscount++;
                             }
-                            if($lesson_quiz_type==4 && $this->customlib->get_online_course_curriculam_status("online_course_exam")==""){
+                            if ($lesson_quiz_type == 4 && $this->customlib->get_online_course_curriculam_status("online_course_exam") == "") {
                                 $courseprogresscount++;
                             }
-                        }                       
+                        }
 
                         //check is curriculam status is active or inactive if curriculam mode is inactive or hide then its value will be 0
-                        if($this->customlib->get_online_course_curriculam_status("online_course_assignment")==""){
-                            $assignment_count   =   count($this->course_model->totalassignmentbycourse($courselist_value['id'])); //added 
+                        if ($this->customlib->get_online_course_curriculam_status("online_course_assignment") == "") {
+                            $assignment_count = count($this->course_model->totalassignmentbycourse($courselist_value['id'])); //added 
                         }
-                        if($this->customlib->get_online_course_curriculam_status("online_course_quiz")==""){
-                            $quiz_count         =   count($this->course_model->totalquizbycourse($courselist_value['id']));
+                        if ($this->customlib->get_online_course_curriculam_status("online_course_quiz") == "") {
+                            $quiz_count = count($this->course_model->totalquizbycourse($courselist_value['id']));
                         }
-                        if($this->customlib->get_online_course_curriculam_status("online_course_exam")==""){
-                            $exam_count         =   count($this->course_model->totalexambycourse($courselist_value['id'])); //added   
+                        if ($this->customlib->get_online_course_curriculam_status("online_course_exam") == "") {
+                            $exam_count = count($this->course_model->totalexambycourse($courselist_value['id'])); //added   
                         }
 
-                        $total_quiz_lession   =  (int)($lesson_count)  + (int)($quiz_count) + (int)($assignment_count) + (int)($exam_count);
-                        $course_progress = 0;						 
-						
+                        $total_quiz_lession = (int) ($lesson_count) + (int) ($quiz_count) + (int) ($assignment_count) + (int) ($exam_count);
+                        $course_progress = 0;
+
                         if ($total_quiz_lession > 0) {
                             $course_progress = (($courseprogresscount) / $total_quiz_lession) * 100;
                         }
@@ -3520,7 +3681,7 @@ class Webservice extends CI_Controller
      */
     public function coursedetail()
     {
-        // $this->load->library('Aws3');
+         
         $method = $this->input->server('REQUEST_METHOD');
         if ($method != 'POST') {
             json_output(400, array('status' => 400, 'message' => 'Bad request.'));
@@ -3535,7 +3696,7 @@ class Webservice extends CI_Controller
                     $student_id = $this->input->post('student_id');
                     $detail = $this->course_model->coursedetail($course_id);
                     $coursedetail['course_detail'] = $detail;
-                    $student = $this->course_model->getcourseratingbystudentid($course_id, $student_id);                                    
+                    $student = $this->course_model->getcourseratingbystudentid($course_id, $student_id);
                     $coursedetail['course_rating_review'] = $student;
                     json_output($response['status'], $coursedetail);
                 }
@@ -3548,7 +3709,7 @@ class Webservice extends CI_Controller
      */
     public function coursecurriculum()
     {
-        // $this->load->library('Aws3');
+       
         $method = $this->input->server('REQUEST_METHOD');
         if ($method != 'POST') {
             json_output(400, array('status' => 400, 'message' => 'Bad request.'));
@@ -3563,6 +3724,29 @@ class Webservice extends CI_Controller
                     $student_id = $this->input->post('student_id');
                     $sectionList = $this->course_model->getsectionbycourse($course_id, $student_id);
                     $data['sectionList'] = $sectionList;
+                    json_output($response['status'], $data);
+                }
+            }
+        }
+    }
+
+    public function get_lessonattachments_by_lessonid()
+    {
+      
+        $method = $this->input->server('REQUEST_METHOD');
+        if ($method != 'POST') {
+            json_output(400, array('status' => 400, 'message' => 'Bad request.'));
+        } else {
+            $check_auth_client = $this->auth_model->check_auth_client();
+            if ($check_auth_client == true) {
+                $response = $this->auth_model->auth();
+                if ($response['status'] == 200) {
+                    $_POST = json_decode(file_get_contents("php://input"), true);
+                    $this->form_validation->set_data($_POST);
+                    $lesson_id = $this->input->post('lesson_id');
+                    
+                    $attachments = $this->course_model->get_lesson_attachments_by_lessonid($lesson_id);
+                    $data['attachments'] = $attachments;
                     json_output($response['status'], $data);
                 }
             }
@@ -3675,6 +3859,7 @@ class Webservice extends CI_Controller
                     $questionID = $params['question_id'];
                     $result = $this->course_model->getquizanswerexistornot($questionID, $quiz_id, $student_id);
 
+ 
                     $answer1 = $params['answer_1'];
                     $answer2 = $params['answer_2'];
                     $answer3 = $params['answer_3'];
@@ -3914,9 +4099,9 @@ class Webservice extends CI_Controller
                     $params = json_decode(file_get_contents('php://input'), true);
                     $course_id = $params['course_id'];
                     $student_id = $params['student_id'];
-					
-                    $data['result'] = $this->course_model->courseperformance($course_id, $student_id);					
-					
+
+                    $data['result'] = $this->course_model->courseperformance($course_id, $student_id);
+
                     $lessoncount = $this->course_model->totallessonbycourse($course_id);
                     $data['lessoncount'] = count($lessoncount);
                     $data['lessoncompleted'] = count($this->course_model->lessoncompleted($course_id, $student_id, 1));
@@ -3933,9 +4118,9 @@ class Webservice extends CI_Controller
                     $data['examcount'] = count($examcount);
                     $data['examcompleted'] = count($this->course_model->lessoncompleted($course_id, $student_id, 4));
 
-                    $lessonquizcount = $data['lessoncount'] + $data['quizcount'] + $data['assignmentcount'] + $data['examcount'];					
-                    $lessonquizcompletedcount = $data['lessoncompleted'] + $data['quizcompleted'] + $data['assignemtcompleted'] + $data['examcompleted'];					
-					
+                    $lessonquizcount = $data['lessoncount'] + $data['quizcount'] + $data['assignmentcount'] + $data['examcount'];
+                    $lessonquizcompletedcount = $data['lessoncompleted'] + $data['quizcompleted'] + $data['assignemtcompleted'] + $data['examcompleted'];
+
                     if ($lessonquizcount > 0) {
                         $data['percentage'] = ($lessonquizcompletedcount / $lessonquizcount) * 100;
                     } else {
@@ -3965,8 +4150,16 @@ class Webservice extends CI_Controller
                     $review = $params['review'];
                     $id = $params['id'];
 
-                    if (empty($result)) {
+                    if (empty($id)) {
                         $addData = array(
+                            'student_id' => $student_id,
+                            'course_id' => $course_id,
+                            'rating' => $rating,
+                            'review' => $review,
+                            'date' => date('Y-m-d'),
+                        );
+                    }else{
+						$addData = array(
                             'id' => $id,
                             'student_id' => $student_id,
                             'course_id' => $course_id,
@@ -3974,7 +4167,7 @@ class Webservice extends CI_Controller
                             'review' => $review,
                             'date' => date('Y-m-d'),
                         );
-                    }
+					}
                     $this->course_model->addCourseRatingandReview($addData);
                     $array = array('status' => '1', 'msg' => 'Success');
                     json_output(200, $array);
@@ -4062,12 +4255,16 @@ class Webservice extends CI_Controller
                         $this->form_validation->set_rules('file', 'File', 'callback_handle_upload_file');
                     }
 
+                    $storage_array = "file";
+                    $this->form_validation->set_rules('validate_storage', $this->lang->line('storage'), "callback_validateCanUploadFile[$storage_array]");
+
                     if ($this->form_validation->run() == false) {
 
                         $sss = array(
                             'student_id' => form_error('student_id'),
                             'title' => form_error('title'),
                             'file' => form_error('file'),
+                            'validate_storage' => form_error('validate_storage'),
                         );
                         $array = array('status' => '0', 'error' => $sss);
                     } else {
@@ -4076,22 +4273,33 @@ class Webservice extends CI_Controller
                         $student = $this->student_model->get($this->input->post('student_id'));
 
                         $upload_path = $this->config->item('upload_path') . "/homework/assignment/";
-                        $this->customlib->ensureDirectoryExists($upload_path);
 
                         if (isset($_FILES["file"]) && !empty($_FILES['file']['name'])) {
+
+                            // SaaS Quota Reservation
+                            $storage_array = ['file'];
+                            $this->saasvalidation->updateStorageLimit('storage', $storage_array);
+
                             $time = md5($_FILES["file"]['name'] . microtime());
                             $fileInfo = pathinfo($_FILES["file"]["name"]);
 
                             $img_name = $this->customlib->uniqueFileName() . '.' . $fileInfo['extension'];
 
-                            move_uploaded_file($_FILES["file"]["tmp_name"], $upload_path . $img_name);
-                            $data_insert = array(
-                                'title' => $this->input->post('title'),
-                                'description' => $this->input->post('description'),
-                                'student_session_id' => $student->student_session_id,
-                                'attachment' => $img_name,
-                            );
-                            $this->homework_model->adddailyassignment($data_insert);
+                            if (move_uploaded_file($_FILES["file"]["tmp_name"], $upload_path . $img_name)) {
+                                $data_insert = array(
+                                    'title' => $this->input->post('title'),
+                                    'description' => $this->input->post('description'),
+                                    'student_session_id' => $student->student_session_id,
+                                    'attachment' => $img_name,
+                                );
+                                $this->homework_model->adddailyassignment($data_insert);
+                            } else {
+                                // Upload Failed - Rollback Quota
+                                $file_size_kb = $this->media_storage->getTmpFileSize('file');
+                                if ($file_size_kb > 0) {
+                                    $this->saasvalidation->deleteResouceQuota('storage', $file_size_kb);
+                                }
+                            }
                         }
 
                         $array = array('status' => '1', 'msg' => 'Success');
@@ -4204,11 +4412,15 @@ class Webservice extends CI_Controller
                     $this->form_validation->set_rules('title', 'title', 'required|trim');
                     $this->form_validation->set_rules('subject', 'subject', 'required|trim');
 
+                    $storage_array = "file";
+                    $this->form_validation->set_rules('validate_storage', $this->lang->line('storage'), "callback_validateCanUploadFile[$storage_array]");
+
                     if ($this->form_validation->run() == false) {
 
                         $sss = array(
                             'title' => form_error('title'),
                             'subject' => form_error('subject'),
+                            'validate_storage' => form_error('validate_storage'),
                         );
                         $array = array('status' => '0', 'error' => $sss);
                     } else {
@@ -4227,15 +4439,49 @@ class Webservice extends CI_Controller
                         );
 
                         $upload_path = $this->config->item('upload_path') . "/homework/daily_assignment/";
-                        $this->customlib->ensureDirectoryExists($upload_path);
                         $insert_id = $this->homework_model->adddailyassignment($data);
 
                         if (isset($_FILES["file"]) && !empty($_FILES['file']['name'])) {
                             $fileInfo = pathinfo($_FILES["file"]["name"]);
                             $img_name = $insert_id . '.' . $fileInfo['extension'];
-                            move_uploaded_file($_FILES["file"]["tmp_name"], $upload_path . $img_name);
-                            $data = array('id' => $insert_id, 'attachment' => $img_name);
-                            $this->homework_model->adddailyassignment($data);
+
+                            // SaaS Logic: Differential Update
+                            $prev_file_size = 0;
+                            if ($this->input->post('id') != "") {
+                                $current_assignment = $this->homework_model->getdailyassignmentbyid($this->input->post('id'));
+                                if (!empty($current_assignment->attachment)) {
+                                    $file_url = $upload_path . $current_assignment->attachment;
+                                    if (file_exists($file_url)) {
+                                        $prev_file_size = round(filesize($file_url) / 1024);
+                                    }
+                                }
+                            }
+
+                            $new_file_size = round($_FILES['file']['size'] / 1024);
+
+                            if (move_uploaded_file($_FILES["file"]["tmp_name"], $upload_path . $img_name)) {
+
+                                // Upload Success - Update Quota
+                                if ($prev_file_size > $new_file_size) {
+                                    $diff = $prev_file_size - $new_file_size;
+                                    $this->saasvalidation->deleteResouceQuota('storage', $diff);
+                                } elseif ($new_file_size > $prev_file_size) {
+                                    $diff = $new_file_size - $prev_file_size;
+                                    $this->saasvalidation->updateResouceQuota('storage', $diff);
+                                } elseif ($prev_file_size == 0 && $new_file_size > 0) {
+                                    $this->saasvalidation->updateResouceQuota('storage', $new_file_size);
+                                }
+
+                                if ($this->input->post('id') != "" && !empty($current_assignment->attachment) && $current_assignment->attachment != $img_name) {
+                                    $old_file_url = $upload_path . $current_assignment->attachment;
+                                    if (file_exists($old_file_url)) {
+                                        unlink($old_file_url);
+                                    }
+                                }
+
+                                $data = array('id' => $insert_id, 'attachment' => $img_name);
+                                $this->homework_model->adddailyassignment($data);
+                            }
                         }
 
                         $array = array('status' => '1', 'msg' => 'Success');
@@ -4271,6 +4517,18 @@ class Webservice extends CI_Controller
                     //==================
 
                     $id = $this->input->post('id');
+
+                    // SaaS Logic: Clean up storage & quota
+                    $assignment_data = $this->homework_model->getdailyassignmentbyid($id);
+                    if (!empty($assignment_data->attachment)) {
+                        $file_path = $this->config->item('upload_path') . "/homework/daily_assignment/" . $assignment_data->attachment;
+                        if (file_exists($file_path)) {
+                            $file_size_kb = round(filesize($file_path) / 1024);
+                            $this->saasvalidation->deleteResouceQuota('storage', $file_size_kb);
+                            unlink($file_path);
+                        }
+                    }
+
                     $this->homework_model->deletedailyassignment($id);
                     $array = array('status' => '1', 'msg' => 'Success');
                 }
@@ -4348,36 +4606,87 @@ class Webservice extends CI_Controller
             if ($check_auth_client == true) {
                 $response = $this->auth_model->auth();
                 if ($response['status'] == 200) {
-                    $params = json_decode(file_get_contents('php://input'), true);
-                    $timeline = array(
+                    $this->form_validation->set_data($this->input->post());
+                    $this->form_validation->set_error_delimiters('', '');
+                    $this->form_validation->set_rules('title', 'Title', 'required|trim');
+                    $this->form_validation->set_rules('timeline_date', 'Date', 'required|trim');
+                    $this->form_validation->set_rules('student_id', 'Student ID', 'required|trim');
 
-                        'title' => $this->input->post('title'),
-                        'description' => $this->input->post('description'),
-                        'timeline_date' => $this->input->post('timeline_date'),
-                        'status' => 'yes',
-                        'date' => date('Y-m-d'),
-                        'student_id' => $this->input->post('student_id'),
+                    $storage_array = "timeline_doc";
+                    $this->form_validation->set_rules('validate_storage', $this->lang->line('storage'), "callback_validateCanUploadFile[$storage_array]");
 
-                    );
-                    $id = $this->input->post('id');
-                    if (!empty($id)) {
-                        $timeline['id'] = $id;
+                    if ($this->form_validation->run() == false) {
+                        $form_error = array(
+                            'title' => form_error('title'),
+                            'timeline_date' => form_error('timeline_date'),
+                            'student_id' => form_error('student_id'),
+                            'validate_storage' => form_error('validate_storage'),
+                        );
+                        $array = array('status' => '0', 'error' => $form_error);
+                    } else {
+
+                        $timeline = array(
+                            'title' => $this->input->post('title'),
+                            'description' => $this->input->post('description'),
+                            'timeline_date' => $this->input->post('timeline_date'),
+                            'status' => 'yes',
+                            'date' => date('Y-m-d'),
+                            'student_id' => $this->input->post('student_id'),
+                        );
+                        $id = $this->input->post('id');
+                        if (!empty($id)) {
+                            $timeline['id'] = $id;
+                        }
+                        $insert_id = $this->timeline_model->addedittimeline($timeline);
+
+                        $upload_path = $this->config->item('upload_path') . "/student_timeline/";
+
+                        if (isset($_FILES["timeline_doc"]) && !empty($_FILES['timeline_doc']['name'])) {
+
+                            // SaaS Logic: Differential Update
+                            $prev_file_size = 0;
+                            if ($this->input->post('id') != "") {
+                                $current_timeline = $this->timeline_model->gettimelinebyid($this->input->post('id'));
+                                if (!empty($current_timeline->document)) {
+                                    $file_url = $upload_path . $current_timeline->document;
+                                    if (file_exists($file_url)) {
+                                        $prev_file_size = round(filesize($file_url) / 1024);
+                                    }
+                                }
+                            }
+
+                            $new_file_size = round($_FILES['timeline_doc']['size'] / 1024);
+
+                            $fileInfo = pathinfo($_FILES["timeline_doc"]["name"]);
+                            $img_name = $insert_id . '.' . $fileInfo['extension'];
+
+                            if (move_uploaded_file($_FILES["timeline_doc"]["tmp_name"], $upload_path . $img_name)) {
+
+                                // Upload Success - Update Quota
+                                if ($prev_file_size > $new_file_size) {
+                                    $diff = $prev_file_size - $new_file_size;
+                                    $this->saasvalidation->deleteResouceQuota('storage', $diff);
+                                } elseif ($new_file_size > $prev_file_size) {
+                                    $diff = $new_file_size - $prev_file_size;
+                                    $this->saasvalidation->updateResouceQuota('storage', $diff);
+                                } elseif ($prev_file_size == 0 && $new_file_size > 0) {
+                                    $this->saasvalidation->updateResouceQuota('storage', $new_file_size);
+                                }
+
+                                if ($this->input->post('id') != "" && !empty($current_timeline->document) && $current_timeline->document != $img_name) {
+                                    $old_file_url = $upload_path . $current_timeline->document;
+                                    if (file_exists($old_file_url)) {
+                                        unlink($old_file_url);
+                                    }
+                                }
+
+                                $data = array('id' => $insert_id, 'document' => $img_name);
+                                $this->timeline_model->addedittimeline($data);
+                            }
+                        }
+
+                        $array = array('status' => '1', 'msg' => 'Success');
                     }
-                    $insert_id = $this->timeline_model->addedittimeline($timeline);
-
-                    $upload_path = $this->config->item('upload_path') . "/student_timeline/";
-                    $this->customlib->ensureDirectoryExists($upload_path);
-
-                    if (isset($_FILES["timeline_doc"]) && !empty($_FILES['timeline_doc']['name'])) {
-                        $fileInfo = pathinfo($_FILES["timeline_doc"]["name"]);
-                        $img_name = $insert_id . '.' . $fileInfo['extension'];
-                        move_uploaded_file($_FILES["timeline_doc"]["tmp_name"], $upload_path . $img_name);
-                        $data = array('id' => $insert_id, 'document' => $img_name);
-                        $this->timeline_model->addedittimeline($data);
-                    }
-
-                    $array = array('status' => '1', 'msg' => 'Success');
-
                     json_output(200, $array);
                 }
             }
@@ -4408,6 +4717,18 @@ class Webservice extends CI_Controller
                     //==================
 
                     $id = $this->input->post('id');
+
+                    // SaaS Logic: Clean up storage & quota
+                    $timeline_data = $this->timeline_model->gettimelinebyid($id);
+                    if (!empty($timeline_data->document)) {
+                        $file_path = $this->config->item('upload_path') . "/student_timeline/" . $timeline_data->document;
+                        if (file_exists($file_path)) {
+                            $file_size_kb = round(filesize($file_path) / 1024);
+                            $this->saasvalidation->deleteResouceQuota('storage', $file_size_kb);
+                            unlink($file_path);
+                        }
+                    }
+
                     $this->timeline_model->deletetimeline($id);
                     $array = array('status' => '1', 'msg' => 'Success');
                 }
@@ -4744,16 +5065,16 @@ class Webservice extends CI_Controller
                     $setting_result = $this->setting_model->get();
 
                     if (!empty($result)) {
-                        
+
                         $currency_symbol = $result[0]->symbol;
                         $currency_short_name = $result[0]->name;
                         $base_price = $result[0]->base_price;
-                        
+
                     } else {
 
                         $currency_symbol = $setting_result[0]['currency_symbol'];
                         $currency_short_name = $setting_result[0]['short_name'];
-                        $base_price = $setting_result[0]['base_price']; 
+                        $base_price = $setting_result[0]['base_price'];
 
                     }
 
@@ -4834,7 +5155,6 @@ class Webservice extends CI_Controller
                         }
 
                         $upload_path = $this->config->item('upload_path') . "/offline_payments/";
-                        $this->customlib->ensureDirectoryExists($upload_path);
 
                         if (isset($_FILES["file"]) && !empty($_FILES['file']['name'])) {
                             $name = $_FILES["file"]["name"];
@@ -4873,24 +5193,24 @@ class Webservice extends CI_Controller
 
                         if ($modulearray_value != 'daily_assignment') {
                             $result = $this->module_model->getModuleStatusByCategory($user, $modulearray_value);
-                            if ((!empty($result)) && $result['short_code'] == $modulearray_value) {   
-                            
-                                if($result['status'] != 1){
-                                        $status =0;
-                                }else{
+                            if ((!empty($result)) && $result['short_code'] == $modulearray_value) {
+
+                                if ($result['status'] != 1) {
                                     $status = 0;
-                                    if(!empty($result['group_id'])){
-                                            
-                                        $result2 = $this->module_model->getsystempermission($result['group_id']);                                
-                                        $status = $result2['status'];                                         
-                                
-                                    } 
-                                }                               
-                                        
-                                    $result_array[$key]['name']         =     $result['name'];
-                                    $result_array[$key]['short_code']   =     $result['short_code'];
-                                    $result_array[$key]['status']       =     $status;                                  
-                                
+                                } else {
+                                    $status = 0;
+                                    if (!empty($result['group_id'])) {
+
+                                        $result2 = $this->module_model->getsystempermission($result['group_id']);
+                                        $status = $result2['status'];
+
+                                    }
+                                }
+
+                                $result_array[$key]['name'] = $result['name'];
+                                $result_array[$key]['short_code'] = $result['short_code'];
+                                $result_array[$key]['status'] = $status;
+
                             } else {
                                 $result_array[$key]['name'] = $modulearray_value;
                                 $result_array[$key]['short_code'] = $modulearray_value;
@@ -4898,21 +5218,21 @@ class Webservice extends CI_Controller
                             }
                         } else {
                             $result = $this->module_model->getModuleStatusByCategory($user, 'homework');
-                            
-                                if($result['status'] != 1){
-                                        $status =0;
-                                    }else{
-                                         
-                                        if(!empty($result['group_id'])){
-                                            
-                                            $result2 = $this->module_model->getsystempermission($result['group_id']);                                
-                                            $status = $result2['status'];                                         
-                                
-                                        } else{
-                                            $status = $result['status']; 
-                                        } 
-                                    } 
-                                
+
+                            if ($result['status'] != 1) {
+                                $status = 0;
+                            } else {
+
+                                if (!empty($result['group_id'])) {
+
+                                    $result2 = $this->module_model->getsystempermission($result['group_id']);
+                                    $status = $result2['status'];
+
+                                } else {
+                                    $status = $result['status'];
+                                }
+                            }
+
                             $result_array[$key]['name'] = 'Daily Assignment';
                             $result_array[$key]['short_code'] = 'daily_assignment';
                             $result_array[$key]['status'] = $status;
@@ -4945,52 +5265,52 @@ class Webservice extends CI_Controller
 
                     $setting = $this->setting_model->getSetting();
 
-                    foreach ($modulearray as $key => $modulearray_value) {                       
+                    foreach ($modulearray as $key => $modulearray_value) {
 
                         if ($modulearray_value == 'mydocuments') {
-                            
+
                             $result_array[$key]['name'] = "My Documents";
                             $result_array[$key]['short_code'] = "mydocuments";
-                            $result_array[$key]['status'] = $setting->upload_documents;                            
-                      
+                            $result_array[$key]['status'] = $setting->upload_documents;
+
                         } else {
-                            
+
                             $result = $this->module_model->getModuleStatusByCategory($user, $modulearray_value);
-                            
-                            if(!empty($result)){                                
-                                     
+
+                            if (!empty($result)) {
+
                                 if ($result['short_code'] == $modulearray_value) {
-                                        
-                                    if($result['status'] != 1){
-                                        $status =0;
-                                    }else{
-                                       
-                                        if(!empty($result['group_id'])){
-                                            
-                                            $result2 = $this->module_model->getsystempermission($result['group_id']);                                
-                                            $status = $result2['status'];                                         
-                                
-                                        }else{
-                                            $status = $result['status']; 
-                                        } 
-                                    }                               
-                                        
-                                    $result_array[$key]['name']         =     $result['name'];
-                                    $result_array[$key]['short_code']   =     $result['short_code'];
-                                    $result_array[$key]['status']       =     $status;
-                                    
-                                } 
-                                
+
+                                    if ($result['status'] != 1) {
+                                        $status = 0;
+                                    } else {
+
+                                        if (!empty($result['group_id'])) {
+
+                                            $result2 = $this->module_model->getsystempermission($result['group_id']);
+                                            $status = $result2['status'];
+
+                                        } else {
+                                            $status = $result['status'];
+                                        }
+                                    }
+
+                                    $result_array[$key]['name'] = $result['name'];
+                                    $result_array[$key]['short_code'] = $result['short_code'];
+                                    $result_array[$key]['status'] = $status;
+
+                                }
+
                             } else {
-                                
+
                                 $result_array[$key]['name'] = $modulearray_value;
                                 $result_array[$key]['short_code'] = $modulearray_value;
                                 $result_array[$key]['status'] = 0;
-                                
+
                             }
 
                         }
-                            
+
                     }
 
                     $resp['module_list'] = $result_array;
@@ -5018,25 +5338,25 @@ class Webservice extends CI_Controller
                     $modulearray = array('notice_board');
 
                     foreach ($modulearray as $key => $modulearray_value) {
-                        
+
                         $result = $this->module_model->getModuleStatusByCategory($user, $modulearray_value);
-                        
-                                    if($result['status'] != 1){
-                                        $status =0;
-                                    }else{
-                                        
-                                        if(!empty($result['group_id'])){
-                                            
-                                            $result2 = $this->module_model->getsystempermission($result['group_id']);                                
-                                            $status = $result2['status'];                                         
-                                
-                                        } 
-                                    }                               
-                                        
-                                    $result_array[$key]['name']         =     $result['name'];
-                                    $result_array[$key]['short_code']   =     $result['short_code'];
-                                    $result_array[$key]['status']       =     $status;                         
-                        
+
+                        if ($result['status'] != 1) {
+                            $status = 0;
+                        } else {
+
+                            if (!empty($result['group_id'])) {
+
+                                $result2 = $this->module_model->getsystempermission($result['group_id']);
+                                $status = $result2['status'];
+
+                            }
+                        }
+
+                        $result_array[$key]['name'] = $result['name'];
+                        $result_array[$key]['short_code'] = $result['short_code'];
+                        $result_array[$key]['status'] = $status;
+
                     }
 
                     $resp['module_list'] = $result_array;
@@ -5066,26 +5386,26 @@ class Webservice extends CI_Controller
                     foreach ($modulearray as $key => $modulearray_value) {
                         $result = $this->module_model->getModuleStatusByCategory($user, $modulearray_value);
 
-                        if ($result['short_code'] == $modulearray_value) {                                  
-                                    
-                            if($result['status'] != 1){
-                                $status =0;
-                            }else{
-                                 
-                                if(!empty($result['group_id'])){
-                                    
-                                    $result2 = $this->module_model->getsystempermission($result['group_id']);                                
-                                    $status = $result2['status'];                                         
-                            
-                                }else{
-                                            $status = $result['status']; 
-                                }  
-                            }                                                                 
-                                        
-                            $result_array[$key]['name']         =     $result['name'];
-                            $result_array[$key]['short_code']   =     $result['short_code'];
-                            $result_array[$key]['status']       =     $status;
-                                    
+                        if ($result['short_code'] == $modulearray_value) {
+
+                            if ($result['status'] != 1) {
+                                $status = 0;
+                            } else {
+
+                                if (!empty($result['group_id'])) {
+
+                                    $result2 = $this->module_model->getsystempermission($result['group_id']);
+                                    $status = $result2['status'];
+
+                                } else {
+                                    $status = $result['status'];
+                                }
+                            }
+
+                            $result_array[$key]['name'] = $result['name'];
+                            $result_array[$key]['short_code'] = $result['short_code'];
+                            $result_array[$key]['status'] = $status;
+
                         } else {
                             $result_array[$key]['name'] = $modulearray_value;
                             $result_array[$key]['short_code'] = $modulearray_value;
@@ -5227,8 +5547,8 @@ class Webservice extends CI_Controller
                 }
             }
         }
-    }    
-    
+    }
+
     public function getOfflineBankPaymentInstruction()
     {
         $method = $this->input->server('REQUEST_METHOD');
@@ -5269,40 +5589,40 @@ class Webservice extends CI_Controller
 
                     $student_fee = $this->studentfeemaster_model->getStudentProcessingFees($student->student_session_id);
 
-                     $transport_fees        = $this->studentfeemaster_model->getProcessingTransportFees($student->student_session_id, $student->route_pickup_point_id);
+                    $transport_fees = $this->studentfeemaster_model->getProcessingTransportFees($student->student_session_id, $student->route_pickup_point_id);
 
                     $fee_paid = 0;
                     $fee_discount = 0;
                     $fee_fine = 0;
                     $total_balance_amount = 0;
-                  
-                        foreach ($student_fee as $result) {
-                            if (isJSON($result->amount_detail)) {
 
-                                $fee_deposits = json_decode(($result->amount_detail));
+                    foreach ($student_fee as $result) {
+                        if (isJSON($result->amount_detail)) {
 
-                                $fee_paid = $fee_paid + $fee_deposits->amount;
-                                $fee_discount = $fee_discount + $fee_deposits->amount_discount;
-                                $fee_fine = $fee_fine + $fee_deposits->amount_fine;
-                                $feetype_balance = $fee_deposits->amount - ($fee_paid + $fee_discount);
-                                $total_balance_amount = $total_balance_amount + $feetype_balance;
+                            $fee_deposits = json_decode(($result->amount_detail));
 
-                            }
+                            $fee_paid = $fee_paid + $fee_deposits->amount;
+                            $fee_discount = $fee_discount + $fee_deposits->amount_discount;
+                            $fee_fine = $fee_fine + $fee_deposits->amount_fine;
+                            $feetype_balance = $fee_deposits->amount - ($fee_paid + $fee_discount);
+                            $total_balance_amount = $total_balance_amount + $feetype_balance;
+
                         }
+                    }
 
-                        foreach ($transport_fees as $transport_result) {
-                            if (isJSON($transport_result->amount_detail)) {
+                    foreach ($transport_fees as $transport_result) {
+                        if (isJSON($transport_result->amount_detail)) {
 
-                                $fee_deposits = json_decode(($transport_result->amount_detail));
+                            $fee_deposits = json_decode(($transport_result->amount_detail));
 
-                                $fee_paid = $fee_paid + $fee_deposits->amount;
-                                $fee_discount = $fee_discount + $fee_deposits->amount_discount;
-                                $fee_fine = $fee_fine + $fee_deposits->amount_fine;
-                                $feetype_balance = $fee_deposits->amount - ($fee_paid + $fee_discount);
-                                $total_balance_amount = $total_balance_amount + $feetype_balance;
+                            $fee_paid = $fee_paid + $fee_deposits->amount;
+                            $fee_discount = $fee_discount + $fee_deposits->amount_discount;
+                            $fee_fine = $fee_fine + $fee_deposits->amount_fine;
+                            $feetype_balance = $fee_deposits->amount - ($fee_paid + $fee_discount);
+                            $total_balance_amount = $total_balance_amount + $feetype_balance;
 
-                            }
-                        }                  
+                        }
+                    }
 
                     $data['student_fee'] = $student_fee;
                     $data['transport_fees'] = $transport_fees;
@@ -5327,10 +5647,10 @@ class Webservice extends CI_Controller
             $check_auth_client = $this->auth_model->check_auth_client();
             if ($check_auth_client == true) {
                 $response = $this->auth_model->auth();
-                if ($response['status'] == 200) {                   
-                    
-                    $_POST = json_decode(file_get_contents("php://input"), true);                
-                  
+                if ($response['status'] == 200) {
+
+                    $_POST = json_decode(file_get_contents("php://input"), true);
+
                     $id = $_POST['id'];
                     $user_type = $_POST['user_type'];
 
@@ -5341,9 +5661,9 @@ class Webservice extends CI_Controller
                 }
             }
         }
-    }    
+    }
 
-	public function cbseexamresult()
+    public function cbseexamresult()
     {
         $this->load->model(array('cbseexam_model'));
         $this->load->helper('cbse');
@@ -5353,44 +5673,44 @@ class Webservice extends CI_Controller
         } else {
             $params = json_decode(file_get_contents('php://input'), true);
             $data = [
-                'exams'=>[]
+                'exams' => []
             ];
             $student_session_id = $params['student_session_id'];
-           
+
             $exam_list = $this->cbseexam_model->getStudentExamByStudentSession($student_session_id);
             $student_exams = [];
-       
+
             if (!empty($exam_list)) {
                 foreach ($exam_list as $exam_key => $exam_value) {
-    
+
                     $exam_subjects = $this->cbseexam_model->getexamsubjects($exam_value->cbse_exam_id);
                     $exam_value->{"subjects"} = $exam_subjects;
                     $exam_value->{"grades"} = $this->cbseexam_model->getGraderangebyGradeID($exam_value->cbse_exam_grade_id);
                     $exam_value->{"exam_assessments"} = $this->cbseexam_model->getWithAssessmentTypeByAssessmentID($exam_value->cbse_exam_assessment_id);
                     $cbse_exam_result = $this->cbseexam_model->getStudentExamResultByExamId($exam_value->cbse_exam_id, [$exam_value->student_session_id]);
                     $exam_selected_assessments = $this->cbseexam_model->getSubjectAssessmentsByExam($exam_subjects);
-                 
+
                     $exam_value->{"exam_subject_assessments"} = $exam_selected_assessments;
                     $students = [];
-    
+
                     if (!empty($cbse_exam_result)) {
-    
+
                         foreach ($cbse_exam_result as $student_key => $student_value) {
                             $exam_value->{"exam_rank"} = $student_value->rank;
                             $marks = $student_value->marks;
-                    
-                            $assessment_exists=  find_subject_assessment_exists($exam_selected_assessments, $student_value->cbse_exam_timetable_id, $student_value->cbse_exam_assessment_type_id);    
-                          
-                        if(!$assessment_exists){
-                            $marks = 'xx';
-                        }else{
-                            $marks =  is_null($student_value->marks) ? "N/A" : $student_value->marks;
-                        }    
-    
+
+                            $assessment_exists = find_subject_assessment_exists($exam_selected_assessments, $student_value->cbse_exam_timetable_id, $student_value->cbse_exam_assessment_type_id);
+
+                            if (!$assessment_exists) {
+                                $marks = 'xx';
+                            } else {
+                                $marks = is_null($student_value->marks) ? "N/A" : $student_value->marks;
+                            }
+
                             if (!empty($students)) {
-                                $subject_key=$this->find_subject_array_exists($student_value->subject_id, $students['subjects']);
+                                $subject_key = $this->find_subject_array_exists($student_value->subject_id, $students['subjects']);
                                 if (!$subject_key) {
-    
+
                                     $new_subject = [
                                         'subject_id' => $student_value->subject_id,
                                         'subject_name' => $student_value->subject_name,
@@ -5408,11 +5728,11 @@ class Webservice extends CI_Controller
                                             ],
                                         ],
                                     ];
-    
+
                                     $students['subjects'][] = $new_subject;
-    
-                                } elseif ($subject_array_key=$this->findSubjectAssessmentNotExists($student_value->cbse_exam_assessment_type_id, $students['subjects'],$student_value->subject_id)) {
-                                    $subject_array_key=$subject_array_key['subject_key'];
+
+                                } elseif ($subject_array_key = $this->findSubjectAssessmentNotExists($student_value->cbse_exam_assessment_type_id, $students['subjects'], $student_value->subject_id)) {
+                                    $subject_array_key = $subject_array_key['subject_key'];
                                     $new_assesment = [
                                         'cbse_exam_assessment_type_name' => $student_value->cbse_exam_assessment_type_name,
                                         'cbse_exam_assessment_type_id' => $student_value->cbse_exam_assessment_type_id,
@@ -5423,15 +5743,15 @@ class Webservice extends CI_Controller
                                         'note' => $student_value->note,
                                         'is_absent' => $student_value->is_absent,
                                     ];
-    
+
                                     $students['subjects'][$subject_array_key]['exam_assessments'][$student_value->cbse_exam_assessment_type_id] = $new_assesment;
-    
+
                                 }
-    
+
                             } else {
-    
+
                                 $students['subjects'] = [
-                                     [
+                                    [
                                         'subject_id' => $student_value->subject_id,
                                         'subject_name' => $student_value->subject_name,
                                         'subject_code' => $student_value->subject_code,
@@ -5445,16 +5765,16 @@ class Webservice extends CI_Controller
                                                 'marks' => $marks,
                                                 'note' => $student_value->note,
                                                 'is_absent' => $student_value->is_absent,
-    
-                                            ],    
+
+                                            ],
                                         ],
-                                    ],    
-                                ];    
+                                    ],
+                                ];
                             }
                         }
                     }
-                    $exam_value->{"exam_data"} = $students;            
-    
+                    $exam_value->{"exam_data"} = $students;
+
                 }
             }
 
@@ -5463,52 +5783,52 @@ class Webservice extends CI_Controller
             if (!empty($exam_list)) {
 
                 foreach ($exam_list as $exam_key => $exam_value) {
-                    
-                    if($exam_value->exam_rank == null){
-                        $exam_rank= '';
-                    }else{
-                        $exam_rank=($exam_value->exam_rank);
-                    }                   
-    
-                    unset($exam_value->exam_rank);                
-                  
+
+                    if ($exam_value->exam_rank == null) {
+                        $exam_rank = '';
+                    } else {
+                        $exam_rank = ($exam_value->exam_rank);
+                    }
+
+                    unset($exam_value->exam_rank);
+
                     $exam_value->{'exam_total_marks'} = 0;
                     $exam_value->{'exam_obtain_marks'} = 0;
                     $exam_value->{'exam_percentage'} = 0;
                     $exam_value->{'exam_grade'} = "";
                     $exam_value->{"exam_rank"} = $exam_rank;
-                    if (!empty($exam_value->subjects)) {    
-    
+                    if (!empty($exam_value->subjects)) {
+
                         $total_marks = 0;
-                        $total_max_marks = 0;    
-                   
+                        $total_max_marks = 0;
+
                         foreach ($exam_value->subjects as $subject_key => $subject_value) {
-                            foreach ($exam_value->exam_assessments as $exam_assessment_key => $exam_assessment_value) {    
-    
-                                $assessment_exists=  find_subject_assessment_exists($exam_value->exam_subject_assessments, $subject_value->id, $exam_assessment_value->id);
-                                if($assessment_exists){
-                                    $assessment_array = findAssessmentValue($subject_value->subject_id, $exam_assessment_value->id, $exam_value);                            
-                          
+                            foreach ($exam_value->exam_assessments as $exam_assessment_key => $exam_assessment_value) {
+
+                                $assessment_exists = find_subject_assessment_exists($exam_value->exam_subject_assessments, $subject_value->id, $exam_assessment_value->id);
+                                if ($assessment_exists) {
+                                    $assessment_array = findAssessmentValue($subject_value->subject_id, $exam_assessment_value->id, $exam_value);
+
                                     ($assessment_array['is_absent']) ? $this->lang->line('abs') : $assessment_array['marks'];
                                     if ($assessment_array['marks'] == "N/A") {
                                         $assessment_array['marks'] = 0;
-                                    }        
-        
+                                    }
+
                                     $total_max_marks += $assessment_array['maximum_marks'];
                                     $total_marks += $assessment_array['marks'];
-                                }else{                                   
-                                    $assessment_array['marks'] ="xx";
-                                  }             
-    
+                                } else {
+                                    $assessment_array['marks'] = "xx";
+                                }
+
                             }
                         }
-    
+
                         $exam_percentage = getPercent($total_max_marks, $total_marks);
                         $exam_value->{'exam_obtain_marks'} = $total_marks;
                         $exam_value->{'exam_total_marks'} = $total_max_marks;
                         $exam_value->{'exam_percentage'} = $exam_percentage;
                         $exam_value->{'exam_grade'} = getGrade($exam_value->grades, $exam_percentage);
-    
+
                     }
                 }
             }
@@ -5516,10 +5836,10 @@ class Webservice extends CI_Controller
             json_output(200, $data);
         }
     }
-	
-	public function cbseexamtimetable()
+
+    public function cbseexamtimetable()
     {
-		$this->load->model(array('cbseexam_model'));
+        $this->load->model(array('cbseexam_model'));
         $method = $this->input->server('REQUEST_METHOD');
 
         if ($method != 'POST') {
@@ -5530,16 +5850,16 @@ class Webservice extends CI_Controller
                 $response = $this->auth_model->auth();
                 if ($response['status'] == 200) {
                     $_POST = json_decode(file_get_contents("php://input"), true);
-					
-					$student_session_id = $_POST['student_session_id'];
+
+                    $student_session_id = $_POST['student_session_id'];
                     $resp['result'] = $this->cbseexam_model->getStudentExamTimetable($student_session_id);
                     json_output($response['status'], $resp);
                 }
             }
         }
-    }	
-	
-	public function getBalanceFee()
+    }
+
+    public function getBalanceFee()
     {
         $method = $this->input->server('REQUEST_METHOD');
 
@@ -5557,51 +5877,51 @@ class Webservice extends CI_Controller
                     $student_session_id = $params['student_session_id'];
                     $fee_category = $params['fee_category'];
                     $trans_fee_id = $params['trans_fee_id'];
-					
-					$discount_not_applied = $this->getNotAppliedDiscount($student_session_id); 
-                    
-					if ($fee_category == "transport") {
-						$trans_fee_id         = $trans_fee_id;
-						$remain_amount_object = $this->getStudentTransportFeetypeBalance($trans_fee_id);
-						$remain_amount        = (float) json_decode($remain_amount_object)->balance;
-						$remain_amount_fine   = json_decode($remain_amount_object)->fine_amount;
-					} else {
-						$fee_groups_feetype_id  = $fee_groups_feetype_id;
-						$student_fees_master_id = $student_fees_master_id;
-						$remain_amount_object   = $this->getStuFeetypeBalance($fee_groups_feetype_id, $student_fees_master_id);
-						$remain_amount          = json_decode($remain_amount_object)->balance;
-						$remain_amount_fine     = json_decode($remain_amount_object)->fine_amount;
-					}
 
-					$remain_amount = number_format($remain_amount, 2, ".", "");
+                    $discount_not_applied = $this->getNotAppliedDiscount($student_session_id);
 
-					$result = array(
-						
-						'balance' => ($remain_amount), 
-						'discount_not_applied' => $discount_not_applied, 
-						'remain_amount_fine' => ($remain_amount_fine), 
-						'student_fees' => (json_decode($remain_amount_object)->student_fees)
-					);
-				
-                    $result['discount_fee']  = $this->feediscount_model->getStudentFeesDiscount($student_session_id);
-					
+                    if ($fee_category == "transport") {
+                        $trans_fee_id = $trans_fee_id;
+                        $remain_amount_object = $this->getStudentTransportFeetypeBalance($trans_fee_id);
+                        $remain_amount = (float) json_decode($remain_amount_object)->balance;
+                        $remain_amount_fine = json_decode($remain_amount_object)->fine_amount;
+                    } else {
+                        $fee_groups_feetype_id = $fee_groups_feetype_id;
+                        $student_fees_master_id = $student_fees_master_id;
+                        $remain_amount_object = $this->getStuFeetypeBalance($fee_groups_feetype_id, $student_fees_master_id);
+                        $remain_amount = json_decode($remain_amount_object)->balance;
+                        $remain_amount_fine = json_decode($remain_amount_object)->fine_amount;
+                    }
+
+                    $remain_amount = number_format($remain_amount, 2, ".", "");
+
+                    $result = array(
+
+                        'balance' => ($remain_amount),
+                        'discount_not_applied' => $discount_not_applied,
+                        'remain_amount_fine' => ($remain_amount_fine),
+                        'student_fees' => (json_decode($remain_amount_object)->student_fees)
+                    );
+
+                    $result['discount_fee'] = $this->feediscount_model->getStudentFeesDiscount($student_session_id);
+
                     $data['result_array'] = $result;
                     json_output($response['status'], $data);
                 }
             }
         }
     }
-	
-	public function getStudentTransportFeetypeBalance($trans_fee_id)
+
+    public function getStudentTransportFeetypeBalance($trans_fee_id)
     {
         $data = array();
 
-        $result          = $this->studentfeemaster_model->studentTransportDeposit($trans_fee_id);
-        $amount_balance  = 0;
-        $amount          = 0;
-        $amount_fine     = 0;
+        $result = $this->studentfeemaster_model->studentTransportDeposit($trans_fee_id);
+        $amount_balance = 0;
+        $amount = 0;
+        $amount_fine = 0;
         $amount_discount = 0;
-        $fine_amount     = 0;
+        $fine_amount = 0;
         $fee_fine_amount = 0;
 
         $due_amt = $result->fees;
@@ -5613,19 +5933,19 @@ class Webservice extends CI_Controller
         if (is_object($amount_detail)) {
 
             foreach ($amount_detail as $amount_detail_key => $amount_detail_value) {
-                $amount          = $amount + $amount_detail_value->amount;
+                $amount = $amount + $amount_detail_value->amount;
                 $amount_discount = $amount_discount + $amount_detail_value->amount_discount;
-                $amount_fine     = $amount_fine + $amount_detail_value->amount_fine;
+                $amount_fine = $amount_fine + $amount_detail_value->amount_fine;
             }
         }
 
         $amount_balance = $due_amt - ($amount + $amount_discount);
-        $fine_amount    = abs($amount_fine - $fee_fine_amount);
-        $array          = array('status' => 'success', 'error' => '', 'student_fees' => $due_amt, 'balance' => $amount_balance, 'fine_amount' => $fine_amount);
+        $fine_amount = abs($amount_fine - $fee_fine_amount);
+        $array = array('status' => 'success', 'error' => '', 'student_fees' => $due_amt, 'balance' => $amount_balance, 'fine_amount' => $fine_amount);
         return json_encode($array);
     }
-	
-	public function getNotAppliedDiscount($student_session_id)
+
+    public function getNotAppliedDiscount($student_session_id)
     {
         $discounts_array = $this->feediscount_model->getDiscountNotApplied($student_session_id);
         foreach ($discounts_array as $discount_key => $discount_value) {
@@ -5633,42 +5953,43 @@ class Webservice extends CI_Controller
         }
         return $discounts_array;
     }
-	
-	public function getStuFeetypeBalance($fee_groups_feetype_id, $student_fees_master_id)
-    {
-        $data                           = array();
-        $data['fee_groups_feetype_id']  = $fee_groups_feetype_id;
-        $data['student_fees_master_id'] = $student_fees_master_id;
-        $result                         = $this->studentfeemaster_model->studentDeposit($data);
 
-        $amount_balance  = 0;
-        $amount          = 0;
-        $amount_fine     = 0;
+    public function getStuFeetypeBalance($fee_groups_feetype_id, $student_fees_master_id)
+    {
+        $data = array();
+        $data['fee_groups_feetype_id'] = $fee_groups_feetype_id;
+        $data['student_fees_master_id'] = $student_fees_master_id;
+        $result = $this->studentfeemaster_model->studentDeposit($data);
+
+        $amount_balance = 0;
+        $amount = 0;
+        $amount_fine = 0;
         $amount_discount = 0;
-        $fine_amount     = 0;
+        $fine_amount = 0;
         $fee_fine_amount = 0;
         $due_fine_amount = 0;
-        $due_amt         = $result->amount;
+        $due_amt = $result->amount;
         if ((!empty($result->due_date)) && strtotime($result->due_date) < strtotime(date('Y-m-d'))) {
 
-        // get cumulative fine amount as delay days 
-            if($result->fine_type=='cumulative'){
-                $date1=date_create("$result->due_date");
-                $date2=date_create(date('Y-m-d'));
-                $diff=date_diff($date1,$date2);
-                $due_days= $diff->format("%a");;
-                
-                if($this->customlib->get_cumulative_fine_amount($fee_groups_feetype_id,$due_days)){
-                    $due_fine_amount=$this->customlib->get_cumulative_fine_amount($fee_groups_feetype_id,$due_days);
-                }else{
-                    $due_fine_amount=0;
-                }
-                $fee_fine_amount       = $due_fine_amount;
+            // get cumulative fine amount as delay days 
+            if ($result->fine_type == 'cumulative') {
+                $date1 = date_create("$result->due_date");
+                $date2 = date_create(date('Y-m-d'));
+                $diff = date_diff($date1, $date2);
+                $due_days = $diff->format("%a");
+                ;
 
-            }else if($result->fine_type=='fix' || $result->fine_type=='percentage'){
-                $fee_fine_amount       = $result->fine_amount;
+                if ($this->customlib->get_cumulative_fine_amount($fee_groups_feetype_id, $due_days)) {
+                    $due_fine_amount = $this->customlib->get_cumulative_fine_amount($fee_groups_feetype_id, $due_days);
+                } else {
+                    $due_fine_amount = 0;
+                }
+                $fee_fine_amount = $due_fine_amount;
+
+            } else if ($result->fine_type == 'fix' || $result->fine_type == 'percentage') {
+                $fee_fine_amount = $result->fine_amount;
             }
-        // get cumulative fine amount as delay days
+            // get cumulative fine amount as delay days
         }
 
 
@@ -5680,20 +6001,20 @@ class Webservice extends CI_Controller
         if (is_object($amount_detail)) {
 
             foreach ($amount_detail as $amount_detail_key => $amount_detail_value) {
-                $amount          = $amount + $amount_detail_value->amount;
+                $amount = $amount + $amount_detail_value->amount;
                 $amount_discount = $amount_discount + $amount_detail_value->amount_discount;
-                $amount_fine     = $amount_fine + $amount_detail_value->amount_fine;
+                $amount_fine = $amount_fine + $amount_detail_value->amount_fine;
             }
         }
 
         $amount_balance = $due_amt - ($amount + $amount_discount);
-        $fine_amount    = ($fee_fine_amount > 0) ? ($fee_fine_amount - $amount_fine) : 0;
+        $fine_amount = ($fee_fine_amount > 0) ? ($fee_fine_amount - $amount_fine) : 0;
 
-        $array          = array('status' => 'success', 'error' => '', 'student_fees' => $due_amt, 'balance' => $amount_balance, 'fine_amount' => $fine_amount);
+        $array = array('status' => 'success', 'error' => '', 'student_fees' => $due_amt, 'balance' => $amount_balance, 'fine_amount' => $fine_amount);
         return json_encode($array);
     }
-	
-	public function getFeesDiscountStatus()
+
+    public function getFeesDiscountStatus()
     {
         $method = $this->input->server('REQUEST_METHOD');
         if ($method != 'POST') {
@@ -5702,18 +6023,18 @@ class Webservice extends CI_Controller
             $check_auth_client = $this->auth_model->check_auth_client();
             if ($check_auth_client == true) {
                 $response = $this->auth_model->auth();
-                if ($response['status'] == 200) {                   
-					
-					$school_setting = $this->setting_model->getSchoolDetail();
+                if ($response['status'] == 200) {
+
+                    $school_setting = $this->setting_model->getSchoolDetail();
                     $resp['fees_discount'] = $school_setting->fees_discount;
-					
+
                     json_output($response['status'], $resp);
                 }
             }
         }
     }
-	
-	public function getAppliedDiscounts()
+
+    public function getAppliedDiscounts()
     {
         $method = $this->input->server('REQUEST_METHOD');
         if ($method != 'POST') {
@@ -5727,15 +6048,15 @@ class Webservice extends CI_Controller
                     $student_fees_deposite = $params['student_fees_deposite'];
                     $resp = array();
 
-                    $resp['result'] = $this->studentAppliedDiscount_model->get($student_fees_deposite);			 
-					
+                    $resp['result'] = $this->studentAppliedDiscount_model->get($student_fees_deposite);
+
                     json_output($response['status'], $resp);
                 }
             }
         }
     }
-	
-	public function getOnlineCourseSettings()
+
+    public function getOnlineCourseSettings()
     {
         $method = $this->input->server('REQUEST_METHOD');
         if ($method != 'POST') {
@@ -5746,18 +6067,18 @@ class Webservice extends CI_Controller
                 $response = $this->auth_model->auth();
                 if ($response['status'] == 200) {
                     $params = json_decode(file_get_contents('php://input'), true);
-                    
+
                     $resp = array();
 
-                    $resp['result'] = $this->course_model->getOnlineCourseSettings();			 
-					
+                    $resp['result'] = $this->course_model->getOnlineCourseSettings();
+
                     json_output($response['status'], $resp);
                 }
             }
         }
     }
-	
-	public function saveCourseAssignment()
+
+    public function saveCourseAssignment()
     {
         $method = $this->input->server('REQUEST_METHOD');
 
@@ -5775,55 +6096,72 @@ class Webservice extends CI_Controller
                     $this->form_validation->set_rules('assignmentid', 'assignment id', 'required|trim');
                     $this->form_validation->set_rules('student_id', 'student id', 'required|trim');
                     $this->form_validation->set_rules('message', 'message', 'required|trim');
-                   
+
 
                     if (isset($_FILES["file"]) && !empty($_FILES['file']['name'])) {
                         $this->form_validation->set_rules('file', 'File', 'callback_handle_upload_file');
                     }
 
+                    $storage_array = "file";
+                    $this->form_validation->set_rules('validate_storage', $this->lang->line('storage'), "callback_validateCanUploadFile[$storage_array]");
+
                     if ($this->form_validation->run() == false) {
 
                         $sss = array(
                             'assignmentid' => form_error('assignmentid'),
-                            'student_id' => form_error('student_id'),                            
-                            'message' => form_error('message'),                            
+                            'student_id' => form_error('student_id'),
+                            'message' => form_error('message'),
                             'file' => form_error('file'),
+                            'validate_storage' => form_error('validate_storage'),
                         );
                         $array = array('status' => '0', 'error' => $sss);
                     } else {
                         //==================                        
-                        $upload_path = $this->config->item('upload_path') . "/course_content/online_course_assignment/";					
-						
-						$id = $this->input->post('id');
-						if($id > 0){
-							$ids = $id;
-						}else
-						{
-							$ids = 0;
-						}
-						
+                        $upload_path = $this->config->item('upload_path') . "/course_content/online_course_assignment/";
+
+                        // SaaS Logic: Reserve Quota
+                        $storage_array = ['file'];
+                        $this->saasvalidation->updateStorageLimit('storage', $storage_array);
+
+                        $id = $this->input->post('id');
+                        if ($id > 0) {
+                            $ids = $id;
+                        } else {
+                            $ids = 0;
+                        }
+
+                        $img_name = "";
+
                         if (isset($_FILES["file"]) && !empty($_FILES['file']['name'])) {
-                            $time = md5($_FILES["file"]['name'] . microtime());
-                            $fileInfo = pathinfo($_FILES["file"]["name"]);
-                            $img_name = $time . '.' . $fileInfo['extension'];
-                            move_uploaded_file($_FILES["file"]["tmp_name"], $upload_path . $img_name);
-							
+
+                            // For updates: get old file to clean up later if needed (Not fully implemented in model typically, but logic placeholder)
+                            $total_documents_failed_size = 0;
+
+                            $img_name = $this->media_storage->fileupload("file", $upload_path);
+
+                            if (IsNullOrEmptyString($img_name)) {
+                                $total_documents_failed_size += $this->media_storage->getTmpFileSize('file');
+                            }
+
+                            if ($total_documents_failed_size > 0) {
+                                $this->saasvalidation->deleteResouceQuota('storage', $total_documents_failed_size);
+                            }
+
                             $data_insert = array(
                                 'id' => $ids,
                                 'assignment_id' => $this->input->post('assignmentid'),
-                                'student_id' => $this->input->post('student_id'),                                
-                                'message' => $this->input->post('message'),                                
+                                'student_id' => $this->input->post('student_id'),
+                                'message' => $this->input->post('message'),
                                 'docs' => $img_name,
-                               
                             );
                             $this->course_model->save_assignment($data_insert);
                         } else {
-                             $data_insert = array(
+                            $data_insert = array(
                                 'id' => $ids,
                                 'assignment_id' => $this->input->post('assignmentid'),
-                                'student_id' => $this->input->post('student_id'),                                
-                                'message' => $this->input->post('message'),                                
-                                'docs' => $img_name,                               
+                                'student_id' => $this->input->post('student_id'),
+                                'message' => $this->input->post('message'),
+                                'docs' => $img_name,
                             );
                             $this->course_model->save_assignment($data_insert);
                         }
@@ -5835,8 +6173,8 @@ class Webservice extends CI_Controller
             }
         }
     }
-	
-	public function getCourseExamDetails()
+
+    public function getCourseExamDetails()
     {
         $method = $this->input->server('REQUEST_METHOD');
         if ($method != 'POST') {
@@ -5849,55 +6187,55 @@ class Webservice extends CI_Controller
                     $params = json_decode(file_get_contents('php://input'), true);
                     $exam_id = $params['exam_id'];
                     $student_id = $params['student_id'];
-                    $user_type  = $params['user_type']; 
+                    $user_type = $params['user_type'];
                     $resp = array();
-					$resp['question_type']        = 	$this->course_model->getquestion_type($exam_id);
-                    $exam                         =     $this->course_model->getexam($exam_id);
-					$resp['exam']                 =     $exam ;	
-					$resp['student']              =     $this->student_model->get($student_id);
-					$resp['question_result']      =     $this->course_model->online_course_exam_result($student_id,$exam_id);
-					$submitstatus                 =     $this->course_model->getsubmitstatus($student_id,$exam_id,$user_type); 
+                    $resp['question_type'] = $this->course_model->getquestion_type($exam_id);
+                    $exam = $this->course_model->getexam($exam_id);
+                    $resp['exam'] = $exam;
+                    $resp['student'] = $this->student_model->get($student_id);
+                    $resp['question_result'] = $this->course_model->online_course_exam_result($student_id, $exam_id);
+                    $submitstatus = $this->course_model->getsubmitstatus($student_id, $exam_id, $user_type);
 
-                    if($submitstatus>0){
-                        $submit_status=1;
-                    }else {
-                        $submit_status=0;
+                    if ($submitstatus > 0) {
+                        $submit_status = 1;
+                    } else {
+                        $submit_status = 0;
                     }
 
-                    $total_gain=0;
-                    $total_negative=0;
-                    $total_marks=0;
-                    $total_score=0;
-                    $score_percentage=0;
+                    $total_gain = 0;
+                    $total_negative = 0;
+                    $total_marks = 0;
+                    $total_score = 0;
+                    $score_percentage = 0;
 
-                    if($submit_status>0){
-                        foreach($resp['question_result'] as $key=>$value){
-                            if($value->question_type=='descriptive'){
+                    if ($submit_status > 0) {
+                        foreach ($resp['question_result'] as $key => $value) {
+                            if ($value->question_type == 'descriptive') {
                                 continue;
                             }
-                            $total_marks+=$value->marks;
-                            if($value->correct==$value->select_option){
-                                $total_gain+=$value->marks;
-                            }else{
-                                $total_negative+=$value->neg_marks;
+                            $total_marks += $value->marks;
+                            if ($value->correct == $value->select_option) {
+                                $total_gain += $value->marks;
+                            } else {
+                                $total_negative += $value->neg_marks;
                             }
                         }
 
-                        $total_score=($total_gain-$total_negative);
-                        $score_percentage=(($total_score*100)/count($resp['question_result']));
-                        $resp['total_marks']=count($resp['question_result']);
-                        $resp['total_negative']=$total_negative;
-                        $resp['total_score']=$total_score;                   
-                        $resp['score_percentage']=$score_percentage;
-                    }else{
-                        $resp['total_marks']="";
-                        $resp['total_negative']="";
-                        $resp['total_score']="";            
-                        $resp['score_percentage']="";
+                        $total_score = ($total_gain - $total_negative);
+                        $score_percentage = (($total_score * 100) / count($resp['question_result']));
+                        $resp['total_marks'] = count($resp['question_result']);
+                        $resp['total_negative'] = $total_negative;
+                        $resp['total_score'] = $total_score;
+                        $resp['score_percentage'] = $score_percentage;
+                    } else {
+                        $resp['total_marks'] = "";
+                        $resp['total_negative'] = "";
+                        $resp['total_score'] = "";
+                        $resp['score_percentage'] = "";
                     }
 
-                    $resp['submitstatus']         =     $submit_status; 
-                    $resp['counter']              =     $this->course_model->getStudentAttemts($student_id, $exam_id, $user_type);
+                    $resp['submitstatus'] = $submit_status;
+                    $resp['counter'] = $this->course_model->getStudentAttemts($student_id, $exam_id, $user_type);
                     json_output($response['status'], $resp);
                 }
             }
@@ -5914,56 +6252,56 @@ class Webservice extends CI_Controller
             if ($check_auth_client == true) {
                 $response = $this->auth_model->auth();
                 if ($response['status'] == 200) {
-                    $params                 = json_decode(file_get_contents('php://input'), true);
-                    $studentid_or_guestid   = $params['student_id'];
-                    $recordid               = $params['exam_id'];
-                    $user_type              = $params['user_type']; //added
+                    $params = json_decode(file_get_contents('php://input'), true);
+                    $studentid_or_guestid = $params['student_id'];
+                    $recordid = $params['exam_id'];
+                    $user_type = $params['user_type']; //added
                     $result = $this->student_model->get($studentid_or_guestid);
                     $onlineexam = array();
                     $exam = $this->course_model->get_exam($recordid);//added
                     $exam['onlineexam_student_id'] = $result->id;
                     $exam['student_session_id'] = $result->student_session_id;
                     $issubmitted = $this->course_model->getsubmitstatus($studentid_or_guestid, $exam['id'], $user_type);  //added
-                    if($issubmitted>0){
-                        $submit_status=1;
-                    }else {
-                        $submit_status=0;
+                    if ($issubmitted > 0) {
+                        $submit_status = 1;
+                    } else {
+                        $submit_status = 0;
                     }
-                   
-                    $exam['is_submitted']=$submit_status;
+
+                    $exam['is_submitted'] = $submit_status;
                     $exam['questions'] = $this->course_model->getExamQuestions($exam['id'], $exam['is_random_question']);
                     $getStudentAttemts = $this->course_model->getStudentAttemts($studentid_or_guestid, $exam['id'], $user_type);
-                    $exam_attempt_status  =   0;
-                    $exam_duration        =   0;
-                    
+                    $exam_attempt_status = 0;
+                    $exam_duration = 0;
+
                     //======================//
-                    if(isset($exam['exam_to'])){
-                        if(strtotime(date('Y-m-d H:i:s')) <= strtotime(date($exam['exam_to'])) && ($exam['attempt'] > $getStudentAttemts)){
-                            if($user_type=='student'){
-                                $studentid=$studentid_or_guestid;
-                                $guestid=0;
-                            }else if($user_type=='guest'){
-                                $guestid=$studentid_or_guestid;
-                                $studentid=0;
+                    if (isset($exam['exam_to'])) {
+                        if (strtotime(date('Y-m-d H:i:s')) <= strtotime(date($exam['exam_to'])) && ($exam['attempt'] > $getStudentAttemts)) {
+                            if ($user_type == 'student') {
+                                $studentid = $studentid_or_guestid;
+                                $guestid = 0;
+                            } else if ($user_type == 'guest') {
+                                $guestid = $studentid_or_guestid;
+                                $studentid = 0;
                             }
-                            $this->course_model->addStudentAttemts(array('student_id' => $studentid,'guest_id' => $guestid,"exam_id"=>$exam['id']));
-                        }else if(strtotime(date('Y-m-d H:i:s')) > strtotime(date($exam['exam_to']))){
-                            $exam_attempt_status=1; //exam duration expired
-                        }else if(($exam['attempt'] >= $getStudentAttemts)){
-                            $exam_attempt_status=2; //exam attempts end (no exam attempts left)
+                            $this->course_model->addStudentAttemts(array('student_id' => $studentid, 'guest_id' => $guestid, "exam_id" => $exam['id']));
+                        } else if (strtotime(date('Y-m-d H:i:s')) > strtotime(date($exam['exam_to']))) {
+                            $exam_attempt_status = 1; //exam duration expired
+                        } else if (($exam['attempt'] >= $getStudentAttemts)) {
+                            $exam_attempt_status = 2; //exam attempts end (no exam attempts left)
                         }
-                    }else{
-                        if(($exam['attempt'] > $getStudentAttemts)){
-                            if($user_type=='student'){
-                                $student_id=$studentid_or_guestid;
-                                $guest_id=0;
-                            }else if($user_type=='guest'){
-                                $guest_id=$studentid_or_guestid;
-                                $student_id=0;
+                    } else {
+                        if (($exam['attempt'] > $getStudentAttemts)) {
+                            if ($user_type == 'student') {
+                                $student_id = $studentid_or_guestid;
+                                $guest_id = 0;
+                            } else if ($user_type == 'guest') {
+                                $guest_id = $studentid_or_guestid;
+                                $student_id = 0;
                             }
-                            $this->course_model->addStudentAttemts(array('student_id' => $studentid,'guest_id' => $guest_id,"exam_id"=>$exam['id']));
-                        }else if(($exam['attempt'] >= $getStudentAttemts)){
-                            $exam_attempt_status=2; //exam attempts end (no exam attempts left)
+                            $this->course_model->addStudentAttemts(array('student_id' => $studentid, 'guest_id' => $guest_id, "exam_id" => $exam['id']));
+                        } else if (($exam['attempt'] >= $getStudentAttemts)) {
+                            $exam_attempt_status = 2; //exam attempts end (no exam attempts left)
                         }
                     }
                     //======================//
@@ -5996,48 +6334,105 @@ class Webservice extends CI_Controller
             $check_auth_client = $this->auth_model->check_auth_client();
             if ($check_auth_client == true) {
                 $response = $this->auth_model->auth();
-                if ($response['status'] == 200) {			
-					
-                    $student_id = $this->input->post('student_id');
-                    $guest_id =  $this->input->post('guest_id');
-                    $usertype =  $this->input->post('usertype');
-                    $exam_id =  $this->input->post('exam_id');				
-					
-                    $question_rows = (json_decode($this->input->post('rows')));					
-					
-                    foreach($question_rows as $question_key => $question_value) {						
-						
-                        if ($question_value->question_type == "descriptive") {
-                            $qid = $question_value->question_id; //question marks id                            
-							
-							if ((isset($_FILES["attachment_" . $qid]) && !empty($_FILES["attachment_" . $qid]['name']))) {
-                                //===============
-                                $file_name = $_FILES["attachment_" . $qid]["name"];
-                                $fileInfo = pathinfo($_FILES["attachment_" . $qid]["name"]);
-                                $upload_file_name = time() . uniqid(rand()) . '.' . $fileInfo['extension'];
-                                $upload_path = $this->config->item('upload_path') . "/course_content/online_course_exam_result/";
-                                $this->customlib->ensureDirectoryExists($upload_path);
+                if ($response['status'] == 200) {
 
-                                move_uploaded_file($_FILES["attachment_" . $qid]["tmp_name"], $upload_path . $upload_file_name);
-                                $question_value->attachment_name = $file_name;
-                                $question_value->attachment_upload_name = $upload_file_name;
-                                //================
+                    $params = json_decode(file_get_contents('php://input'), true);
+		            $question_rows = $params['rows'];
+
+                    $student_id = $params['student_id'];
+                    $guest_id = $params['guest_id'];
+                    $usertype = $params['usertype'];
+                    $exam_id = $params['exam_id'];
+
+                    $file_keys = [];
+                    $total_upload_size_kb = 0;
+ 
+                    foreach ($question_rows as $q_key => $q_val) {
+                        if ($q_val['question_type'] == "descriptive") {
+                            $qid_key = "attachment_" . $q_val['question_id'];
+                            if (isset($_FILES[$qid_key]) && !empty($_FILES[$qid_key]['name'])) {
+                                $file_keys[] = $qid_key;
+                                if (isset($_FILES[$qid_key]['size']) && $_FILES[$qid_key]['size'] > 0) {
+                                    $total_upload_size_kb += ceil($_FILES[$qid_key]['size'] / 1024);
+                                }
+                            }
+                        }
+                    }
+
+
+                    if ($this->saasvalidation->sass_enabled && !empty($file_keys)) {
+                        try {
+                            $limit_status = $this->saasvalidation->getResourceLimit('storage');
+                            if (is_array($limit_status) && $limit_status['status']) {
+                                if (($limit_status['usage'] + $total_upload_size_kb) > $limit_status['limit']) {
+                                    json_output(200, array('status' => 0, 'msg' => "Storage Limit Exceeded"));
+                                    return;
+                                }
+                            }
+                        } catch (Exception $e) {
+                            json_output(200, array('status' => 0, 'msg' => 'SaaS Error: ' . $e->getMessage()));
+                            return;
+                        }
+                    }
+
+
+                    if (!empty($file_keys)) {
+                        $this->saasvalidation->updateStorageLimit('storage', $file_keys); 
+                    }
+
+                    $total_failed_size = 0;
+
+                    foreach ($question_rows as $key => $question_value) {
+
+                        if ($question_value['question_type'] == "descriptive") {
+
+                            $qid = $question_value['question_id'];
+                            $file_key = "attachment_" . $qid;
+
+                            if (isset($_FILES[$file_key]) && !empty($_FILES[$file_key]['name'])) {
+
+                                $file_name = $_FILES[$file_key]['name'];
+                                $fileInfo  = pathinfo($file_name);
+
+                                $upload_file_name = time() . uniqid() . '.' . $fileInfo['extension'];
+                                $upload_path = $this->config->item('upload_path') . "/course_content/online_course_exam_result/";
+
+                                if (move_uploaded_file($_FILES[$file_key]['tmp_name'], $upload_path . $upload_file_name)) {
+
+                                    $question_rows[$key]['attachment_name'] = $file_name;
+                                    $question_rows[$key]['attachment_upload_name'] = $upload_file_name;
+
+                                } else {
+
+                                    $total_failed_size += $_FILES[$file_key]['size'];
+
+                                    $question_rows[$key]['attachment_name'] = "";
+                                    $question_rows[$key]['attachment_upload_name'] = "";
+                                }
+
                             } else {
-                                $question_value->attachment_name = "";
-                                $question_value->attachment_upload_name = "";
+                                $question_rows[$key]['attachment_name'] = "";
+                                $question_rows[$key]['attachment_upload_name'] = "";
                             }
 
                         } else {
-                            $question_value->attachment_name = "";
-                            $question_value->attachment_upload_name = "";
+                            $question_rows[$key]['attachment_name'] = "";
+                            $question_rows[$key]['attachment_upload_name'] = "";
                         }
-                        unset($question_value->question_type);
+
+                        
+                        unset($question_rows[$key]['question_type']);
+                    }
+ 
+
+                    if ($total_failed_size > 0) {
+                        $this->saasvalidation->deleteResouceQuota('storage', round($total_failed_size / 1024));
                     }
 
                     $resp = array();
                     if (!empty($question_rows)) {
                         $save_result = array();
-                        $insert_result = $this->course_model->savecourseexam($question_rows, $student_id, $guest_id,$usertype,$exam_id);
+                        $insert_result = $this->course_model->savecourseexam($question_rows, $student_id, $guest_id, $usertype, $exam_id);
                         if ($insert_result == 1) {
                             $resp = array('status' => 1, 'msg' => 'record inserted');
                         } else if ($insert_result == 2) {
@@ -6053,8 +6448,8 @@ class Webservice extends CI_Controller
             }
         }
     }
-	
-	public function getSubmitedAssignmentDetails()
+
+    public function getSubmitedAssignmentDetails()
     {
         $method = $this->input->server('REQUEST_METHOD');
         if ($method != 'POST') {
@@ -6069,52 +6464,309 @@ class Webservice extends CI_Controller
                     $student_id = $params['student_id'];
                     $resp = array();
 
-                    $resp['result'] = $this->course_model->getSubmitedAssignmentDetails($assignment_id);				 	
+                    $resp['result'] = $this->course_model->getSubmitedAssignmentDetails($assignment_id);
 
-					$resp['result']->assignemnt_evaluated_by = $resp['result']->assignemnt_evaluated_by ?: '';
-					$resp['result']->evaluation_date = $resp['result']->evaluation_date ?: '';
-					$resp['result']->document = $resp['result']->document ?: '';					
-					
-					$resp['result_status'] = $this->course_model->get_student_assignment_status($assignment_id,$student_id);						
-					
-					if(!empty($resp['result_status'][0])){
-						
-						if($resp['result_status'][0]['docs'] != ''){ 
-							$resp['result_status'][0]['docs'] = $resp['result_status'][0]['docs']; 
-						}else{
-							$resp['result_status'][0]['docs'] = ''; 
-						}
-					
-						if($resp['result_status'][0]['evaluated_date'] != ''){ 
-							$resp['result_status'][0]['evaluated_date'] = $resp['result_status'][0]['evaluated_date']; 
-						}else{
-							$resp['result_status'][0]['evaluated_date'] = ''; 
-						}
-						
-						if($resp['result_status'][0]['evaluated_note'] != ''){ 
-							$resp['result_status'][0]['evaluated_note'] = $resp['result_status'][0]['evaluated_note']; 
-						}else{
-							$resp['result_status'][0]['evaluated_note'] = ''; 
-						}						
-					 
-						if(!empty($resp['result_status'][0]['evaluated_date'])){
-							$status_lable = 'evaluated';						
-						}elseif(!empty($resp['result_status'][0]['message'])){                    	 						 
-							$status_lable = 'submitted';						
-						}
-					
-					}else{
-							$status_lable = "pending";
-					}
-					
-					$resp['result_status'][0]['status_lable'] = $status_lable;					
-					
-					$resp['result_status'] = $resp['result_status'][0];					
-					
+                    $resp['result']->assignemnt_evaluated_by = $resp['result']->assignemnt_evaluated_by ?: '';
+                    $resp['result']->evaluation_date = $resp['result']->evaluation_date ?: '';
+                    $resp['result']->document = $resp['result']->document ?: '';
+
+                    $resp['result_status'] = $this->course_model->get_student_assignment_status($assignment_id, $student_id);
+
+                    if (!empty($resp['result_status'][0])) {
+
+                        if ($resp['result_status'][0]['docs'] != '') {
+                            $resp['result_status'][0]['docs'] = $resp['result_status'][0]['docs'];
+                        } else {
+                            $resp['result_status'][0]['docs'] = '';
+                        }
+
+                        if ($resp['result_status'][0]['evaluated_date'] != '') {
+                            $resp['result_status'][0]['evaluated_date'] = $resp['result_status'][0]['evaluated_date'];
+                        } else {
+                            $resp['result_status'][0]['evaluated_date'] = '';
+                        }
+
+                        if ($resp['result_status'][0]['evaluated_note'] != '') {
+                            $resp['result_status'][0]['evaluated_note'] = $resp['result_status'][0]['evaluated_note'];
+                        } else {
+                            $resp['result_status'][0]['evaluated_note'] = '';
+                        }
+
+                        if (!empty($resp['result_status'][0]['evaluated_date'])) {
+                            $status_lable = 'evaluated';
+                        } elseif (!empty($resp['result_status'][0]['message'])) {
+                            $status_lable = 'submitted';
+                        }
+
+                    } else {
+                        $status_lable = "pending";
+                    }
+
+                    $resp['result_status'][0]['status_lable'] = $status_lable;
+
+                    $resp['result_status'] = $resp['result_status'][0];
+
                     json_output($response['status'], $resp);
                 }
             }
         }
     }
-	
+
+    public function getTimeLineStatus()
+    {
+        $method = $this->input->server('REQUEST_METHOD');
+
+        if ($method != 'POST') {
+            json_output(400, array('status' => 400, 'message' => 'Bad request.'));
+        } else {
+            $check_auth_client = $this->auth_model->check_auth_client();
+            if ($check_auth_client == true) {
+                $response = $this->auth_model->auth();
+                if ($response['status'] == 200) {
+
+                    $school_setting = $this->setting_model->getSchoolDetail();
+
+                    $data['student_timeline'] = $school_setting->student_timeline;
+
+                    json_output($response['status'], $data);
+
+                }
+            }
+        }
+    }    
+
+    public function coursedownloadcertificatepdf($certificate_id,$student_id,$course_id)
+    {
+        ob_start();
+        error_reporting(0);
+        ini_set('display_errors', 0);
+
+        $this->sch_setting_detail = $this->setting_model->getSetting();
+
+        $get_certificate_date = $this->coursecertificate_model->get($certificate_id);
+        $coursesdata = $this->course_model->coursedetail($course_id);
+
+        $completiondate = $this->course_model->getcoursecompletiondate($course_id,$student_id);
+        $startdate      = $this->course_model->getcoursestartdate($course_id,$student_id);
+
+        $completion_date = isset($completiondate['completion_date']) ? $completiondate['completion_date'] : '';
+        $start_date      = isset($startdate['start_date']) ? $startdate['start_date'] : '';
+
+        $course_title = $coursesdata['title'];
+        $assign_teacher = $coursesdata['name'].' '.$coursesdata['surname'].' ('.$coursesdata['employee_id'].')';
+
+        $get_student_data = $this->student_model->get($student_id);
+
+        $student_name = $this->customlib->getFullName(
+            $get_student_data->firstname,
+            $get_student_data->middlename,
+            $get_student_data->lastname,
+            $this->sch_setting_detail->middlename,
+            $this->sch_setting_detail->lastname
+        )." (".$get_student_data->admission_no.")";
+
+        $class_name   = $get_student_data->class;
+        $section_name = rtrim($get_student_data->section, ", ");
+
+        foreach($get_certificate_date as $certificate_value){
+
+            $variable_data[] = array(
+                "student_name"    => $student_name,
+                "class_name"      => $class_name,
+                "section_name"    => $section_name,
+                "course_name"     => $course_title,
+                "current_date"    => date($this->customlib->getSchoolDateFormat()),
+                "start_date"      => $start_date ? date($this->customlib->getSchoolDateFormat(), strtotime($start_date)) : '',
+                "completion_date"=> $completion_date ? date($this->customlib->getSchoolDateFormat(), strtotime($completion_date)) : '',
+                "assign_teacher"  => $assign_teacher
+            );
+
+            $certificate_text = $this->getCertificateTextContent($variable_data, $certificate_value['certificate_text']);
+
+            $webBase = $this->sch_setting_detail->mobile_api_url."webservice/";
+
+            $show_qr = $webBase."show_qr/$certificate_id/$student_id/$course_id/student";
+
+            $variable_data2[] = array(
+                "student_name"    => $student_name,
+                "class_name"      => $class_name,
+                "section_name"    => $section_name,
+                "course_name"     => $course_title,
+                "current_date"    => date($this->customlib->getSchoolDateFormat()),
+                "start_date"      => $start_date ? date($this->customlib->getSchoolDateFormat(), strtotime($start_date)) : '',
+                "completion_date"=> $completion_date ? date($this->customlib->getSchoolDateFormat(), strtotime($completion_date)) : '',
+                "assign_teacher"  => $assign_teacher,
+                "qr_code"         => "<img height='60' width='60' src='$show_qr'>",
+            );
+
+            $updated_template = str_replace(
+                $certificate_value['certificate_text'],
+                $certificate_text,
+                $certificate_value['certificate_template']
+            );
+
+            $updated_template = $this->getCertificateTextContent($variable_data, $updated_template);
+
+            $basePath = $this->sch_setting_detail->folder_path.'uploads/course_content/online_course_certificate/';
+
+            $data["certificate_templatedat"] =  $this->getCertificateTextContent_for_template($variable_data2,$updated_template);
+
+            $data["certificate_templatedat"] = preg_replace_callback(
+                '/<img([^>]+)src="([^"]+)"/i',
+                function($m) use ($basePath){
+
+                    if (preg_match('/^https?:\/\//',$m[2])) {
+                        return $m[0];
+                    }
+
+                    $src = basename($m[2]);
+                    return '<img'.$m[1].'src="'.$basePath.$src.'"';
+                },
+                $data["certificate_templatedat"]
+            );
+
+        }
+
+        $html = $this->load->view('studentcourse/downloadcertificatepdf', $data, true);
+
+        $this->load->library('m_pdf');
+
+        $mpdf = $this->m_pdf->load([
+            'mode' => 'utf-8',
+            'format' => [195,140.2],
+            'margin_top' => 0,
+            'margin_bottom' => 0,
+            'margin_left' => 0,
+            'margin_right' => 0,
+            'autoScriptToLang' => true,
+            'autoLangToFont' => true,
+        ]);
+
+        $mpdf->WriteHTML($html);
+     
+        $timestamp = time();
+        $filename = 'certificate_'.$student_id.'_'.$course_id.'_'.$timestamp.'.pdf';  
+
+        $temp_folder = FCPATH . 'temp/';
+
+        if (!is_dir($temp_folder)) {
+            mkdir($temp_folder, 0755, true);
+        }
+
+        $temp_file_path = $temp_folder . $filename;
+    
+        $mpdf->Output($temp_file_path, 'F');
+
+        if (ob_get_length()) {
+            ob_end_clean();
+        }
+   
+        $download_url = base_url('webservice/downloadCertificateFile/' . $filename);
+   
+        $response = array(
+            'status' => 200,
+            'message' => 'Certificate generated successfully',
+            'download_url' => $download_url,
+            'filename' => $filename
+        );
+
+        json_output(200, $response);
+    }
+
+    public function downloadCertificateFile($filename)
+    {       
+
+        $temp_folder = FCPATH . 'temp/';
+        $file_path = $temp_folder . $filename;
+    
+        if (!file_exists($file_path)) {
+            json_output(404, array('status' => 404, 'message' => 'Certificate file not found'));
+        }
+    
+        if (!preg_match('/^certificate_\d+_\d+_\d+\.pdf$/', $filename)) {
+            json_output(400, array('status' => 400, 'message' => 'Invalid filename format'));
+        }
+    
+        header('Content-Type: application/pdf');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Content-Length: ' . filesize($file_path));
+        header('Cache-Control: private, max-age=0, must-revalidate');
+        header('Pragma: public');
+        header('Expires: 0');
+    
+        readfile($file_path);
+    
+        if (file_exists($file_path)) {
+            unlink($file_path);
+        }
+
+        exit;
+    }
+
+    public function getCertificateTextContent_for_template($data, $template)
+    {
+        preg_match_all('/\{(.*?)\}/', $template, $matches);
+        foreach ($matches[1] as $key=>$value) {
+            if (isset($key)) {
+                $template = str_replace('{'.$value.'}', $data[0]["$value"], $template);
+            }
+        }
+        return $template;
+    } 
+
+    public function getCertificateTextContent($data, $template)
+    {
+        preg_match_all('/\[(.*?)\]/', $template, $matches);
+        foreach ($matches[1] as $key=>$value) {
+            if (isset($key)) {
+                $template = str_replace("[$value]", $data[0]["$value"], $template);
+            }
+        }
+        return $template;
+    }
+
+    public function show_qr($certificate_id,$student_id,$course_id,$role)
+    {
+        $this->load->library('QR_Code');
+        $url=base_url("webservice/downloadcertificatepdf/$certificate_id/$student_id/$course_id/$role");
+        $this->qr_code->generateQRCodeForCertificateDownload($url);
+    }
+ 
+    public function deleteCertificateFile($filename)
+    {
+        $temp_folder = $this->config->item('upload_path') . '/temp_certificates/';
+        $file_path   = $temp_folder . $filename;
+        
+        if (!preg_match('/^certificate_\d+_\d+_\d+\.pdf$/', $filename)) {
+            json_output(400, array(
+                'status'  => 400,
+                'message' => 'Invalid filename format'
+            ));
+        }
+    
+        if (!file_exists($file_path)) {
+            json_output(404, array(
+                'status'  => 404,
+                'message' => 'Certificate file not found'
+            ));
+        }
+   
+        if (@unlink($file_path)) {
+
+            json_output(200, array(
+                'status'  => 200,
+                'message' => 'Certificate deleted successfully'
+            ));
+
+        } else {
+
+            json_output(500, array(
+                'status'  => 500,
+                'message' => 'Unable to delete certificate file'
+            ));
+        }
+    }
+
+
+
 }

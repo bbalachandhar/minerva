@@ -121,7 +121,8 @@ class Onlineexam_model extends CI_model
         if ($q->num_rows() > 0) {
             $status = 2;
         } else {
-            $this->db->insert_batch('onlineexam_student_results', $data);
+            $this->db->insert_batch('onlineexam_student_results', $data);			
+			 
             $status = 1;
         }
 
@@ -138,7 +139,7 @@ class Onlineexam_model extends CI_model
             return $status;
         }
     }
-
+	
     public function getResultByStudent($onlineexam_student_id, $exam_id)
     {
         $query = "SELECT onlineexam_questions.*,subjects.name as subject_name,subjects.code as subjects_code, onlineexam_student_results.id as `onlineexam_student_result_id`,questions.question,questions.question_type,onlineexam_student_results.marks as `score_marks`,questions.opt_a, questions.opt_b,questions.opt_c,questions.opt_d,questions.opt_e,questions.correct,IFNULL(onlineexam_student_results.select_option, '') as `select_option`,IFNULL(onlineexam_student_results.remark, '') as `remark` FROM `onlineexam_questions` left JOIN onlineexam_student_results on onlineexam_student_results.onlineexam_question_id=onlineexam_questions.id and onlineexam_student_results.onlineexam_student_id=" . $this->db->escape($onlineexam_student_id) . " INNER JOIN questions on questions.id=onlineexam_questions.question_id INNER JOIN subjects on subjects.id=questions.subject_id WHERE onlineexam_questions.onlineexam_id=" . $this->db->escape($exam_id);

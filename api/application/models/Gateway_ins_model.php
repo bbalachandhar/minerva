@@ -39,7 +39,7 @@ class Gateway_ins_model extends CI_Model
     }
 
     public function delete_api_session($id){
-$this->db->where('id', $id);
+		$this->db->where('id', $id);
         $this->db->delete('api_session');
     }
 
@@ -48,6 +48,7 @@ $this->db->where('id', $id);
         $this->db->insert('api_session', $params);
         return $this->db->insert_id();
     }
+	
     public function update_gateway_ins($gateway_ins)
     {
         $this->db->where('id', $gateway_ins['id']);
@@ -85,13 +86,7 @@ $this->db->where('id', $id);
  
     public function fee_processing($bulk_data)
     {
-        foreach ($bulk_data as $fee_key => $fee_data) {
-           
-               // $fee_data['student_transport_fee_id'] = null;
-               // $this->db->where('student_fees_master_id', $fee_data['student_fees_master_id']);
-               // $this->db->where('fee_groups_feetype_id', $fee_data['fee_groups_feetype_id']);
-
-     
+        foreach ($bulk_data as $fee_key => $fee_data) {    
             $desc                      = $fee_data['amount_detail']['description'];
             $fee_data['amount_detail'] = json_encode($fee_data['amount_detail']);
             $this->db->insert('student_fees_processing', $fee_data);
@@ -106,10 +101,7 @@ $this->db->where('id', $id);
            
                 $fee_data['student_transport_fee_id'] = null;
                 $this->db->where('student_fees_master_id', $fee_data['student_fees_master_id']);
-                $this->db->where('fee_groups_feetype_id', $fee_data['fee_groups_feetype_id']);
-           
-
-          
+                $this->db->where('fee_groups_feetype_id', $fee_data['fee_groups_feetype_id']);          
 
             $q = $this->db->get('student_fees_deposite');
             if ($q->num_rows() > 0) {

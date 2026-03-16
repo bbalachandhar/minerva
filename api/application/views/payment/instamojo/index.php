@@ -61,34 +61,83 @@
                                                         <th><?php echo ('Description'); ?></th>
                                                         <th class="text-right"><?php echo ('Amount') ?></th>
                                                     </tr>
-                                                    <tr>
-                                                        <td><?php
-                                                            echo $params['payment_detail']->fee_group_name . "<br/><span>" . $params['payment_detail']->code;
-                                                            ?></td>
-                                                        <td class="text-right"><?php echo amountFormat($params['total']); ?></td>
-                                                    </tr>
-
+                                                    <?php
+                                                    // Unified flow - handle both single and multi payments using student_fees_master_array
+                                                    if (isset($params['student_fees_master_array']) && !empty($params['student_fees_master_array'])) {
+                                                        foreach ($params['student_fees_master_array'] as $fees_key => $fees_value) {
+                                                            ?>
+                                                            <tr>
+                                                                <td>
+                                                                    <span class="title"><?php if (isset($fees_value['is_system']) && $fees_value['is_system']) {
+                                                                        echo $this->lang->line($fees_value['fee_group_name']);
+                                                                    } else {
+                                                                        echo $fees_value['fee_group_name'];
+                                                                    }?> </span>
+                                                                    <span class="product-description">
+                                                                        <?php if (isset($fees_value['is_system']) && $fees_value['is_system']) {
+                                                                            echo $this->lang->line($fees_value['fee_type_code']);
+                                                                        } else {
+                                                                            echo $fees_value['fee_type_code'];
+                                                                        } ?>
+                                                                    </span>
+                                                                </td>
+                                                                <td class="text-right"><?php echo $setting[0]['currency_symbol'] . number_format($fees_value['amount_balance'], 2, '.', ''); ?></td>
+                                                            </tr>
+                                                            <?php if (isset($fees_value['discount_amount']) && $fees_value['discount_amount'] > 0) { ?>
+                                                            <tr class="border_bottom">
+                                                                <td> 
+                                                                    <span class="text-discount" style="color: #17a2b8;"><?php echo ('Discount'); ?></span>
+                                                                </td>
+                                                                <td class="text-right" style="color: #17a2b8;"><?php echo $setting[0]['currency_symbol'] . number_format($fees_value['discount_amount'], 2, '.', ''); ?></td>
+                                                            </tr>
+                                                            <?php } ?>
+                                                            <tr class="border_bottom">
+                                                                <td> 
+                                                                    <span class="text-fine"><?php echo ('Fine'); ?></span>
+                                                                </td>
+                                                                <td class="text-right"><?php echo $setting[0]['currency_symbol'] . number_format($fees_value['fine_balance'], 2, '.', ''); ?></td>
+                                                            </tr>
+                                                            <?php
+                                                        }
+                                                    } else {
+                                                        // Fallback for old structure (should not happen with unified flow)
+                                                        ?>
+                                                        <tr>
+                                                            <td><?php
+                                                                if (isset($params['payment_detail']) && is_object($params['payment_detail'])) {
+                                                                    echo $params['payment_detail']->fee_group_name . "<br/><span>" . $params['payment_detail']->code;
+                                                                }
+                                                                ?></td>
+                                                            <td class="text-right"><?php echo $setting[0]['currency_symbol'] . number_format($params['total'], 2, '.', ''); ?></td>
+                                                        </tr>
+                                                        <?php
+                                                    }
+                                                    ?>
+                                                    
+                                                    <?php if(isset($params['applied_fee_discount']) && $params['applied_fee_discount'] > 0){ ?>
                                                     <tr class="bordertoplightgray">
-                                                        <td bgcolor="#fff"> <?php echo ('Fine'); ?>:</td>
-                                                        <td bgcolor="#fff" class="text-right"> <?php echo amountFormat($params['payment_detail']->fine_amount); ?></td>
+                                                        <td bgcolor="#fff"> <?php echo ('Total Discount'); ?>:</td>
+                                                        <td bgcolor="#fff" class="text-right" style="color: #17a2b8;"><?php echo $setting[0]['currency_symbol'] . number_format($params['applied_fee_discount'], 2, '.', ''); ?></td>
                                                     </tr>
-													<tr class="bordertoplightgray">
-                                                        <td bgcolor="#fff"> <?php echo ('Discount'); ?>:</td>
-                                                        <td bgcolor="#fff" class="text-right"> <?php echo amountFormat(($params['applied_fee_discount'])); ?></td>
+                                                    <?php } ?>
+                                                    <tr class="bordertoplightgray">
+                                                        <td bgcolor="#fff"> <?php echo ('Total Fine'); ?>:</td>
+                                                        <td bgcolor="#fff" class="text-right"> <?php echo $setting[0]['currency_symbol'] . number_format(isset($params['fine_amount_balance']) ? $params['fine_amount_balance'] : 0, 2, '.', ''); ?></td>
                                                     </tr>
-													
-                                                    <?php if($params['gateway_processing_charge']>0){ ?>
+                                                    <?php if(isset($params['gateway_processing_charge']) && $params['gateway_processing_charge'] > 0){ ?>
                                                     <tr class="border_bottom">
-														<td>
-															<span class="text-text-success"><?php echo ('Processing Fees'); ?></span>
-														</td>
-														<td class="text-right"><?php echo amountFormat((float) $params['gateway_processing_charge'], 2, '.', ''); ?></td>
-													</tr>
-													<?php } ?>										
-													
+                                                        <td>
+                                                            <span class="text-text-success"><?php echo ('Processing Fees'); ?></span>
+                                                        </td>
+                                                        <td class="text-right"><?php echo $setting[0]['currency_symbol'] . number_format((float) $params['gateway_processing_charge'], 2, '.', ''); ?></td>
+                                                    </tr>
+                                                    <?php } ?>
                                                     <tr class="bordertoplightgray">
-                                                        <td bgcolor="#fff"> <?php echo ('Total'); ?>:</td>
-                                                        <td bgcolor="#fff" class="text-right"> <?php echo amountFormat(($params['payment_detail']->fine_amount+$params['total']- $params['applied_fee_discount']+$params['gateway_processing_charge'])); ?></td>
+                                                        <td bgcolor="#fff"> <?php echo ('Total Amount'); ?>:</td>
+                                                        <td bgcolor="#fff" class="text-right"> <?php 
+                                                            $total = $params['total'] - (isset($params['applied_fee_discount']) ? $params['applied_fee_discount'] : 0) + (isset($params['fine_amount_balance']) ? $params['fine_amount_balance'] : 0) + (isset($params['gateway_processing_charge']) ? $params['gateway_processing_charge'] : 0);
+                                                            echo $setting[0]['currency_symbol'] . number_format($total, 2, '.', ''); 
+                                                        ?></td>
                                                     </tr>
                                                     <tr class="bordertoplightgray">
                                                         <td bgcolor="#fff"><?php echo ('Phone') ?>:</td>

@@ -22,7 +22,7 @@ class Studentfeemaster_model extends CI_Model
     
     public function get_discount_amount($discount_id_array){
 		
-        // $discount_id_string= implode(",",$discount_id_array);		
+        		
 		foreach ($discount_id_array as $item) {
 			foreach ($item as $value) {
 				$discountIds[] = (int)$value; // Ensure numeric values
@@ -39,7 +39,7 @@ class Studentfeemaster_model extends CI_Model
         return $query->result_array();
     }
     
-    public function getStudentFees($student_session_id)
+    public function getStudentFees_old($student_session_id)
     {
         $sql    = "SELECT `student_fees_master`.*,fee_groups.name FROM `student_fees_master` INNER JOIN fee_session_groups on student_fees_master.fee_session_group_id=fee_session_groups.id INNER JOIN fee_groups on fee_groups.id=fee_session_groups.fee_groups_id  WHERE `student_session_id` = " . $student_session_id . " ORDER BY `student_fees_master`.`id`";
         $query  = $this->db->query($sql);
@@ -50,7 +50,7 @@ class Studentfeemaster_model extends CI_Model
                 $fee_session_group_id   = $result_value->fee_session_group_id;
                 $student_fees_master_id = $result_value->id;
                 $result_value->fees     = $this->getDueFeeByFeeSessionGroup($fee_session_group_id, $student_fees_master_id);
-
+              
                 if ($result_value->is_system != 0) {
                     $result_value->fees[0]->amount = $result_value->amount;
                 }
@@ -62,7 +62,28 @@ class Studentfeemaster_model extends CI_Model
         }
 
         return $result;
-    }     
+    } 
+    
+    public function getStudentFees($student_session_id)
+    {
+        $sql    = "SELECT `student_fees_master`.*,fee_groups.name FROM `student_fees_master` INNER JOIN fee_session_groups on student_fees_master.fee_session_group_id=fee_session_groups.id INNER JOIN fee_groups on fee_groups.id=fee_session_groups.fee_groups_id  WHERE `student_session_id` = " . $student_session_id . " ORDER BY `student_fees_master`.`id`";
+        $query  = $this->db->query($sql);
+        $result = $query->result();
+        if (!empty($result)) {
+            foreach ($result as $result_key => $result_value) {
+
+                $fee_session_group_id   = $result_value->fee_session_group_id;
+                $student_fees_master_id = $result_value->id;
+                $result_value->fees     = $this->getDueFeeByFeeSessionGroup($fee_session_group_id, $student_fees_master_id);
+
+                if ($result_value->is_system != 0) {
+                    $result_value->fees[0]->amount = $result_value->amount;
+                }
+            }
+        }
+
+        return $result;
+    }
 	
 	public function getStudentTransportFees($student_session_id, $route_pickup_point_id)
     {
@@ -142,7 +163,7 @@ class Studentfeemaster_model extends CI_Model
                 $this->db->update('student_fees_deposite', $fee_data);               
 
                 if(!empty($fee_discounts)){
-                    $fee_discounts=$fee_discounts[0];
+                    $fee_discounts=$fee_discounts;
                     $discount_array_bulk=[];
                     foreach ($fee_discounts as $fee_discount_key => $fee_discount_value) {
                         $discount_array_bulk[]=array('student_fees_deposite_id'=>$row->id,'student_fees_discount_id'=>$fee_discount_value,'date'=>$date,'invoice_id' => $row->id, 'sub_invoice_id' => $inv_no);
@@ -170,10 +191,12 @@ class Studentfeemaster_model extends CI_Model
                 $inserted_id = $this->db->insert_id();
                 if (!empty($fee_discounts)) {
                     $discount_array_bulk=[];
-                    $fee_discounts=$fee_discounts[0];
+                    $fee_discounts=$fee_discounts;
+                   
                     foreach ($fee_discounts as $fee_discount_key => $fee_discount_value) {
                         $discount_array_bulk[]=array('student_fees_deposite_id'=>$inserted_id,'student_fees_discount_id'=>$fee_discount_value,'date'=>$date,'invoice_id' => $inserted_id, 'sub_invoice_id' => 1);
                     }
+                   
                     $this->db->insert_batch('student_applied_discounts', $discount_array_bulk);
                 }
 

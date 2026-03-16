@@ -18,7 +18,7 @@ class Student_model extends CI_Model
         $this->current_date    = $this->setting_model->getDateYmd();
     }
 
-  public function getStudentByClassSectionID($class_id = null, $section_id = null, $id = null, $session_id=null)
+	public function getStudentByClassSectionID($class_id = null, $section_id = null, $id = null, $session_id=null)
     {
         if($session_id != ""){
            $session_id= $session_id;
@@ -94,18 +94,21 @@ class Student_model extends CI_Model
         $this->db->join('vehicles', 'vehicles.id = vehicle_routes.vehicle_id', 'left');
         $this->db->join('school_houses', 'school_houses.id = students.school_house_id', 'left');
         $this->db->join('users', 'users.user_id = students.id', 'left');
-         $this->db->join('currencies', 'currencies.id=users.currency_id', 'left');
+        $this->db->join('currencies', 'currencies.id=users.currency_id', 'left');
         $this->db->join('categories', 'categories.id = students.category_id', 'left');
-        $this->db->join('sessions', 'sessions.id = student_session.session_id', 'left');
-        
+        $this->db->join('sessions', 'sessions.id = student_session.session_id', 'left');        
         $this->db->where('student_session.session_id', $this->current_session);
-        $this->db->where('users.role', 'student');
+        $this->db->where('users.role', 'student');		
+		$this->db->where('student_session.default_login', 1);
+		
         if ($id != null) {
             $this->db->where('students.id', $id);
         } else {
             $this->db->where('students.is_active', 'yes');
             $this->db->order_by('students.id', 'desc');
         }
+		
+		
         $query = $this->db->get();
         if ($id != null) {
             return $query->row_object();

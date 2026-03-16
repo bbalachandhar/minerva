@@ -15,9 +15,9 @@ require_once(APPPATH.'third_party/PHPMailer/src/SMTP.php');
 
 class Mailer {
 
-    public $CI;
     public $mail_config;
     private $sch_setting;
+    private $CI;
 
     public function __construct() {     
 
@@ -31,51 +31,64 @@ class Mailer {
 
         $this->sch_setting = $this->CI->setting_model->get();
     }
+	
+	public function send_mail($toemail, $subject, $body)
+	{
+		$mail          = new PHPMailer();
+		$mail->CharSet = 'UTF-8';
 
-    public function send_mail($toemail, $subject, $body) {
+		$school_name  = $this->sch_setting[0]['name'];
+		$school_email = $this->sch_setting[0]['email'];
 
-        $mail = new PHPMailer();
+		/* ================= AWS SES ================= */
+		if ($this->CI->mail_config->email_type == "aws_ses") {
 
-        $school_name = $this->sch_setting[0]['name'];
+			$this->CI->load->library("aws_mail");
 
-        if ($this->CI->mail_config->email_type == "smtp") {
+			$mail->setFrom($this->CI->mail_config->smtp_username, $school_name);
+			$mail->addAddress($toemail);
+			$mail->Subject = $subject;
+			$mail->Body    = $body;
+			$mail->AltBody = strip_tags($body);			
 
-            $mail->IsSMTP();
+			if (!$mail->preSend()) {
+				return false;
+			}
 
-            $mail->SMTPAuth = true;
+			$message = $mail->getSentMIMEMessage();
+			$status  = $this->CI->aws_mail->sendRawMail($message);
 
-            $mail->SMTPSecure = $this->CI->mail_config->ssl_tls;
+			return $status['status'] ? true : false;
+		}
 
-            $mail->Host = $this->CI->mail_config->smtp_server;
+		/* ================= SMTP ================= */
+		if ($this->CI->mail_config->email_type == "smtp") {
 
-            $mail->Port = $this->CI->mail_config->smtp_port;
+			$mail->isSMTP();
+			$mail->SMTPAuth   = true;
+			$mail->SMTPSecure = $this->CI->mail_config->ssl_tls;
+			$mail->Host       = $this->CI->mail_config->smtp_server;
+			$mail->Port       = $this->CI->mail_config->smtp_port;
+			$mail->Username   = $this->CI->mail_config->smtp_username;
+			$mail->Password   = $this->CI->mail_config->smtp_password;
 
-            $mail->Username = $this->CI->mail_config->smtp_username;
+			$mail->setFrom($this->CI->mail_config->smtp_username, $school_name);
+			$mail->addReplyTo($this->CI->mail_config->smtp_username, $school_name);
 
-            $mail->Password = $this->CI->mail_config->smtp_password;
+		} else {
+			// PHP mail()
+			$mail->setFrom($school_email, $school_name);
+		}
 
-            $mail->SetFrom($this->CI->mail_config->smtp_username, $school_name);
+		/* ================= COMMON ================= */
+		$mail->isHTML(true);
+		$mail->Subject = $subject;
+		$mail->Body    = $body;
+		$mail->AltBody = strip_tags($body);
+		$mail->addAddress($toemail);		
 
-            $mail->AddReplyTo($this->CI->mail_config->smtp_username, $this->CI->mail_config->smtp_username);
-        } else {
-            $mail->isSendmail();
-        }
-        $mail->SetFrom($this->CI->mail_config->smtp_username, $school_name);
-        $mail->Subject = $subject;
+		return $mail->send() ? true : false;
+	}
 
-        $mail->Body = $body;
-
-        $mail->AltBody = $body;
-
-        $mail->AddAddress($toemail);
-
-        if ($mail->Send()) {
-
-            return true;
-        } else {
-
-            return false;
-        }
-    }
 
 } 

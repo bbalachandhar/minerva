@@ -21,6 +21,15 @@ class Timeline_model extends CI_Model
         }
     }
 
+    public function gettimelinebyid($id)
+    {
+        return $this->db->select('student_timeline.*')
+            ->from('student_timeline')
+            ->where('id', $id)
+            ->get()
+            ->row();
+    }
+
     public function deletetimeline($id)
     {
         $this->db->where("id", $id)->delete("student_timeline");

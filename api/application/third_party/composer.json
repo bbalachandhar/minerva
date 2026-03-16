@@ -1,11 +1,11 @@
 {
-    "name": "minerva/beebasoft",
-    "description": "Minerva",
-    "license": "Minerva Beebasoft",
+    "name": "smartschool/qdocs",
+    "description": "Smart School",
+    "license": "Smart School Qdocs",
     "authors": [
         {
-            "name": "minerva",
-            "email": "support@beebasoft.com"
+            "name": "smartschool",
+            "email": "support@qdocs.in"
         }
     ],
     "minimum-stability": "dev",

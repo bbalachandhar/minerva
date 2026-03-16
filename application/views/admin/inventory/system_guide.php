@@ -141,12 +141,7 @@
                 <p>Complete these steps once before going live:</p>
                 <ol>
                     <li>
-                        <strong>Run all DB migrations</strong> (execute in order under <code>db_updates/</code>):
-                        <ul>
-                            <li><code>2026_03_13_align_inventory_sidebar_and_add_new_modules.sql</code> — sidebar entries</li>
-                            <li><code>2026_03_13_add_po_approval_workflow.sql</code> — <code>inv_po_approvals</code> table</li>
-                            <li><code>2026_03_14_add_po_approval_rules_matrix.sql</code> — <code>inv_po_approval_rules</code> table</li>
-                        </ul>
+                        <strong>Confirm system readiness</strong> — ensure all required modules, menus, and workflow tables are already provisioned by your implementation team before user onboarding starts.
                     </li>
                     <li><strong>Create Item Categories</strong> — mark fixed-asset categories (e.g. Laptop, Projector) with <em>Is Asset = Yes</em>.</li>
                     <li><strong>Create Item Masters</strong> — assign each item to a category and unit (Nos, Kg, Box …).</li>
@@ -229,20 +224,51 @@ VALUES
                             <td>Role/staff-based auto-routing should be configured only after staff roles and purchasing governance are finalized.</td>
                             <td>Insert rules into <code>inv_po_approval_rules</code></td>
                         </tr>
+                        <tr class="info">
+                            <td colspan="4"><strong><i class="fa fa-laptop"></i> Steps 8–10 — Onboarding Existing Physical Assets (do after steps 1–7 are stable)</strong></td>
+                        </tr>
+                        <tr>
+                            <td>8</td>
+                            <td><strong>Asset Locations</strong></td>
+                            <td>Labs, departments, rooms, and stores referenced by asset rows and assignment records. Must exist before importing the asset register.</td>
+                            <td>Bulk upload via <code>admin/inventoryimport/assetlocation</code></td>
+                        </tr>
+                        <tr>
+                            <td>9</td>
+                            <td><strong>Asset Register Snapshot</strong></td>
+                            <td>One row per physical unit — asset tag, serial/model/brand, item linkage, purchase cost, warranty dates, current status, and location. This creates the fixed asset ledger.</td>
+                            <td>Bulk upload via <code>admin/inventoryimport/assetregister</code></td>
+                        </tr>
+                        <tr>
+                            <td>10</td>
+                            <td><strong>Asset Assignment Snapshot</strong></td>
+                            <td>For each asset currently in use: who has it now (staff by employee_id or place by location_code) and when it was assigned. This creates the live "who has what" custody state.</td>
+                            <td>Bulk upload via <code>admin/inventoryimport/assetassignment</code></td>
+                        </tr>
                     </tbody>
                 </table>
 
                 <h4>Recommended Execution Plan</h4>
                 <ol>
-                    <li>Prepare source data in Excel and convert each master to CSV using the downloaded sample formats.</li>
-                    <li>Upload categories first, then stores, then suppliers, then items, then opening stock.</li>
-                    <li>Review each master list screen after upload and fix naming mismatches before loading the next dependency.</li>
-                    <li>After masters are stable, configure approval matrix rules and start live procurement transactions.</li>
+                    <li>Prepare source data in Excel. Download the sample CSV from each import page for exact column names.</li>
+                    <li>Upload in order: <strong>Categories → Stores → Suppliers → Items → Opening Stock</strong>.</li>
+                    <li>Review each master list screen after upload. Fix naming mismatches before loading the next dependency.</li>
+                    <li>Configure PO Approval Matrix rules and start live procurement (Indent → PO → GRN).</li>
+                    <li>To onboard existing physical assets: upload <strong>Asset Locations</strong> first (labs, rooms, departments).</li>
+                    <li>Then upload the <strong>Asset Register Snapshot</strong> — one CSV row per physical unit with serial number, brand, warranty, and cost.</li>
+                    <li>Finally upload the <strong>Assignment Snapshot</strong> — records who currently holds each asset. This closes the custody gap immediately.</li>
+                    <li>Open the <strong>Asset Register</strong> screen and use the filter bar to verify license, warranty, and assignment state for each department.</li>
                 </ol>
+
+                <div class="callout callout-warning">
+                    <strong>Asset Import Order is Strict:</strong> Location codes must exist before the asset register import, and asset tags must exist before the assignment import.
+                    Upload in the order 8 → 9 → 10 without skipping steps.
+                </div>
 
                 <div class="callout callout-info">
                     <strong>Operational Rule:</strong> Opening stock import is best used only once at go-live.
-                    After go-live, new receipts should normally come through PO + GRN so procurement, stock, and asset trails stay aligned.
+                    After go-live, new receipts should come through PO + GRN so procurement, stock, and asset trails stay aligned.
+                    For new asset purchases after go-live, use the GRN route — assets are auto-created when the GRN is accepted for an <code>is_asset=1</code> category.
                 </div>
             </div>
         </div>
@@ -566,16 +592,45 @@ VALUES ('IT Dept POs - L1', 3, 0, NULL, 1, 'staff', 12, 1, 1);</pre>
                 </div>
 
                 <h4>11.3 Asset Register (<code>admin/assetmanagement/register</code>)</h4>
-                <p>View all assets with current status, custodian, and purchase value.</p>
+                <p>View all assets with current status, custodian, warranty state, license info, and open maintenance count. Use the 7-way filter bar (status, holder type, location, staff, warranty state, maintenance-open, license state) to drill into any subset.</p>
 
                 <h4>11.4 Asset Assignment (<code>admin/assetmanagement/assignment</code>)</h4>
-                <p>Assign an <code>in_store</code> asset to a staff member or department. Records assignment date and reason.</p>
+                <p>Assign an <code>in_stock</code> asset to a staff member or location. Records assignment date. Sets asset status to <code>assigned</code>.</p>
 
                 <h4>11.5 Asset Transfer (<code>admin/assetmanagement/transfer</code>)</h4>
                 <p>Transfer an <code>assigned</code> asset from current custodian to a new one. Full audit trail maintained.</p>
 
                 <h4>11.6 Asset Maintenance (<code>admin/assetmanagement/maintenance</code>)</h4>
                 <p>Log maintenance events: issue description, date sent, vendor, cost, resolved date. Asset moves to <code>under_maintenance</code> during this period.</p>
+
+                <h4>11.7 Bulk Import Routes (for existing asset onboarding)</h4>
+                <div class="callout callout-warning" style="margin-top:10px;">
+                    Use these three import pages to onboard assets from your existing XLS register. Upload in order — locations first, then assets, then assignments.
+                </div>
+                <table class="table table-bordered table-condensed">
+                    <thead><tr class="active"><th>Step</th><th>Import Page</th><th>Sample CSV Download</th><th>Key Columns</th></tr></thead>
+                    <tbody>
+                        <tr>
+                            <td>1</td>
+                            <td><a href="<?php echo site_url('admin/inventoryimport/assetlocation'); ?>">Asset Locations</a></td>
+                            <td><code>inventory_assetlocation_sample.csv</code></td>
+                            <td><code>location_code</code>, <code>location_name</code>, <code>location_type</code> (lab/room/department/store/other)</td>
+                        </tr>
+                        <tr>
+                            <td>2</td>
+                            <td><a href="<?php echo site_url('admin/inventoryimport/assetregister'); ?>">Asset Register Snapshot</a></td>
+                            <td><code>inventory_assetregister_sample.csv</code></td>
+                            <td><code>asset_tag</code>*, <code>asset_name</code>*, <code>serial_no</code>, <code>brand_name</code>, <code>model_no</code>, <code>purchase_cost</code>, <code>warranty_start</code>, <code>warranty_end</code>, <code>current_status</code>, <code>location_code</code></td>
+                        </tr>
+                        <tr>
+                            <td>3</td>
+                            <td><a href="<?php echo site_url('admin/inventoryimport/assetassignment'); ?>">Asset Assignment Snapshot</a></td>
+                            <td><code>inventory_assetassignment_sample.csv</code></td>
+                            <td><code>asset_tag</code>*, <code>assignee_type</code>* (staff/place), <code>employee_id</code> (for staff), <code>location_code</code> (for place), <code>assigned_on</code>*</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p><small>* = required column</small></p>
             </div>
         </div>
 

@@ -20,47 +20,87 @@ class Homework_model extends CI_Model
         return $query->row();
     }
 
-    public function getStudentHomework($class_id, $section_id, $student_session_id, $student_id, $subject_group_subject_id)
+    public function getStudentHomework($class_id, $section_id, $student_session_id, $student_id, $subject_group_subject_id, $homework_status = '')
     {
         $condition = "";
         if (!empty($subject_group_subject_id)) {
-            $condition = " and homework.subject_group_subject_id = $subject_group_subject_id";
+            $condition .= " AND homework.subject_group_subject_id = " . $this->db->escape($subject_group_subject_id);
         }
 
-        $sql = "SELECT `homework`.*,IFNULL(homework_evaluation.id,0) as homework_evaluation_id,IFNULL(submit_assignment.id,0) as homework_submitted_id,homework_evaluation.note,homework_evaluation.marks as evaluation_marks, `classes`.`class`, `sections`.`section`, `subject_group_subjects`.`subject_id`, `subject_group_subjects`.`id` as `subject_group_subject_id`, `subjects`.`name` as `subject_name`,`subjects`.`code` as `subject_code`, `subject_groups`.`id` as `subject_groups_id`, `subject_groups`.`name`, staff.name as created_by_name, staff.surname as created_by_surname, staff.employee_id as created_by_employee_id FROM `homework`
-        LEFT JOIN homework_evaluation on homework_evaluation.homework_id=homework.id and homework_evaluation.student_session_id=" . $this->db->escape($student_session_id) . "
-        LEFT JOIN submit_assignment on submit_assignment.homework_id=homework.id and submit_assignment.student_id=" . $this->db->escape($student_id) . "
-        JOIN `staff` ON `staff`.`id` = `homework`.`created_by`
-        JOIN `classes` ON `classes`.`id` = `homework`.`class_id`
-        JOIN `sections` ON `sections`.`id` = `homework`.`section_id`
-        JOIN `subject_group_subjects` ON `subject_group_subjects`.`id` = `homework`.`subject_group_subject_id`
-        JOIN `subjects` ON `subjects`.`id` = `subject_group_subjects`.`subject_id`
-        JOIN `subject_groups` ON `subject_group_subjects`.`subject_group_id`=`subject_groups`.`id`
-        WHERE `homework`.`class_id` = " . $this->db->escape($class_id) . " AND `homework`.`section_id` = " . $this->db->escape($section_id) . " AND `homework`.`session_id` = " . $this->current_session . $condition . "  order by homework.homework_date desc";
-
-        $query  = $this->db->query($sql);
-        $result = $query->result_array();
-
-        foreach ($result as $key => $value) {
-            $result[$key]['status'] = 'pending';
-            $checkstatus            = $this->homework_model->checkstatus($value['id'], $student_id);
-            if ($checkstatus['record_count'] != 0) {
-                $result[$key]['status'] = 'submitted';
-            }
-            if ($value['homework_evaluation_id'] != 0) {
-                $result[$key]['status'] = 'evaluated';
-            }
+        if (!empty($homework_status)) {
+            $condition .= " AND (
+				CASE
+					WHEN homework_evaluation.id IS NOT NULL THEN 'evaluated'
+					WHEN submit_assignment.id IS NOT NULL THEN 'submitted'
+					ELSE 'pending'
+				END
+			) = " . $this->db->escape($homework_status);
         }
 
-        return $result;
+        $sql = "
+			SELECT 
+				homework.*,
+				homework_evaluation.note,
+				homework_evaluation.marks AS evaluation_marks,
+				homework_evaluation.created_at AS evaluation_date,
+				staff.name AS evaluated_by_name,
+				staff.surname AS evaluated_by_surname,
+				staff.employee_id AS evaluated_by_employee_id,
+				classes.class,
+				sections.section,
+				subjects.name AS subject_name,
+				subjects.code AS subject_code,
+				submit_assignment.docs AS submitted_file,
 
+				CASE 
+					WHEN homework_evaluation.id IS NOT NULL THEN 'evaluated'
+					WHEN submit_assignment.id IS NOT NULL THEN 'submitted'
+					ELSE 'pending'
+				END AS status
+
+			FROM homework
+
+			LEFT JOIN homework_evaluation 
+				ON homework_evaluation.homework_id = homework.id 
+				AND homework_evaluation.student_session_id = " . $this->db->escape($student_session_id) . "
+
+			LEFT JOIN submit_assignment 
+				ON submit_assignment.homework_id = homework.id 
+				AND submit_assignment.student_id = " . $this->db->escape($student_id) . "
+
+			JOIN staff ON staff.id = homework.created_by
+			JOIN classes ON classes.id = homework.class_id
+			JOIN sections ON sections.id = homework.section_id
+			JOIN subject_group_subjects ON subject_group_subjects.id = homework.subject_group_subject_id
+			JOIN subjects ON subjects.id = subject_group_subjects.subject_id
+
+			WHERE homework.class_id = " . $this->db->escape($class_id) . "
+			AND homework.section_id = " . $this->db->escape($section_id) . "
+			AND homework.session_id = " . $this->current_session . "
+			$condition
+
+			ORDER BY homework.homework_date DESC
+			";
+
+        return $this->db->query($sql)->result_array();
     }
 
-    public function checkstatus($homework_id, $student_id)
+	public function getHomeworkById($id = null)
     {
-        return $this->db->select('count(submit_assignment.id) as record_count')->from('submit_assignment')
-            ->where('submit_assignment.homework_id', $homework_id)->where('submit_assignment.student_id', $student_id)->get()->row_array();
+        $query = $this->db->select("homework.*,classes.class,sections.section,subjects.name,subjects.code,subject_groups.name as subject_group, staff.id as created_staff_id, staff.employee_id as created_employee_id, staff.name as created_staff_name, staff.surname as created_staff_surname, staff_roles.role_id as created_staff_roleid,submit_assignment.message as student_message")
+            ->join("classes", "classes.id = homework.class_id")
+            ->join("sections", "sections.id = homework.section_id")
+            ->join('subject_group_subjects', 'homework.subject_group_subject_id=subject_group_subjects.id')
+            ->join("subjects", "subjects.id = subject_group_subjects.subject_id", "left")
+            ->join('subject_groups', 'subject_group_subjects.subject_group_id=subject_groups.id')
+            ->join('staff', 'staff.id=homework.created_by')
+            ->join('staff_roles', 'staff_roles.staff_id=staff.id')        
+            ->join('submit_assignment', 'submit_assignment.homework_id = homework.id AND submit_assignment.homework_id = '.$this->db->escape($id), 'left')
+            ->where("homework.id", $id)
+            ->get("homework");
+        return $query->row_array();
     }
+ 
 
     public function add($data)
     {
@@ -85,7 +125,7 @@ class Homework_model extends CI_Model
             ->join('subjects', 'subjects.id=subject_group_subjects.subject_id')
             ->where('daily_assignment.student_session_id', $student_session_id)
             ->or_where('student_session.student_id', $student_id)
-            ->order_by('daily_assignment.id','desc')
+            ->order_by('daily_assignment.id', 'desc')
             ->get()
             ->result_array();
     }
@@ -101,6 +141,15 @@ class Homework_model extends CI_Model
         }
 
         return $insert_id;
+    }
+
+    public function getdailyassignmentbyid($id)
+    {
+        return $this->db->select('daily_assignment.*')
+            ->from('daily_assignment')
+            ->where('id', $id)
+            ->get()
+            ->row();
     }
 
     public function deletedailyassignment($id)

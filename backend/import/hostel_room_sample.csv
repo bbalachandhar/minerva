@@ -1,0 +1,3 @@
+hostel_id,room_type_id,room_no,no_of_bed,cost_per_bed,description
+1,1,A-101,4,2500,Ground floor room near warden office
+1,2,B-204,2,3200,AC room with attached washroom

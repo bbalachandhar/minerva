@@ -113,12 +113,12 @@ class User_model extends CI_Model
         }
     }
 
-      public function user_information($users_id) {
+    public function user_information($users_id) {
         $this->db->select('users.*,languages.language,students.firstname, students.middlename,students.image,students.lastname,students.guardian_name,students.gender,students.admission_no,students.email,IFNULL(currencies.short_name,0) as currency_name,IFNULL(currencies.symbol,0) as symbol,IFNULL(currencies.base_price,0) as base_price,IFNULL(currencies.id,0) as `currency`');
         $this->db->from('users');
         $this->db->join('students', 'students.id = users.user_id');
         $this->db->join('languages', 'languages.id = users.lang_id', 'left');
-          $this->db->join('currencies', 'currencies.id=users.currency_id', 'left');
+        $this->db->join('currencies', 'currencies.id=users.currency_id', 'left');
         $this->db->where('students.is_active', 'yes');
         $this->db->where('users.id', $users_id);
         $this->db->limit(1);
@@ -484,17 +484,7 @@ class User_model extends CI_Model
     }
     
     
-    public function checkStudentStatus($id, $user_type) {
-        // $this->db->select('students.is_active,students.id,students.parent_id');
-        // $this->db->from('students'); 
-        // $this->db->where('students.id', $id);
-        // $this->db->limit(1);
-        // $query = $this->db->get(); 
-    
-        // $query1 =  $query->row();
-        
-        
-        // if ($query1->is_active != 'no') {
+    public function checkStudentStatus($id, $user_type) {        
            
             if($user_type == 'student'){
                 $status = $this->getUserLoginDetails($id);
@@ -504,12 +494,9 @@ class User_model extends CI_Model
                 $status = $this->getParentLoginDetails($id);
                 
                 return $status['is_active'];
-            }
-            
+            }          
              
-        // } else {
-            // return $query1->is_active;
-        // }
+        
     }
 
 }

@@ -38,6 +38,21 @@ class Inventoryimport extends Admin_Controller
         $this->renderImportPage('itemstock');
     }
 
+    public function assetlocation()
+    {
+        $this->renderImportPage('assetlocation');
+    }
+
+    public function assetregister()
+    {
+        $this->renderImportPage('assetregister');
+    }
+
+    public function assetassignment()
+    {
+        $this->renderImportPage('assetassignment');
+    }
+
     public function import($module = null)
     {
         $config = $this->getModuleConfig($module);
@@ -178,6 +193,12 @@ class Inventoryimport extends Admin_Controller
                 return $this->importItems($rows);
             case 'itemstock':
                 return $this->importItemStocks($rows);
+            case 'assetlocation':
+                return $this->importAssetLocations($rows);
+            case 'assetregister':
+                return $this->importAssetRegister($rows);
+            case 'assetassignment':
+                return $this->importAssetAssignments($rows);
             default:
                 return array('imported' => 0, 'updated' => 0, 'skipped' => 0, 'errors' => array('Unsupported import module.'));
         }
@@ -437,6 +458,249 @@ class Inventoryimport extends Admin_Controller
         return $summary;
     }
 
+    private function importAssetLocations($rows)
+    {
+        $summary = $this->newSummary();
+        $validTypes = array('room', 'lab', 'department', 'office', 'store', 'corridor', 'other');
+
+        foreach ($rows as $index => $row) {
+            $code = $this->getCsvValue($row, array('location_code', 'code'));
+            $name = $this->getCsvValue($row, array('location_name', 'name'));
+            $type = strtolower($this->getCsvValue($row, array('location_type', 'type')));
+            $notes = $this->getCsvValue($row, array('notes', 'description'));
+
+            if ($code === '' || $name === '') {
+                $summary['errors'][] = 'Row ' . ($index + 2) . ': location_code and location_name are required.';
+                continue;
+            }
+
+            if ($type !== '' && !in_array($type, $validTypes)) {
+                $summary['errors'][] = 'Row ' . ($index + 2) . ': location_type must be one of: ' . implode(', ', $validTypes) . '.';
+                continue;
+            }
+
+            $data = array(
+                'location_code' => strtoupper($code),
+                'location_name' => $name,
+                'location_type' => $type !== '' ? $type : 'room',
+                'notes' => $notes,
+                'is_active' => 1,
+            );
+
+            $existing = $this->db->query('SELECT id FROM inv_asset_locations WHERE LOWER(location_code) = ?', array(strtolower($code)))->row_array();
+            if (!empty($existing)) {
+                $this->db->where('id', $existing['id'])->update('inv_asset_locations', $data);
+                $summary['updated']++;
+            } else {
+                $this->db->insert('inv_asset_locations', $data);
+                $summary['imported']++;
+            }
+        }
+
+        return $summary;
+    }
+
+    private function importAssetRegister($rows)
+    {
+        $summary = $this->newSummary();
+        $validStatuses = array('in_stock', 'assigned', 'under_maintenance', 'disposed', 'lost');
+
+        foreach ($rows as $index => $row) {
+            $assetTag = $this->getCsvValue($row, array('asset_tag'));
+            $assetName = $this->getCsvValue($row, array('asset_name', 'name'));
+
+            if ($assetTag === '' || $assetName === '') {
+                $summary['errors'][] = 'Row ' . ($index + 2) . ': asset_tag and asset_name are required.';
+                continue;
+            }
+
+            $itemId = null;
+            $itemName = $this->getCsvValue($row, array('item_name', 'item'));
+            $categoryName = $this->getCsvValue($row, array('item_category', 'category_name'));
+            if ($itemName !== '' && $categoryName !== '') {
+                $category = $this->findCategoryByName($categoryName);
+                if (!empty($category)) {
+                    $item = $this->findItemByNameAndCategory($itemName, $category['id']);
+                    if (!empty($item)) {
+                        $itemId = $item['id'];
+                    }
+                }
+            }
+
+            $supplierId = null;
+            $supplierName = $this->getCsvValue($row, array('supplier_name', 'supplier'));
+            if ($supplierName !== '') {
+                $supplier = $this->findSupplierByName($supplierName);
+                if (!empty($supplier)) {
+                    $supplierId = $supplier['id'];
+                } else {
+                    $summary['errors'][] = 'Row ' . ($index + 2) . ': supplier not found - ' . $supplierName . '.';
+                    continue;
+                }
+            }
+
+            $locationId = null;
+            $locationCode = $this->getCsvValue($row, array('location_code', 'location'));
+            if ($locationCode !== '') {
+                $location = $this->findLocationByCode($locationCode);
+                if (!empty($location)) {
+                    $locationId = $location['id'];
+                } else {
+                    $summary['errors'][] = 'Row ' . ($index + 2) . ': location not found - ' . $locationCode . '.';
+                    continue;
+                }
+            }
+
+            $status = $this->getCsvValue($row, array('current_status', 'status'));
+            if ($status !== '' && !in_array(strtolower($status), $validStatuses)) {
+                $summary['errors'][] = 'Row ' . ($index + 2) . ': current_status must be one of: ' . implode(', ', $validStatuses) . '.';
+                continue;
+            }
+
+            $purchaseCost = $this->getCsvValue($row, array('purchase_cost', 'cost'));
+            if ($purchaseCost !== '' && !is_numeric($purchaseCost)) {
+                $summary['errors'][] = 'Row ' . ($index + 2) . ': purchase_cost must be numeric.';
+                continue;
+            }
+
+            $data = array(
+                'asset_tag'      => $assetTag,
+                'asset_name'     => $assetName,
+                'serial_no'      => $this->getCsvValue($row, array('serial_no', 'serial', 'serial_number')),
+                'model_no'       => $this->getCsvValue($row, array('model_no', 'model', 'model_number')),
+                'brand_name'     => $this->getCsvValue($row, array('brand_name', 'brand')),
+                'purchase_cost'  => $purchaseCost !== '' ? (float) $purchaseCost : 0.00,
+                'current_status' => $status !== '' ? strtolower($status) : 'in_stock',
+                'remarks'        => $this->getCsvValue($row, array('remarks', 'notes')),
+            );
+
+            if ($itemId !== null)     { $data['item_id']             = $itemId; }
+            if ($supplierId !== null) { $data['supplier_id']         = $supplierId; }
+            if ($locationId !== null) { $data['current_location_id'] = $locationId; }
+
+            foreach (array(
+                'purchase_date'      => array('purchase_date'),
+                'capitalization_date' => array('capitalization_date', 'cap_date'),
+                'warranty_start'     => array('warranty_start'),
+                'warranty_end'       => array('warranty_end'),
+            ) as $field => $keys) {
+                $raw = $this->getCsvValue($row, $keys);
+                if ($raw !== '') {
+                    $d = $this->normalizeDate($raw);
+                    if ($d !== null) { $data[$field] = $d; }
+                }
+            }
+
+            $existing = $this->db->query('SELECT id FROM inv_assets WHERE LOWER(asset_tag) = ?', array(strtolower($assetTag)))->row_array();
+            if (!empty($existing)) {
+                $this->db->where('id', $existing['id'])->update('inv_assets', $data);
+                $summary['updated']++;
+            } else {
+                $this->db->insert('inv_assets', $data);
+                $summary['imported']++;
+            }
+        }
+
+        return $summary;
+    }
+
+    private function importAssetAssignments($rows)
+    {
+        $summary = $this->newSummary();
+
+        foreach ($rows as $index => $row) {
+            $assetTag     = $this->getCsvValue($row, array('asset_tag'));
+            $assigneeType = strtolower($this->getCsvValue($row, array('assignee_type', 'holder_type')));
+            $assignedOn   = $this->getCsvValue($row, array('assigned_on', 'assigned_date'));
+
+            if ($assetTag === '' || $assigneeType === '' || $assignedOn === '') {
+                $summary['errors'][] = 'Row ' . ($index + 2) . ': asset_tag, assignee_type, and assigned_on are required.';
+                continue;
+            }
+
+            if (!in_array($assigneeType, array('staff', 'place'))) {
+                $summary['errors'][] = 'Row ' . ($index + 2) . ': assignee_type must be staff or place.';
+                continue;
+            }
+
+            $normalizedDate = $this->normalizeDate($assignedOn);
+            if ($normalizedDate === null) {
+                $summary['errors'][] = 'Row ' . ($index + 2) . ': assigned_on must be a valid date (YYYY-MM-DD).';
+                continue;
+            }
+
+            $asset = $this->db->query('SELECT id FROM inv_assets WHERE LOWER(asset_tag) = ?', array(strtolower($assetTag)))->row_array();
+            if (empty($asset)) {
+                $summary['errors'][] = 'Row ' . ($index + 2) . ': asset not found with tag - ' . $assetTag . '.';
+                continue;
+            }
+
+            $assigneeId = null;
+            $staffId    = null;
+            $locationId = null;
+
+            if ($assigneeType === 'staff') {
+                $employeeId = $this->getCsvValue($row, array('employee_id', 'staff_id'));
+                if ($employeeId === '') {
+                    $summary['errors'][] = 'Row ' . ($index + 2) . ': employee_id is required for assignee_type=staff.';
+                    continue;
+                }
+                $staffRow = $this->db->query('SELECT id FROM staff WHERE LOWER(employee_id) = ? AND is_active = 1 LIMIT 1', array(strtolower($employeeId)))->row_array();
+                if (empty($staffRow)) {
+                    $summary['errors'][] = 'Row ' . ($index + 2) . ': active staff not found with employee_id - ' . $employeeId . '.';
+                    continue;
+                }
+                $assigneeId = $staffRow['id'];
+                $staffId    = $staffRow['id'];
+            } else {
+                $locationCode = $this->getCsvValue($row, array('location_code', 'place_code'));
+                if ($locationCode === '') {
+                    $summary['errors'][] = 'Row ' . ($index + 2) . ': location_code is required for assignee_type=place.';
+                    continue;
+                }
+                $locRow = $this->findLocationByCode($locationCode);
+                if (empty($locRow)) {
+                    $summary['errors'][] = 'Row ' . ($index + 2) . ': location not found with code - ' . $locationCode . '.';
+                    continue;
+                }
+                $assigneeId = $locRow['id'];
+                $locationId = $locRow['id'];
+            }
+
+            // Close any existing open assignment for this asset before creating the new one
+            $this->db->where('asset_id', $asset['id'])
+                     ->where('status', 'assigned')
+                     ->where('returned_on IS NULL', null, false)
+                     ->update('inv_asset_assignments', array(
+                         'returned_on' => $normalizedDate,
+                         'return_note' => 'Superseded by bulk assignment import on ' . date('Y-m-d'),
+                         'status'      => 'returned',
+                     ));
+
+            $this->db->insert('inv_asset_assignments', array(
+                'asset_id'      => $asset['id'],
+                'assignee_type' => $assigneeType,
+                'assignee_id'   => $assigneeId,
+                'assigned_on'   => $normalizedDate,
+                'status'        => 'assigned',
+            ));
+
+            $assetUpdate = array(
+                'current_status'      => 'assigned',
+                'assigned_to_type'    => $assigneeType,
+                'assigned_to_staff_id' => $staffId,
+            );
+            if ($locationId !== null) {
+                $assetUpdate['current_location_id'] = $locationId;
+            }
+            $this->db->where('id', $asset['id'])->update('inv_assets', $assetUpdate);
+
+            $summary['imported']++;
+        }
+
+        return $summary;
+    }
+
     private function buildSummaryMessage($summary)
     {
         $message = '<div class="alert ' . (empty($summary['errors']) ? 'alert-success' : 'alert-warning') . ' text-left">';
@@ -535,6 +799,11 @@ class Inventoryimport extends Admin_Controller
         return $this->db->query('SELECT * FROM item WHERE LOWER(name) = ? AND item_category_id = ? LIMIT 1', array(strtolower($name), $categoryId))->row_array();
     }
 
+    private function findLocationByCode($code)
+    {
+        return $this->db->query('SELECT * FROM inv_asset_locations WHERE LOWER(location_code) = ? AND is_active = 1 LIMIT 1', array(strtolower($code)))->row_array();
+    }
+
     private function getOnboardingSteps()
     {
         return array(
@@ -544,6 +813,9 @@ class Inventoryimport extends Admin_Controller
             '4. Upload Items only after categories exist, because each item must map to one valid category.',
             '5. Upload Opening Stock last. Opening stock rows depend on existing items, suppliers, and optionally store names/codes.',
             '6. After masters are ready, move to Indents, Purchase Orders, Approval Matrix Rules, and GRNs for live procurement operations.',
+            '7. To onboard existing physical assets: upload Asset Locations (labs, rooms, departments) first so location codes are ready.',
+            '8. Then upload the Asset Register Snapshot — one CSV row per physical unit with serial number, brand, warranty, and cost.',
+            '9. Finally, upload the Assignment Snapshot to record who currently has each asset. This creates the live "who has what now" state.',
         );
     }
 
@@ -633,6 +905,68 @@ class Inventoryimport extends Admin_Controller
                     'Recommended date format is YYYY-MM-DD. symbol can be + or -. If blank, + is assumed.',
                     'This import appends stock ledger entries. It does not update prior stock rows.',
                 ),
+            ),
+        );
+
+        $configs['assetlocation'] = array(
+            'module'       => 'assetlocation',
+            'module_label' => 'Asset Locations',
+            'title'        => 'Bulk Upload Asset Locations',
+            'privilege'    => 'inv_assets',
+            'sub_menu'     => 'Assetmanagement/register',
+            'back_url'     => 'admin/assetmanagement/register',
+            'page_url'     => 'admin/inventoryimport/assetlocation',
+            'sample_file'  => './backend/import/inventory_assetlocation_sample.csv',
+            'headers'      => array('location_code', 'location_name', 'location_type', 'notes'),
+            'sample_row'   => array('CSE-LAB-1', 'CSE Lab 1', 'lab', 'CSE Dept ground floor computer lab'),
+            'instructions' => array(
+                'location_code and location_name are required. Codes must be unique across the institution.',
+                'location_type can be: room, lab, department, office, store, corridor, or other. Defaults to room if blank.',
+                'Re-uploading the same location_code updates the existing record instead of creating a duplicate.',
+                'Upload locations before the Asset Register, as asset rows reference location codes.',
+            ),
+        );
+
+        $configs['assetregister'] = array(
+            'module'       => 'assetregister',
+            'module_label' => 'Asset Register',
+            'title'        => 'Bulk Upload Asset Register Snapshot',
+            'privilege'    => 'inv_assets',
+            'sub_menu'     => 'Assetmanagement/register',
+            'back_url'     => 'admin/assetmanagement/register',
+            'page_url'     => 'admin/inventoryimport/assetregister',
+            'sample_file'  => './backend/import/inventory_assetregister_sample.csv',
+            'headers'      => array('asset_tag', 'asset_name', 'item_name', 'item_category', 'serial_no', 'model_no', 'brand_name', 'supplier_name', 'purchase_date', 'purchase_cost', 'capitalization_date', 'warranty_start', 'warranty_end', 'current_status', 'location_code', 'remarks'),
+            'sample_row'   => array('MECE-PC-0001', 'Dell OptiPlex 3080', 'Desktop Computer', 'IT Equipment', 'SN3080001', 'OptiPlex 3080', 'Dell', 'ABC Traders', '2022-04-01', '38000', '2022-04-01', '2022-04-01', '2025-04-01', 'in_stock', 'CSE-LAB-1', 'CSE PC Lab Row A'),
+            'instructions' => array(
+                'asset_tag and asset_name are required. Each asset_tag must be globally unique (e.g. MECE-PC-0001).',
+                'item_name and item_category are optional but strongly recommended for linking assets to the item master.',
+                'current_status values: in_stock (default), assigned, under_maintenance, disposed, lost.',
+                'location_code must match an existing Asset Location. Upload Asset Locations first.',
+                'supplier_name must match an existing Supplier record. Leave blank if unknown.',
+                'All dates must be YYYY-MM-DD. warranty_end drives expiry alerts in the Asset Register.',
+                'Re-uploading the same asset_tag updates the existing asset without duplication.',
+            ),
+        );
+
+        $configs['assetassignment'] = array(
+            'module'       => 'assetassignment',
+            'module_label' => 'Asset Assignments',
+            'title'        => 'Bulk Upload Current Asset Assignments',
+            'privilege'    => 'inv_assets',
+            'sub_menu'     => 'Assetmanagement/register',
+            'back_url'     => 'admin/assetmanagement/register',
+            'page_url'     => 'admin/inventoryimport/assetassignment',
+            'sample_file'  => './backend/import/inventory_assetassignment_sample.csv',
+            'headers'      => array('asset_tag', 'assignee_type', 'employee_id', 'location_code', 'assigned_on'),
+            'sample_row'   => array('MECE-PC-0001', 'staff', 'EMP001', '', '2022-04-15'),
+            'instructions' => array(
+                'asset_tag, assignee_type (staff or place), and assigned_on (YYYY-MM-DD) are required.',
+                'For assignee_type=staff: employee_id is required and must match an active staff record.',
+                'For assignee_type=place: location_code is required and must match an existing Asset Location.',
+                'Each row automatically closes any existing open assignment for that asset before inserting the new one.',
+                'Upload the Asset Register first — this import only works on assets that already exist.',
+                'This creates the live "who has what now" state visible in the Asset Register screen.',
             ),
         );
 

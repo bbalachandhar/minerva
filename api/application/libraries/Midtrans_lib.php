@@ -17,7 +17,7 @@ class Midtrans_lib {
         \Midtrans\Config::$serverKey = $server_key;
 
         // Uncomment for production environment
-         \Midtrans\Config::$isProduction = false;
+         \Midtrans\Config::$isProduction = true;
 
         \Midtrans\Config::$isSanitized = true;
         \Midtrans\Config::$is3ds = true;

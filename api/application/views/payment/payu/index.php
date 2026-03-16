@@ -48,33 +48,96 @@
                         <div class="paybox_bg">
                             <h3 class="bt_title"><img src="<?php echo base_url();?>/backend/images/paym.png" style="margin-bottom: 10px;"><br />PayU Payment Gateway</h3>
                             <div class="paybody">
-                                <?php if ($formError) { ?>
-
+                                <?php if (isset($formError) && $formError) { ?>
                                     <span style="color:red">Please fill all mandatory fields.</span>
                                     <br/>
                                     <br/>
                                 <?php } ?>
+                                
+                                <!-- Fees Details Table (like Razorpay) -->
+                                <table class="table2" width="100%" style="margin-bottom: 20px;">
+                                    <tr>
+                                        <th><?php echo ('Description'); ?></th>
+                                        <th class="text-right"><?php echo ('Amount') ?></th>
+                                    </tr>
+                                    <?php
+                                    // Unified flow - handle both single and multi payments using student_fees_master_array
+                                    if (isset($params['student_fees_master_array']) && !empty($params['student_fees_master_array'])) {
+                                        foreach ($params['student_fees_master_array'] as $fees_key => $fees_value) {
+                                            ?>
+                                            <tr>
+                                                <td>
+                                                    <span class="title"><?php if (isset($fees_value['is_system']) && $fees_value['is_system']) {
+                                                        echo $this->lang->line($fees_value['fee_group_name']);
+                                                    } else {
+                                                        echo $fees_value['fee_group_name'];
+                                                    }?> </span>
+                                                    <span class="product-description">
+                                                        <?php if (isset($fees_value['is_system']) && $fees_value['is_system']) {
+                                                            echo $this->lang->line($fees_value['fee_type_code']);
+                                                        } else {
+                                                            echo $fees_value['fee_type_code'];
+                                                        } ?>
+                                                    </span>
+                                                </td>
+                                                <td class="text-right"><?php echo $setting[0]['currency_symbol'] . number_format($fees_value['amount_balance'], 2, '.', ''); ?></td>
+                                            </tr>
+                                            <?php if (isset($fees_value['discount_amount']) && $fees_value['discount_amount'] > 0) { ?>
+                                            <tr class="border_bottom">
+                                                <td> 
+                                                    <span class="text-discount" style="color: #17a2b8;"><?php echo ('Discount'); ?></span>
+                                                </td>
+                                                <td class="text-right" style="color: #17a2b8;"><?php echo $setting[0]['currency_symbol'] . number_format($fees_value['discount_amount'], 2, '.', ''); ?></td>
+                                            </tr>
+                                            <?php } ?>
+                                            <tr class="border_bottom">
+                                                <td> 
+                                                    <span class="text-fine"><?php echo ('Fine'); ?></span>
+                                                </td>
+                                                <td class="text-right"><?php echo $setting[0]['currency_symbol'] . number_format($fees_value['fine_balance'], 2, '.', ''); ?></td>
+                                            </tr>
+                                            <?php
+                                        }
+                                    }
+                                    ?>
+                                    
+                                    <?php if(isset($params['applied_fee_discount']) && $params['applied_fee_discount'] > 0){ ?>
+                                    <tr class="bordertoplightgray">
+                                        <td bgcolor="#fff"> <?php echo ('Total Discount'); ?>:</td>
+                                        <td bgcolor="#fff" class="text-right" style="color: #17a2b8;"><?php echo $setting[0]['currency_symbol'] . number_format($params['applied_fee_discount'], 2, '.', ''); ?></td>
+                                    </tr>
+                                    <?php } ?>
+                                    <tr class="bordertoplightgray">
+                                        <td bgcolor="#fff"> <?php echo ('Total Fine'); ?>:</td>
+                                        <td bgcolor="#fff" class="text-right"> <?php echo $setting[0]['currency_symbol'] . number_format(isset($params['fine_amount_balance']) ? $params['fine_amount_balance'] : 0, 2, '.', ''); ?></td>
+                                    </tr>
+                                    <?php if(isset($params['gateway_processing_charge']) && $params['gateway_processing_charge'] > 0){ ?>
+                                    <tr class="border_bottom">
+                                        <td>
+                                            <span class="text-text-success"><?php echo ('Processing Fees'); ?></span>
+                                        </td>
+                                        <td class="text-right"><?php echo $setting[0]['currency_symbol'] . number_format((float) $params['gateway_processing_charge'], 2, '.', ''); ?></td>
+                                    </tr>
+                                    <?php } ?>
+                                    <tr class="bordertoplightgray">
+                                        <td bgcolor="#fff"> <?php echo ('Total Amount'); ?>:</td>
+                                        <td bgcolor="#fff" class="text-right"> <?php 
+                                            $total_amount = $params['total'] - (isset($params['applied_fee_discount']) ? $params['applied_fee_discount'] : 0) + (isset($params['fine_amount_balance']) ? $params['fine_amount_balance'] : 0) + (isset($params['gateway_processing_charge']) ? $params['gateway_processing_charge'] : 0);
+                                            echo $setting[0]['currency_symbol'] . number_format($total_amount, 2, '.', ''); 
+                                        ?></td>
+                                    </tr>
+                                    <tr><td colspan="2"><hr /></td></tr>
+                                </table>
+                                
                                 <form action="<?php echo $action; ?>" method="post" name="payuForm" id="payuForm">
                                     <input type="hidden" name="key" value="<?php echo $MERCHANT_KEY ?>" />
                                     <input type="hidden" name="hash" value="<?php echo $hash ?>"/>
                                     <input type="hidden" name="txnid" value="<?php echo $txnid ?>" />
                                     <h5><span class="text text-danger">*</span> All fields are mandatory</h5>
-									
-									<div class="form-group row">
-                                        <label class="col-sm-4">Discount</label>
-										<div class="col-sm-8"><input class="form-control" name="discount" value="<?php echo amountFormat((float) $session_params['applied_fee_discount'], 2, '.', ''); ?>" disabled /></div>                                        
-                                    </div>
-									
-                                    <?php if($session_params['gateway_processing_charge']>0){ ?>
-                                    <div class="form-group row">
-                                        <label class="col-sm-4">Processing Fees <span class="text text-danger">*</span></label>
-                                        <div class="col-sm-8"><input class="form-control" name="amount" value="<?php echo amountFormat((float) $session_params['gateway_processing_charge'], 2, '.', ''); ?>" readonly="readonly"/></div>
-                                    </div><!--./form-group-->
-									<?php } ?>	                                   
-									
+                                    
                                     <div class="form-group row">
                                         <label class="col-sm-4">Amount <span class="text text-danger">*</span></label>
-                                        <div class="col-sm-8"><input class="form-control" name="amount" value="<?php echo set_value('amount', ($session_params['payment_detail']->fine_amount+$session_params['total']- $session_params['applied_fee_discount']+$session_params['gateway_processing_charge'])) ?>" readonly="readonly"/></div>
+                                        <div class="col-sm-8"><input class="form-control" name="amount" value="<?php echo set_value('amount', $total_amount); ?>" readonly="readonly"/></div>
                                     </div><!--./form-group-->
                                     <div class="form-group row">
                                         <label class="col-sm-4">Name <span class="text text-danger">*</span></label>
@@ -83,7 +146,7 @@
 
                                     <div class="form-group row">
                                         <label class="col-sm-4">Email <span class="text text-danger">*</span></label>
-                                        <div class="col-sm-8"><input name="email" class="form-control" id="email" value="<?php echo set_value('email', $session_params['email']) ?>" /></div>
+                                        <div class="col-sm-8"><input name="email" class="form-control" id="email" value="<?php echo set_value('email', isset($session_params['guardian_email']) ? $session_params['guardian_email'] : (isset($session_params['email']) ? $session_params['email'] : '')) ?>" /></div>
                                     </div><!--./form-group-->
 
                                     <div class="form-group row">

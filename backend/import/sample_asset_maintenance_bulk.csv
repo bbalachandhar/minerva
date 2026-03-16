@@ -1,0 +1,2 @@
+asset_id,maintenance_type,opened_on,vendor_name,closed_on,status,issue_description,resolution_note,cost_amount,next_due_date,created_by
+1,breakdown,2026-03-15,ABC Services,,open,Screen not turning on,,0,2026-04-15,1

@@ -271,7 +271,7 @@ class Webservice_model extends CI_Model
     public function getStudentsharelist($student_id, $class_id, $section_id)
     {
          
-        $sql="SELECT `share_contents`.*, `staff`.`name`, `staff`.`surname`, `staff`.`employee_id` FROM `share_contents` JOIN `staff` ON `share_contents`.`created_by` = `staff`.`id` WHERE share_contents.id in (SELECT share_content_id FROM `share_content_for` WHERE group_id ='student' or student_id='".$student_id."' or class_section_id=(SELECT class_sections.id from class_sections WHERE class_sections.class_id='".$class_id."' and class_sections.section_id='".$section_id."')) ORDER BY `share_contents`.`id` DESC";
+        $sql="SELECT `share_contents`.*,IFNULL(share_contents.valid_upto, '') as `valid_upto`, `staff`.`name`, `staff`.`surname`, `staff`.`employee_id` FROM `share_contents` JOIN `staff` ON `share_contents`.`created_by` = `staff`.`id` WHERE share_contents.id in (SELECT share_content_id FROM `share_content_for` WHERE group_id ='student' or student_id='".$student_id."' or class_section_id=(SELECT class_sections.id from class_sections WHERE class_sections.class_id='".$class_id."' and class_sections.section_id='".$section_id."')) ORDER BY `share_contents`.`id` DESC";
         $listroomtype = $this->db->query($sql);
         $result  =   $listroomtype->result_array(); 
         
@@ -285,7 +285,7 @@ class Webservice_model extends CI_Model
     
     public function getParentsharelist($user_parent_id, $class_id, $section_id)
     {
-        $sql="SELECT `share_contents`.*, `staff`.`name`, `staff`.`surname`, `staff`.`employee_id` FROM `share_contents` JOIN `staff` ON `share_contents`.`created_by` = `staff`.`id` WHERE share_contents.id in (SELECT share_content_id FROM `share_content_for` WHERE group_id ='parent' or user_parent_id='".$user_parent_id."' or class_section_id=(SELECT class_sections.id from class_sections WHERE class_sections.class_id='".$class_id."' and class_sections.section_id='".$section_id."')) ORDER BY `share_contents`.`id` DESC";
+        $sql="SELECT `share_contents`.*,IFNULL(share_contents.valid_upto, '') as `valid_upto`, `staff`.`name`, `staff`.`surname`, `staff`.`employee_id` FROM `share_contents` JOIN `staff` ON `share_contents`.`created_by` = `staff`.`id` WHERE share_contents.id in (SELECT share_content_id FROM `share_content_for` WHERE group_id ='parent' or user_parent_id='".$user_parent_id."' or class_section_id=(SELECT class_sections.id from class_sections WHERE class_sections.class_id='".$class_id."' and class_sections.section_id='".$section_id."')) ORDER BY `share_contents`.`id` DESC";
         $listroomtype = $this->db->query($sql);
         $result  =   $listroomtype->result_array(); 
 

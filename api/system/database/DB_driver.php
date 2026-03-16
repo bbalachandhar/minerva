@@ -51,6 +51,8 @@ defined('BASEPATH') OR exit('No direct script access allowed');
  * @author		EllisLab Dev Team
  * @link		https://codeigniter.com/userguide3/database/
  */
+
+#[\AllowDynamicProperties]
 abstract class CI_DB_driver {
 
 	/**
@@ -109,13 +111,6 @@ abstract class CI_DB_driver {
 	 * @var	string
 	 */
 	public $dbprefix		= '';
-
-	/**
-	 * Failover
-	 *
-	 * @var	array
-	 */
-	public $failover		= array();
 
 	/**
 	 * Character set

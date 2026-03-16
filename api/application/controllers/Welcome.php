@@ -4,12 +4,6 @@ defined('BASEPATH') or exit('No direct script access allowed');
 
 class Welcome extends CI_Controller
 {
-    public $email;
-    public $Setting_model;
-    public $customlib;
-    public $setting_model;
-    public $student_model;
-    public $customfield_model;
 
     public function __construct()
     {

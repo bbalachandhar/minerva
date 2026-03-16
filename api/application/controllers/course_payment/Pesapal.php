@@ -158,7 +158,7 @@ class Pesapal extends Admin_Controller {
                 'payment_mode' => 'Pesapal'
             );
             $this->course_model->add($payment_data);
-            $this->load->view('course_payment/paymentsuccess');
+            $this->load->view('course_payment/course_payment/paymentsuccess');
 			//https://dev.webfeb.com/ss620dev/api/gateway/pesapal/pesapal_response?pesapal_transaction_tracking_id=2b509e73-5c3b-4624-ac12-ace231499de8&pesapal_merchant_reference=1602598177
         }else{
            redirect(base_url("course_payment/course_payment/paymentfailed"));

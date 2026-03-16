@@ -135,7 +135,7 @@ class Skrill extends Admin_Controller {
                 );
                 $this->course_model->add($payment_data);
             
-                $this->load->view('course_payment/paymentsuccess');
+                $this->load->view('course_payment/course_payment/paymentsuccess');
         
             }elseif($parameter_data['payment_status']=='CANCELLED'){
                 $this->gateway_ins_model->deleteBygateway_ins_id($parameter_data['id']); 

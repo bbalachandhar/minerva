@@ -315,6 +315,26 @@
                         </select>
                         <span class="text-danger"></span>
                     </div>
+                    <div class="form-group" id="application_ref_no_non_student_group" style="display: none;">
+                        <label for="application_ref_no_non_student"><span class="text-danger">*</span> <?php echo $this->lang->line('application_ref_no'); ?></label>
+                        <div class="input-group">
+                            <input id="application_ref_no_non_student" name="application_ref_no" type="text" class="form-control" placeholder="Enter application reference number" />
+                            <span class="input-group-btn">
+                                <button type="button" id="find_application_ref_btn_non_student" class="btn btn-default">
+                                    <i class="fa fa-search"></i> Find Now
+                                </button>
+                            </span>
+                        </div>
+                        <span class="text-danger"></span>
+                        <small class="text-muted">Required for Application Fee, Tuition/Tution Fee, and Other Fee.</small>
+                    </div>
+                    <div class="form-group" id="application_ref_no_lookup_result" style="display:none;">
+                        <div class="alert alert-info" style="margin-bottom:0;">
+                            <div id="application_lookup_summary"></div>
+                            <hr style="margin:8px 0;">
+                            <div id="application_lookup_history"></div>
+                        </div>
+                    </div>
                     <div class="form-group">
                         <label for="amount_collected_non_student"><?php echo $this->lang->line('amount_collected'); ?></label>
                         <input id="amount_collected_non_student" name="amount_collected" type="text" inputmode="decimal" class="form-control amount-numeric-only" />
@@ -337,11 +357,6 @@
                             <option value="upi"><?php echo $this->lang->line('upi'); ?></option>
                             <option value="other"><?php echo $this->lang->line('other'); ?></option>
                         </select>
-                        <span class="text-danger"></span>
-                    </div>
-                    <div class="form-group" id="application_ref_no_non_student_group" style="display: none;">
-                        <label for="application_ref_no_non_student"><span class="text-danger">*</span> <?php echo $this->lang->line('application_ref_no'); ?></label>
-                        <input id="application_ref_no_non_student" name="application_ref_no" type="text" class="form-control" placeholder="Enter application reference number" />
                         <span class="text-danger"></span>
                     </div>
                     <div class="form-group">
@@ -703,13 +718,135 @@
 
         // Handle fee type change for showing/hiding application ref no field
         function checkIfApplicationRefNoRequired(feeTypeName) {
-            var requiredFeeTypes = ['APPLICATION FEE', 'TUITION FEE', 'Other fee'];
+            var requiredFeeTypes = ['application fee', 'tuition fee', 'tution fee', 'other fee'];
+            var source = String(feeTypeName || '').toLowerCase();
             for (var i = 0; i < requiredFeeTypes.length; i++) {
-                if (feeTypeName.toUpperCase().includes(requiredFeeTypes[i].toUpperCase())) {
+                if (source.indexOf(requiredFeeTypes[i]) !== -1) {
                     return true;
                 }
             }
             return false;
+        }
+
+        function escapeHtml(value) {
+            return $('<div>').text(String(value || '')).html();
+        }
+
+        function resetApplicationLookupUi() {
+            $('#application_ref_no_lookup_result').hide();
+            $('#application_lookup_summary').html('');
+            $('#application_lookup_history').html('');
+            $('#application_ref_no_non_student').attr('data-verified', 'false');
+            $('#application_ref_no_non_student').attr('data-online-admission-id', '');
+            $('#non_student_name').attr('readonly', false);
+        }
+
+        function renderPaymentHistoryTable(title, rows, dateField, amountField, modeField, extraField, extraLabel) {
+            var html = '<h5 style="margin-top:0;">' + escapeHtml(title) + '</h5>';
+            if (!rows || !rows.length) {
+                html += '<p class="text-muted" style="margin-bottom:8px;">No records found.</p>';
+                return html;
+            }
+
+            html += '<div class="table-responsive"><table class="table table-bordered table-condensed">';
+            html += '<thead><tr>'
+                + '<th>Date</th>'
+                + '<th>Mode</th>'
+                + '<th class="text-right">Amount</th>'
+                + '<th>' + escapeHtml(extraLabel || 'Reference') + '</th>'
+                + '</tr></thead><tbody>';
+
+            $.each(rows, function(idx, row) {
+                var dateVal = row[dateField] || '';
+                var modeVal = row[modeField] || '';
+                var amountVal = parseFloat(row[amountField] || 0);
+                if (isNaN(amountVal)) {
+                    amountVal = 0;
+                }
+                var extraVal = row[extraField] || '';
+                html += '<tr>'
+                    + '<td>' + escapeHtml(dateVal) + '</td>'
+                    + '<td>' + escapeHtml(modeVal) + '</td>'
+                    + '<td class="text-right">' + amountVal.toFixed(2) + '</td>'
+                    + '<td>' + escapeHtml(extraVal) + '</td>'
+                    + '</tr>';
+            });
+
+            html += '</tbody></table></div>';
+            return html;
+        }
+
+        function findApplicationByReferenceNo() {
+            var refNo = $.trim($('#application_ref_no_non_student').val());
+            if (refNo === '') {
+                errorMsg('Please enter Application Reference No.');
+                return;
+            }
+
+            var $btn = $('#find_application_ref_btn_non_student');
+            $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Finding...');
+            resetApplicationLookupUi();
+
+            $.ajax({
+                url: baseurl + 'admin/collect_incidental_fee/findApplicationByReference',
+                type: 'POST',
+                dataType: 'json',
+                data: {
+                    application_ref_no: refNo,
+                    '<?php echo $this->security->get_csrf_token_name(); ?>': '<?php echo $this->security->get_csrf_hash(); ?>'
+                },
+                success: function(response) {
+                    if (!response || response.status !== 'success') {
+                        errorMsg(response && response.message ? response.message : 'Unable to fetch application details.');
+                        return;
+                    }
+
+                    var app = response.application || {};
+                    var summaryHtml = '';
+                    var courseFee = parseFloat(app.course_fee_total || 0);
+                    if (isNaN(courseFee)) {
+                        courseFee = 0;
+                    }
+                    var applicationFee = parseFloat(app.application_fee_amount || 0);
+                    if (isNaN(applicationFee)) {
+                        applicationFee = 0;
+                    }
+                    var totalPaid = parseFloat(app.total_paid_so_far || 0);
+                    if (isNaN(totalPaid)) {
+                        totalPaid = 0;
+                    }
+                    var remainingFee = parseFloat(app.remaining_fee || 0);
+                    if (isNaN(remainingFee)) {
+                        remainingFee = 0;
+                    }
+                    summaryHtml += '<p style="margin:0;"><strong>Applicant Name:</strong> ' + escapeHtml(app.applicant_name) + '</p>';
+                    summaryHtml += '<p style="margin:0;"><strong>Mobile:</strong> ' + escapeHtml(app.mobileno) + '</p>';
+                    summaryHtml += '<p style="margin:0;"><strong>Applied Course:</strong> ' + escapeHtml(app.course_name) + '</p>';
+                    summaryHtml += '<p style="margin:0;"><strong>Course Fee:</strong> ' + courseFee.toFixed(2) + ' &nbsp; <strong>Application Fee:</strong> ' + applicationFee.toFixed(2) + '</p>';
+                    summaryHtml += '<p style="margin:0;"><strong>Total Paid So Far:</strong> ' + totalPaid.toFixed(2) + '</p>';
+                    summaryHtml += '<p style="margin:0;"><strong>Remaining Fee:</strong> ' + remainingFee.toFixed(2) + '</p>';
+
+                    var historyHtml = '';
+                    historyHtml += renderPaymentHistoryTable('Online Application Payment History', response.online_payment_history || [], 'date', 'paid_amount', 'payment_mode', 'transaction_id', 'Transaction ID');
+                    historyHtml += renderPaymentHistoryTable('Incidental Fee Collection History', response.incidental_payment_history || [], 'bill_date', 'amount_collected', 'payment_mode', 'fee_type_title', 'Fee Type');
+
+                    $('#application_lookup_summary').html(summaryHtml);
+                    $('#application_lookup_history').html(historyHtml);
+                    $('#application_ref_no_lookup_result').show();
+
+                    $('#application_ref_no_non_student').attr('data-verified', 'true');
+                    $('#application_ref_no_non_student').attr('data-online-admission-id', app.id || '');
+                    if (app.applicant_name) {
+                        $('#non_student_name').val(app.applicant_name).attr('readonly', true);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    errorMsg('An error occurred while fetching application details: ' + error);
+                },
+                complete: function() {
+                    $btn.prop('disabled', false).html('<i class="fa fa-search"></i> Find Now');
+                }
+            });
         }
 
         // Application Reference Number is only for non-students
@@ -719,6 +856,7 @@
         $('#fee_type_id_non_student').on('change', function() {
             var selectedFeeTypeId = $(this).val();
             var selectedOption = $(this).find('option:selected').text();
+            resetApplicationLookupUi();
             
             if (selectedFeeTypeId && checkIfApplicationRefNoRequired(selectedOption)) {
                 $('#application_ref_no_non_student_group').show();
@@ -727,6 +865,16 @@
                 $('#application_ref_no_non_student_group').hide();
                 $('#application_ref_no_non_student').val('').attr('data-required', 'false');
             }
+        });
+
+        $('#application_ref_no_non_student').on('input', function() {
+            $(this).attr('data-verified', 'false');
+            $('#non_student_name').attr('readonly', false);
+            $('#application_ref_no_lookup_result').hide();
+        });
+
+        $('#find_application_ref_btn_non_student').on('click', function() {
+            findApplicationByReferenceNo();
         });
 
         function openReceiptUrl(response) {
@@ -849,6 +997,11 @@
                 return false;
             }
 
+            if ($('#application_ref_no_non_student_group').is(':visible') && $('#application_ref_no_non_student').attr('data-verified') !== 'true') {
+                errorMsg('Please click Find Now and verify the Application Reference No before collecting fee.');
+                return false;
+            }
+
             isSubmittingNonStudentFee = true;
             var $submitBtn = $(this).find('button[type="submit"]');
             $submitBtn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> ' + $submitBtn.text());
@@ -879,6 +1032,8 @@
                         form[0].reset();
                         setDefaultNonStudentBillDate();
                         $('#application_ref_no_non_student_group').hide();
+                        resetApplicationLookupUi();
+                        $('#non_student_name').attr('readonly', false);
                         loadCollectionsTable();
                         openReceiptUrl(response);
                     } else {

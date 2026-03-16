@@ -1,0 +1,4 @@
+name,type,code,department_name,teacher_ids
+Mathematics,Theory,MATH101,Science,EMP001
+Physics Lab,Practical,PHYL201,Science,"EMP002,EMP003"
+English,Theory,ENG101,Humanities,

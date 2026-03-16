@@ -92,18 +92,18 @@ class Payhere extends Admin_Controller {
         $params = $this->session->userdata('params');
         $parameter_data=$this->gateway_ins_model->get_gateway_ins($params['transaction_id'],'payhere');
         if($parameter_data['payment_status']=='2'){
-             redirect(base_url("user/gateway/payment/successinvoice"));
+             redirect(base_url("course_payment/course_payment/successinvoice"));
         }elseif($parameter_data['payment_status']=='-2'){
             $this->gateway_ins_model->deleteBygateway_ins_id($parameter_data['id']); 
-            redirect(base_url("user/gateway/payment/paymentfailed"));
+            redirect(base_url("course_payment/course_payment/paymentfailed"));
         }elseif($parameter_data['payment_status']=='0'){
-            redirect(base_url("user/gateway/payment/paymentprocessing"));
+            redirect(base_url("course_payment/course_payment/paymentprocessing"));
         }else{
-             redirect(base_url("user/gateway/payment/paymentfailed"));  
+             redirect(base_url("course_payment/course_payment/paymentfailed"));  
         }
     }
 
     public function cancel(){
-        redirect(base_url("user/gateway/payment/paymentfailed"));  
+        redirect(base_url("course_payment/course_payment/paymentfailed"));  
     }
 }

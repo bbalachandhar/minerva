@@ -1,0 +1,10 @@
+location_code,location_name,location_type,notes
+CSE-LAB-1,CSE Computer Lab 1,lab,CSE Dept ground floor 40 PCs
+CSE-LAB-2,CSE Computer Lab 2,lab,CSE Dept first floor 40 PCs
+ECE-LAB-1,ECE Electronics Lab,lab,ECE Dept electronics instruments
+MECH-WORKSHOP,Mechanical Workshop,room,Lathe machines and fabrication
+ADMIN-BLOCK,Administration Block,department,Principal and admin offices
+LIBRARY,Central Library,room,Library computers and printers
+SEMINAR-HALL-1,Seminar Hall 1,room,Projectors and audio equipment
+SERVER-ROOM,Server Room,store,Network switches servers and UPS units
+STAFF-ROOM,Staff Common Room,room,Staff laptops and workstations

@@ -66,44 +66,73 @@
                                                         <th><?php echo ('Description'); ?></th>
                                                         <th class="text-right"><?php echo ('Amount') ?></th>
                                                     </tr>
-                                                    <tr>
-                                                        <td><?php
-                                                            echo $params['payment_detail']->fee_group_name . "<br/><span>" . $params['payment_detail']->code;
-                                                            ?></td>
-                                                        <td class="text-right"><?php echo amountFormat($params['total']); ?></td>
-                                                    </tr>
-
+                                                    <?php
+                                                    if (isset($params['student_fees_master_array']) && !empty($params['student_fees_master_array'])) {
+                                                        foreach ($params['student_fees_master_array'] as $fees_key => $fees_value) {
+                                                            ?>
+                                                            <tr>
+                                                                <td>
+                                                                    <span class="title"><?php if (isset($fees_value['is_system']) && $fees_value['is_system']) {
+                                                                        echo $this->lang->line($fees_value['fee_group_name']);
+                                                                    } else {
+                                                                        echo isset($fees_value['fee_group_name']) ? $fees_value['fee_group_name'] : '';
+                                                                    }?> </span>
+                                                                    <span class="product-description">
+                                                                        <?php  if (isset($fees_value['is_system']) && $fees_value['is_system']) {
+                                                                            echo $this->lang->line($fees_value['fee_type_code']);
+                                                                        } else {
+                                                                            echo isset($fees_value['fee_type_code']) ? $fees_value['fee_type_code'] : '';
+                                                                        } ?></span>
+                                                                </td>
+                                                                <td class="text-right"><?php echo $setting[0]['currency_symbol'] . number_format($fees_value['amount_balance'], 2); ?></td>
+                                                            </tr>
+                                                            <?php if (isset($fees_value['discount_amount']) && $fees_value['discount_amount'] > 0) { ?>
+                                                            <tr class="border_bottom">
+                                                                <td> 
+                                                                    <span class="text-discount" style="color: #17a2b8;"><?php echo ('Discount'); ?></span>
+                                                                </td>
+                                                                <td class="text-right" style="color: #17a2b8;">-<?php echo $setting[0]['currency_symbol'] . number_format($fees_value['discount_amount'], 2); ?></td>
+                                                            </tr>
+                                                            <?php } ?>
+                                                            <tr class="border_bottom">
+                                                                <td> 
+                                                                    <span class="text-fine"><?php echo ('Fine'); ?></span></td>
+                                                                <td class="text-right"><?php echo $setting[0]['currency_symbol'] . number_format($fees_value['fine_balance'], 2); ?></td>
+                                                            </tr>
+                                                            <?php
+                                                        }
+                                                    }
+                                                    ?>
+                                                    <?php if(isset($params['applied_fee_discount']) && $params['applied_fee_discount']>0){ ?>
                                                     <tr class="bordertoplightgray">
-                                                        <td bgcolor="#fff"> <?php echo ('Fine'); ?>:</td>
-                                                        <td bgcolor="#fff" class="text-right"> <?php echo amountFormat($params['payment_detail']->fine_amount); ?></td>
+                                                        <td bgcolor="#fff"> <?php echo ('Total Discount'); ?>:</td>
+                                                        <td bgcolor="#fff" class="text-right" style="color: #17a2b8;">-<?php echo $setting[0]['currency_symbol'] . number_format($params['applied_fee_discount'], 2); ?></td>
                                                     </tr>
-													
-													<tr class="bordertoplightgray">
-                                                        <td bgcolor="#fff"> <?php echo ('Discount'); ?>:</td>
-                                                        <td bgcolor="#fff" class="text-right"> <?php echo amountFormat((float) $params['applied_fee_discount'], 2, '.', ''); ?></td>
+                                                    <?php } ?>
+                                                    <tr class="bordertoplightgray">
+                                                        <td bgcolor="#fff"> <?php echo ('Total Fine'); ?>:</td>
+                                                        <td bgcolor="#fff" class="text-right"> <?php echo $setting[0]['currency_symbol'] . number_format($params['fine_amount_balance'], 2); ?></td>
                                                     </tr>
-													
-                                                    <?php if($params['gateway_processing_charge']>0){ ?>
+                                                    <?php if(isset($params['gateway_processing_charge']) && $params['gateway_processing_charge']>0){ ?>
                                                     <tr class="border_bottom">
-														<td>
-															<span class="text-text-success"><?php echo ('Processing Fees'); ?></span>
-														</td>
-														<td class="text-right"><?php echo amountFormat((float) $params['gateway_processing_charge'], 2, '.', ''); ?></td>
-													</tr>
-													<?php } ?>		
-													
+                                                        <td>
+                                                            <span class="text-text-success"><?php echo ('Processing Fees'); ?></span>
+                                                        </td>
+                                                        <td class="text-right"><?php echo $setting[0]['currency_symbol'] . number_format((float) $params['gateway_processing_charge'], 2); ?></td>
+                                                    </tr>
+                                                    <?php } ?>
                                                     <tr class="bordertoplightgray">
-                                                        <td bgcolor="#fff"> <?php echo ('Total'); ?>:</td>
-                                                        <td bgcolor="#fff" class="text-right"> <?php echo amountFormat(($params['payment_detail']->fine_amount+$params['total'] - $params['applied_fee_discount']+$params['gateway_processing_charge'])); ?></td>
+                                                        <td bgcolor="#fff"> <?php echo ('Total Amount'); ?>:</td>
+                                                        <td bgcolor="#fff" class="text-right"> <?php echo $setting[0]['currency_symbol'] . number_format(($params['total'] - (isset($params['applied_fee_discount']) ? $params['applied_fee_discount'] : 0) + $params['fine_amount_balance'] + (isset($params['gateway_processing_charge']) ? $params['gateway_processing_charge'] : 0)), 2); ?></td>
                                                     </tr>
                                                     
                                                     <tr class="bordertoplightgray">
                                                         <td bgcolor="#fff"><?php echo ('Phone') ?>:</td>
-                                                        <td bgcolor="#fff" class="text-right"> <input type="text" class="form-control" name="phone" value="<?php echo set_value('phone', $params['guardian_phone']); ?>" /></td>
+                                                        <td bgcolor="#fff" class="text-right"> <input type="text" class="form-control" name="phone" value="<?php echo set_value('phone', isset($params['guardian_phone']) ? $params['guardian_phone'] : ''); ?>" /></td>
                                                     </tr>
                                                     <tr class="bordertoplightgray">
                                                         <td bgcolor="#fff"><?php echo ('Email'); ?>:</td>
-                                                        <td bgcolor="#fff" class="text-right"> <input type="text" class="form-control" name="email" value="<?php echo set_value('email', $student_data->guardian_email); ?>"></td>
+                                                        <td bgcolor="#fff" class="text-right"> <input type="text" class="form-control" name="email" value="<?php echo set_value('email', isset($params['guardian_email']) ? $params['guardian_email'] : (isset($student_data->guardian_email) ? $student_data->guardian_email : '')); ?>"></td>
                                                     </tr>
                                                     <tr><td colspan="2"><hr /></td></tr>
                                                     <tr class="bordertoplightgray">

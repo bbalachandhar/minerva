@@ -36,7 +36,7 @@
                             <li><?php echo $this->lang->line('hostel_room_import_note_1'); ?></li>
                             <li><?php echo $this->lang->line('hostel_room_import_note_2'); ?></li>
                         </ul>
-                        <a href="<?php echo base_url(); ?>uploads/school_content/hostel_room_sample.csv" class="btn btn-success btn-sm"><i class="fa fa-download"></i> <?php echo $this->lang->line('download_sample_data'); ?></a>
+                        <a href="<?php echo base_url(); ?>backend/import/hostel_room_sample.csv" class="btn btn-success btn-sm"><i class="fa fa-download"></i> <?php echo $this->lang->line('download_sample_data'); ?></a>
                     </div>
                 </div>
             </div>

@@ -100,8 +100,8 @@ class Stripe extends Admin_Controller {
                                         'actual_price' => $params['actual_amount'],
                                         'paid_amount' => $params['total_amount'],
                                         'payment_type' => 'Online',
-                                        'transaction_id' => $transactionid,
-                                        'note' => "Online course fees deposit through Stripe Txn ID: " . $transactionid,
+                                        'transaction_id' =>$transaction_id,
+                                        'note' => "Online course fees deposit through Stripe Txn ID: " . $transaction_id,
                                         'payment_mode' => 'Stripe',
                                     );
 
@@ -109,7 +109,7 @@ class Stripe extends Admin_Controller {
        
                 //=============================
           
-                    echo json_encode(['status'=>1,'msg' => 'Transaction successful.','return_url'=>base_url("user/gateway/payment/successinvoice")]);
+                    echo json_encode(['status'=>1,'msg' => 'Transaction successful.','return_url'=>base_url("course_payment/paymentsuccess")]);
 
                 //=====================================
 

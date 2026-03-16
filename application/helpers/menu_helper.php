@@ -164,7 +164,7 @@ if (!function_exists('main_menu_array')) {
 				'customfeesmaster'  => array('index'),
                 'incidental_fee_type' => array('index', 'edit'),
                 'assign_incidental_fee' => array('index'),
-                'collect_incidental_fee' => array('index', 'searchStudent', 'receipt', 'revert'),
+                'collect_incidental_fee' => array('index', 'searchStudent', 'receipt', 'revert', 'findApplicationByReference'),
                 'financereports' => array('incidental_fee_report'),
             ), 
             

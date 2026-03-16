@@ -146,6 +146,10 @@ class Course_payment extends Admin_Controller {
                 redirect(base_url("course_payment/payhere"));
             }elseif ($this->pay_method->payment_type == "onepay") {
                 redirect(base_url("course_payment/onepay"));
+            }elseif ($this->pay_method->payment_type == "momopay") {
+                redirect(base_url("course_payment/momopay"));
+            }elseif ($this->pay_method->payment_type == "dpopay") {
+                redirect(base_url("course_payment/dpopay"));
             }
         }else{
             echo "Oops! payment method not available, Please contact to administrator";
@@ -159,6 +163,13 @@ class Course_payment extends Admin_Controller {
     {
         $data = array();
         $this->load->view('payment/paymentfailed', $data);
+    }
+
+     public function paymentsuccess()
+    {
+      
+        $data = array();
+        $this->load->view('course_payment/paymentsuccess', $data);
     }
      public function paymentprocessing()
     {

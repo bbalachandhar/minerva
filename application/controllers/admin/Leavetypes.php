@@ -270,7 +270,7 @@ class LeaveTypes extends Admin_Controller
     public function download_sample()
     {
         $this->load->helper('download');
-        $filepath = FCPATH . "uploads/sample_leave_allotment.csv";
+        $filepath = FCPATH . "backend/import/sample_leave_allotment.csv";
 
         $sample_content = "employee_id,leavetype_id,balance_days,month,year\n"
             . "EMP001,1,12,3,2026\n"

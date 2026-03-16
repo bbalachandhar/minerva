@@ -87,7 +87,7 @@ class Payfast extends Admin_Controller {
             $this->course_model->addprocessingpayment($payment_data);
             $this->session->set_userdata("course_amount", $params);
             // If in testing mode make use of either sandbox.payfast.co.za or www.payfast.co.za
-            $testingMode = true;
+            $testingMode = false;
             $pfHost = $testingMode ? 'sandbox.payfast.co.za' : 'www.payfast.co.za';
             $htmlForm = '<form action="https://'.$pfHost.'/eng/process" method="post" name="pay_now">';
             foreach($data as $name=> $value)
@@ -140,7 +140,7 @@ class Payfast extends Admin_Controller {
                 );
                 $this->course_model->add($payment_data);
 
-               $this->load->view('course_payment/paymentsuccess');
+               $this->load->view('course_payment/course_payment/paymentsuccess');
 
             }elseif($parameter_data['payment_status']=='CANCELLED'){
                 $this->gateway_ins_model->deleteBygateway_ins_id($parameter_data['id']); 

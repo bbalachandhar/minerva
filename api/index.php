@@ -38,8 +38,8 @@
 
 /*
  *---------------------------------------------------------------
- * Minerva Android App Api Version 4.2
- * Build: 250515
+ * Smart School Android App Api Version 5.0
+ * Build: 260220
  *---------------------------------------------------------------
  *---------------------------------------------------------------
  * APPLICATION ENVIRONMENT
@@ -57,7 +57,7 @@
  *
  * NOTE: If you change these, also change the error_reporting() code below
  */
-	define('ENVIRONMENT', 'development');
+	define('ENVIRONMENT', 'production');
 	
 	if( ! ini_get('date.timezone') )
 	{
@@ -75,7 +75,7 @@
 switch (ENVIRONMENT)
 {
 	case 'development':
-		error_reporting(E_ALL & ~E_NOTICE & ~E_WARNING & ~E_DEPRECATED);
+		error_reporting(-1);
 		ini_set('display_errors', 1);
 	break;
 

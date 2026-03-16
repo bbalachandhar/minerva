@@ -103,10 +103,10 @@ async function handlePaymentSubmit(e) {
     // be redirected to an intermediate site first to authorize the payment, then
     // redirected to the `return_url`.
     if (error.type === "card_error" || error.type === "validation_error") {
-        showMessage(error.message);
+       
         // paymentReinitiate();
     } else {
-        showMessage("An unexpected error occured.");
+      
         // paymentReinitiate();
     }
     setLoading(false);
@@ -182,7 +182,8 @@ function showButton() {
     $('.modal_inner_loader2').fadeOut("slow");
 }
 function showMessage(messageText) {
-    errorMsg(messageText);
+
+    
 }
 
 // Show a spinner on payment submission

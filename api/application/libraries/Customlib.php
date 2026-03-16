@@ -6,15 +6,13 @@ if (!defined('BASEPATH')) {
 
 class Customlib {
 
-    public $setting_model;
-    public $studentfeemaster_model;
-    public $course_model;
+    // api ver: 3.5
+
     public $CI;
 
     public function __construct() {
         $this->CI = &get_instance();
-        $this->CI->load->model('setting_model'); // Corrected to lowercase 's'
-        $this->setting_model = $this->CI->setting_model; // Assign to declared property
+        $this->CI->load->model('Setting_model');
     }
     
     public function getSchoolCurrencyPrice()
@@ -29,8 +27,7 @@ class Customlib {
     public function getCurrencySymbol()
     {
            
-            $student = $this->CI->session->userdata('student_currency');
-            
+            $student = $this->CI->session->userdata('student_currency');            
             return $student['currency_symbol'];
 
        
@@ -69,7 +66,7 @@ class Customlib {
     }
 
     public function getSchoolName() {
-        $admin = $this->CI->setting_model->getSetting();
+        $admin = $this->CI->Setting_model->getSetting();
         return $admin->name;
     }
 
@@ -80,7 +77,7 @@ class Customlib {
         return $gender;
     } 
 
-     public function getFullName($firstname, $middlename, $lastname, $is_middlename,$is_lastname)
+    public function getFullName($firstname, $middlename, $lastname, $is_middlename,$is_lastname)
     {
         $name="";
         if ($is_middlename) {
@@ -110,40 +107,10 @@ class Customlib {
         }
         return false;
     }
-
-    /**
-     * Ensure a filesystem directory exists and is writable (API helper).
-     * Accepts relative paths (e.g. './uploads/...') or absolute paths.
-     * Returns true if the directory exists and is writable, false otherwise.
-     */
-    public function ensureDirectoryExists($path, $mode = 0755)
-    {
-        // Resolve relative paths (starting with './') to FCPATH
-        if (strpos($path, './') === 0) {
-            $resolved = FCPATH . substr($path, 2);
-        } elseif (isset($path[0]) && $path[0] === DIRECTORY_SEPARATOR) {
-            $resolved = $path;
-        } else {
-            $resolved = FCPATH . ltrim($path, './');
-        }
-
-        if (!is_dir($resolved)) {
-            if (!@mkdir($resolved, $mode, true)) {
-                return false;
-            }
-            @chmod($resolved, $mode);
-        }
-
-        if (!is_writable($resolved)) {
-            @chmod($resolved, 0777);
-        }
-
-        return is_dir($resolved) && is_writable($resolved);
-    }
     
     public function getCurrencyFormat()
     {
-        $admin = $this->CI->setting_model->getSetting();
+        $admin = $this->CI->Setting_model->getSetting();
         return $admin->currency_format;             
     }
 	
@@ -202,7 +169,7 @@ class Customlib {
 
 
     public function get_online_course_curriculam_status($fieldname){
-        $this->CI->load->model('course_model');
+        $this->CI->load->model('Course_model');
         $course_setting             = $this->CI->course_model->getOnlineCourseSettings();
         $active_curriculam_status   = "" ;
        
@@ -219,6 +186,23 @@ class Customlib {
     }
     
   
-    
+    public function getFolderPath()
+    {         
+        $setting_result = $this->CI->setting_model->get();
+           
+        $folder_path = $setting_result[0]["folder_path"];
+         
+
+        if ($folder_path == "") {
+            $folder_path = null;
+        }
+        return $folder_path;
+    }
+
+    public function getSchoolDateFormat($date_only = true, $time = false)
+    {
+        $setting_result     = $this->CI->setting_model->get();
+        return $date_format = $setting_result[0]['date_format'];
+    }
 
 }

@@ -7,6 +7,12 @@ if (!defined('BASEPATH')) {
 class Itemcategory extends Admin_Controller
 {
 
+    private function supportsAssetCategoryFields()
+    {
+        return $this->db->field_exists('is_asset', 'item_category')
+            && $this->db->field_exists('asset_tracking_mode', 'item_category');
+    }
+
     public function __construct()
     {
         parent::__construct();
@@ -23,6 +29,7 @@ class Itemcategory extends Admin_Controller
         $data['title']        = 'Item Categorey List';
         $category_result      = $this->itemcategory_model->get();
         $data['categorylist'] = $category_result;
+        $data['supports_asset_fields'] = $this->supportsAssetCategoryFields();
         $this->load->view('layout/header', $data);
         $this->load->view('admin/itemcategory/itemcategoryList', $data);
         $this->load->view('layout/footer', $data);
@@ -46,6 +53,7 @@ class Itemcategory extends Admin_Controller
         $data['title']        = 'Add Item category';
         $category_result      = $this->itemcategory_model->get();
         $data['categorylist'] = $category_result;
+        $data['supports_asset_fields'] = $this->supportsAssetCategoryFields();
         $this->form_validation->set_rules('itemcategory', $this->lang->line('item_category'), 'trim|required|xss_clean');
         if ($this->form_validation->run() == false) {
             $this->load->view('layout/header', $data);
@@ -56,6 +64,17 @@ class Itemcategory extends Admin_Controller
                 'item_category' => $this->input->post('itemcategory'),
                 'description'   => $this->input->post('description'),
             );
+
+            if ($this->supportsAssetCategoryFields()) {
+                $tracking_mode = strtolower(trim((string) $this->input->post('asset_tracking_mode')));
+                if (!in_array($tracking_mode, array('bulk', 'unit'), true)) {
+                    $tracking_mode = 'bulk';
+                }
+
+                $data['is_asset'] = $this->input->post('is_asset') ? 1 : 0;
+                $data['asset_tracking_mode'] = $tracking_mode;
+            }
+
             $this->itemcategory_model->add($data);
             $this->session->set_flashdata('msg', '<div class="alert alert-success text-left">' . $this->lang->line('success_message') . '</div>');
             redirect('admin/itemcategory/index');
@@ -73,6 +92,7 @@ class Itemcategory extends Admin_Controller
         $data['id']           = $id;
         $category             = $this->itemcategory_model->get($id);
         $data['itemcategory'] = $category;
+        $data['supports_asset_fields'] = $this->supportsAssetCategoryFields();
         $this->form_validation->set_rules('itemcategory', $this->lang->line('item_categorey'), 'trim|required|xss_clean');
         if ($this->form_validation->run() == false) {
             $this->load->view('layout/header', $data);
@@ -84,6 +104,17 @@ class Itemcategory extends Admin_Controller
                 'item_category' => $this->input->post('itemcategory'),
                 'description'   => $this->input->post('description'),
             );
+
+            if ($this->supportsAssetCategoryFields()) {
+                $tracking_mode = strtolower(trim((string) $this->input->post('asset_tracking_mode')));
+                if (!in_array($tracking_mode, array('bulk', 'unit'), true)) {
+                    $tracking_mode = 'bulk';
+                }
+
+                $data['is_asset'] = $this->input->post('is_asset') ? 1 : 0;
+                $data['asset_tracking_mode'] = $tracking_mode;
+            }
+
             $this->itemcategory_model->add($data);
             $this->session->set_flashdata('msg', '<div class="alert alert-success">' . $this->lang->line('update_message') . '</div>');
             redirect('admin/itemcategory/index');

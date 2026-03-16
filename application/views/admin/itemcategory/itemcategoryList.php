@@ -41,6 +41,21 @@
                                     <textarea class="form-control" id="description" name="description" placeholder="" rows="3"><?php echo set_value('description'); ?></textarea>
                                     <span class="text-danger"><?php echo form_error('description'); ?></span>
                                 </div>
+                                <?php if (!empty($supports_asset_fields)) { ?>
+                                <div class="form-group">
+                                    <label>
+                                        <input type="checkbox" name="is_asset" value="1" <?php echo set_checkbox('is_asset', '1'); ?>>
+                                        Asset Category (Create assets from GRN)
+                                    </label>
+                                </div>
+                                <div class="form-group">
+                                    <label>Asset Tracking Mode</label>
+                                    <select name="asset_tracking_mode" class="form-control">
+                                        <option value="bulk" <?php echo set_select('asset_tracking_mode', 'bulk', true); ?>>Bulk (single asset record for accepted quantity)</option>
+                                        <option value="unit" <?php echo set_select('asset_tracking_mode', 'unit'); ?>>Unit-wise (one asset record per unit)</option>
+                                    </select>
+                                </div>
+                                <?php } ?>
                             </div><!-- /.box-body -->
                             <div class="box-footer">
                                 <button type="submit" class="btn btn-info pull-right"><?php echo $this->lang->line('save'); ?></button>
@@ -81,6 +96,10 @@ if ($this->rbac->hasPrivilege('item_category', 'can_add')) {
                                         <tr>
                                             <th><?php echo $this->lang->line('item_category'); ?></th>
                                             <th><?php echo $this->lang->line('description'); ?></th>
+                                            <?php if (!empty($supports_asset_fields)) { ?>
+                                            <th>Asset Category</th>
+                                            <th>Tracking Mode</th>
+                                            <?php } ?>
                                             <th class="text-right noExport"><?php echo $this->lang->line('action'); ?></th>
                                         </tr>
                                     </thead>
@@ -96,6 +115,10 @@ if ($this->rbac->hasPrivilege('item_category', 'can_add')) {
                                                 <tr>
                                                     <td class="mailbox-name"><?php echo $category['item_category'] ?></td>
                                                     <td class="mailbox-name"><?php echo $category['description']; ?></td>
+                                                    <?php if (!empty($supports_asset_fields)) { ?>
+                                                    <td class="mailbox-name"><?php echo !empty($category['is_asset']) ? 'Yes' : 'No'; ?></td>
+                                                    <td class="mailbox-name"><?php echo html_escape((string) ($category['asset_tracking_mode'] ?? 'bulk')); ?></td>
+                                                    <?php } ?>
                                                     <td class="mailbox-date pull-right no-print">
                                                         <?php if ($this->rbac->hasPrivilege('item_category', 'can_edit')) {?>
                                                             <a href="<?php echo base_url(); ?>admin/itemcategory/edit/<?php echo $category['id'] ?>" class="btn btn-default btn-xs"  data-toggle="tooltip" title="<?php echo $this->lang->line('edit'); ?>">
