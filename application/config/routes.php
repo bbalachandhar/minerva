@@ -110,6 +110,7 @@ $route['admin/attendance_exceptions/(:any)'] = 'admin/attendance_exceptions/$1';
 $route['studentfee/do_bulk_upload_by_feetype'] = 'studentfee/do_bulk_upload_by_feetype';
 $route['admin/staff/activate_biometric_device/(:num)'] = 'admin/staff/activate_biometric_device/$1';
 $route['admin/timetable/bulk']         = 'admin/timetable/bulk';
+$route['admin/unauthorized'] = 'admin/admin/unauthorized';
 $route['lead/enquiry'] = 'leadapi/create_enquiry';
 $route['enquiry'] = 'enquiry';
 $route['enquiry/(:any)'] = 'enquiry/$1';

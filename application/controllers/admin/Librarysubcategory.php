@@ -16,7 +16,7 @@ class Librarysubcategory extends Admin_Controller
 
     public function index($id = null)
     {
-        if (!$this->rbac->hasPrivilege('books', 'can_view')) {
+        if (!$this->rbac->hasPrivilege('library_subcategory', 'can_view')) {
             access_denied();
         }
 
