@@ -1704,6 +1704,106 @@ class Schsettings extends Admin_Controller
         ];
     }
 
+    private function ensureLibrarySettingsColumns()
+    {
+        $required = [
+            'student_max_books_allowed' => 'INT(11) NOT NULL DEFAULT 3',
+            'staff_max_books_allowed' => 'INT(11) NOT NULL DEFAULT 5',
+            'student_book_return_days' => 'INT(11) NOT NULL DEFAULT 15',
+            'staff_book_return_days' => 'INT(11) NOT NULL DEFAULT 30',
+        ];
+
+        $existing_rows = $this->db->query('SHOW COLUMNS FROM sch_settings')->result_array();
+        $existing_cols = [];
+        foreach ($existing_rows as $row) {
+            $existing_cols[] = $row['Field'];
+        }
+
+        foreach ($required as $column => $definition) {
+            if (!in_array($column, $existing_cols, true)) {
+                $this->db->query("ALTER TABLE sch_settings ADD COLUMN {$column} {$definition}");
+            }
+        }
+    }
+
+    private function buildLibrarySettingsForView($setting)
+    {
+        return [
+            'student_max_books_allowed' => max(1, (int) ($setting->student_max_books_allowed ?? 3)),
+            'staff_max_books_allowed' => max(1, (int) ($setting->staff_max_books_allowed ?? 5)),
+            'student_book_return_days' => max(1, (int) ($setting->student_book_return_days ?? 15)),
+            'staff_book_return_days' => max(1, (int) ($setting->staff_book_return_days ?? 30)),
+        ];
+    }
+
+    public function librarysettings()
+    {
+        if (!$this->rbac->hasPrivilege('general_setting', 'can_view')) {
+            access_denied();
+        }
+
+        $this->session->set_userdata('top_menu', 'System Settings');
+        $this->session->set_userdata('sub_menu', 'schsettings/index');
+        $this->session->set_userdata('subsub_menu', 'schsettings/librarysettings');
+
+        $setting = $this->setting_model->getSetting();
+        $this->ensureLibrarySettingsColumns();
+
+        $lib_cols = $this->db
+            ->select('student_max_books_allowed, staff_max_books_allowed, student_book_return_days, staff_book_return_days')
+            ->from('sch_settings')
+            ->order_by('id', 'ASC')
+            ->limit(1)
+            ->get()
+            ->row();
+        if ($lib_cols) {
+            foreach ((array) $lib_cols as $col => $val) {
+                $setting->$col = $val;
+            }
+        }
+
+        $data = [];
+        $data['result'] = $setting;
+        $data['library_policy'] = $this->buildLibrarySettingsForView($setting);
+
+        $this->load->view('layout/header', $data);
+        $this->load->view('setting/librarysettings', $data);
+        $this->load->view('layout/footer', $data);
+    }
+
+    public function savelibrarysettings()
+    {
+        if (!$this->rbac->hasPrivilege('general_setting', 'can_edit')) {
+            access_denied();
+        }
+
+        $this->ensureLibrarySettingsColumns();
+
+        $student_max_books_allowed = max(1, (int) $this->input->post('student_max_books_allowed'));
+        $staff_max_books_allowed = max(1, (int) $this->input->post('staff_max_books_allowed'));
+        $student_book_return_days = max(1, (int) $this->input->post('student_book_return_days'));
+        $staff_book_return_days = max(1, (int) $this->input->post('staff_book_return_days'));
+
+        if ($student_max_books_allowed <= 0 || $staff_max_books_allowed <= 0 || $student_book_return_days <= 0 || $staff_book_return_days <= 0) {
+            echo json_encode(['status' => 0, 'message' => 'All values must be greater than zero.']);
+            return;
+        }
+
+        $setting = $this->setting_model->getSetting();
+        $setting_id = (int) ($setting->id ?? 1);
+
+        $data = [
+            'id' => $setting_id,
+            'student_max_books_allowed' => $student_max_books_allowed,
+            'staff_max_books_allowed' => $staff_max_books_allowed,
+            'student_book_return_days' => $student_book_return_days,
+            'staff_book_return_days' => $staff_book_return_days,
+        ];
+
+        $this->setting_model->add($data);
+        echo json_encode(['status' => 1, 'message' => $this->lang->line('success_message')]);
+    }
+
     public function saveleavepolicy()
     {
         if (!$this->rbac->hasPrivilege('general_setting', 'can_edit')) {

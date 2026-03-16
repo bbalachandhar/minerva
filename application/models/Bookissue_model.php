@@ -281,4 +281,24 @@ class Bookissue_model extends MY_Model
         return $this->db->count_all_results('book_issues');
     }
 
+    public function countActiveIssuedByMember($member_id)
+    {
+        $this->db->where('member_id', $member_id);
+        $this->db->where('is_returned', 0);
+        return (int) $this->db->count_all_results('book_issues');
+    }
+
+    public function getMemberTypeByLibraryMemberId($member_id)
+    {
+        $row = $this->db
+            ->select('member_type')
+            ->from('libarary_members')
+            ->where('id', $member_id)
+            ->limit(1)
+            ->get()
+            ->row_array();
+
+        return isset($row['member_type']) ? (string) $row['member_type'] : null;
+    }
+
 }

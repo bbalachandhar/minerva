@@ -92,8 +92,12 @@ if ($this->session->flashdata('msg')) {
                                 <span class="text text-danger qty_error"><b><?php echo $this->lang->line('available_quantity'); ?></b>: <span class="ava_quantity">0</span></span>
                             </div>
                             <div class="form-group">
+                                <label><?php echo $this->lang->line('issue_date'); ?></label>
+                                <input type="text" class="form-control" value="<?php echo $issue_date_display; ?>" readonly />
+                            </div>
+                            <div class="form-group">
                                 <label><?php echo $this->lang->line('due_return_date'); ?> <small class="req"> *</small></label>
-                                <input id="dateto" name="return_date"  type="text" class="form-control date"  value="<?php echo set_value('return_date', date($this->customlib->getSchoolDateFormat())); ?>" />
+                                <input id="dateto" name="return_date"  type="text" class="form-control date"  value="<?php echo set_value('return_date', $default_due_display); ?>" />
                                 <span class="text-danger"><?php echo form_error('return_date'); ?></span>
                             </div>
                         </div><!-- /.box-body -->

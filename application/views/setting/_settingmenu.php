@@ -52,6 +52,9 @@
             <li class="<?php echo set_SubSubmenu('schsettings/enquiryleadvendors'); ?>">
                 <a class="<?php echo set_SubSubmenu('schsettings/enquiryleadvendors'); ?>" href="<?php echo site_url('schsettings/enquiryleadvendors') ?>">Enquiry Lead Gen Vendors</a>
             </li>
+            <li class="<?php echo set_SubSubmenu('schsettings/librarysettings'); ?>">
+                <a class="<?php echo set_SubSubmenu('schsettings/librarysettings'); ?>" href="<?php echo site_url('schsettings/librarysettings') ?>">Library Settings</a>
+            </li>
             
         </ul>
     </div>

@@ -7,6 +7,54 @@ if (!defined('BASEPATH')) {
 class Member extends Admin_Controller
 {
 
+    private function getLibraryPolicySettings()
+    {
+        $defaults = array(
+            'student_max_books_allowed' => 3,
+            'staff_max_books_allowed' => 5,
+            'student_book_return_days' => 15,
+            'staff_book_return_days' => 30,
+        );
+
+        $required_columns = array(
+            'student_max_books_allowed',
+            'staff_max_books_allowed',
+            'student_book_return_days',
+            'staff_book_return_days',
+        );
+
+        $existing_rows = $this->db->query('SHOW COLUMNS FROM sch_settings')->result_array();
+        $existing_cols = array();
+        foreach ($existing_rows as $row) {
+            $existing_cols[] = $row['Field'];
+        }
+
+        foreach ($required_columns as $column) {
+            if (!in_array($column, $existing_cols, true)) {
+                return $defaults;
+            }
+        }
+
+        $row = $this->db
+            ->select('student_max_books_allowed, staff_max_books_allowed, student_book_return_days, staff_book_return_days')
+            ->from('sch_settings')
+            ->order_by('id', 'ASC')
+            ->limit(1)
+            ->get()
+            ->row_array();
+
+        if (empty($row)) {
+            return $defaults;
+        }
+
+        return array(
+            'student_max_books_allowed' => max(1, (int) ($row['student_max_books_allowed'] ?? $defaults['student_max_books_allowed'])),
+            'staff_max_books_allowed' => max(1, (int) ($row['staff_max_books_allowed'] ?? $defaults['staff_max_books_allowed'])),
+            'student_book_return_days' => max(1, (int) ($row['student_book_return_days'] ?? $defaults['student_book_return_days'])),
+            'staff_book_return_days' => max(1, (int) ($row['staff_book_return_days'] ?? $defaults['staff_book_return_days'])),
+        );
+    }
+
     public function __construct()
     {
         parent::__construct();
@@ -73,6 +121,15 @@ class Member extends Admin_Controller
         $data['title_list']   = 'Members';
         $memberList           = $this->librarymember_model->getByMemberID($id);
         $data['memberList']   = $memberList;
+        $policy               = $this->getLibraryPolicySettings();
+        $issue_date           = date('Y-m-d');
+        $issue_date_display   = date($this->customlib->getSchoolDateFormat(), strtotime($issue_date));
+        $is_student_member    = ($memberList && isset($memberList->member_type) && $memberList->member_type === 'student');
+        $default_due_days     = $is_student_member ? (int) $policy['student_book_return_days'] : (int) $policy['staff_book_return_days'];
+        $default_due_date     = date('Y-m-d', strtotime($issue_date . ' +' . $default_due_days . ' days'));
+        $default_due_display  = date($this->customlib->getSchoolDateFormat(), strtotime($default_due_date));
+        $data['issue_date_display']  = $issue_date_display;
+        $data['default_due_display'] = $default_due_display;
         $issued_books         = $this->bookissue_model->getMemberBooks($id);
         $data['issued_books'] = $issued_books;
 
@@ -84,6 +141,17 @@ class Member extends Admin_Controller
 
         } else {
             $member_id = $this->input->post('member_id');
+            $member_type = $this->bookissue_model->getMemberTypeByLibraryMemberId($member_id);
+            $allowed_limit = ($member_type === 'student') ? (int) $policy['student_max_books_allowed'] : (int) $policy['staff_max_books_allowed'];
+            $active_issued = $this->bookissue_model->countActiveIssuedByMember($member_id);
+
+            if ($active_issued >= $allowed_limit) {
+                $member_label = ($member_type === 'student') ? 'student' : 'staff';
+                $this->session->set_flashdata('msg', '<div class="alert alert-danger text-left">Maximum allowed issued books reached for this ' . $member_label . ' (' . $allowed_limit . ').</div>');
+                redirect('admin/member/issue/' . $member_id);
+                return;
+            }
+
             $data      = array(
                 'book_id'        => $this->input->post('book_id'),
                 'duereturn_date' => date('Y-m-d', $this->customlib->datetostrtotime($this->input->post('return_date'))),
