@@ -20,6 +20,12 @@ class Leadapi extends CI_Controller
             return;
         }
 
+        // Keep API integration strict for POST, but let browser GET open the enquiry form.
+        if ($method === 'GET') {
+            redirect('enquiry');
+            return;
+        }
+
         if ($method !== 'POST') {
             return $this->respond(405, [
                 'status' => 0,
