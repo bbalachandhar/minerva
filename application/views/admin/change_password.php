@@ -23,14 +23,16 @@
                         }
                         ?>
                         <?php echo $this->customlib->getCSRF(); ?>
+                        <?php if (empty($is_super_admin_reset)) { ?>
                         <div class="form-group">
                             <label class="control-label col-md-3 col-sm-3 col-xs-12" for="first-name"><?php echo $this->lang->line('current_password'); ?><span class="required"></span>
                             </label>
                             <div class="col-md-6 col-sm-6 col-xs-12">
-                                <input  name="current_pass" required="required" class="form-control col-md-7 col-xs-12" type="password"  value="<?php echo set_value('currentr_password'); ?>">
+                                <input name="current_pass" required="required" class="form-control col-md-7 col-xs-12" type="password" value="<?php echo set_value('currentr_password'); ?>">
                                 <span class="text-danger"><?php echo form_error('current_pass'); ?></span>
                             </div>
                         </div>
+                        <?php } ?>
                         <div class="form-group">
                             <label class="control-label col-md-3 col-sm-3 col-xs-12" for="first-name"><?php echo $this->lang->line('new_password'); ?><span class="required"></span>
                             </label>

@@ -1653,9 +1653,20 @@ class Admin extends Admin_Controller
         $this->session->set_userdata('top_menu', 'System Settings');
         $this->session->set_userdata('sub_menu', 'changepass/index');
         $data['title'] = 'Change Password';
-        $this->form_validation->set_rules('current_pass', $this->lang->line("current_password"), 'trim|required|xss_clean');
+
+        $role = json_decode((string) $this->customlib->getStaffRole());
+        $role_id = isset($role->id) ? (int) $role->id : 0;
+        $role_name = strtolower(trim((string) ($role->name ?? '')));
+        $is_super_admin = ($role_id === 7) || in_array($role_name, array('super admin', 'superadmin'), true);
+
+        if ($is_super_admin) {
+            $this->form_validation->set_rules('current_pass', $this->lang->line("current_password"), 'trim|xss_clean');
+        } else {
+            $this->form_validation->set_rules('current_pass', $this->lang->line("current_password"), 'trim|required|xss_clean');
+        }
         $this->form_validation->set_rules('new_pass', $this->lang->line("new_password"), 'trim|required|xss_clean|matches[confirm_pass]');
         $this->form_validation->set_rules('confirm_pass', $this->lang->line("confirm_password"), 'trim|required|xss_clean');
+        $data['is_super_admin_reset'] = $is_super_admin;
         if ($this->form_validation->run() == false) {
             $sessionData            = $this->session->userdata('admin');
             $this->data['id']       = $sessionData['id'];
@@ -1677,6 +1688,21 @@ class Admin extends Admin_Controller
                 'id'       => $sessionData['id'],
                 'password' => $this->enc_lib->passHashEnc($this->input->post('new_pass')),
             );
+
+            if ($is_super_admin) {
+                $query2 = $this->admin_model->saveNewPass($newdata);
+                if ($query2) {
+                    $data['error_message'] = "<div class='alert alert-success'>" . $this->lang->line("password_changed_successfully") . "</div>";
+                } else {
+                    $data['error_message'] = "<div class='alert alert-danger'>" . $this->lang->line("something_went_wrong") . "</div>";
+                }
+
+                $this->load->view('layout/header', $data);
+                $this->load->view('admin/change_password', $data);
+                $this->load->view('layout/footer', $data);
+                return;
+            }
+
             $check  = $this->enc_lib->passHashDyc($this->input->post('current_pass'), $userdata["password"]);
             $query1 = $this->admin_model->checkOldPass($data_array);
 
