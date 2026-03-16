@@ -11,7 +11,7 @@
                 <div class="col-sm-4">
                     <div class="form-group">
                         <label for="pwd"><?php echo $this->lang->line('phone'); ?></label><small class="req"> *</small>
-                        <input id="number" name="contact" placeholder="" type="text" class="form-control"  value="<?php echo set_value('contact', $enquiry_data['contact']); ?>" />
+                        <input id="number" name="contact" placeholder="" type="text" class="form-control" value="<?php echo set_value('contact', $enquiry_data['contact']); ?>" maxlength="10" inputmode="numeric" pattern="[0-9]{10}" />
                         <span class="text-danger"><?php echo form_error('contact'); ?></span>
                     </div>
                 </div>

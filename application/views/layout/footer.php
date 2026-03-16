@@ -558,13 +558,20 @@ if (isset($title)) {
         });
 
         $("body").delegate(".date", "focusin", function () {
-            $(this).datepicker({
+            var pickerOptions = {
                 todayHighlight: false,
                 format: date_format,
                 autoclose: true,
                 weekStart : start_week,
                 language: <?php echo json_encode($language_name); ?>
-            });
+            };
+
+            var endDate = $(this).data('dateEndDate');
+            if (typeof endDate !== 'undefined' && endDate !== null && endDate !== '') {
+                pickerOptions.endDate = endDate;
+            }
+
+            $(this).datepicker(pickerOptions);
         });
 
         $("body").delegate(".datetime", "focusin", function () {

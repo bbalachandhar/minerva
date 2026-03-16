@@ -168,9 +168,9 @@ class Enquiry extends Admin_Controller
             access_denied();
         }
         $this->form_validation->set_rules('name', $this->lang->line('name'), 'trim|required|xss_clean');
-        $this->form_validation->set_rules('contact', $this->lang->line('phone'), 'trim|required|xss_clean');
+        $this->form_validation->set_rules('contact', $this->lang->line('phone'), 'trim|required|xss_clean|callback_validate_phone_10digits');
         $this->form_validation->set_rules('source', $this->lang->line('source'), 'trim|required|xss_clean');
-        $this->form_validation->set_rules('date', $this->lang->line('date'), 'trim|required|xss_clean');
+        $this->form_validation->set_rules('date', $this->lang->line('date'), 'trim|required|xss_clean|callback_validate_not_future_date');
         $this->form_validation->set_rules('follow_up_date', $this->lang->line('next_follow_up_date'), 'trim|required|xss_clean');
         $this->form_validation->set_rules('course_type', 'Course Type', 'trim|required|xss_clean');
         $this->form_validation->set_rules('admission_course_id', 'Course', 'trim|required|xss_clean');
@@ -336,9 +336,9 @@ class Enquiry extends Admin_Controller
             access_denied();
         }
         $this->form_validation->set_rules('name', $this->lang->line('name'), 'trim|required|xss_clean');
-        $this->form_validation->set_rules('contact', $this->lang->line('phone'), 'trim|required|xss_clean');
+        $this->form_validation->set_rules('contact', $this->lang->line('phone'), 'trim|required|xss_clean|callback_validate_phone_10digits');
         $this->form_validation->set_rules('source', $this->lang->line('source'), 'trim|required|xss_clean');
-        $this->form_validation->set_rules('date', $this->lang->line('date'), 'trim|required|xss_clean');
+        $this->form_validation->set_rules('date', $this->lang->line('date'), 'trim|required|xss_clean|callback_validate_not_future_date');
         $this->form_validation->set_rules('follow_up_date', $this->lang->line('next_follow_up_date'), 'trim|required|xss_clean');
         $this->form_validation->set_rules('admission_course_id', 'Course', 'trim|required|xss_clean');
         
@@ -399,6 +399,44 @@ class Enquiry extends Admin_Controller
     public function check_default($post_string)
     {
         return $post_string == '' ? false : true;
+    }
+
+    public function validate_not_future_date($date_input)
+    {
+        $date_input = trim((string) $date_input);
+        if ($date_input === '') {
+            return true;
+        }
+
+        $timestamp = $this->customlib->datetostrtotime($date_input);
+        if (!$timestamp) {
+            return true;
+        }
+
+        $input_date = date('Y-m-d', $timestamp);
+        $today = date('Y-m-d');
+
+        if ($input_date > $today) {
+            $this->form_validation->set_message('validate_not_future_date', 'The {field} field cannot be a future date.');
+            return false;
+        }
+
+        return true;
+    }
+
+    public function validate_phone_10digits($phone_input)
+    {
+        $phone_input = trim((string) $phone_input);
+        if ($phone_input === '') {
+            return true;
+        }
+
+        if (!preg_match('/^[0-9]{10}$/', $phone_input)) {
+            $this->form_validation->set_message('validate_phone_10digits', 'The {field} field must be exactly 10 digits.');
+            return false;
+        }
+
+        return true;
     }
 
     public function change_status()

@@ -298,7 +298,7 @@ if (!empty($display_next_date) && $display_next_date != '0000-00-00') {
                                     <div class="col-sm-4">
                                         <div class="form-group">
                                             <label for="pwd"><?php echo $this->lang->line('phone'); ?></label><small class="req"> *</small> <small class="req"><span id="phone_error_message"></span></small>
-                                            <input id="number" autocomplete="off" name="contact" placeholder="" type="text" class="form-control"  value="<?php echo set_value('contact'); ?>" required />
+                                            <input id="number" autocomplete="off" name="contact" placeholder="" type="text" class="form-control" value="<?php echo set_value('contact'); ?>" maxlength="10" inputmode="numeric" pattern="[0-9]{10}" required />
                                             <span id="contact_add_error" class="text-danger"></span>
                                         </div>
                                     </div>
@@ -339,7 +339,7 @@ if (!empty($display_next_date) && $display_next_date != '0000-00-00') {
                                     <div class="col-sm-4">
                                         <div class="form-group">
                                             <label for="pwd"><?php echo $this->lang->line('date'); ?><small class="req"> *</small></label>
-                                            <input type="text" id="date" name="date" class="form-control date" value="<?php echo set_value('date', date($this->customlib->getSchoolDateFormat())); ?>" readonly="" required>
+                                            <input type="text" id="date" name="date" class="form-control date" data-date-end-date="+0d" value="<?php echo set_value('date', date($this->customlib->getSchoolDateFormat())); ?>" readonly="" required>
                                             <span id="date_add_error" class="text-danger"></span>
                                         </div>
                                     </div>
@@ -518,6 +518,9 @@ if (!empty($display_next_date) && $display_next_date != '0000-00-00') {
         if (!contactVal) {
             setAddEnquiryError('contact', 'Phone is required.');
             isValid = false;
+        } else if (!/^[0-9]{10}$/.test(contactVal)) {
+            setAddEnquiryError('contact', 'Phone must be exactly 10 digits.');
+            isValid = false;
         }
         if (!sourceVal) {
             setAddEnquiryError('source', 'Source is required.');
@@ -526,6 +529,16 @@ if (!empty($display_next_date) && $display_next_date != '0000-00-00') {
         if (!dateVal) {
             setAddEnquiryError('date', 'Date is required.');
             isValid = false;
+        } else {
+            var selectedDate = moment(dateVal, [calendar_date_time_format, 'DD/MM/YYYY', 'MM/DD/YYYY', 'YYYY-MM-DD'], true);
+            if (!selectedDate.isValid()) {
+                selectedDate = moment(dateVal);
+            }
+
+            if (selectedDate.isValid() && selectedDate.startOf('day').isAfter(moment().startOf('day'))) {
+                setAddEnquiryError('date', 'Date cannot be a future date.');
+                isValid = false;
+            }
         }
         if (!followDateVal) {
             setAddEnquiryError('follow_up_date', 'Next follow up date is required.');
@@ -554,6 +567,7 @@ if (!empty($display_next_date) && $display_next_date != '0000-00-00') {
     $(document).ready(function () {
               moment.locale('en', {          week: { dow: start_week }
         });
+
      $('#enquiry_date').daterangepicker(
         {
             locale: {
@@ -568,6 +582,13 @@ if (!empty($display_next_date) && $display_next_date != '0000-00-00') {
 
     $(document).on('change', '#formadd input[name="course_type"]', function () {
         validateAddEnquiryForm();
+    });
+
+    $(document).on('input', '#formadd [name="contact"]', function () {
+        var digitsOnly = ($(this).val() || '').replace(/\D/g, '').slice(0, 10);
+        if ($(this).val() !== digitsOnly) {
+            $(this).val(digitsOnly);
+        }
     });
 
     function getRecord(id, status) {
