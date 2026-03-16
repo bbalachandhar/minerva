@@ -396,10 +396,31 @@ class Book_model extends MY_Model
 
     public function getAvailableBooks()
     {
-        $this->db->select()->from('books');
+        $this->db->select('books.id, books.book_title')->from('books');
         $this->db->where('LOWER(books.available)', 'yes');
-        $this->db->order_by('books.book_title', 'asc'); // Order by title for readability
+        $this->db->order_by('books.book_title', 'asc');
         $query = $this->db->get();
         return $query->result_array();
+    }
+
+    public function searchAvailableBooks($term = '', $limit = 30, $offset = 0)
+    {
+        $this->db->select('books.id, books.book_title, books.book_no')
+            ->from('books')
+            ->where('LOWER(books.available)', 'yes');
+
+        if ($term !== '') {
+            $this->db->group_start()
+                ->like('books.book_title', $term)
+                ->or_like('books.book_no', $term)
+                ->or_like('books.isbn_no', $term)
+                ->or_like('books.barcode', $term)
+                ->group_end();
+        }
+
+        $this->db->order_by('books.book_title', 'asc')
+            ->limit((int) $limit, (int) $offset);
+
+        return $this->db->get()->result_array();
     }
 }

@@ -63,22 +63,94 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
 
 <script>
 $(document).ready(function() {
-    // Initialize the full datatable on page load to show all controls
-    initDatatable('pending-attendance-list', 'admin/library_checkout_pending/get_pending_dt', {}, [], 100, [], true, [], 'data');
+    var pendingTable = $('.pending-attendance-list').DataTable({
+        "processing": true,
+        "serverSide": true,
+        "ajax": {
+            "url": base_url + 'admin/library_checkout_pending/get_pending_dt',
+            "type": "POST",
+            "data": function (d) {
+                d.start_date = $('#start_date').val();
+                d.end_date = $('#end_date').val();
+            }
+        },
+        "columns": [
+            { "data": "user_id" },
+            { "data": "name" },
+            { "data": "attendance_date" },
+            { "data": "in_time" },
+            { "data": "out_time" },
+            { "data": "time_spent" },
+            {
+                "data": "out_time",
+                "render": function (data, type, row) {
+                    if (data === null || data === "") {
+                        return '<span class="label label-success"><?php echo $this->lang->line('in'); ?></span>';
+                    }
+                    return '<span class="label label-danger"><?php echo $this->lang->line('out'); ?></span>';
+                }
+            }
+        ],
+        "order": [[ 3, "asc" ]],
+        "pageLength": 100,
+        dom: '<"top"f><Bl>r<t>ip',
+        buttons: [
+            {
+                extend: 'copy',
+                text: '<i class="fa fa-files-o"></i>',
+                titleAttr: 'Copy',
+                className: 'btn-copy',
+                title: $('.pending-attendance-list').data('exportTitle'),
+                exportOptions: {
+                    columns: ['thead th:not(.noExport)']
+                }
+            },
+            {
+                extend: 'excel',
+                text: '<i class="fa fa-file-excel-o"></i>',
+                titleAttr: 'Excel',
+                className: 'btn-excel',
+                title: $('.pending-attendance-list').data('exportTitle'),
+                exportOptions: {
+                    columns: ['thead th:not(.noExport)']
+                }
+            },
+            {
+                extend: 'csv',
+                text: '<i class="fa fa-file-text-o"></i>',
+                titleAttr: 'CSV',
+                className: 'btn-csv',
+                title: $('.pending-attendance-list').data('exportTitle'),
+                exportOptions: {
+                    columns: ['thead th:not(.noExport)']
+                }
+            },
+            {
+                extend: 'pdf',
+                text: '<i class="fa fa-file-pdf-o"></i>',
+                titleAttr: 'PDF',
+                className: 'btn-pdf',
+                title: $('.pending-attendance-list').data('exportTitle'),
+                exportOptions: {
+                    columns: ['thead th:not(.noExport)']
+                }
+            },
+            {
+                extend: 'print',
+                text: '<i class="fa fa-print"></i>',
+                titleAttr: 'Print',
+                className: 'btn-print',
+                title: $('.pending-attendance-list').data('exportTitle'),
+                exportOptions: {
+                    columns: ['thead th:not(.noExport)']
+                }
+            }
+        ]
+    });
 
-    // Handle the filter form submission to reload the table with new date parameters
     $('#filter_form').on('submit', function(e) {
         e.preventDefault();
-        
-        var start_date = $('#start_date').val();
-        var end_date = $('#end_date').val();
-
-        var params = {
-            start_date: start_date,
-            end_date: end_date
-        };
-
-        initDatatable('pending-attendance-list', 'admin/library_checkout_pending/get_pending_dt', params, [], 100, [], true, [], 'data');
+        pendingTable.ajax.reload();
     });
 });
 </script>

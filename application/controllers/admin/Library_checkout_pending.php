@@ -31,8 +31,6 @@ class Library_checkout_pending extends Admin_Controller
 
     public function get_pending_dt()
     {
-        error_reporting(E_ALL);
-        ini_set('display_errors', 1);
         // Check privilege if needed
         // if (!$this->rbac->hasPrivilege('library_checkout_pending', 'can_view')) {
         //     echo json_encode(array("data" => array()));

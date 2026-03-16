@@ -18,35 +18,116 @@ class Libraryattendance_model extends MY_Model
      */
     public function get_user_details_by_id($id)
     {
-        // Search in students table
-        $this->db->select('id, firstname, lastname');
-        $this->db->from('students');
-        $this->db->where('id', $id);
-        $student_query = $this->db->get();
-        if ($student_query->num_rows() > 0) {
-            $student = $student_query->row_array();
+        $id = trim((string) $id);
+        if ($id === '') {
+            return false;
+        }
+
+        // 1) Library card mapping (preferred for scanner flows)
+        $this->db->select('member_type, member_id')
+            ->from('libarary_members')
+            ->where('TRIM(library_card_no)', $id)
+            ->limit(1);
+        $member_query = $this->db->get();
+        if ($member_query->num_rows() > 0) {
+            $member = $member_query->row_array();
+            if ($member['member_type'] === 'student') {
+                $student = $this->get_student_by_pk((int) $member['member_id']);
+                if ($student) {
+                    return $student;
+                }
+            }
+            if ($member['member_type'] === 'staff') {
+                $staff = $this->get_staff_by_pk((int) $member['member_id']);
+                if ($staff) {
+                    return $staff;
+                }
+            }
+        }
+
+        // 2) Student admission number
+        $this->db->select('id, firstname, lastname')
+            ->from('students')
+            ->where('TRIM(admission_no)', $id)
+            ->limit(1);
+        $student_adm_query = $this->db->get();
+        if ($student_adm_query->num_rows() > 0) {
+            $student = $student_adm_query->row_array();
             return [
                 'user_id' => $student['id'],
-                'name' => $student['firstname'] . ' ' . $student['lastname'],
-                'user_type' => 'student'
+                'name' => trim($student['firstname'] . ' ' . $student['lastname']),
+                'user_type' => 'student',
             ];
         }
 
-        // Search in staff table
-        $this->db->select('id, name, surname');
-        $this->db->from('staff');
-        $this->db->where('id', $id);
-        $staff_query = $this->db->get();
-        if ($staff_query->num_rows() > 0) {
-            $staff = $staff_query->row_array();
+        // 3) Staff employee/biometric identifiers
+        $this->db->select('id, name, surname')
+            ->from('staff')
+            ->group_start()
+            ->where('TRIM(employee_id)', $id)
+            ->or_where('TRIM(biometric_id)', $id)
+            ->group_end()
+            ->limit(1);
+        $staff_code_query = $this->db->get();
+        if ($staff_code_query->num_rows() > 0) {
+            $staff = $staff_code_query->row_array();
             return [
                 'user_id' => $staff['id'],
-                'name' => $staff['name'] . ' ' . $staff['surname'],
-                'user_type' => 'staff'
+                'name' => trim($staff['name'] . ' ' . $staff['surname']),
+                'user_type' => 'staff',
             ];
         }
 
-        return false; // User not found
+        // 4) Fallback to numeric primary key lookups
+        if (ctype_digit($id)) {
+            $student = $this->get_student_by_pk((int) $id);
+            if ($student) {
+                return $student;
+            }
+
+            $staff = $this->get_staff_by_pk((int) $id);
+            if ($staff) {
+                return $staff;
+            }
+        }
+
+        return false;
+    }
+
+    private function get_student_by_pk($id)
+    {
+        $this->db->select('id, firstname, lastname')
+            ->from('students')
+            ->where('id', (int) $id)
+            ->limit(1);
+        $query = $this->db->get();
+        if ($query->num_rows() > 0) {
+            $student = $query->row_array();
+            return [
+                'user_id' => $student['id'],
+                'name' => trim($student['firstname'] . ' ' . $student['lastname']),
+                'user_type' => 'student',
+            ];
+        }
+        return false;
+    }
+
+    private function get_staff_by_pk($id)
+    {
+        $this->db->select('id, name, surname')
+            ->from('staff')
+            ->where('id', (int) $id)
+            ->limit(1);
+        $query = $this->db->get();
+        if ($query->num_rows() > 0) {
+            $staff = $query->row_array();
+            return [
+                'user_id' => $staff['id'],
+                'name' => trim($staff['name'] . ' ' . $staff['surname']),
+                'user_type' => 'staff',
+            ];
+        }
+        return false;
     }
 
     /**
@@ -127,8 +208,9 @@ class Libraryattendance_model extends MY_Model
      */
     public function get_attendance_records_dt($date = null)
     {
-        $this->db->select('id, user_id, user_type, name, attendance_date, in_time, out_time, duration');
+        $this->db->select('library_attendance.id, library_attendance.user_id, library_attendance.user_type, library_attendance.name, students.admission_no, library_attendance.attendance_date, library_attendance.in_time, library_attendance.out_time, library_attendance.duration');
         $this->db->from('library_attendance');
+        $this->db->join('students', 'students.id = library_attendance.user_id AND library_attendance.user_type = "student"', 'left');
 
         if ($date) {
             $this->db->where('attendance_date', $date);
@@ -138,6 +220,11 @@ class Libraryattendance_model extends MY_Model
         
         $query = $this->db->get();
         $result = $query->result_array();
+
+        foreach ($result as &$row) {
+            $row['admission_no'] = isset($row['admission_no']) && $row['admission_no'] !== null ? $row['admission_no'] : '';
+        }
+        unset($row);
         
         $total_records = count($result);
 

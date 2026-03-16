@@ -77,18 +77,16 @@ if ($this->session->flashdata('msg')) {
                                 <label for="exampleInputEmail1"><?php echo $this->lang->line('books'); ?>  <small class="req"> *</small></label>
                                 <select autofocus="" id="book_id" name="book_id" class="form-control select2">
                                     <option value=""><?php echo $this->lang->line('select'); ?></option>
-                                    <?php     
-foreach ($bookList as $book) {  
-    ?>
-                                        <option value="<?php echo $book['id'] ?>"<?php
-if (set_value('book_id') == $book['id']) {
-        echo "selected =selected";
-    }
-    ?>>
-                                            <?php echo $book['book_title'] ?></option>
-                                        <?php
-}
-?>
+                                    <?php if (!empty($selected_book)) { ?>
+                                        <option value="<?php echo $selected_book['id']; ?>" selected="selected">
+                                            <?php
+                                                echo $selected_book['book_title'];
+                                                if (!empty($selected_book['book_no'])) {
+                                                    echo ' (' . $selected_book['book_no'] . ')';
+                                                }
+                                            ?>
+                                        </option>
+                                    <?php } ?>
                                 </select>
                                 <span class="text-danger" id="book_already_issued"><?php echo form_error('book_id'); ?></span>
                                 <span class="text text-danger qty_error"><b><?php echo $this->lang->line('available_quantity'); ?></b>: <span class="ava_quantity">0</span></span>
@@ -210,6 +208,31 @@ $count++;
 <script type="text/javascript">
     $(document).ready(function () {
         $('.js-example-basic-single,.select2').select2();
+
+        $('#book_id').select2({
+            width: '100%',
+            placeholder: '<?php echo $this->lang->line('search') . " " . $this->lang->line('books'); ?>',
+            allowClear: true,
+            minimumInputLength: 1,
+            ajax: {
+                url: base_url + 'admin/member/searchavailablebooks',
+                dataType: 'json',
+                delay: 250,
+                data: function (params) {
+                    return {
+                        term: params.term || '',
+                        page: params.page || 1
+                    };
+                },
+                processResults: function (data) {
+                    return {
+                        results: data.results || [],
+                        pagination: data.pagination || {more: false}
+                    };
+                },
+                cache: true
+            }
+        });
     });
     
     $(document).ready(function () {

@@ -75,8 +75,7 @@ class Member extends Admin_Controller
         $data['memberList']   = $memberList;
         $issued_books         = $this->bookissue_model->getMemberBooks($id);
         $data['issued_books'] = $issued_books;
-        $bookList             = $this->book_model->get();
-        
+
         $this->form_validation->set_rules('return_date', $this->lang->line('due_return_date'), 'trim|required|xss_clean');
         $this->form_validation->set_rules('book_id', $this->lang->line('books'), array('required', array('check_exists', array($this->bookissue_model, 'valid_check_exists')),
         )
@@ -102,12 +101,53 @@ class Member extends Admin_Controller
         }
        
         
-        $data['bookList']     = $this->book_model->getAvailableBooks(); // Changed to get only available books
+        $selected_book      = null;
+        $selected_book_id   = set_value('book_id');
+        if (!empty($selected_book_id)) {
+            $selected_book = $this->book_model->get((int) $selected_book_id);
+        }
+        $data['selected_book'] = $selected_book;
         
         $data['sch_setting'] = $this->sch_setting_detail;
         $this->load->view('layout/header');
         $this->load->view('admin/librarian/issue', $data);
         $this->load->view('layout/footer');
+    }
+
+    public function searchavailablebooks()
+    {
+        if (!$this->rbac->hasPrivilege('issue_return', 'can_view')) {
+            access_denied();
+        }
+
+        $term   = trim((string) $this->input->get('term'));
+        $page   = (int) $this->input->get('page');
+        $limit  = 30;
+        $page   = $page > 0 ? $page : 1;
+        $offset = ($page - 1) * $limit;
+
+        $books   = $this->book_model->searchAvailableBooks($term, $limit, $offset);
+        $results = array();
+
+        foreach ($books as $book) {
+            $label = trim((string) $book['book_title']);
+            if (!empty($book['book_no'])) {
+                $label .= ' (' . $book['book_no'] . ')';
+            }
+            $results[] = array(
+                'id'   => (int) $book['id'],
+                'text' => $label,
+            );
+        }
+
+        $response = array(
+            'results'    => $results,
+            'pagination' => array('more' => count($books) === $limit),
+        );
+
+        $this->output
+            ->set_content_type('application/json')
+            ->set_output(json_encode($response));
     }
 
     public function bookreturn()

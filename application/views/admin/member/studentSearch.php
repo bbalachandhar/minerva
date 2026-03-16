@@ -23,7 +23,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                     <div class="col-sm-6">
                                         <div class="form-group">
                                             <label><?php echo $this->lang->line('class'); ?></label><small class="req"> *</small>
-                                            <select autofocus="" id="class_id" name="class_id" class="form-control" >
+                                            <select autofocus="" id="class_id" name="class_id" class="form-control select2" >
                                                 <option value=""><?php echo $this->lang->line('select'); ?></option>
                                                 <?php
 foreach ($classlist as $class) {
@@ -43,7 +43,7 @@ $count++;
                                     <div class="col-sm-6">
                                         <div class="form-group">
                                             <label><?php echo $this->lang->line('section'); ?></label>
-                                            <select  id="section_id" name="section_id" class="form-control" >
+                                            <select  id="section_id" name="section_id" class="form-control select2" >
                                                 <option value=""><?php echo $this->lang->line('select'); ?></option>
                                             </select>
                                             <span class="text-danger"><?php echo form_error('section_id'); ?></span>
@@ -186,6 +186,16 @@ $count++;
 
 <script type="text/javascript">
     $(document).ready(function () {
+        $('#class_id').select2({
+            width: '100%',
+            placeholder: '<?php echo $this->lang->line('select'); ?>'
+        });
+
+        $('#section_id').select2({
+            width: '100%',
+            placeholder: '<?php echo $this->lang->line('select'); ?>'
+        });
+
         $("#squarespaceModal").modal({
             show: false,
             backdrop: 'static'
@@ -211,7 +221,7 @@ $count++;
                         }
                         div_data += "<option value=" + obj.section_id + " " + sel + ">" + obj.section + "</option>";
                     });
-                    $('#section_id').append(div_data);
+                    $('#section_id').append(div_data).trigger('change');
                 }
             });
         }
@@ -236,7 +246,7 @@ $count++;
                     {
                         div_data += "<option value=" + obj.section_id + ">" + obj.section + "</option>";
                     });
-                    $('#section_id').append(div_data);
+                    $('#section_id').append(div_data).trigger('change');
                 }
             });
         });

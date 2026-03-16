@@ -25,7 +25,7 @@ class Book extends Admin_Controller
 
     public function index()
     {
-        if (!$this->rbac->hasPrivilege('books', 'can_view')) {
+        if (!$this->rbac->hasPrivilege('book_list', 'can_view')) {
             access_denied();
         }
 
@@ -43,7 +43,7 @@ class Book extends Admin_Controller
 
     public function getall()
     {
-        if (!$this->rbac->hasPrivilege('books', 'can_view')) {
+        if (!$this->rbac->hasPrivilege('book_list', 'can_view')) {
             access_denied();
         }
         $this->session->set_userdata('top_menu', 'Library');
@@ -62,7 +62,7 @@ class Book extends Admin_Controller
 
     public function create()
     {
-        if (!$this->rbac->hasPrivilege('books', 'can_add')) {
+        if (!$this->rbac->hasPrivilege('book_list', 'can_add')) {
             access_denied();
         }
         $data['title']      = 'Add Book';
@@ -133,7 +133,7 @@ class Book extends Admin_Controller
 
     public function edit($id)
     {
-        if (!$this->rbac->hasPrivilege('books', 'can_edit')) {
+        if (!$this->rbac->hasPrivilege('book_list', 'can_edit')) {
             access_denied();
         }
 
@@ -229,7 +229,7 @@ class Book extends Admin_Controller
 
     public function delete($id)
     {
-        if (!$this->rbac->hasPrivilege('books', 'can_delete')) {
+        if (!$this->rbac->hasPrivilege('book_list', 'can_delete')) {
             access_denied();
         }
         $data['title'] = 'Fees Master List';
@@ -243,7 +243,7 @@ class Book extends Admin_Controller
 
     public function bookdetail($id)
     {
-        if (!$this->rbac->hasPrivilege('books', 'can_view')) {
+        if (!$this->rbac->hasPrivilege('book_list', 'can_view')) {
             access_denied();
         }
         $this->session->set_userdata('top_menu', 'Library');
@@ -327,7 +327,7 @@ class Book extends Admin_Controller
     public function import()
     {
         set_time_limit(0); // Set time limit to infinite for bulk import
-        if (!$this->rbac->hasPrivilege('books', 'can_add')) {
+        if (!$this->rbac->hasPrivilege('book_list', 'can_add')) {
             access_denied();
         }
         $data['fields'] = array('book_title', 'book_no', 'barcode', 'category_name', 'subcategory_name', 'isbn_no', 'subject', 'rack_name', 'shelf_name', 'class_no', 'publisher_name', 'author', 'author2', 'edition', 'edition_type', 'medium', 'book_type_name', 'publish_year', 'perunitcost', 'purchase_date', 'bill_no', 'bill_date', 'pages', 'department', 'description', 'available', 'is_active', 'publish', 'postdate', 'vendor');
@@ -828,11 +828,11 @@ class Book extends Admin_Controller
                 $editbtn   = '';
                 $deletebtn = '';
 
-                if ($this->rbac->hasPrivilege('books', 'can_edit')) {
+                if ($this->rbac->hasPrivilege('book_list', 'can_edit')) {
                     $editbtn = "<a href='" . base_url() . "admin/book/edit/" . $value->id . "'   class='btn btn-default btn-xs'  data-toggle='tooltip' title='" . $this->lang->line('edit') . "'><i class='fa fa-pencil'></i></a>";
                 }
 
-                if ($this->rbac->hasPrivilege('books', 'can_delete')) {
+                if ($this->rbac->hasPrivilege('book_list', 'can_delete')) {
                     $deletebtn = "<a onclick='return confirm(" . '"' . $this->lang->line('delete_confirm') . '"' . "  )' href='" . base_url() . "admin/book/delete/" . $value->id . "' class='btn btn-default btn-xs' title='" . $this->lang->line('delete') . "' data-toggle='tooltip'><i class='fa fa-trash'></i></a>";
                 }
 

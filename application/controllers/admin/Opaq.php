@@ -13,7 +13,7 @@ class Opaq extends Admin_Controller {
     }
 
     function index() {
-        if (!$this->rbac->hasPrivilege('books', 'can_view')) { // Using 'books' privilege for now
+        if (!$this->rbac->hasPrivilege('library_opac', 'can_view')) {
             access_denied();
         }
         $this->session->set_userdata('top_menu', 'Library');
@@ -37,7 +37,7 @@ class Opaq extends Admin_Controller {
 
     // This method will handle the AJAX request for the DataTable
     function getopaqlist() {
-        if (!$this->rbac->hasPrivilege('books', 'can_view')) {
+        if (!$this->rbac->hasPrivilege('library_opac', 'can_view')) {
             echo json_encode(array(
                 "draw" => 0,
                 "recordsTotal" => 0,

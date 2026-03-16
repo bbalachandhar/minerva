@@ -31,8 +31,6 @@ class Library_checkin_checkout extends Admin_Controller
 
     public function process_scan()
     {
-        error_reporting(E_ALL);
-        ini_set('display_errors', 1);
         $this->form_validation->set_rules('id_number', $this->lang->line('id_number'), 'trim|required|xss_clean');
 
         if ($this->form_validation->run() == FALSE) {
@@ -41,7 +39,7 @@ class Library_checkin_checkout extends Admin_Controller
             exit();
         }
 
-        $id_number = $this->input->post('id_number');
+        $id_number = trim((string) $this->input->post('id_number'));
         $current_date = date('Y-m-d');
 
         $user_details = $this->libraryattendance_model->get_user_details_by_id($id_number);
