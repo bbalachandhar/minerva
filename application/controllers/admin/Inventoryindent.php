@@ -181,7 +181,7 @@ class Inventoryindent extends Admin_Controller
 
     public function index()
     {
-        if (!$this->rbac->hasPrivilege('item_stock', 'can_view')) {
+        if (!$this->rbac->hasPrivilege('inventory_indents', 'can_view')) {
             access_denied();
         }
 
@@ -211,7 +211,7 @@ class Inventoryindent extends Admin_Controller
 
     public function create()
     {
-        if (!$this->rbac->hasPrivilege('item_stock', 'can_add')) {
+        if (!$this->rbac->hasPrivilege('inventory_indents', 'can_add')) {
             access_denied();
         }
 
@@ -257,7 +257,7 @@ class Inventoryindent extends Admin_Controller
 
     public function store()
     {
-        if (!$this->rbac->hasPrivilege('item_stock', 'can_add')) {
+        if (!$this->rbac->hasPrivilege('inventory_indents', 'can_add')) {
             access_denied();
         }
 
@@ -383,7 +383,7 @@ class Inventoryindent extends Admin_Controller
 
     public function approvals()
     {
-        if (!$this->rbac->hasPrivilege('item_stock', 'can_view')) {
+        if (!$this->rbac->hasPrivilege('indent_approvals', 'can_view')) {
             access_denied();
         }
 
@@ -418,7 +418,7 @@ class Inventoryindent extends Admin_Controller
 
     public function decision($approval_id)
     {
-        if (!$this->rbac->hasPrivilege('item_stock', 'can_edit')) {
+        if (!$this->rbac->hasPrivilege('indent_approvals', 'can_edit')) {
             access_denied();
         }
 

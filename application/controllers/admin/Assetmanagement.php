@@ -127,7 +127,7 @@ class Assetmanagement extends Admin_Controller
 
     public function register()
     {
-        if (!$this->rbac->hasPrivilege('item_stock', 'can_view')) {
+        if (!$this->rbac->hasPrivilege('asset_register', 'can_view')) {
             access_denied();
         }
 
@@ -233,7 +233,7 @@ class Assetmanagement extends Admin_Controller
 
     public function assignment()
     {
-        if (!$this->rbac->hasPrivilege('item_stock', 'can_view')) {
+        if (!$this->rbac->hasPrivilege('asset_assignment', 'can_view')) {
             access_denied();
         }
 
@@ -268,7 +268,7 @@ class Assetmanagement extends Admin_Controller
 
     public function storeassignment()
     {
-        if (!$this->rbac->hasPrivilege('item_stock', 'can_add')) {
+        if (!$this->rbac->hasPrivilege('asset_assignment', 'can_add')) {
             access_denied();
         }
 
@@ -339,7 +339,7 @@ class Assetmanagement extends Admin_Controller
 
     public function bulkassignment()
     {
-        if (!$this->rbac->hasPrivilege('item_stock', 'can_add')) {
+        if (!$this->rbac->hasPrivilege('asset_assignment', 'can_add')) {
             access_denied();
         }
 
@@ -425,7 +425,7 @@ class Assetmanagement extends Admin_Controller
 
     public function markreturn()
     {
-        if (!$this->rbac->hasPrivilege('item_stock', 'can_edit')) {
+        if (!$this->rbac->hasPrivilege('asset_assignment', 'can_edit')) {
             access_denied();
         }
 
@@ -465,7 +465,7 @@ class Assetmanagement extends Admin_Controller
 
     public function transfer()
     {
-        if (!$this->rbac->hasPrivilege('item_stock', 'can_view')) {
+        if (!$this->rbac->hasPrivilege('asset_transfer', 'can_view')) {
             access_denied();
         }
 
@@ -500,7 +500,7 @@ class Assetmanagement extends Admin_Controller
 
     public function storetransfer()
     {
-        if (!$this->rbac->hasPrivilege('item_stock', 'can_add')) {
+        if (!$this->rbac->hasPrivilege('asset_transfer', 'can_add')) {
             access_denied();
         }
 
@@ -577,7 +577,7 @@ class Assetmanagement extends Admin_Controller
 
     public function bulktransfer()
     {
-        if (!$this->rbac->hasPrivilege('item_stock', 'can_add')) {
+        if (!$this->rbac->hasPrivilege('asset_transfer', 'can_add')) {
             access_denied();
         }
 
@@ -674,7 +674,7 @@ class Assetmanagement extends Admin_Controller
 
     public function maintenance()
     {
-        if (!$this->rbac->hasPrivilege('item_stock', 'can_view')) {
+        if (!$this->rbac->hasPrivilege('asset_maintenance', 'can_view')) {
             access_denied();
         }
 
@@ -705,7 +705,7 @@ class Assetmanagement extends Admin_Controller
 
     public function storemaintenance()
     {
-        if (!$this->rbac->hasPrivilege('item_stock', 'can_add')) {
+        if (!$this->rbac->hasPrivilege('asset_maintenance', 'can_add')) {
             access_denied();
         }
 
@@ -767,7 +767,7 @@ class Assetmanagement extends Admin_Controller
 
     public function completemaintenance()
     {
-        if (!$this->rbac->hasPrivilege('item_stock', 'can_edit')) {
+        if (!$this->rbac->hasPrivilege('asset_maintenance', 'can_edit')) {
             access_denied();
         }
 
@@ -811,7 +811,7 @@ class Assetmanagement extends Admin_Controller
 
     public function bulkmaintenance()
     {
-        if (!$this->rbac->hasPrivilege('item_stock', 'can_add')) {
+        if (!$this->rbac->hasPrivilege('asset_maintenance', 'can_add')) {
             access_denied();
         }
 

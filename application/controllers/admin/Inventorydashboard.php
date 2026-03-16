@@ -8,7 +8,7 @@ class Inventorydashboard extends Admin_Controller
 {
     public function index()
     {
-        if (!$this->rbac->hasPrivilege('item_stock', 'can_view')) {
+        if (!$this->rbac->hasPrivilege('inventory_dashboard', 'can_view')) {
             access_denied();
         }
 
@@ -37,7 +37,7 @@ class Inventorydashboard extends Admin_Controller
 
     public function guide()
     {
-        if (!$this->rbac->hasPrivilege('item_stock', 'can_view')) {
+        if (!$this->rbac->hasPrivilege('inventory_dashboard', 'can_view')) {
             access_denied();
         }
 

@@ -998,45 +998,27 @@ class Leaverequest extends Admin_Controller
                 return;
             }
         } else {
-            // Fallback for privileged users with strict stage sequence
-            $recommender_done = in_array((string) $leave_request['recommender_status'], ['approved', 'recommended'], true);
-
-            if (!$recommender_done) {
-                if ($status == 'approved') {
-                    $data['recommender_status'] = 'recommended';
-                    $success_message = 'Leave successfully recommended for approval.';
-                    if ($leave_request['status'] == 'pending') {
-                        $data['status'] = 'recommended';
-                    }
-                } elseif ($status == 'disapproved') {
-                    $data['recommender_status'] = 'rejected';
-                    $data['status'] = 'disapproved';
-                    $success_message = 'Leave request rejected at recommender level.';
-                } else {
-                    $array = array('status' => 'fail', 'error' => '', 'message' => $this->lang->line('invalid_status'));
-                    echo json_encode($array);
-                    return;
+            // Privileged managers can finalize the request directly.
+            if ($status == 'approved' || $status == 'disapproved') {
+                if (!in_array((string) $leave_request['recommender_status'], ['approved', 'recommended', 'rejected'], true)) {
+                    $data['recommender_status'] = ($status === 'approved') ? 'recommended' : 'rejected';
+                    $data['recommender_remark'] = $remark;
+                    $data['recommender_action_date'] = date('Y-m-d');
                 }
 
-                $data['recommender_remark'] = $remark;
-                $data['recommender_action_date'] = date('Y-m-d');
+                $data['approver_status'] = ($status == 'disapproved') ? 'rejected' : 'approved';
+                $data['approver_remark'] = $remark;
+                $data['approver_action_date'] = date('Y-m-d');
+                $data['status'] = $status;
+                $data['approve_date'] = ($status == 'approved') ? date('Y-m-d') : null;
                 $data['admin_remark'] = $remark;
+                $success_message = ($status == 'approved')
+                    ? 'Leave request approved successfully.'
+                    : 'Leave request disapproved successfully.';
             } else {
-                if ($status == 'approved' || $status == 'disapproved') {
-                    $data['approver_status'] = ($status == 'disapproved') ? 'rejected' : 'approved';
-                    $data['approver_remark'] = $remark;
-                    $data['approver_action_date'] = date('Y-m-d');
-                    $data['status'] = $status;
-                    $data['approve_date'] = ($status == 'approved') ? date('Y-m-d') : null;
-                    $data['admin_remark'] = $remark;
-                    $success_message = ($status == 'approved')
-                        ? 'Leave request approved successfully.'
-                        : 'Leave request disapproved successfully.';
-                } else {
-                    $array = array('status' => 'fail', 'error' => '', 'message' => $this->lang->line('invalid_status'));
-                    echo json_encode($array);
-                    return;
-                }
+                $array = array('status' => 'fail', 'error' => '', 'message' => $this->lang->line('invalid_status'));
+                echo json_encode($array);
+                return;
             }
         }
 

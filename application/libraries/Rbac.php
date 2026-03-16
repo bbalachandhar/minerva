@@ -27,6 +27,10 @@ class Rbac
             return false;
         }
 
+        if ($this->shouldGrantDefaultStaffLeavePrivilege($category, $permission, $admin)) {
+            return true;
+        }
+
         $roles = $admin['roles'];
         foreach ($roles as $role_name => $role_id) {
             if ($role_name === 'Super Admin' || (int) $role_id === 7) {
@@ -40,6 +44,22 @@ class Rbac
         }
 
         return false;
+    }
+
+    private function shouldGrantDefaultStaffLeavePrivilege($category, $permission, $admin)
+    {
+        $category = trim((string) $category);
+        $permission = trim((string) $permission);
+
+        if ($category !== 'apply_leave') {
+            return false;
+        }
+
+        if (!in_array($permission, array('can_view', 'can_add'), true)) {
+            return false;
+        }
+
+        return isset($admin['id']) && (int) $admin['id'] > 0;
     }
 
   

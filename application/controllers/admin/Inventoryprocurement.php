@@ -373,7 +373,7 @@ class Inventoryprocurement extends Admin_Controller
 
     public function purchaseorders()
     {
-        if (!$this->rbac->hasPrivilege('item_stock', 'can_view')) {
+        if (!$this->rbac->hasPrivilege('purchase_orders', 'can_view')) {
             access_denied();
         }
 
@@ -406,7 +406,7 @@ class Inventoryprocurement extends Admin_Controller
 
     public function createpo()
     {
-        if (!$this->rbac->hasPrivilege('item_stock', 'can_add')) {
+        if (!$this->rbac->hasPrivilege('purchase_orders', 'can_add')) {
             access_denied();
         }
 
@@ -456,7 +456,7 @@ class Inventoryprocurement extends Admin_Controller
 
     public function storepo()
     {
-        if (!$this->rbac->hasPrivilege('item_stock', 'can_add')) {
+        if (!$this->rbac->hasPrivilege('purchase_orders', 'can_add')) {
             access_denied();
         }
 
@@ -602,7 +602,7 @@ class Inventoryprocurement extends Admin_Controller
 
     public function poapprovals()
     {
-        if (!$this->rbac->hasPrivilege('item_stock', 'can_view')) {
+        if (!$this->rbac->hasPrivilege('po_approvals', 'can_view')) {
             access_denied();
         }
 
@@ -635,7 +635,7 @@ class Inventoryprocurement extends Admin_Controller
 
     public function podecision($approval_id = null)
     {
-        if (!$this->rbac->hasPrivilege('item_stock', 'can_edit')) {
+        if (!$this->rbac->hasPrivilege('po_approvals', 'can_edit')) {
             access_denied();
         }
 
@@ -736,7 +736,7 @@ class Inventoryprocurement extends Admin_Controller
 
     public function goodsreceipts()
     {
-        if (!$this->rbac->hasPrivilege('item_stock', 'can_view')) {
+        if (!$this->rbac->hasPrivilege('goods_receipts', 'can_view')) {
             access_denied();
         }
 
@@ -767,7 +767,7 @@ class Inventoryprocurement extends Admin_Controller
 
     public function creategrn()
     {
-        if (!$this->rbac->hasPrivilege('item_stock', 'can_add')) {
+        if (!$this->rbac->hasPrivilege('goods_receipts', 'can_add')) {
             access_denied();
         }
 
@@ -808,7 +808,7 @@ class Inventoryprocurement extends Admin_Controller
 
     public function poitems($po_id = null)
     {
-        if (!$this->rbac->hasPrivilege('item_stock', 'can_view')) {
+        if (!$this->rbac->hasPrivilege('goods_receipts', 'can_view')) {
             access_denied();
         }
 
@@ -844,7 +844,7 @@ class Inventoryprocurement extends Admin_Controller
 
     public function storegrn()
     {
-        if (!$this->rbac->hasPrivilege('item_stock', 'can_add')) {
+        if (!$this->rbac->hasPrivilege('goods_receipts', 'can_add')) {
             access_denied();
         }
 

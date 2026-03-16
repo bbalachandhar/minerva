@@ -960,8 +960,29 @@ $i++;
                 } else if (can_manage_leave && result.status != 'approved' && result.status != 'disapproved') {
                     var recommenderStage = (result.recommender_status == 'pending' || result.recommender_status == '' || result.recommender_status == null) && result.approver_status == 'pending';
                     var approverStage = (result.recommender_status == 'approved' || result.recommender_status == 'recommended') && result.approver_status == 'pending';
+                    var overrideManager = can_manage_leave && !is_recommender && !is_approver;
 
-                    if (recommenderStage) {
+                    if (overrideManager) {
+                        $('#note_label').html('<?php echo $this->lang->line('approver_remark'); ?>');
+                        statusRadioHtml = `
+                            <label class="radio-inline">
+                                <input type="radio" value="pending" name="status" >${'<?php echo $this->lang->line('final_pending'); ?>'}
+                            </label>
+                            <label class="radio-inline">
+                                <input type="radio" value="approved" name="status" >${'<?php echo $this->lang->line('final_approve'); ?>'}
+                            </label>
+                            <label class="radio-inline">
+                                <input type="radio" value="disapproved" name="status" >${'<?php echo $this->lang->line('final_disapprove'); ?>'}
+                            </label>
+                        `;
+                        if (result.approver_status == 'approved' || result.status == 'approved') {
+                            initialStatusValue = 'approved';
+                        } else if (result.approver_status == 'disapproved' || result.approver_status == 'rejected' || result.status == 'disapproved') {
+                            initialStatusValue = 'disapproved';
+                        } else {
+                            initialStatusValue = 'pending';
+                        }
+                    } else if (recommenderStage) {
                         $('#note_label').html('<?php echo $this->lang->line('recommender_remark'); ?>');
                         statusRadioHtml = `
                             <label class="radio-inline">
