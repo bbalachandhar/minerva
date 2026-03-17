@@ -552,6 +552,17 @@ class Staffattendance extends Admin_Controller
             $inserted++;
         }
 
+        // Update sync marker on successful fetch.
+        // Keep the greater timestamp so historical backfills don't move sync backwards.
+        $setting = $this->setting_model->getSetting();
+        $current_sync = (!empty($setting->last_biometric_sync_datetime)) ? $setting->last_biometric_sync_datetime : null;
+        $new_sync = $toDateTime;
+        if (!empty($current_sync) && strtotime($current_sync) > strtotime($toDateTime)) {
+            $new_sync = $current_sync;
+        }
+        $this->setting_model->update(['last_biometric_sync_datetime' => $new_sync]);
+        log_message('debug', "fetch_punches_between_dates: Updated last_biometric_sync_datetime to {$new_sync}");
+
         log_message('debug', "fetch_punches_between_dates: Completed. Inserted: {$inserted}, Exceptions: {$exceptions}");
         
         // Add summary log for fetching punches between dates
