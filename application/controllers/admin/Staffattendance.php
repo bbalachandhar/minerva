@@ -943,15 +943,25 @@ class Staffattendance extends Admin_Controller
             $absent_ids = array_column($ids, 'staff_id');
             if (!empty($absent_ids)) {
                 // Gracefully skip mail if no recipients are configured
+                $is_cli = $this->input->is_cli_request();
+                if ($is_cli) {
+                    ob_start(); // Buffer output in CLI to suppress mail library errors
+                }
                 try {
                     $this->mailsmsconf->mailsms('staff_absent_attendence', $absent_ids, $dateToNotify);
+                    if ($is_cli) {
+                        ob_end_clean();
+                    }
                     $final_msg .= '<div class="alert alert-info">Absent notification sent for ' . $dateToNotify . '</div>';
                 } catch (Exception $e) {
+                    if ($is_cli) {
+                        ob_end_clean();
+                    }
                     // Log but don't fail if notification fails (no configured recipients, etc)
                     $error_msg = $e->getMessage();
                     $this->logger->log("Absent notification skipped: {$error_msg}");
                     // Don't append error to final_msg; silently skip for cron
-                    if (!$this->input->is_cli_request()) {
+                    if (!$is_cli) {
                         $final_msg .= '<div class="alert alert-warning">Notification could not be sent: ' . $error_msg . '</div>';
                     }
                 }
