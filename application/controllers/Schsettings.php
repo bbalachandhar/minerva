@@ -1646,9 +1646,6 @@ class Schsettings extends Admin_Controller
         if ($self_approve_roles_csv === '') {
             $self_approve_roles_csv = implode(',', $this->roleIdsByNames($all_roles, ['principal']));
         }
-        if ($past_date_allowed_roles_csv === '') {
-            $past_date_allowed_roles_csv = implode(',', $this->roleIdsByNames($all_roles, ['admin', 'super admin']));
-        }
         if ($override_types === '') {
             $override_types = 'compensation,comp-off,compoff,compensatory off';
         }

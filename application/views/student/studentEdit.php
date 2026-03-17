@@ -2,7 +2,6 @@
 $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
 ?>
 <link href="<?php echo base_url(); ?>backend/multiselect/css/jquery.multiselect.css" rel="stylesheet">
-<script src="<?php echo base_url(); ?>backend/multiselect/js/jquery.min.js"></script>
 <script src="<?php echo base_url(); ?>backend/multiselect/js/jquery.multiselect.js"></script>
 <div class="content-wrapper">
     <!-- Main content -->
@@ -286,7 +285,13 @@ $count++;
                                             <div class="col-md-3">
                                                 <div class="form-group">
                                                     <label for="exampleInputFile"><?php echo $this->lang->line('student_photo'); ?> (100px X 100px)</label>
-                                                    <input class="filestyle form-control" type='file' name='file' id="file" size='20' />
+                                                    <input class="filestyle form-control" type='file' name='file' id="student_photo_input" size='20' />
+                                                    <?php
+                                                    $student_photo_preview = !empty($student['image'])
+                                                        ? $student['image']
+                                                        : (($student['gender'] == 'Female') ? 'uploads/student_images/default_female.jpg' : 'uploads/student_images/default_male.jpg');
+                                                    ?>
+                                                    <img id="student_photo_preview" src="<?php echo $this->media_storage->getImageURL($student_photo_preview); ?>" alt="Student Photo" class="img-thumbnail" style="margin-top:8px;width:100px;height:100px;object-fit:cover;" />
                                                 </div>
                                                 <span class="text-danger"><?php echo form_error('file'); ?></span>
                                             </div>
@@ -952,8 +957,10 @@ if ($student['guardian_is'] == "other") {
                                             <div class="col-md-3">
                                                 <div class="form-group">
                                                     <label for="exampleInputFile"><?php echo $this->lang->line('guardian_photo'); ?> (100px X 100px)</label>
-                                                    <div><input class="filestyle form-control" type='file' name='guardian_pic' id="file" size='20' />
+                                                    <div><input class="filestyle form-control" type='file' name='guardian_pic' id="guardian_photo_input" size='20' />
                                                     </div>
+                                                    <?php $guardian_photo_preview = !empty($student['guardian_pic']) ? $student['guardian_pic'] : 'uploads/student_images/no_image.png'; ?>
+                                                    <img id="guardian_photo_preview" src="<?php echo $this->media_storage->getImageURL($guardian_photo_preview); ?>" alt="Guardian Photo" class="img-thumbnail" style="margin-top:8px;width:100px;height:100px;object-fit:cover;" />
                                                     <span class="text-danger"><?php echo form_error('guardian_pic'); ?></span>
                                                 </div>
                                             </div>
@@ -1623,6 +1630,32 @@ $(document).on('change','#vehroute_id',function(){
 </script>
 
 <script type="text/javascript" src="<?php echo base_url(); ?>backend/dist/js/savemode.js"></script>
+
+<script>
+    function bindImagePreview(inputSelector, imageSelector) {
+        var input = document.querySelector(inputSelector);
+        var preview = document.querySelector(imageSelector);
+        if (!input || !preview) {
+            return;
+        }
+
+        input.addEventListener('change', function (event) {
+            var file = event.target.files && event.target.files[0] ? event.target.files[0] : null;
+            if (!file) {
+                return;
+            }
+
+            var reader = new FileReader();
+            reader.onload = function (e) {
+                preview.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    bindImagePreview('#student_photo_input', '#student_photo_preview');
+    bindImagePreview('#guardian_photo_input', '#guardian_photo_preview');
+</script>
 
 
 <script type="text/javascript">

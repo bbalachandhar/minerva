@@ -99,7 +99,6 @@ class Student_model extends CI_Model
         $this->db->join('sessions', 'sessions.id = student_session.session_id', 'left');        
         $this->db->where('student_session.session_id', $this->current_session);
         $this->db->where('users.role', 'student');		
-		$this->db->where('student_session.default_login', 1);
 		
         if ($id != null) {
             $this->db->where('students.id', $id);
@@ -197,6 +196,16 @@ class Student_model extends CI_Model
         $this->db->where('student_session.id', $student_session_id);
         $query = $this->db->get();
         return $query->row_array();
+    }
+
+    public function getStudentListBYStudentsessionID($array)
+    {
+        $safe = implode(',', array_map('intval', $array));
+        $sql  = 'SELECT students.*, student_session.id AS student_session_id'
+              . ' FROM students'
+              . ' INNER JOIN (SELECT * FROM `student_session` WHERE `student_session`.`id` IN (' . $safe . ')) AS student_session'
+              . ' ON students.id = student_session.student_id';
+        return $this->db->query($sql)->result();
     }
 
 }

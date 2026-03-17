@@ -25,7 +25,7 @@ if ($this->session->flashdata('msg')) {
                                 <div class="col-md-4">
                                     <div class="form-group">
                                         <label for="exampleInputEmail1"><?php echo $this->lang->line('class'); ?></label><small class="req"> *</small>
-                                        <select autofocus="" id="class_id" name="class_id" class="form-control" >
+                                        <select autofocus="" id="class_id" name="class_id" class="form-control select2" >
                                             <option value=""><?php echo $this->lang->line('select'); ?></option>
                                             <?php
 foreach ($classlist as $class) {
@@ -166,6 +166,12 @@ function getattendencetype($attendencetype, $find)
 
             <script type="text/javascript">
                 $(document).ready(function () {
+                    if ($.fn.select2) {
+                        $('#class_id').select2({
+                            width: '100%'
+                        });
+                    }
+
                     var section_id_post = "<?php echo set_value('section_id'); ?>";
                     var class_id_post = "<?php echo set_value('class_id'); ?>";
                     var date_post = "<?php echo set_value('date'); ?>";

@@ -52,6 +52,39 @@ class Subjecttimetable_model extends CI_Model
         return $query->result();
     }
 
+    public function getByStaffandDay($staff_id, $day_value)
+    {
+        $sql   = "SELECT `classes`.`class`,`sections`.`section`,`subject_group_subjects`.`subject_id`,`sub`.`name` as `subject_name`,`sub`.`code` as `subject_code`,`subject_timetable`.* FROM `subject_timetable` INNER JOIN `classes` on classes.id = `subject_timetable`.`class_id` INNER JOIN sections on `sections`.`id`=`subject_timetable`.`section_id` INNER JOIN `subject_group_subjects` on `subject_group_subjects`.`id`=`subject_timetable`.`subject_group_subject_id` INNER JOIN `subjects` as `sub` on `sub`.`id`=`subject_group_subjects`.`subject_id`  WHERE subject_timetable.staff_id=" . $this->db->escape($staff_id) . " and subject_timetable.session_id =" . $this->current_session . " and subject_timetable.day=" . $this->db->escape($day_value) . "order by subject_timetable.start_time";
+        $query = $this->db->query($sql);
+        if ($query->num_rows() > 0) {
+            return $query->result();
+        }
+        return false;
+    }
+
+    public function getStaffTimetable($staff_id, $start_date, $end_date)
+    {
+        $full_timetable = array();
+        $current_date   = strtotime($start_date);
+        $end_date_ts    = strtotime($end_date);
+
+        while ($current_date <= $end_date_ts) {
+            $day_name       = date('l', $current_date);
+            $formatted_date = date('Y-m-d', $current_date);
+            $daily_timetable = $this->getByStaffandDay($staff_id, $day_name);
+
+            if ($daily_timetable) {
+                $full_timetable[$formatted_date] = $daily_timetable;
+            } else {
+                $full_timetable[$formatted_date] = array();
+            }
+
+            $current_date = strtotime('+1 day', $current_date);
+        }
+
+        return $full_timetable;
+    }
+
     public function user_rating($student_id, $staff_id)
     {
         $this->db->select('staff_rating.rate,staff_rating.comment')->from('staff_rating')->join("users", "users.id = staff_rating.user_id", "inner")->join("staff", "staff_rating.staff_id = staff.id", "inner");

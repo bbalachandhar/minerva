@@ -21,11 +21,48 @@ class Attendencetype_model extends CI_Model
         return $query->row();
     }
 
+    public function getAttType($id = null)
+    {
+        $this->db->select()->from('attendence_type');
+        if ($id != null) {
+            $this->db->where('id', $id);
+        } else {
+            $this->db->order_by('id');
+        }
+        $query = $this->db->get();
+        if ($id != null) {
+            return $query->row_array();
+        }
+        return $query->result_array();
+    }
+
     public function getAttendencePercentage($date_from, $date_to, $student_session_id)
     {
         $sql = "SELECT IFNULL(count(*), 0) as `total_count`,IFNULL((SELECT count(*) as `total_count` FROM `student_attendences` as a WHERE (date BETWEEN " . $this->db->escape($date_from) . " and " . $this->db->escape($date_to) . ") and student_session_id=" . $this->db->escape($student_session_id) . "  and attendence_type_id !=4 ),0) as `present_attendance` FROM `student_attendences` as a WHERE (date BETWEEN " . $this->db->escape($date_from) . " and " . $this->db->escape($date_to) . ") and student_session_id=" . $this->db->escape($student_session_id);
         $query = $this->db->query($sql);
         return $query->row();
+    }
+
+    public function saveStudentAttendances($attendances)
+    {
+        if (empty($attendances)) {
+            return true;
+        }
+        $this->db->trans_start();
+        $this->db->trans_strict(false);
+        foreach ($attendances as $record) {
+            $this->db->where('student_session_id', $record['student_session_id']);
+            $this->db->where('date', $record['date']);
+            $existing = $this->db->get('student_attendences')->row();
+            if ($existing) {
+                $this->db->where('id', $existing->id);
+                $this->db->update('student_attendences', $record);
+            } else {
+                $this->db->insert('student_attendences', $record);
+            }
+        }
+        $this->db->trans_complete();
+        return $this->db->trans_status();
     }
 
     public function studentAttendanceByDate($class_id, $section_id, $day, $date, $student_session_id)

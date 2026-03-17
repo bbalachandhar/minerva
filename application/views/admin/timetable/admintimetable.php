@@ -28,7 +28,7 @@
                             <div class="col-lg-4 col-md-4 col-sm-4">   
                                 <div class="form-group">
                                     <label for="teacher"><?php echo $this->lang->line('teachers'); ?><small class="req"> *</small></label>
-                                    <select class="form-control" name="teacher" id="teacher">
+                                    <select class="form-control select2" name="teacher" id="teacher">
                                         <option value=""><?php echo $this->lang->line('select') ?></option>
                                         <?php
                                         if (!empty($staff_list)) {
@@ -62,6 +62,14 @@
 </div>
 
 <script type="text/javascript">
+    $(function () {
+        if ($.fn.select2) {
+            $('#teacher').select2({
+                width: '100%'
+            });
+        }
+    });
+
     $("form#getTimetable").submit(function (e) {
 
         e.preventDefault(); // avoid to execute the actual submit of the form.

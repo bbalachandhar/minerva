@@ -64,6 +64,11 @@ class Section_model extends MY_Model {
         $role_id = $userdata["role_id"];
         $carray = array();
 
+        // Teacher-restricted query expects a scalar class id.
+        if (is_array($classid)) {
+            $classid = reset($classid);
+        }
+
         if (isset($role_id) && ($userdata["role_id"] == 2) && ($userdata["class_teacher"] == "yes")) {
 
             $section = $this->teacher_model->get_teacherrestricted_modesections($userdata["id"], $classid);
@@ -101,7 +106,7 @@ class Section_model extends MY_Model {
             foreach ($result as $key => $value) {
                 $query2 = $this->db->select('class_sections.id,sections.section')
                         ->join('sections', 'sections.id = class_sections.section_id')
-                        ->where('sections.section_id', $value['section_id'])
+                    ->where('sections.id', $value['section_id'])
                         ->get('class_sections');
                 $result2 = $query2->row_array();
                 $result[$key]['id'] = $result2['id'];

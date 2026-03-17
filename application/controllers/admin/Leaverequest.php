@@ -147,9 +147,6 @@ class Leaverequest extends Admin_Controller
         if (empty($self_approve_roles)) {
             $self_approve_roles = $this->roleIdsByNames(['principal']);
         }
-        if (empty($past_date_allowed_roles)) {
-            $past_date_allowed_roles = $this->roleIdsByNames(['admin', 'super admin']);
-        }
 
         return [
             'substitution_required_roles' => $substitution_roles,
@@ -381,6 +378,9 @@ class Leaverequest extends Admin_Controller
     {
         if ($policy === null) {
             $policy = $this->getLeaveManagementPolicy();
+        }
+        if (empty($policy['past_date_allowed_roles'])) {
+            return true;
         }
         return in_array((int) $role_id, $policy['past_date_allowed_roles'], true);
     }
@@ -1084,12 +1084,17 @@ class Leaverequest extends Admin_Controller
             $result->leave_duration_type = 'full_day';
         }
 
-        // Self-Healing: If recommender_id is missing, resolve using current policy rules.
-        if (empty($result->recommender_id)) {
+        $is_pre_recommender_stage = ((string) ($result->status ?? '') === 'pending')
+            && in_array((string) ($result->recommender_status ?? ''), ['', 'pending'], true)
+            && in_array((string) ($result->approver_status ?? ''), ['', 'pending'], true);
+
+        // Self-Healing: Resolve recommender routing for pending requests when missing or stale.
+        if ($is_pre_recommender_stage) {
             $routing = $this->resolveRecommenderApproverIds((int) $result->staff_id, 0);
             $new_recommender_id = (int) ($routing['recommender_id'] ?? 0);
+            $current_recommender_id = (int) ($result->recommender_id ?? 0);
 
-            if (!empty($new_recommender_id)) {
+            if (!empty($new_recommender_id) && $new_recommender_id !== $current_recommender_id) {
                 // Update the database
                 $this->db->where('id', $id)->update('staff_leave_request', ['recommender_id' => $new_recommender_id]);
                 // Update the result object so the UI works immediately
@@ -1235,19 +1240,13 @@ class Leaverequest extends Admin_Controller
             } else {
                 log_message('error', 'Validation succeeded in addLeave');
 
-                $can_apply_past_by_selected_role = $this->canApplyPastDateByPolicy((int) $role, $policy);
-                $can_apply_past_by_logged_in_user = $this->currentUserIsAdminOrSuperAdmin();
-
-                if (!empty($leavefrom) && $request_type !== 'adjust_lop' && !($can_apply_past_by_selected_role || $can_apply_past_by_logged_in_user)) {
-                    $today = date('Y-m-d');
-                    if ($leavefrom < $today) {
-                        $msg = array(
-                            'leave_from_date' => 'Past date leave/OD application is not allowed for selected role.',
-                        );
-                        $array = array('status' => 'fail', 'error' => $msg, 'message' => '');
-                        echo json_encode($array);
-                        return;
-                    }
+                if (!empty($leavefrom) && !empty($leaveto) && $leavefrom > $leaveto) {
+                    $msg = array(
+                        'leave_to_date' => 'Leave To Date must be same as or later than Leave From Date.',
+                    );
+                    $array = array('status' => 'fail', 'error' => $msg, 'message' => '');
+                    echo json_encode($array);
+                    return;
                 }
 
                 if (in_array($leave_duration_type, ['first_half', 'second_half'], true)) {

@@ -487,6 +487,15 @@ $i++;
             todayHighlight: true
         }).on('changeDate', function () {
             syncLeaveIsoDates();
+            var fromDateObj = $('#leave_from_date').datepicker('getDate');
+            if (fromDateObj) {
+                $('#leave_to_date').datepicker('setStartDate', fromDateObj);
+                var toDateObj = $('#leave_to_date').datepicker('getDate');
+                if (toDateObj && toDateObj < fromDateObj) {
+                    $('#leave_to_date').datepicker('setDate', fromDateObj);
+                    syncLeaveIsoDates();
+                }
+            }
             if (($('input[name="request_type"]:checked').val() || 'claim_leave') === 'adjust_lop') {
                 var fromDate = $('#leave_from_date').val();
                 var fromIso = $('#leave_from_date_iso').val();
@@ -500,6 +509,11 @@ $i++;
             format: LEAVE_DATE_FORMAT,
             todayHighlight: true
         }).on('changeDate', function () {
+            var fromDateObj = $('#leave_from_date').datepicker('getDate');
+            var toDateObj = $('#leave_to_date').datepicker('getDate');
+            if (fromDateObj && toDateObj && toDateObj < fromDateObj) {
+                $('#leave_to_date').datepicker('setDate', fromDateObj);
+            }
             syncLeaveIsoDates();
         });
 
@@ -651,6 +665,9 @@ $i++;
         if (CURRENT_USER_IS_ADMIN_OR_SUPERADMIN) {
             return true;
         }
+        if (!LEAVE_POLICY.pastDateAllowedRoles.length) {
+            return true;
+        }
         var roleId = getSelectedRoleId();
         if (!roleId) {
             return false;
@@ -679,24 +696,12 @@ $i++;
     }
 
     function applyPastDateRestrictionUI() {
-        var allowPast = canApplyPastDates();
-        var reqType = $('input[name="request_type"]:checked').val() || 'claim_leave';
-        if (reqType === 'adjust_lop') {
-            allowPast = true;
-        }
         var $from = $('#leave_from_date');
         var $to = $('#leave_to_date');
 
         if (typeof $from.datepicker === 'function' && typeof $to.datepicker === 'function') {
-            if (allowPast) {
-                $from.datepicker('setStartDate', null);
-                $to.datepicker('setStartDate', null);
-            } else {
-                var today = new Date();
-                today.setHours(0, 0, 0, 0);
-                $from.datepicker('setStartDate', today);
-                $to.datepicker('setStartDate', today);
-            }
+            $from.datepicker('setStartDate', null);
+            $to.datepicker('setStartDate', null);
         }
     }
 

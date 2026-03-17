@@ -26,6 +26,7 @@ class App extends MY_Controller
                 ->set_output(json_encode(array(
                     'url'                      => $setting_result->mobile_api_url,
                     'site_url'                 => site_url(),
+                    'attendence_type'          => (int) $setting_result->attendence_type,
                     'app_logo'                 => $setting_result->app_logo,
                     'app_primary_color_code'   => $setting_result->app_primary_color_code,
                     'app_secondary_color_code' => $setting_result->app_secondary_color_code,
@@ -85,6 +86,7 @@ class App extends MY_Controller
                 ->set_output(json_encode(array(
                     'url'                      => $setting_result->admin_mobile_api_url,
                     'site_url'                 => site_url(),
+                    'attendence_type'          => (int) $setting_result->attendence_type,
                     'app_logo'                 => $setting_result->app_logo,
                     'app_primary_color_code'   => $setting_result->admin_app_primary_color_code,
                     'app_secondary_color_code' => $setting_result->admin_app_secondary_color_code,

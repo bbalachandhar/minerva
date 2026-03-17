@@ -315,8 +315,12 @@ $paid_days_display = (float) $total_present + (float) $sandwich_valid_days;
 
 // For current payroll month, use values from payslip; for other months, query monthly balance
 if ($is_current_payroll_month) {
-    $adjusted_lop = floatval($employee_payroll['adjusted_lop_days'] ?? 0);
-    $net_lop = max(0, round(((float) $lop_days - (float) $adjusted_lop), 2));
+    $display_lop = $payroll_lop_display ?? [];
+    if (isset($display_lop['actual_lop_days'])) {
+        $lop_days = (float) $display_lop['actual_lop_days'];
+    }
+    $adjusted_lop = isset($display_lop['adjusted_lop_days']) ? (float) $display_lop['adjusted_lop_days'] : floatval($employee_payroll['adjusted_lop_days'] ?? 0);
+    $net_lop = isset($display_lop['net_lop_days']) ? (float) $display_lop['net_lop_days'] : max(0, round(((float) $lop_days - (float) $adjusted_lop), 2));
     $od_adjusted_days = 0;
     $od_carry_forward_days = 0;
 

@@ -36,7 +36,7 @@
                                                 </option>
                                             <?php } ?>
                                         </select>
-                                        <p class="help-block">Only selected roles can apply leave/OD for previous dates. Others can apply for today and future dates only.</p>
+                                        <p class="help-block">Select roles to restrict past-date leave/OD access. Leave this blank for no restriction.</p>
                                     </div>
                                 </div>
                             </div>

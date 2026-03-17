@@ -150,7 +150,7 @@ $language_name1 = $language1["short_code"];
                                 <div class="col-md-3">
                                     <div class="form-group">
                                         <label for="exampleInputEmail1"><?php echo $this->lang->line('class'); ?></label><small class="req"> *</small>
-                                        <select autofocus="" id="class_id" name="class_id" class="form-control">
+                                        <select autofocus="" id="class_id" name="class_id" class="form-control select2">
                                             <option value=""><?php echo $this->lang->line('select'); ?></option>
                                             <?php
                                             foreach ($classlist as $class) {
@@ -186,7 +186,7 @@ $language_name1 = $language1["short_code"];
                                         <label for="">
                                             <?php echo $this->lang->line('subject'); ?>
                                         </label><small class="req"> *</small>
-                                        <select id="subject_timetable_id" name="subject_timetable_id" class="form-control">
+                                        <select id="subject_timetable_id" name="subject_timetable_id" class="form-control select2">
                                             <option value=""><?php echo $this->lang->line('select'); ?></option>
                                         </select>
                                         <span class="text-danger"><?php echo form_error('subject_timetable_id'); ?></span>
@@ -402,6 +402,11 @@ $language_name1 = $language1["short_code"];
     var date_format = '<?php echo $result = strtr($this->customlib->getSchoolDateFormat(), ['d' => 'dd', 'm' => 'mm', 'Y' => 'yyyy']) ?>';
 
     $(document).ready(function() {
+        if ($.fn.select2) {
+            $('#class_id, #subject_timetable_id').select2({
+                width: '100%'
+            });
+        }
 
         var section_id_post = "<?php echo set_value('section_id'); ?>";
         var class_id_post = "<?php echo set_value('class_id'); ?>";
@@ -418,12 +423,34 @@ $language_name1 = $language1["short_code"];
                 var div_data = '<option value=""><?php echo $this->lang->line('select'); ?></option>';
                 $.ajax({
                     type: "GET",
-                    url: baseurl + "sections/getByClass",
+                    url: baseurl + "sections/getClassTeacherSection",
                     data: {
                         'class_id': class_id_post
                     },
                     dataType: "json",
                     success: function(data) {
+                        if (!data || data.length === 0) {
+                            $.ajax({
+                                type: "GET",
+                                url: baseurl + "sections/getByClass",
+                                data: {
+                                    'class_id': class_id_post
+                                },
+                                dataType: "json",
+                                success: function(fallbackData) {
+                                    $.each(fallbackData, function(i, obj) {
+                                        var select = "";
+                                        if (section_id_post == obj.section_id) {
+                                            var select = "selected=selected";
+                                        }
+                                        div_data += "<option value=" + obj.section_id + " " + select + ">" + obj.section + "</option>";
+                                    });
+                                    $('#section_id').append(div_data);
+                                }
+                            });
+                            return;
+                        }
+
                         $.each(data, function(i, obj) {
                             var select = "";
                             if (section_id_post == obj.section_id) {
@@ -462,6 +489,9 @@ $language_name1 = $language1["short_code"];
                             div_data += "<option value=" + obj.id + " " + select + ">" + obj.subject_name + " (" + obj.time_from + "- " + obj.time_to + ") By " + staff_name + " (" + obj.employee_id + ")" + "</option>";
                         });
                         $('#subject_timetable_id').append(div_data);
+                        if ($.fn.select2) {
+                            $('#subject_timetable_id').trigger('change.select2');
+                        }
                     }
                 });
             }
@@ -474,12 +504,30 @@ $language_name1 = $language1["short_code"];
             var url = "";
             $.ajax({
                 type: "GET",
-                url: baseurl + "sections/getByClass",
+                url: baseurl + "sections/getClassTeacherSection",
                 data: {
                     'class_id': class_id
                 },
                 dataType: "json",
                 success: function(data) {
+                    if (!data || data.length === 0) {
+                        $.ajax({
+                            type: "GET",
+                            url: baseurl + "sections/getByClass",
+                            data: {
+                                'class_id': class_id
+                            },
+                            dataType: "json",
+                            success: function(fallbackData) {
+                                $.each(fallbackData, function(i, obj) {
+                                    div_data += "<option value=" + obj.section_id + ">" + obj.section + "</option>";
+                                });
+                                $('#section_id').append(div_data);
+                            }
+                        });
+                        return;
+                    }
+
                     $.each(data, function(i, obj) {
                         div_data += "<option value=" + obj.section_id + ">" + obj.section + "</option>";
                     });

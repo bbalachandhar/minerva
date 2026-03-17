@@ -12,7 +12,8 @@ class Auth_model extends CI_Model
     public function __construct()
     {
         parent::__construct();
-        $this->load->model(array('user_model', 'setting_model', 'student_model'));
+        $this->load->library('enc_lib');
+        $this->load->model(array('user_model', 'setting_model', 'student_model', 'staff_model'));
     }
 
     public function check_auth_client()
@@ -37,10 +38,49 @@ class Auth_model extends CI_Model
         }
         
         if (empty($q)) {
+            // Diagnose staff credentials that are valid in staff table but not mapped to users table for mobile auth.
+            $this->db->select('staff.id as staff_id, staff.password as staff_password, staff.is_active as staff_is_active');
+            $this->db->from('staff');
+            $this->db->group_start();
+            $this->db->where('staff.email', $username);
+            $this->db->or_where('LOWER(staff.email)', strtolower($username));
+            $this->db->or_where('staff.employee_id', $username);
+            $this->db->or_where('staff.contact_no', $username);
+            $this->db->group_end();
+            $staff_diag_query = $this->db->get();
+
+            if ($staff_diag_query->num_rows() > 0) {
+                $staff_rows = $staff_diag_query->result();
+                foreach ($staff_rows as $staff_row) {
+                    $staff_active_val = strtolower(trim((string) $staff_row->staff_is_active));
+                    $staff_active = ($staff_active_val === 'yes' || $staff_active_val === '1' || $staff_row->staff_is_active === 1 || $staff_row->staff_is_active === true);
+                    if (!$staff_active) {
+                        continue;
+                    }
+
+                    $is_match = ((string) $staff_row->staff_password === (string) $password);
+                    if (!$is_match) {
+                        $is_match = $this->enc_lib->passHashDyc($password, $staff_row->staff_password);
+                    }
+
+                    if ($is_match) {
+                        $recovered_user = $this->recoverStaffUserLogin($staff_row, $username);
+                        if (!empty($recovered_user)) {
+                            // Retry full login flow after auto-recovering missing users mapping.
+                            return $this->login($username, $password, $app_key);
+                        }
+                        return array('status' => 0, 'message' => 'Staff account is not mapped for mobile login. Please contact administrator.');
+                    }
+                }
+            }
+
             return array('status' => 0, 'message' => 'Invalid Username or Password');
         } else {
 
-            if ($q->is_active == "yes") {
+            $active_value = strtolower(trim((string) $q->is_active));
+            $is_active = ($active_value === 'yes' || $active_value === '1' || $q->is_active === 1 || $q->is_active === true);
+
+            if ($is_active) {
                 if ($q->role == "student") {
 
                     $result = $this->user_model->read_user_information($q->id);
@@ -233,8 +273,100 @@ class Auth_model extends CI_Model
                     
                     }else{
                         return array('status' => 0, 'message' => 'Your account is suspended');
-                    }                    
-                    
+                    }
+
+                } else {
+                    // Staff/teacher and other non-student, non-parent roles.
+                    $setting_result = $this->setting_model->get();
+
+                    $this->db->select('users.id as user_login_id, users.user_id as staff_id, users.role, users.lang_id, staff.name, staff.surname, staff.email, staff.contact_no, staff.employee_id, staff.image, staff_designation.designation, department.department_name');
+                    $this->db->from('users');
+                    $this->db->join('staff', 'staff.id = users.user_id', 'left');
+                    $this->db->join('staff_designation', 'staff_designation.id = staff.designation', 'left');
+                    $this->db->join('department', 'department.id = staff.department', 'left');
+                    $this->db->where('users.id', $q->id);
+                    $staff_result = $this->db->get()->row();
+
+                    if (empty($staff_result)) {
+                        // Fallback for legacy/inconsistent users.user_id mappings.
+                        $staff_lookup = $this->getStaffByLoginIdentifier($username);
+                        if (empty($staff_lookup) && !empty($q->username) && strcasecmp((string) $q->username, (string) $username) !== 0) {
+                            $staff_lookup = $this->getStaffByLoginIdentifier($q->username);
+                        }
+
+                        if (!empty($staff_lookup)) {
+                            $staff_result = (object) array(
+                                'user_login_id'    => $q->id,
+                                'staff_id'         => $staff_lookup->id,
+                                'role'             => $q->role,
+                                'lang_id'          => $q->lang_id,
+                                'name'             => $staff_lookup->name,
+                                'surname'          => $staff_lookup->surname,
+                                'email'            => $staff_lookup->email,
+                                'contact_no'       => $staff_lookup->contact_no,
+                                'employee_id'      => $staff_lookup->employee_id,
+                                'image'            => $staff_lookup->image,
+                                'designation'      => $staff_lookup->designation,
+                                'department_name'  => $staff_lookup->department_name,
+                            );
+                        }
+                    }
+
+                    if (empty($staff_result)) {
+                        return array('status' => 0, 'message' => 'Staff profile not found.');
+                    }
+
+                    if ($staff_result->lang_id == 0) {
+                        $lang_id = $setting_result[0]['lang_id'];
+                        $language = $setting_result[0]['language'];
+                        $short_code = $setting_result[0]['short_code'];
+                    } else {
+                        $lang_id = $staff_result->lang_id;
+                        $curentlang = $this->user_model->getstudentcurrentlanguage($staff_result->staff_id);
+                        if (!empty($curentlang)) {
+                            $language = $curentlang[0]->language;
+                            $short_code = $curentlang[0]->short_code;
+                        } else {
+                            $language = $setting_result[0]['language'];
+                            $short_code = $setting_result[0]['short_code'];
+                        }
+                    }
+
+                    $token = $this->getToken();
+                    $expired_at = date("Y-m-d H:i:s", strtotime('+8760 hours'));
+                    $this->db->insert('users_authentication', array('users_id' => $q->id, 'token' => $token, 'expired_at' => $expired_at));
+
+                    $full_name = trim(($staff_result->name ? $staff_result->name : '') . ' ' . ($staff_result->surname ? $staff_result->surname : ''));
+                    if ($full_name === '') {
+                        $full_name = $q->username;
+                    }
+
+                    $session_data = array(
+                        'id' => $staff_result->user_login_id,
+                        'staff_id' => $staff_result->staff_id,
+                        'role' => $q->role,
+                        'username' => $full_name,
+                        'name' => $staff_result->name,
+                        'surname' => $staff_result->surname,
+                        'email' => $staff_result->email,
+                        'mobileno' => $staff_result->contact_no,
+                        'employee_id' => $staff_result->employee_id,
+                        'designation' => $staff_result->designation,
+                        'department' => $staff_result->department_name,
+                        'date_format' => $setting_result[0]['date_format'],
+                        'timezone' => $setting_result[0]['timezone'],
+                        'sch_name' => $setting_result[0]['name'],
+                        'language' => array('lang_id' => $lang_id, 'language' => $language, 'short_code' => $short_code),
+                        'is_rtl' => $setting_result[0]['is_rtl'],
+                        'theme' => $setting_result[0]['theme'],
+                        'image' => $staff_result->image,
+                        'start_week' => $setting_result[0]['start_week'],
+                        'superadmin_restriction' => $setting_result[0]['superadmin_restriction'],
+                    );
+
+                    $this->session->set_userdata('student', $session_data);
+
+                    return array('status' => 1, 'message' => 'Successfully login.', 'id' => $q->id, 'token' => $token, 'role' => $q->role, 'record' => $session_data);
                 }
             } else {
                 return array('status' => '0', 'message' => 'Your account is disabled please contact to administrator');
@@ -301,9 +433,207 @@ class Auth_model extends CI_Model
             if ($query->num_rows() == 1) {
                 return $query->row();
             } else {
+                // Staff/teacher fallback login.
+                // Browser login validates against staff.password. Mirror that behavior here,
+                // then map the matched staff user to its corresponding users row.
+                $this->db->select('staff.id as staff_id, staff.password as staff_password, staff.email, staff.employee_id, staff.contact_no, staff.is_active as staff_is_active');
+                $this->db->from('staff');
+                $this->db->group_start();
+                $this->db->where('staff.email', $username);
+                $this->db->or_where('LOWER(staff.email)', strtolower($username));
+                $this->db->or_where('staff.employee_id', $username);
+                $this->db->or_where('staff.contact_no', $username);
+                $this->db->group_end();
+                $staff_query = $this->db->get();
+
+                if ($staff_query->num_rows() > 0) {
+                    $staff_rows = $staff_query->result();
+                    foreach ($staff_rows as $staff_row) {
+                        $staff_active_val = strtolower(trim((string) $staff_row->staff_is_active));
+                        $staff_active = ($staff_active_val === 'yes' || $staff_active_val === '1' || $staff_row->staff_is_active === 1 || $staff_row->staff_is_active === true);
+                        if (!$staff_active) {
+                            continue;
+                        }
+
+                        $is_match = ((string) $staff_row->staff_password === (string) $password);
+                        if (!$is_match) {
+                            $is_match = $this->enc_lib->passHashDyc($password, $staff_row->staff_password);
+                        }
+
+                        if (!$is_match) {
+                            continue;
+                        }
+
+                        $this->db->select('users.id as id, users.username, users.password, users.role, users.is_active as is_active, users.lang_id');
+                        $this->db->from('users');
+                        $this->db->where('users.user_id', $staff_row->staff_id);
+                        $this->db->where_not_in('users.role', array('student', 'parent'));
+                        $this->db->limit(1);
+                        $user_query = $this->db->get();
+
+                        if ($user_query->num_rows() == 1) {
+                            return $user_query->row();
+                        }
+
+                        // Fallback: some installations keep staff login in users.username
+                        // while users.user_id may be stale or null.
+                        $this->db->select('users.id as id, users.username, users.password, users.role, users.is_active as is_active, users.lang_id');
+                        $this->db->from('users');
+                        $this->db->where_not_in('users.role', array('student', 'parent'));
+                        $this->db->group_start();
+                        $this->db->where('users.username', $username);
+                        if (!empty($staff_row->email)) {
+                            $this->db->or_where('users.username', $staff_row->email);
+                        }
+                        if (!empty($staff_row->employee_id)) {
+                            $this->db->or_where('users.username', $staff_row->employee_id);
+                        }
+                        if (!empty($staff_row->contact_no)) {
+                            $this->db->or_where('users.username', $staff_row->contact_no);
+                        }
+                        $this->db->group_end();
+                        $this->db->order_by('users.id', 'DESC');
+                        $this->db->limit(1);
+                        $user_query = $this->db->get();
+
+                        if ($user_query->num_rows() == 1) {
+                            return $user_query->row();
+                        }
+
+                        $recovered_user = $this->recoverStaffUserLogin($staff_row, $username);
+                        if (!empty($recovered_user)) {
+                            return $recovered_user;
+                        }
+                    }
+                }
+
                 return false;
             }
         }
+    }
+
+    private function getStaffByLoginIdentifier($identifier)
+    {
+        if ($identifier === null || $identifier === '') {
+            return null;
+        }
+
+        $this->db->select('staff.id, staff.name, staff.surname, staff.email, staff.contact_no, staff.employee_id, staff.image, staff_designation.designation, department.department_name');
+        $this->db->from('staff');
+        $this->db->join('staff_designation', 'staff_designation.id = staff.designation', 'left');
+        $this->db->join('department', 'department.id = staff.department', 'left');
+        $this->db->group_start();
+        $this->db->where('staff.email', $identifier);
+        $this->db->or_where('LOWER(staff.email)', strtolower($identifier));
+        $this->db->or_where('staff.employee_id', $identifier);
+        $this->db->or_where('staff.contact_no', $identifier);
+        $this->db->group_end();
+        $this->db->order_by('staff.id', 'DESC');
+        $this->db->limit(1);
+
+        return $this->db->get()->row();
+    }
+
+    private function recoverStaffUserLogin($staffRow, $loginIdentifier)
+    {
+        if (empty($staffRow) || empty($staffRow->staff_id)) {
+            return null;
+        }
+
+        $staff_id = (int) $staffRow->staff_id;
+
+        // Prefer an existing non-student/parent user tied to this staff.
+        $this->db->select('users.id as id, users.username, users.password, users.role, users.is_active as is_active, users.lang_id');
+        $this->db->from('users');
+        $this->db->where('users.user_id', $staff_id);
+        $this->db->where_not_in('users.role', array('student', 'parent'));
+        $this->db->order_by('users.id', 'DESC');
+        $this->db->limit(1);
+        $existing_mapped = $this->db->get();
+        if ($existing_mapped->num_rows() == 1) {
+            return $existing_mapped->row();
+        }
+
+        // Resolve a staff role from staff_roles for created users row.
+        $this->db->select('roles.name as role_name');
+        $this->db->from('staff_roles');
+        $this->db->join('roles', 'roles.id = staff_roles.role_id', 'inner');
+        $this->db->where('staff_roles.staff_id', $staff_id);
+        $this->db->where_not_in('roles.name', array('student', 'parent'));
+        $this->db->order_by('staff_roles.role_id', 'ASC');
+        $this->db->limit(1);
+        $role_row = $this->db->get()->row();
+        $role_name = !empty($role_row->role_name) ? strtolower(trim($role_row->role_name)) : 'teacher';
+
+        $candidates = array();
+        if (!empty($loginIdentifier)) {
+            $candidates[] = $loginIdentifier;
+        }
+        if (!empty($staffRow->email)) {
+            $candidates[] = $staffRow->email;
+        }
+        if (!empty($staffRow->employee_id)) {
+            $candidates[] = $staffRow->employee_id;
+        }
+        if (!empty($staffRow->contact_no)) {
+            $candidates[] = $staffRow->contact_no;
+        }
+        $candidates[] = 'staff_' . $staff_id;
+
+        $chosen_username = null;
+        foreach (array_unique($candidates) as $candidate) {
+            if ($candidate === null || $candidate === '') {
+                continue;
+            }
+            $this->db->select('id, role');
+            $this->db->from('users');
+            $this->db->where('username', $candidate);
+            $this->db->limit(1);
+            $u = $this->db->get()->row();
+            if (empty($u)) {
+                $chosen_username = $candidate;
+                break;
+            }
+
+            // Reuse existing non-student/parent username login if present.
+            if (!in_array($u->role, array('student', 'parent'), true)) {
+                $this->db->select('users.id as id, users.username, users.password, users.role, users.is_active as is_active, users.lang_id');
+                $this->db->from('users');
+                $this->db->where('users.id', (int) $u->id);
+                $this->db->limit(1);
+                $existing = $this->db->get();
+                if ($existing->num_rows() == 1) {
+                    return $existing->row();
+                }
+            }
+        }
+
+        if ($chosen_username === null) {
+            return null;
+        }
+
+        $new_user = array(
+            'username'  => $chosen_username,
+            'password'  => $staffRow->staff_password,
+            'user_id'   => $staff_id,
+            'role'      => $role_name,
+            'is_active' => 1,
+            'lang_id'   => 0,
+        );
+
+        $this->db->insert('users', $new_user);
+        $new_id = (int) $this->db->insert_id();
+        if ($new_id <= 0) {
+            return null;
+        }
+
+        $this->db->select('users.id as id, users.username, users.password, users.role, users.is_active as is_active, users.lang_id');
+        $this->db->from('users');
+        $this->db->where('users.id', $new_id);
+        $this->db->limit(1);
+        $created = $this->db->get();
+
+        return ($created->num_rows() == 1) ? $created->row() : null;
     }
 
     public function getToken($randomIdLength = 10)

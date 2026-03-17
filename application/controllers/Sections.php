@@ -88,16 +88,13 @@ class Sections extends Admin_Controller
         $class_id = $this->input->get('class_id');
         $data     = array();
         $userdata = $this->customlib->getUserData();
-        if (($userdata["role_id"] == 2) && ($userdata["class_teacher"] == "yes")) {
-            $id    = $userdata["id"];
-            $query = $this->db->where("staff_id", $id)->where("class_id", $class_id)->get("class_teacher");
+        if (($userdata["role_id"] == 2)) {
+            $id   = $userdata["id"];
+            $data = $this->teacher_model->get_teacherrestricted_modesections($id, $class_id);
 
-            if ($query->num_rows() > 0) {
-
-                $data = $this->section_model->getClassTeacherSection($class_id);
-            } else {
-
-                $data = $this->section_model->getSubjectTeacherSection($class_id, $id);
+            // Fallback for edge cases with missing mapping/session rows.
+            if (empty($data)) {
+                $data = $this->section_model->getClassBySection($class_id);
             }
         } else {
             $data = $this->section_model->getClassBySection($class_id);

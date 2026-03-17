@@ -310,6 +310,15 @@ class Payroll extends Admin_Controller
         $data['month_absent_total'] = $this->getMonthAbsentTotals($data['monthAttendance'], $data['month_absent_working_days']);
         $data['month_paid_leave_absent'] = $this->getMonthPaidLeaveAbsentCounts($data['monthAttendance'], $employee_payroll['staff_id']);
         $data['payroll_lop_summary'] = $this->getPayrollLopSummary($data['monthAttendance'], $data['monthLeaves'], $data["month"], $data["year"], $employee_payroll['staff_id']);
+
+        $data['payroll_lop_display'] = $this->resolvePayrollLopValues(
+            (int) $employee_payroll['staff_id'],
+            $employee_payroll['month'],
+            $employee_payroll['year'],
+            (array) $data['payroll_lop_summary'],
+            (array) $employee_payroll,
+            false
+        );
         
         // Load standardized allowance types for dropdowns
         $data['earning_types'] = $this->payroll_model->getAllowanceTypes('earning', true);
@@ -370,6 +379,75 @@ class Payroll extends Admin_Controller
             ->row_array();
 
         return isset($row['total_pt']) ? (float) $row['total_pt'] : 0;
+    }
+
+    private function getCommittedPayrollStatuses()
+    {
+        return ['paid', 'generated', 'no_attendance'];
+    }
+
+    private function resolvePayrollLopValues($staff_id, $month, $year, array $lop_summary = [], array $existing_payslip = [], $persist_adjustment = false)
+    {
+        $actual_lop_days = !empty($lop_summary['lop_days']) ? (float) $lop_summary['lop_days'] : 0.0;
+        $month_num = (int) date('n', strtotime($year . '-' . $month . '-01'));
+        $total_days_of_month = cal_days_in_month(CAL_GREGORIAN, max(1, $month_num), (int) $year);
+        $existing_status = strtolower(trim((string) ($existing_payslip['status'] ?? '')));
+        $has_committed_payslip = !empty($existing_payslip)
+            && in_array($existing_status, $this->getCommittedPayrollStatuses(), true);
+
+        if ($has_committed_payslip) {
+            $actual_lop_days = (float) ($existing_payslip['actual_lop_days'] ?? $actual_lop_days);
+            $adjusted_lop_days = (float) ($existing_payslip['adjusted_lop_days'] ?? 0);
+            if ($adjusted_lop_days < 0) {
+                $adjusted_lop_days = 0.0;
+            }
+            if ($adjusted_lop_days > $actual_lop_days) {
+                $adjusted_lop_days = $actual_lop_days;
+            }
+
+            $net_lop_days = (float) ($existing_payslip['net_lop_days'] ?? max(0, round($actual_lop_days - $adjusted_lop_days, 2)));
+            $net_lop_days = max(0, min($actual_lop_days, $net_lop_days));
+
+            return [
+                'actual_lop_days' => round($actual_lop_days, 2),
+                'adjusted_lop_days' => round($adjusted_lop_days, 2),
+                'net_lop_days' => round($net_lop_days, 2),
+                'month_num' => $month_num,
+                'total_days_of_month' => $total_days_of_month,
+                'source' => 'stored',
+            ];
+        }
+
+        $adjusted_lop_days = 0.0;
+        $net_lop_days = $actual_lop_days;
+
+        $is_full_month_lop = ($total_days_of_month > 0 && $actual_lop_days >= (float) $total_days_of_month);
+
+        if (!$is_full_month_lop && ($persist_adjustment || $actual_lop_days > 0)) {
+            $adjusted_result = $persist_adjustment
+                ? $this->payroll_model->processLOPWithMonthlyBalance((int) $staff_id, $actual_lop_days, $month_num, (int) $year)
+                : $this->payroll_model->previewLOPWithMonthlyBalance((int) $staff_id, $actual_lop_days, $month_num, (int) $year);
+
+            if (!empty($adjusted_result['success'])) {
+                $adjusted_lop_days = (float) ($adjusted_result['adjusted_lop_days'] ?? 0);
+                if ($adjusted_lop_days < 0) {
+                    $adjusted_lop_days = 0.0;
+                }
+                if ($adjusted_lop_days > $actual_lop_days) {
+                    $adjusted_lop_days = $actual_lop_days;
+                }
+                $net_lop_days = max(0, round($actual_lop_days - $adjusted_lop_days, 2));
+            }
+        }
+
+        return [
+            'actual_lop_days' => round($actual_lop_days, 2),
+            'adjusted_lop_days' => round($adjusted_lop_days, 2),
+            'net_lop_days' => round($net_lop_days, 2),
+            'month_num' => $month_num,
+            'total_days_of_month' => $total_days_of_month,
+            'source' => 'calculated',
+        ];
     }
 
     private function mergeAmountIntoAllowanceCode(array &$allowances, $allowance_code, $amount, $staff_id)
@@ -2583,13 +2661,17 @@ class Payroll extends Admin_Controller
             $monthLeaves = $this->monthLeaves($newdate, 3, $staff['id']);
             $lop_summary = $this->getPayrollLopSummary($monthAttendanceData, $monthLeaves, $month, $year, $staff['id']);
 
-            // Track LOP values: Actual, Adjusted, and Net
-            $actual_lop_days = !empty($lop_summary['lop_days']) ? (float) $lop_summary['lop_days'] : 0;
-            $adjusted_lop_days = 0;
-            $net_lop_days = $actual_lop_days;
+            $existing_payslip = [];
+            if (!empty($staff['payslip_id'])) {
+                $existing_payslip = (array) $this->payroll_model->getPayslip((int) $staff['payslip_id']);
+            }
 
-            // If overwriting, reset the monthly balance LOP adjustments for this staff/month
-            if (!empty($staff['payslip_id']) && $overwrite) {
+            $existing_status = strtolower(trim((string) ($existing_payslip['status'] ?? '')));
+            $use_committed_lop = !empty($existing_payslip)
+                && in_array($existing_status, $this->getCommittedPayrollStatuses(), true);
+
+            // If overwriting and recomputing LOP, reset the monthly balance adjustments first.
+            if (!empty($staff['payslip_id']) && $overwrite && !$use_committed_lop) {
                 $this->db->where('staff_id', $staff['id']);
                 $this->db->where('year', (int)$year);
                 $this->db->where('month', (int)$month_numeric);
@@ -2601,30 +2683,26 @@ class Payroll extends Admin_Controller
                 $this->db->update('staff_monthly_leave_balance');
             }
 
-            // Process monthly balance sync and LOP adjustment.
-            // This must run even when actual LOP is zero so movement-credit rows are materialized.
+            $lop_values = $this->resolvePayrollLopValues(
+                (int) $staff['id'],
+                $month,
+                $year,
+                (array) $lop_summary,
+                $existing_payslip,
+                true
+            );
+            $actual_lop_days = (float) ($lop_values['actual_lop_days'] ?? 0);
+            $adjusted_lop_days = (float) ($lop_values['adjusted_lop_days'] ?? 0);
+            $net_lop_days = (float) ($lop_values['net_lop_days'] ?? $actual_lop_days);
+
             $month_num = date('n', strtotime($year . '-' . $month . '-01'));
             $total_days_of_month = cal_days_in_month(CAL_GREGORIAN, $month_num, (int)$year);
-            if ($total_days_of_month > 0 && $actual_lop_days >= (float) $total_days_of_month) {
-                $adjusted_lop_days = 0;
-                $net_lop_days = $actual_lop_days;
+            if (($lop_values['source'] ?? '') === 'stored') {
+                log_message('debug', 'Staff ' . $staff['id'] . ' uses committed payslip LOP values during bulk calculation.');
+            } elseif ($total_days_of_month > 0 && $actual_lop_days >= (float) $total_days_of_month) {
                 log_message('debug', 'Staff ' . $staff['id'] . ' full-month LOP detected; forcing zero adjustment.');
             } else {
-                $adjusted_result = $this->payroll_model->processLOPWithMonthlyBalance($staff['id'], $actual_lop_days, $month_numeric, $year);
-                log_message('debug', 'LOP Adjustment Result for Staff ' . $staff['id'] . ': ' . json_encode($adjusted_result));
-                if ($adjusted_result !== false && is_array($adjusted_result) && $adjusted_result['success']) {
-                    $adjusted_lop_days = (float) ($adjusted_result['adjusted_lop_days'] ?? 0);
-                    if ($adjusted_lop_days < 0) {
-                        $adjusted_lop_days = 0;
-                    }
-                    if ($adjusted_lop_days > $actual_lop_days) {
-                        $adjusted_lop_days = $actual_lop_days;
-                    }
-                    $net_lop_days = max(0, round($actual_lop_days - $adjusted_lop_days, 2));
-                    log_message('debug', 'Staff ' . $staff['id'] . ' - Adjusted: ' . $adjusted_lop_days . ', Net: ' . $net_lop_days);
-                } else {
-                    log_message('error', 'LOP Adjustment Failed for Staff ' . $staff['id'] . ': ' . json_encode($adjusted_result));
-                }
+                log_message('debug', 'Staff ' . $staff['id'] . ' - Adjusted: ' . $adjusted_lop_days . ', Net: ' . $net_lop_days);
             }
 
             $full_gross_salary = (float) $basic + (float) $total_allowance;
@@ -3166,22 +3244,23 @@ class Payroll extends Admin_Controller
         $monthAttendanceData = $this->monthAttendance($newdate, 3, $staff_id);
         $monthLeaves = $this->monthLeaves($newdate, 3, $staff_id);
         $lop_summary = $this->getPayrollLopSummary($monthAttendanceData, $monthLeaves, $month, $year, $staff_id);
-
-        $actual_lop_days = !empty($lop_summary['lop_days']) ? (float) $lop_summary['lop_days'] : 0;
-        $adjusted_lop_days = 0;
-        $net_lop_days = $actual_lop_days;
-        $total_days_of_month = cal_days_in_month(CAL_GREGORIAN, (int) $month_num, (int) $year);
-
-        if ($total_days_of_month > 0 && $actual_lop_days >= (float) $total_days_of_month) {
-            $adjusted_lop_days = 0;
-            $net_lop_days = $actual_lop_days;
-        } elseif ($actual_lop_days > 0) {
-            $adjusted_result = $this->payroll_model->previewLOPWithMonthlyBalance($staff_id, $actual_lop_days, $month_num, $year);
-            if (!empty($adjusted_result['success'])) {
-                $net_lop_days = (float) $adjusted_result['net_lop_days'];
-                $adjusted_lop_days = (float) $adjusted_result['adjusted_lop_days'];
-            }
+        $existing_payslip = [];
+        if ($payslip_id > 0) {
+            $existing_payslip = (array) $this->payroll_model->getPayslip($payslip_id);
         }
+
+        $lop_values = $this->resolvePayrollLopValues(
+            $staff_id,
+            $month,
+            $year,
+            (array) $lop_summary,
+            $existing_payslip,
+            false
+        );
+        $actual_lop_days = (float) ($lop_values['actual_lop_days'] ?? 0);
+        $adjusted_lop_days = (float) ($lop_values['adjusted_lop_days'] ?? 0);
+        $net_lop_days = (float) ($lop_values['net_lop_days'] ?? $actual_lop_days);
+        $total_days_of_month = (int) ($lop_values['total_days_of_month'] ?? cal_days_in_month(CAL_GREGORIAN, (int) $month_num, (int) $year));
 
         $epf_wage = 0;
         $employee_epf = 0;
