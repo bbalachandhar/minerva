@@ -163,10 +163,6 @@
                 <div class="box box-primary">
                     <div class="box-header with-border">
                         <h3 class="box-title"><i class="fa fa-search"></i> <?php echo $this->lang->line('select_criteria'); ?></h3>
-                        <div class="box-tools pull-right">
-                            <button type="button" id="btnSyncPunches" class="btn btn-primary btn-sm"><i class="fa fa-refresh"></i> <?php echo $this->lang->line('sync_punches'); ?></button>
-                            <button type="button" id="btnProcessAttendance" class="btn btn-success btn-sm"><i class="fa fa-calculator"></i> <?php echo $this->lang->line('process_biometric_attendance'); ?></button>
-                        </div>
                     </div>
                     <form id='form1' action="<?php echo site_url('admin/staffattendance/index') ?>" method="post" accept-charset="utf-8">
                         <div class="box-body">
@@ -253,6 +249,28 @@
                                         <button id="btnProcessBetween" class="btn btn-success"><?php echo $this->lang->line('process'); ?></button>
                                     </div>
                                     <p class="help-block text-muted" style="margin-top:6px;">Existing processed attendance (biometric) found in the range will be removed and recomputed from raw punches.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row" style="margin-top:10px;">
+                        <div class="col-md-12">
+                            <div class="box box-solid box-warning">
+                                <div class="box-header with-border">
+                                    <h4 class="box-title"><i class="fa fa-clock-o"></i> AWS EC2 Cron Setup (Recommended)</h4>
+                                </div>
+                                <div class="box-body">
+                                    <p class="text-muted" style="margin-bottom:8px;">This server runs in <strong>UTC</strong>. The schedule below maps to <strong>IST</strong> runs at 10:45 AM, 6:30 PM, and 8:00 PM.</p>
+                                    <pre style="white-space:pre-wrap; margin-bottom:8px;"># IST 10:45 AM (UTC 05:15)
+15 05 * * * /bin/sh -c 'echo "START morning_1045 $(date)" >> /home/ec2-user/cron_attendance.log; cd /var/www/mce && /usr/bin/php index.php admin/staff/sync_biometric_attendance >> /home/ec2-user/cron_attendance.log 2>&1; /usr/bin/php index.php admin/staffattendance/trigger_process_biometric_attendance >> /home/ec2-user/cron_attendance.log 2>&1; echo "END morning_1045 rc:$? $(date)" >> /home/ec2-user/cron_attendance.log'
+
+# IST 6:30 PM (UTC 13:00)
+00 13 * * * /bin/sh -c 'echo "START evening_1830 $(date)" >> /home/ec2-user/cron_attendance.log; cd /var/www/mce && /usr/bin/php index.php admin/staff/sync_biometric_attendance >> /home/ec2-user/cron_attendance.log 2>&1; /usr/bin/php index.php admin/staffattendance/trigger_process_biometric_attendance >> /home/ec2-user/cron_attendance.log 2>&1; echo "END evening_1830 rc:$? $(date)" >> /home/ec2-user/cron_attendance.log'
+
+# IST 8:00 PM (UTC 14:30) with notifications
+30 14 * * * /bin/sh -c 'echo "START evening_2000_notify $(date)" >> /home/ec2-user/cron_attendance.log; cd /var/www/mce && /usr/bin/php index.php admin/staff/sync_biometric_attendance >> /home/ec2-user/cron_attendance.log 2>&1; /usr/bin/php index.php admin/staffattendance/trigger_process_biometric_attendance 1 >> /home/ec2-user/cron_attendance.log 2>&1; echo "END evening_2000_notify rc:$? $(date)" >> /home/ec2-user/cron_attendance.log'</pre>
+                                    <p class="text-muted" style="margin:0;">Quick check: <code>tail -f /home/ec2-user/cron_attendance.log</code></p>
                                 </div>
                             </div>
                         </div>
@@ -736,8 +754,6 @@ var evaluateUrl = "<?php echo site_url('admin/staffattendance/ajax_evaluate_atte
 var saveProcessUrl = "<?php echo site_url('admin/staffattendance/ajax_save_and_process_attendance'); ?>";
 var fetchBetweenUrl = "<?php echo site_url('admin/staffattendance/fetch_punches_between_dates'); ?>";
 var processBetweenUrl = "<?php echo site_url('admin/staffattendance/process_attendance_between_dates'); ?>";
-var syncPunchesUrl = "<?php echo site_url('admin/staff/sync_biometric_attendance'); ?>";
-var processAttendanceUrl = "<?php echo site_url('admin/staffattendance/trigger_process_biometric_attendance'); ?>";
 var csrfName = '<?php echo $this->security->get_csrf_token_name(); ?>';
 var csrfHash = '<?php echo $this->security->get_csrf_hash(); ?>';
 
@@ -752,36 +768,6 @@ function showBetweenModal(title, message, details) {
     $('#betweenProgressModal').modal({ backdrop: 'static', keyboard: false });
 }
 function hideBetweenModal() { $('#betweenProgressModal').modal('hide'); }
-
-// Sync Punches button handler (fetch all raw punches from biometric device)
-$(document).on('click', '#btnSyncPunches', function(e) {
-    console.log('btnSyncPunches clicked!');
-    e.preventDefault();
-    if (!confirm('This will fetch all raw punches from the biometric device. This may take a few minutes. Continue?')) { return; }
-    
-    $('#btnSyncPunches, #btnProcessAttendance, #btnFetchBetween, #btnProcessBetween, #saveattendence').prop('disabled', true);
-    showBetweenModal('Syncing Punches', 'Fetching all raw punches from biometric device. Please do not close this window...', 'This operation may take several minutes.');
-    
-    // Navigate to the sync endpoint (it will process and redirect back with flash message)
-    setTimeout(function() {
-        window.location.href = syncPunchesUrl;
-    }, 500);
-});
-
-// Process Biometric Attendance button handler (process all raw punches into attendance records)
-$(document).on('click', '#btnProcessAttendance', function(e) {
-    console.log('btnProcessAttendance clicked!');
-    e.preventDefault();
-    if (!confirm('This will process all raw punches into attendance records. This may take a few minutes. Continue?')) { return; }
-    
-    $('#btnSyncPunches, #btnProcessAttendance, #btnFetchBetween, #btnProcessBetween, #saveattendence').prop('disabled', true);
-    showBetweenModal('Processing Attendance', 'Processing all raw punches into attendance records. Please do not close this window...', 'This operation may take several minutes.');
-    
-    // Navigate to the process endpoint (it will process and redirect back with flash message)
-    setTimeout(function() {
-        window.location.href = processAttendanceUrl;
-    }, 500);
-});
 
 // Fetch punches between two dates (reset raw punches + import) — show progress modal
 // Use delegated handler + immediate feedback (console + toast) to ensure responsiveness
