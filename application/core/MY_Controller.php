@@ -59,13 +59,24 @@ class Admin_Controller extends MY_Controller
     {
         parent::__construct();
 
-        // skip authentication for certain public methods (e.g. preview link)
+        // Skip authentication for select public/CLI-safe methods.
         $current_method = $this->router->fetch_method();
         $current_class  = $this->router->fetch_class();
-        $bypass = false;
+        $is_cli         = $this->input->is_cli_request();
+        $bypass         = false;
+
         if ($current_class === 'onlinestudent' && $current_method === 'preview') {
             $bypass = true;
         }
+
+        // Allow attendance cron endpoints from CLI without admin session.
+        if ($is_cli) {
+            if (($current_class === 'staff' && $current_method === 'sync_biometric_attendance')
+                || ($current_class === 'staffattendance' && ($current_method === 'sync_biometric_attendance' || $current_method === 'trigger_process_biometric_attendance'))) {
+                $bypass = true;
+            }
+        }
+
         if (!$bypass) {
             if ($this->input->is_ajax_request()) {
                 if (!$this->auth->logged_in()) {
