@@ -2671,7 +2671,8 @@ class Staff extends Admin_Controller
 
         public function sync_biometric_attendance() {
 
-            if (!($this->rbac->hasPrivilege('biometric_device', 'can_view'))) {
+            $is_cli = $this->input->is_cli_request();
+            if (!$is_cli && !($this->rbac->hasPrivilege('biometric_device', 'can_view'))) {
 
                 access_denied();
 

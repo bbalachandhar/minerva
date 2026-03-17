@@ -851,7 +851,8 @@ class Staffattendance extends Admin_Controller
      * or via HTTP: /admin/staffattendance/trigger_process_biometric_attendance?notify=1
      */
     public function trigger_process_biometric_attendance($notify = 0) {
-        if (!($this->rbac->hasPrivilege('biometric_attendance', 'can_view'))) {
+        $is_cli = $this->input->is_cli_request();
+        if (!$is_cli && !($this->rbac->hasPrivilege('biometric_attendance', 'can_view'))) {
             access_denied();
         }
         // determine whether we should send absent notifications
