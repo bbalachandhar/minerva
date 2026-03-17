@@ -2296,6 +2296,42 @@ class Webservice extends CI_Controller
             $used = 0.0;
             $remaining = $allocated;
 
+            $requires_balance_check = 1;
+            if ($has_balance_flag) {
+                $requires_balance_check = (int) ($leave_type['requires_balance_check'] ?? 1);
+            } else {
+                $type_name = strtolower(trim((string) ($leave_type['type'] ?? '')));
+                if (in_array($type_name, array('on duty', 'od'), true)) {
+                    $requires_balance_check = 0;
+                }
+            }
+
+            // Credit-style leave types (requires_balance_check = 0) should increase
+            // balance only after approval. Pending/disapproved must not affect balance.
+            if ($requires_balance_check === 0) {
+                $approved_credit_row = $this->db
+                    ->select('SUM(leave_days) as approved_leave_days')
+                    ->where('staff_id', $staff_id)
+                    ->where('status', 'approve')
+                    ->where('leave_type_id', $type_id)
+                    ->get('staff_leave_request')
+                    ->row_array();
+
+                $approved_credit_days = (float) ($approved_credit_row['approved_leave_days'] ?? 0);
+                $used = 0.0;
+                $remaining = $allocated + $approved_credit_days;
+
+                $balance[] = array(
+                    'leave_type_id' => $type_id,
+                    'type' => $leave_type['type'],
+                    'requires_balance_check' => $requires_balance_check,
+                    'allocated' => round($allocated, 2),
+                    'used' => round($used, 2),
+                    'remaining' => round($remaining, 2),
+                );
+                continue;
+            }
+
             if ($use_monthly_balance) {
                 try {
                     $monthly_balance = $this->db
@@ -2322,7 +2358,7 @@ class Webservice extends CI_Controller
                         $used_row = $this->db
                             ->select('SUM(leave_days) as approve_leave')
                             ->where('staff_id', $staff_id)
-                            ->where('status !=', 'disapprove')
+                            ->where('status', 'approve')
                             ->where('leave_type_id', $type_id)
                             ->get('staff_leave_request')
                             ->row_array();
@@ -2335,7 +2371,7 @@ class Webservice extends CI_Controller
                     $used_row = $this->db
                         ->select('SUM(leave_days) as approve_leave')
                         ->where('staff_id', $staff_id)
-                        ->where('status !=', 'disapprove')
+                        ->where('status', 'approve')
                         ->where('leave_type_id', $type_id)
                         ->get('staff_leave_request')
                         ->row_array();
@@ -2347,23 +2383,13 @@ class Webservice extends CI_Controller
                 $used_row = $this->db
                     ->select('SUM(leave_days) as approve_leave')
                     ->where('staff_id', $staff_id)
-                    ->where('status !=', 'disapprove')
+                    ->where('status', 'approve')
                     ->where('leave_type_id', $type_id)
                     ->get('staff_leave_request')
                     ->row_array();
 
                 $used = (float) ($used_row['approve_leave'] ?? 0);
                 $remaining = $allocated - $used;
-            }
-
-            $requires_balance_check = 1;
-            if ($has_balance_flag) {
-                $requires_balance_check = (int) ($leave_type['requires_balance_check'] ?? 1);
-            } else {
-                $type_name = strtolower(trim((string) ($leave_type['type'] ?? '')));
-                if (in_array($type_name, array('on duty', 'od'), true)) {
-                    $requires_balance_check = 0;
-                }
             }
 
             $balance[] = array(
