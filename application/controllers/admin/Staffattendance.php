@@ -844,6 +844,48 @@ class Staffattendance extends Admin_Controller
     }
 
     /**
+     * Shared core logic for biometric attendance reprocessing across a date range.
+     * This keeps cron processing and UI "process between dates" behavior identical.
+     *
+     * @param string $from_date Y-m-d
+     * @param string $to_date   Y-m-d
+     * @return array
+     */
+    private function _reprocess_biometric_attendance_range($from_date, $to_date)
+    {
+        $deleted_rows = $this->staffattendancemodel->delete_processed_attendance_between_dates($from_date, $to_date);
+
+        $overall_unmatched_staff_ids = [];
+        $processed_days = 0;
+        $current_date = $from_date;
+
+        while (strtotime($current_date) <= strtotime($to_date)) {
+            $result = $this->_process_staff_attendance_from_punches($current_date);
+            if (!empty($result['unmatched_staff_ids'])) {
+                $overall_unmatched_staff_ids = array_merge($overall_unmatched_staff_ids, $result['unmatched_staff_ids']);
+            }
+            $processed_days++;
+            $current_date = date('Y-m-d', strtotime($current_date . ' +1 day'));
+        }
+
+        if ($processed_days > 0) {
+            $setting = $this->setting_model->getSetting();
+            if ($setting && isset($setting->id)) {
+                $this->setting_model->add([
+                    'id' => $setting->id,
+                    'last_processed_attendance_date' => $to_date,
+                ]);
+            }
+        }
+
+        return [
+            'deleted_rows' => $deleted_rows,
+            'processed_days' => $processed_days,
+            'unmatched_staff_ids' => array_values(array_unique($overall_unmatched_staff_ids)),
+        ];
+    }
+
+    /**
      * Process biometric attendance and optionally notify absentees.
      * Can be invoked via cron twice daily. Pass a parameter 'notify' in the URI or as GET
      * to trigger absent notifications (typically only for evening run).
@@ -887,33 +929,11 @@ class Staffattendance extends Admin_Controller
 
         $to_date = $today; // Always process up to today
 
-        $messages = [];
-        $overall_unmatched_staff_ids = [];
-        $processed_dates_count = 0;
+        $range_result = $this->_reprocess_biometric_attendance_range($from_date, $to_date);
+        $processed_dates_count = (int)$range_result['processed_days'];
+        $overall_unmatched_staff_ids = $range_result['unmatched_staff_ids'];
 
-        // Loop through each day from from_date to to_date (inclusive)
-        $current_date = $from_date;
-        while (strtotime($current_date) <= strtotime($to_date)) {
-            $result = $this->_process_staff_attendance_from_punches($current_date);
-            if (!empty($result['unmatched_staff_ids'])) {
-                $overall_unmatched_staff_ids = array_merge($overall_unmatched_staff_ids, $result['unmatched_staff_ids']);
-            }
-            $messages[] = 'Processed attendance for ' . $current_date . '.';
-            $processed_dates_count++;
-            $current_date = date('Y-m-d', strtotime($current_date . ' +1 day'));
-        }
-
-        // Update last_processed_attendance_date only if some dates were processed
         if ($processed_dates_count > 0) {
-            $setting = $this->setting_model->getSetting(); // Get the existing settings row
-            $setting_id = $setting->id; // Get the ID of the existing settings row
-
-            $update_data = [
-                'id' => $setting_id, // Pass the ID for update
-                'last_processed_attendance_date' => $to_date
-            ];
-            $this->setting_model->add($update_data); // Call add method with ID
-            
             // Add summary log for attendance processing
             $admin_session = $this->session->userdata('admin');
             $user_name = !empty($admin_session['username']) ? $admin_session['username'] : 'System';
@@ -1019,23 +1039,9 @@ class Staffattendance extends Admin_Controller
             return;
         }
 
-        // delete existing processed (biometric) attendance in range
-        $deleted_rows = $this->staffattendancemodel->delete_processed_attendance_between_dates($from_date, $to_date);
-
-        // reprocess day by day
-        $current = $from_date;
-        $processed_days = 0;
-        while (strtotime($current) <= strtotime($to_date)) {
-            $this->_process_staff_attendance_from_punches($current);
-            $processed_days++;
-            $current = date('Y-m-d', strtotime($current . ' +1 day'));
-        }
-
-        // update last_processed_attendance_date to the to_date
-        $setting = $this->setting_model->getSetting();
-        if ($setting && isset($setting->id)) {
-            $this->setting_model->add(['id' => $setting->id, 'last_processed_attendance_date' => $to_date]);
-        }
+        $range_result = $this->_reprocess_biometric_attendance_range($from_date, $to_date);
+        $deleted_rows = (int)$range_result['deleted_rows'];
+        $processed_days = (int)$range_result['processed_days'];
 
         // Add summary log for reprocessing attendance between dates
         $admin_session = $this->session->userdata('admin');
