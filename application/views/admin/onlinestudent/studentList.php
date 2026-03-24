@@ -10,7 +10,18 @@
                 <div class="box box-primary">
                     <div class="box-header with-border">
                         <h3 class="box-title"><?php echo $this->lang->line('student_list'); ?></h3>
-                        <div class="box-tools pull-right">
+                        <div class="box-tools pull-right" style="display:flex;gap:8px;align-items:center;">
+                            <select id="filter_form_status" class="form-control input-sm" style="width:150px;">
+                                <option value="">All Form Status</option>
+                                <option value="0">Not Paid</option>
+                                <option value="2">Partially Paid</option>
+                                <option value="1">Paid</option>
+                            </select>
+                            <select id="filter_quota" class="form-control input-sm" style="width:150px;">
+                                <option value="">All Quota</option>
+                                <option value="management">Management</option>
+                                <option value="govt">Government</option>
+                            </select>
                         </div><!-- /.box-tools -->
                     </div><!-- /.box-header -->
                     <div class="box-body">
@@ -111,11 +122,23 @@
 <script>
     ( function ( $ ) {
     'use strict';
-    $(document).ready(function () {
-        initDatatable('student-list','admin/onlinestudent/getstudentlist',[],[],10);
-        $('.student-list').on('draw.dt', function() {
+    function loadStudentTable() {
+        var params = {};
+        var quota = $('#filter_quota').val();
+        var status = $('#filter_form_status').val();
+        if (quota !== '') params.quota_type_filter = quota;
+        if (status !== '') params.paid_status_filter = status;
+        initDatatable('student-list', 'admin/onlinestudent/getstudentlist', params, [], 10);
+        $('.student-list').off('draw.dt').on('draw.dt', function() {
             var info = $('.student-list').DataTable().page.info();
             $('#student-list-footer').text('Total Records: ' + info.recordsTotal);
+        });
+    }
+
+    $(document).ready(function () {
+        loadStudentTable();
+        $('#filter_form_status, #filter_quota').on('change', function() {
+            loadStudentTable();
         });
         // prevent any delegated row click from blocking anchor navigation
         $(document).on('click', '.student-list td a', function(e) {

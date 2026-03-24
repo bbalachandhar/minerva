@@ -528,7 +528,7 @@ class Staffattendance extends Admin_Controller
             $exception_reason = null;
 
             // Exception detection logic
-            $role_id = $staff_member->role_id;
+            $role_id = isset($staff_member->role_id) ? $staff_member->role_id : null;
             $present_setting = $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($role_id, 1);
             if ($present_setting && !empty($present_setting->entry_time_from)) {
                 $morning_window_start = $present_setting->entry_time_from;
@@ -560,7 +560,7 @@ class Staffattendance extends Admin_Controller
         if (!empty($current_sync) && strtotime($current_sync) > strtotime($toDateTime)) {
             $new_sync = $current_sync;
         }
-        $this->setting_model->update(['last_biometric_sync_datetime' => $new_sync]);
+        $this->setting_model->add(['id' => $setting->id, 'last_biometric_sync_datetime' => $new_sync]);
         log_message('debug', "fetch_punches_between_dates: Updated last_biometric_sync_datetime to {$new_sync}");
 
         log_message('debug', "fetch_punches_between_dates: Completed. Inserted: {$inserted}, Exceptions: {$exceptions}");

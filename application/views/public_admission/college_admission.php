@@ -716,43 +716,43 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="section-card">
-                            <h5 class="mb-3">Additional Information</h5>
+                    </div>
+                    <div class="section-card">
+                        <h5 class="mb-3">Additional Information</h5>
+                        <div class="mb-4">
+                            <label class="form-label">UG Alumni of Meenakshi Group of Institutions</label>
+                            <input type="file" class="form-control" name="bonafide" id="bonafide" tabindex="80">
+                            <small class="text-muted">Attach Bonafide Certificate</small>
+                        </div>
+                        <div class="row">
                             <div class="mb-4">
-                                <label class="form-label">UG Alumni of Meenakshi Group of Institutions</label>
-                                <input type="file" class="form-control" name="bonafide" id="bonafide" tabindex="80">
-                                <small class="text-muted">Attach Bonafide Certificate</small>
-                            </div>
-                            <div class="row">
-                                <div class="mb-4">
-                                    <label class="form-label">Eminent Sports Person</label><br>
-                                    <input type="radio" name="sports" id="sports" value="Yes" tabindex="81"> Yes
-                                    <input type="radio" name="sports" id="sports" value="No" checked tabindex="82"> No
-                                    <br>
-                                    <div id="level">
-                                        <label class="form-label mt-4">Level</label>
-                                        <select class="form-control" name="sports_level" id="sports_level" tabindex="83">
-                                            <option value="">Select Level</option>
-                                            <option value="District">District Level</option>
-                                            <option value="State">State Level</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="mb-4">
-                                    <label class="form-label">Ward of Ex-Service Men</label><br>
-                                    <input type="radio" name="exservice" value="Yes" tabindex="84"> Yes
-                                    <input type="radio" name="exservice" value="No" checked tabindex="85"> No
+                                <label class="form-label">Eminent Sports Person</label><br>
+                                <input type="radio" name="sports" id="sports" value="Yes" tabindex="81"> Yes
+                                <input type="radio" name="sports" id="sports" value="No" checked tabindex="82"> No
+                                <br>
+                                <div id="level">
+                                    <label class="form-label mt-4">Level</label>
+                                    <select class="form-control" name="sports_level" id="sports_level" tabindex="83">
+                                        <option value="">Select Level</option>
+                                        <option value="District">District Level</option>
+                                        <option value="State">State Level</option>
+                                    </select>
                                 </div>
                             </div>
                             <div class="mb-4">
-                                <label class="form-label">Differently Abled Person</label><br>
-                                <input type="radio" name="differently_abled" value="Yes" onclick="showDisabilityType(true)" tabindex="86"> Yes
-                                <input type="radio" name="differently_abled" value="No" onclick="showDisabilityType(false)" checked tabindex="87"> No
+                                <label class="form-label">Ward of Ex-Service Men</label><br>
+                                <input type="radio" name="exservice" value="Yes" tabindex="84"> Yes
+                                <input type="radio" name="exservice" value="No" checked tabindex="85"> No
                             </div>
-                            <div class="mb-3" id="disabilityType" style="display: none;">
-                                <label class="form-label">If Yes, Differently Abled Type</label>
-                                <input type="text" class="form-control" placeholder="Enter type of disability" name="disability_type" id="disability_type" tabindex="88">
-                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <label class="form-label">Differently Abled Person</label><br>
+                            <input type="radio" name="differently_abled" value="Yes" onclick="showDisabilityType(true)" tabindex="86"> Yes
+                            <input type="radio" name="differently_abled" value="No" onclick="showDisabilityType(false)" checked tabindex="87"> No
+                        </div>
+                        <div class="mb-3" id="disabilityType" style="display: none;">
+                            <label class="form-label">If Yes, Differently Abled Type</label>
+                            <input type="text" class="form-control" placeholder="Enter type of disability" name="disability_type" id="disability_type" tabindex="88">
                         </div>
                     </div>
                 </div>

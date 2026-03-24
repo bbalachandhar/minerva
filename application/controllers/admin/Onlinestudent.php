@@ -456,7 +456,9 @@ class Onlinestudent extends Admin_Controller
             }
         }
 
-        $student_result = $this->onlinestudent_model->getstudentlist($carray, null);
+        $quota_type_filter   = $this->input->post('quota_type_filter');
+        $paid_status_filter  = $this->input->post('paid_status_filter');
+        $student_result = $this->onlinestudent_model->getstudentlist($carray, null, $quota_type_filter, $paid_status_filter);
 
         $m               = json_decode($student_result);
         $currency_symbol = $this->customlib->getSchoolCurrencyFormat();

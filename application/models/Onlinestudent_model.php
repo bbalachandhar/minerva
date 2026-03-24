@@ -73,7 +73,7 @@ class Onlinestudent_model extends MY_Model
         }
     }
 
-    public function getstudentlist($carray = null, $id = null)
+    public function getstudentlist($carray = null, $id = null, $quota_type_filter = null, $paid_status_filter = null)
     {
         $class_section_array=$this->customlib->get_myClassSection();        
 
@@ -81,8 +81,31 @@ class Onlinestudent_model extends MY_Model
             $this->datatables->where('online_admissions.id', $id);
         } else {
             $this->datatables->orderable('online_admissions.id', 'desc');
-        }        
-        
+        }
+
+        if (!empty($quota_type_filter)) {
+            $this->datatables->where('online_admissions.quota_type', $quota_type_filter);
+        }
+        if ($paid_status_filter !== null && $paid_status_filter !== false && $paid_status_filter !== '') {
+            // Correlated subquery matching how Form Status is computed in the controller
+            $paid_subquery = "(SELECT COALESCE(SUM(ifc2.amount_collected), 0) "
+                . "FROM incidental_fee_collections ifc2 "
+                . "LEFT JOIN incidental_fee_types ift2 ON ift2.id = ifc2.incidental_fee_type_id "
+                . "WHERE REPLACE(ifc2.application_ref_no, ' ', '') = REPLACE(online_admissions.reference_no, ' ', '') "
+                . "AND ifc2.application_ref_no IS NOT NULL AND ifc2.application_ref_no != '' "
+                . "AND (LOWER(ift2.title) LIKE '%tuition%' OR LOWER(ift2.title) LIKE '%tution%' OR LOWER(ift2.title) LIKE '%other fee%'))";
+            $course_fee_expr = "COALESCE(online_admissions.course_fee_total, IF(online_admissions.quota_type = 'management', online_admission_courses.mgt_fee, online_admission_courses.govt_fee))";
+            if ($paid_status_filter === '0') {
+                // Not Paid
+                $this->datatables->where("$paid_subquery <= 0", null, false);
+            } elseif ($paid_status_filter === '2') {
+                // Partially Paid
+                $this->datatables->where("$paid_subquery > 0 AND $paid_subquery < $course_fee_expr", null, false);
+            } elseif ($paid_status_filter === '1') {
+                // Fully Paid
+                $this->datatables->where("$paid_subquery >= $course_fee_expr AND $course_fee_expr > 0", null, false);
+            }
+        }
         $this->datatables
             ->select('online_admissions.vehroute_id,vehicle_routes.route_id,vehicle_routes.vehicle_id,transport_route.route_title,vehicles.vehicle_no,hostel_rooms.room_no,vehicles.driver_name,vehicles.driver_contact,hostel.id as `hostel_id`,hostel.hostel_name,room_types.id as `room_type_id`,room_types.room_type ,online_admissions.hostel_room_id,class_sections.id as class_section_id,classes.id AS `class_id`,classes.class,sections.id AS `section_id`,sections.section,online_admissions.id,online_admissions.admission_no, online_admissions.roll_no,online_admissions.admission_date,online_admissions.firstname, online_admissions.lastname,online_admissions.image,    online_admissions.mobileno,online_admissions.email,online_admissions.state,online_admissions.city , online_admissions.pincode , online_admissions.note, online_admissions.religion,online_admissions.cast, school_houses.house_name,online_admissions.dob ,online_admissions.current_address, online_admissions.previous_school,
             online_admissions.guardian_is,
