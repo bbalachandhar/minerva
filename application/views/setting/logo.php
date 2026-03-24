@@ -78,29 +78,6 @@
                                 </div>
                             </div>
 
-                             <div class="col-lg-3 col-md-6 col-sm-6">
-                                
-                                <div class="card-body-logo">
-                                <h4><?php echo $this->lang->line('app_logo'); ?> </h4> 
-                                    <div class="text-center">    
-                                        <?php
-                                        if ($result->app_logo == "") {
-                                            ?>
-                                            <div class="card-body-logo-img"><img src="<?php echo $this->media_storage->getImageURL('uploads/school_content/logo/images.png'); ?>" class="" alt="" width="290" height="51"></div>
-                                            <?php
-                                        } else {
-                                            ?>
-                                            <div class="card-body-logo-img"><img src="<?php echo $this->media_storage->getImageURL('uploads/school_content/logo/app_logo/'.$result->app_logo); ?>" width="290" height="51"></div>
-                                            <?php
-                                        }
-                                        ?>
-                                        
-                                        <p class="bolds ptt10">(290px X 51px)</p>
-                                    </div>
-                                    <a href="#schsetting" role="button" class="btn btn-primary btn-sm upload_app_logo"><?php echo $this->lang->line('update'); ?></a>    
-                                    <a href="#app_logo" role="button" class="btn btn-primary btn-sm upload_app_logo" style="display: none" data-toggle="tooltip" title="<?php echo $this->lang->line('edit_app_logo'); ?>" data-loading-text="<i class='fa fa-circle-o-notch fa-spin'></i> <?php echo $this->lang->line('processing'); ?>"><i class="fa fa-picture-o"></i> <?php echo $this->lang->line('edit_app_logo'); ?></a>
-                                </div>
-                            </div>
                             <div class="col-lg-3 col-md-6 col-sm-6">
                                 <div class="card-body-logo">
                                     <h4>Admission Left Logo</h4> 
@@ -175,32 +152,6 @@
         </div>
     </div>
 </div>
-<div class="modal fade" id="modal-upload_app_logo" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                <h4 class="modal-title" id="myModalLabel"><?php echo $this->lang->line('edit_app_logo'); ?></h4>
-            </div>
-            <div class="modal-body upload_logo_body">
-                <!-- ==== -->
-                <form class="box_upload boxupload has-advanced-upload" method="post" action="<?php echo site_url('schsettings/ajax_applogo') ?>" enctype="multipart/form-data">
-                    <input value="<?php echo $result->id ?>" type="hidden" name="id" id="id_app_logo"/>
-                    <input type="file" name="file" id="file_applogo">
-                    <!-- Drag and Drop container-->
-                    <div class="box__input upload-app_logo_area"  id="uploadapp_logo">
-                        <i class="fa fa-download box__icon"></i>
-                        <label><strong><?php echo $this->lang->line('choose_a_file_or_drag_it_here'); ?></strong><!-- <span class="box__dragndrop"> <?php //echo $this->lang->line('or') ?> <span><?php //echo $this->lang->line('drag') ?></span><?php //echo $this->lang->line('it_here') ?></span>. --></label>
-
-                    </div>
-
-                </form>
-            </div>
-
-        </div>
-    </div>
-</div>
-
 <div class="modal fade" id="modal-upload_admin_small_logo" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
@@ -377,23 +328,6 @@
 // set focus when modal is opened
     $('#modal-upload_admin_small_logo').on('shown.bs.modal', function () {
         $('.upload_admin_small_logo').button('reset');
-    });
-
-    $('.upload_app_logo').on('click', function (e) {
-        e.preventDefault();
-        var $this = $(this);
-        logo_type = $this.data('logo_type');
-
-        $this.button('loading');
-        $('#modal-upload_app_logo').modal({
-            show: true,
-            backdrop: 'static',
-            keyboard: false
-        });
-    });
-// set focus when modal is opened
-    $('#modal-upload_app_logo').on('shown.bs.modal', function () {
-        $('.upload_app_logo').button('reset');
     });
 
     $('.upload_admission_left_logo').on('click', function (e) {
@@ -725,114 +659,6 @@
 
 </script>
 
-
-<script type="text/javascript">
-    $('.upload_app_logo').on('click', function (e) {
-        e.preventDefault();
-        var $this = $(this);
-        logo_type = $this.data('logo_type');
-
-        $this.button('loading');
-        $('#modal-upload_app_logo').modal({
-            show: true,
-            backdrop: 'static',
-            keyboard: false
-        });
-    });
-// set focus when modal is opened
-    $('#modal-upload_app_logo').on('shown.bs.modal', function () {
-        $('.upload_app_logo').button('reset');
-    });
-
-    $(function () {
-
-        // Drag enter
-        $('.upload-app_logo_area').on('dragenter', function (e) {
-            e.stopPropagation();
-            e.preventDefault();
-
-        });
-
-        // Drag over
-        $('.upload-app_logo_area').on('dragover', function (e) {
-            e.stopPropagation();
-            e.preventDefault();
-
-        });
-
-        // Drop
-        $('.upload-app_logo_area').on('drop', function (e) {
-            e.stopPropagation();
-            e.preventDefault();
-
-
-
-            var file = e.originalEvent.dataTransfer.files;
-            var fd = new FormData();
-
-            fd.append('file', file[0]);
-            fd.append("id", $('#id_app_logo').val());
-            // fd.append("logo_type", logo_type);
-
-            uploadSmallData(fd);
-        });
-
-        // Open file selector on div click
-        $("#uploadapp_logo").click(function () {
-            $("#file_applogo").click();
-        });
-
-        // file selected
-        $("#file_applogo").change(function () {
-            var fd = new FormData();
-
-            var files = $('#file_applogo')[0].files[0];
-
-
-            fd.append('file', files);
-            fd.append("id", $('#id_app_logo').val());
-            // fd.append("logo_type", logo_type);
-            uploadAppData(fd);
-        });
-    });
-
-// Sending AJAX request and upload file
-    function uploadAppData(formdata) {
-
-        $.ajax({
-            url: '<?php echo site_url('schsettings/ajax_applogo') ?>',
-            type: 'post',
-            data: formdata,
-            contentType: false,
-            processData: false,
-            dataType: 'json',
-            cache: false,
-
-            beforeSend: function () {
-                $('#modal-upload_app_logo').addClass('modal_loading');
-            },
-            success: function (response) {
-
-                if (response.success) {
-                    successMsg(response.message);
-                    window.location.reload(true);
-                } else {
-
-                    errorMsg(response.error.file);
-                }
-
-            },
-            error: function (xhr) { // if error occured
-
-            },
-            complete: function () {
-                $('#modal-upload_app_logo').removeClass('modal_loading');
-
-            }
-
-
-        });
-    }
 
     // New Admission Left Logo upload
     $('.upload_admission_left_logo').on('click', function (e) {

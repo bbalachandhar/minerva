@@ -1908,6 +1908,11 @@ class Studentfee extends Admin_Controller
                         $mailsms_array = $this->feegrouptype_model->getFeeGroupByIDAndStudentSessionID($invoice_detail['fee_groups_feetype_id'], $student_session_id);
                     }
 
+                    if (!$mailsms_array) {
+                        log_message('debug', 'Skipping mail/SMS for invoice_detail (no fee group found): ' . json_encode($invoice_detail));
+                        continue;
+                    }
+
                     $mailsms_array->invoice            = json_encode($invoice_detail);
                     $mailsms_array->student_session_id = $student_session_id;
                     $mailsms_array->contact_no         = $send_to;

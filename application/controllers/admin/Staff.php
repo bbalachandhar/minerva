@@ -474,33 +474,101 @@ class Staff extends Admin_Controller
             return $dateStr <= $today_date;
         }));
 
-        $present_count = 0;
+        // Get all raw attendance rows for the current month (for time-range checks and hasValidPunch)
+        $month_start_str = $current_year . '-' . sprintf('%02d', (int)$current_month_number) . '-01';
+        $month_end_str   = date('Y-m-t', strtotime($month_start_str));
+        $month_raw_rows  = $this->staffattendancemodel->getAttendanceRowsInRange($id, $month_start_str, $month_end_str);
+        $month_raw_map   = [];
+        foreach ($month_raw_rows as $mr) {
+            $month_raw_map[$mr['date']] = $mr;
+        }
+
+        // Build type_map (key_value → type id) for FHL, SHL, FHP, SHP
+        $all_att_types_p = $this->staffattendancemodel->getStaffAttendanceType();
+        $type_map_p = [];
+        foreach ($all_att_types_p as $type_row_p) {
+            $kv_p = strtoupper(trim($type_row_p['key_value'] ?? ''));
+            if (!empty($kv_p)) $type_map_p[$kv_p] = (int)$type_row_p['id'];
+        }
+
+        // Load role attendance settings (FHL/SHL/FHP/SHP time windows) – same logic as staffattendancereport
+        $admin_role_row_p  = $this->db->query("SELECT id FROM roles WHERE LOWER(name)='admin' ORDER BY id ASC LIMIT 1")->row_array();
+        $admin_role_id_p   = !empty($admin_role_row_p['id']) ? (int)$admin_role_row_p['id'] : 1;
+        $staff_role_id_p   = !empty($staff_info['role_id']) ? (int)$staff_info['role_id'] : $admin_role_id_p;
+        $att_settings_p    = [
+            'FHL' => !empty($type_map_p['FHL']) ? $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($staff_role_id_p, $type_map_p['FHL']) : false,
+            'SHL' => !empty($type_map_p['SHL']) ? $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($staff_role_id_p, $type_map_p['SHL']) : false,
+            'FHP' => !empty($type_map_p['FHP']) ? $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($staff_role_id_p, $type_map_p['FHP']) : false,
+            'SHP' => !empty($type_map_p['SHP']) ? $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($staff_role_id_p, $type_map_p['SHP']) : false,
+        ];
+        $has_any_setting_p = !empty($att_settings_p['FHL']) || !empty($att_settings_p['SHL']) || !empty($att_settings_p['FHP']) || !empty($att_settings_p['SHP']);
+        if (!$has_any_setting_p && $admin_role_id_p > 0 && $admin_role_id_p !== $staff_role_id_p) {
+            $att_settings_p = [
+                'FHL' => !empty($type_map_p['FHL']) ? $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($admin_role_id_p, $type_map_p['FHL']) : false,
+                'SHL' => !empty($type_map_p['SHL']) ? $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($admin_role_id_p, $type_map_p['SHL']) : false,
+                'FHP' => !empty($type_map_p['FHP']) ? $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($admin_role_id_p, $type_map_p['FHP']) : false,
+                'SHP' => !empty($type_map_p['SHP']) ? $this->staffAttendaceSetting_model->getAttendanceTypeByRoleAndType($admin_role_id_p, $type_map_p['SHP']) : false,
+            ];
+        }
+
+        // Count present / absent exactly as staffattendancereport does
+        $present_like_keys_p = ['P', 'FHL', 'SHL', 'FHP', 'SHP', 'HD'];
+        $present_count  = 0;
         $half_day_count = 0;
-        $absent_count = 0;
+        $absent_count   = 0;
         foreach ($working_day_dates as $work_date) {
             $staff_attendance = $this->staffattendancemodel->searchStaffattendance($work_date, $id, false);
-            $key = $staff_attendance['key'] ?? null;
-            if ($key === 'P') {
-                $present_count++;
-            } elseif ($key === 'HD') {
+            $key     = strtoupper(trim($staff_attendance['key'] ?? ''));
+            $raw_row = $month_raw_map[$work_date] ?? [];
+            $raw_in  = trim($raw_row['in_time']  ?? '');
+            $raw_out = trim($raw_row['out_time'] ?? '');
+            $has_punch = ($raw_in !== '' && $raw_in !== '00:00:00') || ($raw_out !== '' && $raw_out !== '00:00:00');
+            // hasValidPunch: present-like but no punch → treat as absent
+            if (in_array($key, $present_like_keys_p, true) && !$has_punch) {
+                $key = 'A';
+            }
+            if ($key === 'HD') {
                 $half_day_count++;
+            } elseif (in_array($key, ['P', 'FHL', 'SHL', 'FHP', 'SHP'], true)) {
+                $present_count++;
             } else {
                 $absent_count++;
             }
         }
 
-        $late_count = $this->payroll_model->count_attendance_obj((int)$current_month_number, (int)$current_year, $id, 2)
-            + $this->payroll_model->count_attendance_obj((int)$current_month_number, (int)$current_year, $id, 8);
+        // Late and permission: iterate all raw month rows by in_time/out_time (matches report)
+        $late_count       = 0;
+        $permission_count = 0;
+        foreach ($month_raw_rows as $raw_row_lp) {
+            $raw_in_lp  = trim($raw_row_lp['in_time']  ?? '');
+            $raw_out_lp = trim($raw_row_lp['out_time'] ?? '');
+            $late_for_day = 0;
+            if (!empty($raw_in_lp)) {
+                if (!empty($att_settings_p['SHL']) && $this->_timeInRangeProfile($raw_in_lp, $att_settings_p['SHL']->entry_time_from, $att_settings_p['SHL']->entry_time_to)) {
+                    $late_for_day = 1;
+                } elseif (!empty($att_settings_p['FHL']) && $this->_timeInRangeProfile($raw_in_lp, $att_settings_p['FHL']->entry_time_from, $att_settings_p['FHL']->entry_time_to)) {
+                    $late_for_day = 1;
+                }
+            }
+            $late_count += $late_for_day;
+            if (!empty($raw_in_lp) && !empty($att_settings_p['FHP']) && $this->_timeInRangeProfile($raw_in_lp, $att_settings_p['FHP']->entry_time_from, $att_settings_p['FHP']->entry_time_to)) {
+                $permission_count++;
+            }
+            if (!empty($raw_out_lp) && !empty($att_settings_p['SHP']) && $this->_timeInRangeProfile($raw_out_lp, $att_settings_p['SHP']->entry_time_from, $att_settings_p['SHP']->entry_time_to)) {
+                $permission_count++;
+            }
+        }
 
         $data['month_summary'] = [
-            'label' => $current_month_label,
+            'label'        => $current_month_label,
             'working_days' => count($working_day_dates),
-            'weekends' => count($weekend_day_dates_mtd),
-            'holidays' => count($holiday_dates_for_H_mtd),
-            'present' => $present_count,
-            'half_day' => $half_day_count,
-            'absent' => $absent_count,
-            'late' => $late_count,
+            'weekends'     => count($weekend_day_dates_mtd),
+            'holidays'     => count($holiday_dates_for_H_mtd),
+            'present'      => $present_count,
+            'half_day'     => $half_day_count,
+            'absent'       => $absent_count,
+            'late'         => $late_count,
+            'permission'   => $permission_count,
         ];
 
         // Year-wide weekend/holiday dates for attendance grid
@@ -2842,6 +2910,17 @@ class Staff extends Admin_Controller
      *
      * Returns: 'P', 'FHL', 'FHP', 'SHL', 'SHP', 'HD', 'A', or null (no punch data).
      */
+    private function _timeInRangeProfile($time, $from, $to)
+    {
+        if (empty($time) || empty($from) || empty($to)) return false;
+        $base = date('Y-m-d');
+        $t = strtotime($base . ' ' . $time);
+        $f = strtotime($base . ' ' . $from);
+        $e = strtotime($base . ' ' . $to);
+        if ($t === false || $f === false || $e === false) return false;
+        return ($t >= $f && $t <= $e);
+    }
+
     private function _derive_att_key_from_punches($in_time, $out_time, $role_id, $role_settings, $settings)
     {
         if (empty($in_time)) return null;

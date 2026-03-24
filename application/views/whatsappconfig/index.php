@@ -18,7 +18,12 @@
             <div class="col-md-12">
                 <div class="nav-tabs-custom theme-shadow">
                     <div class="box-header with-border">
-                       <h3 class="box-title titlefix"></i> <?php echo  $this->lang->line('whatsapp_messaging_setting'); ?></h3>
+                       <h3 class="box-title titlefix"><?php echo $this->lang->line('whatsapp_messaging_setting'); ?></h3>
+                       <div class="box-tools pull-right">
+                           <a href="<?php echo site_url('whatsappconfig/instructions'); ?>" class="btn btn-default btn-sm">
+                               <i class="fa fa-book"></i> Instructions
+                           </a>
+                       </div>
                     </div>
                     <ul class="nav nav-tabs">
 					

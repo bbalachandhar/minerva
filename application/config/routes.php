@@ -112,5 +112,6 @@ $route['admin/staff/activate_biometric_device/(:num)'] = 'admin/staff/activate_b
 $route['admin/timetable/bulk']         = 'admin/timetable/bulk';
 $route['admin/unauthorized'] = 'admin/admin/unauthorized';
 $route['lead/enquiry'] = 'leadapi/create_enquiry';
+$route['metaleads/webhook'] = 'metaleads/webhook';
 $route['enquiry'] = 'enquiry';
 $route['enquiry/(:any)'] = 'enquiry/$1';

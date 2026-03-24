@@ -553,7 +553,11 @@ $(document).ready(function(){
             }
         });
         currentDiscountAmount += calculated_group_discount_amount;
-        currentPayingAmount -= calculated_group_discount_amount;
+        if (calculated_group_discount_amount > 0) {
+            currentPayingAmount = 0;
+        } else {
+            currentPayingAmount -= calculated_group_discount_amount;
+        }
 
 
         // If no advance is used, revert to original amount due

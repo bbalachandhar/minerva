@@ -382,6 +382,10 @@ class User_model extends CI_Model
             $table  = "students";
             $role   = "parent";
             $result = $this->getParentByEmail($table, $role, $email);
+        } else {
+            // Any other usertype (teacher, librarian, accountant, admin staff, etc.)
+            // — look up by email in the staff table with no role restriction.
+            $result = $this->getStaffByEmail($email);
         }
         return $result;
     }
@@ -397,6 +401,24 @@ class User_model extends CI_Model
         } else {
             $this->db->where($table . '.email', $email);
         }
+        $query = $this->db->get();
+        if ($email != null) {
+            return $query->row();
+        } else {
+            return false;
+        }
+    }
+
+    /**
+     * Look up a staff member by email without filtering by role.
+     * Covers all non-student/non-parent users: teacher, librarian, accountant, admin staff, etc.
+     */
+    public function getStaffByEmail($email)
+    {
+        $this->db->select('staff.*,users.id as `user_tbl_id`,users.username,users.password as `user_tbl_password`');
+        $this->db->from('staff');
+        $this->db->join('users', 'users.user_id = staff.id', 'left');
+        $this->db->where('staff.email', $email);
         $query = $this->db->get();
         if ($email != null) {
             return $query->row();

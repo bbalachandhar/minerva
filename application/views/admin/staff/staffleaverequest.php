@@ -965,7 +965,10 @@ $i++;
                 } else if (can_manage_leave && result.status != 'approved' && result.status != 'disapproved') {
                     var recommenderStage = (result.recommender_status == 'pending' || result.recommender_status == '' || result.recommender_status == null) && result.approver_status == 'pending';
                     var approverStage = (result.recommender_status == 'approved' || result.recommender_status == 'recommended') && result.approver_status == 'pending';
-                    var overrideManager = can_manage_leave && !is_recommender && !is_approver;
+                    // overrideManager only applies when neither stage matches — stage always takes priority
+                    // so an admin viewing a pre-recommender-stage request sees recommender buttons,
+                    // and a pre-approver-stage request sees approver buttons.
+                    var overrideManager = can_manage_leave && !is_recommender && !is_approver && !recommenderStage && !approverStage;
 
                     if (overrideManager) {
                         $('#note_label').html('<?php echo $this->lang->line('approver_remark'); ?>');

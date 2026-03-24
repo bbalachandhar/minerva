@@ -33,6 +33,8 @@ class App extends MY_Controller
                     'lang_code'                => $setting_result->language_code,
                     'app_ver'                  => $this->customlib->getAppVersion(),
                     'languages'                => $setting_result->activelanguage2,
+                    'student_profile_edit'     => isset($setting_result->student_profile_edit) ? (int) $setting_result->student_profile_edit : 0,
+                    'staff_profile_edit'       => isset($setting_result->staff_profile_edit) ? (int) $setting_result->staff_profile_edit : 0,
                 )));
         } else {
             return $this->output

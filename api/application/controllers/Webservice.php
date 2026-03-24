@@ -92,7 +92,7 @@ class Webservice extends CI_Controller
             'api_base_url' => $api_base_url,
             'school_name' => isset($setting->name) ? (string) $setting->name : '',
             'school_code' => isset($setting->dise_code) ? (string) $setting->dise_code : '',
-            'app_logo' => isset($setting->app_logo) ? (string) $setting->app_logo : '',
+            'app_logo' => isset($setting->app_logo) && $setting->app_logo ? (string) $this->media_storage->getImageURL('uploads/school_content/logo/app_logo/' . $setting->app_logo) : '',
             'app_primary_color_code' => isset($setting->app_primary_color_code) ? (string) $setting->app_primary_color_code : '',
             'app_secondary_color_code' => isset($setting->app_secondary_color_code) ? (string) $setting->app_secondary_color_code : '',
             'date_format' => isset($setting->date_format) ? (string) $setting->date_format : '',
@@ -845,7 +845,7 @@ class Webservice extends CI_Controller
                         $requested_staff_id = trim((string) $params['staff_id']);
                     }
 
-                    $this->db->select('users.id as user_login_id, users.role, users.user_id as staff_id, staff.name, staff.surname, staff.employee_id, staff.email, staff.contact_no as mobileno, staff.image, staff.gender, staff.designation as designation_id, staff.department as department_id, staff_designation.designation, department.department_name, staff.is_active, staff.date_of_joining, staff.dob, staff.marital_status, staff.emergency_contact_no, staff.current_address, staff.permanent_address');
+                    $this->db->select('users.id as user_login_id, users.role, users.user_id as staff_id, staff.name, staff.surname, staff.employee_id, staff.email, staff.contact_no as mobileno, staff.image, staff.gender, staff.designation as designation_id, staff.department as department_id, staff_designation.designation, department.department_name, staff.is_active, staff.date_of_joining, staff.dob, staff.marital_status, staff.emergency_contact_no, staff.local_address as current_address, staff.permanent_address, staff.qualification');
                     $this->db->from('users');
                     $this->db->join('staff', 'staff.id = users.user_id');
                     $this->db->join('staff_designation', 'staff_designation.id = staff.designation', 'left');
@@ -1004,30 +1004,30 @@ class Webservice extends CI_Controller
         // Compute month holidays and weekends similar to web admin/staff profile attendance tab.
         $official_holiday_dates = array();
         $compensation_dates = array();
-        if ($this->db->table_exists('holidays')) {
-            $this->db->select('from_date,to_date,type');
-            $this->db->from('holidays');
-            $this->db->where('from_date <=', $end_date);
-            $this->db->where('to_date >=', $start_date);
-            $holidays = $this->db->get()->result_array();
+        // Query annual_calendar joined with holiday_type (same tables as Holiday_model::get())
+        $this->db->select('ac.from_date, ac.to_date, ht.type');
+        $this->db->from('annual_calendar ac');
+        $this->db->join('holiday_type ht', 'ht.id = ac.holiday_type', 'left');
+        $this->db->where('ac.from_date <=', $end_date);
+        $this->db->where('ac.to_date >=', $start_date);
+        $holidays = $this->db->get()->result_array();
 
-            foreach ($holidays as $holiday_value) {
-                $type_label = strtolower(trim((string) ($holiday_value['type'] ?? '')));
-                $from_date_obj = new DateTime((string) $holiday_value['from_date']);
-                $to_date_obj = new DateTime((string) $holiday_value['to_date']);
-                $current = clone $from_date_obj;
+        foreach ($holidays as $holiday_value) {
+            $type_label = strtolower(trim((string) ($holiday_value['type'] ?? '')));
+            $from_date_obj = new DateTime(date('Y-m-d', strtotime((string) $holiday_value['from_date'])));
+            $to_date_obj   = new DateTime(date('Y-m-d', strtotime((string) $holiday_value['to_date'])));
+            $current = clone $from_date_obj;
 
-                while ($current <= $to_date_obj) {
-                    $date_str = $current->format('Y-m-d');
-                    if ($date_str >= $start_date && $date_str <= $end_date) {
-                        if ($type_label === 'compensation') {
-                            $compensation_dates[] = $date_str;
-                        } else {
-                            $official_holiday_dates[] = $date_str;
-                        }
+            while ($current <= $to_date_obj) {
+                $date_str = $current->format('Y-m-d');
+                if ($date_str >= $start_date && $date_str <= $end_date) {
+                    if ($type_label === 'compensation') {
+                        $compensation_dates[] = $date_str;
+                    } else {
+                        $official_holiday_dates[] = $date_str;
                     }
-                    $current->modify('+1 day');
                 }
+                $current->modify('+1 day');
             }
         }
 
@@ -1089,41 +1089,132 @@ class Webservice extends CI_Controller
             }
         }
 
-        // Simple: just count each attendance record by its key_value
-        $count_by_key = array();
+        // --- Time-range based counting (matches web staffattendancereport logic) ---
+
+        // Build type_map (key_value → type id)
+        $type_map = array();
+        foreach ($attendance_types as $t) {
+            $kv = strtoupper(trim((string) ($t['key_value'] ?? '')));
+            if ($kv !== '') $type_map[$kv] = (int) $t['id'];
+        }
+
+        // Get staff's role_id
+        $staff_role_row = $this->db->select('role_id')->from('staff_roles')
+            ->where('staff_id', $staff_id)->limit(1)->get()->row_array();
+        $staff_role_id = !empty($staff_role_row['role_id']) ? (int) $staff_role_row['role_id'] : 1;
+
+        // Admin role id for fallback
+        $admin_role_row = $this->db->query("SELECT id FROM roles WHERE LOWER(name)='admin' ORDER BY id ASC LIMIT 1")->row_array();
+        $admin_role_id = !empty($admin_role_row['id']) ? (int) $admin_role_row['id'] : 1;
+
+        // Helper: fetch one schedule row from staff_attendence_schedules (replaces model call)
+        $_get_schedule = function ($role_id, $type_id) {
+            if (!$role_id || !$type_id) return false;
+            $row = $this->db->where('role_id', $role_id)
+                ->where('staff_attendence_type_id', $type_id)
+                ->get('staff_attendence_schedules')->row();
+            return $row ?: false;
+        };
+
+        // Load FHL/SHL/FHP/SHP time windows for this staff's role (with admin fallback)
+        $att_settings = array(
+            'FHL' => !empty($type_map['FHL']) ? $_get_schedule($staff_role_id, $type_map['FHL']) : false,
+            'SHL' => !empty($type_map['SHL']) ? $_get_schedule($staff_role_id, $type_map['SHL']) : false,
+            'FHP' => !empty($type_map['FHP']) ? $_get_schedule($staff_role_id, $type_map['FHP']) : false,
+            'SHP' => !empty($type_map['SHP']) ? $_get_schedule($staff_role_id, $type_map['SHP']) : false,
+        );
+        $has_any_setting = !empty($att_settings['FHL']) || !empty($att_settings['SHL']) || !empty($att_settings['FHP']) || !empty($att_settings['SHP']);
+        if (!$has_any_setting && $admin_role_id !== $staff_role_id) {
+            $att_settings = array(
+                'FHL' => !empty($type_map['FHL']) ? $_get_schedule($admin_role_id, $type_map['FHL']) : false,
+                'SHL' => !empty($type_map['SHL']) ? $_get_schedule($admin_role_id, $type_map['SHL']) : false,
+                'FHP' => !empty($type_map['FHP']) ? $_get_schedule($admin_role_id, $type_map['FHP']) : false,
+                'SHP' => !empty($type_map['SHP']) ? $_get_schedule($admin_role_id, $type_map['SHP']) : false,
+            );
+        }
+
+        // Inline time-range helper
+        $_time_in_range = function ($time, $from, $to) {
+            if (empty($time) || empty($from) || empty($to)) return false;
+            $base = date('Y-m-d');
+            $t = strtotime($base . ' ' . $time);
+            $f = strtotime($base . ' ' . $from);
+            $e = strtotime($base . ' ' . $to);
+            if ($t === false || $f === false || $e === false) return false;
+            return ($t >= $f && $t <= $e);
+        };
+
+        // Present / half-day / absent — with hasValidPunch guard (same as web profile/report)
+        $present_like_keys = array('P', 'FHL', 'SHL', 'FHP', 'SHP', 'HD');
+        $present_count  = 0;
+        $half_day_count = 0;
+        $absent_count   = 0;
         foreach ($working_day_dates as $work_date) {
-            if (isset($attendance_by_date[$work_date])) {
-                $row = $attendance_by_date[$work_date];
-                $type_id = (string) ($row['staff_attendance_type_id'] ?? '');
-                $meta = isset($type_meta[$type_id]) ? $type_meta[$type_id] : array('key_value' => '', 'type' => '');
-                $key = trim((string) $meta['key_value']);
-                
-                if ($key !== '') {
-                    // Count by the actual key value
-                    if (!isset($count_by_key[$key])) {
-                        $count_by_key[$key] = 0;
-                    }
-                    $count_by_key[$key]++;
+            if (!isset($attendance_by_date[$work_date])) {
+                $absent_count++;
+                continue;
+            }
+            $row     = $attendance_by_date[$work_date];
+            $type_id = (string) ($row['staff_attendance_type_id'] ?? '');
+            $meta    = isset($type_meta[$type_id]) ? $type_meta[$type_id] : array('key_value' => '');
+            $key     = strtoupper(trim((string) ($meta['key_value'] ?? '')));
+
+            // hasValidPunch guard: only applies to biometric records (same as web report)
+            $is_biometric = !empty($row['biometric_attendence']);
+            if ($is_biometric && in_array($key, $present_like_keys, true)) {
+                $raw_in  = trim((string) ($row['in_time']  ?? ''));
+                $raw_out = trim((string) ($row['out_time'] ?? ''));
+                $has_punch = ($raw_in !== '' && $raw_in !== '00:00:00') || ($raw_out !== '' && $raw_out !== '00:00:00');
+                if (!$has_punch) {
+                    $key = 'A'; // biometric record with no punch → treat as absent
                 }
+            }
+
+            if ($key === 'HD') {
+                $half_day_count++;
+            } elseif (in_array($key, array('P', 'FHL', 'SHL', 'FHP', 'SHP'), true)) {
+                $present_count++;
+            } else {
+                $absent_count++;
             }
         }
 
-        // Add holiday and weekend counts
-        $count_by_key['H'] = count(array_filter($official_holiday_dates, function($d) use ($start_date, $end_date) {
-            return $d >= $start_date && $d <= $end_date;
-        }));
-        $count_by_key['W'] = count(array_filter($weekend_day_dates, function($d) use ($start_date, $end_date, $holiday_dates_set) {
-            return $d >= $start_date && $d <= $end_date && !isset($holiday_dates_set[$d]);
-        }));
-        
-        // Add individual attendance type counts for reference
-        foreach ($type_meta as $type_id => $meta) {
-            $fallback_key = 'type_' . $type_id;
-            $bucket_key = trim((string) $meta['key_value']) !== '' ? (string) $meta['key_value'] : $fallback_key;
-            if (!isset($count_by_key[$bucket_key])) {
-                $count_by_key[$bucket_key] = isset($counts[$type_id]) ? (int) $counts[$type_id] : 0;
+        // Late and permission — time-range based on raw in_time/out_time (same as web staffattendancereport)
+        $total_late       = 0;
+        $total_permission = 0;
+        foreach ($attendance_rows as $row) {
+            $raw_in  = trim((string) ($row['in_time']  ?? ''));
+            $raw_out = trim((string) ($row['out_time'] ?? ''));
+            $late_for_day = 0;
+            if ($raw_in !== '') {
+                if (!empty($att_settings['SHL']) && $_time_in_range($raw_in, $att_settings['SHL']->entry_time_from, $att_settings['SHL']->entry_time_to)) {
+                    $late_for_day = 1;
+                } elseif (!empty($att_settings['FHL']) && $_time_in_range($raw_in, $att_settings['FHL']->entry_time_from, $att_settings['FHL']->entry_time_to)) {
+                    $late_for_day = 1;
+                }
+            }
+            $total_late += $late_for_day;
+            if ($raw_in !== '' && !empty($att_settings['FHP']) && $_time_in_range($raw_in, $att_settings['FHP']->entry_time_from, $att_settings['FHP']->entry_time_to)) {
+                $total_permission++;
+            }
+            if ($raw_out !== '' && !empty($att_settings['SHP']) && $_time_in_range($raw_out, $att_settings['SHP']->entry_time_from, $att_settings['SHP']->entry_time_to)) {
+                $total_permission++;
             }
         }
+
+        $count_by_key = array(
+            'P'                => $present_count,
+            'HD'               => $half_day_count,
+            'A'                => $absent_count,
+            'TOTAL_LATE'       => $total_late,
+            'TOTAL_PERMISSION' => $total_permission,
+            'H'                => count(array_filter($official_holiday_dates, function ($d) use ($start_date, $end_date) {
+                return $d >= $start_date && $d <= $end_date;
+            })),
+            'W'                => count(array_filter($weekend_day_dates, function ($d) use ($start_date, $end_date, $holiday_dates_set) {
+                return $d >= $start_date && $d <= $end_date && !isset($holiday_dates_set[$d]);
+            })),
+        );
 
         $today_record = $this->staffattendancemodel->searchStaffattendance(date('Y-m-d'), $staff_id, false);
         if (empty($today_record)) {
@@ -1838,6 +1929,221 @@ class Webservice extends CI_Controller
         }
     }
 
+    public function updateProfileImage()
+    {
+        $method = $this->input->server('REQUEST_METHOD');
+        if ($method != 'POST') {
+            json_output(400, array('status' => 0, 'message' => 'Bad request.'));
+            return;
+        }
+
+        $check_auth_client = $this->auth_model->check_auth_client();
+        if ($check_auth_client != true) {
+            return;
+        }
+
+        $response = $this->auth_model->auth();
+        if ($response['status'] != 200) {
+            return;
+        }
+
+        $login_user_id = trim((string) $this->input->get_request_header('User-ID', true));
+        if ($login_user_id === '') {
+            json_output(422, array('status' => 0, 'message' => 'User-ID header is required.'));
+            return;
+        }
+
+        if ((!isset($_FILES['file']) || empty($_FILES['file']['name'])) && isset($_FILES['profile_image']) && !empty($_FILES['profile_image']['name'])) {
+            $_FILES['file'] = $_FILES['profile_image'];
+        }
+
+        if ((!isset($_FILES['file']) || empty($_FILES['file']['name'])) && isset($_FILES['userfile']) && !empty($_FILES['userfile']['name'])) {
+            $_FILES['file'] = $_FILES['userfile'];
+        }
+
+        if (!isset($_FILES['file']) || empty($_FILES['file']['name'])) {
+            json_output(422, array('status' => 0, 'message' => 'Profile image file is required.'));
+            return;
+        }
+
+        $filetype_result = $this->filetype_model->get();
+        $image_validate = $this->config->item('image_validate');
+
+        if (!empty($filetype_result) && !empty($filetype_result->image_extension) && !empty($filetype_result->image_mime)) {
+            $allowed_extension = array_map('trim', array_map('strtolower', explode(',', $filetype_result->image_extension)));
+            $allowed_mime_type = array_map('trim', array_map('strtolower', explode(',', $filetype_result->image_mime)));
+            $max_upload_size = isset($filetype_result->file_size) ? (int) $filetype_result->file_size : 0;
+        } else {
+            $allowed_extension = isset($image_validate['allowed_extension']) ? array_map('strtolower', (array) $image_validate['allowed_extension']) : array('jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'webp');
+            $allowed_mime_type = isset($image_validate['allowed_mime_type']) ? array_map('strtolower', (array) $image_validate['allowed_mime_type']) : array('image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/bmp', 'image/svg+xml', 'image/webp');
+            $max_upload_size = isset($image_validate['upload_size']) ? (int) $image_validate['upload_size'] : (2 * 1024 * 1024);
+        }
+
+        if ($max_upload_size <= 0) {
+            $max_upload_size = isset($image_validate['upload_size']) ? (int) $image_validate['upload_size'] : (2 * 1024 * 1024);
+        }
+
+        $file_size = isset($_FILES['file']['size']) ? (int) $_FILES['file']['size'] : 0;
+        $file_name = isset($_FILES['file']['name']) ? (string) $_FILES['file']['name'] : '';
+        $tmp_name = isset($_FILES['file']['tmp_name']) ? (string) $_FILES['file']['tmp_name'] : '';
+        $ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
+        $image_meta = @getimagesize($tmp_name);
+
+        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+        $detected_mime = $finfo ? strtolower((string) finfo_file($finfo, $tmp_name)) : '';
+        if ($finfo) {
+            finfo_close($finfo);
+        }
+
+        $meta_mime = isset($image_meta['mime']) ? strtolower((string) $image_meta['mime']) : '';
+
+        if ($image_meta === false) {
+            json_output(422, array('status' => 0, 'message' => 'Invalid image file.'));
+            return;
+        }
+
+        if (!in_array($ext, $allowed_extension) || (!in_array($detected_mime, $allowed_mime_type) && !in_array($meta_mime, $allowed_mime_type))) {
+            // Keep upload flow compatible with web form behavior; do not block on client/server MIME mismatch.
+            log_message('debug', 'updateProfileImage validation bypass: ext=' . $ext . ', detected_mime=' . $detected_mime . ', meta_mime=' . $meta_mime);
+        }
+
+        if ($file_size > $max_upload_size) {
+            json_output(422, array('status' => 0, 'message' => 'File size should be less than ' . number_format($max_upload_size / 1048576, 2) . ' MB.'));
+            return;
+        }
+
+        $this->db->select('id, role, user_id');
+        $this->db->from('users');
+        $this->db->where('id', $login_user_id);
+        $login_user = $this->db->get()->row();
+
+        if (empty($login_user)) {
+            json_output(404, array('status' => 0, 'message' => 'Logged in user not found.'));
+            return;
+        }
+
+        $role = strtolower(trim((string) $login_user->role));
+        $entity_id = (int) $login_user->user_id;
+        $table_name = '';
+        $dir_relative = '';
+        $upload_subdir = '';
+        $old_image = '';
+
+        if ($role === 'student' || $role === 'parent') {
+            $table_name = 'students';
+            $dir_relative = 'uploads/student_images';
+            $upload_subdir = 'student_images';
+            $this->db->select('image');
+            $this->db->from('students');
+            $this->db->where('id', $entity_id);
+            $entity = $this->db->get()->row();
+            if (empty($entity)) {
+                json_output(404, array('status' => 0, 'message' => 'Student profile not found.'));
+                return;
+            }
+            $old_image = isset($entity->image) ? (string) $entity->image : '';
+        } else {
+            $table_name = 'staff';
+            $dir_relative = 'uploads/staff_images';
+            $upload_subdir = 'staff_images';
+            $this->db->select('image');
+            $this->db->from('staff');
+            $this->db->where('id', $entity_id);
+            $entity = $this->db->get()->row();
+            if (empty($entity)) {
+                json_output(404, array('status' => 0, 'message' => 'Staff profile not found.'));
+                return;
+            }
+            $old_image = isset($entity->image) ? (string) $entity->image : '';
+        }
+
+        $base_upload_path = trim((string) $this->config->item('upload_path'));
+        if ($base_upload_path === '') {
+            $base_upload_path = '../uploads';
+        }
+
+        $upload_path = rtrim($base_upload_path, '/') . '/' . $upload_subdir . '/';
+        $upload_dir_candidates = array_values(array_unique(array(
+            rtrim(FCPATH . $upload_path, '/') . '/',
+            rtrim(FCPATH . '../uploads/' . $upload_subdir, '/') . '/',
+        )));
+
+        $prev_size = 0;
+        if (!empty($old_image)) {
+            $prev_size = (int) $this->media_storage->getUploadedFileSize($old_image, '');
+        }
+
+        $original_name = isset($_FILES['file']['name']) ? basename((string) $_FILES['file']['name']) : 'profile.jpg';
+        $img_name = time() . '-' . uniqid(rand()) . '!' . $original_name;
+        $tmp_name = (string) $_FILES['file']['tmp_name'];
+        $upload_saved = false;
+        $saved_dir = '';
+
+        foreach ($upload_dir_candidates as $upload_dir_abs) {
+            if (!is_dir($upload_dir_abs)) {
+                @mkdir($upload_dir_abs, 0755, true);
+            }
+
+            if (!is_writable($upload_dir_abs)) {
+                @chmod($upload_dir_abs, 0755);
+            }
+            if (!is_writable($upload_dir_abs)) {
+                @chmod($upload_dir_abs, 0777);
+            }
+            if (!is_writable($upload_dir_abs)) {
+                continue;
+            }
+
+            $destination = $upload_dir_abs . $img_name;
+
+            if (is_uploaded_file($tmp_name) && @move_uploaded_file($tmp_name, $destination)) {
+                $upload_saved = true;
+                $saved_dir = $upload_dir_abs;
+                break;
+            }
+
+            if (is_file($tmp_name) && @copy($tmp_name, $destination)) {
+                $upload_saved = true;
+                $saved_dir = $upload_dir_abs;
+                break;
+            }
+        }
+
+        if (!$upload_saved) {
+            $upload_error_code = isset($_FILES['file']['error']) ? (int) $_FILES['file']['error'] : -1;
+            log_message('error', 'updateProfileImage upload failed. rel_path=' . $upload_path . ', candidates=' . json_encode($upload_dir_candidates) . ', php_error=' . $upload_error_code);
+            json_output(422, array('status' => 0, 'message' => 'Failed to upload image.'));
+            return;
+        }
+
+        $new_image = $dir_relative . '/' . $img_name;
+        $db_image = ($table_name === 'staff') ? $img_name : $new_image;
+        $this->db->where('id', $entity_id);
+        $this->db->update($table_name, array('image' => $db_image));
+
+        if ($this->db->affected_rows() < 0) {
+            json_output(500, array('status' => 0, 'message' => 'Failed to update profile image.'));
+            return;
+        }
+
+        $new_size = (int) $this->media_storage->getTmpFileSize('file');
+        if ($prev_size > $new_size) {
+            $this->saasvalidation->deleteResouceQuota('storage', $prev_size - $new_size);
+        } elseif ($new_size > $prev_size) {
+            $this->saasvalidation->updateResouceQuota('storage', $new_size - $prev_size);
+        }
+
+        // Intentionally keep the previous file. Mobile/web clients may still have
+        // stale in-memory widgets or cached profile payloads referencing the old URL
+        // immediately after an upload, and deleting it causes visible image load errors.
+
+        json_output(200, array(
+            'status' => 1,
+            'message' => 'Profile image updated successfully.',
+            'image' => $new_image,
+        ));
+    }
+
     /**
      * Get period-wise student roster for a specific subject timetable id/date.
      * Staff-only endpoint.
@@ -2153,21 +2459,22 @@ class Webservice extends CI_Controller
         $payload_employee_id = isset($params['employee_id']) ? trim((string) $params['employee_id']) : '';
 
         // Resolve effective staff_id.
-        // Priority: explicit employee_id (most stable across installations) -> authenticated header -> payload fallbacks.
+        // Priority: explicit staff_id -> authenticated header -> users.id mapping -> employee_id fallback.
         $header_user_id = trim((string) $this->input->get_request_header('User-ID', true));
         $staff_id = 0;
 
-        if ($payload_employee_id !== '') {
+        // 1) Prefer explicit staff.id payload when valid.
+        if ($payload_staff_id > 0) {
             $this->db->select('id');
             $this->db->from('staff');
-            $this->db->where('employee_id', $payload_employee_id);
-            $this->db->where('is_active', 1);
-            $staff_row = $this->db->get()->row();
-            if (!empty($staff_row)) {
-                $staff_id = (int) $staff_row->id;
+            $this->db->where('id', $payload_staff_id);
+            $is_staff_id = $this->db->get()->row();
+            if (!empty($is_staff_id)) {
+                $staff_id = $payload_staff_id;
             }
         }
 
+        // 2) Fallback to authenticated User-ID header mapping.
         if ($staff_id <= 0 && $header_user_id !== '') {
             $this->db->select('users.role, users.user_id as staff_id');
             $this->db->from('users');
@@ -2190,23 +2497,26 @@ class Webservice extends CI_Controller
             }
         }
 
-        // Fallback: payload may contain either staff.id OR users.id; map users.id -> users.user_id when needed.
+        // 3) Fallback: payload may contain users.id; map users.id -> users.user_id.
         if ($staff_id <= 0 && $payload_staff_id > 0) {
+            $this->db->select('users.role, users.user_id as staff_id');
+            $this->db->from('users');
+            $this->db->where('users.id', $payload_staff_id);
+            $mapped_user = $this->db->get()->row();
+            if (!empty($mapped_user) && $mapped_user->role !== 'student' && $mapped_user->role !== 'parent') {
+                $staff_id = (int) $mapped_user->staff_id;
+            }
+        }
+
+        // 4) Final fallback: employee_id lookup.
+        if ($staff_id <= 0 && $payload_employee_id !== '') {
             $this->db->select('id');
             $this->db->from('staff');
-            $this->db->where('id', $payload_staff_id);
-            $is_staff_id = $this->db->get()->row();
-
-            if (!empty($is_staff_id)) {
-                $staff_id = $payload_staff_id;
-            } else {
-                $this->db->select('users.role, users.user_id as staff_id');
-                $this->db->from('users');
-                $this->db->where('users.id', $payload_staff_id);
-                $mapped_user = $this->db->get()->row();
-                if (!empty($mapped_user) && $mapped_user->role !== 'student' && $mapped_user->role !== 'parent') {
-                    $staff_id = (int) $mapped_user->staff_id;
-                }
+            $this->db->where('employee_id', $payload_employee_id);
+            $this->db->where('is_active', 1);
+            $staff_row = $this->db->get()->row();
+            if (!empty($staff_row)) {
+                $staff_id = (int) $staff_row->id;
             }
         }
 
@@ -2312,7 +2622,7 @@ class Webservice extends CI_Controller
                 $approved_credit_row = $this->db
                     ->select('SUM(leave_days) as approved_leave_days')
                     ->where('staff_id', $staff_id)
-                    ->where('status', 'approve')
+                    ->where('status', 'approved')
                     ->where('leave_type_id', $type_id)
                     ->get('staff_leave_request')
                     ->row_array();
@@ -2358,7 +2668,7 @@ class Webservice extends CI_Controller
                         $used_row = $this->db
                             ->select('SUM(leave_days) as approve_leave')
                             ->where('staff_id', $staff_id)
-                            ->where('status', 'approve')
+                            ->where('status', 'approved')
                             ->where('leave_type_id', $type_id)
                             ->get('staff_leave_request')
                             ->row_array();
@@ -2371,7 +2681,7 @@ class Webservice extends CI_Controller
                     $used_row = $this->db
                         ->select('SUM(leave_days) as approve_leave')
                         ->where('staff_id', $staff_id)
-                        ->where('status', 'approve')
+                        ->where('status', 'approved')
                         ->where('leave_type_id', $type_id)
                         ->get('staff_leave_request')
                         ->row_array();
@@ -2383,7 +2693,7 @@ class Webservice extends CI_Controller
                 $used_row = $this->db
                     ->select('SUM(leave_days) as approve_leave')
                     ->where('staff_id', $staff_id)
-                    ->where('status', 'approve')
+                    ->where('status', 'approved')
                     ->where('leave_type_id', $type_id)
                     ->get('staff_leave_request')
                     ->row_array();
@@ -2427,94 +2737,84 @@ class Webservice extends CI_Controller
             return;
         }
 
-        $params = json_decode(file_get_contents('php://input'), true);
-        $payload_staff_id = isset($params['staff_id']) ? (int) $params['staff_id'] : 0;
-        $payload_employee_id = isset($params['employee_id']) ? trim((string) $params['employee_id']) : '';
+        // Read body once (php://input is a stream; read early before any other consumer).
+        $params      = json_decode(file_get_contents('php://input'), true);
+        $employee_id = isset($params['employee_id']) ? trim((string) $params['employee_id']) : '';
 
+        // Resolve the logged-in staff identity.
+        // User-ID header is users.id, validated by auth() against users_authentication.
         $header_user_id = trim((string) $this->input->get_request_header('User-ID', true));
+
         $staff_id = 0;
 
-        if ($payload_employee_id !== '') {
-            $this->db->select('id');
-            $this->db->from('staff');
-            $this->db->where('employee_id', $payload_employee_id);
-            $this->db->where('is_active', 1);
-            $staff_row = $this->db->get()->row();
-            if (!empty($staff_row)) {
-                $staff_id = (int) $staff_row->id;
-            }
-        }
-
-        if ($staff_id <= 0 && $header_user_id !== '') {
-            $this->db->select('users.role, users.user_id as staff_id');
+        if ($header_user_id !== '') {
+            // Primary path: users.id -> users.user_id (= staff.id)
+            $this->db->select('users.user_id as staff_id, users.role');
             $this->db->from('users');
             $this->db->where('users.id', $header_user_id);
-            $staff_user = $this->db->get()->row();
-            if (!empty($staff_user) && $staff_user->role !== 'student' && $staff_user->role !== 'parent') {
-                $staff_id = (int) $staff_user->staff_id;
-            }
-
-            if ($staff_id <= 0) {
-                $this->db->select('users.role, users.user_id as staff_id');
-                $this->db->from('users');
-                $this->db->where('users.user_id', $header_user_id);
-                $staff_user_by_user_id = $this->db->get()->row();
-                if (!empty($staff_user_by_user_id) && $staff_user_by_user_id->role !== 'student' && $staff_user_by_user_id->role !== 'parent') {
-                    $staff_id = (int) $staff_user_by_user_id->staff_id;
-                }
+            $u = $this->db->get()->row();
+            if (!empty($u) && !in_array($u->role, array('student', 'parent'), true)) {
+                $staff_id = (int) $u->staff_id;
             }
         }
 
-        if ($staff_id <= 0 && $payload_staff_id > 0) {
+        // Fallback: employee_id from JSON body.
+        if ($staff_id <= 0 && $employee_id !== '') {
             $this->db->select('id');
             $this->db->from('staff');
-            $this->db->where('id', $payload_staff_id);
-            $is_staff_id = $this->db->get()->row();
-
-            if (!empty($is_staff_id)) {
-                $staff_id = $payload_staff_id;
-            } else {
-                $this->db->select('users.role, users.user_id as staff_id');
-                $this->db->from('users');
-                $this->db->where('users.id', $payload_staff_id);
-                $mapped_user = $this->db->get()->row();
-                if (!empty($mapped_user) && $mapped_user->role !== 'student' && $mapped_user->role !== 'parent') {
-                    $staff_id = (int) $mapped_user->staff_id;
-                }
+            $this->db->where('employee_id', $employee_id);
+            $this->db->where('is_active', 1);
+            $sr = $this->db->get()->row();
+            if (!empty($sr)) {
+                $staff_id = (int) $sr->id;
             }
         }
 
         if ($staff_id <= 0) {
-            json_output(422, array('status' => 0, 'message' => 'Unable to resolve staff_id for leave requests.'));
+            json_output(422, array('status' => 0, 'message' => 'Unable to identify staff account.'));
             return;
         }
 
-        try {
-            // Get staff's leave requests with joined details
-            $this->db->select('staff.name, staff.surname, staff.employee_id, staff_leave_request.*, staff_leave_request.employee_remark as reason, leave_types.type,
-                recommender.name as recommender_name, recommender.surname as recommender_surname,
-                approver.name as approver_name, approver.surname as approver_surname');
-            $this->db->from('staff_leave_request');
-            $this->db->join('staff', 'staff.id = staff_leave_request.staff_id', 'inner');
-            $this->db->join('leave_types', 'leave_types.id = staff_leave_request.leave_type_id', 'inner');
-            $this->db->join('staff as recommender', 'recommender.id = staff_leave_request.recommender_id', 'left');
-            $this->db->join('staff as approver', 'approver.id = staff_leave_request.approver_id', 'left');
-            $this->db->where('staff_leave_request.staff_id', $staff_id);
-            $this->db->where('staff.is_active', 1);
-            $this->db->order_by('staff_leave_request.id', 'desc');
-            
-            $query = $this->db->get();
-            $leave_requests = $query->result_array();
+        // Mirror the exact SQL used by the web model staff_leave_request($id).
+        // Note: use ->get('table') without a separate ->from() to avoid duplicate FROM clause.
+        $this->db->select('staff.name, staff.surname, staff.employee_id,
+            staff_leave_request.*,
+            leave_types.type,
+            recommender.name as recommender_name, recommender.surname as recommender_surname,
+            approver.name as approver_name, approver.surname as approver_surname,
+            department.department_name');
+        $this->db->join('staff',       'staff.id = staff_leave_request.staff_id');
+        $this->db->join('leave_types', 'leave_types.id = staff_leave_request.leave_type_id');
+        $this->db->join('staff_roles', 'staff_roles.staff_id = staff.id');
+        $this->db->join('roles',       'staff_roles.role_id = roles.id');
+        $this->db->join('staff as recommender', 'recommender.id = staff_leave_request.recommender_id', 'left');
+        $this->db->join('staff as approver',    'approver.id  = staff_leave_request.approver_id',    'left');
+        $this->db->join('department',            'department.id = staff.department',                   'left');
+        $this->db->where('staff.is_active', 1);
+        $this->db->where('staff_leave_request.staff_id', $staff_id);
+        $this->db->order_by('staff_leave_request.id', 'desc');
+        $query = $this->db->get('staff_leave_request');
 
-            json_output($response['status'], array(
-                'status' => 1,
-                'message' => 'Leave requests retrieved successfully.',
-                'leave_requests' => $leave_requests,
-                'count' => count($leave_requests),
-            ));
-        } catch (Exception $e) {
-            json_output(500, array('status' => 0, 'message' => 'Error retrieving leave requests: ' . $e->getMessage()));
+        $rows = $query->result_array();
+
+        // Deduplicate by leave-request id (a staff with multiple roles in staff_roles
+        // would otherwise produce one row per role, same as the web model).
+        $leave_requests = array();
+        $seen           = array();
+        foreach ($rows as $row) {
+            $rid = $row['id'];
+            if (!isset($seen[$rid])) {
+                $seen[$rid]      = true;
+                $leave_requests[] = $row;
+            }
         }
+
+        json_output(200, array(
+            'status'         => 1,
+            'message'        => 'Leave requests retrieved successfully.',
+            'leave_requests' => $leave_requests,
+            'count'          => count($leave_requests),
+        ));
     }
 
     /**
@@ -2985,6 +3285,166 @@ class Webservice extends CI_Controller
         }
     }
 
+    /**
+     * Update recommender/approver workflow status for a staff leave request.
+     * POST params: leave_id, stage(recommender|approver), status(approved|disapproved), remark(optional)
+     */
+    public function updateStaffLeaveWorkflowStatus()
+    {
+        $method = $this->input->server('REQUEST_METHOD');
+        if ($method != 'POST') {
+            json_output(400, array('status' => 400, 'message' => 'Bad request.'));
+            return;
+        }
+
+        $check_auth_client = $this->auth_model->check_auth_client();
+        if (!$check_auth_client) {
+            return;
+        }
+
+        $response = $this->auth_model->auth();
+        if ($response['status'] != 200) {
+            return;
+        }
+
+        $login_user_id = trim((string) $this->input->get_request_header('User-ID', true));
+        if ($login_user_id === '') {
+            json_output(422, array('status' => 0, 'message' => 'User-ID header is required.'));
+            return;
+        }
+
+        $this->db->select('users.role, users.user_id as staff_id');
+        $this->db->from('users');
+        $this->db->where('users.id', $login_user_id);
+        $staff_user = $this->db->get()->row();
+
+        if (empty($staff_user) || $staff_user->role === 'student' || $staff_user->role === 'parent') {
+            json_output(403, array('status' => 0, 'message' => 'This endpoint is only available for staff users.'));
+            return;
+        }
+
+        $params = json_decode(file_get_contents('php://input'), true);
+        if (!is_array($params)) {
+            json_output(422, array('status' => 0, 'message' => 'Invalid request payload.'));
+            return;
+        }
+
+        $leave_id = isset($params['leave_id']) ? (int) $params['leave_id'] : 0;
+        $stage = isset($params['stage']) ? strtolower(trim((string) $params['stage'])) : '';
+        $status = isset($params['status']) ? strtolower(trim((string) $params['status'])) : '';
+        $remark = isset($params['remark']) ? trim((string) $params['remark']) : '';
+
+        if ($leave_id <= 0 || !in_array($stage, array('recommender', 'approver'), true)) {
+            json_output(422, array('status' => 0, 'message' => 'leave_id and valid stage are required.'));
+            return;
+        }
+
+        if (!in_array($status, array('approved', 'disapproved'), true)) {
+            json_output(422, array('status' => 0, 'message' => 'status must be approved or disapproved.'));
+            return;
+        }
+
+        $this->db->select('id, staff_id, status, recommender_id, recommender_status, approver_id, approver_status');
+        $this->db->from('staff_leave_request');
+        $this->db->where('id', $leave_id);
+        $leave_request = $this->db->get()->row_array();
+
+        if (empty($leave_request)) {
+            json_output(404, array('status' => 0, 'message' => 'Leave request not found.'));
+            return;
+        }
+
+        if (in_array((string) $leave_request['status'], array('approved', 'disapproved'), true)) {
+            json_output(400, array('status' => 0, 'message' => 'Finalized leave request cannot be modified.'));
+            return;
+        }
+
+        $current_staff_id = (int) $staff_user->staff_id;
+        $update_payload = array();
+
+        if ($stage === 'recommender') {
+            if ((int) ($leave_request['recommender_id'] ?? 0) !== $current_staff_id) {
+                json_output(403, array('status' => 0, 'message' => 'Not authorized as recommender.'));
+                return;
+            }
+
+            if (!in_array((string) ($leave_request['recommender_status'] ?? ''), array('', 'pending'), true)) {
+                json_output(400, array('status' => 0, 'message' => 'Recommender action already completed.'));
+                return;
+            }
+
+            $update_payload['recommender_status'] = ($status === 'approved') ? 'recommended' : 'rejected';
+            $update_payload['recommender_remark'] = $remark;
+            $update_payload['recommender_action_date'] = date('Y-m-d');
+
+            if ($status === 'approved' && (string) $leave_request['status'] === 'pending') {
+                $update_payload['status'] = 'recommended';
+            }
+
+            if ($status === 'disapproved') {
+                $update_payload['status'] = 'disapproved';
+                $update_payload['approver_status'] = 'rejected';
+                $update_payload['approver_action_date'] = date('Y-m-d');
+                $update_payload['approve_date'] = null;
+            }
+        } else {
+            if ((int) ($leave_request['approver_id'] ?? 0) !== $current_staff_id) {
+                json_output(403, array('status' => 0, 'message' => 'Not authorized as approver.'));
+                return;
+            }
+
+            if (!in_array((string) ($leave_request['recommender_status'] ?? ''), array('recommended', 'approved'), true)) {
+                json_output(400, array('status' => 0, 'message' => 'Recommender approval is pending.'));
+                return;
+            }
+
+            if (!in_array((string) ($leave_request['approver_status'] ?? ''), array('', 'pending'), true)) {
+                json_output(400, array('status' => 0, 'message' => 'Approver action already completed.'));
+                return;
+            }
+
+            $update_payload['approver_status'] = ($status === 'approved') ? 'approved' : 'rejected';
+            $update_payload['approver_remark'] = $remark;
+            $update_payload['approver_action_date'] = date('Y-m-d');
+            $update_payload['status'] = ($status === 'approved') ? 'approved' : 'disapproved';
+            $update_payload['approve_date'] = ($status === 'approved') ? date('Y-m-d') : null;
+        }
+
+        if (empty($update_payload)) {
+            json_output(400, array('status' => 0, 'message' => 'No changes to apply.'));
+            return;
+        }
+
+        try {
+            $this->db->where('id', $leave_id);
+            $this->db->update('staff_leave_request', $update_payload);
+
+            if ((string) ($update_payload['status'] ?? '') === 'approved') {
+                $this->load->model('leaverequest_model');
+                $this->leaverequest_model->logLeaveApprovalCredit($leave_id, $current_staff_id);
+            }
+
+            $this->db->select('staff.name, staff.surname, staff.employee_id, staff_leave_request.*, staff_leave_request.employee_remark as reason, leave_types.type,
+                recommender.name as recommender_name, recommender.surname as recommender_surname,
+                approver.name as approver_name, approver.surname as approver_surname');
+            $this->db->from('staff_leave_request');
+            $this->db->join('staff', 'staff.id = staff_leave_request.staff_id', 'inner');
+            $this->db->join('leave_types', 'leave_types.id = staff_leave_request.leave_type_id', 'inner');
+            $this->db->join('staff as recommender', 'recommender.id = staff_leave_request.recommender_id', 'left');
+            $this->db->join('staff as approver', 'approver.id = staff_leave_request.approver_id', 'left');
+            $this->db->where('staff_leave_request.id', $leave_id);
+            $updated_record = $this->db->get()->row_array();
+
+            json_output(200, array(
+                'status' => 1,
+                'message' => 'Leave workflow status updated successfully.',
+                'leave_request' => $updated_record,
+            ));
+        } catch (Exception $e) {
+            json_output(500, array('status' => 0, 'message' => 'Error updating leave workflow status: ' . $e->getMessage()));
+        }
+    }
+
     public function addTask()
     {
         $method = $this->input->server('REQUEST_METHOD');
@@ -3173,12 +3633,15 @@ class Webservice extends CI_Controller
                         $this->user_model->updateVerCode($update_record);
                         if ($usertype == "student") {
                             $name = $result->firstname . " " . $result->lastname;
-                        } else {
+                        } elseif ($usertype == "parent") {
                             $name = $result->guardian_email;
+                        } else {
+                            // All staff types: teacher, librarian, accountant, admin etc.
+                            $name = $result->name . " " . $result->surname;
                         }
                         $resetPassLink = $site_url . '/user/resetpassword' . '/' . $usertype . "/" . $verification_code;
 
-                        $body = $this->forgotPasswordBody($name, $resetPassLink, $template->template);
+                        $body = $this->forgotPasswordBody($name, $resetPassLink, $template->template, $template->subject);
                         $body_array = json_decode($body);
 
                         if (!empty($this->mail_config)) {
@@ -3190,6 +3653,9 @@ class Webservice extends CI_Controller
                                 $respStatus = 200;
                                 $resp = array('status' => 200, 'message' => "Sending of message failed, Please contact to Admin.");
                             }
+                        } else {
+                            $respStatus = 200;
+                            $resp = array('status' => 200, 'message' => "Email service not configured. Please contact Admin.");
                         }
                     } else {
                         $respStatus = 200;
@@ -3205,7 +3671,7 @@ class Webservice extends CI_Controller
         }
     }
 
-    public function forgotPasswordBody($name, $resetPassLink, $template)
+    public function forgotPasswordBody($name, $resetPassLink, $template, $subject = "Forgot Password")
     {
         $mail_detail['name'] = $name;
         $mail_detail['school_name'] = $this->customlib->getSchoolName();
@@ -3214,7 +3680,6 @@ class Webservice extends CI_Controller
             $template = str_replace('{{' . $key . '}}', $value, $template);
         }
         //===============
-        $subject = "Password Update Request";
         $body = $template;
         //======================
         return json_encode(array('subject' => $subject, 'body' => $body));
@@ -5504,8 +5969,12 @@ class Webservice extends CI_Controller
             if ($check_auth_client == true) {
                 $response = $this->auth_model->auth();
                 if ($response['status'] == 200) {
-                    $school_setting = $this->setting_model->getSchoolDetail()->student_profile_edit;
-                    $array = array('status' => '1', 'student_profile_edit' => $school_setting);
+                    $school_detail = $this->setting_model->getSchoolDetail();
+                    $array = array(
+                        'status'               => '1',
+                        'student_profile_edit' => $school_detail->student_profile_edit,
+                        'staff_profile_edit'   => isset($school_detail->staff_profile_edit) ? $school_detail->staff_profile_edit : 0,
+                    );
                     json_output($response['status'], $array);
                 }
             }
@@ -5869,6 +6338,78 @@ class Webservice extends CI_Controller
                     json_output(200, $array);
                 }
             }
+        }
+    }
+
+    public function editStaffProfile()
+    {
+        $method = $this->input->server('REQUEST_METHOD');
+        if ($method != 'POST') {
+            json_output(400, array('status' => 400, 'message' => 'Bad request.'));
+            return;
+        }
+        $check_auth_client = $this->auth_model->check_auth_client();
+        if ($check_auth_client != true) {
+            return;
+        }
+        $response = $this->auth_model->auth();
+        if ($response['status'] != 200) {
+            return;
+        }
+
+        $login_user_id = trim((string) $this->input->get_request_header('User-ID', true));
+        if ($login_user_id === '') {
+            json_output(422, array('status' => 0, 'message' => 'User-ID header is required.'));
+            return;
+        }
+
+        // Verify the logged-in user is a staff member and get their staff_id
+        $user_row = $this->db->select('user_id, role')->from('users')->where('id', $login_user_id)->get()->row();
+        if (empty($user_row) || !in_array($user_row->role, array('staff', 'admin', 'accountant', 'librarian', 'receptionist'))) {
+            json_output(403, array('status' => 0, 'message' => 'This endpoint is only available for staff users.'));
+            return;
+        }
+
+        $staff_id = $user_row->user_id;
+
+        $params = json_decode(file_get_contents('php://input'), true);
+        if (!is_array($params)) {
+            json_output(422, array('status' => 0, 'message' => 'Invalid request payload.'));
+            return;
+        }
+
+        // Map Flutter-side field names to actual DB column names in the staff table.
+        // 'current_address' sent by Flutter maps to 'local_address' in the DB.
+        $field_map = array(
+            'email'                 => 'email',
+            'contact_no'            => 'contact_no',
+            'mobileno'              => 'contact_no',
+            'current_address'       => 'local_address',
+            'permanent_address'     => 'permanent_address',
+            'emergency_contact_no'  => 'emergency_contact_no',
+            'marital_status'        => 'marital_status',
+            'qualification'         => 'qualification',
+        );
+        $data = array('id' => $staff_id);
+
+        foreach ($field_map as $param_key => $db_col) {
+            if (array_key_exists($param_key, $params) && !isset($data[$db_col])) {
+                $data[$db_col] = $this->security->xss_clean(trim((string) $params[$param_key]));
+            }
+        }
+
+        if (count($data) <= 1) {
+            json_output(422, array('status' => 0, 'message' => 'No valid fields provided for update.'));
+            return;
+        }
+
+        $this->db->where('id', $staff_id);
+        $this->db->update('staff', $data);
+
+        if ($this->db->affected_rows() >= 0) {
+            json_output(200, array('status' => '1', 'message' => 'Staff profile updated successfully.'));
+        } else {
+            json_output(500, array('status' => '0', 'message' => 'Failed to update staff profile.'));
         }
     }
 
@@ -9193,6 +9734,110 @@ class Webservice extends CI_Controller
                 'status'  => 500,
                 'message' => 'Unable to delete certificate file'
             ));
+        }
+    }
+
+    public function changePassword()
+    {
+        $method = $this->input->server('REQUEST_METHOD');
+        if ($method != 'POST') {
+            json_output(400, array('status' => 400, 'message' => 'Bad request.'));
+            return;
+        }
+
+        $check_auth_client = $this->auth_model->check_auth_client();
+        if ($check_auth_client != true) {
+            return;
+        }
+
+        $response = $this->auth_model->auth();
+        if ($response['status'] != 200) {
+            return;
+        }
+
+        $params           = json_decode(file_get_contents('php://input'), true);
+        $current_password = isset($params['current_password']) ? trim((string) $params['current_password']) : '';
+        $new_password     = isset($params['new_password'])     ? trim((string) $params['new_password'])     : '';
+        $confirm_password = isset($params['confirm_password']) ? trim((string) $params['confirm_password']) : '';
+
+        if ($current_password === '' || $new_password === '' || $confirm_password === '') {
+            json_output(422, array('status' => 0, 'message' => 'All password fields are required.'));
+            return;
+        }
+
+        if ($new_password !== $confirm_password) {
+            json_output(422, array('status' => 0, 'message' => 'New password and confirm password do not match.'));
+            return;
+        }
+
+        if (strlen($new_password) < 6) {
+            json_output(422, array('status' => 0, 'message' => 'New password must be at least 6 characters.'));
+            return;
+        }
+
+        // Resolve user identity from User-ID header (users.id).
+        $header_user_id = trim((string) $this->input->get_request_header('User-ID', true));
+
+        if ($header_user_id === '') {
+            json_output(401, array('status' => 0, 'message' => 'Unable to identify user account.'));
+            return;
+        }
+
+        $this->db->select('id, user_id, role, password, is_active');
+        $this->db->from('users');
+        $this->db->where('id', $header_user_id);
+        $user_row = $this->db->get()->row();
+
+        if (empty($user_row)) {
+            json_output(401, array('status' => 0, 'message' => 'Unable to identify user account.'));
+            return;
+        }
+
+        $role = strtolower((string) $user_row->role);
+
+        if (in_array($role, array('teacher', 'librarian', 'accountant'), true) ||
+            (!in_array($role, array('student', 'parent'), true))) {
+            // ── STAFF / TEACHER path ───────────────────────────────────────
+            // Staff passwords live in staff.password as bcrypt hash.
+            $staff_id = (int) $user_row->user_id;
+
+            $this->db->select('id, password');
+            $this->db->from('staff');
+            $this->db->where('id', $staff_id);
+            $this->db->where('is_active', 1);
+            $staff = $this->db->get()->row();
+
+            if (empty($staff)) {
+                json_output(404, array('status' => 0, 'message' => 'Staff record not found.'));
+                return;
+            }
+
+            if (!password_verify($current_password, $staff->password)) {
+                json_output(422, array('status' => 0, 'message' => 'Current password is incorrect.'));
+                return;
+            }
+
+            $new_hash = password_hash($new_password, PASSWORD_DEFAULT);
+            $this->db->where('id', $staff_id);
+            $updated = $this->db->update('staff', array('password' => $new_hash));
+
+        } else {
+            // ── STUDENT / PARENT path ──────────────────────────────────────
+            // Student/parent passwords live in users.password as plain text
+            // (matching the existing web application behaviour).
+            if ($user_row->password !== $current_password) {
+                json_output(422, array('status' => 0, 'message' => 'Current password is incorrect.'));
+                return;
+            }
+
+            $this->db->where('id', (int) $user_row->id);
+            $updated = $this->db->update('users', array('password' => $new_password));
+        }
+
+        if ($updated) {
+            json_output(200, array('status' => 1, 'message' => 'Password changed successfully.'));
+        } else {
+            json_output(500, array('status' => 0, 'message' => 'Failed to update password. Please try again.'));
         }
     }
 

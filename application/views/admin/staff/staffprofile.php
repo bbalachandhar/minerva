@@ -54,7 +54,10 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                     if ($rolet_value['id'] == $svalue["role_id"]) {
 
                                         if (!empty($svalue["image"])) {
-                                            $image = $svalue['image'];
+                                            $image = ltrim($svalue['image'], '/');
+                                            if (strpos($image, 'uploads/staff_images/') === 0) {
+                                                $image = substr($image, strlen('uploads/staff_images/'));
+                                            }
                                         } else {
                                             if ($svalue['gender'] == 'Male') {
                                                 $image = "default_male.jpg";
@@ -99,17 +102,19 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
 
                         $image = $staff['image'];
                         if (!empty($image)) {
-
-                            $file = $staff['image'];
+                            $file = ltrim($staff['image'], '/');
+                            if (strpos($file, 'uploads/staff_images/') !== 0) {
+                                $file = 'uploads/staff_images/' . $file;
+                            }
                         } else {
                             if ($staff['gender'] == 'Male') {
-                                $file = "default_male.jpg";
+                                $file = "uploads/staff_images/default_male.jpg";
                             } else {
-                                $file = "default_female.jpg";
+                                $file = "uploads/staff_images/default_female.jpg";
                             }
                         }
                         ?>
-                        <img class="profile-user-img img-responsive img-circle" src="<?php echo $this->media_storage->getImageURL("uploads/staff_images/" . $file); ?>" alt="User profile picture">
+                        <img class="profile-user-img img-responsive img-circle" src="<?php echo $this->media_storage->getImageURL($file); ?>" alt="User profile picture">
                         <h3 class="profile-username text-center"><?php echo $staff['name'] . " " . $staff['surname']; ?></h3>
                         <?php if ($staff['user_type'] == 'Teacher') {
                         ?>

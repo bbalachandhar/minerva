@@ -29,6 +29,16 @@ class Whatsappconfig extends Admin_Controller
         $this->load->view('layout/footer', $data);
     }
 
+    public function instructions()
+    {
+        $this->session->set_userdata('top_menu', 'System Settings');
+        $this->session->set_userdata('sub_menu', 'whatsappconfig/index');
+        $data['title'] = 'WhatsApp Integration Guide';
+        $this->load->view('layout/header', $data);
+        $this->load->view('whatsappconfig/instructions', $data);
+        $this->load->view('layout/footer', $data);
+    }
+
     public function twilio()
     {
         $this->form_validation->set_error_delimiters('', '');

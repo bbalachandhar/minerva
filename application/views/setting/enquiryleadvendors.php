@@ -89,6 +89,131 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- ═══════════════════════════════════════════════════════ -->
+                <!--  Meta Lead Ads Integration                               -->
+                <!-- ═══════════════════════════════════════════════════════ -->
+                <div class="box box-warning" style="margin-top:24px;">
+                    <div class="box-header with-border">
+                        <h3 class="box-title"><i class="fa fa-facebook-square"></i> Meta Lead Ads Integration</h3>
+                        <div class="box-tools pull-right">
+                            <button type="button" class="btn btn-box-tool" data-widget="collapse">
+                                <i class="fa fa-<?php echo (!empty($setting->meta_leads_enabled) && $setting->meta_leads_enabled == 1) ? 'minus' : 'plus'; ?>"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="box-body" <?php echo (empty($setting->meta_leads_enabled) || $setting->meta_leads_enabled != 1) ? 'style="display:none;"' : ''; ?>>
+                        <div class="row">
+                            <!-- Left: Webhook URL + Tips -->
+                            <div class="col-md-5">
+                                <div class="well well-sm">
+                                    <strong><i class="fa fa-link"></i> Your Webhook URL</strong><br>
+                                    <p class="text-muted" style="margin:6px 0;">Paste this in Meta Business Manager &rarr; Webhooks &rarr; Page subscription.</p>
+                                    <div class="input-group">
+                                        <input type="text" id="metaWebhookUrlBox" class="form-control input-sm" readonly
+                                               value="<?php echo htmlspecialchars($webhook_url, ENT_QUOTES); ?>">
+                                        <span class="input-group-btn">
+                                            <button class="btn btn-default btn-sm" onclick="copyMetaWebhookUrl()">
+                                                <i class="fa fa-copy"></i>
+                                            </button>
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="text-muted" style="font-size:12px; line-height:1.8; padding:0 4px;">
+                                    <strong>Steps:</strong>
+                                    <ol style="padding-left:16px; margin:6px 0;">
+                                        <li>Open Meta Business Suite &rarr; your App &rarr; <strong>Webhooks</strong>.</li>
+                                        <li>Add <strong>Page</strong> subscription, paste the URL above &amp; the Verify Token.</li>
+                                        <li>Subscribe to the <code>leadgen</code> field.</li>
+                                        <li>Paste your <strong>Page Access Token</strong> (from Graph API Explorer with <code>leads_retrieval</code> permission).</li>
+                                        <li>Enable the toggle here and click <strong>Save</strong>.</li>
+                                    </ol>
+                                </div>
+                            </div>
+                            <!-- Right: Settings form -->
+                            <div class="col-md-7">
+                                <form id="metaLeadsForm">
+                                    <!-- Enable -->
+                                    <div class="form-group">
+                                        <label>Integration Status</label>
+                                        <div>
+                                            <label class="radio-inline">
+                                                <input type="radio" name="meta_leads_enabled" value="1"
+                                                    <?php echo (!empty($setting->meta_leads_enabled) && $setting->meta_leads_enabled == 1) ? 'checked' : ''; ?>>
+                                                <span class="text-success"><strong>Enabled</strong></span>
+                                            </label>
+                                            <label class="radio-inline">
+                                                <input type="radio" name="meta_leads_enabled" value="0"
+                                                    <?php echo (empty($setting->meta_leads_enabled) || $setting->meta_leads_enabled == 0) ? 'checked' : ''; ?>>
+                                                <span class="text-danger"><strong>Disabled</strong></span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <!-- Verify Token -->
+                                    <div class="form-group">
+                                        <label>Verify Token <span class="text-danger">*</span></label>
+                                        <div class="input-group">
+                                            <input type="text" class="form-control" name="meta_verify_token"
+                                                   placeholder="e.g. mysecrettoken123"
+                                                   value="<?php echo htmlspecialchars($setting->meta_verify_token ?? '', ENT_QUOTES); ?>">
+                                            <span class="input-group-btn">
+                                                <button type="button" class="btn btn-default" id="metaGenerateTokenBtn">
+                                                    <i class="fa fa-refresh"></i> Generate
+                                                </button>
+                                            </span>
+                                        </div>
+                                        <p class="help-block">Must match the Verify Token you enter in Meta's Webhooks setup.</p>
+                                    </div>
+                                    <!-- Page Access Token -->
+                                    <div class="form-group">
+                                        <label>Page Access Token <span class="text-danger">*</span></label>
+                                        <textarea class="form-control" name="meta_page_access_token" rows="3"
+                                                  placeholder="Paste your long-lived Page Access Token..."><?php echo htmlspecialchars($setting->meta_page_access_token ?? '', ENT_QUOTES); ?></textarea>
+                                        <p class="help-block">Used to fetch lead details from Meta Graph API on each webhook event.</p>
+                                    </div>
+                                    <!-- Page ID + App Secret side by side -->
+                                    <div class="row">
+                                        <div class="col-sm-6">
+                                            <div class="form-group">
+                                                <label>Facebook Page ID</label>
+                                                <input type="text" class="form-control" name="meta_page_id"
+                                                       placeholder="e.g. 123456789012345"
+                                                       value="<?php echo htmlspecialchars($setting->meta_page_id ?? '', ENT_QUOTES); ?>">
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-6">
+                                            <div class="form-group">
+                                                <label>App Secret <small class="text-muted">(recommended)</small></label>
+                                                <input type="password" class="form-control" name="meta_app_secret"
+                                                       placeholder="Leave blank to keep existing"
+                                                       autocomplete="new-password">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- Default Course -->
+                                    <div class="form-group">
+                                        <label>Default Course <small class="text-muted">(if not matched from lead)</small></label>
+                                        <select class="form-control" name="meta_default_course_id">
+                                            <option value="0">&mdash; None &mdash;</option>
+                                            <?php foreach ($courselist as $course): ?>
+                                                <option value="<?php echo (int) $course->id; ?>"
+                                                    <?php echo (isset($setting->meta_default_course_id) && $setting->meta_default_course_id == $course->id) ? 'selected' : ''; ?>>
+                                                    <?php echo htmlspecialchars($course->course_name, ENT_QUOTES); ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+                                    <!-- Save -->
+                                    <button type="submit" class="btn btn-warning" id="saveMetaLeadsBtn">
+                                        <i class="fa fa-save"></i> Save Meta Settings
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- / Meta Lead Ads -->
+
             </div>
         </div>
     </section>
@@ -375,6 +500,50 @@
             complete: function() {
                 $btn.prop('disabled', false);
             }
+        });
+    });
+})(jQuery);
+
+/* ── Meta Lead Ads section ──────────────────────────────────────────────── */
+(function($) {
+    'use strict';
+
+    // Generate verify token
+    $('#metaGenerateTokenBtn').on('click', function() {
+        $.post('<?php echo site_url('schsettings/ajax_generate_meta_verify_token'); ?>', function(r) {
+            if (r && r.status === 'success') {
+                $('[name="meta_verify_token"]').val(r.token);
+                successMsg('Token generated \u2014 copy it to Meta Webhooks before saving!');
+            }
+        }, 'json');
+    });
+
+    // Copy webhook URL
+    window.copyMetaWebhookUrl = function() {
+        var el = document.getElementById('metaWebhookUrlBox');
+        el.select();
+        document.execCommand('copy');
+        successMsg('Webhook URL copied!');
+    };
+
+    // Save Meta settings
+    $('#metaLeadsForm').on('submit', function(e) {
+        e.preventDefault();
+        var $btn = $('#saveMetaLeadsBtn').prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Saving...');
+        $.ajax({
+            url      : '<?php echo site_url('schsettings/ajax_save_metaleads_config'); ?>',
+            type     : 'POST',
+            dataType : 'json',
+            data     : $(this).serialize(),
+            success  : function(r) {
+                if (r && r.status === 'success') {
+                    successMsg(r.message || 'Meta settings saved.');
+                } else {
+                    errorMsg((r && r.message) ? r.message : 'Failed to save.');
+                }
+            },
+            error    : function() { errorMsg('Server error.'); },
+            complete : function() { $btn.prop('disabled', false).html('<i class="fa fa-save"></i> Save Meta Settings'); }
         });
     });
 })(jQuery);

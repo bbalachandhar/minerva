@@ -929,11 +929,22 @@ class Leaverequest extends Admin_Controller
             return;
         }
 
-        // For admin/super-admin override, always use strict stage-based fallback flow
-        // instead of personal recommender/approver branch matching.
+        // For admin/super-admin override, be stage-aware instead of always bypassing both stages.
+        // If the request is still in pre-recommender stage (recommender_status = 'pending'),
+        // treat the admin as the recommender so the two-stage workflow is preserved.
+        // Only bypass to a direct finalization when the recommender stage is already done.
         if ($is_admin_override) {
-            $is_recommender = false;
-            $is_approver = false;
+            $recommender_done = in_array((string) ($leave_request['recommender_status'] ?? ''), ['recommended', 'approved', 'rejected'], true);
+            if (!$recommender_done) {
+                // Admin acts as recommender for this pre-recommender-stage request.
+                $is_recommender = true;
+                $is_approver    = false;
+                $is_admin_override = false;
+            } else {
+                // Recommender stage already done; admin can finalize directly.
+                $is_recommender = false;
+                $is_approver    = false;
+            }
         }
 
         if ($is_recommender) {

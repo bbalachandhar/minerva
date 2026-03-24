@@ -663,6 +663,7 @@ class Schsettings extends Admin_Controller
                             // It might be good to also initialize staff_profile_edit here if setting was initially null
                             $setting->staff_profile_edit = 0; 
                             $setting->staff_self_edit = 0;
+                            $setting->student_profile_edit = 0;
                         }        $setting->base_url    = ($setting->base_url == "") ? base_url() : $setting->base_url;
         $setting->folder_path = FCPATH;
         $data['result']       = $setting;
@@ -695,6 +696,7 @@ class Schsettings extends Admin_Controller
         } else {
             $staff_profile_edit = $this->input->post('staff_profile_edit') ? 1 : 0;
             $staff_self_edit = $this->input->post('staff_self_edit') ? 1 : 0;
+            $student_profile_edit = $this->input->post('student_profile_edit') ? 1 : 0;
             
             // --- START Debug Logging ---
             log_message('debug', 'Schsettings::savemobileapp - POST data: ' . print_r($this->input->post(), true));
@@ -712,6 +714,7 @@ class Schsettings extends Admin_Controller
                 'admin_mobile_api_url'           => $this->input->post('admin_mobile_api_url'),
                 'staff_profile_edit'             => $staff_profile_edit,
                 'staff_self_edit'                => $staff_self_edit,
+                'student_profile_edit'           => $student_profile_edit,
             );
 
             $this->setting_model->add($data);
@@ -2033,6 +2036,9 @@ class Schsettings extends Admin_Controller
 
         $data = [];
         $data['lead_vendors'] = $this->getLeadVendors();
+        $data['setting']      = $this->setting_model->getSetting();
+        $data['courselist']   = $this->db->get('online_admission_courses')->result();
+        $data['webhook_url']  = base_url('metaleads/webhook');
 
         $this->load->view('layout/header', $data);
         $this->load->view('setting/enquiryleadvendors', $data);
@@ -2049,21 +2055,9 @@ class Schsettings extends Admin_Controller
         $this->session->set_userdata('sub_menu', 'schsettings/index');
         $this->session->set_userdata('subsub_menu', 'schsettings/enquiryleadvendors');
 
-        $doc_path = FCPATH . 'docs/lead_enquiry_api_vendor_integration.md';
-        $doc_text = 'Instruction document not found at: ' . $doc_path;
-        if (is_file($doc_path) && is_readable($doc_path)) {
-            $content = file_get_contents($doc_path);
-            if ($content !== false && trim($content) !== '') {
-                $doc_text = $content;
-            }
-        }
-
-        $data = [];
-        $data['doc_text'] = $doc_text;
-
-        $this->load->view('layout/header', $data);
-        $this->load->view('setting/enquiryleadvendorinstructions', $data);
-        $this->load->view('layout/footer', $data);
+        $this->load->view('layout/header');
+        $this->load->view('setting/enquiryleadvendorinstructions');
+        $this->load->view('layout/footer');
     }
 
     public function ajax_save_lead_vendor()
@@ -2293,5 +2287,101 @@ class Schsettings extends Admin_Controller
         $status_text = $enabled ? 'enabled' : 'disabled';
         echo json_encode(['status' => 'success', 'message' => "Rule {$status_text} successfully"]);
     }
-    
+
+    // =========================================================================
+    //  Meta Lead Ads Settings
+    // =========================================================================
+
+    /**
+     * Show the Meta Lead Ads configuration page.
+     * URL: schsettings/metaleadsconfig
+     */
+    public function metaleadsconfig()
+    {
+        if (!$this->rbac->hasPrivilege('general_setting', 'can_view')) {
+            access_denied();
+        }
+
+        $this->session->set_userdata('top_menu', 'System Settings');
+        $this->session->set_userdata('sub_menu', 'schsettings/index');
+        $this->session->set_userdata('subsub_menu', 'schsettings/metaleadsconfig');
+
+        $this->load->model('online_admission_model');
+        $data['setting']     = $this->setting_model->getSetting();
+        $data['courselist']  = $this->db->get('online_admission_courses')->result();
+        $data['webhook_url'] = base_url('metaleads/webhook');
+
+        $this->load->view('layout/header', $data);
+        $this->load->view('setting/metaleadsconfig', $data);
+        $this->load->view('layout/footer', $data);
+    }
+
+    /**
+     * AJAX: Save Meta Lead Ads configuration.
+     * URL: schsettings/ajax_save_metaleads_config
+     */
+    public function ajax_save_metaleads_config()
+    {
+        if (!$this->rbac->hasPrivilege('general_setting', 'can_edit')) {
+            echo json_encode(['status' => 'fail', 'message' => 'Permission denied.']);
+            return;
+        }
+
+        $setting = $this->setting_model->getSetting();
+        if (!$setting || !isset($setting->id)) {
+            echo json_encode(['status' => 'fail', 'message' => 'Settings record not found.']);
+            return;
+        }
+
+        $enabled        = $this->input->post('meta_leads_enabled') ? 1 : 0;
+        $verify_token   = trim((string) $this->input->post('meta_verify_token'));
+        $access_token   = trim((string) $this->input->post('meta_page_access_token'));
+        $page_id        = trim((string) $this->input->post('meta_page_id'));
+        $app_secret     = trim((string) $this->input->post('meta_app_secret'));
+        $default_course = (int) $this->input->post('meta_default_course_id');
+
+        if ($verify_token === '') {
+            echo json_encode(['status' => 'fail', 'message' => 'Verify Token is required.']);
+            return;
+        }
+
+        $data = [
+            'id'                      => (int) $setting->id,
+            'meta_leads_enabled'      => $enabled,
+            'meta_verify_token'       => substr($verify_token, 0, 255),
+            'meta_default_course_id'  => $default_course > 0 ? $default_course : null,
+        ];
+
+        // Only update sensitive tokens if the user actually provided a new value
+        // (keeps existing token when the field is left blank on save).
+        if ($access_token !== '') {
+            $data['meta_page_access_token'] = $access_token;
+        }
+        if ($page_id !== '') {
+            $data['meta_page_id'] = substr($page_id, 0, 64);
+        }
+        if ($app_secret !== '') {
+            $data['meta_app_secret'] = substr($app_secret, 0, 255);
+        }
+
+        $this->setting_model->add($data);
+
+        echo json_encode(['status' => 'success', 'message' => 'Meta Lead Ads settings saved successfully.']);
+    }
+
+    /**
+     * AJAX: Generate a random verify token and return it.
+     * URL: schsettings/ajax_generate_meta_verify_token
+     */
+    public function ajax_generate_meta_verify_token()
+    {
+        if (!$this->rbac->hasPrivilege('general_setting', 'can_edit')) {
+            echo json_encode(['status' => 'fail', 'message' => 'Permission denied.']);
+            return;
+        }
+
+        $token = bin2hex(random_bytes(24)); // 48-character hex token
+        echo json_encode(['status' => 'success', 'token' => $token]);
+    }
+
 }

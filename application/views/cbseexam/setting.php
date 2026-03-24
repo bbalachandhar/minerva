@@ -28,14 +28,14 @@
                                             if (!$this->auth->addonchk('sscbse', false)) {
                                             ?>
                                                 <div class="alert alert-danger">
-                                                    You are using unregistered version of Smart School CBSE Examination addon, please <a href="#" class="displayinline align-text-top" data-addon-version="<?php echo $version;
+                                                    You are using unregistered version of Minerva CBSE Examination addon, please <a href="#" class="displayinline align-text-top" data-addon-version="<?php echo $version;
                                                                                                                                                                                                             ?>" data-addon="sscbse" data-toggle="modal" data-target="#addonModal">click here</a> to register addon
                                                 </div>
                                             <?php
                                             }else{
                                                 ?>
                                                 <div class="alert alert-danger">
-                                                    You are using registered version of Smart School CBSE Examination Addon.
+                                                    You are using registered version of Minerva CBSE Examination Addon.
                                                 </div>
                                             <?php
                                             }

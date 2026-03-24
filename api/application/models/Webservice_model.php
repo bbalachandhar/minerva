@@ -127,12 +127,18 @@ class Webservice_model extends CI_Model
         $this->db->select('send_notification.*,staff.employee_id');
         $this->db->from('send_notification');
         $this->db->join('staff', 'staff.id = send_notification.created_id');
-        
+
+        $type = strtolower(trim((string) $type));
         if ($type == "student") {
             $this->db->where('visible_student', 'Yes');
         } elseif ($type == "parent") {
-            # code...
             $this->db->where('visible_parent', 'Yes');
+        } elseif ($type == "teacher" || $type == "staff") {
+            // Teacher app users should receive notices published for staff audience.
+            $this->db->group_start();
+            $this->db->where('visible_staff', 'Yes');
+            $this->db->or_where('visible_staff', 'yes');
+            $this->db->group_end();
         }
         $this->db->where('publish_date <=', $date);
         $this->db->order_by('date', 'desc');

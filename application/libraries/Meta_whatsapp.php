@@ -42,7 +42,18 @@ class Meta_whatsapp {
         ]);
 
         $response = curl_exec($ch);
+        $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curl_error = curl_error($ch);
         curl_close($ch);
+
+        if ($curl_error) {
+            log_message('error', 'Meta WhatsApp cURL error: ' . $curl_error);
+            return false;
+        }
+
+        if ($http_code >= 400) {
+            log_message('error', 'Meta WhatsApp API error (HTTP ' . $http_code . '): ' . $response);
+        }
 
         return $response;
     }

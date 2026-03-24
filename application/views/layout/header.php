@@ -363,7 +363,11 @@ if (!empty($result['gender'])) {
 }
 
 if (!empty($image)) {
-    $file = "uploads/staff_images/" . $image . img_time();
+    $normalized_image = ltrim($image, '/');
+    if (strpos($normalized_image, 'uploads/staff_images/') !== 0) {
+        $normalized_image = 'uploads/staff_images/' . $normalized_image;
+    }
+    $file = $normalized_image . img_time();
 } else {
     $file = null; // No image, will use icon instead
 }
