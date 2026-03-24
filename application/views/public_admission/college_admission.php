@@ -513,7 +513,12 @@
                                 <div class="col-md-4">
                                     <div class="mb-3">
                                         <label class="form-label">Year of passing of X std*</label>
-                                        <input  type="text" class="form-control" placeholder="Select year" name="tenth_passing" id="tenth_passing" tabindex="23">
+                                        <select class="form-control" name="tenth_passing" id="tenth_passing" tabindex="23">
+                                            <option value="">Select Year</option>
+                                            <?php for ($y = date('Y'); $y >= date('Y') - 10; $y--): ?>
+                                            <option value="<?php echo $y; ?>"><?php echo $y; ?></option>
+                                            <?php endfor; ?>
+                                        </select>
                                     </div>
                                 </div>
                                 <div class="col-md-4">
@@ -538,7 +543,12 @@
                                 <div class="col-md-4">
                                     <div class="mb-3">
                                         <label class="form-label">Year of passing of X std*</label>
-                                        <input  type="text" class="form-control" placeholder="Select year" name="lateral_tenth_passing" id="lateral_tenth_passing" tabindex="30">
+                                        <select class="form-control" name="lateral_tenth_passing" id="lateral_tenth_passing" tabindex="30">
+                                            <option value="">Select Year</option>
+                                            <?php for ($y = date('Y'); $y >= date('Y') - 10; $y--): ?>
+                                            <option value="<?php echo $y; ?>"><?php echo $y; ?></option>
+                                            <?php endfor; ?>
+                                        </select>
                                     </div>
                                 </div>
                                 <div class="col-md-4">
@@ -1652,30 +1662,7 @@ $(document).ready(function() {
         locale: 'en'
     });
 
-    // Initialize Flatpickr for year inputs (tenth_passing and lateral_tenth_passing)
-    flatpickr('#tenth_passing', {
-        mode: 'single',
-        dateFormat: 'Y',
-        altInput: false,
-        maxDate: new Date(),
-        yearRange: [1950, new Date().getFullYear()],
-        monthSelectorType: 'dropdown',
-        allowInput: false,
-        enableTime: false,
-        locale: 'en'
-    });
-
-    flatpickr('#lateral_tenth_passing', {
-        mode: 'single',
-        dateFormat: 'Y',
-        altInput: false,
-        maxDate: new Date(),
-        yearRange: [1950, new Date().getFullYear()],
-        monthSelectorType: 'dropdown',
-        allowInput: false,
-        enableTime: false,
-        locale: 'en'
-    });
+    // tenth_passing and lateral_tenth_passing are now <select> year dropdowns — no Flatpickr needed
 });
 </script>
 </html>

@@ -28,7 +28,7 @@
                                          <?php if ($sch_setting->father_name) {?>
                                             <th><?php echo $this->lang->line('father_name'); ?></th>
                                         <?php }?>
-                                        <th><?php echo $this->lang->line('date_of_birth'); ?></th>
+                                        <th>Application Date</th>
                                         <th><?php echo $this->lang->line('gender'); ?></th>
                                         <th>Quota Type</th>
                                                                                 <th>Course Fee</th>
@@ -47,6 +47,7 @@
                                 </tbody>
                             </table><!-- /.table -->
                         </div><!-- /.mail-box-messages -->
+                        <div style="text-align:right;font-weight:bold;padding:6px 4px;" id="student-list-footer"></div>
                        </div><!--./table-responsive-->
                     </div><!-- /.box-body -->
                 </div>
@@ -55,6 +56,25 @@
         </div>
     </section><!-- /.content -->
 </div><!-- /.content-wrapper -->
+
+<!-- Fee Receipt Modal -->
+<div class="modal fade" id="feeReceiptModal" tabindex="-1" role="dialog" aria-labelledby="feeReceiptModalLabel">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title" id="feeReceiptModalLabel"><i class="fa fa-file-text-o"></i> Fee Payment Receipt</h4>
+            </div>
+            <div class="modal-body" id="feeReceiptBody">
+                <div class="text-center"><i class="fa fa-spinner fa-spin fa-2x"></i></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="printFeeReceipt()"><i class="fa fa-print"></i> Print</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <div class="modal fade" id="addPaymentModal" tabindex="-1" role="dialog" aria-labelledby="addPaymentModalLabel">
     <div class="modal-dialog" role="document">
@@ -92,7 +112,11 @@
     ( function ( $ ) {
     'use strict';
     $(document).ready(function () {
-        initDatatable('student-list','admin/onlinestudent/getstudentlist',[],[],100);
+        initDatatable('student-list','admin/onlinestudent/getstudentlist',[],[],10);
+        $('.student-list').on('draw.dt', function() {
+            var info = $('.student-list').DataTable().page.info();
+            $('#student-list-footer').text('Total Records: ' + info.recordsTotal);
+        });
         // prevent any delegated row click from blocking anchor navigation
         $(document).on('click', '.student-list td a', function(e) {
             e.stopPropagation();
@@ -127,6 +151,110 @@
         $('#online_admission_id').val(id);
         $('#reference_no').val(reference_no);
         $('#addPaymentModal').modal('show');
+    }
+
+    function viewFeeReceipt(ref_no) {
+        $('#feeReceiptBody').html('<div class="text-center" style="padding:30px;"><i class="fa fa-spinner fa-spin fa-2x"></i><p class="text-muted" style="margin-top:10px;">Loading receipt...</p></div>');
+        $('#feeReceiptModal').modal('show');
+        $.ajax({
+            url: '<?php echo base_url("admin/onlinestudent/fee_receipt"); ?>',
+            type: 'POST',
+            data: { ref_no: ref_no },
+            dataType: 'json',
+            success: function(data) {
+                if (data.status !== 'success') {
+                    $('#feeReceiptBody').html('<div class="alert alert-danger">' + (data.message || 'Failed to load receipt.') + '</div>');
+                    return;
+                }
+                var s = data.student;
+                var payments = data.payments;
+                var rows = '';
+                if (payments.length === 0) {
+                    rows = '<tr><td colspan="6" class="text-center text-muted">No payment records found.</td></tr>';
+                } else {
+                    $.each(payments, function(i, p) {
+                        var mode = p.payment_mode || '—';
+                        var ref  = p.txn_id || p.cheque_no || '';
+                        rows += '<tr>' +
+                            '<td>' + (i + 1) + '</td>' +
+                            '<td>' + (p.date || '—') + '</td>' +
+                            '<td>' + (p.receipt_no || '—') + '</td>' +
+                            '<td>' + (p.fee_type || '—') + '</td>' +
+                            '<td>' + mode + (ref ? ' / ' + ref : '') + '</td>' +
+                            '<td class="text-right"><strong>&#8377; ' + p.amount + '</strong></td>' +
+                        '</tr>';
+                    });
+                }
+                var totalFee  = parseFloat(data.total_fee.replace(/,/g,''));
+                var totalPaid = parseFloat(data.total_paid.replace(/,/g,''));
+                var balance   = parseFloat(data.balance.replace(/,/g,''));
+
+                var html = '<div id="receiptPrintArea" style="padding:5px 10px;">' +
+                    /* School header */
+                    '<div class="text-center" style="margin-bottom:10px;">' +
+                        (data.header_image ? '<img src="' + data.header_image + '" style="width:100%;max-height:120px;object-fit:contain;display:block;margin-bottom:6px;">' : '') +
+                        '<h4 style="margin:0 0 3px;font-weight:700;">' + (data.school_name || '') + '</h4>' +
+                        '<p style="margin:0;font-size:12px;">' +
+                            (data.school_phone ? 'Ph: ' + data.school_phone : '') +
+                            (data.school_email ? '&nbsp;&nbsp;|&nbsp;&nbsp;' + data.school_email : '') +
+                        '</p>' +
+                        '<h5 style="margin:8px 0 0;text-decoration:underline;letter-spacing:1px;"><strong>ONLINE ADMISSION FEE RECEIPT</strong></h5>' +
+                    '</div>' +
+                    '<hr style="margin:8px 0;">' +
+                    /* Applicant details — left / right split */
+                    '<div class="row" style="margin-bottom:4px;">' +
+                        '<div class="col-xs-6">' +
+                            '<strong>Applicant Name:</strong> ' + s.name + '<br>' +
+                            '<strong>Reference No.:</strong> ' + s.ref_no + '<br>' +
+                            '<strong>Course:</strong> ' + s.course + '<br>' +
+                        '</div>' +
+                        '<div class="col-xs-6 text-right">' +
+                            '<strong>Quota:</strong> ' + (s.quota_type || '—') + '<br>' +
+                            '<strong>Mobile:</strong> ' + (s.mobile || '—') + '<br>' +
+                            '<strong>Email:</strong> ' + (s.email || '—') + '<br>' +
+                        '</div>' +
+                    '</div>' +
+                    '<hr style="margin:8px 0;">' +
+                    /* Payment history table */
+                    '<h5 style="margin:0 0 8px;"><strong>Payment History</strong></h5>' +
+                    '<div class="table-responsive">' +
+                        '<table class="table table-striped table-bordered" style="font-size:13px;">' +
+                            '<thead><tr>' +
+                                '<th>#</th>' +
+                                '<th>Date</th>' +
+                                '<th>Receipt No.</th>' +
+                                '<th>Fee Type</th>' +
+                                '<th>Payment Mode</th>' +
+                                '<th class="text-right">Amount (&#8377;)</th>' +
+                            '</tr></thead>' +
+                            '<tbody>' + rows + '</tbody>' +
+                        '</table>' +
+                    '</div>' +
+                    /* Summary */
+                    '<p class="text-right" style="margin:2px 0;"><strong>Total Course Fee:&nbsp;&nbsp;&#8377; ' + data.total_fee + '</strong></p>' +
+                    '<p class="text-right" style="margin:2px 0;color:green;"><strong>Total Paid:&nbsp;&nbsp;&#8377; ' + data.total_paid + '</strong></p>' +
+                    '<p class="text-right ' + (balance > 0 ? 'text-danger' : 'text-success') + '" style="margin:2px 0;"><strong>Balance Due:&nbsp;&nbsp;&#8377; ' + data.balance + '</strong></p>' +
+                '</div>';
+                $('#feeReceiptBody').html(html);
+            },
+            error: function() {
+                $('#feeReceiptBody').html('<div class="alert alert-danger">Failed to load receipt. Please try again.</div>');
+            }
+        });
+    }
+
+    function printFeeReceipt() {
+        var content = document.getElementById('receiptPrintArea');
+        if (!content) return;
+        var html = '<html><head><title>Fee Receipt</title>' +
+            '<link rel="stylesheet" href="<?php echo base_url("backend/bootstrap/css/bootstrap.min.css"); ?>">' +
+            '<style>body{font-family:Arial,sans-serif;padding:20px;}@media print{.no-print{display:none;}}</style>' +
+            '</head><body>' + content.innerHTML + '</body></html>';
+        var w = window.open('', '_blank', 'width=800,height=700');
+        w.document.write(html);
+        w.document.close();
+        w.focus();
+        setTimeout(function(){ w.print(); }, 600);
     }
 
     $(document).ready(function () {

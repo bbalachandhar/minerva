@@ -472,6 +472,7 @@ class Onlinestudent extends Admin_Controller
         }
         $application_refs = array_values(array_unique($application_refs));
         $paid_amount_map = $this->onlinestudent_model->get_incidental_paid_amount_by_application_refs($application_refs);
+        $app_fee_paid_refs = $this->onlinestudent_model->get_application_fee_paid_refs($application_refs);
 
         if (!empty($m->data)) {
             foreach ($m->data as $key => $value) {
@@ -505,10 +506,10 @@ class Onlinestudent extends Admin_Controller
                     $printbtn = "";
                 }
 
-                if ($value->dob != null) {
-                    $dob = date($this->customlib->getSchoolDateFormat(), $this->customlib->dateyyyymmddTodateformat($value->dob));
+                if (!empty($value->created_at)) {
+                    $application_date = date($this->customlib->getSchoolDateFormat(), strtotime($value->created_at));
                 } else {
-                    $dob = "";
+                    $application_date = "";
                 }
 
                 if ($value->submit_date != null) {
@@ -539,7 +540,7 @@ class Onlinestudent extends Admin_Controller
                     $row[] = $value->father_name;
                 }
 
-                $row[] = $dob;
+                $row[] = $application_date;
                 $row[] = $this->lang->line(strtolower($value->gender));
                 $row[] = !empty($value->quota_type) ? $value->quota_type : "N/A";
 
@@ -562,6 +563,12 @@ class Onlinestudent extends Admin_Controller
                     $row[] = '<span class="label label-warning">Partially Paid</span>';
                 }
 
+                // Eye icon for paid / partially-paid records
+                $eyebtn = "";
+                if ($paid_amount > 0 && !empty($application_ref_no)) {
+                    $eyebtn = "<a class='btn btn-primary btn-xs mt-5 pull-right' data-toggle='tooltip' title='View Fee Receipt' onclick='viewFeeReceipt(" . json_encode($application_ref_no) . ")'><i class='fa fa-eye'></i></a>";
+                }
+
                 if ($sch_setting->online_admission_payment == 'yes') {
 
                     $paybtn = "";
@@ -569,8 +576,10 @@ class Onlinestudent extends Admin_Controller
                         $paybtn = "<a class='btn btn-default btn-xs mt-5 pull-right' data-toggle='tooltip' title='" . $this->lang->line('add_payment') . "' onclick='addpayment(" . '"' . $value->id . '","' . $value->reference_no . '"' . "  )'><i class='fa fa-usd'></i></a>";
                     }
 
-                    if ($value->paid_status == 1) {
+                    $app_fee_is_paid = !empty($app_fee_paid_refs[$application_ref_no]);
+                    if ($app_fee_is_paid || $value->paid_status == 1) {
                         $row[] = '<span class="label label-success">' . $this->lang->line('paid') . '</span>';
+                        $paybtn = ''; // hide pay button if already paid via incidental
                     } elseif ($value->paid_status == 2) {
                         $row[] = '<span class="label label-info">' . $this->lang->line('processing') . '</span>';
                     } else {
@@ -578,7 +587,7 @@ class Onlinestudent extends Admin_Controller
                     }
                 }
 
-                $row[]     = $document . ' ' . $printbtn . ' ' . $editbtn . ' ' . $deletebtn . ' ' . $paybtn;
+                $row[]     = $document . ' ' . $printbtn . ' ' . $eyebtn . ' ' . $editbtn . ' ' . $deletebtn . ' ' . $paybtn;
                 $dt_data[] = $row;
             }
         }
@@ -678,6 +687,80 @@ class Onlinestudent extends Admin_Controller
         redirect('welcome/online_admission_review/' . $reference_no);
     }
 
+    public function fee_receipt()
+    {
+        $this->output->set_content_type('application/json');
+        if (!$this->rbac->hasPrivilege('online_admission', 'can_view')) {
+            echo json_encode(['status' => 'fail', 'message' => $this->lang->line('access_denied')]);
+            return;
+        }
+
+        $ref_no = $this->input->post('ref_no');
+        if (empty($ref_no)) {
+            echo json_encode(['status' => 'fail', 'message' => 'Invalid reference number.']);
+            return;
+        }
+
+        $ref_no_clean = preg_replace('/\s+/', '', $ref_no);
+
+        // Fetch applicant details
+        $this->db->select('online_admissions.firstname, online_admissions.lastname, online_admissions.middlename,
+            online_admissions.reference_no, online_admissions.email, online_admissions.mobileno,
+            online_admissions.course_fee_total, online_admissions.quota_type,
+            IFNULL(online_admission_courses.course_name, "N/A") as course_name,
+            COALESCE(online_admissions.course_fee_total,
+                IF(online_admissions.quota_type = "management", online_admission_courses.mgt_fee, online_admission_courses.govt_fee)
+            ) as total_fee');
+        $this->db->from('online_admissions');
+        $this->db->join('online_admission_courses',
+            'online_admission_courses.id = COALESCE(online_admissions.admission_course_id, online_admissions.ug_course_id)', 'left');
+        $this->db->where("REPLACE(online_admissions.reference_no, ' ', '') = " . $this->db->escape($ref_no_clean), null, false);
+        $student = $this->db->get()->row_array();
+
+        if (!$student) {
+            echo json_encode(['status' => 'fail', 'message' => 'Applicant not found.']);
+            return;
+        }
+
+        // Fetch payment history
+        $payments = $this->onlinestudent_model->get_payment_history_by_ref($ref_no_clean, $this->customlib->getSchoolDateFormat());
+
+        $total_paid = array_sum(array_column($payments, 'amount_raw'));
+        $total_fee  = (float) ($student['total_fee'] ?? 0);
+        $balance    = $total_fee - $total_paid;
+
+        $sch_setting = $this->sch_setting_detail;
+        $date_fmt    = $this->customlib->getSchoolDateFormat();
+
+        // Fetch online admission receipt header image
+        $header_row = $this->db->select('header_image')->from('print_headerfooter')
+            ->where('print_type', 'online_admission_receipt')->get()->row_array();
+        $header_image_url = '';
+        if (!empty($header_row['header_image'])) {
+            $header_image_url = $this->media_storage->getImageURL('uploads/print_headerfooter/online_admission_receipt/' . $header_row['header_image']);
+        }
+
+        echo json_encode([
+            'status'      => 'success',
+            'student'     => [
+                'name'       => trim($student['firstname'] . ' ' . $student['middlename'] . ' ' . $student['lastname']),
+                'ref_no'     => $student['reference_no'],
+                'email'      => $student['email'],
+                'mobile'     => $student['mobileno'],
+                'course'     => $student['course_name'],
+                'quota_type' => $student['quota_type'],
+            ],
+            'total_fee'     => number_format($total_fee, 2),
+            'total_paid'    => number_format($total_paid, 2),
+            'balance'       => number_format($balance, 2),
+            'payments'      => $payments,
+            'school_name'   => $sch_setting->school_name,
+            'school_phone'  => $sch_setting->phone,
+            'school_email'  => $sch_setting->email,
+            'header_image'  => $header_image_url,
+        ]);
+    }
+
     public function handle_upload($str, $var)
     {
         // $image_validate = $this->config->item('file_validate');
@@ -761,6 +844,7 @@ class Onlinestudent extends Admin_Controller
         $this->form_validation->set_rules('community', 'Community', 'trim|xss_clean');
         $this->form_validation->set_rules('tenth_passing', 'Year of Passing (X Std)', 'trim|xss_clean');
         $this->form_validation->set_rules('tenth_marks_percentage', 'X marks (in %)', 'trim|xss_clean');
+        $this->form_validation->set_rules('applicant_photo', 'Applicant Photo', 'callback_validate_applicant_photo');
 
         if ($this->form_validation->run() == false) {
             // Show edit form with validation errors
@@ -814,6 +898,14 @@ class Onlinestudent extends Admin_Controller
                 'tenth_marks_percentage' => $this->input->post('tenth_marks_percentage'),
                 'updated_at' => date('Y-m-d H:i:s'),
             );
+
+            // Handle applicant photo upload
+            if (isset($_FILES['applicant_photo']) && !empty($_FILES['applicant_photo']['name'])) {
+                $upload_result = $this->media_storage->fileupload('applicant_photo', './uploads/student_images/online_admission_image/');
+                if ($upload_result['status']) {
+                    $update_data['image'] = 'uploads/student_images/online_admission_image/' . $upload_result['message'];
+                }
+            }
 
             // Update online_admissions table
             $this->onlinestudent_model->edit($update_data);
@@ -871,6 +963,27 @@ class Onlinestudent extends Admin_Controller
             $this->session->set_userdata('msg', '<div class="alert alert-success alert-dismissible"><button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button><i class="fa fa-check-circle"></i> Application updated successfully!</div>');
             redirect('admin/onlinestudent');
         }
+    }
+
+    public function validate_applicant_photo($str)
+    {
+        if (!isset($_FILES['applicant_photo']) || empty($_FILES['applicant_photo']['name'])) {
+            return true;
+        }
+        $allowed_extensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'];
+        $file_ext           = strtolower(pathinfo($_FILES['applicant_photo']['name'], PATHINFO_EXTENSION));
+        $finfo              = finfo_open(FILEINFO_MIME_TYPE);
+        $file_mime          = finfo_file($finfo, $_FILES['applicant_photo']['tmp_name']);
+        $allowed_mimes      = ['image/jpeg', 'image/png', 'image/gif', 'image/bmp', 'image/webp'];
+        if (!in_array($file_mime, $allowed_mimes) || !in_array($file_ext, $allowed_extensions)) {
+            $this->form_validation->set_message('validate_applicant_photo', 'Only image files (JPG, PNG, GIF, BMP) are allowed.');
+            return false;
+        }
+        if ($_FILES['applicant_photo']['size'] > 300 * 1024) {
+            $this->form_validation->set_message('validate_applicant_photo', 'Photo must be less than 300 KB.');
+            return false;
+        }
+        return true;
     }
 
 }

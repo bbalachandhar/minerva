@@ -268,6 +268,7 @@ if (!empty($display_next_date) && $display_next_date != '0000-00-00') {
 ?>
                                             </tbody>
                                         </table><!-- /.table -->
+                                        <div style="text-align:right;font-weight:bold;padding:6px 4px;" id="enquiry-list-footer"></div>
                                     </div>
                                 </div><!-- /.mail-box-messages -->
                             </div><!-- /.box-body -->
@@ -726,11 +727,16 @@ if (!empty($display_next_date) && $display_next_date != '0000-00-00') {
         $("#enquirytable").DataTable({
             searching: true,
             paging: true,
+            pageLength: 25,
             bSort: true,
             info: false,
             /* default ordering: enquiry date descending (newest first) */
             order: [[6, 'desc']],
             dom: "Bfrtip",
+            initComplete: function() {
+                var total = this.api().data().count();
+                $('#enquiry-list-footer').text('Total Records: ' + total);
+            },
             buttons: [
 
                 {

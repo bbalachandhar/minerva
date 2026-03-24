@@ -130,6 +130,78 @@ class Onlinestudent_model extends MY_Model
         return $result;
     }
 
+    public function get_payment_history_by_ref($ref_no_clean, $date_format = 'Y-m-d')
+    {
+        $this->db->select('ifc.id, ifc.receipt_no, ifc.amount_collected, ifc.date_collected, ifc.bill_date,
+            ifc.payment_mode, ifc.txn_id, ifc.bank_name, ifc.cheque_no, ifc.notes,
+            ift.title as fee_type,
+            CONCAT(s.name, " ", s.surname) as received_by_name');
+        $this->db->from('incidental_fee_collections ifc');
+        $this->db->join('incidental_fee_types ift', 'ift.id = ifc.incidental_fee_type_id', 'left');
+        $this->db->join('staff s', 's.id = ifc.received_by', 'left');
+        $this->db->where("REPLACE(ifc.application_ref_no, ' ', '') = " . $this->db->escape($ref_no_clean), null, false);
+        $this->db->where('ifc.application_ref_no IS NOT NULL', null, false);
+        $this->db->where('ifc.application_ref_no !=', '');
+        $this->db->order_by('ifc.date_collected', 'ASC');
+        $rows = $this->db->get()->result_array();
+
+        $payments = [];
+        foreach ($rows as $row) {
+            $date_display = !empty($row['date_collected']) ? date($date_format, strtotime($row['date_collected'])) : (!empty($row['bill_date']) ? date($date_format, strtotime($row['bill_date'])) : '');
+            $payments[] = [
+                'receipt_no'     => $row['receipt_no'],
+                'fee_type'       => $row['fee_type'],
+                'amount'         => number_format((float) $row['amount_collected'], 2),
+                'amount_raw'     => (float) $row['amount_collected'],
+                'date'           => $date_display,
+                'payment_mode'   => $row['payment_mode'],
+                'txn_id'         => $row['txn_id'],
+                'bank_name'      => $row['bank_name'],
+                'cheque_no'      => $row['cheque_no'],
+                'notes'          => $row['notes'],
+                'received_by'    => $row['received_by_name'],
+            ];
+        }
+        return $payments;
+    }
+
+    public function get_application_fee_paid_refs($reference_nos = array())
+    {
+        if (empty($reference_nos)) {
+            return array();
+        }
+
+        $normalized_refs = array();
+        foreach ($reference_nos as $ref) {
+            $ref = preg_replace('/\s+/', '', (string) $ref);
+            if ($ref !== '') {
+                $normalized_refs[] = $ref;
+            }
+        }
+        $normalized_refs = array_values(array_unique($normalized_refs));
+
+        if (empty($normalized_refs)) {
+            return array();
+        }
+
+        $this->db->select('REPLACE(incidental_fee_collections.application_ref_no, " ", "") as ref_clean', false);
+        $this->db->from('incidental_fee_collections');
+        $this->db->join('incidental_fee_types', 'incidental_fee_types.id = incidental_fee_collections.incidental_fee_type_id', 'inner');
+        $this->db->where("REPLACE(incidental_fee_collections.application_ref_no, ' ', '') IN ('" . implode("','", array_map('addslashes', $normalized_refs)) . "')", null, false);
+        $this->db->where('incidental_fee_collections.application_ref_no IS NOT NULL', null, false);
+        $this->db->where('incidental_fee_collections.application_ref_no !=', '');
+        $this->db->where("LOWER(incidental_fee_types.title) LIKE '%application%'", null, false);
+        $this->db->group_by('REPLACE(incidental_fee_collections.application_ref_no, " ", "")');
+
+        $result = $this->db->get()->result_array();
+        $paid_refs = array();
+        foreach ($result as $row) {
+            $paid_refs[$row['ref_clean']] = true;
+        }
+
+        return $paid_refs;
+    }
+
     public function get_incidental_paid_amount_by_application_refs($reference_nos = array())
     {
         if (empty($reference_nos)) {

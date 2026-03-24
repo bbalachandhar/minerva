@@ -57,6 +57,17 @@ $current_community = isset($student['cast']) ? $student['cast'] : '';
                             <hr>
                             <h4 style="margin-top: 20px; margin-bottom: 15px;"><strong>Personal Information</strong></h4>
 
+                            <!-- Applicant Photo -->
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label for="applicant_photo">Applicant Photo (100px X 100px)</label>
+                                        <div><input class="filestyle form-control" type="file" name="applicant_photo" id="applicant_photo" size="20" accept="image/*" /></div>
+                                        <span class="text-danger"><?php echo form_error('applicant_photo'); ?></span>
+                                    </div>
+                                </div>
+                            </div>
+
                             <!-- Student Name, Gender & Community -->
                             <div class="row">
                                 <div class="col-md-4">
