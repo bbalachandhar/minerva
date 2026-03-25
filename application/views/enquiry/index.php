@@ -34,7 +34,10 @@ if (validation_errors()) {
                 <select name="source" class="form-control" required>
                     <option value="">Select Source</option>
                     <?php foreach ($sourcelist as $source): ?>
-                        <option value="<?php echo $source['source']; ?>" <?php echo set_select('source', $source['source'], strtolower($source['source']) === 'website'); ?>><?php echo $source['source']; ?></option>
+                        <option value="<?php echo $source['source']; ?>" <?php 
+                            $default = !empty($prefill_source) ? strtolower($source['source']) === strtolower($prefill_source) : strtolower($source['source']) === 'website';
+                            echo set_select('source', $source['source'], $default); 
+                        ?>><?php echo $source['source']; ?></option>
                     <?php endforeach; ?>
                 </select>
             </div>

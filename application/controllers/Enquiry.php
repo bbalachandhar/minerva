@@ -58,6 +58,7 @@ class Enquiry extends CI_Controller
             $data['pg_first_year_courses'] = $this->Onlineadmissioncourses_model->getActiveCourses('pg', 'first_year');
             $data['sourcelist'] = $this->enquiry_model->getComplaintSource();
             $data['references'] = $this->enquiry_model->get_reference();
+            $data['prefill_source'] = $this->input->get('source', TRUE);
             
             $data['main_content'] = 'enquiry/index';
             $this->load->view('enquiry/enquiry_template', $data);
