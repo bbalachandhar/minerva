@@ -678,18 +678,12 @@ class Schsettings extends Admin_Controller
         $this->form_validation->set_rules('mobile_api_url', 'Mobile App API URL', 'trim|xss_clean');
         $this->form_validation->set_rules('app_primary_color_code', 'App Primary Color Code', 'trim|xss_clean');
         $this->form_validation->set_rules('app_secondary_color_code', 'App Secondary Color Code', 'trim|xss_clean');
-        $this->form_validation->set_rules('admin_app_primary_color_code', 'Admin App Primary Color Code', 'trim|xss_clean');
-        $this->form_validation->set_rules('admin_app_secondary_color_code', 'Admin App Secondary Color Code', 'trim|xss_clean');
-        $this->form_validation->set_rules('admin_mobile_api_url', 'Admin Mobile App API URL', 'trim|xss_clean');
 
         if ($this->form_validation->run() == false) {
             $data = array(
                 'mobile_api_url' => form_error('mobile_api_url'),
                 'app_primary_color_code' => form_error('app_primary_color_code'),
                 'app_secondary_color_code' => form_error('app_secondary_color_code'),
-                'admin_app_primary_color_code' => form_error('admin_app_primary_color_code'),
-                'admin_app_secondary_color_code' => form_error('admin_app_secondary_color_code'),
-                'admin_mobile_api_url' => form_error('admin_mobile_api_url'),
             );
             $array = array('status' => 'fail', 'error' => $data);
             echo json_encode($array);
@@ -709,9 +703,6 @@ class Schsettings extends Admin_Controller
                 'mobile_api_url'                 => $this->input->post('mobile_api_url'),
                 'app_primary_color_code'         => $this->input->post('app_primary_color_code'),
                 'app_secondary_color_code'       => $this->input->post('app_secondary_color_code'),
-                'admin_app_primary_color_code'   => $this->input->post('admin_app_primary_color_code'),
-                'admin_app_secondary_color_code' => $this->input->post('admin_app_secondary_color_code'),
-                'admin_mobile_api_url'           => $this->input->post('admin_mobile_api_url'),
                 'staff_profile_edit'             => $staff_profile_edit,
                 'staff_self_edit'                => $staff_self_edit,
                 'student_profile_edit'           => $student_profile_edit,

@@ -1030,8 +1030,9 @@ catch (Exception $e) {
                 $first_title = $this->input->post('first_title');
                 $upload_result = $this->media_storage->fileupload("first_doc", './uploads/student_documents/' . $student_id . '/');
             if ($upload_result['status'] === false) {
-                $this->session->set_flashdata('error', $upload_result['message']);
-                redirect('student/view/' . $student_id);
+                $array = array('status' => 'fail', 'error' => array('first_doc' => $upload_result['message']), 'message' => $upload_result['message']);
+                echo json_encode($array);
+                return;
             }
             $imp         = $upload_result['message'];
                 $data_img    = array('student_id' => $student_id, 'title' => $first_title, 'doc' => $imp);

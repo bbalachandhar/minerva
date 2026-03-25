@@ -101,6 +101,7 @@ class Webservice extends CI_Controller
             'timezone' => isset($setting->timezone) ? (string) $setting->timezone : '',
             'app_ver' => (string) $this->config->item('app_ver'),
             'server_time' => date('c'),
+            'institution_type' => isset($setting->institution_type) ? (string) $setting->institution_type : '',
         ));
     }
 
@@ -222,6 +223,23 @@ class Webservice extends CI_Controller
         return trim((string) $this->input->get('site_url'));
     }
 
+    private function is_local_host($host)
+    {
+        $host = strtolower(trim((string) $host));
+        // Loopback and Android emulator aliases
+        if (in_array($host, array('localhost', '127.0.0.1', '10.0.2.2'), true)) {
+            return true;
+        }
+        // Private IPv4 ranges: 10.x.x.x, 172.16-31.x.x, 192.168.x.x
+        if (filter_var($host, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+            $parts = explode('.', $host);
+            if ((int) $parts[0] === 10) return true;
+            if ((int) $parts[0] === 192 && (int) $parts[1] === 168) return true;
+            if ((int) $parts[0] === 172 && (int) $parts[1] >= 16 && (int) $parts[1] <= 31) return true;
+        }
+        return false;
+    }
+
     private function urls_match_with_local_aliases($url_a, $url_b)
     {
         if ($url_a === '' || $url_b === '') {
@@ -245,10 +263,9 @@ class Webservice extends CI_Controller
         $a_path = isset($a['path']) ? rtrim($a['path'], '/') : '';
         $b_path = isset($b['path']) ? rtrim($b['path'], '/') : '';
 
-        $local_aliases = array('localhost', '127.0.0.1', '10.0.2.2');
-        $both_local_aliases = in_array($a_host, $local_aliases, true) && in_array($b_host, $local_aliases, true);
+        $both_local = $this->is_local_host($a_host) && $this->is_local_host($b_host);
 
-        if (!$both_local_aliases) {
+        if (!$both_local) {
             return false;
         }
 
@@ -6514,18 +6531,25 @@ class Webservice extends CI_Controller
                         //==================
                         $student_id = $this->input->post('student_id');
                         $title = $this->input->post('title');
-                        $upload_path = $this->config->item('upload_path') . "/student_documents/" . $student_id . "/";
-                        if (!is_dir($upload_path) && !mkdir($upload_path)) {
-                            die("Error creating folder $upload_path");
+                        // Use FCPATH-based absolute path to avoid CWD ambiguity with relative paths
+                        $upload_path = realpath(FCPATH . '../uploads') . '/student_documents/' . $student_id . '/';
+                        if (!is_dir($upload_path) && !mkdir($upload_path, 0755, true)) {
+                            json_output(200, array('status' => '0', 'msg' => 'Error creating upload folder. Please contact administrator.'));
+                            return;
+                        }
+                        if (!is_writable($upload_path)) {
+                            @chmod($upload_path, 0755);
                         }
 
                         if (isset($_FILES["file"]) && !empty($_FILES['file']['name'])) {
-                            $fileInfo = pathinfo($_FILES["file"]["name"]);
                             $file_name = $_FILES['file']['name'];
                             $exp = explode(' ', $file_name);
                             $imp = implode('_', $exp);
                             $img_name = $upload_path . basename($imp);
-                            move_uploaded_file($_FILES["file"]["tmp_name"], $img_name);
+                            if (!move_uploaded_file($_FILES["file"]["tmp_name"], $img_name)) {
+                                json_output(200, array('status' => '0', 'msg' => 'Failed to save uploaded file. Please check server permissions and try again.'));
+                                return;
+                            }
                             $data_img = array('student_id' => $student_id, 'title' => $title, 'doc' => $imp);
                             $this->student_model->adddoc($data_img);
                         }
