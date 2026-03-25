@@ -8,7 +8,12 @@ class Incidental_fee_collection_model extends CI_Model {
     }
 
     public function add($data) {
-        $this->db->insert('incidental_fee_collections', $data);
+        $result = $this->db->insert('incidental_fee_collections', $data);
+        if (!$result) {
+            $err = $this->db->error();
+            log_message('error', 'incidental_fee_collections INSERT failed: [' . $err['code'] . '] ' . $err['message'] . ' | data: ' . json_encode($data));
+            return false;
+        }
         return $this->db->insert_id();
     }
 

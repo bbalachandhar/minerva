@@ -101,13 +101,13 @@ if ($value["source"] == $source_select) {
                             </div>
                             <div class="col-sm-3 col-md-2 col-lg-2">
                                 <div class="form-group">
-                                    <label>Last Follow Up From</label>
+                                    <label>Next Follow Up From</label>
                                     <input type="text" autocomplete="off" name="last_follow_up_from" class="form-control date" value="<?php echo isset($last_follow_up_from) ? $last_follow_up_from : ''; ?>">
                                 </div>
                             </div>
                             <div class="col-sm-3 col-md-2 col-lg-2">
                                 <div class="form-group">
-                                    <label>Last Follow Up To</label>
+                                    <label>Next Follow Up To</label>
                                     <input type="text" autocomplete="off" name="last_follow_up_to" class="form-control date" value="<?php echo isset($last_follow_up_to) ? $last_follow_up_to : ''; ?>">
                                 </div>
                             </div>

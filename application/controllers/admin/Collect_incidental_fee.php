@@ -58,6 +58,8 @@ class Collect_incidental_fee extends Admin_Controller {
             $amount_collected = $this->input->post('amount_collected');
             $incidental_fee_assignment_id = $this->input->post('incidental_fee_assignment_id'); // Can be NULL for ad-hoc
             $collected_by = $this->customlib->getStaffID();
+            // Convert empty string to NULL so STRICT_TRANS_TABLES doesn't reject it for the INT column
+            $collected_by = ($collected_by !== '' && $collected_by !== null) ? (int) $collected_by : NULL;
             $receipt_no = $this->incidental_fee_collection_model->get_receipt_no();
             $payment_mode = $this->input->post('payment_mode');
             $application_ref_no = $this->input->post('application_ref_no');
@@ -186,11 +188,12 @@ class Collect_incidental_fee extends Admin_Controller {
         if ($this->form_validation->run() == FALSE) {
             echo json_encode(array('status' => 'error', 'message' => validation_errors()));
         } else {
-            // Start database transaction for data consistency
-            $this->db->trans_start();
-            
-            $session_id = $this->setting_model->getCurrentSession();
+            // Gather all data BEFORE starting the transaction so SELECT failures
+            // do not corrupt the transaction status and cause a false "error collecting fee".
+            $session_id = (int) $this->setting_model->getCurrentSession();
             $collected_by = $this->customlib->getStaffID();
+            // Convert empty string to NULL so STRICT_TRANS_TABLES doesn't reject it for the INT column
+            $collected_by = ($collected_by !== '' && $collected_by !== null) ? (int) $collected_by : NULL;
             $receipt_no = $this->incidental_fee_collection_model->get_receipt_no();
             $payment_mode = $this->input->post('payment_mode');
             $application_ref_no = $this->input->post('application_ref_no');
@@ -205,21 +208,18 @@ class Collect_incidental_fee extends Admin_Controller {
             $online_admission = null;
             if ($application_ref_required) {
                 if ($application_ref_no === '') {
-                    $this->db->trans_rollback();
                     echo json_encode(array('status' => 'error', 'message' => 'Application Reference No is required for this fee type.'));
                     return;
                 }
 
                 $online_admission = $this->getOnlineAdmissionByReference($application_ref_no);
                 if (empty($online_admission)) {
-                    $this->db->trans_rollback();
                     echo json_encode(array('status' => 'error', 'message' => 'No online application found for the given Application Reference No.'));
                     return;
                 }
 
                 $due_summary = $this->getApplicationDueSummary($online_admission, $application_ref_no);
                 if ($amount_collected > (float) ($due_summary['remaining_fee'] ?? 0)) {
-                    $this->db->trans_rollback();
                     echo json_encode(array('status' => 'error', 'message' => 'Collected amount cannot exceed remaining payable amount.'));
                     return;
                 }
@@ -231,10 +231,10 @@ class Collect_incidental_fee extends Admin_Controller {
             }
 
             $insert_data = array(
-                'student_id'                   => NULL, // Explicitly NULL for non-students
+                'student_id'                   => NULL,
                 'non_student_name'             => $non_student_name,
-                'incidental_fee_type_id'       => $this->input->post('fee_type_id'),
-                'incidental_fee_assignment_id' => NULL, // No assignment for non-students
+                'incidental_fee_type_id'       => $fee_type_id,
+                'incidental_fee_assignment_id' => NULL,
                 'session_id'                   => $session_id,
                 'amount_collected'             => $amount_collected,
                 'bill_date'                    => $this->input->post('bill_date'),
@@ -249,27 +249,19 @@ class Collect_incidental_fee extends Admin_Controller {
             $collection_id = $this->incidental_fee_collection_model->add($insert_data);
 
             if ($collection_id) {
-                // Complete transaction
-                $this->db->trans_complete();
-                
-                if ($this->db->trans_status() === FALSE) {
-                    echo json_encode(array('status' => 'error', 'message' => $this->lang->line('error_collecting_fee')));
-                } else {
-                    $collection_id = (int) $collection_id;
-                    $response = array(
-                        'status' => 'success',
-                        'message' => $this->lang->line('fee_collected_successfully'),
-                        'collection_id' => $collection_id,
-                        'id' => $collection_id,
-                        'receipt_url' => site_url('financereports/print_incidental_receipt/' . $collection_id),
-                        'receipt_no' => $receipt_no,
-                        'payment_mode' => $payment_mode,
-                        'amount_collected' => $amount_collected
-                    );
-                    echo json_encode($response);
-                }
+                $collection_id = (int) $collection_id;
+                $response = array(
+                    'status' => 'success',
+                    'message' => $this->lang->line('fee_collected_successfully'),
+                    'collection_id' => $collection_id,
+                    'id' => $collection_id,
+                    'receipt_url' => site_url('financereports/print_incidental_receipt/' . $collection_id),
+                    'receipt_no' => $receipt_no,
+                    'payment_mode' => $payment_mode,
+                    'amount_collected' => $amount_collected
+                );
+                echo json_encode($response);
             } else {
-                $this->db->trans_rollback();
                 echo json_encode(array('status' => 'error', 'message' => $this->lang->line('error_collecting_fee')));
             }
         }

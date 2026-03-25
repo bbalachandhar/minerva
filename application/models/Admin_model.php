@@ -273,13 +273,44 @@ class Admin_model extends CI_Model
         }
         $reference_nos = array_values(array_unique($reference_nos));
 
-        $paid_map = array();
+        // Find reference_nos where APPLICATION FEE has been paid
+        $app_fee_refs = array();
         if (!empty($reference_nos)) {
+            $app_fee_rows = $this->db
+                ->select('REPLACE(incidental_fee_collections.application_ref_no, " ", "") as app_ref', false)
+                ->from('incidental_fee_collections')
+                ->join('incidental_fee_types', 'incidental_fee_types.id = incidental_fee_collections.incidental_fee_type_id', 'left')
+                ->where_in('REPLACE(incidental_fee_collections.application_ref_no, " ", "")', $reference_nos, false)
+                ->where('incidental_fee_collections.application_ref_no IS NOT NULL', null, false)
+                ->where('incidental_fee_collections.application_ref_no !=', '')
+                ->where('LOWER(incidental_fee_types.title) LIKE "%application fee%"', null, false)
+                ->where('incidental_fee_collections.amount_collected >', 0)
+                ->group_by('REPLACE(incidental_fee_collections.application_ref_no, " ", "")', false)
+                ->get()
+                ->result_array();
+
+            foreach ($app_fee_rows as $row) {
+                $app_fee_refs[] = (string) $row['app_ref'];
+            }
+            $app_fee_refs = array_values(array_unique($app_fee_refs));
+        }
+
+        // Only consider students who have paid the APPLICATION FEE
+        $filtered_students = array();
+        foreach ($students as $student) {
+            $ref = preg_replace('/\s+/', '', (string) ($student['reference_no'] ?? ''));
+            if (in_array($ref, $app_fee_refs, true)) {
+                $filtered_students[] = $student;
+            }
+        }
+
+        $paid_map = array();
+        if (!empty($app_fee_refs)) {
             $paid_rows = $this->db
                 ->select('REPLACE(incidental_fee_collections.application_ref_no, " ", "") as app_ref, SUM(incidental_fee_collections.amount_collected) as paid_amount', false)
                 ->from('incidental_fee_collections')
                 ->join('incidental_fee_types', 'incidental_fee_types.id = incidental_fee_collections.incidental_fee_type_id', 'left')
-                ->where_in('REPLACE(incidental_fee_collections.application_ref_no, " ", "")', $reference_nos, false)
+                ->where_in('REPLACE(incidental_fee_collections.application_ref_no, " ", "")', $app_fee_refs, false)
                 ->where('incidental_fee_collections.application_ref_no IS NOT NULL', null, false)
                 ->where('incidental_fee_collections.application_ref_no !=', '')
                 ->where('(LOWER(incidental_fee_types.title) LIKE "%tuition%" OR LOWER(incidental_fee_types.title) LIKE "%tution%" OR LOWER(incidental_fee_types.title) LIKE "%other fee%")', null, false)
@@ -293,12 +324,12 @@ class Admin_model extends CI_Model
             }
         }
 
-        $applications_total = count($students);
+        $applications_total = count($filtered_students);
         $fully_paid = 0;
         $partially_paid = 0;
         $not_paid = 0;
 
-        foreach ($students as $student) {
+        foreach ($filtered_students as $student) {
             $app_ref = preg_replace('/\s+/', '', (string) ($student['reference_no'] ?? ''));
             $course_fee = (isset($student['course_fee_total']) && $student['course_fee_total'] !== null && $student['course_fee_total'] !== '') ? (float) $student['course_fee_total'] : 0;
             $paid_amount = isset($paid_map[$app_ref]) ? (float) $paid_map[$app_ref] : 0;
