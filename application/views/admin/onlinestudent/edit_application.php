@@ -47,8 +47,16 @@ $current_community = isset($student['cast']) ? $student['cast'] : '';
                                 </div>
                                 <div class="col-md-4">
                                     <div class="form-group">
-                                        <label>Course applied (Read-Only)</label>
-                                        <input type="text" class="form-control" value="<?php echo isset($course_applied) ? $course_applied : 'N/A'; ?>" readonly style="background-color: #e9ecef;">
+                                        <label>Course Applied</label>
+                                        <select class="form-control select2-course" name="admission_course_id" id="admission_course_id" style="width:100%;">
+                                            <option value="">-- Select Course --</option>
+                                            <?php if (!empty($all_courses)) { foreach ($all_courses as $course) { ?>
+                                            <option value="<?php echo (int)$course['id']; ?>"
+                                                <?php echo (isset($selected_course_id) && (int)$selected_course_id === (int)$course['id']) ? 'selected' : ''; ?>>
+                                                <?php echo htmlspecialchars($course['course_name']); ?>
+                                            </option>
+                                            <?php } } ?>
+                                        </select>
                                     </div>
                                 </div>
                             </div>
@@ -461,6 +469,15 @@ $(document).ready(function() {
     });
 
     calculateTotal();
+});
+</script>
+<script>
+$(document).ready(function() {
+    $('.select2-course').select2({
+        placeholder: '-- Select Course --',
+        allowClear: true,
+        width: '100%'
+    });
 });
 </script>
 

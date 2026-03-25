@@ -573,15 +573,16 @@ class Onlinestudent extends Admin_Controller
 
                 if ($sch_setting->online_admission_payment == 'yes') {
 
+                    $app_fee_is_paid = !empty($app_fee_paid_refs[$application_ref_no]);
+
                     $paybtn = "";
-                    if ($value->paid_status != 1) {
+                    if (!$app_fee_is_paid && $value->paid_status != 2) {
                         $paybtn = "<a class='btn btn-default btn-xs mt-5 pull-right' data-toggle='tooltip' title='" . $this->lang->line('add_payment') . "' onclick='addpayment(" . '"' . $value->id . '","' . $value->reference_no . '"' . "  )'><i class='fa fa-usd'></i></a>";
                     }
 
-                    $app_fee_is_paid = !empty($app_fee_paid_refs[$application_ref_no]);
-                    if ($app_fee_is_paid || $value->paid_status == 1) {
+                    if ($app_fee_is_paid) {
                         $row[] = '<span class="label label-success">' . $this->lang->line('paid') . '</span>';
-                        $paybtn = ''; // hide pay button if already paid via incidental
+                        $paybtn = ''; // hide pay button if app fee already paid
                     } elseif ($value->paid_status == 2) {
                         $row[] = '<span class="label label-info">' . $this->lang->line('processing') . '</span>';
                     } else {
@@ -828,8 +829,8 @@ class Onlinestudent extends Admin_Controller
         $reference_details = $this->Online_admission_references_model->get_by_online_admission_id($id);
         $this->load->model('Onlineadmissioncourses_model');
 
+        $selected_course_id = !empty($student['admission_course_id']) ? (int)$student['admission_course_id'] : (!empty($student['ug_course_id']) ? (int)$student['ug_course_id'] : null);
         $course_applied = 'N/A';
-        $selected_course_id = !empty($student['admission_course_id']) ? $student['admission_course_id'] : (!empty($student['ug_course_id']) ? $student['ug_course_id'] : null);
         if (!empty($selected_course_id)) {
             $course = $this->Onlineadmissioncourses_model->getById($selected_course_id);
             if (is_array($course) && !empty($course['course_name'])) {
@@ -838,6 +839,11 @@ class Onlinestudent extends Admin_Controller
                 $course_applied = $course->course_name;
             }
         }
+        $all_courses = array_merge(
+            $this->Onlineadmissioncourses_model->getActiveCourses('ug', 'first_year'),
+            $this->Onlineadmissioncourses_model->getActiveCourses('ug', 'lateral'),
+            $this->Onlineadmissioncourses_model->getActiveCourses('pg', 'first_year')
+        );
 
         // Set validation rules for essential fields only
         $this->form_validation->set_rules('user_name', 'Name', 'trim|xss_clean|min_length[3]');
@@ -855,6 +861,8 @@ class Onlinestudent extends Admin_Controller
             $data['ug_details'] = $ug_details;
             $data['reference_details'] = $reference_details;
             $data['course_applied'] = $course_applied;
+            $data['selected_course_id'] = $selected_course_id;
+            $data['all_courses'] = $all_courses;
             $data['title'] = 'Edit Application';
             
             $this->session->set_userdata('top_menu', 'Student Information');
@@ -899,7 +907,22 @@ class Onlinestudent extends Admin_Controller
                 'passing_year_x' => $this->input->post('tenth_passing'),
                 'tenth_marks_percentage' => $this->input->post('tenth_marks_percentage'),
                 'updated_at' => date('Y-m-d H:i:s'),
+                'admission_course_id' => (int)$this->input->post('admission_course_id') ?: null,
             );
+
+            // Recalculate course_fee_total when course changes
+            $new_course_id = (int)$this->input->post('admission_course_id');
+            if ($new_course_id > 0) {
+                $new_course = $this->Onlineadmissioncourses_model->getById($new_course_id);
+                if (!empty($new_course)) {
+                    $quota = isset($student['quota_type']) ? $student['quota_type'] : '';
+                    if ($quota === 'management' && isset($new_course['mgt_fee'])) {
+                        $update_data['course_fee_total'] = (float)$new_course['mgt_fee'];
+                    } elseif ($quota === 'government' && isset($new_course['govt_fee'])) {
+                        $update_data['course_fee_total'] = (float)$new_course['govt_fee'];
+                    }
+                }
+            }
 
             // Handle applicant photo upload
             if (isset($_FILES['applicant_photo']) && !empty($_FILES['applicant_photo']['name'])) {

@@ -295,7 +295,7 @@ class Admin_model extends CI_Model
             $app_fee_refs = array_values(array_unique($app_fee_refs));
         }
 
-        // Only consider students who have paid the APPLICATION FEE
+        // Students who paid APPLICATION FEE (used for PARTIALLY PAID and NOT PAID buckets)
         $filtered_students = array();
         foreach ($students as $student) {
             $ref = preg_replace('/\s+/', '', (string) ($student['reference_no'] ?? ''));
@@ -304,13 +304,16 @@ class Admin_model extends CI_Model
             }
         }
 
+        // Build tuition/other fee paid_map for ALL reference_nos (not just app-fee payers)
+        // so that students who fully paid course fees appear in FULLY PAID even if
+        // their APPLICATION FEE entry is missing from the DB.
         $paid_map = array();
-        if (!empty($app_fee_refs)) {
+        if (!empty($reference_nos)) {
             $paid_rows = $this->db
                 ->select('REPLACE(incidental_fee_collections.application_ref_no, " ", "") as app_ref, SUM(incidental_fee_collections.amount_collected) as paid_amount', false)
                 ->from('incidental_fee_collections')
                 ->join('incidental_fee_types', 'incidental_fee_types.id = incidental_fee_collections.incidental_fee_type_id', 'left')
-                ->where_in('REPLACE(incidental_fee_collections.application_ref_no, " ", "")', $app_fee_refs, false)
+                ->where_in('REPLACE(incidental_fee_collections.application_ref_no, " ", "")', $reference_nos, false)
                 ->where('incidental_fee_collections.application_ref_no IS NOT NULL', null, false)
                 ->where('incidental_fee_collections.application_ref_no !=', '')
                 ->where('(LOWER(incidental_fee_types.title) LIKE "%tuition%" OR LOWER(incidental_fee_types.title) LIKE "%tution%" OR LOWER(incidental_fee_types.title) LIKE "%other fee%")', null, false)
@@ -319,25 +322,36 @@ class Admin_model extends CI_Model
                 ->result_array();
 
             foreach ($paid_rows as $row) {
-                $app_ref = (string) $row['app_ref'];
-                $paid_map[$app_ref] = (float) $row['paid_amount'];
+                $paid_map[(string) $row['app_ref']] = (float) $row['paid_amount'];
             }
         }
 
+        // FULLY PAID: any student (all online_admissions) whose tuition+other paid >= course_fee_total
+        $fully_paid_refs = array();
+        foreach ($students as $student) {
+            $ref = preg_replace('/\s+/', '', (string) ($student['reference_no'] ?? ''));
+            $course_fee = (isset($student['course_fee_total']) && $student['course_fee_total'] !== null && $student['course_fee_total'] !== '') ? (float) $student['course_fee_total'] : 0;
+            $paid_amount = isset($paid_map[$ref]) ? (float) $paid_map[$ref] : 0;
+            if ($course_fee > 0 && $paid_amount >= $course_fee) {
+                $fully_paid_refs[$ref] = true;
+            }
+        }
+        $fully_paid = count($fully_paid_refs);
+
+        // APPLICATION DONE = those who paid APPLICATION FEE
         $applications_total = count($filtered_students);
-        $fully_paid = 0;
+
+        // PARTIALLY PAID and NOT PAID: among APPLICATION FEE payers who are NOT fully paid
         $partially_paid = 0;
         $not_paid = 0;
-
         foreach ($filtered_students as $student) {
-            $app_ref = preg_replace('/\s+/', '', (string) ($student['reference_no'] ?? ''));
-            $course_fee = (isset($student['course_fee_total']) && $student['course_fee_total'] !== null && $student['course_fee_total'] !== '') ? (float) $student['course_fee_total'] : 0;
-            $paid_amount = isset($paid_map[$app_ref]) ? (float) $paid_map[$app_ref] : 0;
-
+            $ref = preg_replace('/\s+/', '', (string) ($student['reference_no'] ?? ''));
+            if (isset($fully_paid_refs[$ref])) {
+                continue; // already counted in fully_paid
+            }
+            $paid_amount = isset($paid_map[$ref]) ? (float) $paid_map[$ref] : 0;
             if ($paid_amount <= 0) {
                 $not_paid++;
-            } elseif ($course_fee > 0 && $paid_amount >= $course_fee) {
-                $fully_paid++;
             } else {
                 $partially_paid++;
             }
