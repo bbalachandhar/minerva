@@ -722,8 +722,7 @@ class Staff extends Admin_Controller
             $data['approver_info'] = $this->lang->line('not_assigned');
         }
         $data['leave_approver_configured'] = !empty($approver_staff);
-
-        // Also add staffrole for the modal
+        $data['leave_screen_mode'] = 'claim_leave'; // Apply Leave Claim: OD/CPL only
         $staffRole             = $this->staff_model->getStaffRole();
         $data["staffrole"]     = $staffRole;
         

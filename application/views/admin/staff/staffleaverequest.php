@@ -1,12 +1,23 @@
+<?php
+// Compute setting once at the top so it is available throughout the view.
+$_auto_lop_setting = isset($sch_setting_detail) && is_object($sch_setting_detail)
+    ? $sch_setting_detail
+    : $this->setting_model->getSetting();
+$auto_adjust_paid_enabled = ((int) ($_auto_lop_setting->auto_adjust_lop_with_leaves ?? 0) === 1);
+// Apply Leave screen is disabled when Auto Adjust LOP is ON (leaves are deducted automatically).
+$apply_leave_disabled = (!empty($leave_screen_mode) && $leave_screen_mode === 'apply_leave' && $auto_adjust_paid_enabled);
+// Also disable the "Add Leave Request" button when on Apply Leave screen but staff has no balance.
+$apply_leave_no_balance = (!empty($leave_screen_mode) && $leave_screen_mode === 'apply_leave'
+    && isset($has_any_leave_balance) && !$has_any_leave_balance);
+?>
 <div class="content-wrapper">
     <section class="content-header">
         <h1><i class="fa fa-sitemap"></i> <?php //echo $this->lang->line('human_resource'); ?>
             <?php
-if ($this->rbac->hasPrivilege('apply_leave', 'can_add') && $this->uri->segment(2) == 'staff') {
+if (!$apply_leave_disabled && !$apply_leave_no_balance && $this->rbac->hasPrivilege('apply_leave', 'can_add') && ($this->uri->segment(2) == 'staff' || $this->uri->segment(3) == 'applyleave')) {
     ?>
                 <small class="pull-right"><a href="#addleave" onclick="addLeave()" role="button" class="btn btn-primary btn-sm checkbox-toggle pull-right edit_setting" data-loading-text="<i class='fa fa-circle-o-notch fa-spin'></i> <?php echo $this->lang->line('processing'); ?>"><?php echo $this->lang->line('add_leave_request'); ?></a></small>
             <?php }?></h1>
-
     </section>
     <!-- Main content -->
     <section class="content">
@@ -17,12 +28,116 @@ if ($this->rbac->hasPrivilege('apply_leave', 'can_add') && $this->uri->segment(2
                 <div class="box box-primary">
                     <div class="box-header ptbnull">
                         <h3 class="box-title titlefix pt5"><?php echo $this->lang->line('approve_leave_request'); ?></h3> <?php
-if ($this->rbac->hasPrivilege('apply_leave', 'can_add') && $this->uri->segment(2) == 'staff') {
+if (!$apply_leave_disabled && !$apply_leave_no_balance && $this->rbac->hasPrivilege('apply_leave', 'can_add') && ($this->uri->segment(2) == 'staff' || $this->uri->segment(3) == 'applyleave')) {
     ?>
                             <small class="pull-right"><a href="#addleave" onclick="addLeave()" role="button" class="btn btn-primary btn-sm checkbox-toggle pull-right edit_setting" data-loading-text="<i class='fa fa-circle-o-notch fa-spin'></i> <?php echo $this->lang->line('processing'); ?>"><?php echo $this->lang->line('add_leave_request'); ?></a></small>
                         <?php }?>
                     </div><!-- /.box-header -->
                     <div class="box-body">
+                        <?php if ($apply_leave_disabled): ?>
+                        <div class="alert alert-warning" style="margin:10px 0;">
+                            <h4><i class="fa fa-ban"></i> <?php echo $this->lang->line('apply_leave'); ?> Unavailable</h4>
+                            <p><strong>Auto Adjust LOP with Paid Leaves</strong> is currently <strong>enabled</strong> by your administrator.</p>
+                            <p>Your paid leave balance will be automatically deducted to offset any Loss-of-Pay (LOP) absences — no manual leave application is required.</p>
+                            <p>To apply for leave manually, please ask your administrator to disable the <em>Auto Adjust LOP with Paid Leaves</em> setting.</p>
+                        </div>
+                        <?php else: ?>
+                        <?php if (!empty($leave_screen_mode) && $leave_screen_mode === 'apply_leave' && isset($leave_balance_summary)): ?>
+                        <!-- Leave Balance Summary Panel (Apply Leave screen only) -->
+                        <div class="row" style="margin-bottom:12px;">
+                            <div class="col-xs-12">
+                                <div class="box box-default box-solid" style="margin-bottom:0;">
+                                    <div class="box-header with-border" style="padding:8px 12px;">
+                                        <h4 class="box-title" style="font-size:14px;"><i class="fa fa-pie-chart"></i> Your Leave Balance</h4>
+                                    </div>
+                                    <div class="box-body" style="padding:10px 12px;">
+                                        <?php if (empty($leave_balance_summary)): ?>
+                                        <p class="text-muted" style="margin:0;"><i class="fa fa-info-circle"></i> No leave types with available balance. Please contact HR.</p>
+                                        <?php else: ?>
+                                        <div class="row">
+                                            <?php foreach ($leave_balance_summary as $bal):
+                                                $kind = $bal['kind'] ?? 'regular';
+                                                if ($kind === 'lop') {
+                                                    // LOP: always available, salary deduction applies
+                                                    $icon_class = 'bg-gray';
+                                                    $icon       = 'minus-circle';
+                                                    $num_label  = 'LOP';
+                                                    $sub_label  = 'No balance limit · salary deduction applies';
+                                                    $opacity    = '';
+                                                } elseif ($kind === 'claim_based') {
+                                                    // OD: earned from verified attendance, always claimable
+                                                    $icon_class = 'bg-blue';
+                                                    $icon       = 'calendar-check-o';
+                                                    $num_label  = 'Claim';
+                                                    $sub_label  = 'Earned from extra duty / OD attendance';
+                                                    $opacity    = '';
+                                                } elseif ($kind === 'credit_consumer') {
+                                                    // CPL: redeems OD credit pool
+                                                    $avail      = (float)($bal['available'] ?? 0);
+                                                    $icon_class = $avail > 0 ? 'bg-aqua' : 'bg-red';
+                                                    $icon       = $avail > 0 ? 'exchange' : 'ban';
+                                                    $num_label  = $avail;
+                                                    $sub_label  = $avail > 0 ? 'OD credits you can redeem as leave' : 'No OD credits earned yet';
+                                                    $opacity    = $avail <= 0 ? 'opacity:0.6;' : '';
+                                                } elseif ($kind === 'unallotted') {
+                                                    // Leave type exists in system but not allotted by HR to this staff
+                                                    $icon_class = 'bg-gray';
+                                                    $icon       = 'lock';
+                                                    $num_label  = '–';
+                                                    $sub_label  = 'Not allotted by HR';
+                                                    $opacity    = 'opacity:0.5;';
+                                                } else {
+                                                    // Regular (CL/ML etc.) — allotted by HR
+                                                    $avail      = (float)($bal['available'] ?? 0);
+                                                    $icon_class = $avail > 0 ? 'bg-green' : 'bg-red';
+                                                    $icon       = $avail > 0 ? 'calendar' : 'calendar-times-o';
+                                                    $num_label  = $avail;
+                                                    $sub_label  = $avail > 0
+                                                        ? $bal['used'] . ' used of ' . $bal['allotted'] . ' allotted'
+                                                        : 'Exhausted — all ' . $bal['allotted'] . ' days used';
+                                                    $opacity    = $avail <= 0 ? 'opacity:0.6;' : '';
+                                                }
+                                            ?>
+                                            <?php
+                                                $total_cards = count($leave_balance_summary);
+                                                // Distribute cards evenly across the 12-column grid.
+                                                // Min width = col-xs-6 (2 per row on mobile), cap at col-md-4 (3 per row).
+                                                $cols = $total_cards > 0 ? max(2, min(6, intval(12 / $total_cards))) : 6;
+                                                $col_class = 'col-xs-6 col-sm-' . $cols . ' col-md-' . $cols;
+                                            ?>
+                                            <div class="<?php echo $col_class; ?>" style="margin-bottom:8px;">
+                                                <div class="info-box" style="min-height:70px; margin-bottom:0; <?php echo $opacity; ?>">
+                                                    <span class="info-box-icon <?php echo $icon_class; ?>" style="font-size:20px; line-height:70px; width:55px; height:auto; min-height:70px; border-radius:4px 0 0 4px;">
+                                                        <i class="fa fa-<?php echo $icon; ?>"></i>
+                                                    </span>
+                                                    <div class="info-box-content" style="padding:6px 10px; white-space:normal; word-break:break-word;">
+                                                        <span class="progress-description" style="font-size:11px; color:#777; display:block; white-space:normal; line-height:1.3;" title="<?php echo htmlspecialchars($bal['type'], ENT_QUOTES); ?>"><?php echo htmlspecialchars($bal['type'], ENT_QUOTES); ?></span>
+                                                        <span class="info-box-number" style="font-size:22px; font-weight:700; line-height:1.2; display:block;"><?php echo $num_label; ?></span>
+                                                        <span class="progress-description" style="font-size:10px; color:#999; white-space:normal; line-height:1.3; display:block;"><?php echo $sub_label; ?></span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <?php endforeach; ?>
+                                        </div>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <?php endif; ?>
+                        <!-- Apply Date Range Filter -->
+                        <div class="row" style="margin-bottom:10px;">
+                            <div class="col-sm-12">
+                                <div class="form-inline" style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
+                                    <label style="margin:0; font-weight:600;">Filter by Leave Date:</label>
+                                    <input type="text" id="filter_apply_from" class="form-control input-sm" placeholder="From" style="width:135px;" readonly>
+                                    <input type="text" id="filter_apply_to" class="form-control input-sm" placeholder="To" style="width:135px;" readonly>
+                                    <button class="btn btn-sm btn-primary" id="filter_search"><i class="fa fa-search"></i> Search</button>
+                                    <button class="btn btn-sm btn-default" id="filter_this_month"><i class="fa fa-calendar"></i> This Month</button>
+                                    <button class="btn btn-sm btn-warning" id="filter_clear"><i class="fa fa-times"></i> Clear</button>
+                                </div>
+                            </div>
+                        </div>
                         <div class="row">
                             <div class="col-md-12">
                                 <div class="tab-pane active table-responsive no-padding">
@@ -44,14 +159,14 @@ if ($this->rbac->hasPrivilege('apply_leave', 'can_add') && $this->uri->segment(2
 $i = 0;
 foreach ($leave_request as $key => $value) {
     ?>
-                                                <tr>
+                                                <tr data-from="<?php echo $value['leave_from']; ?>">
 
                                                     <td><?php echo $value['name'] . " " . $value['surname'] . ' (' . $value['employee_id'] . ')'; ?></td>
                                                     <td><?php echo $value["type"] ?></td>
                                                     <td><?php echo date($this->customlib->getSchoolDateFormat(), strtotime($value["leave_from"])) ?> - <?php echo date($this->customlib->getSchoolDateFormat(), strtotime($value["leave_to"])) ?></td>
 
                                                     <td><?php echo $value["leave_days"]; ?></td>
-                                                    <td><?php echo date($this->customlib->getSchoolDateFormat(), strtotime($value["date"]));  ?></td>
+                                                    <td data-date="<?php echo $value['date']; ?>"><?php echo date($this->customlib->getSchoolDateFormat(), strtotime($value['date']));  ?></td>
                                                     <td><?php if(!empty($value['recommender_status'])){echo $this->lang->line(strtolower($value['recommender_status']));} ?></td>
                                                     <td><?php if(!empty($value['approver_status'])){echo $this->lang->line(strtolower($value['approver_status']));} ?></td>
                                                     <?php
@@ -106,7 +221,15 @@ if ($value["status"] == "approved") {
                                                         if ($is_owner && !$is_pre_recommender_stage) { ?>
                                                             <span class="label label-default" data-toggle="tooltip" title="This request can no longer be edited/deleted once recommender action starts.">Locked after recommender action</span>
                                                         <?php }
-                                                        ?>
+
+                                                        // Revert Approval button — for admin, super admin, or the configured approver
+                                                        $can_revert = ($value['status'] === 'approved')
+                                                            && ($is_admin_or_super_admin
+                                                                || ((int)($value['approver_id'] ?? 0) === (int)$staff_id)
+                                                                || $this->rbac->hasPrivilege('approve_leave_request', 'can_edit'));
+                                                        if ($can_revert): ?>
+                                                            <a onclick="revertLeaveApproval('<?php echo $value['id']; ?>', '<?php echo htmlspecialchars($value['type'] ?? '', ENT_QUOTES); ?>')" class="btn btn-warning btn-xs" data-toggle="tooltip" title="Revert Approval"><i class="fa fa-undo"></i></a>
+                                                        <?php endif; ?>
                                                     </td>
                                                 </tr>
                                                 <?php
@@ -114,10 +237,20 @@ $i++;
 }
 ?>
                                         </tbody>
+                                        <tfoot>
+                                            <tr>
+                                                <th colspan="3" class="text-right" style="font-weight:600; padding-right:8px;">
+                                                    Showing <span id="leave_visible_count">0</span> request(s) &mdash; Total leave days:
+                                                </th>
+                                                <th id="leave_days_total" style="font-weight:600;">0</th>
+                                                <th colspan="5"></th>
+                                            </tr>
+                                        </tfoot>
                                     </table>
                                 </div>
                             </div>
                         </div>
+                        <?php endif; // apply_leave_disabled ?>
                     </div>
                 </div>
             </div>
@@ -236,6 +369,7 @@ $i++;
     </div>
 </div>
 
+<?php if (!$apply_leave_disabled && !$apply_leave_no_balance): ?>
 <div id="addleave" class="modal fade " role="dialog">
     <div class="modal-dialog modal-dialog2 modal-lg">
         <div class="modal-content">
@@ -257,6 +391,19 @@ $i++;
                     <form role="form" id="addleave_form" method="post" enctype="multipart/form-data" action="">
                         <!-- Request Type Picker -->
                         <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12" style="margin-bottom:10px;">
+                            <?php if (!empty($leave_screen_mode)): ?>
+                                <?php if ($leave_screen_mode === 'claim_leave'): ?>
+                                <div class="alert alert-info" style="margin:0; padding:8px 12px;">
+                                    <i class="fa fa-calendar-plus-o"></i> <strong>Claim Leave</strong> &mdash; Apply for claim-based leaves (OD and CPL only).
+                                </div>
+                                <input type="hidden" name="request_type" value="claim_leave">
+                                <?php elseif ($leave_screen_mode === 'apply_leave'): ?>
+                                <div class="alert alert-info" style="margin:0; padding:8px 12px;">
+                                    <i class="fa fa-calendar"></i> <strong>Apply Leave</strong> &mdash; Apply for regular leave (CL, ML, etc.).
+                                </div>
+                                <input type="hidden" name="request_type" value="apply_leave">
+                                <?php endif; ?>
+                            <?php else: ?>
                             <label><strong>Request Type</strong> <small class="req"> *</small></label>
                             <div class="btn-group btn-group-justified" data-toggle="buttons" style="margin-top:5px; display:table; width:100%;">
                                 <?php if ($auto_adjust_paid_enabled) { ?>
@@ -273,6 +420,7 @@ $i++;
                                 </label>
                                 <?php } ?>
                             </div>
+                            <?php endif; ?>
                         </div>
 <?php if ($this->rbac->hasPrivilege('approve_leave_request', 'can_add')) { ?>
                         <div class="form-group  col-xs-12 col-sm-12 col-md-12 col-lg-6">
@@ -331,6 +479,9 @@ $i++;
                             </small>
                             <div id="permission_quota_warning" class="text-danger" style="display:none;"></div>
                             <div id="leave_balance_info_panel" style="display:none; margin-top:8px; padding:8px 12px; border-left:3px solid #ccc; background:#f9f9f9; font-size:13px;"></div>
+                            <div id="day_type_warning" style="display:none; margin-top:8px;" class="alert alert-warning" role="alert">
+                                <i class="fa fa-exclamation-triangle"></i> <span id="day_type_warning_msg"></span>
+                            </div>
                             <span class="text-danger"><?php echo form_error('leave_type'); ?></span>
                         </div>
 
@@ -437,6 +588,7 @@ $i++;
         </div>
     </div>
 </div>
+<?php endif; // !apply_leave_disabled && !apply_leave_no_balance — end of #addleave modal ?>
 
 <script type="text/javascript">
     /*--dropify--*/
@@ -450,6 +602,19 @@ $i++;
 <script type="text/javascript">
     var LEAVE_DATE_FORMAT = '<?php echo strtr($this->customlib->getSchoolDateFormat(), ['d' => 'dd', 'm' => 'mm', 'Y' => 'yyyy']); ?>';
     var AUTO_ADJUST_LOP_WITH_PAID_LEAVES = <?php echo $auto_adjust_paid_enabled ? 'true' : 'false'; ?>;
+    // 'claim_leave' = OD/CPL screen only | 'apply_leave' = regular CL/ML screen only | null = no restriction (admin approve view)
+    var LEAVE_SCREEN_MODE = <?php echo isset($leave_screen_mode) && $leave_screen_mode ? "'".htmlspecialchars($leave_screen_mode, ENT_QUOTES)."'" : 'null'; ?>;
+
+    /**
+     * Read the current request type from either the visible radio button (`:checked`)
+     * or the hidden input rendered when LEAVE_SCREEN_MODE is locked.
+     */
+    function getRequestTypeMode() {
+        var checked = $('input[name="request_type"]:checked').val();
+        if (checked) return checked;
+        var hidden = $('input[name="request_type"][type="hidden"]').val();
+        return hidden || 'claim_leave';
+    }
 
     function formatDateToIso(dateObj) {
         if (!dateObj || Object.prototype.toString.call(dateObj) !== '[object Date]' || isNaN(dateObj.getTime())) {
@@ -496,7 +661,7 @@ $i++;
                     syncLeaveIsoDates();
                 }
             }
-            if (($('input[name="request_type"]:checked').val() || 'claim_leave') === 'adjust_lop') {
+            if (getRequestTypeMode() === 'adjust_lop') {
                 var fromDate = $('#leave_from_date').val();
                 var fromIso = $('#leave_from_date_iso').val();
                 $('#leave_to_date').val(fromDate);
@@ -780,8 +945,104 @@ $i++;
         }
     }
 
+    function revertLeaveApproval(id, leaveType) {
+        var msg = 'Are you sure you want to revert the approval for this ' + leaveType + ' request?\n\n'
+                + 'This will:\n'
+                + '  \u2022 Reset the request back to Pending\n'
+                + '  \u2022 Restore the leave balance for the employee\n\n'
+                + 'This action cannot be undone automatically.';
+        if (!confirm(msg)) { return; }
+
+        $.ajax({
+            url: '<?php echo base_url(); ?>admin/leaverequest/revertLeave',
+            type: 'POST',
+            dataType: 'json',
+            data: { leave_request_id: id },
+            success: function(res) {
+                if (res && res.status === 'success') {
+                    successMsg(res.message || 'Leave approval reverted successfully.');
+                    setTimeout(function(){ window.location.reload(true); }, 1500);
+                } else {
+                    alert('Error: ' + (res.message || 'Could not revert the leave approval.'));
+                }
+            },
+            error: function() {
+                alert('<?php echo $this->lang->line("error_occurred_please_try_again"); ?>');
+            }
+        });
+    }
+
     $(document).ready(function () {
         renderPersistentLeaveFeedback();
+
+        // ── DataTable with date-range filter ──────────────────────────────────
+        var leaveTable = $('.example').DataTable({
+            pageLength: 25,
+            lengthMenu: [[10, 25, 50, -1], [10, 25, 50, 'All']],
+            dom: 'Blfrtip',
+            buttons: [
+                {extend:'copy',  exportOptions:{columns:'thead th:not(.noExport)'}},
+                {extend:'csv',   exportOptions:{columns:'thead th:not(.noExport)'}},
+                {extend:'excel', exportOptions:{columns:'thead th:not(.noExport)'}},
+                {extend:'pdf',   exportOptions:{columns:'thead th:not(.noExport)'}},
+                'print'
+            ],
+            order: [[4, 'desc']],
+            footerCallback: function () {
+                var api = this.api();
+                var totalDays = api.column(3, {search:'applied'}).data().reduce(function (a, b) {
+                    var n = parseFloat($(b).text ? $('<span>').html(b).text() : b);
+                    return (parseFloat(a) || 0) + (isNaN(n) ? 0 : n);
+                }, 0);
+                $('#leave_days_total').text(totalDays % 1 === 0 ? totalDays : totalDays.toFixed(1));
+                $('#leave_visible_count').text(api.rows({search:'applied'}).count());
+            }
+        });
+
+        // Custom search: filter by leave_from ISO date stored on <tr data-from>
+        $.fn.dataTable.ext.search.push(function (settings, data, dataIndex) {
+            if (settings.nTable !== $('.example')[0]) return true;
+            var fromDate = $('#filter_apply_from').datepicker('getDate');  // JS Date or null
+            var toDate   = $('#filter_apply_to').datepicker('getDate');    // JS Date or null
+            if (!fromDate && !toDate) return true;
+            var nTr = settings.aoData[dataIndex].nTr;
+            if (!nTr) return true;
+            var isoDate = $(nTr).data('from');  // e.g. '2026-03-15'
+            if (!isoDate) return true;
+            var cellMs = new Date(isoDate).setHours(0, 0, 0, 0);
+            if (fromDate && cellMs < fromDate.setHours(0, 0, 0, 0)) return false;
+            if (toDate   && cellMs > toDate.setHours(0, 0, 0, 0))   return false;
+            return true;
+        });
+
+        // Wire datepicker inputs
+        $('#filter_apply_from, #filter_apply_to').datepicker({
+            dateFormat: LEAVE_DATE_FORMAT,
+            changeMonth: true,
+            changeYear: true
+        });
+
+        // Search button
+        $('#filter_search').on('click', function () { leaveTable.draw(); });
+
+        // "This Month" shortcut
+        $('#filter_this_month').on('click', function () {
+            var now = new Date();
+            var first = new Date(now.getFullYear(), now.getMonth(), 1);
+            var last  = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+            $('#filter_apply_from').datepicker('setDate', first);
+            $('#filter_apply_to').datepicker('setDate', last);
+            leaveTable.draw();
+        });
+
+        // Clear filter
+        $('#filter_clear').on('click', function () {
+            $('#filter_apply_from').datepicker('setDate', null);
+            $('#filter_apply_to').datepicker('setDate', null);
+            leaveTable.draw();
+        });
+        // ─────────────────────────────────────────────────────────────────────
+
         getLeaveTypeDDL('<?php echo $staff_id ?>', '');
         $('.detail_popover').popover({
             placement: 'right',
@@ -829,10 +1090,16 @@ $i++;
         // Show current date in UI for fresh form (system date remains enforced in backend)
         $('#applieddate').val('<?php echo date($this->customlib->getSchoolDateFormat()) ?>');
 
-        // Reset request type based on attendance auto-adjust setting.
-        // ON  => Claim Leave flow only
-        // OFF => Apply Leave / Adjust LOP flow only
-        var defaultReqType = AUTO_ADJUST_LOP_WITH_PAID_LEAVES ? 'claim_leave' : 'adjust_lop';
+        // Reset request type:
+        // If screen mode is locked, use that; otherwise fall back to auto-adjust setting.
+        var defaultReqType;
+        if (LEAVE_SCREEN_MODE === 'claim_leave') {
+            defaultReqType = 'claim_leave';
+        } else if (LEAVE_SCREEN_MODE === 'apply_leave') {
+            defaultReqType = 'apply_leave';
+        } else {
+            defaultReqType = AUTO_ADJUST_LOP_WITH_PAID_LEAVES ? 'claim_leave' : 'adjust_lop';
+        }
         $('input[name="request_type"][value="' + defaultReqType + '"]').prop('checked', true);
         if (defaultReqType === 'claim_leave') {
             $('#btn_rt_claim').addClass('active');
@@ -1116,7 +1383,7 @@ $i++;
         $("#addleave_form").on('submit', (function (e) {
             e.preventDefault();
             // If Adjust LOP mode, sync the single absent date to leave_from/to fields before submitting
-            var reqType = $('input[name="request_type"]:checked').val() || 'claim_leave';
+            var reqType = getRequestTypeMode();
             if (reqType === 'adjust_lop') {
                 var fromDisplay = $('#leave_from_date').val();
                 var fromIso = $('#leave_from_date_iso').val();
@@ -1250,7 +1517,7 @@ $i++;
 
     function getLeaveTypeDDL(id, lid = '') {
         var base_url = '<?php echo base_url() ?>';
-        var mode = $('input[name="request_type"]:checked').val() || 'claim_leave';
+        var mode = getRequestTypeMode();
         $.ajax({
             url: base_url + 'admin/leaverequest/countLeave/' + id,
             type: 'POST',
@@ -1369,6 +1636,7 @@ $i++;
                 $('#timetable_section').hide();
             }
             updatePermissionQuota();
+            checkDayTypeRestriction();
         });
 
         $(document).on('change', '#leave_type', function() {
@@ -1386,6 +1654,7 @@ $i++;
             }
             updatePermissionQuota();
             updateLeaveBalanceInfo();
+            checkDayTypeRestriction();
         });
 
         toggleSubstitutionUI();
@@ -1528,6 +1797,31 @@ $i++;
 
                 if (html) {
                     panel.html(html).show();
+                }
+            }
+        });
+    }
+
+    function checkDayTypeRestriction() {
+        var leave_type_id  = $('#leave_type').val();
+        var leave_from_iso = $('#leave_from_date_iso').val();
+        var leave_to_iso   = $('#leave_to_date_iso').val();
+        var $warn = $('#day_type_warning');
+
+        $warn.hide();
+        $('#day_type_warning_msg').text('');
+
+        if (!leave_type_id || !leave_from_iso || !leave_to_iso) { return; }
+
+        $.ajax({
+            url: '<?php echo base_url() ?>admin/leaverequest/checkDayType',
+            type: 'POST',
+            dataType: 'json',
+            data: { leave_type_id: leave_type_id, leave_from_date: leave_from_iso, leave_to_date: leave_to_iso },
+            success: function(r) {
+                if (r && r.status === 'warning' && r.warning) {
+                    $('#day_type_warning_msg').text(r.warning);
+                    $warn.show();
                 }
             }
         });

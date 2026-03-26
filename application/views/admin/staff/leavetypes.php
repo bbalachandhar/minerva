@@ -90,6 +90,32 @@ if (isset($result)) {
                                     <p class="help-block" style="margin-bottom:0;">Uncheck for OD/claim-based leaves that should allow apply without leave balance.</p>
                                 </div>
                                 <?php } ?>
+                                <?php if (!empty($has_credit_source_flag)) { ?>
+                                <div class="form-group">
+                                    <label for="credit_source_type_id">Consumes Credit From</label>
+                                    <select name="credit_source_type_id" class="form-control">
+                                        <option value="">-- None (independent leave type) --</option>
+                                        <?php foreach ($leavetype as $lt): ?>
+                                            <?php if (isset($result) && (int)$lt['id'] === (int)$result['id']) continue; ?>
+                                            <option value="<?php echo $lt['id']; ?>" <?php if (isset($result) && isset($result['credit_source_type_id']) && (int)$result['credit_source_type_id'] === (int)$lt['id']) echo 'selected'; ?>>
+                                                <?php echo htmlspecialchars($lt['type']); ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <p class="help-block" style="margin-bottom:0;">Select if this leave type consumes credit earned by another leave type (e.g. CPL consumes OD balance).</p>
+                                </div>
+                                <?php } ?>
+                                <?php if (!empty($has_day_type_flag)) { ?>
+                                <div class="form-group">
+                                    <label for="day_type_restriction">Day-Type Restriction</label>
+                                    <select name="day_type_restriction" class="form-control">
+                                        <option value="">-- No restriction --</option>
+                                        <option value="working_day" <?php if (isset($result) && $result['day_type_restriction'] === 'working_day') echo 'selected'; ?>>Working Days Only (e.g. OD)</option>
+                                        <option value="holiday" <?php if (isset($result) && $result['day_type_restriction'] === 'holiday') echo 'selected'; ?>>Holidays Only (e.g. CPL)</option>
+                                    </select>
+                                    <p class="help-block" style="margin-bottom:0;">Restrict this leave type to working days or holidays only. Leave blank for no restriction.</p>
+                                </div>
+                                <?php } ?>
                                 <div class="form-group">
                                     <label class="checkbox-inline">
                                         <input type="checkbox" id="is_carry_forward" name="is_carry_forward" value="1" <?php if (isset($result) && $result['is_carry_forward'] == 1) {
@@ -172,6 +198,8 @@ if ($this->rbac->hasPrivilege('leave_types', 'can_add')) {
                                         <th><?php echo $this->lang->line('max_leave_days'); ?></th>
                                         <th><?php echo $this->lang->line('loss_of_pay'); ?></th>
                                         <?php if (!empty($has_balance_check_flag)) { ?><th>Requires Balance Check</th><?php } ?>
+                                        <?php if (!empty($has_credit_source_flag)) { ?><th>Consumes Credit From</th><?php } ?>
+                                        <?php if (!empty($has_day_type_flag)) { ?><th>Day-Type Restriction</th><?php } ?>
                                         <th><?php echo $this->lang->line('carry_forward'); ?></th>
                                         <th><?php echo $this->lang->line('max_carry_forward'); ?></th>
                                         <th><?php echo $this->lang->line('gender_specific'); ?></th>
@@ -192,6 +220,29 @@ foreach ($leavetype as $value) {
                                             <td class="mailbox-name"> <?php echo $value['max_leave_days'] ?></td>
                                             <td class="mailbox-name"> <?php echo ($value['is_lop']) ? $this->lang->line('yes') : $this->lang->line('no'); ?></td>
                                             <?php if (!empty($has_balance_check_flag)) { ?><td class="mailbox-name"><?php echo (!isset($value['requires_balance_check']) || (int) $value['requires_balance_check'] === 1) ? $this->lang->line('yes') : $this->lang->line('no'); ?></td><?php } ?>
+                                            <?php if (!empty($has_credit_source_flag)) { ?>
+                                            <td class="mailbox-name">
+                                                <?php
+                                                if (!empty($value['credit_source_type_id'])) {
+                                                    $src = array_filter($leavetype, function($lt) use ($value) { return (int)$lt['id'] === (int)$value['credit_source_type_id']; });
+                                                    $src = reset($src);
+                                                    echo $src ? htmlspecialchars($src['type']) : '—';
+                                                } else {
+                                                    echo '—';
+                                                }
+                                                ?>
+                                            </td>
+                                            <?php } ?>
+                                            <?php if (!empty($has_day_type_flag)) { ?>
+                                            <td class="mailbox-name">
+                                                <?php
+                                                $dtr = isset($value['day_type_restriction']) ? $value['day_type_restriction'] : null;
+                                                if ($dtr === 'working_day') echo 'Working Days Only';
+                                                elseif ($dtr === 'holiday') echo 'Holidays Only';
+                                                else echo '—';
+                                                ?>
+                                            </td>
+                                            <?php } ?>
                                             <td class="mailbox-name"> <?php echo ($value['is_carry_forward']) ? $this->lang->line('yes') : $this->lang->line('no'); ?></td>
                                             <td class="mailbox-name"> <?php echo $value['max_carry_forward'] ?></td>
                                             <td class="mailbox-name"> <?php echo $value['gender_specific'] ?></td>

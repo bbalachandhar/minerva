@@ -742,4 +742,198 @@ class Leaverequest_model extends MY_model
         ]);
     }
 
+    /**
+     * Reverses the balance effect of logLeaveApprovalCredit() for a given leave request.
+     * Should only be called when the request is in 'approved' status.
+     *
+     * @param int $leave_request_id
+     * @param int $reverted_by  Staff ID of the user triggering the revert
+     * @return bool
+     */
+    public function revertLeaveApproval($leave_request_id, $reverted_by)
+    {
+        $leave_req = $this->get_staff_leave($leave_request_id);
+        if (empty($leave_req) || (string)($leave_req['status'] ?? '') !== 'approved') {
+            return false;
+        }
+
+        $leave_type_id = (int)($leave_req['leave_type_id'] ?? 0);
+        $staff_id      = (int)($leave_req['staff_id'] ?? 0);
+        $leave_days    = (float)($leave_req['leave_days'] ?? 0);
+        $leave_from    = (string)($leave_req['leave_from'] ?? '');
+
+        if (!$leave_type_id || !$staff_id || !$leave_days || !$leave_from) {
+            return false;
+        }
+
+        $has_balance_flag      = $this->db->field_exists('requires_balance_check', 'leave_types');
+        $has_credit_source_flag = $this->db->field_exists('credit_source_type_id', 'leave_types');
+
+        $this->db->select(
+            'type, is_lop'
+            . ($has_balance_flag ? ', requires_balance_check' : '')
+            . ($has_credit_source_flag ? ', credit_source_type_id' : '')
+        );
+        $type_row = $this->db->where('id', $leave_type_id)->limit(1)->get('leave_types')->row_array();
+
+        if (empty($type_row)) {
+            return false;
+        }
+
+        $is_lop = (int)($type_row['is_lop'] ?? 0);
+        if ($is_lop !== 0) {
+            // LOP leaves never touched the balance — nothing to revert; just reset the request
+            return true;
+        }
+
+        if ($has_balance_flag) {
+            $requires_balance_check = (int)($type_row['requires_balance_check'] ?? 1);
+        } else {
+            $type_name = strtolower(trim((string)($type_row['type'] ?? '')));
+            $requires_balance_check = in_array($type_name, ['on duty', 'od'], true) ? 0 : 1;
+        }
+
+        $credit_source_type_id = null;
+        if ($has_credit_source_flag && !empty($type_row['credit_source_type_id'])) {
+            $credit_source_type_id = (int)$type_row['credit_source_type_id'];
+        }
+        $is_credit_consumer = $credit_source_type_id !== null;
+
+        $month = (int)date('m', strtotime($leave_from));
+        $year  = (int)date('Y', strtotime($leave_from));
+
+        $reason_prefix = sprintf(
+            'Approval reverted: %s to %s (%s days) — %s',
+            $leave_req['leave_from'],
+            $leave_req['leave_to'],
+            $leave_days,
+            $type_row['type']
+        );
+
+        if ($requires_balance_check === 0 && !$is_credit_consumer) {
+            // OD — balance was never debited; audit only
+            $balance_row = $this->db
+                ->where('staff_id', $staff_id)
+                ->where('leave_type_id', $leave_type_id)
+                ->where('month', $month)
+                ->where('year', $year)
+                ->limit(1)
+                ->get('staff_monthly_leave_balance')
+                ->row_array();
+
+            $balance_id     = !empty($balance_row) ? (int)$balance_row['id'] : null;
+            $balance_before = !empty($balance_row) ? (float)($balance_row['closing_balance'] ?? 0) : 0.0;
+
+            $this->db->insert('staff_leave_balance_audit', [
+                'balance_id'     => $balance_id,
+                'staff_id'       => $staff_id,
+                'leave_type_id'  => $leave_type_id,
+                'action_type'    => 'LEAVE_APPROVAL_REVERTED',
+                'amount'         => $leave_days,
+                'balance_before' => $balance_before,
+                'balance_after'  => $balance_before,
+                'reference_id'   => $leave_request_id,
+                'reference_type' => 'leave_request',
+                'performed_by'   => $reverted_by,
+                'reason'         => $reason_prefix . ' (OD — no balance change on revert)',
+            ]);
+            return true;
+        }
+
+        if ($is_credit_consumer) {
+            // CPL — restore OD pool that was debited
+            $src_balance_row = $this->db
+                ->where('staff_id', $staff_id)
+                ->where('leave_type_id', $credit_source_type_id)
+                ->where('month', $month)
+                ->where('year', $year)
+                ->limit(1)
+                ->get('staff_monthly_leave_balance')
+                ->row_array();
+
+            $src_balance_id = null;
+            $src_before     = 0.0;
+            $src_after      = 0.0;
+
+            if (!empty($src_balance_row)) {
+                $src_balance_id = (int)$src_balance_row['id'];
+                $old_used       = (float)($src_balance_row['used_for_leave_application'] ?? 0);
+                $new_used       = max(0, $old_used - $leave_days);
+                $src_before     = (float)($src_balance_row['closing_balance'] ?? 0);
+                $src_after      = $src_before + $leave_days;
+
+                $this->db->where('id', $src_balance_id)->update('staff_monthly_leave_balance', [
+                    'used_for_leave_application' => $new_used,
+                    'closing_balance'            => $src_after,
+                    'updated_at'                 => date('Y-m-d H:i:s'),
+                ]);
+            }
+
+            $src_type_row  = $this->db->select('type')->where('id', $credit_source_type_id)->limit(1)->get('leave_types')->row_array();
+            $src_type_name = $src_type_row['type'] ?? 'OD';
+
+            $this->db->insert('staff_leave_balance_audit', [
+                'balance_id'     => $src_balance_id,
+                'staff_id'       => $staff_id,
+                'leave_type_id'  => $credit_source_type_id,
+                'action_type'    => 'LEAVE_APPROVAL_REVERTED',
+                'amount'         => $leave_days,
+                'balance_before' => $src_before,
+                'balance_after'  => $src_after,
+                'reference_id'   => $leave_request_id,
+                'reference_type' => 'leave_request',
+                'performed_by'   => $reverted_by,
+                'reason'         => $reason_prefix . sprintf(' (CPL reverted — %s credit pool restored)', $src_type_name),
+            ]);
+            return true;
+        }
+
+        // requires_balance_check = 1 (CL, ML etc.)
+        $CI = &get_instance();
+        $settings = $CI->setting_model->getSetting();
+        $auto_adjust_preallotted = (int)($settings->auto_adjust_lop_with_preallotted_leaves ?? 0);
+
+        $balance_row = $this->db
+            ->where('staff_id', $staff_id)
+            ->where('leave_type_id', $leave_type_id)
+            ->where('month', $month)
+            ->where('year', $year)
+            ->limit(1)
+            ->get('staff_monthly_leave_balance')
+            ->row_array();
+
+        $balance_id     = !empty($balance_row) ? (int)$balance_row['id'] : null;
+        $balance_before = !empty($balance_row) ? (float)($balance_row['closing_balance'] ?? 0) : 0.0;
+        $balance_after  = $balance_before;
+
+        if ($auto_adjust_preallotted !== 1 && !empty($balance_row)) {
+            // Undo the deduction: restore used_for_leave_application and closing_balance
+            $old_used    = (float)($balance_row['used_for_leave_application'] ?? 0);
+            $new_used    = max(0, $old_used - $leave_days);
+            $balance_after = $balance_before + $leave_days;
+
+            $this->db->where('id', $balance_id)->update('staff_monthly_leave_balance', [
+                'used_for_leave_application' => $new_used,
+                'closing_balance'            => $balance_after,
+                'updated_at'                 => date('Y-m-d H:i:s'),
+            ]);
+        }
+
+        $this->db->insert('staff_leave_balance_audit', [
+            'balance_id'     => $balance_id,
+            'staff_id'       => $staff_id,
+            'leave_type_id'  => $leave_type_id,
+            'action_type'    => 'LEAVE_APPROVAL_REVERTED',
+            'amount'         => $leave_days,
+            'balance_before' => $balance_before,
+            'balance_after'  => $balance_after,
+            'reference_id'   => $leave_request_id,
+            'reference_type' => 'leave_request',
+            'performed_by'   => $reverted_by,
+            'reason'         => $reason_prefix . ($auto_adjust_preallotted === 1 ? ' (auto-adjust mode — audit only)' : ''),
+        ]);
+
+        return true;
+    }
+
 }

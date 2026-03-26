@@ -25,6 +25,16 @@ class LeaveTypes extends Admin_Controller
         return $this->hasBalanceCheckFlagColumn;
     }
 
+    private function hasCreditSourceColumn()
+    {
+        return $this->db->field_exists('credit_source_type_id', 'leave_types');
+    }
+
+    private function hasDayTypeColumn()
+    {
+        return $this->db->field_exists('day_type_restriction', 'leave_types');
+    }
+
     public function index()
     {
         $this->session->set_userdata('top_menu', 'HR');
@@ -33,6 +43,8 @@ class LeaveTypes extends Admin_Controller
         $LeaveTypes        = $this->leavetypes_model->getLeaveType();
         $data["leavetype"] = $LeaveTypes;
         $data['has_balance_check_flag'] = $this->hasRequiresBalanceCheckColumn();
+        $data['has_credit_source_flag'] = $this->hasCreditSourceColumn();
+        $data['has_day_type_flag'] = $this->hasDayTypeColumn();
         $this->load->view("layout/header");
         $this->load->view("admin/staff/leavetypes", $data);
         $this->load->view("layout/footer");
@@ -68,6 +80,11 @@ class LeaveTypes extends Admin_Controller
             $is_staff_specific = $this->input->post("is_staff_specific");
             $max_leave_days = $this->input->post("max_leave_days");
             $requires_balance_check = $this->input->post("requires_balance_check") ? 1 : 0;
+            $credit_source_type_id = (int) $this->input->post("credit_source_type_id");
+            $day_type_restriction = $this->input->post("day_type_restriction");
+            if (!in_array($day_type_restriction, ['working_day', 'holiday'], true)) {
+                $day_type_restriction = null;
+            }
 
             if (empty($leavetypeid)) {
 
@@ -97,6 +114,14 @@ class LeaveTypes extends Admin_Controller
                 $data['requires_balance_check'] = $requires_balance_check;
             }
 
+            if ($this->hasCreditSourceColumn()) {
+                $data['credit_source_type_id'] = ($credit_source_type_id > 0 && $credit_source_type_id != (int)$leavetypeid) ? $credit_source_type_id : null;
+            }
+
+            if ($this->hasDayTypeColumn()) {
+                $data['day_type_restriction'] = $day_type_restriction;
+            }
+
             if (!empty($leavetypeid)) {
                 $data['id'] = $leavetypeid;
             }
@@ -110,6 +135,8 @@ class LeaveTypes extends Admin_Controller
             $LeaveTypes = $this->leavetypes_model->getLeaveType();
             $data["leavetype"] = $LeaveTypes;
             $data['has_balance_check_flag'] = $this->hasRequiresBalanceCheckColumn();
+            $data['has_credit_source_flag'] = $this->hasCreditSourceColumn();
+            $data['has_day_type_flag'] = $this->hasDayTypeColumn();
             $this->load->view("layout/header");
             $this->load->view("admin/staff/leavetypes", $data);
             $this->load->view("layout/footer");
@@ -124,6 +151,8 @@ class LeaveTypes extends Admin_Controller
         $LeaveTypes        = $this->leavetypes_model->getLeaveType();
         $data["leavetype"] = $LeaveTypes;
         $data['has_balance_check_flag'] = $this->hasRequiresBalanceCheckColumn();
+        $data['has_credit_source_flag'] = $this->hasCreditSourceColumn();
+        $data['has_day_type_flag'] = $this->hasDayTypeColumn();
         $this->load->view("layout/header");
         $this->load->view("admin/staff/leavetypes", $data);
         $this->load->view("layout/footer");

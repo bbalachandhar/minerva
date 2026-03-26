@@ -43,6 +43,7 @@ if (validation_errors()) {
             </div>
         </div>
     </div>
+    <?php /* HIDDEN FIELDS — uncomment to restore State, City, Address, Description
     <div class="row">
         <div class="col-md-6">
             <div class="form-group">
@@ -76,6 +77,7 @@ if (validation_errors()) {
             </div>
         </div>
     </div>
+    */ ?>
     <div class="row">
         <div class="col-md-12">
             <div class="form-group">
@@ -104,6 +106,7 @@ if (validation_errors()) {
             </div>
         </div>
     </div>
+    <?php /* HIDDEN FIELDS — uncomment to restore Reference, Referencer Details
     <div class="row">
         <div class="col-md-6">
             <div class="form-group">
@@ -123,6 +126,7 @@ if (validation_errors()) {
             </div>
         </div>
     </div>
+    */ ?>
 
     <button type="submit" class="btn btn-primary">Submit Enquiry</button>
 </form>
