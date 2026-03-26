@@ -185,7 +185,7 @@
                                             <div class="form-group">
                                                 <label>App Secret <small class="text-muted">(recommended)</small></label>
                                                 <input type="password" class="form-control" name="meta_app_secret"
-                                                       placeholder="Leave blank to keep existing"
+                                                       placeholder="<?php echo !empty($setting->meta_app_secret) ? '••••••••  (saved — leave blank to keep)' : 'Enter App Secret'; ?>"
                                                        autocomplete="new-password">
                                             </div>
                                         </div>
