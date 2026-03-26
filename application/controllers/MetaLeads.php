@@ -73,6 +73,20 @@ class MetaLeads extends CI_Controller
         $configured_token = trim((string) ($setting->meta_verify_token ?? ''));
         $enabled          = (int) ($setting->meta_leads_enabled ?? 0);
 
+        // Fallback: query sch_settings directly in case getSetting() SELECT is missing the meta fields
+        if ($configured_token === '' || $enabled === 0) {
+            $direct = $this->db->select('meta_leads_enabled, meta_verify_token')
+                ->limit(1)->get('sch_settings')->row_array();
+            if (!empty($direct)) {
+                if ($configured_token === '') {
+                    $configured_token = trim((string)($direct['meta_verify_token'] ?? ''));
+                }
+                if ($enabled === 0) {
+                    $enabled = (int)($direct['meta_leads_enabled'] ?? 0);
+                }
+            }
+        }
+
         if ($enabled !== 1) {
             log_message('error', '[MetaLeads] Verification attempt but Meta Leads integration is disabled.');
             $this->output->set_status_header(403)->set_output('Meta Lead integration is disabled.');
