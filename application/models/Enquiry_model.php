@@ -62,27 +62,17 @@ class enquiry_model extends MY_Model
 
     public function add($data)
     {
-        $this->db->trans_start(); # Starting Transaction
-        $this->db->trans_strict(false); # See Note 01. If you wish can remove as well
-        //=======================Code Start===========================
-        $this->db->insert('enquiry', $data);
-        $id        = $this->db->insert_id();
-        $message   = INSERT_RECORD_CONSTANT . " On  enquiry id " . $id;
-        $action    = "Insert";
-        $record_id = $id;
-        $this->log($message, $record_id, $action);
-        //======================Code End==============================
-
-        $this->db->trans_complete(); # Completing transaction
-        /* Optional */
-
-        if ($this->db->trans_status() === false) {
-            # Something went wrong.
-            $this->db->trans_rollback();
+        $result = $this->db->insert('enquiry', $data);
+        if (!$result) {
+            $err = $this->db->error();
+            log_message('error', '[Enquiry_model::add] INSERT failed - Code: ' . $err['code'] . ' Message: ' . $err['message']);
+            log_message('error', '[Enquiry_model::add] Last query: ' . $this->db->last_query());
             return false;
-        } else {
-            //return $return_value;
         }
+        $id = $this->db->insert_id();
+        $message   = INSERT_RECORD_CONSTANT . " On enquiry id " . $id;
+        $this->log($message, $id, "Insert");
+        return $id;
     }
 
     public function getenquiry_list($id = null, $status = 'active', $lead_vendor_id = null)

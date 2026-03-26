@@ -76,24 +76,28 @@ class Enquiry extends CI_Controller
             $city_raw = $this->input->post('city');
             $city = ($city_raw === 'Others') ? $this->input->post('city_custom') : $city_raw;
 
+            // Get first valid staff ID for created_by (public form has no session user)
+            $first_staff = $this->db->select('id')->from('staff')->order_by('id', 'ASC')->limit(1)->get()->row();
+            $created_by = $first_staff ? (int)$first_staff->id : null;
+
             $enquiry = array(
                 'name'           => $this->input->post('name'),
                 'contact'        => $this->input->post('contact'),
-                'address'        => $this->input->post('address'),
+                'address'        => $this->input->post('address') ?: '',
                 'state'          => $this->input->post('state'),
                 'city'           => $city,
-                'reference'      => $this->input->post('reference'),
+                'reference'      => $this->input->post('reference') ?: '',
                 'date'           => date('Y-m-d'),
-                'description'    => $this->input->post('description'),
+                'description'    => $this->input->post('description') ?: '',
                 'follow_up_date' => date('Y-m-d'),
-                'note'           => $this->input->post('referencer_details'),
+                'note'           => $this->input->post('referencer_details') ?: '',
                 'source'         => $this->input->post('source'),
                 'email'          => $this->input->post('email'),
-                'class_id'       => null, // Legacy field, keeping for backward compatibility
+                'class_id'       => null,
                 'admission_course_id' => $admission_course_id,
                 'course_level'   => $course_level,
                 'admission_type' => $admission_type,
-                'created_by'     => 1,
+                'created_by'     => $created_by,
                 'status'         => 'active',
                 'ref_no'         => $reference_no
             );

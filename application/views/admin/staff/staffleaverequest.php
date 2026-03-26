@@ -16,7 +16,7 @@ $apply_leave_no_balance = (!empty($leave_screen_mode) && $leave_screen_mode === 
             <?php
 if (!$apply_leave_disabled && !$apply_leave_no_balance && $this->rbac->hasPrivilege('apply_leave', 'can_add') && ($this->uri->segment(2) == 'staff' || $this->uri->segment(3) == 'applyleave')) {
     ?>
-                <small class="pull-right"><a href="#addleave" onclick="addLeave()" role="button" class="btn btn-primary btn-sm checkbox-toggle pull-right edit_setting" data-loading-text="<i class='fa fa-circle-o-notch fa-spin'></i> <?php echo $this->lang->line('processing'); ?>"><?php echo $this->lang->line('add_leave_request'); ?></a></small>
+                <small class="pull-right"><a href="#addleave" onclick="addLeave()" role="button" class="btn btn-primary btn-sm checkbox-toggle pull-right edit_setting" data-loading-text="<i class='fa fa-circle-o-notch fa-spin'></i> <?php echo $this->lang->line('processing'); ?>"><?php echo (!empty($leave_screen_mode) && $leave_screen_mode === 'claim_leave') ? 'Apply Leave Claim' : $this->lang->line('add_leave_request'); ?></a></small>
             <?php }?></h1>
     </section>
     <!-- Main content -->
@@ -30,7 +30,7 @@ if (!$apply_leave_disabled && !$apply_leave_no_balance && $this->rbac->hasPrivil
                         <h3 class="box-title titlefix pt5"><?php echo $this->lang->line('approve_leave_request'); ?></h3> <?php
 if (!$apply_leave_disabled && !$apply_leave_no_balance && $this->rbac->hasPrivilege('apply_leave', 'can_add') && ($this->uri->segment(2) == 'staff' || $this->uri->segment(3) == 'applyleave')) {
     ?>
-                            <small class="pull-right"><a href="#addleave" onclick="addLeave()" role="button" class="btn btn-primary btn-sm checkbox-toggle pull-right edit_setting" data-loading-text="<i class='fa fa-circle-o-notch fa-spin'></i> <?php echo $this->lang->line('processing'); ?>"><?php echo $this->lang->line('add_leave_request'); ?></a></small>
+                            <small class="pull-right"><a href="#addleave" onclick="addLeave()" role="button" class="btn btn-primary btn-sm checkbox-toggle pull-right edit_setting" data-loading-text="<i class='fa fa-circle-o-notch fa-spin'></i> <?php echo $this->lang->line('processing'); ?>"><?php echo (!empty($leave_screen_mode) && $leave_screen_mode === 'claim_leave') ? 'Apply Leave Claim' : $this->lang->line('add_leave_request'); ?></a></small>
                         <?php }?>
                     </div><!-- /.box-header -->
                     <div class="box-body">
