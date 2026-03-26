@@ -424,7 +424,18 @@ class Collect_incidental_fee extends Admin_Controller {
         }
 
         $course_fee_total = (float) ($online_admission['course_fee_total'] ?? 0);
-        $application_fee_amount = $this->getConfiguredOnlineApplicationAmount();
+
+        // Compute application fee: use the greater of (a) the globally configured amount
+        // and (b) what has actually been collected as Application Fee in the incidental history.
+        // This prevents the cap from being wrong when the setting is 0 but a fee was already charged.
+        $configured_app_fee = $this->getConfiguredOnlineApplicationAmount();
+        $billed_app_fee = 0.0;
+        foreach ($incidental_history as $_row) {
+            if (strpos(strtolower((string)($_row['fee_type_title'] ?? '')), 'application fee') !== false) {
+                $billed_app_fee += (float) ($_row['amount_collected'] ?? 0);
+            }
+        }
+        $application_fee_amount = max($configured_app_fee, $billed_app_fee);
         $total_payable_amount = $course_fee_total + $application_fee_amount;
         $total_paid_so_far = $online_paid_total + $incidental_paid_total;
         $remaining_fee = $total_payable_amount - $total_paid_so_far;

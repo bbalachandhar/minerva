@@ -269,7 +269,7 @@ class enquiry_model extends MY_Model
         $this->db->where("id", $data["id"])->update("enquiry", $data);
     }
 
-    public function searchEnquiry($class, $source, $date_from, $date_to, $status = 'active', $department_id = null, $lead_vendor_id = null)
+    public function searchEnquiry($class, $source, $date_from, $date_to, $status = 'active', $department_id = null, $lead_vendor_id = null, $last_follow_up_from = null, $last_follow_up_to = null)
     {
         $this->db->select('enquiry.*,classes.class as classname,online_admission_courses.course_name as admission_course_name,lv.vendor_name as lead_vendor_name,lv.vendor_code as lead_vendor_code,dsv.vendor_name as duplicate_source_vendor_name,dsv.vendor_code as duplicate_source_vendor_code')
             ->join("classes", "classes.id = enquiry.class_id", "left")
@@ -307,11 +307,22 @@ class enquiry_model extends MY_Model
             $this->db->where('enquiry.lead_vendor_id', (int) $lead_vendor_id);
         }
 
+        // Filter by Next Follow Up Date (latest follow_up.next_date, fallback to enquiry.follow_up_date)
+        if (!empty($last_follow_up_from) && !empty($last_follow_up_to)) {
+            $from_esc = $this->db->escape($last_follow_up_from);
+            $to_esc   = $this->db->escape($last_follow_up_to);
+            $this->db->where(
+                "COALESCE((SELECT next_date FROM follow_up WHERE enquiry_id = enquiry.id ORDER BY id DESC LIMIT 1), enquiry.follow_up_date) BETWEEN {$from_esc} AND {$to_esc}",
+                null, false
+            );
+        }
+
         // last inserted first, secondary: newest date
         $this->db->order_by("enquiry.id", "desc");
         $this->db->order_by("enquiry.date", "desc");
 
         $query = $this->db->get("enquiry");
+        log_message('error', '[searchEnquiry DEBUG] SQL: ' . $this->db->last_query());
         return $query->result_array();
     }
 

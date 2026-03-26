@@ -551,9 +551,48 @@ class Leaverequest_model extends MY_model
             // OD (pure credit-earner) — audit only; payroll sync is authoritative.
             // Note: CPL (credit-consumer) is handled separately below.
             if (!$is_credit_consumer) {
-                $balance_id     = !empty($balance_row) ? (int) $balance_row['id'] : null;
-                $balance_before = !empty($balance_row) ? (float) ($balance_row['closing_balance'] ?? 0) : 0.0;
+                $balance_id = !empty($balance_row) ? (int) $balance_row['id'] : null;
+                $balance_before = 0.0;
+                
+                if (!empty($balance_row)) {
+                    $balance_before = (float) ($balance_row['closing_balance'] ?? 0);
+                } else {
+                    // Try to get latest previous balance carryover
+                    $prev_balance_row = $this->db->where('staff_id', $staff_id)
+                        ->where('leave_type_id', $leave_type_id)
+                        ->order_by('year', 'DESC')->order_by('month', 'DESC')->limit(1)
+                        ->get('staff_monthly_leave_balance')->row_array();
+                    if (!empty($prev_balance_row)) {
+                        $balance_before = (float) ($prev_balance_row['closing_balance'] ?? 0);
+                    }
+                }
+                
                 $balance_after  = $balance_before + $leave_days;
+
+                // For CPL earning (requires_balance_check = 0 and not a consumer), update the monthly balance
+                if ($balance_id) {
+                    $this->db->where('id', $balance_id)->update('staff_monthly_leave_balance', [
+                        'opening_balance' => (float)$balance_row['opening_balance'] + $leave_days,
+                        'earned_in_month' => (float)$balance_row['earned_in_month'] + $leave_days,
+                        'closing_balance' => $balance_after,
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]);
+                } else {
+                    $this->db->insert('staff_monthly_leave_balance', [
+                        'staff_id' => $staff_id,
+                        'leave_type_id' => $leave_type_id,
+                        'month' => $month,
+                        'year' => $year,
+                        'opening_balance' => $balance_before + $leave_days,
+                        'earned_in_month' => $leave_days,
+                        'used_for_lop_adjustment' => 0,
+                        'used_for_leave_application' => 0,
+                        'closing_balance' => $balance_after,
+                        'created_at' => date('Y-m-d H:i:s'),
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]);
+                    $balance_id = $this->db->insert_id();
+                }
 
                 $reason = sprintf(
                     'Leave approved: %s to %s (%s days) — %s',
@@ -811,7 +850,7 @@ class Leaverequest_model extends MY_model
         );
 
         if ($requires_balance_check === 0 && !$is_credit_consumer) {
-            // OD — balance was never debited; audit only
+            // OD / CPL pure earner
             $balance_row = $this->db
                 ->where('staff_id', $staff_id)
                 ->where('leave_type_id', $leave_type_id)
@@ -823,6 +862,20 @@ class Leaverequest_model extends MY_model
 
             $balance_id     = !empty($balance_row) ? (int)$balance_row['id'] : null;
             $balance_before = !empty($balance_row) ? (float)($balance_row['closing_balance'] ?? 0) : 0.0;
+            $balance_after  = max(0, $balance_before - $leave_days);
+
+            if ($balance_id) {
+                // Remove the previously earned days
+                $new_opening = max(0, (float)$balance_row['opening_balance'] - $leave_days);
+                $new_earned = max(0, (float)$balance_row['earned_in_month'] - $leave_days);
+                
+                $this->db->where('id', $balance_id)->update('staff_monthly_leave_balance', [
+                    'opening_balance' => $new_opening,
+                    'earned_in_month' => $new_earned,
+                    'closing_balance' => $balance_after,
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]);
+            }
 
             $this->db->insert('staff_leave_balance_audit', [
                 'balance_id'     => $balance_id,
@@ -831,11 +884,11 @@ class Leaverequest_model extends MY_model
                 'action_type'    => 'LEAVE_APPROVAL_REVERTED',
                 'amount'         => $leave_days,
                 'balance_before' => $balance_before,
-                'balance_after'  => $balance_before,
+                'balance_after'  => $balance_after,
                 'reference_id'   => $leave_request_id,
                 'reference_type' => 'leave_request',
                 'performed_by'   => $reverted_by,
-                'reason'         => $reason_prefix . ' (OD — no balance change on revert)',
+                'reason'         => $reason_prefix . ' (Reverted balance credit)',
             ]);
             return true;
         }

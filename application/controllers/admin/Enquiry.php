@@ -85,7 +85,9 @@ class Enquiry extends Admin_Controller
             $data["selected_department"] = $department_id;
             $data["last_follow_up_from"] = $raw_last_follow_up_from;
             $data["last_follow_up_to"]   = $raw_last_follow_up_to;
-            $enquiry_list           = $this->enquiry_model->searchEnquiry($class, $source, $date_from, $date_to, $status, $department_id, $lead_vendor_id);
+            log_message('error', '[Enquiry DEBUG] raw_from=' . $raw_last_follow_up_from . ' raw_to=' . $raw_last_follow_up_to . ' conv_from=' . $last_follow_up_from . ' conv_to=' . $last_follow_up_to);
+            $enquiry_list           = $this->enquiry_model->searchEnquiry($class, $source, $date_from, $date_to, $status, $department_id, $lead_vendor_id, $last_follow_up_from, $last_follow_up_to);
+            log_message('error', '[Enquiry DEBUG] results_count=' . count($enquiry_list));
         } else {
             $enquiry_list = $this->enquiry_model->getenquiry_list(null, array('active'));
         }
@@ -103,24 +105,7 @@ class Enquiry extends Admin_Controller
         $data['prefill_email']   = $this->input->get('email', TRUE);
         $data['prefill_contact'] = $this->input->get('mobileno', TRUE);
 
-        if (!empty($last_follow_up_from) || !empty($last_follow_up_to)) {
-            $enquiry_list = array_values(array_filter($enquiry_list, function ($item) use ($last_follow_up_from, $last_follow_up_to) {
-                $follow_up_date = isset($item['followupdate']) ? trim((string) $item['followupdate']) : '';
-                if ($follow_up_date === '' || $follow_up_date === '0000-00-00') {
-                    return false;
-                }
-
-                if (!empty($last_follow_up_from) && $follow_up_date < $last_follow_up_from) {
-                    return false;
-                }
-
-                if (!empty($last_follow_up_to) && $follow_up_date > $last_follow_up_to) {
-                    return false;
-                }
-
-                return true;
-            }));
-        }
+        // DB query already filters by next follow-up date via COALESCE; no PHP post-filter needed.
    
         
         // enforce newest-first ordering by enquiry `date` (in case data source/order differs)

@@ -947,7 +947,35 @@ class Leaverequest extends Admin_Controller
             return null;
         }
 
-        // Fetch all active holiday ranges that overlap the requested date span
+        $start = new DateTime($leavefrom);
+        $end   = new DateTime($leaveto);
+
+        // --- Weekend days from settings (0=Sun … 6=Sat) ---
+        $settings       = $this->setting_model->getSetting();
+        $weekendDaysStr = isset($settings->weekend_days) && $settings->weekend_days !== ''
+            ? $settings->weekend_days : '0'; // default: Sunday only
+        $weekendDays    = array_map('intval', explode(',', $weekendDaysStr));
+
+        // Second-Saturday rule
+        $isSecondSatHoliday = isset($settings->isSecondSaturdayHoliday)
+            ? (int) $settings->isSecondSaturdayHoliday : 0;
+
+        $isWeekend = function (DateTime $dt) use ($weekendDays, $isSecondSatHoliday) {
+            $dow = (int) $dt->format('w'); // 0=Sun, 6=Sat
+            if (in_array($dow, $weekendDays, true)) {
+                return true;
+            }
+            // 2nd Saturday rule
+            if ($isSecondSatHoliday === 1 && $dow === 6) {
+                $day = (int) $dt->format('j');
+                if ($day >= 8 && $day <= 14) {
+                    return true;
+                }
+            }
+            return false;
+        };
+
+        // --- Official holidays from annual_calendar ---
         $holidays_raw = $this->db
             ->select('from_date, to_date')
             ->from('annual_calendar')
@@ -957,49 +985,53 @@ class Leaverequest extends Admin_Controller
             ->get()
             ->result_array();
 
-        // Expand holiday ranges into a set of individual dates within our range
         $holiday_dates = [];
-        $start = new DateTime($leavefrom);
-        $end   = new DateTime($leaveto);
-
         foreach ($holidays_raw as $h) {
             $h_start = new DateTime($h['from_date']);
             $h_end   = new DateTime($h['to_date']);
-            $cur = max($start, $h_start);
+            $cur  = clone (max($start, $h_start) === $start ? $start : $h_start);
             $stop = min($end, $h_end);
+            // Clamp to our range
+            if (new DateTime($h['from_date']) < $start) { $cur = clone $start; } else { $cur = clone $h_start; }
+            if (new DateTime($h['to_date'])   > $end)   { $stop = clone $end; }  else { $stop = clone $h_end; }
             while ($cur <= $stop) {
                 $holiday_dates[$cur->format('Y-m-d')] = true;
                 $cur->modify('+1 day');
             }
         }
 
+        // Helper: is a date a non-working day (weekend OR official holiday)?
+        $isNonWorking = function (DateTime $dt) use ($holiday_dates, $isWeekend) {
+            return isset($holiday_dates[$dt->format('Y-m-d')]) || $isWeekend($dt);
+        };
+
         if ($restriction === 'working_day') {
-            // OD: none of the leave days should be a holiday
+            // OD: must be applied on actual working days (not weekends, not holidays)
             $violations = [];
             $cur = clone $start;
             while ($cur <= $end) {
-                $d = $cur->format('Y-m-d');
-                if (isset($holiday_dates[$d])) {
-                    $violations[] = date($this->customlib->getSchoolDateFormat(), strtotime($d));
+                if ($isNonWorking($cur)) {
+                    $label = $isWeekend($cur) ? 'weekend' : 'holiday';
+                    $violations[] = date($this->customlib->getSchoolDateFormat(), $cur->getTimestamp()) . ' (' . $label . ')';
                 }
                 $cur->modify('+1 day');
             }
             if (!empty($violations)) {
-                return 'On Duty cannot be applied on official holidays: ' . implode(', ', $violations) . '.';
+                return 'On Duty can only be applied on working days. Non-working dates in range: ' . implode(', ', $violations) . '.';
             }
         } elseif ($restriction === 'holiday') {
-            // CPL: at least one day in the range must be a holiday
-            $has_holiday = false;
+            // CPL: at least one day must be a non-working day (official holiday OR weekend)
+            $has_non_working = false;
             $cur = clone $start;
             while ($cur <= $end) {
-                if (isset($holiday_dates[$cur->format('Y-m-d')])) {
-                    $has_holiday = true;
+                if ($isNonWorking($cur)) {
+                    $has_non_working = true;
                     break;
                 }
                 $cur->modify('+1 day');
             }
-            if (!$has_holiday) {
-                return 'Compensatory Planned Leave (CPL) can only be applied for official holiday dates. No holidays found in the selected date range.';
+            if (!$has_non_working) {
+                return 'Compensatory Planned Leave (CPL) can only be applied for non-working days (holidays or weekends). No such days found in the selected date range.';
             }
         }
 
@@ -1217,6 +1249,15 @@ class Leaverequest extends Admin_Controller
         $current_user_id = $this->customlib->getStaffID();
         $leave_request = $this->leaverequest_model->get_staff_leave($leave_request_id);
 
+        // DEBUG: Trace leaveStatus inputs — remove after fix confirmed
+        log_message('error', '[leaveStatus DEBUG] leave_request_id=' . var_export($leave_request_id, true)
+            . ' status=' . var_export($status, true)
+            . ' current_user_id=' . var_export($current_user_id, true)
+            . ' leave_request_found=' . (empty($leave_request) ? 'NO' : 'YES')
+            . ' recommender_status=' . var_export($leave_request['recommender_status'] ?? 'N/A', true)
+            . ' is_admin=' . var_export($this->currentUserIsAdminOrSuperAdmin(), true)
+        );
+
         $data = [];
         $is_recommender = ($leave_request['recommender_id'] == $current_user_id);
         $is_approver = ($leave_request['approver_id'] == $current_user_id);
@@ -1338,7 +1379,9 @@ class Leaverequest extends Admin_Controller
                 echo json_encode($array);
                 return;
             }
-            $this->leaverequest_model->changeLeaveStatus($data, $leave_request_id);
+            $update_result = $this->leaverequest_model->changeLeaveStatus($data, $leave_request_id);
+            // DEBUG: log update result — remove after fix confirmed
+            log_message('error', '[leaveStatus DEBUG] changeLeaveStatus result=' . var_export($update_result, true) . ' data=' . json_encode($data) . ' id=' . $leave_request_id);
 
             // Log audit credit for OD/CPL-type leaves at the moment of final approval
             if (isset($data['status']) && $data['status'] === 'approved') {
