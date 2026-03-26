@@ -57,50 +57,38 @@ class MetaLeads extends CI_Controller
     // ─────────────────────────────────────────────────────────────────────
     private function _handle_verification()
     {
-        $mode         = $this->input->get('hub_mode');         // dots become underscores in CI
-        $token        = $this->input->get('hub_verify_token');
-        $challenge    = $this->input->get('hub_challenge');
+        // PHP converts dots to underscores in $_GET — hub.mode → hub_mode etc.
+        $mode      = isset($_GET['hub_mode'])         ? $_GET['hub_mode']         : '';
+        $token     = isset($_GET['hub_verify_token']) ? $_GET['hub_verify_token'] : '';
+        $challenge = isset($_GET['hub_challenge'])    ? $_GET['hub_challenge']    : '';
 
-        // Fallback to raw query string in case CI's input class alters the keys.
-        if (empty($mode) || empty($token)) {
-            parse_str($_SERVER['QUERY_STRING'] ?? '', $qs);
-            $mode      = $qs['hub.mode']         ?? '';
-            $token     = $qs['hub.verify_token'] ?? '';
-            $challenge = $qs['hub.challenge']    ?? '';
-        }
+        // Direct DB query — skip getSetting() entirely to avoid any SELECT/join issue
+        $row = $this->db->select('meta_leads_enabled, meta_verify_token')
+            ->limit(1)->get('sch_settings')->row_array();
 
-        $setting = $this->setting_model->getSetting();
-        $configured_token = trim((string) ($setting->meta_verify_token ?? ''));
-        $enabled          = (int) ($setting->meta_leads_enabled ?? 0);
-
-        // Fallback: query sch_settings directly in case getSetting() SELECT is missing the meta fields
-        if ($configured_token === '' || $enabled === 0) {
-            $direct = $this->db->select('meta_leads_enabled, meta_verify_token')
-                ->limit(1)->get('sch_settings')->row_array();
-            if (!empty($direct)) {
-                if ($configured_token === '') {
-                    $configured_token = trim((string)($direct['meta_verify_token'] ?? ''));
-                }
-                if ($enabled === 0) {
-                    $enabled = (int)($direct['meta_leads_enabled'] ?? 0);
-                }
-            }
-        }
+        $enabled          = (int)   ($row['meta_leads_enabled']  ?? 0);
+        $configured_token = trim((string) ($row['meta_verify_token'] ?? ''));
 
         if ($enabled !== 1) {
             log_message('error', '[MetaLeads] Verification attempt but Meta Leads integration is disabled.');
-            $this->output->set_status_header(403)->set_output('Meta Lead integration is disabled.');
-            return;
+            http_response_code(403);
+            echo 'Meta Lead integration is disabled.';
+            exit;
         }
 
-        if ($mode === 'subscribe' && $configured_token !== '' && hash_equals($configured_token, (string) $token)) {
+        if ($mode === 'subscribe' && $configured_token !== '' && hash_equals($configured_token, $token)) {
             log_message('info', '[MetaLeads] Webhook verification successful.');
-            $this->output->set_status_header(200)->set_output((string) $challenge);
-            return;
+            http_response_code(200);
+            header('Content-Type: text/plain');
+            echo $challenge;
+            exit;
         }
 
-        log_message('error', '[MetaLeads] Webhook verification FAILED. mode=' . $mode . ' token_match=' . ($token === $configured_token ? 'yes' : 'no'));
-        $this->output->set_status_header(403)->set_output('Verification failed.');
+        log_message('error', '[MetaLeads] Webhook verification FAILED. mode=' . $mode
+            . ' received_token=' . $token . ' configured_token=' . $configured_token);
+        http_response_code(403);
+        echo 'Verification failed.';
+        exit;
     }
 
     // ─────────────────────────────────────────────────────────────────────
