@@ -572,7 +572,9 @@ class Leaverequest_model extends MY_model
                 // For CPL earning (requires_balance_check = 0 and not a consumer), update the monthly balance
                 if ($balance_id) {
                     $this->db->where('id', $balance_id)->update('staff_monthly_leave_balance', [
-                        'opening_balance' => (float)$balance_row['opening_balance'] + $leave_days,
+                        // opening_balance is the carry-forward from previous month — never modified here.
+                        // Only earned_in_month tracks newly approved days.
+                        // syncOnDutyCreditsForMonth at payroll time recomputes closing as opening+earned.
                         'earned_in_month' => (float)$balance_row['earned_in_month'] + $leave_days,
                         'closing_balance' => $balance_after,
                         'updated_at' => date('Y-m-d H:i:s')
@@ -583,7 +585,7 @@ class Leaverequest_model extends MY_model
                         'leave_type_id' => $leave_type_id,
                         'month' => $month,
                         'year' => $year,
-                        'opening_balance' => $balance_before + $leave_days,
+                        'opening_balance' => $balance_before,  // carry-forward only, NOT + leave_days
                         'earned_in_month' => $leave_days,
                         'used_for_lop_adjustment' => 0,
                         'used_for_leave_application' => 0,

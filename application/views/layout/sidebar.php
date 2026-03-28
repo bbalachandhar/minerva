@@ -61,8 +61,7 @@ if (!empty($side_list)) {
                 if (in_array((string) ($submenu_probe->url ?? ''), [
                     'admin/staff/leaverequest',
                     'admin/leaverequest/leaverequest',
-                    'admin/leaverequest/recommender_leave_requests',
-                    'admin/leaverequest/applyleave'
+                    'admin/leaverequest/recommender_leave_requests'
                 ], true)) {
                     $module_access = true;
                     break;
@@ -105,8 +104,7 @@ foreach ($side_list_value->submenus as $submenu_key => $submenu_value) {
                         if (!$sidebar_access && in_array((string) ($submenu_value->url ?? ''), [
                             'admin/staff/leaverequest',
                             'admin/leaverequest/leaverequest',
-                            'admin/leaverequest/recommender_leave_requests',
-                            'admin/leaverequest/applyleave'
+                            'admin/leaverequest/recommender_leave_requests'
                         ], true)) {
                             $sidebar_access = true;
                         }

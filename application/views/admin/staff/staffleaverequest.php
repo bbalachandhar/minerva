@@ -14,7 +14,7 @@ $apply_leave_no_balance = (!empty($leave_screen_mode) && $leave_screen_mode === 
     <section class="content-header">
         <h1><i class="fa fa-sitemap"></i> <?php //echo $this->lang->line('human_resource'); ?>
             <?php
-if (!$apply_leave_disabled && !$apply_leave_no_balance && $this->rbac->hasPrivilege('apply_leave', 'can_add') && ($this->uri->segment(2) == 'staff' || $this->uri->segment(3) == 'applyleave')) {
+if (!$apply_leave_disabled && !$apply_leave_no_balance && $this->rbac->hasPrivilege('apply_leave', 'can_add') && ($this->uri->segment(2) == 'staff' || $this->uri->segment(3) == 'applyleave' || $this->uri->segment(3) == 'claimleave')) {
     ?>
                 <small class="pull-right"><a href="#addleave" onclick="addLeave()" role="button" class="btn btn-primary btn-sm checkbox-toggle pull-right edit_setting" data-loading-text="<i class='fa fa-circle-o-notch fa-spin'></i> <?php echo $this->lang->line('processing'); ?>"><?php echo (!empty($leave_screen_mode) && $leave_screen_mode === 'claim_leave') ? 'Apply Leave Claim' : $this->lang->line('add_leave_request'); ?></a></small>
             <?php }?></h1>
@@ -28,7 +28,7 @@ if (!$apply_leave_disabled && !$apply_leave_no_balance && $this->rbac->hasPrivil
                 <div class="box box-primary">
                     <div class="box-header ptbnull">
                         <h3 class="box-title titlefix pt5"><?php echo $this->lang->line('approve_leave_request'); ?></h3> <?php
-if (!$apply_leave_disabled && !$apply_leave_no_balance && $this->rbac->hasPrivilege('apply_leave', 'can_add') && ($this->uri->segment(2) == 'staff' || $this->uri->segment(3) == 'applyleave')) {
+if (!$apply_leave_disabled && !$apply_leave_no_balance && $this->rbac->hasPrivilege('apply_leave', 'can_add') && ($this->uri->segment(2) == 'staff' || $this->uri->segment(3) == 'applyleave' || $this->uri->segment(3) == 'claimleave')) {
     ?>
                             <small class="pull-right"><a href="#addleave" onclick="addLeave()" role="button" class="btn btn-primary btn-sm checkbox-toggle pull-right edit_setting" data-loading-text="<i class='fa fa-circle-o-notch fa-spin'></i> <?php echo $this->lang->line('processing'); ?>"><?php echo (!empty($leave_screen_mode) && $leave_screen_mode === 'claim_leave') ? 'Apply Leave Claim' : $this->lang->line('add_leave_request'); ?></a></small>
                         <?php }?>
@@ -42,8 +42,8 @@ if (!$apply_leave_disabled && !$apply_leave_no_balance && $this->rbac->hasPrivil
                             <p>To apply for leave manually, please ask your administrator to disable the <em>Auto Adjust LOP with Paid Leaves</em> setting.</p>
                         </div>
                         <?php else: ?>
-                        <?php if (!empty($leave_screen_mode) && $leave_screen_mode === 'apply_leave' && isset($leave_balance_summary)): ?>
-                        <!-- Leave Balance Summary Panel (Apply Leave screen only) -->
+                        <?php if (!empty($leave_screen_mode) && in_array($leave_screen_mode, ['apply_leave', 'claim_leave']) && isset($leave_balance_summary)): ?>
+                        <!-- Leave Balance Summary Panel (Apply Leave / Apply Leave Claim screens) -->
                         <div class="row" style="margin-bottom:12px;">
                             <div class="col-xs-12">
                                 <div class="box box-default box-solid" style="margin-bottom:0;">

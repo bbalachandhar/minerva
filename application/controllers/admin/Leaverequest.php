@@ -709,6 +709,119 @@ class Leaverequest extends Admin_Controller
         $this->load->view("layout/footer", $data);
     }
 
+    /**
+     * Apply Leave Claim — for claim-based leave types (OD, CPL, etc.).
+     * Always scoped to the current staff's own leave records.
+     */
+    public function claimleave()
+    {
+        if ((int) $this->customlib->getStaffID() <= 0) {
+            access_denied();
+        }
+
+        $this->session->set_userdata('top_menu', 'HR');
+        $this->session->set_userdata('sub_menu', 'admin/leaverequest/claimleave');
+
+        $current_staff_id = (int) $this->customlib->getStaffID();
+        $is_admin_or_super_admin = $this->currentUserIsAdminOrSuperAdmin();
+        $data['staff_id']              = $current_staff_id;
+        // Admin/Super Admin see all records; regular staff see only their own.
+        $data['leave_request']         = $is_admin_or_super_admin
+            ? $this->leaverequest_model->staff_leave_request()
+            : $this->leaverequest_model->staff_leave_request($current_staff_id);
+        $data['is_admin_or_super_admin'] = $is_admin_or_super_admin;
+        $data['leavetype']             = $this->staff_model->getLeaveType();
+        $data['staffrole']             = $this->staff_model->getStaffRole();
+        $data['status']                = $this->status;
+        $data['leave_management_policy'] = $this->getLeaveManagementPolicy();
+        $data['sch_setting_detail']    = $this->sch_setting_detail;
+
+        $staff_details = $this->staff_model->get($current_staff_id);
+        $data['current_staff_details'] = $staff_details;
+
+        $this->load->model('subjecttimetable_model');
+        $data['staff_timetable'] = $this->subjecttimetable_model->getStaffTimetable(
+            $current_staff_id, date('Y-m-01'), date('Y-m-t')
+        );
+
+        $department_id = $this->getStaffDepartmentId($current_staff_id, $staff_details);
+        $data['potential_substitutes'] = $department_id > 0
+            ? $this->staff_model->getEmployeeByDepartment($department_id, $current_staff_id)
+            : [];
+
+        $routing = $this->resolveRecommenderApproverIds($current_staff_id, 0);
+        $recommender_staff = null;
+        $approver_staff    = null;
+        if (!empty($routing['recommender_id'])) {
+            $rec = $this->staff_model->get((int) $routing['recommender_id']);
+            if (!empty($rec) && is_array($rec)) { $recommender_staff = $rec; }
+        }
+        if (!empty($routing['approver_id'])) {
+            $apr = $this->staff_model->get((int) $routing['approver_id']);
+            if (!empty($apr) && is_array($apr)) { $approver_staff = $apr; }
+        }
+
+        $data['recommender_info'] = $recommender_staff
+            ? $recommender_staff['name'] . ' ' . $recommender_staff['surname'] . ' (' . $recommender_staff['designation'] . ')'
+            : $this->lang->line('not_assigned');
+        $data['approver_info'] = $approver_staff
+            ? $approver_staff['name'] . ' ' . $approver_staff['surname'] . ' (' . $approver_staff['designation'] . ')'
+            : $this->lang->line('not_assigned');
+        $data['leave_approver_configured'] = !empty($approver_staff);
+        $data['leave_screen_mode'] = 'claim_leave'; // Apply Leave Claim: OD/CPL claim-based types only
+
+        // --- Leave balance summary for the Apply Leave Claim screen ---
+        $alloted_leavetype = $this->leaverequest_model->allotedLeaveType($current_staff_id);
+        $all_leavetypes    = $this->staff_model->getLeaveType();
+        $allotted_map = [];
+        foreach ($alloted_leavetype as $lv) {
+            $allotted_map[$lv['leave_type_id']] = $lv;
+        }
+        $balance_summary  = [];
+        $has_any_balance  = false;
+        foreach ($all_leavetypes as $lv) {
+            $is_lop             = isset($lv['is_lop']) && $lv['is_lop'] == 1;
+            $credit_src         = $this->leaveTypeCreditSourceId($lv);
+            $is_credit_consumer = !$is_lop && $credit_src !== null;
+            $is_claim_based     = !$is_lop && !$is_credit_consumer && $this->leaveTypeRequiresBalanceCheck($lv) === false;
+            $is_movement_credit = $is_claim_based && $this->isMovementCreditType($lv);
+
+            if ($is_lop) {
+                continue; // LOP not shown on claim leave screen
+            }
+
+            if ($is_credit_consumer) {
+                $pool_balance = $this->getAvailableCreditPoolBalance($current_staff_id, $credit_src);
+                $balance_summary[] = [
+                    'type'      => $lv['type'],
+                    'allotted'  => null,
+                    'used'      => null,
+                    'available' => $pool_balance,
+                    'kind'      => 'credit_consumer',
+                ];
+                if ($pool_balance > 0) {
+                    $has_any_balance = true;
+                }
+            } elseif ($is_movement_credit) {
+                $balance_summary[] = [
+                    'type'      => $lv['type'],
+                    'allotted'  => null,
+                    'used'      => null,
+                    'available' => null,
+                    'kind'      => 'claim_based',
+                ];
+                $has_any_balance = true;
+            }
+            // Regular CL/ML types not shown on claim screen
+        }
+        $data['leave_balance_summary'] = $balance_summary;
+        $data['has_any_leave_balance']  = $has_any_balance;
+
+        $this->load->view("layout/header", $data);
+        $this->load->view("admin/staff/staffleaverequest", $data);
+        $this->load->view("layout/footer", $data);
+    }
+
     public function countLeave($id)
     {
         $lid               = $this->input->post("lid");
