@@ -926,8 +926,6 @@ class Payroll_model extends MY_Model
     {
         $total_days = 0.0;
         $is_movement_credit_type = false;
-        $settings = null;
-        $holiday_cache = [];
         $has_balance_flag = $this->db->field_exists('requires_balance_check', 'leave_types');
 
         $this->db->select('type, is_lop');
@@ -944,30 +942,6 @@ class Payroll_model extends MY_Model
             $is_movement_credit_type = in_array($type_name, ['on duty', 'od'], true);
         }
 
-        $present_dates = [];
-        if ($is_movement_credit_type) {
-            $settings = $this->setting_model->getSetting();
-            $present_rows = $this->db->select('sa.date')
-                ->from('staff_attendance sa')
-                ->join('staff_attendance_type sat', 'sat.id = sa.staff_attendance_type_id', 'left')
-                ->where('sa.staff_id', (int) $staff_id)
-                ->where('sa.date >=', $start_date)
-                ->where('sa.date <=', $end_date)
-                ->group_start()
-                ->where('LOWER(TRIM(sat.type))', 'present')
-                ->or_where('UPPER(TRIM(sat.key_value))', 'P')
-                ->group_end()
-                ->get()
-                ->result_array();
-
-            foreach ($present_rows as $present_row) {
-                $present_date = (string) ($present_row['date'] ?? '');
-                if ($present_date !== '') {
-                    $present_dates[$present_date] = true;
-                }
-            }
-        }
-
         $this->db->select('leave_from, leave_to, leave_days, leave_duration_type');
         $this->db->from('staff_leave_request');
         $this->db->where('staff_id', (int) $staff_id);
@@ -975,6 +949,11 @@ class Payroll_model extends MY_Model
         $this->db->where_in('status', ['approve', 'approved']);
         $this->db->where('leave_from <=', $end_date);
         $this->db->where('leave_to >=', $start_date);
+        // For credit-earner types (OD/CPL), only claimleave-submitted ('credit') requests earn balance.
+        // applyleave-submitted ('debit') requests consume balance and must not be counted as earned.
+        if ($is_movement_credit_type && $this->db->field_exists('leave_direction', 'staff_leave_request')) {
+            $this->db->where('leave_direction', 'credit');
+        }
         $query = $this->db->get();
         $rows = $query->result_array();
 
@@ -992,22 +971,28 @@ class Payroll_model extends MY_Model
             }
 
             $duration_type = strtolower(trim((string) ($row['leave_duration_type'] ?? 'full_day')));
-            if (in_array($duration_type, ['half_day', 'first_half', 'second_half'], true)) {
-                if ($is_movement_credit_type && isset($present_dates[$effective_from]) && !$this->isWeekendOrOfficialHolidayForPayroll($effective_from, $settings, $holiday_cache)) {
-                    continue;
+
+            if ($is_movement_credit_type) {
+                // OD/CPL approved claim = credit as applied. No attendance cross-check.
+                // The approved claim IS the justification — punch is irrelevant.
+                // Balance-offset in buildLopAdjustmentLeavePool handles the LOP reduction.
+                if (in_array($duration_type, ['half_day', 'first_half', 'second_half'], true)) {
+                    $total_days += 0.5;
+                } else {
+                    $from_ts = strtotime($effective_from);
+                    $to_ts   = strtotime($effective_to);
+                    if ($from_ts !== false && $to_ts !== false) {
+                        $covered = (int) round(($to_ts - $from_ts) / 86400) + 1;
+                        if ($covered > 0) {
+                            $total_days += (float) $covered;
+                        }
+                    }
                 }
-                $total_days += 0.5;
                 continue;
             }
 
-            if ($is_movement_credit_type) {
-                $cursor = $effective_from;
-                while ($cursor <= $effective_to) {
-                    if (!isset($present_dates[$cursor]) || $this->isWeekendOrOfficialHolidayForPayroll($cursor, $settings, $holiday_cache)) {
-                        $total_days += 1.0;
-                    }
-                    $cursor = date('Y-m-d', strtotime($cursor . ' +1 day'));
-                }
+            if (in_array($duration_type, ['half_day', 'first_half', 'second_half'], true)) {
+                $total_days += 0.5;
                 continue;
             }
 
@@ -1171,6 +1156,8 @@ class Payroll_model extends MY_Model
             $other_deductions = (float) ($balance['other_deductions'] ?? 0);
             $closing_balance = $opening_balance + $approved_days - $used_for_lop_adjustment - $used_for_leave_application - $other_deductions;
 
+            $old_earned = (float) ($balance['earned_in_month'] ?? 0);
+            $old_closing = (float) ($balance['closing_balance'] ?? 0);
             $balance['earned_in_month'] = $approved_days;
             $balance['closing_balance'] = $closing_balance;
 
@@ -1181,6 +1168,28 @@ class Payroll_model extends MY_Model
                     'closing_balance' => $closing_balance,
                     'updated_at' => date('Y-m-d H:i:s')
                 ]);
+
+                // Audit row whenever payroll sync changes the earned amount
+                // (catches provisional credits that differ from final attendance reality).
+                if (abs($approved_days - $old_earned) > 0.001) {
+                    $this->db->insert('staff_leave_balance_audit', [
+                        'balance_id'     => (int) $balance['id'],
+                        'staff_id'       => (int) $staff_id,
+                        'leave_type_id'  => (int) $leave_type_id,
+                        'action_type'    => 'PAYROLL_OD_SYNC',
+                        'amount'         => $approved_days,
+                        'balance_before' => $old_closing,
+                        'balance_after'  => $closing_balance,
+                        'reference_id'   => null,
+                        'reference_type' => 'payroll_sync',
+                        'performed_by'   => null,
+                        'reason'         => sprintf(
+                            'Payroll sync %d/%d: earned_in_month corrected %.2f \u2192 %.2f',
+                            $month_int, $year_int, $old_earned, $approved_days
+                        ),
+                        'created_at'     => date('Y-m-d H:i:s'),
+                    ]);
+                }
             }
 
             $od_balances[(int) $leave_type_id] = $balance;

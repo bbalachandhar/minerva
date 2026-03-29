@@ -654,8 +654,12 @@ class Payroll extends Admin_Controller
         $paid_leave_absent = $this->getPaidLeaveAbsentCountRange($period['start_date'], $period['end_date'], $staff_id);
         $weekend_lop_days = $this->getNonPayableWeekendCountRange($staff_id, $period['start_date'], $period['end_date'], $context);
 
-        // Absent days covered by explicitly approved pre-allotted leaves (requires_balance_check=1).
-        // Only subtract from LOP when application-driven mode is active (setting=0).
+        // Debit-direction (applyleave) absent days ALWAYS subtract from LOP in BOTH modes.
+        // Staff explicitly consumed their balance for these days — they must never become LOP,
+        // regardless of whether auto-adjust is on or off.
+        $debit_leave_absent = $this->getDebitLeaveAbsentCountRange($period['start_date'], $period['end_date'], $staff_id, $context);
+
+        // Pre-allotted (CL/ML: rcb=1) absent days only subtract in manual mode (setting=0).
         // In auto-adjust mode (setting=1), buildLopAdjustmentLeavePool handles CL/ML at payroll.
         $auto_adjust_preallotted = (int)($this->sch_setting_detail->auto_adjust_lop_with_preallotted_leaves ?? 0);
         $preallotted_leave_absent = ($auto_adjust_preallotted === 0)
@@ -665,7 +669,7 @@ class Payroll extends Admin_Controller
         $total_present = max(0, $present + ($half_day * $half_day_weight) - $late_permission_penalty);
         $total_absent = $absent_working + ($half_day * $half_day_weight) + $late_permission_penalty;
 
-        $lop_days = max(0, $total_absent - $preallotted_leave_absent)
+        $lop_days = max(0, $total_absent - $debit_leave_absent - $preallotted_leave_absent)
             + (($first_half_absent + $second_half_absent) * $half_day_weight)
             + $weekend_lop_days;
 
@@ -694,6 +698,7 @@ class Payroll extends Admin_Controller
             'second_half_permission' => $second_half_permission,
             'approved_leave' => $approved_leave,
             'paid_leave_absent' => $paid_leave_absent,
+            'debit_leave_absent' => $debit_leave_absent,
             'preallotted_leave_absent' => $preallotted_leave_absent,
             'holidays' => $holidays,
             'sundays' => $sundays,
@@ -1328,6 +1333,42 @@ class Payroll extends Admin_Controller
         return $absent_covered;
     }
 
+    /**
+     * Count absent working days explicitly covered by an approved applyleave (debit-direction) request.
+     * These days must ALWAYS be subtracted from raw LOP in both auto and manual modes,
+     * because the staff already consumed their balance for those specific days.
+     */
+    private function getDebitLeaveAbsentCountRange($start_date, $end_date, $staff_id, $context = null)
+    {
+        if (!$this->db->field_exists('leave_direction', 'staff_leave_request')) {
+            return 0.0; // Column doesn't exist on this instance — no debit-direction leaves possible.
+        }
+
+        if ($context === null) {
+            $context = $this->getWorkingDayContextRange($start_date, $end_date);
+        }
+
+        $credits = $this->getApprovedPaidLeaveCreditsByRange($start_date, $end_date, $staff_id, false, true);
+        if (empty($credits)) {
+            return 0.0;
+        }
+
+        $working_day_lookup = array_fill_keys($context['working_day_dates'], true);
+        $absent_covered = 0.0;
+        foreach ($credits as $leave_date => $credit) {
+            if (!isset($working_day_lookup[$leave_date])) {
+                continue;
+            }
+            $attendance_row = $this->staffattendancemodel->searchStaffattendance($leave_date, $staff_id, false);
+            $attendance_key = $this->getNormalizedAttendanceKeyForPayrollRow((array) $attendance_row, (int) $staff_id);
+            if ($attendance_key === 'A') {
+                $absent_covered += max(0, min(1, (float) $credit));
+            }
+        }
+
+        return $absent_covered;
+    }
+
     private function getApprovedPaidLeaveDates($month_num, $year, $staff_id)
     {
         $start_date = $year . '-' . sprintf('%02d', $month_num) . '-01';
@@ -1346,11 +1387,16 @@ class Payroll extends Admin_Controller
 
     /**
      * Returns approved paid-leave credits keyed by date.
-     * When $balance_check_only = true, only includes leave types where
-     * requires_balance_check = 1 (CL, ML etc.) — used to prevent double
-     * deduction when the employee has explicitly applied for leave.
+     *
+     * $debit_only = true  → only applyleave (leave_direction='debit') requests.
+     * $balance_check_only = true → pre-allotted types (rcb=1) and credit-consumers only.
+     * Both false → all non-LOP approved leaves.
+     *
+     * NOTE: debit-direction leaves are intentionally excluded from $balance_check_only
+     * because they are handled separately via getDebitLeaveAbsentCountRange and must
+     * always be subtracted from LOP regardless of auto-adjust mode.
      */
-    private function getApprovedPaidLeaveCreditsByRange($start_date, $end_date, $staff_id, $balance_check_only = false)
+    private function getApprovedPaidLeaveCreditsByRange($start_date, $end_date, $staff_id, $balance_check_only = false, $debit_only = false)
     {
         $has_duration_column = $this->db->field_exists('leave_duration_type', 'staff_leave_request');
         if ($has_duration_column) {
@@ -1363,13 +1409,18 @@ class Payroll extends Admin_Controller
         $this->db->where('staff_leave_request.staff_id', $staff_id);
         $this->db->where_in('staff_leave_request.status', ['approve', 'approved']);
         $this->db->where('leave_types.is_lop', 0);
-        if ($balance_check_only) {
+        if ($debit_only) {
+            // Applyleave (debit-direction) requests only.
+            $this->db->where('staff_leave_request.leave_direction', 'debit');
+        } elseif ($balance_check_only) {
+            // Pre-allotted types (CL/ML: rcb=1) and credit-consumer types (CPL).
+            // Debit-direction leaves are handled by getDebitLeaveAbsentCountRange — excluded here.
             $has_rc = $this->db->field_exists('requires_balance_check', 'leave_types');
             $has_cs = $this->db->field_exists('credit_source_type_id', 'leave_types');
-            if ($has_rc || $has_cs) {
-                $conditions = [];
-                if ($has_rc) { $conditions[] = 'leave_types.requires_balance_check = 1'; }
-                if ($has_cs) { $conditions[] = 'leave_types.credit_source_type_id IS NOT NULL'; }
+            $conditions = [];
+            if ($has_rc) { $conditions[] = 'leave_types.requires_balance_check = 1'; }
+            if ($has_cs) { $conditions[] = 'leave_types.credit_source_type_id IS NOT NULL'; }
+            if (!empty($conditions)) {
                 $this->db->where('(' . implode(' OR ', $conditions) . ')', null, false);
             }
         }

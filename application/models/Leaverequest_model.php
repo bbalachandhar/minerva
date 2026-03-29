@@ -249,9 +249,13 @@ class Leaverequest_model extends MY_model
 
     public function addLeaveRequest($data)
     {
-        $has_duration_column = $this->db->field_exists('leave_duration_type', 'staff_leave_request');
+        $has_duration_column  = $this->db->field_exists('leave_duration_type', 'staff_leave_request');
+        $has_direction_column = $this->db->field_exists('leave_direction', 'staff_leave_request');
         if (!$has_duration_column && isset($data['leave_duration_type'])) {
             unset($data['leave_duration_type']);
+        }
+        if (!$has_direction_column && isset($data['leave_direction'])) {
+            unset($data['leave_direction']);
         }
 
         if (isset($data['id'])) {
@@ -493,16 +497,19 @@ class Leaverequest_model extends MY_model
             return false;
         }
 
-        $leave_type_id = (int) ($leave_req['leave_type_id'] ?? 0);
-        $staff_id      = (int) ($leave_req['staff_id'] ?? 0);
-        $leave_days    = (float) ($leave_req['leave_days'] ?? 0);
-        $leave_from    = (string) ($leave_req['leave_from'] ?? '');
+        $leave_type_id   = (int) ($leave_req['leave_type_id'] ?? 0);
+        $staff_id        = (int) ($leave_req['staff_id'] ?? 0);
+        $leave_days      = (float) ($leave_req['leave_days'] ?? 0);
+        $leave_from      = (string) ($leave_req['leave_from'] ?? '');
+        // 'credit' = claimleave (earns balance); 'debit' = applyleave (consumes balance).
+        // Old records without the column default to 'credit' (all came from claimleave).
+        $leave_direction = isset($leave_req['leave_direction']) ? (string) $leave_req['leave_direction'] : 'credit';
 
         if (!$leave_type_id || !$staff_id || !$leave_days || !$leave_from) {
             return false;
         }
 
-        $has_balance_flag = $this->db->field_exists('requires_balance_check', 'leave_types');
+        $has_balance_flag       = $this->db->field_exists('requires_balance_check', 'leave_types');
         $has_credit_source_flag = $this->db->field_exists('credit_source_type_id', 'leave_types');
         $this->db->select(
             'type, is_lop'
@@ -547,77 +554,113 @@ class Leaverequest_model extends MY_model
             ->get('staff_monthly_leave_balance')
             ->row_array();
 
-        if ($requires_balance_check === 0) {
-            // OD (pure credit-earner) — audit only; payroll sync is authoritative.
-            // Note: CPL (credit-consumer) is handled separately below.
-            if (!$is_credit_consumer) {
-                $balance_id = !empty($balance_row) ? (int) $balance_row['id'] : null;
-                $balance_before = 0.0;
-                
-                if (!empty($balance_row)) {
-                    $balance_before = (float) ($balance_row['closing_balance'] ?? 0);
-                } else {
-                    // Try to get latest previous balance carryover
-                    $prev_balance_row = $this->db->where('staff_id', $staff_id)
-                        ->where('leave_type_id', $leave_type_id)
-                        ->order_by('year', 'DESC')->order_by('month', 'DESC')->limit(1)
-                        ->get('staff_monthly_leave_balance')->row_array();
-                    if (!empty($prev_balance_row)) {
-                        $balance_before = (float) ($prev_balance_row['closing_balance'] ?? 0);
-                    }
-                }
-                
-                $balance_after  = $balance_before + $leave_days;
+        if ($requires_balance_check === 0 && !$is_credit_consumer) {
+            // OD / CPL-earner: direction determines credit or debit.
+            $balance_id     = !empty($balance_row) ? (int) $balance_row['id'] : null;
+            $balance_before = 0.0;
 
-                // For CPL earning (requires_balance_check = 0 and not a consumer), update the monthly balance
+            if (!empty($balance_row)) {
+                $balance_before = (float) ($balance_row['closing_balance'] ?? 0);
+            } else {
+                $prev_balance_row = $this->db->where('staff_id', $staff_id)
+                    ->where('leave_type_id', $leave_type_id)
+                    ->order_by('year', 'DESC')->order_by('month', 'DESC')->limit(1)
+                    ->get('staff_monthly_leave_balance')->row_array();
+                if (!empty($prev_balance_row)) {
+                    $balance_before = (float) ($prev_balance_row['closing_balance'] ?? 0);
+                }
+            }
+
+            if ($leave_direction === 'debit') {
+                // applyleave: staff is consuming this earned balance (e.g. spending OD days).
+                $balance_after = max(0, $balance_before - $leave_days);
                 if ($balance_id) {
+                    $old_used = (float) ($balance_row['used_for_leave_application'] ?? 0);
                     $this->db->where('id', $balance_id)->update('staff_monthly_leave_balance', [
-                        // opening_balance is the carry-forward from previous month — never modified here.
-                        // Only earned_in_month tracks newly approved days.
-                        // syncOnDutyCreditsForMonth at payroll time recomputes closing as opening+earned.
-                        'earned_in_month' => (float)$balance_row['earned_in_month'] + $leave_days,
-                        'closing_balance' => $balance_after,
-                        'updated_at' => date('Y-m-d H:i:s')
+                        'used_for_leave_application' => $old_used + $leave_days,
+                        'closing_balance'             => $balance_after,
+                        'updated_at'                  => date('Y-m-d H:i:s'),
                     ]);
                 } else {
                     $this->db->insert('staff_monthly_leave_balance', [
-                        'staff_id' => $staff_id,
-                        'leave_type_id' => $leave_type_id,
-                        'month' => $month,
-                        'year' => $year,
-                        'opening_balance' => $balance_before,  // carry-forward only, NOT + leave_days
-                        'earned_in_month' => $leave_days,
-                        'used_for_lop_adjustment' => 0,
-                        'used_for_leave_application' => 0,
-                        'closing_balance' => $balance_after,
-                        'created_at' => date('Y-m-d H:i:s'),
-                        'updated_at' => date('Y-m-d H:i:s')
+                        'staff_id'                   => $staff_id,
+                        'leave_type_id'              => $leave_type_id,
+                        'month'                      => $month,
+                        'year'                       => $year,
+                        'opening_balance'            => $balance_before,
+                        'earned_in_month'            => 0,
+                        'used_for_lop_adjustment'    => 0,
+                        'used_for_leave_application' => $leave_days,
+                        'closing_balance'            => $balance_after,
+                        'created_at'                 => date('Y-m-d H:i:s'),
+                        'updated_at'                 => date('Y-m-d H:i:s'),
                     ]);
                     $balance_id = $this->db->insert_id();
                 }
-
+                $action_type = 'LEAVE_APPROVED_DEBIT';
                 $reason = sprintf(
-                    'Leave approved: %s to %s (%s days) — %s',
-                    $leave_req['leave_from'],
-                    $leave_req['leave_to'],
-                    $leave_days,
-                    $type_row['type']
+                    'Leave approved (debit): %s to %s (%s days) — %s',
+                    $leave_req['leave_from'], $leave_req['leave_to'], $leave_days, $type_row['type']
                 );
-
-                return $this->db->insert('staff_leave_balance_audit', [
-                    'balance_id'     => $balance_id,
-                    'staff_id'       => $staff_id,
-                    'leave_type_id'  => $leave_type_id,
-                    'action_type'    => 'LEAVE_APPROVED_CREDIT',
-                    'amount'         => $leave_days,
-                    'balance_before' => $balance_before,
-                    'balance_after'  => $balance_after,
-                    'reference_id'   => $leave_request_id,
-                    'reference_type' => 'leave_request',
-                    'performed_by'   => $approver_id,
-                    'reason'         => $reason,
-                ]);
+            } else {
+                // claimleave: staff is earning balance — only earned_in_month changes;
+                // opening_balance is the carry-forward and must never be modified here.
+                //
+                // OD policy: only credit for days where attendance is Absent (or no record).
+                // If the staff had a valid punch (Present / Half-day / Permission / Late)
+                // the OD is stored for audit only — no balance is earned for that date.
+                $leave_duration_type = (string)($leave_req['leave_duration_type'] ?? 'full_day');
+                $creditable_days = $this->getOdCreditableDays(
+                    $staff_id, $leave_req['leave_from'], $leave_req['leave_to'], $leave_days, $leave_duration_type
+                );
+                if ($creditable_days <= 0) {
+                    // All dates had a valid punch — audit record only, no balance change.
+                    return true;
+                }
+                $balance_after = $balance_before + $creditable_days;
+                if ($balance_id) {
+                    $this->db->where('id', $balance_id)->update('staff_monthly_leave_balance', [
+                        'earned_in_month' => (float) $balance_row['earned_in_month'] + $creditable_days,
+                        'closing_balance' => $balance_after,
+                        'updated_at'      => date('Y-m-d H:i:s'),
+                    ]);
+                } else {
+                    $this->db->insert('staff_monthly_leave_balance', [
+                        'staff_id'                   => $staff_id,
+                        'leave_type_id'              => $leave_type_id,
+                        'month'                      => $month,
+                        'year'                       => $year,
+                        'opening_balance'            => $balance_before,
+                        'earned_in_month'            => $creditable_days,
+                        'used_for_lop_adjustment'    => 0,
+                        'used_for_leave_application' => 0,
+                        'closing_balance'            => $balance_after,
+                        'created_at'                 => date('Y-m-d H:i:s'),
+                        'updated_at'                 => date('Y-m-d H:i:s'),
+                    ]);
+                    $balance_id = $this->db->insert_id();
+                }
+                $action_type = 'LEAVE_APPROVED_CREDIT';
+                $reason = sprintf(
+                    'Leave approved (credit): %s to %s (%s creditable of %s applied days) — %s',
+                    $leave_req['leave_from'], $leave_req['leave_to'],
+                    $creditable_days, $leave_days, $type_row['type']
+                );
             }
+
+            return $this->db->insert('staff_leave_balance_audit', [
+                'balance_id'     => $balance_id,
+                'staff_id'       => $staff_id,
+                'leave_type_id'  => $leave_type_id,
+                'action_type'    => $action_type,
+                'amount'         => $leave_days,
+                'balance_before' => $balance_before,
+                'balance_after'  => $balance_after,
+                'reference_id'   => $leave_request_id,
+                'reference_type' => 'leave_request',
+                'performed_by'   => $approver_id,
+                'reason'         => $reason,
+            ]);
         }
 
         // --- Credit-consumer type (e.g. CPL consuming OD earned credit) ---
@@ -784,6 +827,53 @@ class Leaverequest_model extends MY_model
     }
 
     /**
+     * Returns the number of days in [leave_from, leave_to] where the staff member has
+     * Absent attendance (or no attendance record at all), capped to $leave_days.
+     *
+     * Used by logLeaveApprovalCredit() / revertLeaveApproval() so that OD claim requests
+     * only earn credit for genuinely absent dates — Present / Half-day / Permission days
+     * are stored for audit only and earn no OD balance.
+     *
+     * Absent       (type_id = 3) → +1.0
+     * First Half Absent  (8)    → +0.5
+     * Second Half Absent (9)    → +0.5
+     * Present / any valid punch  → +0.0  (audit only)
+     * No attendance record       → +1.0  (treated as absent)
+     */
+    /**
+     * Returns the number of days creditable as OD balance for a leave request,
+     * capped to $leave_days.
+     *
+     * Rules per date — matched against $leave_duration_type ('full_day','first_half','second_half'):
+     *
+     * Attendance type          | full_day | first_half | second_half
+     * -------------------------|----------|------------|------------
+     * 1 Present                |  0       |  0         |  0
+     * 2 First Half Late        |  0       |  0         |  0
+     * 3 Absent                 |  1.0     |  0.5       |  0.5
+     * 4 Half Day               |  0.5     |  see below |  see below
+     * 5 First Half Permission  |  0       |  0         |  0
+     * 6 Second Half Late       |  0       |  0         |  0
+     * 7 Second Half Permission |  0       |  0         |  0
+     * 8 First Half Absent      |  0.5     |  0.5       |  0   (second half was present)
+     * 9 Second Half Absent     |  0.5     |  0   (first half was present) | 0.5
+     * No record                |  1.0     |  0.5       |  0.5
+     *
+     * Half Day (4) with specific session:  determine which half was worked from
+     * in_time/out_time.  out_time ≤ 13:30 → morning worked → second half absent.
+     * in_time ≥ 12:30 → afternoon worked → first half absent.
+     * If indeterminate → 0.5 (benefit of doubt, one half is definitely absent).
+     */
+    private function getOdCreditableDays($staff_id, $leave_from, $leave_to, $leave_days, $leave_duration_type = 'full_day')
+    {
+        // Approved OD/CPL claim = credit as applied. No attendance cross-check.
+        // The approved claim IS the justification for the day — punch is irrelevant.
+        // Payroll's syncOnDutyCreditsForMonth + buildLopAdjustmentLeavePool handle
+        // the LOP offset at month-end using the balance built here.
+        return (float) $leave_days;
+    }
+
+    /**
      * Reverses the balance effect of logLeaveApprovalCredit() for a given leave request.
      * Should only be called when the request is in 'approved' status.
      *
@@ -798,10 +888,11 @@ class Leaverequest_model extends MY_model
             return false;
         }
 
-        $leave_type_id = (int)($leave_req['leave_type_id'] ?? 0);
-        $staff_id      = (int)($leave_req['staff_id'] ?? 0);
-        $leave_days    = (float)($leave_req['leave_days'] ?? 0);
-        $leave_from    = (string)($leave_req['leave_from'] ?? '');
+        $leave_type_id   = (int)($leave_req['leave_type_id'] ?? 0);
+        $staff_id        = (int)($leave_req['staff_id'] ?? 0);
+        $leave_days      = (float)($leave_req['leave_days'] ?? 0);
+        $leave_from      = (string)($leave_req['leave_from'] ?? '');
+        $leave_direction = isset($leave_req['leave_direction']) ? (string)$leave_req['leave_direction'] : 'credit';
 
         if (!$leave_type_id || !$staff_id || !$leave_days || !$leave_from) {
             return false;
@@ -864,21 +955,50 @@ class Leaverequest_model extends MY_model
 
             $balance_id     = !empty($balance_row) ? (int)$balance_row['id'] : null;
             $balance_before = !empty($balance_row) ? (float)($balance_row['closing_balance'] ?? 0) : 0.0;
-            $balance_after  = max(0, $balance_before - $leave_days);
 
             if ($balance_id) {
-                // Remove the previously earned days
-                $new_opening = max(0, (float)$balance_row['opening_balance'] - $leave_days);
-                $new_earned = max(0, (float)$balance_row['earned_in_month'] - $leave_days);
-                
-                $this->db->where('id', $balance_id)->update('staff_monthly_leave_balance', [
-                    'opening_balance' => $new_opening,
-                    'earned_in_month' => $new_earned,
-                    'closing_balance' => $balance_after,
-                    'updated_at' => date('Y-m-d H:i:s')
-                ]);
+                $opening  = (float)$balance_row['opening_balance'];
+                $used_lop = (float)($balance_row['used_for_lop_adjustment'] ?? 0);
+
+                if ($leave_direction === 'debit') {
+                    // Revert applyleave debit: restore used_for_leave_application.
+                    $old_used  = (float)($balance_row['used_for_leave_application'] ?? 0);
+                    $new_used  = max(0, $old_used - $leave_days);
+                    $earned    = (float)($balance_row['earned_in_month'] ?? 0);
+                    $balance_after = $opening + $earned - $used_lop - $new_used;
+                    $this->db->where('id', $balance_id)->update('staff_monthly_leave_balance', [
+                        'used_for_leave_application' => $new_used,
+                        'closing_balance'             => $balance_after,
+                        'updated_at'                  => date('Y-m-d H:i:s'),
+                    ]);
+                } else {
+                    // Revert claimleave credit: reduce earned_in_month.
+                    // opening_balance is the carry-forward and must NEVER be mutated.
+                    // Use the same absent-day calculation as logLeaveApprovalCredit() so
+                    // we only reverse the credit that was actually earned.
+                    $leave_duration_type_rev = (string)($leave_req['leave_duration_type'] ?? 'full_day');
+                    $creditable_days = $this->getOdCreditableDays(
+                        $staff_id, $leave_req['leave_from'], $leave_req['leave_to'], $leave_days, $leave_duration_type_rev
+                    );
+                    if ($creditable_days <= 0) {
+                        // This OD was audit-only when approved — nothing to revert.
+                        $balance_after = $balance_before;
+                    } else {
+                        $new_earned = max(0, (float)$balance_row['earned_in_month'] - $creditable_days);
+                        $used_leave = (float)($balance_row['used_for_leave_application'] ?? 0);
+                        $balance_after = $opening + $new_earned - $used_lop - $used_leave;
+                        $this->db->where('id', $balance_id)->update('staff_monthly_leave_balance', [
+                            'earned_in_month' => $new_earned,
+                            'closing_balance' => $balance_after,
+                            'updated_at'      => date('Y-m-d H:i:s'),
+                        ]);
+                    }
+                }
+            } else {
+                $balance_after = $balance_before;
             }
 
+            $action_suffix = ($leave_direction === 'debit') ? 'Reverted debit' : 'Reverted balance credit';
             $this->db->insert('staff_leave_balance_audit', [
                 'balance_id'     => $balance_id,
                 'staff_id'       => $staff_id,
@@ -890,7 +1010,7 @@ class Leaverequest_model extends MY_model
                 'reference_id'   => $leave_request_id,
                 'reference_type' => 'leave_request',
                 'performed_by'   => $reverted_by,
-                'reason'         => $reason_prefix . ' (Reverted balance credit)',
+                'reason'         => $reason_prefix . ' (' . $action_suffix . ')',
             ]);
             return true;
         }

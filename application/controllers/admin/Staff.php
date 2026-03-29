@@ -242,14 +242,29 @@ class Staff extends Admin_Controller
                     
                     // If monthly balance exists, show cumulative used and current closing balance
                     if (!empty($monthly_balance)) {
-                        $opening_balance = isset($monthly_balance['opening_balance']) ? (float)$monthly_balance['opening_balance'] : 0;
-                        $used_lop = isset($monthly_balance['used_for_lop_adjustment']) ? (float)$monthly_balance['used_for_lop_adjustment'] : 0;
-                        $used_leave = isset($monthly_balance['used_for_leave_application']) ? (float)$monthly_balance['used_for_leave_application'] : 0;
-                        $available_balance = isset($monthly_balance['closing_balance']) ? (float)$monthly_balance['closing_balance'] : 0;
+                        $opening_balance   = (float)($monthly_balance['opening_balance'] ?? 0);
+                        $earned_in_month   = (float)($monthly_balance['earned_in_month'] ?? 0);
+                        $used_lop          = (float)($monthly_balance['used_for_lop_adjustment'] ?? 0);
+                        $used_leave        = (float)($monthly_balance['used_for_leave_application'] ?? 0);
+                        $closing_balance   = (float)($monthly_balance['closing_balance'] ?? 0);
 
-                        $leaveDetail[$i]['alloted_leave'] = $opening_balance;
-                        $leaveDetail[$i]['approve_leave'] = $used_lop + $used_leave;
-                        $leaveDetail[$i]['available'] = $available_balance;
+                        // Credit-earner types (OD, CPL: requires_balance_check=0) accumulate balance
+                        // on approval. Show closing_balance as the total pool and earned_in_month as credit.
+                        $is_credit_earner = isset($value['requires_balance_check']) && (int)$value['requires_balance_check'] === 0;
+
+                        if ($is_credit_earner) {
+                            // alloted_leave = total accumulated pool (closing balance)
+                            // approve_leave = how much already consumed from pool by LOP/leave
+                            // available     = what's left in pool
+                            $leaveDetail[$i]['alloted_leave']   = $closing_balance;
+                            $leaveDetail[$i]['approve_leave']   = $used_lop + $used_leave;
+                            $leaveDetail[$i]['available']       = $closing_balance - $used_lop - $used_leave;
+                            $leaveDetail[$i]['earned_in_month'] = $earned_in_month; // extra info for view
+                        } else {
+                            $leaveDetail[$i]['alloted_leave'] = $opening_balance;
+                            $leaveDetail[$i]['approve_leave'] = $used_lop + $used_leave;
+                            $leaveDetail[$i]['available']     = $closing_balance;
+                        }
                     } else {
                         // No monthly balance yet, use leave applications count only
                         $approve_leave = isset($count_leaves[$i]['approve_leave']) ? (float)$count_leaves[$i]['approve_leave'] : 0;

@@ -661,16 +661,56 @@ class Leaverequest extends Admin_Controller
                 if ($pool_balance > 0) {
                     $has_any_balance = true;
                 }
-            } elseif ($is_movement_credit) {
-                // OD: claim-based from attendance records — always claimable, no fixed pool.
-                $balance_summary[] = [
-                    'type'      => $lv['type'],
-                    'allotted'  => null,
-                    'used'      => null,
-                    'available' => null,   // claimable on demand
-                    'kind'      => 'claim_based',
-                ];
-                $has_any_balance = true;
+            } elseif ($is_claim_based) {
+                // Claim-based types (OD, CPL): primary source is staff_monthly_leave_balance
+                // (most-recent row), matching exactly what the staff profile Leaves tab shows.
+                // These types accumulate balance via attendance approval credits, so
+                // closing_balance is the earned pool; (used_for_lop_adjustment + used_for_leave_application)
+                // is what's been consumed.  Fall back to staff_leave_details.alloted_leave only when
+                // no monthly balance row exists yet.
+                $mlb = $this->db
+                    ->where('staff_id', $current_staff_id)
+                    ->where('leave_type_id', $lv['id'])
+                    ->order_by('year', 'DESC')
+                    ->order_by('month', 'DESC')
+                    ->limit(1)
+                    ->get('staff_monthly_leave_balance')
+                    ->row_array();
+
+                if (!empty($mlb)) {
+                    $closing    = (float)($mlb['closing_balance'] ?? 0);
+                    $used_days  = (float)($mlb['used_for_lop_adjustment'] ?? 0)
+                                + (float)($mlb['used_for_leave_application'] ?? 0);
+                    $available  = max(0.0, $closing - $used_days);
+                    $balance_summary[] = [
+                        'type'      => $lv['type'],
+                        'allotted'  => $closing,
+                        'used'      => $used_days,
+                        'available' => $available,
+                        'kind'      => 'regular',
+                    ];
+                    if ($available > 0) {
+                        $has_any_balance = true;
+                    }
+                } else {
+                    // No monthly balance yet — fall back to static HR allotment.
+                    $allotted_days = isset($allotted_map[$lv['id']])
+                        ? (float)(($allotted_map[$lv['id']]['alloted_leave'] !== '') ? $allotted_map[$lv['id']]['alloted_leave'] : 0)
+                        : 0.0;
+                    $count_data = $this->leaverequest_model->countLeavesData($current_staff_id, $lv['id']);
+                    $used_days  = !empty($count_data['approve_leave']) ? (float)$count_data['approve_leave'] : 0.0;
+                    $available  = max(0.0, $allotted_days - $used_days);
+                    $balance_summary[] = [
+                        'type'      => $lv['type'],
+                        'allotted'  => $allotted_days,
+                        'used'      => $used_days,
+                        'available' => $available,
+                        'kind'      => 'regular',
+                    ];
+                    if ($available > 0) {
+                        $has_any_balance = true;
+                    }
+                }
             } else {
                 // Regular type (CL / ML etc.): show all active types.
                 // If not allotted by HR, shown as 'unallotted' so staff sees the full system picture.
@@ -859,30 +899,38 @@ class Leaverequest extends Admin_Controller
                         continue;
                     }
                 } elseif ($mode === 'apply_leave') {
-                    // Apply Leave screen: show all types with balance (OD, CPL, CL, ML…) + LOP always.
-                    // LOP is always available — no balance check needed.
-                    if ($is_lop) {
-                        // Pass through — the LOP display block below handles it.
-                    } else {
-                        // For credit-consumer types (CPL): only show if OD credit pool has balance.
+                    // Apply Leave screen: is_lop=1 always allowed; all is_lop=0 types require balance > 0.
+                    if (!$is_lop) {
                         if ($is_credit_consumer) {
+                            // Credit-consumer (CPL consuming OD pool): check OD pool balance.
                             $pool_bal = $this->getAvailableCreditPoolBalance($id, $credit_src);
                             if ($pool_bal <= 0) {
                                 continue;
                             }
-                        }
-                        // For regular allotted types: only show if available balance > 0.
-                        if (!$is_claim_based && !$is_credit_consumer) {
-                            if ($is_allotted) {
-                                $allotted_leave_days = (float) $allotted_map[$value['id']]['alloted_leave'];
-                                $count_leaves  = $this->leaverequest_model->countLeavesData($id, $value['id']);
-                                $approve_leave = !empty($count_leaves['approve_leave']) ? (float) $count_leaves['approve_leave'] : 0;
-                                if (($allotted_leave_days - $approve_leave) <= 0) {
-                                    continue;
-                                }
+                        } elseif ($is_claim_based) {
+                            // Claim-based earner types (OD, CPL-earner): balance in staff_monthly_leave_balance.
+                            $bal_month = (int) date('m');
+                            $bal_year  = (int) date('Y');
+                            $mlb = $this->db
+                                ->where('staff_id', $id)
+                                ->where('leave_type_id', $value['id'])
+                                ->where('month', $bal_month)
+                                ->where('year', $bal_year)
+                                ->limit(1)
+                                ->get('staff_monthly_leave_balance')
+                                ->row_array();
+                            if (empty($mlb) || max(0.0, (float)($mlb['closing_balance'] ?? 0)) <= 0) {
+                                continue;
                             }
-                            // Un-allotted regular types: skip (nothing to apply).
+                        } else {
+                            // Regular allotted types (CL, ML): check HR allotment balance.
                             if (!$is_allotted) {
+                                continue; // Un-allotted regular types: nothing to apply.
+                            }
+                            $allotted_leave_days = (float) $allotted_map[$value['id']]['alloted_leave'];
+                            $count_leaves  = $this->leaverequest_model->countLeavesData($id, $value['id']);
+                            $approve_leave = !empty($count_leaves['approve_leave']) ? (float) $count_leaves['approve_leave'] : 0;
+                            if (($allotted_leave_days - $approve_leave) <= 0) {
                                 continue;
                             }
                         }
@@ -893,9 +941,9 @@ class Leaverequest extends Admin_Controller
                 if ($is_lop) {
                     if ($is_allotted) {
                         // It's LOP, but has an allotted amount for tracking. Show it, with count (0 or negative is fine).
-                        $allotted_leave_days = $allotted_map[$value['id']]['alloted_leave'];
+                        $allotted_leave_days = (float) ($allotted_map[$value['id']]['alloted_leave'] !== '' ? $allotted_map[$value['id']]['alloted_leave'] : 0);
                         $count_leaves = $this->leaverequest_model->countLeavesData($id, $value["id"]);
-                        $approve_leave = !empty($count_leaves['approve_leave']) ? $count_leaves['approve_leave'] : 0;
+                        $approve_leave = !empty($count_leaves['approve_leave']) ? (float) $count_leaves['approve_leave'] : 0.0;
                         $available = $allotted_leave_days - $approve_leave;
 
                         $leave_types_to_display[$value['id']] = array(
@@ -921,50 +969,53 @@ class Leaverequest extends Admin_Controller
                         'type'    => $value['type'],
                         'display' => $value['type'] . ' (' . $pool_balance . ' ' . $src_name . ' credit available)',
                     );
-                } elseif ($is_movement_credit) {
-                    // OD: movement-credit type. Show allotted days as reference only.
-                    $suffix = $is_allotted
-                        ? ' (' . $allotted_map[$value['id']]['alloted_leave'] . ' allotted) [OD Claim]'
-                        : ' [OD Claim]';
-                    $leave_types_to_display[$value['id']] = array(
-                        'id'      => $value['id'],
-                        'type'    => $value['type'],
-                        'display' => $value['type'] . $suffix,
-                    );
                 } elseif ($is_claim_based) {
-                    // CPL / claim-based types in Claim mode should appear as plain names (no count suffix).
-                    // This avoids confusion like "CPL (0)" while users are applying for CPL itself.
+                    // Claim-based types (OD, CPL): balance lives in staff_monthly_leave_balance.
+                    // Use the most-recent closing_balance as the available count — same source as
+                    // the balance panel and staff profile, so the number is consistent everywhere.
                     if ($mode === 'claim_leave') {
+                        // On the Claim Leave screen show just the type name (no count suffix).
                         $leave_types_to_display[$value['id']] = array(
-                            'id' => $value['id'],
-                            'type' => $value['type'],
-                            'display' => $value['type']
+                            'id'      => $value['id'],
+                            'type'    => $value['type'],
+                            'display' => $value['type'],
                         );
                     } else {
-                        if ($is_allotted) {
-                            $allotted_leave_days = $allotted_map[$value['id']]['alloted_leave'];
-                            $count_leaves = $this->leaverequest_model->countLeavesData($id, $value["id"]);
-                            $approve_leave = !empty($count_leaves['approve_leave']) ? $count_leaves['approve_leave'] : 0;
-                            $available = $allotted_leave_days - $approve_leave;
-                            $leave_types_to_display[$value['id']] = array(
-                                'id' => $value['id'],
-                                'type' => $value['type'],
-                                'display' => $value['type'] . " (" . $available . ")"
-                            );
+                        // apply_leave / adjust_lop: show the actual earned balance.
+                        $mlb_display = $this->db
+                            ->where('staff_id', $id)
+                            ->where('leave_type_id', $value['id'])
+                            ->order_by('year', 'DESC')
+                            ->order_by('month', 'DESC')
+                            ->limit(1)
+                            ->get('staff_monthly_leave_balance')
+                            ->row_array();
+                        if (!empty($mlb_display)) {
+                            $closing   = (float)($mlb_display['closing_balance'] ?? 0);
+                            $used_disp = (float)($mlb_display['used_for_lop_adjustment'] ?? 0)
+                                       + (float)($mlb_display['used_for_leave_application'] ?? 0);
+                            $available = max(0.0, $closing - $used_disp);
                         } else {
-                            $leave_types_to_display[$value['id']] = array(
-                                'id' => $value['id'],
-                                'type' => $value['type'],
-                                'display' => $value['type'] . " (0)"
-                            );
+                            // No monthly balance yet — fall back to static HR allotment.
+                            $allotted_leave_days = $is_allotted
+                                ? (float)(($allotted_map[$value['id']]['alloted_leave'] !== '') ? $allotted_map[$value['id']]['alloted_leave'] : 0)
+                                : 0.0;
+                            $count_leaves  = $this->leaverequest_model->countLeavesData($id, $value['id']);
+                            $approve_leave = !empty($count_leaves['approve_leave']) ? (float)$count_leaves['approve_leave'] : 0.0;
+                            $available     = max(0.0, $allotted_leave_days - $approve_leave);
                         }
+                        $leave_types_to_display[$value['id']] = array(
+                            'id'      => $value['id'],
+                            'type'    => $value['type'],
+                            'display' => $value['type'] . ' (' . $available . ')',
+                        );
                     }
                 } else {
                     // Regular allotted leave (CL / ML etc.)
                     if ($is_allotted) {
-                        $allotted_leave_days = $allotted_map[$value['id']]['alloted_leave'];
+                        $allotted_leave_days = (float) ($allotted_map[$value['id']]['alloted_leave'] !== '' ? $allotted_map[$value['id']]['alloted_leave'] : 0);
                         $count_leaves = $this->leaverequest_model->countLeavesData($id, $value["id"]);
-                        $approve_leave = !empty($count_leaves['approve_leave']) ? $count_leaves['approve_leave'] : 0;
+                        $approve_leave = !empty($count_leaves['approve_leave']) ? (float) $count_leaves['approve_leave'] : 0.0;
                         $available = $allotted_leave_days - $approve_leave;
 
                         if ($available >= 0) {
@@ -1362,15 +1413,6 @@ class Leaverequest extends Admin_Controller
         $current_user_id = $this->customlib->getStaffID();
         $leave_request = $this->leaverequest_model->get_staff_leave($leave_request_id);
 
-        // DEBUG: Trace leaveStatus inputs — remove after fix confirmed
-        log_message('error', '[leaveStatus DEBUG] leave_request_id=' . var_export($leave_request_id, true)
-            . ' status=' . var_export($status, true)
-            . ' current_user_id=' . var_export($current_user_id, true)
-            . ' leave_request_found=' . (empty($leave_request) ? 'NO' : 'YES')
-            . ' recommender_status=' . var_export($leave_request['recommender_status'] ?? 'N/A', true)
-            . ' is_admin=' . var_export($this->currentUserIsAdminOrSuperAdmin(), true)
-        );
-
         $data = [];
         $is_recommender = ($leave_request['recommender_id'] == $current_user_id);
         $is_approver = ($leave_request['approver_id'] == $current_user_id);
@@ -1493,8 +1535,6 @@ class Leaverequest extends Admin_Controller
                 return;
             }
             $update_result = $this->leaverequest_model->changeLeaveStatus($data, $leave_request_id);
-            // DEBUG: log update result — remove after fix confirmed
-            log_message('error', '[leaveStatus DEBUG] changeLeaveStatus result=' . var_export($update_result, true) . ' data=' . json_encode($data) . ' id=' . $leave_request_id);
 
             // Log audit credit for OD/CPL-type leaves at the moment of final approval
             if (isset($data['status']) && $data['status'] === 'approved') {
@@ -1591,8 +1631,6 @@ class Leaverequest extends Admin_Controller
                 $this->media_storage->filedelete($row['document_file'], $uploaddir);
             }
             $this->leaverequest_model->leave_remove($id);
-        } else {
-            log_message('error', 'Attempt to delete non-editable or unauthorized leave request ID: ' . $id);
         }
     }
 
@@ -1688,7 +1726,6 @@ class Leaverequest extends Admin_Controller
 
         public function addLeave()
         {
-            log_message('error', 'addLeave called');
             $request_type = $this->input->post('request_type') ?: 'claim_leave';
             $role         = $this->input->post("role");
             $empid        = $this->input->post("empname");
@@ -1703,7 +1740,8 @@ class Leaverequest extends Admin_Controller
             if (!in_array($leave_duration_type, ['full_day', 'first_half', 'second_half'], true)) {
                 $leave_duration_type = 'full_day';
             }
-            $has_duration_column = $this->db->field_exists('leave_duration_type', 'staff_leave_request');
+            $has_duration_column  = $this->db->field_exists('leave_duration_type', 'staff_leave_request');
+            $has_direction_column = $this->db->field_exists('leave_direction', 'staff_leave_request');
             
             $leavefrom = "";
             $leaveto = "";
@@ -1754,11 +1792,9 @@ class Leaverequest extends Admin_Controller
                     'alternative_teacher_id' => form_error('alternative_teacher_id'),
                     'validate_substitutes_flag' => form_error('validate_substitutes_flag'),
                 );
-                log_message('error', 'Validation failed in addLeave: ' . json_encode($msg));
     
                 $array = array('status' => 'fail', 'error' => $msg, 'message' => '');
             } else {
-                log_message('error', 'Validation succeeded in addLeave');
 
                 if (!empty($leavefrom) && !empty($leaveto) && $leavefrom > $leaveto) {
                     $msg = array(
@@ -1834,10 +1870,13 @@ class Leaverequest extends Admin_Controller
                                 $leave_type_details = $this->staff_model->getLeaveType($leavetype);
                                 $is_lop_leave = (isset($leave_type_details['is_lop']) && $leave_type_details['is_lop'] == 1);
                                 $requires_balance_check = $this->leaveTypeRequiresBalanceCheck($leave_type_details);
-                                // Credit-consumer (CPL) should not be applied on a Present-attendance day
                                 $credit_source_type_id_apply = $this->leaveTypeCreditSourceId($leave_type_details);
                                 $is_credit_consumer_apply = $credit_source_type_id_apply !== null;
-                                $allow_present_day_application = (!$requires_balance_check && !$is_lop_leave && !$is_credit_consumer_apply);
+                                // LOP types (is_lop=1) are always allowed — admin/staff may apply retroactively
+                                // even when attendance is already marked Present (e.g. ML after auto-present).
+                                // OD and CPL-earner types (requires_balance_check=0, not credit-consumer) are also
+                                // exempt because OD is explicitly claimable on Present days.
+                                $allow_present_day_application = $is_lop_leave || (!$requires_balance_check && !$is_credit_consumer_apply);
                                 $present_conflict = $this->getPresentAttendanceConflictDate($staff_id, $leavefrom, $leaveto);
                                 if (!empty($present_conflict) && !$allow_present_day_application) {
                                     $conflict_date = date($this->customlib->getSchoolDateFormat(), strtotime($present_conflict['date']));
@@ -1863,15 +1902,38 @@ class Leaverequest extends Admin_Controller
                                         return;
                                     }
                                 }
-                            
-                                log_message('error', "Checking balance: Staff ID: $staff_id, Leave Type: $leavetype, Is LOP: " . ($is_lop_leave ? 'Yes' : 'No') . ", RequiresBalance: " . ($requires_balance_check ? 'Yes' : 'No') . ", Leave Days Requested: $leave_days");
+
+                                // Apply Leave (debit): credit-earner types (OD, CPL-earner) have no HR allotment
+                                // row — their available balance lives in staff_monthly_leave_balance.closing_balance.
+                                // If is_lop=0 and balance is insufficient, block submission outright.
+                                if ($request_type === 'apply_leave' && !$is_lop_leave && !$is_credit_consumer_apply && !$requires_balance_check) {
+                                    $bal_month = (int) date('m', strtotime($leavefrom));
+                                    $bal_year  = (int) date('Y', strtotime($leavefrom));
+                                    $mlb_row = $this->db
+                                        ->where('staff_id', $staff_id)
+                                        ->where('leave_type_id', $leavetype)
+                                        ->where('month', $bal_month)
+                                        ->where('year', $bal_year)
+                                        ->limit(1)
+                                        ->get('staff_monthly_leave_balance')
+                                        ->row_array();
+                                    $available_balance = !empty($mlb_row) ? max(0.0, (float)($mlb_row['closing_balance'] ?? 0)) : 0.0;
+                                    if ($available_balance < $leave_days) {
+                                        $type_name = $leave_type_details['type'] ?? 'leave';
+                                        $msg = array(
+                                            'leave_type' => 'Insufficient ' . $type_name . ' balance. Available: ' . $available_balance . ' day(s), Requested: ' . $leave_days . ' day(s). Please claim ' . $type_name . ' days first.',
+                                        );
+                                        $array = array('status' => 'fail', 'error' => $msg, 'message' => '');
+                                        echo json_encode($array);
+                                        return;
+                                    }
+                                }
+
                 
                             $my_laeve     = $this->leaverequest_model->myallotedLeaveType($staff_id, $leavetype);
-                            $alloted_leave = isset($my_laeve['alloted_leave']) ? $my_laeve['alloted_leave'] : 0;
-                            $total_applied = isset($my_laeve['total_applied']) ? $my_laeve['total_applied'] : 0;
+                            $alloted_leave = (float) (isset($my_laeve['alloted_leave']) && $my_laeve['alloted_leave'] !== '' ? $my_laeve['alloted_leave'] : 0);
+                            $total_applied = (float) (isset($my_laeve['total_applied']) && $my_laeve['total_applied'] !== null ? $my_laeve['total_applied'] : 0);
                             $total_remain = $alloted_leave - $total_applied;
-                            
-                            log_message('error', "Balance details: Allotted: $alloted_leave, Applied: $total_applied, Remaining: $total_remain");
                 
                                 if (!$requires_balance_check || $is_lop_leave || $is_credit_consumer_apply || $total_remain >= $leave_days) {
                             if (isset($_FILES["userfile"]) && !empty($_FILES['userfile']['name'])) {
@@ -1925,6 +1987,7 @@ class Leaverequest extends Admin_Controller
                             'leave_type_id'   => $leavetype,
                             'leave_days'      => $leave_days,
                             'leave_duration_type' => $leave_duration_type,
+                            'leave_direction' => ($request_type === 'apply_leave') ? 'debit' : 'credit',
                             'leave_from'      => $leavefrom,
                             'leave_to'        => $leaveto,
                             'employee_remark' => $reason,
@@ -1941,7 +2004,7 @@ class Leaverequest extends Admin_Controller
     					
                     } else {
     					 
-                            $data = array('staff_id' => $staff_id, 'date' => $server_apply_date, 'leave_days' => $leave_days, 'leave_duration_type' => $leave_duration_type, 'leave_type_id' => $leavetype, 'leave_from' => $leavefrom, 'leave_to' => $leaveto, 'employee_remark' => $reason, 'status' => $status, 'admin_remark' => $remark, 'applied_by' => $applied_by, 'document_file' => $document, 'approve_date' => $approve_date,
+                            $data = array('staff_id' => $staff_id, 'date' => $server_apply_date, 'leave_days' => $leave_days, 'leave_duration_type' => $leave_duration_type, 'leave_direction' => ($request_type === 'apply_leave') ? 'debit' : 'credit', 'leave_type_id' => $leavetype, 'leave_from' => $leavefrom, 'leave_to' => $leaveto, 'employee_remark' => $reason, 'status' => $status, 'admin_remark' => $remark, 'applied_by' => $applied_by, 'document_file' => $document, 'approve_date' => $approve_date,
                             'recommender_id' => $recommender_id,
                             'approver_id' => $approver_id,
                             'recommender_status' => 'pending', // Initial status
@@ -1952,8 +2015,9 @@ class Leaverequest extends Admin_Controller
                     if (!$has_duration_column && isset($data['leave_duration_type'])) {
                         unset($data['leave_duration_type']);
                     }
-    
-                    log_message('error', 'Calling addLeaveRequest with data: ' . json_encode($data));
+                    if (!$has_direction_column && isset($data['leave_direction'])) {
+                        unset($data['leave_direction']);
+                    }
     
                     $result = $this->leaverequest_model->addLeaveRequest($data);
     
@@ -2023,12 +2087,10 @@ class Leaverequest extends Admin_Controller
                                         $apply_success_message .= ' Applied dates: ' . $display_range . '.';
                                     }
                                     $array = array('status' => 'success', 'error' => '', 'message' => $apply_success_message);
-                                    log_message('error', 'Sending success response from addLeave');
                                 } else {
                                     $msg = array(
                                         'applieddate' => "Application Failed: You do not have enough leave balance for this request. Please check your available leaves or contact HR.",
                                     );
-                                    log_message('error', 'Leave balance insufficient. Request denied. Staff ID: ' . $staff_id . ', Leave Type: ' . $leavetype);
                                     $array = array('status' => 'fail', 'error' => $msg, 'message' => '');
                                 }    
             }
@@ -2076,8 +2138,6 @@ class Leaverequest extends Admin_Controller
                 $role_id         = (int) $this->input->post('role_id');
                 $leave_type_id   = (int) $this->input->post('leave_type_id');
                 
-                log_message('error', "getTimetableAndSubstitutes called: Staff: $staff_id, From: $leave_from_date, To: $leave_to_date");
-
                 // Convert dates to Y-m-d for database model compatibility
                 $leave_from_db = date("Y-m-d", $this->customlib->datetostrtotime($leave_from_date));
                 $leave_to_db   = date("Y-m-d", $this->customlib->datetostrtotime($leave_to_date));
