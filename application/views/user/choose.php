@@ -67,7 +67,7 @@
 .login390 {min-height: 100%;}
 .btn2:hover {
     color: #fff;
-    background: #35aa47;
+    background: #8669fb;
 }
 .btn2 {
     margin: 0;

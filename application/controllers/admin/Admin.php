@@ -64,6 +64,260 @@ class Admin extends Admin_Controller
         $this->sch_setting_detail = $this->setting_model->getSetting();
     }
 
+    /**
+     * Bulk-fetch all fee summary data for a session using ~7 queries total
+     * instead of the original O(N×M) per-student pattern.
+     *
+     * Returns array keyed by student_session_id, each element:
+     *   tuition_demand, tuition_paid, other_demand, other_paid,
+     *   hostel_demand, hostel_paid, transport_demand, transport_paid,
+     *   advance_paid, advance_discount, cf_demand, cf_paid
+     *
+     * @param mixed $current_session    session_id
+     * @param bool  $transport_active   whether transport module is active
+     * @param int   $advance_feetype_id feetype.id for "Advance Payments" (0 = none)
+     * @param int   $cf_feetype_id      feetype.id for "Previous Session Balance" (0 = none)
+     * @return array
+     */
+    private function _bulkFeeSummaryForSession($current_session, $transport_active = null, $advance_feetype_id = null, $cf_feetype_id = null)
+    {
+        // Resolve module/feetype IDs here if not supplied, keeping callers simple.
+        if ($transport_active === null) {
+            $tm = $this->Module_model->getPermissionByModulename('transport');
+            $transport_active = !empty($tm['is_active']);
+        }
+        if ($advance_feetype_id === null) {
+            $adv = $this->feetype_model->checkFeetypeByName('Advance Payments');
+            $advance_feetype_id = $adv ? (int)$adv->id : 0;
+        }
+        if ($cf_feetype_id === null) {
+            $cf = $this->feetype_model->checkFeetypeByName('Previous Session Balance');
+            $cf_feetype_id = $cf ? (int)$cf->id : 0;
+        }
+
+        // Shared file cache: both widget AJAX calls reuse the same computed summary
+        // for the same session, avoiding running all 7 queries twice per page load.
+        $this->load->driver('cache', ['adapter' => 'file', 'backup' => 'dummy']);
+        $cache_key = 'bulk_fee_summary_' . $current_session . '_' . ($transport_active ? 1 : 0)
+                   . '_' . $advance_feetype_id . '_' . $cf_feetype_id;
+        $cached = $this->cache->get($cache_key);
+        if ($cached !== false && $cached !== null) {
+            return $cached;
+        }
+
+        $summary = [];
+
+        $zero = [
+            'tuition_demand'   => 0.0, 'tuition_paid'     => 0.0,
+            'other_demand'     => 0.0, 'other_paid'       => 0.0,
+            'hostel_demand'    => 0.0, 'hostel_paid'      => 0.0,
+            'transport_demand' => 0.0, 'transport_paid'   => 0.0,
+            'advance_paid'     => 0.0, 'advance_discount' => 0.0,
+            'cf_demand'        => 0.0, 'cf_paid'          => 0.0,
+        ];
+
+        $ensure = function ($ssid) use (&$summary, $zero) {
+            if (!isset($summary[$ssid])) {
+                $summary[$ssid] = $zero;
+            }
+        };
+
+        // Helper: parse amount_detail JSON and return [paid, discount]
+        $parseDetail = function ($json) {
+            $paid = 0.0;
+            $disc = 0.0;
+            if (!isJSON($json)) return [$paid, $disc];
+            $details = json_decode($json);
+            if ($details === null) return [$paid, $disc];
+            if (is_object($details)) $details = (array)$details;
+            if (!is_array($details)) return [$paid, $disc];
+            foreach ($details as $d) {
+                $paid += isset($d->amount)          ? (float)$d->amount          : 0.0;
+                $disc += isset($d->amount_discount) ? (float)$d->amount_discount : 0.0;
+            }
+            return [$paid, $disc];
+        };
+
+        $sess = $this->db->escape($current_session);
+
+        // Pre-compute active student session IDs — matches getStudentsBySession() filter
+        // (students.is_active = 'yes' AND users.role = 'student' AND valid class + section).
+        $valid_ss_query = $this->db->query("
+            SELECT ss.id
+            FROM student_session ss
+            INNER JOIN students st  ON st.id      = ss.student_id  AND st.is_active = 'yes'
+            INNER JOIN users    u   ON u.user_id   = st.id          AND u.role = 'student'
+            INNER JOIN classes  c   ON c.id        = ss.class_id
+            INNER JOIN sections sec ON sec.id      = ss.section_id
+            WHERE ss.session_id = $sess
+        ");
+        $valid_ids = array_column($valid_ss_query->result_array(), 'id');
+        if (empty($valid_ids)) {
+            $this->cache->save($cache_key, [], 1800);
+            return [];
+        }
+        $in_ids = implode(',', array_map('intval', $valid_ids));
+
+        // Q1 — Regular fee DEMAND grouped by student + feetype (excludes Balance Master and Advance Payments).
+        // 'advance payments' has no demand in the original getTransStudentFees() switch — it only tracks paid.
+        $q1 = $this->db->query("
+            SELECT sfm.student_session_id, ft.type AS fee_type, SUM(fgf.amount) AS amount
+            FROM student_fees_master sfm
+            INNER JOIN fee_session_groups fsg ON fsg.id  = sfm.fee_session_group_id
+            INNER JOIN fee_groups         fg  ON fg.id   = fsg.fee_groups_id
+            INNER JOIN fee_groups_feetype fgf ON fgf.fee_session_group_id = fsg.id
+            INNER JOIN feetype            ft  ON ft.id   = fgf.feetype_id
+            INNER JOIN student_session    ss  ON ss.id   = sfm.student_session_id
+            WHERE ss.session_id = $sess
+              AND ss.id IN ($in_ids)
+              AND fg.name != 'Balance Master'
+              AND LOWER(ft.type) NOT IN ('advance payments', 'previous session balance')
+            GROUP BY sfm.student_session_id, ft.type
+        ");
+        foreach ($q1->result() as $row) {
+            $ssid = (int)$row->student_session_id;
+            $ensure($ssid);
+            $type = strtolower((string)$row->fee_type);
+            $amt  = (float)$row->amount;
+            if ($type === 'tuition fee') {
+                $summary[$ssid]['tuition_demand'] += $amt;
+            } elseif (in_array($type, ['hostel fee', 'hostel fees'], true)) {
+                $summary[$ssid]['hostel_demand'] += $amt;
+            } else {
+                $summary[$ssid]['other_demand'] += $amt;
+            }
+        }
+
+        // Q2 — Regular fee PAID from student_fees_deposite (excludes Balance Master and Advance Payments).
+        // 'advance payments' deposits go into advance_paid (Q5), not into the fee-type paid buckets.
+        $q2 = $this->db->query("
+            SELECT sfm.student_session_id, ft.type AS fee_type, sfd.amount_detail
+            FROM student_fees_deposite sfd
+            INNER JOIN student_fees_master sfm ON sfm.id  = sfd.student_fees_master_id
+            INNER JOIN fee_session_groups  fsg ON fsg.id  = sfm.fee_session_group_id
+            INNER JOIN fee_groups          fg  ON fg.id   = fsg.fee_groups_id
+            INNER JOIN fee_groups_feetype  fgf ON fgf.id  = sfd.fee_groups_feetype_id
+            INNER JOIN feetype             ft  ON ft.id   = fgf.feetype_id
+            INNER JOIN student_session     ss  ON ss.id   = sfm.student_session_id
+            WHERE ss.session_id = $sess
+              AND ss.id IN ($in_ids)
+              AND fg.name != 'Balance Master'
+              AND LOWER(ft.type) NOT IN ('advance payments', 'previous session balance')
+        ");
+        foreach ($q2->result() as $row) {
+            $ssid = (int)$row->student_session_id;
+            $ensure($ssid);
+            [$paid, $disc] = $parseDetail($row->amount_detail);
+            $total = $paid + $disc;
+            $type  = strtolower((string)$row->fee_type);
+            if ($type === 'tuition fee') {
+                $summary[$ssid]['tuition_paid'] += $total;
+            } elseif (in_array($type, ['hostel fee', 'hostel fees'], true)) {
+                $summary[$ssid]['hostel_paid'] += $total;
+            } else {
+                $summary[$ssid]['other_paid'] += $total;
+            }
+        }
+
+        // Q3 & Q4 — Transport demand + paid
+        if ($transport_active) {
+            $q3 = $this->db->query("
+                SELECT stf.student_session_id, SUM(rpp.fees) AS demand
+                FROM student_transport_fees stf
+                INNER JOIN route_pickup_point rpp ON rpp.id = stf.route_pickup_point_id
+                INNER JOIN student_session    ss  ON ss.id  = stf.student_session_id
+                WHERE ss.session_id = $sess
+                  AND ss.id IN ($in_ids)
+                GROUP BY stf.student_session_id
+            ");
+            foreach ($q3->result() as $row) {
+                $ssid = (int)$row->student_session_id;
+                $ensure($ssid);
+                $summary[$ssid]['transport_demand'] += (float)$row->demand;
+            }
+
+            $q4 = $this->db->query("
+                SELECT stf.student_session_id, sfd.amount_detail
+                FROM student_fees_deposite    sfd
+                INNER JOIN student_transport_fees stf ON stf.id = sfd.student_transport_fee_id
+                INNER JOIN student_session        ss  ON ss.id  = stf.student_session_id
+                WHERE ss.session_id = $sess
+                  AND ss.id IN ($in_ids)
+            ");
+            foreach ($q4->result() as $row) {
+                $ssid = (int)$row->student_session_id;
+                $ensure($ssid);
+                [$paid, $disc] = $parseDetail($row->amount_detail);
+                $summary[$ssid]['transport_paid'] += $paid + $disc;
+            }
+        }
+
+        // Q5 — Advance balance
+        if ($advance_feetype_id > 0) {
+            $q5 = $this->db->query("
+                SELECT sfm.student_session_id, sfd.amount_detail
+                FROM student_fees_deposite    sfd
+                INNER JOIN student_fees_master sfm ON sfm.id  = sfd.student_fees_master_id
+                INNER JOIN fee_groups_feetype  fgf ON fgf.id  = sfd.fee_groups_feetype_id
+                INNER JOIN student_session     ss  ON ss.id   = sfm.student_session_id
+                WHERE fgf.feetype_id = " . (int)$advance_feetype_id . "
+                  AND ss.session_id  = $sess
+                  AND ss.id IN ($in_ids)
+            ");
+            foreach ($q5->result() as $row) {
+                $ssid = (int)$row->student_session_id;
+                $ensure($ssid);
+                [$paid, $disc] = $parseDetail($row->amount_detail);
+                $summary[$ssid]['advance_paid']     += $paid;
+                $summary[$ssid]['advance_discount'] += $disc;
+            }
+        }
+
+        // Q6 — CF (Balance Master) DEMAND per student
+        $q6 = $this->db->query("
+            SELECT sfm.student_session_id, SUM(sfm.amount) AS cf_demand
+            FROM student_fees_master  sfm
+            INNER JOIN fee_session_groups fsg ON fsg.id = sfm.fee_session_group_id
+            INNER JOIN fee_groups         fg  ON fg.id  = fsg.fee_groups_id
+            INNER JOIN student_session    ss  ON ss.id  = sfm.student_session_id
+            WHERE ss.session_id = $sess
+              AND ss.id IN ($in_ids)
+              AND fg.name = 'Balance Master'
+            GROUP BY sfm.student_session_id
+        ");
+        foreach ($q6->result() as $row) {
+            $ssid = (int)$row->student_session_id;
+            $ensure($ssid);
+            $summary[$ssid]['cf_demand'] = (float)$row->cf_demand;
+        }
+
+        // Q7 — CF PAID (Previous Session Balance feetype deposits on Balance Master group)
+        if ($cf_feetype_id > 0) {
+            $q7 = $this->db->query("
+                SELECT sfm.student_session_id, sfd.amount_detail
+                FROM student_fees_deposite    sfd
+                INNER JOIN student_fees_master sfm ON sfm.id  = sfd.student_fees_master_id
+                INNER JOIN fee_session_groups  fsg ON fsg.id  = sfm.fee_session_group_id
+                INNER JOIN fee_groups          fg  ON fg.id   = fsg.fee_groups_id
+                INNER JOIN fee_groups_feetype  fgf ON fgf.id  = sfd.fee_groups_feetype_id
+                INNER JOIN student_session     ss  ON ss.id   = sfm.student_session_id
+                WHERE ss.session_id  = $sess
+                  AND ss.id IN ($in_ids)
+                  AND fg.name        = 'Balance Master'
+                  AND fgf.feetype_id = " . (int)$cf_feetype_id . "
+            ");
+            foreach ($q7->result() as $row) {
+                $ssid = (int)$row->student_session_id;
+                $ensure($ssid);
+                [$paid,] = $parseDetail($row->amount_detail);
+                $summary[$ssid]['cf_paid'] += $paid;
+            }
+        }
+
+        $this->cache->save($cache_key, $summary, 1800);
+        return $summary;
+    }
+
     private function getDashboardCache($key, $ttl, $builder)
     {
         $this->load->driver('cache', array('adapter' => 'file', 'backup' => 'dummy'));
@@ -178,11 +432,22 @@ class Admin extends Admin_Controller
         $data['total_students_heads'] = 0;
         $data['total_students'] = 0;
         $data['extra_students'] = array();
-        $tot_roles              = $this->role_model->get();
+        $tot_roles = $this->role_model->get();
+        // Single query: count active staff per role (replaces per-role count_roles() loop)
+        $role_count_query = $this->db
+            ->select('staff_roles.role_id, COUNT(staff_roles.staff_id) AS cnt')
+            ->from('staff_roles')
+            ->join('staff', 'staff.id = staff_roles.staff_id')
+            ->where('staff.is_active', 1)
+            ->group_by('staff_roles.role_id')
+            ->get();
+        $role_count_map = [];
+        foreach ($role_count_query->result() as $rc) {
+            $role_count_map[(int)$rc->role_id] = (int)$rc->cnt;
+        }
+        $count_roles = [];
         foreach ($tot_roles as $key => $value) {
-
-            $count_roles[$value["name"]] = $this->role_model->count_roles($value["id"]);
-
+            $count_roles[$value["name"]] = $role_count_map[(int)$value["id"]] ?? 0;
         }
         $data["roles"] = $count_roles;
 
@@ -405,183 +670,132 @@ class Admin extends Admin_Controller
         }
         $current_session = $this->setting_model->getCurrentSession();
         $cache_key = 'dash_fees_overview_' . $current_session;
-        $response = $this->getDashboardCache($cache_key, 300, function () use ($current_session) {
-            $students = $this->Student_model->getStudentsBySession($current_session);
 
-            $unpaid_count = 0;
-            $unpaid_sum = 0;
-            $partial_count = 0;
-            $partial_sum = 0;
-            $paid_count = 0;
-            $paid_sum = 0;
-
-            $total_demand = 0;
-            $total_collection = 0;
-            $total_awaiting = 0;
-
-            $total_last_yr_cf = 0;
-            $total_cf_paid = 0;
-            $total_cf_balance = 0;
-            if (!empty($students)) {
-                foreach ($students as $student) {
-                    $student_session_id = $student['student_session_id'];
-                    $fees_data = $this->Customstudentfeemaster_model->getTransStudentFees($student_session_id);
-                    if (empty($fees_data)) {
-                        continue;
-                    }
-                    $advance_balances = $this->Studentfeemaster_model->get_advance_balance($student_session_id);
-                    $advance_paid = isset($advance_balances['paid_advance_balance']) ? $advance_balances['paid_advance_balance'] : 0;
-                    $advance_discount = isset($advance_balances['discount_advance_balance']) ? $advance_balances['discount_advance_balance'] : 0;
-                    // Sum all fee types for demand
-                    $totalfee = 0;
-                    $totalfee += isset($fees_data->tuition_demand) ? $fees_data->tuition_demand : 0;
-                    $totalfee += isset($fees_data->other_demand) ? $fees_data->other_demand : 0;
-                    $totalfee += isset($fees_data->hostel_demand) ? $fees_data->hostel_demand : 0;
-                    $totalfee += isset($fees_data->transport_demand) ? $fees_data->transport_demand : 0;
-
-                    // Sum all fee types for paid
-                    $total_paid_sum = 0;
-                    $total_paid_sum += isset($fees_data->tuition_paid) ? $fees_data->tuition_paid : 0;
-                    $total_paid_sum += isset($fees_data->other_paid) ? $fees_data->other_paid : 0;
-                    $total_paid_sum += isset($fees_data->hostel_paid) ? $fees_data->hostel_paid : 0;
-                    $total_paid_sum += isset($fees_data->transport_paid) ? $fees_data->transport_paid : 0;
-                    // --- CF-Demand: sum all 'Balance Master' group amounts for this student ---
-                    $this->db->select('student_fees_master.amount')->from('student_fees_master');
-                    $this->db->join('fee_session_groups', 'student_fees_master.fee_session_group_id = fee_session_groups.id');
-                    $this->db->join('fee_groups', 'fee_session_groups.fee_groups_id = fee_groups.id');
-                    $this->db->where('student_fees_master.student_session_id', $student_session_id);
-                    $this->db->where('fee_groups.name', 'Balance Master');
-                    $cf_demand_query = $this->db->get();
-                    $cf_demand_sum = 0;
-                    foreach ($cf_demand_query->result() as $cf_row) {
-                        $cf_demand_sum += (float)$cf_row->amount;
-                    }
-                    $last_yr_cf = $cf_demand_sum;
-                    // ---
-                    $cf_paid = $this->Customstudentfeemaster_model->getPreviousSessionPaid($student_session_id);
-                    $cf_balance = $last_yr_cf - $cf_paid;
-                    $total_last_yr_cf += $last_yr_cf;
-                    $total_cf_paid += $cf_paid;
-                    $total_cf_balance += $cf_balance;
-                    $balance = $totalfee - $total_paid_sum;
-                    $balance += $cf_balance;
-                    $net_balance = $balance - ($advance_paid + $advance_discount);
-                    $awaiting_value = $balance - $cf_balance;
-                    if ($totalfee == 0 && $cf_balance == 0) {
-                        continue;
-                    }
-                    if ($awaiting_value > 0 && $total_paid_sum == 0) {
-                        $unpaid_count++;
-                        $unpaid_sum += $awaiting_value;
-                    } elseif ($awaiting_value > 0 && $total_paid_sum > 0) {
-                        $partial_count++;
-                        $partial_sum += $awaiting_value;
-                    } elseif ($awaiting_value <= 0 && $total_paid_sum > 0) {
-                        $paid_count++;
-                        $paid_sum += $total_paid_sum;
-                    }
-                    $total_demand += $totalfee;
-                    $total_collection += $total_paid_sum;
-                    $total_awaiting += $awaiting_value;
-                }
-            }
-
-            $total_counter = $unpaid_count + $partial_count + $paid_count;
-            $unpaid_progress = ($total_counter > 0) ? (($unpaid_count * 100) / $total_counter) : 0;
-            $partial_progress = ($total_counter > 0) ? (($partial_count * 100) / $total_counter) : 0;
-            $paid_progress = ($total_counter > 0) ? (($paid_count * 100) / $total_counter) : 0;
-            $fees_awaiting_progress = ($total_demand > 0) ? (($total_awaiting * 100) / $total_demand) : 0;
-
+        $response = $this->getDashboardCache($cache_key, 1800, function () use ($current_session) {
             $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
 
-            // For each card, calculate count, percent, and sum
-            // For demand, collection, awaiting, last year pending demand, collection, pending
-            $demand_count = $total_counter;
-            $demand_progress = ($demand_count > 0) ? 100 : 0;
-            $demand_sum = $total_demand;
+            // All feetype/module lookups and the 7 bulk queries are handled
+            // (and internally cached) by _bulkFeeSummaryForSession().
+            $fee_summary = $this->_bulkFeeSummaryForSession($current_session);
 
-            $collection_count = $total_counter;
-            $collection_progress = ($demand_sum > 0) ? (($total_collection * 100) / $demand_sum) : 0;
-            $collection_sum = $total_collection;
+            if (empty($fee_summary)) {
+                return $this->_buildZeroFeesOverviewResponse($currency_symbol);
+            }
 
-            $awaiting_count = $total_counter;
-            $awaiting_progress = ($demand_sum > 0) ? (($total_awaiting * 100) / $demand_sum) : 0;
-            $awaiting_sum = $total_awaiting;
+            $unpaid_count = 0; $unpaid_sum  = 0.0;
+            $partial_count = 0; $partial_sum = 0.0;
+            $paid_count   = 0; $paid_sum    = 0.0;
+            $total_demand = 0.0; $total_collection = 0.0; $total_awaiting = 0.0;
+            $total_last_yr_cf = 0.0; $total_cf_paid = 0.0; $total_cf_balance = 0.0;
 
-            $cfdemand_count = $total_counter;
-            $cfdemand_progress = ($total_last_yr_cf > 0) ? 100 : 0;
-            $cfdemand_sum = $total_last_yr_cf;
+            // Iterate directly over fee_summary (no getStudentsBySession() needed).
+            foreach ($fee_summary as $ssid => $fs) {
 
-            $cfcollection_count = $total_counter;
-            $cfcollection_progress = ($total_last_yr_cf > 0) ? (($total_cf_paid * 100) / $total_last_yr_cf) : 0;
-            $cfcollection_sum = $total_cf_paid;
+                $totalfee = $fs['tuition_demand'] + $fs['other_demand']
+                          + $fs['hostel_demand']  + $fs['transport_demand'];
+                $total_paid_sum = $fs['tuition_paid'] + $fs['other_paid']
+                                + $fs['hostel_paid']  + $fs['transport_paid'];
+                $cf_demand  = $fs['cf_demand'];
+                $cf_paid    = $fs['cf_paid'];
+                $cf_balance = $cf_demand - $cf_paid;
 
-            $cfbalance_count = $total_counter;
-            $cfbalance_progress = ($total_last_yr_cf > 0) ? (($total_cf_balance * 100) / $total_last_yr_cf) : 0;
-            $cfbalance_sum = $total_cf_balance;
+                if ($totalfee == 0 && $cf_demand == 0) {
+                    continue;
+                }
+
+                $awaiting_value = $totalfee - $total_paid_sum;
+
+                if ($awaiting_value > 0 && $total_paid_sum == 0) {
+                    $unpaid_count++;
+                    $unpaid_sum += $awaiting_value;
+                } elseif ($awaiting_value > 0 && $total_paid_sum > 0) {
+                    $partial_count++;
+                    $partial_sum += $awaiting_value;
+                } elseif ($awaiting_value <= 0 && $total_paid_sum > 0) {
+                    $paid_count++;
+                    $paid_sum += $total_paid_sum;
+                }
+
+                $total_demand     += $totalfee;
+                $total_collection += $total_paid_sum;
+                $total_awaiting   += $awaiting_value;
+                $total_last_yr_cf += $cf_demand;
+                $total_cf_paid    += $cf_paid;
+                $total_cf_balance += $cf_balance;
+            }
+
+            $total_counter        = $unpaid_count + $partial_count + $paid_count;
+            $unpaid_progress      = ($total_counter > 0)    ? ($unpaid_count  * 100 / $total_counter) : 0;
+            $partial_progress     = ($total_counter > 0)    ? ($partial_count * 100 / $total_counter) : 0;
+            $paid_progress        = ($total_counter > 0)    ? ($paid_count    * 100 / $total_counter) : 0;
+            $fees_awaiting_progress = ($total_demand > 0)   ? ($total_awaiting    * 100 / $total_demand) : 0;
+            $collection_progress  = ($total_demand > 0)     ? ($total_collection  * 100 / $total_demand) : 0;
+            $cfcollection_progress = ($total_last_yr_cf > 0) ? ($total_cf_paid    * 100 / $total_last_yr_cf) : 0;
+            $cfbalance_progress   = ($total_last_yr_cf > 0)  ? ($total_cf_balance * 100 / $total_last_yr_cf) : 0;
 
             return array(
                 'status' => 'success',
-                'data' => array(
-                    'total_unpaid' => $unpaid_count,
+                'data'   => array(
+                    'total_unpaid'    => $unpaid_count,
                     'unpaid_progress' => round($unpaid_progress, 2),
-                    'unpaid_sum' => $unpaid_sum,
+                    'unpaid_sum'      => $unpaid_sum,
                     'unpaid_sum_formatted' => $currency_symbol . number_format($unpaid_sum, 2),
-                    'total_partial' => $partial_count,
+
+                    'total_partial'    => $partial_count,
                     'partial_progress' => round($partial_progress, 2),
-                    'partial_sum' => $partial_sum,
+                    'partial_sum'      => $partial_sum,
                     'partial_sum_formatted' => $currency_symbol . number_format($partial_sum, 2),
-                    'total_paid' => $paid_count,
+
+                    'total_paid'    => $paid_count,
                     'paid_progress' => round($paid_progress, 2),
-                    'paid_sum' => $paid_sum,
+                    'paid_sum'      => $paid_sum,
                     'paid_sum_formatted' => $currency_symbol . number_format($paid_sum, 2),
 
-                    // New card fields
-                    'total_counter' => $total_counter,
-                    'demand_count' => $demand_count,
-                    'demand_progress' => round($demand_progress, 2),
-                    'demand_sum' => $demand_sum,
-                    'demand_sum_formatted' => $currency_symbol . number_format($demand_sum, 2),
+                    'total_counter'    => $total_counter,
+                    'demand_count'     => $total_counter,
+                    'demand_progress'  => ($total_counter > 0) ? 100 : 0,
+                    'demand_sum'       => $total_demand,
+                    'demand_sum_formatted' => $currency_symbol . number_format($total_demand, 2),
 
-                    'collection_count' => $collection_count,
+                    'collection_count'    => $total_counter,
                     'collection_progress' => round($collection_progress, 2),
-                    'collection_sum' => $collection_sum,
-                    'collection_sum_formatted' => $currency_symbol . number_format($collection_sum, 2),
+                    'collection_sum'      => $total_collection,
+                    'collection_sum_formatted' => $currency_symbol . number_format($total_collection, 2),
 
-                    'awaiting_count' => $awaiting_count,
-                    'awaiting_progress' => round($awaiting_progress, 2),
-                    'awaiting_sum' => $awaiting_sum,
-                    'awaiting_sum_formatted' => $currency_symbol . number_format($awaiting_sum, 2),
+                    'awaiting_count'    => $total_counter,
+                    'awaiting_progress' => round($fees_awaiting_progress, 2),
+                    'awaiting_sum'      => $total_awaiting,
+                    'awaiting_sum_formatted' => $currency_symbol . number_format($total_awaiting, 2),
 
-                    'cfdemand_count' => $cfdemand_count,
-                    'cfdemand_progress' => round($cfdemand_progress, 2),
-                    'cfdemand_sum' => $cfdemand_sum,
-                    'cfdemand_sum_formatted' => $currency_symbol . number_format($cfdemand_sum, 2),
+                    'cfdemand_count'    => $total_counter,
+                    'cfdemand_progress' => ($total_last_yr_cf > 0) ? 100 : 0,
+                    'cfdemand_sum'      => $total_last_yr_cf,
+                    'cfdemand_sum_formatted' => $currency_symbol . number_format($total_last_yr_cf, 2),
 
-                    'cfcollection_count' => $cfcollection_count,
+                    'cfcollection_count'    => $total_counter,
                     'cfcollection_progress' => round($cfcollection_progress, 2),
-                    'cfcollection_sum' => $cfcollection_sum,
-                    'cfcollection_sum_formatted' => $currency_symbol . number_format($cfcollection_sum, 2),
+                    'cfcollection_sum'      => $total_cf_paid,
+                    'cfcollection_sum_formatted' => $currency_symbol . number_format($total_cf_paid, 2),
 
-                    'cfbalance_count' => $cfbalance_count,
+                    'cfbalance_count'    => $total_counter,
                     'cfbalance_progress' => round($cfbalance_progress, 2),
-                    'cfbalance_sum' => $cfbalance_sum,
-                    'cfbalance_sum_formatted' => $currency_symbol . number_format($cfbalance_sum, 2),
+                    'cfbalance_sum'      => $total_cf_balance,
+                    'cfbalance_sum_formatted' => $currency_symbol . number_format($total_cf_balance, 2),
 
-                    'total_demand' => $total_demand,
+                    'total_demand'     => $total_demand,
                     'total_demand_formatted' => $currency_symbol . number_format($total_demand, 2),
                     'total_collection' => $total_collection,
                     'total_collection_formatted' => $currency_symbol . number_format($total_collection, 2),
-                    'total_awaiting' => $total_awaiting,
+                    'total_awaiting'   => $total_awaiting,
                     'total_awaiting_formatted' => $currency_symbol . number_format($total_awaiting, 2),
                     'fees_awaiting_progress' => round($fees_awaiting_progress, 2),
                     'fees_awaiting_total_net_balance' => $total_awaiting,
                     'fees_awaiting_total_net_balance_formatted' => $currency_symbol . number_format($total_awaiting, 2),
-                    'last_yr_pending_demand' => $total_last_yr_cf,
+                    'last_yr_pending_demand'     => $total_last_yr_cf,
                     'last_yr_pending_demand_formatted' => $currency_symbol . number_format($total_last_yr_cf, 2),
                     'last_yr_pending_collection' => $total_cf_paid,
                     'last_yr_pending_collection_formatted' => $currency_symbol . number_format($total_cf_paid, 2),
-                    'last_yr_pending' => $total_cf_balance,
+                    'last_yr_pending'  => $total_cf_balance,
                     'last_yr_pending_formatted' => $currency_symbol . number_format($total_cf_balance, 2),
                 ),
             );
@@ -590,6 +804,31 @@ class Admin extends Admin_Controller
         return $this->output
             ->set_content_type('application/json')
             ->set_output(json_encode($response));
+    }
+
+    /** Returns a zeroed fees overview response (no students or no data). */
+    private function _buildZeroFeesOverviewResponse($currency_symbol)
+    {
+        $fmt = function ($v) use ($currency_symbol) { return $currency_symbol . number_format($v, 2); };
+        return array('status' => 'success', 'data' => array(
+            'total_unpaid' => 0, 'unpaid_progress' => 0, 'unpaid_sum' => 0, 'unpaid_sum_formatted' => $fmt(0),
+            'total_partial' => 0, 'partial_progress' => 0, 'partial_sum' => 0, 'partial_sum_formatted' => $fmt(0),
+            'total_paid' => 0, 'paid_progress' => 0, 'paid_sum' => 0, 'paid_sum_formatted' => $fmt(0),
+            'total_counter' => 0, 'demand_count' => 0, 'demand_progress' => 0, 'demand_sum' => 0, 'demand_sum_formatted' => $fmt(0),
+            'collection_count' => 0, 'collection_progress' => 0, 'collection_sum' => 0, 'collection_sum_formatted' => $fmt(0),
+            'awaiting_count' => 0, 'awaiting_progress' => 0, 'awaiting_sum' => 0, 'awaiting_sum_formatted' => $fmt(0),
+            'cfdemand_count' => 0, 'cfdemand_progress' => 0, 'cfdemand_sum' => 0, 'cfdemand_sum_formatted' => $fmt(0),
+            'cfcollection_count' => 0, 'cfcollection_progress' => 0, 'cfcollection_sum' => 0, 'cfcollection_sum_formatted' => $fmt(0),
+            'cfbalance_count' => 0, 'cfbalance_progress' => 0, 'cfbalance_sum' => 0, 'cfbalance_sum_formatted' => $fmt(0),
+            'total_demand' => 0, 'total_demand_formatted' => $fmt(0),
+            'total_collection' => 0, 'total_collection_formatted' => $fmt(0),
+            'total_awaiting' => 0, 'total_awaiting_formatted' => $fmt(0),
+            'fees_awaiting_progress' => 0,
+            'fees_awaiting_total_net_balance' => 0, 'fees_awaiting_total_net_balance_formatted' => $fmt(0),
+            'last_yr_pending_demand' => 0, 'last_yr_pending_demand_formatted' => $fmt(0),
+            'last_yr_pending_collection' => 0, 'last_yr_pending_collection_formatted' => $fmt(0),
+            'last_yr_pending' => 0, 'last_yr_pending_formatted' => $fmt(0),
+        ));
     }
 
     public function fees_classwise_summary_widget()
@@ -604,32 +843,54 @@ class Admin extends Admin_Controller
         $final_hash = md5(implode(',', $final_year_ids));
         $cache_key = 'dash_fees_classwise_' . $current_session . '_' . $final_hash;
 
-        $response = $this->getDashboardCache($cache_key, 300, function () use ($current_session, $final_year_ids) {
-            $students = $this->Student_model->getStudentsBySession($current_session);
-            $class_rows = array();
+        $response = $this->getDashboardCache($cache_key, 1800, function () use ($current_session, $final_year_ids) {
+            // Lightweight query: only student_session_id + class_id (no student personal data).
+            $sess_esc = $this->db->escape($current_session);
+            $ss_query = $this->db->query("
+                SELECT ss.id AS student_session_id, ss.class_id, c.class AS class_name
+                FROM student_session ss
+                INNER JOIN classes c ON c.id = ss.class_id
+                WHERE ss.session_id = $sess_esc
+            ");
+            $sessions_map = $ss_query->result();
 
-            if (!empty($students)) {
-                foreach ($students as $student) {
-                    $class_id = (int)$student['class_id'];
-                    if (!isset($class_rows[$class_id])) {
-                        $class_rows[$class_id] = $this->initClasswiseRow($class_id, $student['class']);
-                    }
-
-                    $fees_data = $this->Customstudentfeemaster_model->getTransStudentFees($student['student_session_id']);
-                    if (empty($fees_data)) {
-                        continue;
-                    }
-
-                    $class_rows[$class_id]['tuition_demand'] += (float)$fees_data->tuition_demand;
-                    $class_rows[$class_id]['tuition_paid'] += (float)$fees_data->tuition_paid;
-                    $class_rows[$class_id]['transport_demand'] += (float)$fees_data->transport_demand;
-                    $class_rows[$class_id]['transport_paid'] += (float)$fees_data->transport_paid;
-                    $class_rows[$class_id]['hostel_demand'] += (float)$fees_data->hostel_demand;
-                    $class_rows[$class_id]['hostel_paid'] += (float)$fees_data->hostel_paid;
-                    $class_rows[$class_id]['other_demand'] += (float)$fees_data->other_demand;
-                    $class_rows[$class_id]['other_paid'] += (float)$fees_data->other_paid;
+            $class_rows  = array();
+            $class_names = array(); // class_id => class_name
+            foreach ($sessions_map as $row) {
+                $cid = (int)$row->class_id;
+                if (!isset($class_names[$cid])) {
+                    $class_names[$cid] = $row->class_name;
                 }
             }
+
+            // All feetype/module lookups and the 7 bulk queries are handled
+            // (and internally cached) by _bulkFeeSummaryForSession().
+            $fee_summary = $this->_bulkFeeSummaryForSession($current_session);
+
+            if (!empty($sessions_map) && !empty($fee_summary)) {
+                foreach ($sessions_map as $row) {
+                    $class_id = (int)$row->class_id;
+                    $ssid     = (int)$row->student_session_id;
+
+                    if (!isset($fee_summary[$ssid])) {
+                        continue; // student has no fee records
+                    }
+                    $fs = $fee_summary[$ssid];
+
+                    if (!isset($class_rows[$class_id])) {
+                        $class_rows[$class_id] = $this->initClasswiseRow($class_id, $class_names[$class_id] ?? '');
+                    }
+
+                    $class_rows[$class_id]['tuition_demand']   += $fs['tuition_demand'];
+                    $class_rows[$class_id]['tuition_paid']     += $fs['tuition_paid'];
+                    $class_rows[$class_id]['transport_demand'] += $fs['transport_demand'];
+                    $class_rows[$class_id]['transport_paid']   += $fs['transport_paid'];
+                    $class_rows[$class_id]['hostel_demand']    += $fs['hostel_demand'];
+                    $class_rows[$class_id]['hostel_paid']      += $fs['hostel_paid'];
+                    $class_rows[$class_id]['other_demand']     += $fs['other_demand'];
+                    $class_rows[$class_id]['other_paid']       += $fs['other_paid'];
+                }
+            } // end if sessions_map && fee_summary
 
             $rows = array_values($class_rows);
             usort($rows, function ($a, $b) {
