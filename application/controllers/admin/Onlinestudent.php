@@ -557,7 +557,19 @@ class Onlinestudent extends Admin_Controller
                     $row[] = $value->mobileno;
                 }
 
-                if ($paid_amount <= 0) {
+                $app_fee_is_paid = !empty($app_fee_paid_refs[$application_ref_no]);
+
+                // Form Status: application fee paid or not (binary)
+                if ($app_fee_is_paid) {
+                    $row[] = '<span class="label label-success">Paid</span>';
+                } else {
+                    $row[] = '<span class="label label-danger">Not Paid</span>';
+                }
+
+                // Course Fee Status: based on course fee paid amount vs total
+                if ($paid_amount <= 0 && $app_fee_is_paid) {
+                    $row[] = '<span class="label label-info">Applied</span>';
+                } elseif ($paid_amount <= 0) {
                     $row[] = '<span class="label label-danger">Not Paid</span>';
                 } elseif ($course_fee > 0 && $paid_amount >= $course_fee) {
                     $row[] = '<span class="label label-success">Fully Paid</span>';
@@ -572,8 +584,6 @@ class Onlinestudent extends Admin_Controller
                 }
 
                 if ($sch_setting->online_admission_payment == 'yes') {
-
-                    $app_fee_is_paid = !empty($app_fee_paid_refs[$application_ref_no]);
 
                     $paybtn = "";
                     if (!$app_fee_is_paid && $value->paid_status != 2) {

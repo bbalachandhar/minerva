@@ -26,6 +26,7 @@ class Attendencereports extends Admin_Controller
         $this->load->model("staff_model");
         $this->load->model("payroll_model");
         $this->load->model("Department_model"); // Added to fix the error
+        $this->load->model("day_status_model"); // Day-lock overlay for OD/CPL
         $this->sch_setting_detail = $this->setting_model->getSetting();
         $this->search_type        = $this->customlib->get_searchtype();
     }
@@ -645,6 +646,27 @@ class Attendencereports extends Admin_Controller
                 }
             }
 
+            // Day-lock overlay: apply AFTER the no-punch correction so that approved
+            // OD/CPL leaves override even force-set 'A' values. This ensures the report
+            // cells and the summary counts below both reflect the day-lock decision.
+            if (!empty($stafflist)) {
+                $month_start = $searchyear . '-' . $month_number . '-01';
+                $month_end   = $searchyear . '-' . $month_number . '-' . $num_of_days;
+                $all_staff_ids = array_column($stafflist, 'id');
+                $all_day_locks = $this->day_status_model->getDayStatusRangeMultiStaff(
+                    array_map('intval', $all_staff_ids), $month_start, $month_end
+                );
+                foreach ($all_day_locks as $locked_staff_id => $date_locks) {
+                    foreach ($date_locks as $locked_date => $lock_row) {
+                        if (isset($date_result[$locked_date][$locked_staff_id])) {
+                            $date_result[$locked_date][$locked_staff_id]['key']            = $lock_row['status'];
+                            $date_result[$locked_date][$locked_staff_id]['day_lock']       = true;
+                            $date_result[$locked_date][$locked_staff_id]['payroll_impact'] = $lock_row['payroll_impact'];
+                        }
+                    }
+                }
+            }
+
             $staff_working_day_summary = [];
             if (!empty($stafflist)) {
                 foreach ($stafflist as $staff_row) {
@@ -656,8 +678,17 @@ class Attendencereports extends Admin_Controller
                     foreach ($working_day_dates as $work_date) {
                         $attendance_row = $date_result[$work_date][$staff_id] ?? [];
                         $attendance_key = strtoupper(trim($attendance_row['key'] ?? ''));
+                        $is_day_lock    = !empty($attendance_row['day_lock']);
+                        $lock_impact    = $attendance_row['payroll_impact'] ?? '';
 
-                        if ($attendance_key === 'HD') {
+                        if ($is_day_lock && $lock_impact === 'PAID_PRESENT') {
+                            // OD-type: day treated as fully present for summary
+                            $present_equivalent += 1;
+                        } elseif ($is_day_lock && $lock_impact === 'PAID_ABSENT') {
+                            // CPL-type: absent but credit absorbs it; count as absent for display,
+                            // payroll handles credit absorption separately
+                            $absent_equivalent += 1;
+                        } elseif ($attendance_key === 'HD') {
                             $half_day_count++;
                             $present_equivalent += 0.5;
                             $absent_equivalent += 0.5;

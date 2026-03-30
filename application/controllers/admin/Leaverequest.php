@@ -14,6 +14,7 @@ class Leaverequest extends Admin_Controller
         $this->load->model("staff_model");
         $this->load->model("leaverequest_model");
         $this->load->model("timetable_model"); // Load the timetable model
+        $this->load->model("day_status_model"); // Day-lock for OD/CPL payroll override
         $this->contract_type    = $this->config->item('contracttype');
         $this->marital_status   = $this->config->item('marital_status');
         $this->staff_attendance = $this->config->item('staffattendance');
@@ -192,7 +193,7 @@ class Leaverequest extends Admin_Controller
         }
 
         $type_name = strtolower(trim((string) ($leave_type_details['type'] ?? '')));
-        if (in_array($type_name, ['on duty', 'od'], true)) {
+        if (in_array($type_name, ['on duty', 'od', 'hod', 'holiday on duty', 'holiday od'], true)) {
             return false;
         }
 
@@ -206,7 +207,7 @@ class Leaverequest extends Admin_Controller
         }
 
         $type_name = strtolower(trim((string) ($leave_type_details['type'] ?? '')));
-        return in_array($type_name, ['on duty', 'od'], true);
+        return in_array($type_name, ['on duty', 'od', 'hod', 'holiday on duty', 'holiday od'], true);
     }
 
     /**
@@ -1536,9 +1537,14 @@ class Leaverequest extends Admin_Controller
             }
             $update_result = $this->leaverequest_model->changeLeaveStatus($data, $leave_request_id);
 
+            // Day-lock: always clear any existing lock for this request first (handles
+            // edit/disapprove/re-approve cycles safely), then re-lock if newly approved.
+            $this->day_status_model->deleteDayLock($leave_request_id);
+
             // Log audit credit for OD/CPL-type leaves at the moment of final approval
             if (isset($data['status']) && $data['status'] === 'approved') {
                 $this->leaverequest_model->logLeaveApprovalCredit($leave_request_id, $current_user_id);
+                $this->day_status_model->writeDayLock($leave_request_id);
             }
 
             // Send notification to applicant on final decision
@@ -1590,8 +1596,29 @@ class Leaverequest extends Admin_Controller
             return;
         }
 
+        // HOD: block revert if the CPL credit it generated has already been consumed
+        $lr_type_row  = $this->db->select('type')->where('id', (int)($leave_request['leave_type_id'] ?? 0))->limit(1)->get('leave_types')->row_array();
+        $lr_type_name = strtolower(trim((string)($lr_type_row['type'] ?? '')));
+        if (in_array($lr_type_name, ['hod', 'holiday on duty', 'holiday od'], true)) {
+            $cpl_type_row = $this->db->query("SELECT id FROM leave_types WHERE LOWER(type) = 'cpl' LIMIT 1")->row_array();
+            if (!empty($cpl_type_row)) {
+                $cpl_approved_count = (int) $this->db
+                    ->where('staff_id', (int)$leave_request['staff_id'])
+                    ->where('leave_type_id', (int)$cpl_type_row['id'])
+                    ->where_in('status', ['approved', 'approve'])
+                    ->count_all_results('staff_leave_request');
+                if ($cpl_approved_count > 0) {
+                    echo json_encode(['status' => 'fail', 'message' => 'Cannot revert this HOD leave — the CPL credit it generated has already been used in an approved CPL request. Please disapprove those CPL leaves first.']);
+                    return;
+                }
+            }
+        }
+
         // Revert balance
         $this->leaverequest_model->revertLeaveApproval($leave_request_id, $current_user_id);
+
+        // Remove day-lock records so biometric attendance is used again for payroll
+        $this->day_status_model->deleteDayLock($leave_request_id);
 
         // Reset the leave request to pending
         $reset_data = [

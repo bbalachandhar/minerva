@@ -29,6 +29,7 @@ class Payroll extends Admin_Controller
         $this->load->model("payroll_onetime_deduction_model");
         $this->load->model("staff_model");
         $this->load->model('staffattendancemodel');
+        $this->load->model('day_status_model'); // Day-lock for OD/CPL payroll override
         $this->payroll_status     = $this->config->item('payroll_status');
         $this->sch_setting_detail = $this->setting_model->getSetting();
     }
@@ -1197,6 +1198,24 @@ class Payroll extends Admin_Controller
         $summary = $this->getDerivedAttendanceSummaryForPeriod((int) $staff_id, $period['start_date'], $period['end_date'], $context['working_day_dates'], $context);
         $absent_count = (int) (($summary['by_display_key']['A'] ?? 0));
 
+        // Day-lock adjustment: dates with PAID_PRESENT (e.g. OD approved) were biometrically
+        // absent but must NOT be counted as absent for payroll purposes.
+        $day_locks = $this->day_status_model->getDayStatusRange(
+            (int) $staff_id, $period['start_date'], $period['end_date']
+        );
+        foreach ($day_locks as $locked_date => $lock_row) {
+            if ($lock_row['payroll_impact'] === 'PAID_PRESENT') {
+                // Only subtract if the biometric actually shows absent for that working day
+                if (isset($context['working_day_dates']) && in_array($locked_date, $context['working_day_dates'], true)) {
+                    $att_row = $this->staffattendancemodel->searchStaffattendance($locked_date, $staff_id, false);
+                    $att_key = $this->getNormalizedAttendanceKeyForPayrollRow((array) $att_row, (int) $staff_id);
+                    if ($att_key === 'A') {
+                        $absent_count = max(0, $absent_count - 1);
+                    }
+                }
+            }
+        }
+
         return max(0, $absent_count);
     }
 
@@ -1284,9 +1303,19 @@ class Payroll extends Admin_Controller
         $approved_paid_leave_credits = $this->getApprovedPaidLeaveCreditsByRange($start_date, $end_date, $staff_id);
         $working_day_lookup = array_fill_keys($working_day_dates, true);
 
+        // Day-lock lookup: dates with PAID_ABSENT (CPL-style) are absent-by-permission,
+        // so they absorb LOP credit without requiring a biometric 'A' check.
+        $day_locks = $this->day_status_model->getDayStatusRange((int) $staff_id, $start_date, $end_date);
+
         $paid_leave_absent = 0.0;
         foreach ($approved_paid_leave_credits as $leave_date => $credit) {
             if (!isset($working_day_lookup[$leave_date])) {
+                continue;
+            }
+            // If a PAID_ABSENT day-lock exists for this date, count it directly
+            // without checking biometric (override wins — absence is by approved leave).
+            if (isset($day_locks[$leave_date]) && $day_locks[$leave_date]['payroll_impact'] === 'PAID_ABSENT') {
+                $paid_leave_absent += max(0, min(1, (float) $credit));
                 continue;
             }
             $attendance_row = $this->staffattendancemodel->searchStaffattendance($leave_date, $staff_id, false);
@@ -1354,9 +1383,17 @@ class Payroll extends Admin_Controller
         }
 
         $working_day_lookup = array_fill_keys($context['working_day_dates'], true);
+
+        // Day-lock lookup for PAID_ABSENT override (same as getPaidLeaveAbsentCountRange)
+        $day_locks = $this->day_status_model->getDayStatusRange((int) $staff_id, $start_date, $end_date);
+
         $absent_covered = 0.0;
         foreach ($credits as $leave_date => $credit) {
             if (!isset($working_day_lookup[$leave_date])) {
+                continue;
+            }
+            if (isset($day_locks[$leave_date]) && $day_locks[$leave_date]['payroll_impact'] === 'PAID_ABSENT') {
+                $absent_covered += max(0, min(1, (float) $credit));
                 continue;
             }
             $attendance_row = $this->staffattendancemodel->searchStaffattendance($leave_date, $staff_id, false);

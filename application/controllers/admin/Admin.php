@@ -1167,9 +1167,11 @@ class Admin extends Admin_Controller
         $applications_total = isset($paymentOverview['applications_total']) ? (int) $paymentOverview['applications_total'] : 0;
         $fully_paid = isset($paymentOverview['fully_paid']) ? (int) $paymentOverview['fully_paid'] : 0;
         $partially_paid = isset($paymentOverview['partially_paid']) ? (int) $paymentOverview['partially_paid'] : 0;
+        $applied = isset($paymentOverview['applied']) ? (int) $paymentOverview['applied'] : 0;
         $not_paid = isset($paymentOverview['not_paid']) ? (int) $paymentOverview['not_paid'] : 0;
         $fully_paid_progress = isset($paymentOverview['fully_paid_progress']) ? (float) $paymentOverview['fully_paid_progress'] : 0;
         $partially_paid_progress = isset($paymentOverview['partially_paid_progress']) ? (float) $paymentOverview['partially_paid_progress'] : 0;
+        $applied_progress = isset($paymentOverview['applied_progress']) ? (float) $paymentOverview['applied_progress'] : 0;
         $not_paid_progress = isset($paymentOverview['not_paid_progress']) ? (float) $paymentOverview['not_paid_progress'] : 0;
 
         if ($total_enquiry > 0) {
@@ -1179,9 +1181,10 @@ class Admin extends Admin_Controller
                 'won_progress'     => $total_enquiry > 0 ? round(($applications_total * 100) / $total_enquiry, 2) : 0,
                 'active'           => $fully_paid,
                 'active_progress'  => $fully_paid_progress,
-                // dead, lost and passive omitted
                 'applications_total'            => $partially_paid,
                 'applications_total_progress'   => $partially_paid_progress,
+                'applied'                       => $applied,
+                'applied_progress'              => $applied_progress,
                 'applications_partial'          => $not_paid,
                 'applications_partial_progress' => $not_paid_progress,
             );
@@ -1194,6 +1197,8 @@ class Admin extends Admin_Controller
                 'active_progress'  => $fully_paid_progress,
                 'applications_total'            => $partially_paid,
                 'applications_total_progress'   => $partially_paid_progress,
+                'applied'                       => $applied,
+                'applied_progress'              => $applied_progress,
                 'applications_partial'          => $not_paid,
                 'applications_partial_progress' => $not_paid_progress,
             );

@@ -3,6 +3,7 @@
 class LeaveTypes extends Admin_Controller
 {
     private $hasBalanceCheckFlagColumn = null;
+    private $hasStrictDayLockFlagColumn = null;
 
     public function __construct()
     {
@@ -35,6 +36,15 @@ class LeaveTypes extends Admin_Controller
         return $this->db->field_exists('day_type_restriction', 'leave_types');
     }
 
+    private function hasStrictDayLockColumn()
+    {
+        if ($this->hasStrictDayLockFlagColumn !== null) {
+            return $this->hasStrictDayLockFlagColumn;
+        }
+        $this->hasStrictDayLockFlagColumn = $this->db->field_exists('strict_day_lock', 'leave_types');
+        return $this->hasStrictDayLockFlagColumn;
+    }
+
     public function index()
     {
         $this->session->set_userdata('top_menu', 'HR');
@@ -42,9 +52,10 @@ class LeaveTypes extends Admin_Controller
         $data["title"]     = $this->lang->line('add_leave_type');
         $LeaveTypes        = $this->leavetypes_model->getLeaveType();
         $data["leavetype"] = $LeaveTypes;
-        $data['has_balance_check_flag'] = $this->hasRequiresBalanceCheckColumn();
-        $data['has_credit_source_flag'] = $this->hasCreditSourceColumn();
-        $data['has_day_type_flag'] = $this->hasDayTypeColumn();
+        $data['has_balance_check_flag']    = $this->hasRequiresBalanceCheckColumn();
+        $data['has_credit_source_flag']     = $this->hasCreditSourceColumn();
+        $data['has_day_type_flag']          = $this->hasDayTypeColumn();
+        $data['has_strict_day_lock_flag']   = $this->hasStrictDayLockColumn();
         $this->load->view("layout/header");
         $this->load->view("admin/staff/leavetypes", $data);
         $this->load->view("layout/footer");
@@ -85,6 +96,7 @@ class LeaveTypes extends Admin_Controller
             if (!in_array($day_type_restriction, ['working_day', 'holiday'], true)) {
                 $day_type_restriction = null;
             }
+            $strict_day_lock = $this->input->post("strict_day_lock") ? 1 : 0;
 
             if (empty($leavetypeid)) {
 
@@ -122,6 +134,10 @@ class LeaveTypes extends Admin_Controller
                 $data['day_type_restriction'] = $day_type_restriction;
             }
 
+            if ($this->hasStrictDayLockColumn()) {
+                $data['strict_day_lock'] = $strict_day_lock;
+            }
+
             if (!empty($leavetypeid)) {
                 $data['id'] = $leavetypeid;
             }
@@ -134,9 +150,10 @@ class LeaveTypes extends Admin_Controller
             $this->session->set_flashdata('msg', '<div class="alert alert-danger">' . validation_errors() . '</div>');
             $LeaveTypes = $this->leavetypes_model->getLeaveType();
             $data["leavetype"] = $LeaveTypes;
-            $data['has_balance_check_flag'] = $this->hasRequiresBalanceCheckColumn();
-            $data['has_credit_source_flag'] = $this->hasCreditSourceColumn();
-            $data['has_day_type_flag'] = $this->hasDayTypeColumn();
+            $data['has_balance_check_flag']    = $this->hasRequiresBalanceCheckColumn();
+            $data['has_credit_source_flag']     = $this->hasCreditSourceColumn();
+            $data['has_day_type_flag']          = $this->hasDayTypeColumn();
+            $data['has_strict_day_lock_flag']   = $this->hasStrictDayLockColumn();
             $this->load->view("layout/header");
             $this->load->view("admin/staff/leavetypes", $data);
             $this->load->view("layout/footer");
@@ -150,9 +167,10 @@ class LeaveTypes extends Admin_Controller
         $data["result"]    = $result;
         $LeaveTypes        = $this->leavetypes_model->getLeaveType();
         $data["leavetype"] = $LeaveTypes;
-        $data['has_balance_check_flag'] = $this->hasRequiresBalanceCheckColumn();
-        $data['has_credit_source_flag'] = $this->hasCreditSourceColumn();
-        $data['has_day_type_flag'] = $this->hasDayTypeColumn();
+        $data['has_balance_check_flag']    = $this->hasRequiresBalanceCheckColumn();
+        $data['has_credit_source_flag']     = $this->hasCreditSourceColumn();
+        $data['has_day_type_flag']          = $this->hasDayTypeColumn();
+        $data['has_strict_day_lock_flag']   = $this->hasStrictDayLockColumn();
         $this->load->view("layout/header");
         $this->load->view("admin/staff/leavetypes", $data);
         $this->load->view("layout/footer");

@@ -648,7 +648,7 @@ class Leaverequest_model extends MY_model
                 );
             }
 
-            return $this->db->insert('staff_leave_balance_audit', [
+            $this->db->insert('staff_leave_balance_audit', [
                 'balance_id'     => $balance_id,
                 'staff_id'       => $staff_id,
                 'leave_type_id'  => $leave_type_id,
@@ -661,9 +661,10 @@ class Leaverequest_model extends MY_model
                 'performed_by'   => $approver_id,
                 'reason'         => $reason,
             ]);
+            return true;
         }
 
-        // --- Credit-consumer type (e.g. CPL consuming OD earned credit) ---
+        // --- Credit-consumer type (e.g. CPL consuming HOD credit pool) ---
         if ($is_credit_consumer) {
             // Find the source type (OD) monthly balance row for the same month/year.
             $src_balance_row = $this->db
@@ -827,6 +828,24 @@ class Leaverequest_model extends MY_model
     }
 
     /**
+     * Returns true if the leave type name represents Holiday On Duty (HOD).
+     */
+    private function isHodType($type_name_str)
+    {
+        $n = strtolower(trim((string) $type_name_str));
+        return in_array($n, ['hod', 'holiday on duty', 'holiday od', 'holiday od duty'], true);
+    }
+
+    /**
+     * Returns the leave_type_id for CPL from the DB, or 0 if not found.
+     */
+    private function getCplLeaveTypeId()
+    {
+        $row = $this->db->query("SELECT id FROM leave_types WHERE LOWER(type) = 'cpl' LIMIT 1")->row_array();
+        return !empty($row) ? (int) $row['id'] : 0;
+    }
+
+    /**
      * Returns the number of days in [leave_from, leave_to] where the staff member has
      * Absent attendance (or no attendance record at all), capped to $leave_days.
      *
@@ -871,6 +890,136 @@ class Leaverequest_model extends MY_model
         // Payroll's syncOnDutyCreditsForMonth + buildLopAdjustmentLeavePool handle
         // the LOP offset at month-end using the balance built here.
         return (float) $leave_days;
+    }
+
+    /**
+     * Credits CPL monthly balance when HOD is approved.
+     * HOD (Holiday On Duty) = staff worked on a holiday → automatically earns CPL days.
+     * Called only from logLeaveApprovalCredit() when the leave type isHodType().
+     */
+    private function _grantHodCplCredit($staff_id, $leave_days, $hod_leave_request_id, $performed_by, $month, $year)
+    {
+        $cpl_type_id = $this->getCplLeaveTypeId();
+        if (!$cpl_type_id) {
+            log_message('error', "Leaverequest_model::_grantHodCplCredit — CPL leave type not found in DB");
+            return;
+        }
+
+        $cpl_row = $this->db
+            ->where('staff_id', $staff_id)
+            ->where('leave_type_id', $cpl_type_id)
+            ->where('month', $month)
+            ->where('year', $year)
+            ->limit(1)
+            ->get('staff_monthly_leave_balance')
+            ->row_array();
+
+        if (!empty($cpl_row)) {
+            $cpl_balance_id = (int) $cpl_row['id'];
+            $cpl_before     = (float) $cpl_row['closing_balance'];
+            $cpl_after      = $cpl_before + $leave_days;
+            $this->db->where('id', $cpl_balance_id)->update('staff_monthly_leave_balance', [
+                'earned_in_month' => (float) $cpl_row['earned_in_month'] + $leave_days,
+                'closing_balance' => $cpl_after,
+                'notes'           => trim(($cpl_row['notes'] ?? '') . ' | HOD #' . $hod_leave_request_id),
+                'updated_at'      => date('Y-m-d H:i:s'),
+            ]);
+        } else {
+            $prev = $this->db
+                ->where('staff_id', $staff_id)
+                ->where('leave_type_id', $cpl_type_id)
+                ->order_by('year', 'DESC')->order_by('month', 'DESC')
+                ->limit(1)
+                ->get('staff_monthly_leave_balance')
+                ->row_array();
+            $cpl_before     = !empty($prev) ? (float) $prev['closing_balance'] : 0.0;
+            $cpl_after      = $cpl_before + $leave_days;
+            $this->db->insert('staff_monthly_leave_balance', [
+                'staff_id'                   => $staff_id,
+                'leave_type_id'              => $cpl_type_id,
+                'month'                      => $month,
+                'year'                       => $year,
+                'opening_balance'            => $cpl_before,
+                'earned_in_month'            => $leave_days,
+                'used_for_lop_adjustment'    => 0,
+                'used_for_leave_application' => 0,
+                'closing_balance'            => $cpl_after,
+                'notes'                      => 'HOD auto-grant from leave request #' . $hod_leave_request_id,
+                'created_at'                 => date('Y-m-d H:i:s'),
+                'updated_at'                 => date('Y-m-d H:i:s'),
+            ]);
+            $cpl_balance_id = $this->db->insert_id();
+        }
+
+        $this->db->insert('staff_leave_balance_audit', [
+            'balance_id'     => $cpl_balance_id,
+            'staff_id'       => $staff_id,
+            'leave_type_id'  => $cpl_type_id,
+            'action_type'    => 'HOD_CPL_CREDIT',
+            'amount'         => $leave_days,
+            'balance_before' => $cpl_before,
+            'balance_after'  => $cpl_after,
+            'reference_id'   => $hod_leave_request_id,
+            'reference_type' => 'leave_request',
+            'performed_by'   => $performed_by,
+            'reason'         => sprintf('HOD approved — auto-granted %s CPL day(s) from leave request #%d', $leave_days, $hod_leave_request_id),
+        ]);
+    }
+
+    /**
+     * Reverses the CPL credit granted by _grantHodCplCredit when HOD is reverted.
+     * Should only be called after the controller has confirmed no approved CPL exists
+     * (controller blocks the revert otherwise).
+     */
+    private function _reverseHodCplCredit($staff_id, $leave_days, $hod_leave_request_id, $reverted_by, $month, $year)
+    {
+        $cpl_type_id = $this->getCplLeaveTypeId();
+        if (!$cpl_type_id) {
+            return;
+        }
+
+        $cpl_row = $this->db
+            ->where('staff_id', $staff_id)
+            ->where('leave_type_id', $cpl_type_id)
+            ->where('month', $month)
+            ->where('year', $year)
+            ->limit(1)
+            ->get('staff_monthly_leave_balance')
+            ->row_array();
+
+        if (empty($cpl_row)) {
+            return; // Nothing to reverse
+        }
+
+        $cpl_balance_id = (int) $cpl_row['id'];
+        $cpl_before     = (float) $cpl_row['closing_balance'];
+        $new_earned     = max(0.0, (float) $cpl_row['earned_in_month'] - $leave_days);
+        $cpl_after      = max(0.0,
+            (float) $cpl_row['opening_balance']
+            + $new_earned
+            - (float) ($cpl_row['used_for_lop_adjustment'] ?? 0)
+            - (float) ($cpl_row['used_for_leave_application'] ?? 0)
+        );
+
+        $this->db->where('id', $cpl_balance_id)->update('staff_monthly_leave_balance', [
+            'earned_in_month' => $new_earned,
+            'closing_balance' => $cpl_after,
+            'updated_at'      => date('Y-m-d H:i:s'),
+        ]);
+
+        $this->db->insert('staff_leave_balance_audit', [
+            'balance_id'     => $cpl_balance_id,
+            'staff_id'       => $staff_id,
+            'leave_type_id'  => $cpl_type_id,
+            'action_type'    => 'HOD_CPL_CREDIT_REVERSED',
+            'amount'         => $leave_days,
+            'balance_before' => $cpl_before,
+            'balance_after'  => $cpl_after,
+            'reference_id'   => $hod_leave_request_id,
+            'reference_type' => 'leave_request',
+            'performed_by'   => $reverted_by,
+            'reason'         => sprintf('HOD reverted — reversed %s CPL day(s) from leave request #%d', $leave_days, $hod_leave_request_id),
+        ]);
     }
 
     /**
@@ -1016,7 +1165,7 @@ class Leaverequest_model extends MY_model
         }
 
         if ($is_credit_consumer) {
-            // CPL — restore OD pool that was debited
+            // CPL — restore HOD credit pool that was debited
             $src_balance_row = $this->db
                 ->where('staff_id', $staff_id)
                 ->where('leave_type_id', $credit_source_type_id)

@@ -12,10 +12,11 @@
                         <h3 class="box-title"><?php echo $this->lang->line('student_list'); ?></h3>
                         <div class="box-tools pull-right" style="display:flex;gap:8px;align-items:center;">
                             <select id="filter_form_status" class="form-control input-sm" style="width:150px;">
-                                <option value="">All Form Status</option>
+                                <option value="">All Course Fee Status</option>
+                                <option value="applied">Applied</option>
                                 <option value="0">Not Paid</option>
                                 <option value="2">Partially Paid</option>
-                                <option value="1">Paid</option>
+                                <option value="1">Fully Paid</option>
                             </select>
                             <select id="filter_quota" class="form-control input-sm" style="width:150px;">
                                 <option value="">All Quota</option>
@@ -48,6 +49,7 @@
                                         <th style="width:10%"><?php echo $this->lang->line('student_mobile_number'); ?></th>
                                        <?php }?>
                                         <th>Form Status</th>
+                                        <th>Course Fee Status</th>
                                         <?php if ($sch_setting->online_admission_payment == 'yes') {?>
                                             <th>App. Fee</th>
                                             <?php }?>

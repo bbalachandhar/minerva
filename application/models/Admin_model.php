@@ -295,18 +295,7 @@ class Admin_model extends CI_Model
             $app_fee_refs = array_values(array_unique($app_fee_refs));
         }
 
-        // Students who paid APPLICATION FEE (used for PARTIALLY PAID and NOT PAID buckets)
-        $filtered_students = array();
-        foreach ($students as $student) {
-            $ref = preg_replace('/\s+/', '', (string) ($student['reference_no'] ?? ''));
-            if (in_array($ref, $app_fee_refs, true)) {
-                $filtered_students[] = $student;
-            }
-        }
-
-        // Build tuition/other fee paid_map for ALL reference_nos (not just app-fee payers)
-        // so that students who fully paid course fees appear in FULLY PAID even if
-        // their APPLICATION FEE entry is missing from the DB.
+        // Build tuition/other fee paid_map for ALL reference_nos
         $paid_map = array();
         if (!empty($reference_nos)) {
             $paid_rows = $this->db
@@ -326,45 +315,40 @@ class Admin_model extends CI_Model
             }
         }
 
-        // FULLY PAID: any student (all online_admissions) whose tuition+other paid >= course_fee_total
-        $fully_paid_refs = array();
-        foreach ($students as $student) {
-            $ref = preg_replace('/\s+/', '', (string) ($student['reference_no'] ?? ''));
-            $course_fee = (isset($student['course_fee_total']) && $student['course_fee_total'] !== null && $student['course_fee_total'] !== '') ? (float) $student['course_fee_total'] : 0;
-            $paid_amount = isset($paid_map[$ref]) ? (float) $paid_map[$ref] : 0;
-            if ($course_fee > 0 && $paid_amount >= $course_fee) {
-                $fully_paid_refs[$ref] = true;
-            }
-        }
-        $fully_paid = count($fully_paid_refs);
-
-        // APPLICATION DONE = those who paid APPLICATION FEE
-        $applications_total = count($filtered_students);
-
-        // PARTIALLY PAID and NOT PAID: among APPLICATION FEE payers who are NOT fully paid
+        // Bucket all students into the 4 Course Fee Status categories
+        $applications_total = count($students);
+        $fully_paid   = 0;
         $partially_paid = 0;
-        $not_paid = 0;
-        foreach ($filtered_students as $student) {
-            $ref = preg_replace('/\s+/', '', (string) ($student['reference_no'] ?? ''));
-            if (isset($fully_paid_refs[$ref])) {
-                continue; // already counted in fully_paid
-            }
+        $applied      = 0; // app fee paid, no course fee paid yet
+        $not_paid     = 0; // nothing paid at all
+
+        foreach ($students as $student) {
+            $ref         = preg_replace('/\s+/', '', (string) ($student['reference_no'] ?? ''));
+            $course_fee  = (isset($student['course_fee_total']) && $student['course_fee_total'] !== null && $student['course_fee_total'] !== '') ? (float) $student['course_fee_total'] : 0;
             $paid_amount = isset($paid_map[$ref]) ? (float) $paid_map[$ref] : 0;
-            if ($paid_amount <= 0) {
-                $not_paid++;
-            } else {
+            $app_is_paid = in_array($ref, $app_fee_refs, true);
+
+            if ($course_fee > 0 && $paid_amount >= $course_fee) {
+                $fully_paid++;
+            } elseif ($paid_amount > 0) {
                 $partially_paid++;
+            } elseif ($app_is_paid) {
+                $applied++;
+            } else {
+                $not_paid++;
             }
         }
 
         return array(
-            'applications_total' => $applications_total,
-            'fully_paid' => $fully_paid,
-            'partially_paid' => $partially_paid,
-            'not_paid' => $not_paid,
-            'fully_paid_progress' => $applications_total > 0 ? round(($fully_paid * 100) / $applications_total, 2) : 0,
+            'applications_total'      => $applications_total,
+            'fully_paid'              => $fully_paid,
+            'partially_paid'          => $partially_paid,
+            'applied'                 => $applied,
+            'not_paid'                => $not_paid,
+            'fully_paid_progress'     => $applications_total > 0 ? round(($fully_paid * 100) / $applications_total, 2) : 0,
             'partially_paid_progress' => $applications_total > 0 ? round(($partially_paid * 100) / $applications_total, 2) : 0,
-            'not_paid_progress' => $applications_total > 0 ? round(($not_paid * 100) / $applications_total, 2) : 0,
+            'applied_progress'        => $applications_total > 0 ? round(($applied * 100) / $applications_total, 2) : 0,
+            'not_paid_progress'       => $applications_total > 0 ? round(($not_paid * 100) / $applications_total, 2) : 0,
         );
     }
 

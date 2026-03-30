@@ -87,7 +87,13 @@ class Onlinestudent_model extends MY_Model
             $this->datatables->where('online_admissions.quota_type', $quota_type_filter);
         }
         if ($paid_status_filter !== null && $paid_status_filter !== false && $paid_status_filter !== '') {
-            // Correlated subquery matching how Form Status is computed in the controller
+            // Filter by Course Fee Status column
+            $app_fee_subquery = "(SELECT COUNT(*) "
+                . "FROM incidental_fee_collections ifc_app "
+                . "INNER JOIN incidental_fee_types ift_app ON ift_app.id = ifc_app.incidental_fee_type_id "
+                . "WHERE REPLACE(ifc_app.application_ref_no, ' ', '') = REPLACE(online_admissions.reference_no, ' ', '') "
+                . "AND ifc_app.application_ref_no IS NOT NULL AND ifc_app.application_ref_no != '' "
+                . "AND LOWER(ift_app.title) LIKE '%application%')";
             $paid_subquery = "(SELECT COALESCE(SUM(ifc2.amount_collected), 0) "
                 . "FROM incidental_fee_collections ifc2 "
                 . "LEFT JOIN incidental_fee_types ift2 ON ift2.id = ifc2.incidental_fee_type_id "
@@ -95,15 +101,18 @@ class Onlinestudent_model extends MY_Model
                 . "AND ifc2.application_ref_no IS NOT NULL AND ifc2.application_ref_no != '' "
                 . "AND (LOWER(ift2.title) LIKE '%tuition%' OR LOWER(ift2.title) LIKE '%tution%' OR LOWER(ift2.title) LIKE '%other fee%'))";
             $course_fee_expr = "COALESCE(online_admissions.course_fee_total, IF(online_admissions.quota_type = 'management', online_admission_courses.mgt_fee, online_admission_courses.govt_fee))";
-            if ($paid_status_filter === '0') {
-                // Not Paid
-                $this->datatables->where("$paid_subquery <= 0", null, false);
+            if ($paid_status_filter === 'applied') {
+                // Applied: app fee paid, no course fee paid yet
+                $this->datatables->where("$app_fee_subquery > 0 AND $paid_subquery <= 0", null, false);
+            } elseif ($paid_status_filter === '0') {
+                // Not Paid: app fee not paid and no course fee paid
+                $this->datatables->where("$app_fee_subquery = 0 AND $paid_subquery <= 0", null, false);
             } elseif ($paid_status_filter === '2') {
-                // Partially Paid
-                $this->datatables->where("$paid_subquery > 0 AND $paid_subquery < $course_fee_expr", null, false);
+                // Partially Paid: some course fee paid but not fully
+                $this->datatables->where("$paid_subquery > 0 AND ($course_fee_expr <= 0 OR $paid_subquery < $course_fee_expr)", null, false);
             } elseif ($paid_status_filter === '1') {
-                // Fully Paid
-                $this->datatables->where("$paid_subquery >= $course_fee_expr AND $course_fee_expr > 0", null, false);
+                // Fully Paid: course fee fully paid
+                $this->datatables->where("$course_fee_expr > 0 AND $paid_subquery >= $course_fee_expr", null, false);
             }
         }
         $this->datatables

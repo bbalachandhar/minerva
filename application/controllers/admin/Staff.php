@@ -23,6 +23,7 @@ class Staff extends Admin_Controller
         $this->load->library('encoding_lib');
         $this->load->model("leaverequest_model");
         $this->load->model("biometric_device_model"); // Load the new model
+        $this->load->model("day_status_model"); // Day-lock overlay for attendance report
         $this->contract_type      = $this->config->item('contracttype');
         $this->marital_status     = $this->config->item('marital_status');
         $this->staff_attendance   = $this->config->item('staffattendance');
@@ -1038,6 +1039,19 @@ class Staff extends Admin_Controller
                 if ($derived !== null) { $r['key'] = $derived; }
             }
             unset($r);
+
+            // Day-lock overlay: for approved OD/CPL leaves with strict_day_lock=1,
+            // replace the biometric attendance key with the day_status label (e.g. OD, CPL, FH-OD).
+            $start_of_year = $year . '-01-01';
+            $end_of_year   = $year . '-12-31';
+            $day_locks = $this->day_status_model->getDayStatusRange((int) $id, $start_of_year, $end_of_year);
+            foreach ($day_locks as $locked_date => $lock_row) {
+                if (isset($res[$locked_date])) {
+                    $res[$locked_date]['key'] = $lock_row['status'];
+                    $res[$locked_date]['day_lock'] = true;
+                    $res[$locked_date]['payroll_impact'] = $lock_row['payroll_impact'];
+                }
+            }
             $data["resultlist"]       = $res;
             $data["attendence_array"] = $attendence_array;
             $data["date_array"]       = $date_array;

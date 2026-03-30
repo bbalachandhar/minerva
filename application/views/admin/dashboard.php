@@ -524,6 +524,15 @@ foreach ($notifications as $notice_key => $notice_value) {
                                             </div>
                                         </div>
                                         <p class="text-uppercase mt10 clearfix">
+                                            <span class="eo-applied-count fo-skeleton">0</span> Applied
+                                            <span class="pull-right"><span class="eo-applied-percent fo-skeleton">0</span></span>
+                                        </p>
+                                        <div class="progress-group">
+                                            <div class="progress progress-minibar">
+                                                <div class="progress-bar progress-bar-aqua eo-applied-bar" style="width:0%"></div>
+                                            </div>
+                                        </div>
+                                        <p class="text-uppercase mt10 clearfix">
                                             <span class="eo-app-partial-count fo-skeleton">0</span> Not Paid
                                             <span class="pull-right"><span class="eo-app-partial-percent fo-skeleton">0</span></span>
                                         </p>
@@ -1651,7 +1660,7 @@ if (($this->module_lib->hasActive('fees_collection')) || ($this->module_lib->has
                     $staffAttendance.find('.sfa-present-count, .sfa-present-percent, .sfa-late-count, .sfa-late-percent, .sfa-absent-count, .sfa-absent-percent, .sfa-halfday-count, .sfa-halfday-percent, .sfa-permission-count, .sfa-permission-percent').addClass('fo-skeleton');
 
                     var $enquiryOverview = $('#enquiry-overview-widget');
-                    $enquiryOverview.find('.eo-won-count, .eo-won-percent, .eo-active-count, .eo-active-percent, .eo-total-count, .eo-app-count, .eo-app-total-percent, .eo-app-partial-count, .eo-app-partial-percent').addClass('fo-skeleton');
+                    $enquiryOverview.find('.eo-won-count, .eo-won-percent, .eo-active-count, .eo-active-percent, .eo-total-count, .eo-app-count, .eo-app-total-percent, .eo-applied-count, .eo-applied-percent, .eo-app-partial-count, .eo-app-partial-percent').addClass('fo-skeleton');
 
                     var $libraryOverview = $('#library-overview-widget');
                     $libraryOverview.find('.lib-dueforreturn, .lib-forreturn, .lib-total-issued, .lib-total, .lib-issued-progress, .lib-availble, .lib-availble-progress').addClass('fo-skeleton');
@@ -1677,7 +1686,7 @@ if (($this->module_lib->hasActive('fees_collection')) || ($this->module_lib->has
                     $staffAttendance.find('.sfa-present-count, .sfa-present-percent, .sfa-late-count, .sfa-late-percent, .sfa-absent-count, .sfa-absent-percent, .sfa-halfday-count, .sfa-halfday-percent, .sfa-permission-count, .sfa-permission-percent').removeClass('fo-skeleton');
 
                     var $enquiryOverview = $('#enquiry-overview-widget');
-                    $enquiryOverview.find('.eo-won-count, .eo-won-percent, .eo-active-count, .eo-active-percent, .eo-total-count, .eo-app-count, .eo-app-total-percent, .eo-app-partial-count, .eo-app-partial-percent').removeClass('fo-skeleton');
+                    $enquiryOverview.find('.eo-won-count, .eo-won-percent, .eo-active-count, .eo-active-percent, .eo-total-count, .eo-app-count, .eo-app-total-percent, .eo-applied-count, .eo-applied-percent, .eo-app-partial-count, .eo-app-partial-percent').removeClass('fo-skeleton');
 
                     var $libraryOverview = $('#library-overview-widget');
                     $libraryOverview.find('.lib-dueforreturn, .lib-forreturn, .lib-total-issued, .lib-total, .lib-issued-progress, .lib-availble, .lib-availble-progress').removeClass('fo-skeleton');
@@ -2092,6 +2101,11 @@ if (($this->module_lib->hasActive('fees_collection')) || ($this->module_lib->has
                     var atp = (parseFloat(d.applications_total_progress) || 0).toFixed(2);
                     $enquiryOverview.find('.eo-app-total-percent').text(atp + '%');
                     $enquiryOverview.find('.eo-app-total-bar').css('width', atp + '%');
+
+                    $enquiryOverview.find('.eo-applied-count').text(d.applied || 0);
+                    var aplp = (parseFloat(d.applied_progress) || 0).toFixed(2);
+                    $enquiryOverview.find('.eo-applied-percent').text(aplp + '%');
+                    $enquiryOverview.find('.eo-applied-bar').css('width', aplp + '%');
 
                     $enquiryOverview.find('.eo-app-partial-count').text(d.applications_partial || 0);
                     var app = (parseFloat(d.applications_partial_progress) || 0).toFixed(2);
