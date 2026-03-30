@@ -1174,11 +1174,14 @@ class Admin extends Admin_Controller
         $applied_progress = isset($paymentOverview['applied_progress']) ? (float) $paymentOverview['applied_progress'] : 0;
         $not_paid_progress = isset($paymentOverview['not_paid_progress']) ? (float) $paymentOverview['not_paid_progress'] : 0;
 
+        // APPLICATION RECEIVED = fully paid + partially paid + applied (excludes not_paid)
+        $application_received = $fully_paid + $partially_paid + $applied;
+
         if ($total_enquiry > 0) {
             $overview = array(
                 'total'            => $total_enquiry,
-                'won'              => $applications_total,
-                'won_progress'     => $total_enquiry > 0 ? round(($applications_total * 100) / $total_enquiry, 2) : 0,
+                'won'              => $application_received,
+                'won_progress'     => $total_enquiry > 0 ? round(($application_received * 100) / $total_enquiry, 2) : 0,
                 'active'           => $fully_paid,
                 'active_progress'  => $fully_paid_progress,
                 'applications_total'            => $partially_paid,
@@ -1191,7 +1194,7 @@ class Admin extends Admin_Controller
         } else {
             $overview = array(
                 'total'            => 0,
-                'won'              => $applications_total,
+                'won'              => $application_received,
                 'won_progress'     => 0,
                 'active'           => $fully_paid,
                 'active_progress'  => $fully_paid_progress,
