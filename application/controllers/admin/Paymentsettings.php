@@ -845,6 +845,7 @@ class Paymentsettings extends Admin_Controller
                 'api_password'        => $this->input->post('billdesk_api_password'),
                 'salt'                => $this->input->post('billdesk_salt'),
                 'api_signature'       => $this->input->post('billdesk_api_signature'),
+                'gateway_mode'        => (int) $this->input->post('billdesk_gateway_mode'),
                 'payment_type'        => 'billdesk',
                 'charge_type'         => $this->input->post('charge_type'),
                 'charge_value'        => $this->input->post('billdesk_charge_value'),

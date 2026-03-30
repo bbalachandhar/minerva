@@ -2079,6 +2079,24 @@ $onepay_result = check_in_array('onepay', $paymentlist);
                                                         <span class="text text-danger billdesk_api_signature_error"></span>
                                                     </div>
                                                 </div>
+                                                <div class="form-group">
+                                                    <label class="col-sm-5 control-label">Gateway Mode<small class="req"> *</small></label>
+                                                    <div class="col-sm-7">
+                                                        <div class="row">
+                                                            <div class="col-sm-5">
+                                                                <label class="radio-inline">
+                                                                    <input type="radio" name="billdesk_gateway_mode" value="0" <?php echo (!isset($billdesk_result->gateway_mode) || $billdesk_result->gateway_mode == 0) ? 'checked="checked"' : ''; ?>> UAT (Test)
+                                                                </label>
+                                                            </div>
+                                                            <div class="col-sm-7">
+                                                                <label class="radio-inline">
+                                                                    <input type="radio" name="billdesk_gateway_mode" value="1" <?php echo (isset($billdesk_result->gateway_mode) && $billdesk_result->gateway_mode == 1) ? 'checked="checked"' : ''; ?>> Production (Live)
+                                                                </label>
+                                                            </div>
+                                                        </div>
+                                                        <span class="help-block" style="font-size:11px;color:#888;">UAT &rarr; <code>uat1.billdesk.com</code> &nbsp;|&nbsp; Production &rarr; <code>api.billdesk.com</code></span>
+                                                    </div>
+                                                </div>
                                                   <!-- processing charge -->
                                                   <div class="form-group">
                                                     <label class="control-label col-lg-5 col-md-5 col-sm-5 col-xs-12" for="exampleInputEmail1">

@@ -222,8 +222,14 @@ class Billdesk_lib
         log_message('error', 'BILLDESK_UAT_DATA: 8. Original encrypted & signed Retrieve Transaction API request string, BD-TraceID & BD-Timestamp: Request String=' . $verify_jws_token);
         log_message('error', 'BILLDESK_UAT_DATA: 8. Retrieve Transaction Request Headers: ' . json_encode($verify_headers));
 
+        $payment_setting = $this->CI->paymentsetting_model->getActiveMethod();
+        $is_production   = (!empty($payment_setting->gateway_mode) && $payment_setting->gateway_mode == 1);
+        $verify_url      = $is_production
+            ? 'https://api.billdesk.com/payments/ve1_2/transactions/get'
+            : 'https://uat1.billdesk.com/u2/payments/ve1_2/transactions/get';
+
         $ch_verify = curl_init();
-        curl_setopt($ch_verify, CURLOPT_URL, "https://uat1.billdesk.com/u2/payments/ve1_2/transactions/get");
+        curl_setopt($ch_verify, CURLOPT_URL, $verify_url);
         curl_setopt($ch_verify, CURLOPT_POST, 1);
         curl_setopt($ch_verify, CURLOPT_POSTFIELDS, $verify_jws_token);
         curl_setopt($ch_verify, CURLOPT_RETURNTRANSFER, true);

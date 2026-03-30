@@ -174,20 +174,21 @@ class Billdesk extends Student_Controller
 
                 $formatted_amount = number_format($total_amount, 2, '.', '');
                 
-                // Corrected access for onlineform_sub_merchant_id using $this->setting[0]
                 $onlineform_sub_merchant_id = $data['params']['sch_setting_detail']->onlineform_sub_merchant_id;
-                if (empty($onlineform_sub_merchant_id)) {
-                     throw new Exception("Billdesk payment processing failed: Online form sub-merchant ID is not configured in settings.");
-                }
+                log_message('error', 'BILLDESK_DEBUG_PAY: onlineform_sub_merchant_id: ' . $onlineform_sub_merchant_id);
 
-                $split_payment_payload[] = [
-                    'mercid' => $onlineform_sub_merchant_id,
-                    'amount' => $formatted_amount,
-                    'customer_refid' => $school_code . 'ORN' . $data['params']['reference_no'],
-                    'additional_info1' => 'NA', 'additional_info2' => 'NA', 'additional_info3' => 'NA',
-                    'additional_info4' => 'NA', 'additional_info5' => 'NA', 'additional_info6' => 'NA',
-                    'additional_info7' => 'NA',
-                ];
+                // Only add split_payment if a child sub-merchant ID is configured; otherwise
+                // the parent mercid handles the full amount (no split payment needed).
+                if (!empty($onlineform_sub_merchant_id)) {
+                    $split_payment_payload[] = [
+                        'mercid' => $onlineform_sub_merchant_id,
+                        'amount' => $formatted_amount,
+                        'customer_refid' => $school_code . 'ORN' . $data['params']['reference_no'],
+                        'additional_info1' => 'NA', 'additional_info2' => 'NA', 'additional_info3' => 'NA',
+                        'additional_info4' => 'NA', 'additional_info5' => 'NA', 'additional_info6' => 'NA',
+                        'additional_info7' => 'NA',
+                    ];
+                }
 
                 $ecom_order_ref_no = $data['params']['reference_no'] . time() . rand(11, 99);
                 
@@ -222,6 +223,12 @@ class Billdesk extends Student_Controller
                 throw new Exception("Unknown payment module: " . $module);
             }
 
+            // Determine API endpoints based on gateway_mode (0 = UAT, 1 = Production)
+            $is_production = (!empty($this->api_config->gateway_mode) && $this->api_config->gateway_mode == 1);
+            $bd_api_base   = $is_production ? 'https://api.billdesk.com/payments/ve1_2/'           : 'https://uat1.billdesk.com/u2/payments/ve1_2/';
+            $bd_sdk_base   = $is_production ? 'https://pay.billdesk.com/v1_2/embeddedsdk'          : 'https://uat1.billdesk.com/u2/web/v1_2/embeddedsdk';
+            log_message('error', 'BILLDESK_DEBUG_PAY: gateway_mode=' . $this->api_config->gateway_mode . ' is_production=' . ($is_production ? 'true' : 'false') . ' api_base=' . $bd_api_base);
+
             // Step 2: Ecom Order
             $ecom_payload = [
                 'mercid' => $this->api_config->api_secret_key,
@@ -255,13 +262,13 @@ class Billdesk extends Student_Controller
             log_message('error', 'BILLDESK_UAT_DATA: 2. Ecom Order Request Headers: ' . json_encode($ecom_headers));
 
             $ch_ecom = curl_init();
-            curl_setopt($ch_ecom, CURLOPT_URL, "https://uat1.billdesk.com/u2/payments/ve1_2/ecomorders/create");
+            curl_setopt($ch_ecom, CURLOPT_URL, $bd_api_base . 'ecomorders/create');
             curl_setopt($ch_ecom, CURLOPT_POST, 1);
             curl_setopt($ch_ecom, CURLOPT_POSTFIELDS, $ecom_jws_token);
             curl_setopt($ch_ecom, CURLOPT_RETURNTRANSFER, true);
             curl_setopt($ch_ecom, CURLOPT_HTTPHEADER, $ecom_headers);
 
-            log_message('error', 'Billdesk Ecom Order Request URL: https://uat1.billdesk.com/u2/payments/ve1_2/ecomorders/create');
+            log_message('error', 'Billdesk Ecom Order Request URL: ' . $bd_api_base . 'ecomorders/create');
             log_message('error', 'Billdesk Ecom Order Request Headers: ' . print_r($ecom_headers, true));
 
             $ecom_response = curl_exec($ch_ecom);
@@ -347,13 +354,13 @@ class Billdesk extends Student_Controller
                 log_message('error', 'BILLDESK_UAT_DATA: 5. Create Order Request Headers: ' . json_encode($trans_headers));
 
                 $ch_trans = curl_init();
-                curl_setopt($ch_trans, CURLOPT_URL, "https://uat1.billdesk.com/u2/payments/ve1_2/orders/create");
+                curl_setopt($ch_trans, CURLOPT_URL, $bd_api_base . 'orders/create');
                 curl_setopt($ch_trans, CURLOPT_POST, 1);
                 curl_setopt($ch_trans, CURLOPT_POSTFIELDS, $trans_jws_token);
                 curl_setopt($ch_trans, CURLOPT_RETURNTRANSFER, true);
                 curl_setopt($ch_trans, CURLOPT_HTTPHEADER, $trans_headers);
 
-                log_message('error', 'Billdesk Transaction Request URL: https://uat1.billdesk.com/u2/payments/ve1_2/orders/create');
+                log_message('error', 'Billdesk Transaction Request URL: ' . $bd_api_base . 'orders/create');
                 log_message('error', 'Billdesk Transaction Request Headers: ' . print_r($trans_headers, true));
 
                 $trans_response = curl_exec($ch_trans);
@@ -406,7 +413,7 @@ class Billdesk extends Student_Controller
                 // Try to find 'rdata' or equivalent.
                 // Sometimes it's in 'links' array.
                 $rdata = '';
-                $redirect_url = 'https://uat1.billdesk.com/u2/web/v1_2/embeddedsdk'; // Default URL from user example
+                $redirect_url = $bd_sdk_base; // Default URL; may be overridden by response links
 
                 if (isset($decrypted_trans_response['links'])) {
                     foreach ($decrypted_trans_response['links'] as $link) {
