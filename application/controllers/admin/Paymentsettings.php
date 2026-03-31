@@ -22,8 +22,9 @@ class Paymentsettings extends Admin_Controller
         $this->session->set_userdata('sub_menu', 'admin/paymentsettings');
         $data['title']  = 'SMS Config List';     
         $data['statuslist']  = $this->customlib->getStatus();
-        $data['paymentlist'] = $this->paymentsetting_model->get();
-        $data['api_config'] = $this->paymentsetting_model->getActiveMethod();
+        $data['paymentlist']     = $this->paymentsetting_model->get();
+        $data['api_config']      = $this->paymentsetting_model->getActiveMethod();
+        $data['billdesk_slabs']  = $this->paymentsetting_model->getBilldeskSlabs();
         $this->load->view('layout/header', $data);
         $this->load->view('admin/payment_setting/paymentsettingList', $data);
         $this->load->view('layout/footer', $data);
@@ -852,6 +853,13 @@ class Paymentsettings extends Admin_Controller
             );
 
             $this->paymentsetting_model->add($data);
+
+            // Save per-method charge slabs
+            $slabs = $this->input->post('slabs');
+            if (!empty($slabs) && is_array($slabs)) {
+                $this->paymentsetting_model->saveBilldeskSlabs($slabs);
+            }
+
             echo json_encode(array('st' => 0, 'msg' => $this->lang->line('update_message')));
 
         } else {

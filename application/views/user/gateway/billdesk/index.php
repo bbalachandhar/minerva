@@ -122,18 +122,135 @@
                                                 <td class="text-right"><?php echo $setting[0]['currency_symbol'] . amountFormat((float) $params['gateway_processing_charge'], 2, '.', ''); ?></td>
                                             </tr>
                                         <?php } ?>
+                                        <!-- Dynamic fee row for per-method slab charges -->
+                                        <tr id="bd_fee_row" class="border_bottom" style="display:none;">
+                                            <td><span class="text-text-success"><?php echo $this->lang->line('processing_fees'); ?></span></td>
+                                            <td class="text-right"><span id="bd_fee_amount"></span></td>
+                                        </tr>
                                         <tr class="bordertoplightgray">
-                                            <td colspan="2" class="text-right"><?php echo $this->lang->line('total');?>: <?php echo $setting[0]['currency_symbol'] . amountFormat((float)(($params['fine_amount_balance'] ?? 0) + ($params['total'] ?? 0) - ($params['applied_fee_discount'] ?? 0) + ($params['gateway_processing_charge'] ?? 0)), 2, '.', ''); ?></td>
+                                            <td colspan="2" class="text-right"><?php echo $this->lang->line('total');?>: <span id="bd_total_cell"><?php echo $setting[0]['currency_symbol'] . amountFormat((float)(($params['fine_amount_balance'] ?? 0) + ($params['total'] ?? 0) - ($params['applied_fee_discount'] ?? 0) + ($params['gateway_processing_charge'] ?? 0)), 2, '.', ''); ?></span></td>
                                         </tr>
                                     <?php } ?>
                                 </table>
                                 <script src="<?php echo base_url(); ?>backend/custom/jquery.min.js"></script>
                                 <div class="divider"></div>
-                                <form class="paddtlrb" action="<?php echo site_url('user/gateway/billdesk/pay') ?>" method="POST" id="billdeskForm">                                   
-                                   
-                                    <button type="button" onclick="window.history.go(-1); return false;" name="search"  value="" class="btn btn-info"><i class="fa fa fa-chevron-left"></i> <?php echo $this->lang->line('back')?></button>    
-                                    <button type="submit"  class="btn cfees pull-right submit_button"><i class="fa fa fa-money"></i> Pay With Billdesk </button>                           
-                                </form> 
+
+                                <?php
+                                // Build slabs array for JS
+                                $slabs_for_js = [];
+                                if (!empty($params['billdesk_slabs'])) {
+                                    foreach ($params['billdesk_slabs'] as $s) {
+                                        if ($s->is_active) {
+                                            $slabs_for_js[] = [
+                                                'key'             => $s->payment_method,
+                                                'label'           => $s->label,
+                                                'charge_type'     => $s->charge_type,
+                                                'charge_value'    => (float)$s->charge_value,
+                                                'amount_threshold'=> (float)$s->amount_threshold,
+                                                'charge_value_above' => (float)$s->charge_value_above,
+                                            ];
+                                        }
+                                    }
+                                }
+                                $base_amount = ($params['total'] ?? 0) + ($params['fine_amount_balance'] ?? 0) - ($params['applied_fee_discount'] ?? 0);
+                                $currency_sym = $setting[0]['currency_symbol'];
+                                ?>
+
+                                <?php if (!empty($slabs_for_js)): ?>
+                                <!-- Payment Method Selector -->
+                                <div style="margin-bottom:12px;">
+                                    <p style="font-weight:600;margin-bottom:8px;font-size:13px;color:#444;">Select Payment Method:</p>
+                                    <?php foreach ($slabs_for_js as $slab): ?>
+                                    <label class="bd-method-label" style="display:block;padding:7px 10px;border:1px solid #ddd;border-radius:4px;margin-bottom:5px;cursor:pointer;">
+                                        <input type="radio" name="bd_method_radio" value="<?php echo $slab['key']; ?>"
+                                               data-type="<?php echo $slab['charge_type']; ?>"
+                                               data-val="<?php echo $slab['charge_value']; ?>"
+                                               data-threshold="<?php echo $slab['amount_threshold']; ?>"
+                                               data-val-above="<?php echo $slab['charge_value_above']; ?>"
+                                               style="margin-right:6px;">
+                                        <?php echo htmlspecialchars($slab['label']); ?>
+                                        <span class="bd-method-fee text-muted" style="font-size:12px;float:right;">
+                                            <?php
+                                            if ($slab['charge_type'] === 'flat') {
+                                                echo $currency_sym . number_format($slab['charge_value'], 2);
+                                            } elseif ($slab['charge_value'] == 0 && $slab['charge_value_above'] == 0) {
+                                                echo 'Free';
+                                            } elseif ($slab['amount_threshold'] > 0) {
+                                                echo $slab['charge_value'] . '% (≤₹' . number_format($slab['amount_threshold'], 0) . ') / ' . $slab['charge_value_above'] . '% (above)';
+                                            } else {
+                                                echo $slab['charge_value'] . '%';
+                                            }
+                                            ?>
+                                        </span>
+                                    </label>
+                                    <?php endforeach; ?>
+                                </div>
+
+                                <script>
+                                (function() {
+                                    var baseAmount = <?php echo json_encode((float)$base_amount); ?>;
+                                    var currSym    = <?php echo json_encode($currency_sym); ?>;
+
+                                    function computeFee(radio) {
+                                        var type      = parseFloat(radio.getAttribute('data-val'));
+                                        var chargeType= radio.getAttribute('data-type');
+                                        var threshold = parseFloat(radio.getAttribute('data-threshold'));
+                                        var valAbove  = parseFloat(radio.getAttribute('data-val-above'));
+                                        var fee = 0;
+                                        if (chargeType === 'flat') {
+                                            fee = type; // type holds charge_value
+                                        } else {
+                                            if (threshold > 0 && baseAmount > threshold) {
+                                                fee = (baseAmount * valAbove) / 100;
+                                            } else {
+                                                fee = (baseAmount * type) / 100;
+                                            }
+                                        }
+                                        return Math.round(fee * 100) / 100;
+                                    }
+
+                                    function amountFormat(n) {
+                                        return currSym + parseFloat(n).toFixed(2);
+                                    }
+
+                                    document.querySelectorAll('input[name="bd_method_radio"]').forEach(function(radio) {
+                                        radio.addEventListener('change', function() {
+                                            var fee   = computeFee(this);
+                                            var total = baseAmount + fee;
+
+                                            // Update hidden inputs for form submit
+                                            document.getElementById('bd_payment_method').value = this.value;
+                                            document.getElementById('bd_computed_charge').value = fee.toFixed(2);
+
+                                            // Update fee row in summary table
+                                            var feeRow = document.getElementById('bd_fee_row');
+                                            if (fee > 0) {
+                                                feeRow.style.display = '';
+                                                document.getElementById('bd_fee_amount').textContent = amountFormat(fee);
+                                            } else {
+                                                feeRow.style.display = 'none';
+                                            }
+                                            document.getElementById('bd_total_cell').textContent = amountFormat(total);
+
+                                            // Highlight selected label
+                                            document.querySelectorAll('.bd-method-label').forEach(function(l){ l.style.background=''; l.style.borderColor='#ddd'; });
+                                            this.parentElement.style.background = '#f0f8ff';
+                                            this.parentElement.style.borderColor = '#0084B4';
+
+                                            // Enable pay button
+                                            document.querySelector('.submit_button').disabled = false;
+                                        });
+                                    });
+                                })();
+                                </script>
+                                <?php endif; ?>
+
+                                <form class="paddtlrb" action="<?php echo site_url('user/gateway/billdesk/pay') ?>" method="POST" id="billdeskForm">
+                                    <input type="hidden" id="bd_payment_method" name="billdesk_payment_method" value="">
+                                    <input type="hidden" id="bd_computed_charge" name="billdesk_computed_charge" value="0">
+                                    <button type="button" onclick="window.history.go(-1); return false;" name="search"  value="" class="btn btn-info"><i class="fa fa fa-chevron-left"></i> <?php echo $this->lang->line('back')?></button>
+                                    <button type="submit" class="btn cfees pull-right submit_button" <?php echo !empty($slabs_for_js) ? 'disabled="disabled"' : ''; ?>><i class="fa fa fa-money"></i> Pay With Billdesk </button>
+                                </form>
                             </div>
                         </div>
                     </div>

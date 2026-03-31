@@ -75,6 +75,34 @@ class Billdesk extends Student_Controller
             redirect($_SERVER['HTTP_REFERER'] ?? base_url());
         }
 
+        // Server-side fee re-computation when using per-method slab pricing
+        $posted_payment_method = $this->input->post('billdesk_payment_method');
+        if (!empty($posted_payment_method)) {
+            $slabs      = $this->paymentsetting_model->getBilldeskSlabs();
+            $base_amt   = (float)($data['params']['total'] ?? 0)
+                        + (float)($data['params']['fine_amount_balance'] ?? 0)
+                        - (float)($data['params']['applied_fee_discount'] ?? 0);
+            $computed_charge = 0.00;
+            foreach ($slabs as $slab) {
+                if ($slab->payment_method === $posted_payment_method && $slab->is_active) {
+                    if ($slab->charge_type === 'flat') {
+                        $computed_charge = (float)$slab->charge_value;
+                    } else {
+                        if ((float)$slab->amount_threshold > 0 && $base_amt > (float)$slab->amount_threshold) {
+                            $computed_charge = ($base_amt * (float)$slab->charge_value_above) / 100;
+                        } else {
+                            $computed_charge = ($base_amt * (float)$slab->charge_value) / 100;
+                        }
+                    }
+                    break;
+                }
+            }
+            $data['params']['gateway_processing_charge'] = round($computed_charge, 2);
+            $data['params']['billdesk_payment_method']   = $posted_payment_method;
+            $this->session->set_userdata('params', $data['params']);
+            log_message('error', 'BILLDESK_SLAB: method=' . $posted_payment_method . ' base=' . $base_amt . ' fee=' . $computed_charge);
+        }
+
         $module = $data['params']['item_type'] ?? 'fees'; // Determine module early
         log_message('error', 'BILLDESK_DEBUG_PAY: Initiating payment for module: ' . $module);
         log_message('error', 'BILLDESK_DEBUG_PAY: Session params: ' . json_encode($data['params']));

@@ -2139,6 +2139,74 @@ $onepay_result = check_in_array('onepay', $paymentlist);
                                                     <img src="<?php echo base_url(); ?>/backend/images/billdesk_logo.png" width="200"><p>https://www.billdesk.com/</p></a>
                                             </div>
                                     </div>
+                                    <!-- Payment Method Charge Slabs -->
+                                    <div class="row" style="margin-top:18px;">
+                                        <div class="col-md-12">
+                                            <h4 style="border-bottom:1px solid #e0e0e0;padding-bottom:8px;margin-bottom:12px;">
+                                                <i class="fa fa-table"></i> Payment Method Charges
+                                                <small class="text-muted">&nbsp;(as per BillDesk contract)</small>
+                                            </h4>
+                                            <p class="text-muted" style="font-size:12px;margin-bottom:8px;">
+                                                Convenience fee charged to student per payment method.
+                                                Debit Card Visa/MC uses a two-slab rate based on transaction amount.
+                                            </p>
+                                            <table class="table table-bordered table-condensed" style="font-size:13px;">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Payment Method</th>
+                                                        <th style="width:90px;">Type</th>
+                                                        <th style="width:120px;">Rate <small>(≤&nbsp;Threshold)</small></th>
+                                                        <th style="width:100px;">Threshold&nbsp;(₹)</th>
+                                                        <th style="width:120px;">Rate <small>(&gt;&nbsp;Threshold)</small></th>
+                                                        <th style="width:60px;text-align:center;">Active</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <?php if (!empty($billdesk_slabs)): foreach ($billdesk_slabs as $slab): ?>
+                                                    <tr>
+                                                        <td><?php echo htmlspecialchars($slab->label); ?></td>
+                                                        <td>
+                                                            <select name="slabs[<?php echo $slab->id; ?>][charge_type]" class="form-control input-sm">
+                                                                <option value="percentage" <?php echo $slab->charge_type == 'percentage' ? 'selected' : ''; ?>>% Per</option>
+                                                                <option value="flat" <?php echo $slab->charge_type == 'flat' ? 'selected' : ''; ?>>Flat ₹</option>
+                                                            </select>
+                                                        </td>
+                                                        <td>
+                                                            <input type="number" step="0.0001" min="0" name="slabs[<?php echo $slab->id; ?>][charge_value]" class="form-control input-sm" value="<?php echo $slab->charge_value; ?>">
+                                                        </td>
+                                                        <td class="text-center" style="vertical-align:middle;">
+                                                            <?php if ($slab->amount_threshold > 0): ?>
+                                                                <?php echo number_format((float)$slab->amount_threshold, 0); ?>
+                                                                <input type="hidden" name="slabs[<?php echo $slab->id; ?>][amount_threshold]" value="<?php echo $slab->amount_threshold; ?>">
+                                                            <?php else: ?>
+                                                                <span class="text-muted">—</span>
+                                                                <input type="hidden" name="slabs[<?php echo $slab->id; ?>][amount_threshold]" value="0">
+                                                            <?php endif; ?>
+                                                        </td>
+                                                        <td>
+                                                            <?php if ($slab->amount_threshold > 0): ?>
+                                                                <input type="number" step="0.0001" min="0" name="slabs[<?php echo $slab->id; ?>][charge_value_above]" class="form-control input-sm" value="<?php echo $slab->charge_value_above; ?>">
+                                                            <?php else: ?>
+                                                                <input type="hidden" name="slabs[<?php echo $slab->id; ?>][charge_value_above]" value="0">
+                                                                <span class="text-muted">—</span>
+                                                            <?php endif; ?>
+                                                        </td>
+                                                        <td class="text-center" style="vertical-align:middle;">
+                                                            <input type="checkbox" name="slabs[<?php echo $slab->id; ?>][is_active]" value="1" <?php echo $slab->is_active ? 'checked' : ''; ?>>
+                                                        </td>
+                                                    </tr>
+                                                    <?php endforeach; else: ?>
+                                                    <tr><td colspan="6" class="text-center text-muted">Run <code>tools/billdesk_charge_slabs.sql</code> to seed slab data.</td></tr>
+                                                    <?php endif; ?>
+                                                </tbody>
+                                            </table>
+                                            <p class="text-muted" style="font-size:11px;">
+                                                <strong>Note:</strong> For Debit Card Visa/MC: first rate applies when amount ≤ ₹2000; second rate applies when amount &gt; ₹2000.
+                                                For all other methods the Threshold/second-rate columns are not applicable.
+                                                GST is applicable in addition (BillDesk agreement clause a).
+                                            </p>
+                                        </div>
+                                    </div>
                                 </div>
                                 <!-- /.box-body -->
                                 <div class="box-footer">

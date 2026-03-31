@@ -120,6 +120,32 @@ class Paymentsetting_model extends MY_Model {
         }
     }
 
+    /**
+     * Returns all BillDesk per-method charge slabs ordered by sort_order.
+     */
+    public function getBilldeskSlabs() {
+        $this->db->order_by('sort_order', 'ASC');
+        return $this->db->get('billdesk_charge_slabs')->result();
+    }
+
+    /**
+     * Upserts BillDesk slab rows from admin form POST.
+     * $slabs = [ id => ['charge_type'=>, 'charge_value'=>, 'charge_value_above'=>, 'is_active'=>], ... ]
+     */
+    public function saveBilldeskSlabs($slabs) {
+        foreach ($slabs as $id => $row) {
+            $allowed_types = ['percentage', 'flat'];
+            $update = [
+                'charge_type'        => in_array($row['charge_type'], $allowed_types) ? $row['charge_type'] : 'percentage',
+                'charge_value'       => max(0, (float)$row['charge_value']),
+                'charge_value_above' => max(0, (float)($row['charge_value_above'] ?? 0)),
+                'is_active'          => !empty($row['is_active']) ? 1 : 0,
+            ];
+            $this->db->where('id', (int)$id);
+            $this->db->update('billdesk_charge_slabs', $update);
+        }
+    }
+
     public function payment_gateway_config($data, $other = false) {
 
         if (!$other) {
