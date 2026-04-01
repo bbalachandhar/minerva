@@ -1037,15 +1037,39 @@ $i++;
             return true;
         });
 
+        // ── Persist filters in sessionStorage ────────────────────────────────
+        var FILTER_KEY = 'claimleave_filters';
+
+        function saveFilters() {
+            sessionStorage.setItem(FILTER_KEY, JSON.stringify({
+                from:   $('#filter_apply_from').val(),
+                to:     $('#filter_apply_to').val(),
+                status: $('#filter_status').val()
+            }));
+        }
+
+        function restoreFilters() {
+            try {
+                var saved = JSON.parse(sessionStorage.getItem(FILTER_KEY) || 'null');
+                if (!saved) return;
+                if (saved.from)   $('#filter_apply_from').datepicker('setDate', saved.from);
+                if (saved.to)     $('#filter_apply_to').datepicker('setDate', saved.to);
+                if (saved.status) $('#filter_status').val(saved.status);
+                if (saved.from || saved.to || saved.status) leaveTable.draw();
+            } catch(e) {}
+        }
+        // ─────────────────────────────────────────────────────────────────────
+
         // Wire datepicker inputs
         $('#filter_apply_from, #filter_apply_to').datepicker({
             dateFormat: LEAVE_DATE_FORMAT,
             changeMonth: true,
-            changeYear: true
+            changeYear: true,
+            onSelect: function () { saveFilters(); leaveTable.draw(); }
         });
 
         // Search button
-        $('#filter_search').on('click', function () { leaveTable.draw(); });
+        $('#filter_search').on('click', function () { saveFilters(); leaveTable.draw(); });
 
         // "This Month" shortcut
         $('#filter_this_month').on('click', function () {
@@ -1054,6 +1078,7 @@ $i++;
             var last  = new Date(now.getFullYear(), now.getMonth() + 1, 0);
             $('#filter_apply_from').datepicker('setDate', first);
             $('#filter_apply_to').datepicker('setDate', last);
+            saveFilters();
             leaveTable.draw();
         });
 
@@ -1062,11 +1087,15 @@ $i++;
             $('#filter_apply_from').datepicker('setDate', null);
             $('#filter_apply_to').datepicker('setDate', null);
             $('#filter_status').val('');
+            sessionStorage.removeItem(FILTER_KEY);
             leaveTable.draw();
         });
 
         // Status dropdown — trigger search on change
-        $('#filter_status').on('change', function () { leaveTable.draw(); });
+        $('#filter_status').on('change', function () { saveFilters(); leaveTable.draw(); });
+
+        // Restore on page load
+        restoreFilters();
         // ─────────────────────────────────────────────────────────────────────
 
         getLeaveTypeDDL('<?php echo $staff_id ?>', '');
