@@ -44,23 +44,47 @@ class Media_storage
         $upload_path = rtrim($upload_path, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
         $destination = $this->_CI->customlib->getFolderPath() . $upload_path . $file_name;
 
-        // Ensure destination directory exists and is writable. Create it if missing and set permissions.
+        // Ensure every segment of the destination path exists and is writable.
         $destination_dir = dirname($destination);
         if (!is_dir($destination_dir)) {
-            if (!@mkdir($destination_dir, 0755, true)) {
-                return array('status' => false, 'message' => 'Failed to create upload directory: ' . $destination_dir);
+            // Walk the path from root and create each missing segment individually
+            // so we can chmod each one — plain recursive mkdir can leave intermediate
+            // directories with restrictive inherited permissions.
+            $segments = explode(DIRECTORY_SEPARATOR, ltrim($destination_dir, DIRECTORY_SEPARATOR));
+            $built    = DIRECTORY_SEPARATOR;
+            foreach ($segments as $segment) {
+                if ($segment === '') {
+                    continue;
+                }
+                $built .= $segment . DIRECTORY_SEPARATOR;
+                if (!is_dir($built)) {
+                    if (!@mkdir($built, 0755)) {
+                        log_message('error', 'Media_storage::fileupload — failed to create directory segment: ' . $built);
+                        return array('status' => false, 'message' => 'Failed to create upload directory: ' . $built);
+                    }
+                    @chmod($built, 0755);
+                }
             }
-            @chmod($destination_dir, 0755);
+
+            // Drop an .htaccess in the newly created leaf to block direct HTTP access
+            $htaccess = $destination_dir . DIRECTORY_SEPARATOR . '.htaccess';
+            if (!file_exists($htaccess)) {
+                @file_put_contents($htaccess, "Options -Indexes\nDeny from all\n");
+            }
         }
 
-        // Attempt to make writable if not already
+        // Escalate permissions until the directory is writable
         if (!is_writable($destination_dir)) {
             @chmod($destination_dir, 0755);
+        }
+        if (!is_writable($destination_dir)) {
+            @chmod($destination_dir, 0775);
         }
         if (!is_writable($destination_dir)) {
             @chmod($destination_dir, 0777);
         }
         if (!is_writable($destination_dir)) {
+            log_message('error', 'Media_storage::fileupload — directory not writable after chmod attempts: ' . $destination_dir);
             return array('status' => false, 'message' => 'Upload directory is not writable: ' . $destination_dir);
         }
 

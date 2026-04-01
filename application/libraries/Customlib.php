@@ -50,12 +50,31 @@ class Customlib
             }
 
             if (!is_dir($resolved)) {
-                if (!@mkdir($resolved, $mode, true)) {
-                    return false;
+                // Create each missing path segment individually so every
+                // intermediate directory gets the right permissions applied.
+                $segments = explode(DIRECTORY_SEPARATOR, ltrim($resolved, DIRECTORY_SEPARATOR));
+                $built    = DIRECTORY_SEPARATOR;
+                foreach ($segments as $segment) {
+                    if ($segment === '') {
+                        continue;
+                    }
+                    $built .= $segment . DIRECTORY_SEPARATOR;
+                    if (!is_dir($built)) {
+                        if (!@mkdir($built, $mode)) {
+                            log_message('error', 'Customlib::ensureDirectoryExists — failed to create: ' . $built);
+                            return false;
+                        }
+                        @chmod($built, $mode);
+                    }
                 }
-                @chmod($resolved, $mode);
             }
 
+            if (!is_writable($resolved)) {
+                @chmod($resolved, 0755);
+            }
+            if (!is_writable($resolved)) {
+                @chmod($resolved, 0775);
+            }
             if (!is_writable($resolved)) {
                 @chmod($resolved, 0777);
             }
