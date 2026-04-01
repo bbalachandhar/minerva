@@ -1979,7 +1979,10 @@ class Leaverequest extends Admin_Controller
                             if (isset($_FILES["userfile"]) && !empty($_FILES['userfile']['name'])) {
                         $uploaddir = './uploads/staff_documents/' . $staff_id . '/';
                         $this->customlib->ensureDirectoryExists($uploaddir);
-                        $document = $this->media_storage->fileupload("userfile", $uploaddir);
+                        $upload_result = $this->media_storage->fileupload("userfile", $uploaddir);
+                        $document = (is_array($upload_result) && !empty($upload_result['status']))
+                            ? $upload_result['message']
+                            : '';
                     } else {
                         $document = '';
                     }
