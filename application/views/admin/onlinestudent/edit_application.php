@@ -60,6 +60,19 @@ $current_community = isset($student['cast']) ? $student['cast'] : '';
                                     </div>
                                 </div>
                             </div>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label>Quota Type</label>
+                                        <select class="form-control" name="quota_type" id="quota_type">
+                                            <option value="">-- Select Quota --</option>
+                                            <?php $current_quota = isset($student['quota_type']) ? $student['quota_type'] : ''; ?>
+                                            <option value="government" <?php echo ($current_quota === 'government') ? 'selected' : ''; ?>>Government</option>
+                                            <option value="management" <?php echo ($current_quota === 'management') ? 'selected' : ''; ?>>Management</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
 
                             <!-- Personal Information Section -->
                             <hr>

@@ -918,14 +918,15 @@ class Onlinestudent extends Admin_Controller
                 'tenth_marks_percentage' => $this->input->post('tenth_marks_percentage'),
                 'updated_at' => date('Y-m-d H:i:s'),
                 'admission_course_id' => (int)$this->input->post('admission_course_id') ?: null,
+                'quota_type' => $this->input->post('quota_type') ?: null,
             );
 
-            // Recalculate course_fee_total when course changes
+            // Recalculate course_fee_total when course or quota changes
             $new_course_id = (int)$this->input->post('admission_course_id');
             if ($new_course_id > 0) {
                 $new_course = $this->Onlineadmissioncourses_model->getById($new_course_id);
                 if (!empty($new_course)) {
-                    $quota = isset($student['quota_type']) ? $student['quota_type'] : '';
+                    $quota = $this->input->post('quota_type') ?: (isset($student['quota_type']) ? $student['quota_type'] : '');
                     if ($quota === 'management' && isset($new_course['mgt_fee'])) {
                         $update_data['course_fee_total'] = (float)$new_course['mgt_fee'];
                     } elseif ($quota === 'government' && isset($new_course['govt_fee'])) {
