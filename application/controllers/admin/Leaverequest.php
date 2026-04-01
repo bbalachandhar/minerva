@@ -2488,4 +2488,35 @@ class Leaverequest extends Admin_Controller
         $this->load->view("admin/staff/staffleaverequest", $data);
         $this->load->view("layout/footer", $data);
     }
+
+    public function downloadleaverequestdoc($staff_id = null, $leave_id = null)
+    {
+        $staff_id  = (int) $staff_id;
+        $leave_id  = (int) $leave_id;
+
+        if (!$staff_id || !$leave_id) {
+            show_404();
+        }
+
+        $leave = $this->leaverequest_model->get_staff_leave($leave_id);
+
+        if (empty($leave) || (int) $leave['staff_id'] !== $staff_id || empty($leave['document_file'])) {
+            show_404();
+        }
+
+        $file_name = $leave['document_file'];
+        $file_path = FCPATH . 'uploads/staff_documents/' . $staff_id . '/' . $file_name;
+
+        if (!file_exists($file_path)) {
+            show_404();
+        }
+
+        // Derive a clean download name: strip the leading timestamp-uniqid- prefix
+        // Stored format: {time}-{uniqid}-{original_name}
+        $parts         = explode('-', $file_name, 3);
+        $download_name = (count($parts) === 3) ? $parts[2] : $file_name;
+
+        $this->load->helper('download');
+        force_download($download_name, file_get_contents($file_path));
+    }
 }
