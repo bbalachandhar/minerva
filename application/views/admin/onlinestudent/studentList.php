@@ -142,6 +142,20 @@
         $('#filter_form_status, #filter_quota').on('change', function() {
             loadStudentTable();
         });
+
+        // Override the generic Excel button to export online admission data
+        // (the default initDatatable button is hardcoded to the login-detail report)
+        $(document).on('click', '.btn-excel', function(e) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            var quota  = $('#filter_quota').val();
+            var status = $('#filter_form_status').val();
+            var url    = '<?php echo base_url("admin/onlinestudent/export_excel"); ?>?';
+            if (quota  !== '') url += 'quota_type_filter='  + encodeURIComponent(quota)  + '&';
+            if (status !== '') url += 'paid_status_filter=' + encodeURIComponent(status) + '&';
+            window.location.href = url;
+        });
+
         // prevent any delegated row click from blocking anchor navigation
         $(document).on('click', '.student-list td a', function(e) {
             e.stopPropagation();

@@ -614,6 +614,175 @@ class Onlinestudent extends Admin_Controller
         echo json_encode($json_data);
     }
 
+    public function export_excel()
+    {
+        if (!$this->rbac->hasPrivilege('online_admission', 'can_view')) {
+            access_denied();
+        }
+
+        $quota_type_filter  = $this->input->get('quota_type_filter');
+        $paid_status_filter = $this->input->get('paid_status_filter');
+        $sch_setting        = $this->sch_setting_detail;
+
+        // --- Build the base query (mirrors getstudentlist) ---
+        $this->db->select(
+            'oa.id, oa.reference_no, oa.firstname, oa.middlename, oa.lastname,
+             oa.father_name, oa.gender, oa.mobileno, oa.email,
+             oa.quota_type, oa.paid_status, oa.form_status, oa.created_at,
+             COALESCE(oa.course_fee_total,
+                 IF(oa.quota_type = "management", oac.mgt_fee, oac.govt_fee)
+             ) AS course_fee_total,
+             IFNULL(oac.course_name, "N/A") AS course_name',
+            false
+        );
+        $this->db->from('online_admissions oa');
+        $this->db->join('online_admission_courses oac',
+            'oac.id = COALESCE(oa.admission_course_id, oa.ug_course_id)', 'left');
+
+        if (!empty($quota_type_filter)) {
+            $this->db->where('oa.quota_type', $quota_type_filter);
+        }
+
+        // Course fee status filter (same logic as model)
+        if ($paid_status_filter !== null && $paid_status_filter !== '') {
+            $app_fee_sub  = "(SELECT COUNT(*) FROM incidental_fee_collections ifc_a"
+                . " INNER JOIN incidental_fee_types ift_a ON ift_a.id = ifc_a.incidental_fee_type_id"
+                . " WHERE REPLACE(ifc_a.application_ref_no,' ','') = REPLACE(oa.reference_no,' ','')"
+                . " AND ifc_a.application_ref_no IS NOT NULL AND ifc_a.application_ref_no != ''"
+                . " AND LOWER(ift_a.title) LIKE '%application%')";
+            $paid_sub     = "(SELECT COALESCE(SUM(ifc2.amount_collected),0) FROM incidental_fee_collections ifc2"
+                . " LEFT JOIN incidental_fee_types ift2 ON ift2.id = ifc2.incidental_fee_type_id"
+                . " WHERE REPLACE(ifc2.application_ref_no,' ','') = REPLACE(oa.reference_no,' ','')"
+                . " AND ifc2.application_ref_no IS NOT NULL AND ifc2.application_ref_no != ''"
+                . " AND (LOWER(ift2.title) LIKE '%tuition%' OR LOWER(ift2.title) LIKE '%tution%' OR LOWER(ift2.title) LIKE '%other fee%'))";
+            $course_fee   = "COALESCE(oa.course_fee_total, IF(oa.quota_type='management', oac.mgt_fee, oac.govt_fee))";
+            if ($paid_status_filter === 'applied') {
+                $this->db->where("$app_fee_sub > 0 AND $paid_sub <= 0", null, false);
+            } elseif ($paid_status_filter === '0') {
+                $this->db->where("$app_fee_sub = 0 AND $paid_sub <= 0", null, false);
+            } elseif ($paid_status_filter === '2') {
+                $this->db->where("$paid_sub > 0 AND ($course_fee <= 0 OR $paid_sub < $course_fee)", null, false);
+            } elseif ($paid_status_filter === '1') {
+                $this->db->where("$course_fee > 0 AND $paid_sub >= $course_fee", null, false);
+            }
+        }
+
+        $this->db->order_by('oa.id', 'DESC');
+        $rows = $this->db->get()->result_array();
+
+        // Collect reference numbers for bulk fee lookups
+        $refs = array();
+        foreach ($rows as $r) {
+            if (!empty($r['reference_no'])) {
+                $refs[] = preg_replace('/\s+/', '', (string) $r['reference_no']);
+            }
+        }
+        $refs = array_values(array_unique($refs));
+
+        $paid_amount_map = $this->onlinestudent_model->get_incidental_paid_amount_by_application_refs($refs);
+        $app_fee_paid    = $this->onlinestudent_model->get_application_fee_paid_refs($refs);
+
+        // --- Build Excel ---
+        $this->load->library('excel');
+        $sheet = $this->excel->getActiveSheet();
+        $sheet->setTitle('Online Admissions');
+
+        $headers = ['#', 'Reference No', 'Student Name', 'Course'];
+        if ($sch_setting->father_name) {
+            $headers[] = 'Father Name';
+        }
+        $headers[] = 'Application Date';
+        $headers[] = 'Gender';
+        $headers[] = 'Quota Type';
+        $headers[] = 'Course Fee';
+        $headers[] = 'Paid Amount';
+        if ($sch_setting->mobile_no) {
+            $headers[] = 'Mobile';
+        }
+        $headers[] = 'Form Status';
+        $headers[] = 'Course Fee Status';
+        if ($sch_setting->online_admission_payment == 'yes') {
+            $headers[] = 'App. Fee';
+        }
+
+        $sheet->fromArray($headers, null, 'A1');
+
+        $row_num  = 2;
+        $date_fmt = $this->customlib->getSchoolDateFormat();
+        $serial   = 1;
+
+        foreach ($rows as $r) {
+            $ref_clean   = !empty($r['reference_no']) ? preg_replace('/\s+/', '', (string) $r['reference_no']) : '';
+            $course_fee  = ($r['course_fee_total'] !== null && $r['course_fee_total'] !== '') ? (float) $r['course_fee_total'] : 0;
+            $paid_amount = isset($paid_amount_map[$ref_clean]) ? (float) $paid_amount_map[$ref_clean] : 0;
+            $app_is_paid = !empty($app_fee_paid[$ref_clean]);
+
+            $middle    = ($sch_setting->middlename && !empty($r['middlename'])) ? $r['middlename'] . ' ' : '';
+            $last      = ($sch_setting->lastname   && !empty($r['lastname']))   ? $r['lastname'] : '';
+            $full_name = trim($r['firstname'] . ' ' . $middle . $last);
+
+            if (!empty($r['created_at'])) {
+                $app_date = date($date_fmt, strtotime($r['created_at']));
+            } else {
+                $app_date = '';
+            }
+
+            // Form Status (app fee paid?)
+            $form_status_text = $app_is_paid ? 'Paid' : 'Not Paid';
+
+            // Course Fee Status
+            if ($paid_amount <= 0 && $app_is_paid) {
+                $fee_status_text = 'Applied';
+            } elseif ($paid_amount <= 0) {
+                $fee_status_text = 'Not Paid';
+            } elseif ($course_fee > 0 && $paid_amount >= $course_fee) {
+                $fee_status_text = 'Fully Paid';
+            } else {
+                $fee_status_text = 'Partially Paid';
+            }
+
+            $cell_data = [
+                $serial++,
+                $r['reference_no'],
+                $full_name,
+                $r['course_name'],
+            ];
+            if ($sch_setting->father_name) {
+                $cell_data[] = $r['father_name'];
+            }
+            $cell_data[] = $app_date;
+            $cell_data[] = $r['gender'];
+            $cell_data[] = !empty($r['quota_type']) ? $r['quota_type'] : 'N/A';
+            $cell_data[] = number_format($course_fee, 2, '.', '');
+            $cell_data[] = number_format($paid_amount, 2, '.', '');
+            if ($sch_setting->mobile_no) {
+                $cell_data[] = $r['mobileno'];
+            }
+            $cell_data[] = $form_status_text;
+            $cell_data[] = $fee_status_text;
+            if ($sch_setting->online_admission_payment == 'yes') {
+                if ($app_is_paid) {
+                    $cell_data[] = 'Paid';
+                } elseif ($r['paid_status'] == 2) {
+                    $cell_data[] = 'Processing';
+                } else {
+                    $cell_data[] = 'Unpaid';
+                }
+            }
+
+            $sheet->fromArray($cell_data, null, 'A' . $row_num);
+            $row_num++;
+        }
+
+        $filename = 'Online_Admissions_' . date('Y-m-d_H-i-s') . '.xls';
+        header('Content-Type: application/vnd.ms-excel');
+        header('Content-Disposition: attachment;filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+        $objWriter = PHPExcel_IOFactory::createWriter($this->excel, 'Excel5');
+        $objWriter->save('php://output');
+        exit;
+    }
+
     public function addpayment()
     {
         if (!$this->rbac->hasPrivilege('online_admission_manual_payment', 'can_add')) {
