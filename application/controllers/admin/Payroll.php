@@ -750,6 +750,40 @@ class Payroll extends Admin_Controller
             );
         }
 
+        // Load day-locks and apply PAID_PRESENT overrides before the counting loop.
+        // Duration-aware rules (status prefix FH-/SH- = half-day lock):
+        //
+        //   Full-day OD  + any biometric          → 'P'  (full present, no LOP)
+        //   Half-day OD  + HD biometric            → 'P'  (punch covers 1 half, OD the other)
+        //   Half-day OD  + A  biometric (no punch) → 'HD' (OD gives 0.5; remaining 0.5 = LOP,
+        //                                                   which the OD credit absorbs exactly)
+        //   Half-day OD  + P  biometric            → 'P'  (already full present — no change)
+        $day_locks = $this->day_status_model->getDayStatusRange(
+            (int) $staff_id, $start_date, $end_date
+        );
+        foreach ($day_locks as $locked_date => $lock_row) {
+            if ($lock_row['payroll_impact'] !== 'PAID_PRESENT') {
+                continue;
+            }
+            $status         = (string) ($lock_row['status'] ?? '');
+            $is_half_day    = (strncmp($status, 'FH-', 3) === 0 || strncmp($status, 'SH-', 3) === 0);
+            $bio_key        = strtoupper(trim((string) ($key_by_date[$locked_date] ?? 'A')));
+
+            if (!$is_half_day) {
+                // Full-day OD/HOD: whole day is present regardless of biometric
+                $key_by_date[$locked_date] = 'P';
+            } elseif ($bio_key === 'P') {
+                // Already fully present on biometric — nothing to override
+            } elseif ($bio_key === 'HD') {
+                // Staff punched one half + OD covers the other half → full present
+                $key_by_date[$locked_date] = 'P';
+            } else {
+                // Absent on biometric: half-day OD provides 0.5 present (HD)
+                // The resulting 0.5 LOP will be absorbed by the 0.5 OD credit
+                $key_by_date[$locked_date] = 'HD';
+            }
+        }
+
         $by_display_key = [];
         foreach ((array) $working_day_dates as $work_date) {
             $att_key = strtoupper(trim((string) ($key_by_date[$work_date] ?? 'A')));
@@ -1196,26 +1230,9 @@ class Payroll extends Admin_Controller
         $period = $this->getPayrollPeriodRange($month_num, $year);
         $context = $this->getWorkingDayContextRange($period['start_date'], $period['end_date']);
         $summary = $this->getDerivedAttendanceSummaryForPeriod((int) $staff_id, $period['start_date'], $period['end_date'], $context['working_day_dates'], $context);
+        // PAID_PRESENT day-lock dates are already overridden to 'P' inside
+        // getDerivedAttendanceSummaryForPeriod(), so absent_count is already correct.
         $absent_count = (int) (($summary['by_display_key']['A'] ?? 0));
-
-        // Day-lock adjustment: dates with PAID_PRESENT (e.g. OD approved) were biometrically
-        // absent but must NOT be counted as absent for payroll purposes.
-        $day_locks = $this->day_status_model->getDayStatusRange(
-            (int) $staff_id, $period['start_date'], $period['end_date']
-        );
-        foreach ($day_locks as $locked_date => $lock_row) {
-            if ($lock_row['payroll_impact'] === 'PAID_PRESENT') {
-                // Only subtract if the biometric actually shows absent for that working day
-                if (isset($context['working_day_dates']) && in_array($locked_date, $context['working_day_dates'], true)) {
-                    $att_row = $this->staffattendancemodel->searchStaffattendance($locked_date, $staff_id, false);
-                    $att_key = $this->getNormalizedAttendanceKeyForPayrollRow((array) $att_row, (int) $staff_id);
-                    if ($att_key === 'A') {
-                        $absent_count = max(0, $absent_count - 1);
-                    }
-                }
-            }
-        }
-
         return max(0, $absent_count);
     }
 
