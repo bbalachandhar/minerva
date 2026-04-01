@@ -1734,6 +1734,12 @@ class Leaverequest extends Admin_Controller
 
         $result->substitutions = $this->leaverequest_model->getLeaveSubstitutions($id);
 
+        if (!empty($result->document_file)) {
+            $result->document_download_url = base_url('admin/leaverequest/downloadleaverequestdoc/' . $result->staff_id . '/' . $result->id);
+        } else {
+            $result->document_download_url = '';
+        }
+
         echo json_encode($result);
     }
 

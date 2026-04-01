@@ -347,6 +347,14 @@ $i++;
                                     <th><?php echo $this->lang->line('approver_remark'); ?></th>
                                     <td colspan="3"><span id="approver_remark"></span></td>
                                 </tr>
+                                <tr id="attachment_row" style="display:none;">
+                                    <th><?php echo $this->lang->line('attach_document'); ?></th>
+                                    <td colspan="3">
+                                        <a id="attachment_download_link" href="#" target="_blank" class="btn btn-sm btn-default">
+                                            <i class="fa fa-download"></i> <?php echo $this->lang->line('download'); ?>
+                                        </a>
+                                    </td>
+                                </tr>
                                 <tr id="action_row" style="display: none;">
                                     <th><?php echo $this->lang->line('status'); ?></th>
                                     <td>
@@ -1232,7 +1240,15 @@ $i++;
                 $('#approver_name').html(result.approver_name ? result.approver_name + ' ' + result.approver_surname : '');
                 $('#approver_status').html(result.approver_status_text ? result.approver_status_text : '');
                 $('#approver_remark').html(result.approver_remark);
-                
+
+                // Show attachment download link if available
+                if (result.document_file && result.document_download_url) {
+                    $('#attachment_download_link').attr('href', result.document_download_url);
+                    $('#attachment_row').show();
+                } else {
+                    $('#attachment_row').hide();
+                }
+
                 // Conditional display of action row and dynamic labels
                 var current_user_id = <?php echo $this->customlib->getStaffID(); ?>;
                 var can_manage_leave = <?php echo ($this->rbac->hasPrivilege('approve_leave_request', 'can_edit') || !empty($is_admin_or_super_admin)) ? 'true' : 'false'; ?>;
