@@ -132,6 +132,14 @@ if (!$apply_leave_disabled && !$apply_leave_no_balance && $this->rbac->hasPrivil
                                     <label style="margin:0; font-weight:600;">Filter by Leave Date:</label>
                                     <input type="text" id="filter_apply_from" class="form-control input-sm" placeholder="From" style="width:135px;" readonly>
                                     <input type="text" id="filter_apply_to" class="form-control input-sm" placeholder="To" style="width:135px;" readonly>
+                                    <label style="margin:0; font-weight:600;">Status:</label>
+                                    <select id="filter_status" class="form-control input-sm" style="width:140px;">
+                                        <option value="">All Statuses</option>
+                                        <option value="pending">Pending</option>
+                                        <option value="recommended">Recommended</option>
+                                        <option value="approved">Approved</option>
+                                        <option value="disapprove">Disapproved</option>
+                                    </select>
                                     <button class="btn btn-sm btn-primary" id="filter_search"><i class="fa fa-search"></i> Search</button>
                                     <button class="btn btn-sm btn-default" id="filter_this_month"><i class="fa fa-calendar"></i> This Month</button>
                                     <button class="btn btn-sm btn-warning" id="filter_clear"><i class="fa fa-times"></i> Clear</button>
@@ -999,19 +1007,33 @@ $i++;
             }
         });
 
-        // Custom search: filter by leave_from ISO date stored on <tr data-from>
+        // Custom search: filter by leave_from date and/or status
         $.fn.dataTable.ext.search.push(function (settings, data, dataIndex) {
             if (settings.nTable !== $('.example')[0]) return true;
-            var fromDate = $('#filter_apply_from').datepicker('getDate');  // JS Date or null
-            var toDate   = $('#filter_apply_to').datepicker('getDate');    // JS Date or null
-            if (!fromDate && !toDate) return true;
+            var fromDate   = $('#filter_apply_from').datepicker('getDate');  // JS Date or null
+            var toDate     = $('#filter_apply_to').datepicker('getDate');    // JS Date or null
+            var filterStat = $('#filter_status').val().trim().toLowerCase();
             var nTr = settings.aoData[dataIndex].nTr;
             if (!nTr) return true;
-            var isoDate = $(nTr).data('from');  // e.g. '2026-03-15'
-            if (!isoDate) return true;
-            var cellMs = new Date(isoDate).setHours(0, 0, 0, 0);
-            if (fromDate && cellMs < fromDate.setHours(0, 0, 0, 0)) return false;
-            if (toDate   && cellMs > toDate.setHours(0, 0, 0, 0))   return false;
+            // Date filter
+            if (fromDate || toDate) {
+                var isoDate = $(nTr).data('from');  // e.g. '2026-03-15'
+                if (isoDate) {
+                    var cellMs = new Date(isoDate).setHours(0, 0, 0, 0);
+                    if (fromDate && cellMs < fromDate.setHours(0, 0, 0, 0)) return false;
+                    if (toDate   && cellMs > toDate.setHours(0, 0, 0, 0))   return false;
+                }
+            }
+            // Status filter — data[7] is the Status column (index 7)
+            if (filterStat !== '') {
+                var cellStatus = (data[7] || '').trim().toLowerCase();
+                // normalize: disapprove / disapproved / rejected all map to 'disapprove'
+                if (filterStat === 'disapprove') {
+                    if (cellStatus.indexOf('disapprov') === -1 && cellStatus.indexOf('reject') === -1) return false;
+                } else {
+                    if (cellStatus.indexOf(filterStat) === -1) return false;
+                }
+            }
             return true;
         });
 
@@ -1039,8 +1061,12 @@ $i++;
         $('#filter_clear').on('click', function () {
             $('#filter_apply_from').datepicker('setDate', null);
             $('#filter_apply_to').datepicker('setDate', null);
+            $('#filter_status').val('');
             leaveTable.draw();
         });
+
+        // Status dropdown — trigger search on change
+        $('#filter_status').on('change', function () { leaveTable.draw(); });
         // ─────────────────────────────────────────────────────────────────────
 
         getLeaveTypeDDL('<?php echo $staff_id ?>', '');
