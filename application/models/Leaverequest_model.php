@@ -554,8 +554,10 @@ class Leaverequest_model extends MY_model
             ->get('staff_monthly_leave_balance')
             ->row_array();
 
-        if ($requires_balance_check === 0 && !$is_credit_consumer) {
-            // OD / CPL-earner: direction determines credit or debit.
+        if ($requires_balance_check === 0) {
+            // OD / HOD / CPL: direction determines credit (earn) or debit (consume own balance).
+            // CPL earns its own balance via claim requests (leave_direction='credit').
+            // All requires_balance_check=0 types use their own leave_type_id balance row.
             $balance_id     = !empty($balance_row) ? (int) $balance_row['id'] : null;
             $balance_before = 0.0;
 
@@ -666,12 +668,14 @@ class Leaverequest_model extends MY_model
 
         // --- Credit-consumer type (e.g. CPL consuming HOD credit pool) ---
         if ($is_credit_consumer) {
-            // Find the source type (OD) monthly balance row for the same month/year.
+            // Find the most recently earned source-type (HOD) balance row.
+            // CPL can be taken in a different month than when HOD was worked, so we must
+            // NOT restrict the lookup to the CPL leave's own month/year.
             $src_balance_row = $this->db
                 ->where('staff_id', $staff_id)
                 ->where('leave_type_id', $credit_source_type_id)
-                ->where('year', $year)
-                ->where('month', $month)
+                ->order_by('year', 'DESC')
+                ->order_by('month', 'DESC')
                 ->limit(1)
                 ->get('staff_monthly_leave_balance')
                 ->row_array();
@@ -1091,8 +1095,9 @@ class Leaverequest_model extends MY_model
             $type_row['type']
         );
 
-        if ($requires_balance_check === 0 && !$is_credit_consumer) {
-            // OD / CPL pure earner
+        if ($requires_balance_check === 0) {
+            // OD / HOD / CPL: all use their own leave_type_id balance row.
+            // CPL revert un-earns or un-debits from CPL's own monthly_balance.
             $balance_row = $this->db
                 ->where('staff_id', $staff_id)
                 ->where('leave_type_id', $leave_type_id)
@@ -1165,12 +1170,13 @@ class Leaverequest_model extends MY_model
         }
 
         if ($is_credit_consumer) {
-            // CPL — restore HOD credit pool that was debited
+            // CPL — restore HOD credit pool that was debited.
+            // Use the most recent HOD balance row (same logic as logLeaveApprovalCredit).
             $src_balance_row = $this->db
                 ->where('staff_id', $staff_id)
                 ->where('leave_type_id', $credit_source_type_id)
-                ->where('month', $month)
-                ->where('year', $year)
+                ->order_by('year', 'DESC')
+                ->order_by('month', 'DESC')
                 ->limit(1)
                 ->get('staff_monthly_leave_balance')
                 ->row_array();

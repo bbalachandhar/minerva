@@ -649,9 +649,13 @@ class Staff_model extends MY_Model
     public function allotedLeaveType($id)
     {
         $has_rcb = $this->db->field_exists('requires_balance_check', 'leave_types');
+        $has_cst = $this->db->field_exists('credit_source_type_id', 'leave_types');
         $select  = 'staff_leave_details.*, leave_types.type, leave_types.is_lop';
         if ($has_rcb) {
             $select .= ', leave_types.requires_balance_check';
+        }
+        if ($has_cst) {
+            $select .= ', leave_types.credit_source_type_id';
         }
         $query = $this->db->select($select)
             ->where('staff_id', $id)
