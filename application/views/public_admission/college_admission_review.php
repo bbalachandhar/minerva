@@ -138,8 +138,9 @@
                         <h5 class="text-center mb-4 fw-bold">APPLICATION FORM FOR ADMISSION</h5>
                         <?php
                         $applied_course_name = 'Not Selected';
-                        if (isset($ug_course_id) && $ug_course_id && isset($course_names[$ug_course_id])) {
-                            $applied_course_name = $course_names[$ug_course_id];
+                        $effective_course_id = (!empty($admission_course_id)) ? $admission_course_id : ((!empty($ug_course_id)) ? $ug_course_id : null);
+                        if (!empty($effective_course_id) && isset($course_names[$effective_course_id])) {
+                            $applied_course_name = $course_names[$effective_course_id];
                         }
                         ?>
                          <p><span class="data-label">Course Level:</span> <span class="data-value text-uppercase"><?php echo (isset($course_level) && !empty($course_level)) ? $course_level : 'N/A'; ?></span></p>
