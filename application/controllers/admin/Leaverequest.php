@@ -1871,15 +1871,24 @@ class Leaverequest extends Admin_Controller
                 $staff_id     = $empid;
 
                                 if ($leave_duration_type === 'full_day') {
-                                    $half_day_conflict = $this->getHalfDayAttendanceConflictDate($staff_id, $leavefrom, $leaveto);
-                                    if (!empty($half_day_conflict)) {
-                                        $conflict_date = date($this->customlib->getSchoolDateFormat(), strtotime($half_day_conflict['date']));
-                                        $msg = array(
-                                            'leave_duration_type' => 'Full-day leave is not allowed on a half-day attendance date. Please apply half-day leave for ' . $conflict_date . '.',
-                                        );
-                                        $array = array('status' => 'fail', 'error' => $msg, 'message' => '');
-                                        echo json_encode($array);
-                                        return;
+                                    // OD / HOD / CPL (requires_balance_check=0) are work-credit claims,
+                                    // not absences — a morning punch doesn't invalidate a full-day OD.
+                                    $lt_row = $this->db->select('requires_balance_check')
+                                        ->where('id', (int)$leavetype)->limit(1)
+                                        ->get('leave_types')->row_array();
+                                    $is_work_credit_type = isset($lt_row['requires_balance_check']) && (int)$lt_row['requires_balance_check'] === 0;
+
+                                    if (!$is_work_credit_type) {
+                                        $half_day_conflict = $this->getHalfDayAttendanceConflictDate($staff_id, $leavefrom, $leaveto);
+                                        if (!empty($half_day_conflict)) {
+                                            $conflict_date = date($this->customlib->getSchoolDateFormat(), strtotime($half_day_conflict['date']));
+                                            $msg = array(
+                                                'leave_duration_type' => 'Full-day leave is not allowed on a half-day attendance date. Please apply half-day leave for ' . $conflict_date . '.',
+                                            );
+                                            $array = array('status' => 'fail', 'error' => $msg, 'message' => '');
+                                            echo json_encode($array);
+                                            return;
+                                        }
                                     }
                                 }
 
