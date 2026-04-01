@@ -1651,8 +1651,12 @@ class Leaverequest extends Admin_Controller
         $is_pre_recommender_stage = ((string) ($row['status'] ?? '') === 'pending')
             && in_array((string) ($row['recommender_status'] ?? ''), ['', 'pending'], true)
             && in_array((string) ($row['approver_status'] ?? ''), ['', 'pending'], true);
+        $is_recommended_stage = (in_array((string) ($row['status'] ?? ''), ['pending', 'recommended'], true)
+            || (string) ($row['recommender_status'] ?? '') === 'recommended')
+            && in_array((string) ($row['approver_status'] ?? ''), ['', 'pending'], true);
+        $can_delete_stage = $is_pre_recommender_stage || $is_recommended_stage;
 
-        if (($is_owner || $is_admin_override) && $is_pre_recommender_stage) {
+        if (($is_owner || $is_admin_override) && $can_delete_stage) {
             $uploaddir = './uploads/staff_documents/' . $staff_id . '/';
             if ($row['document_file'] != '') {
                 $this->media_storage->filedelete($row['document_file'], $uploaddir);

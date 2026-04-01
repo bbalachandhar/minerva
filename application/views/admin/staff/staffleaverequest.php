@@ -204,6 +204,10 @@ if ($value["status"] == "approved") {
                                                         $is_pre_recommender_stage = ($value['status'] == 'pending')
                                                             && (empty($value['recommender_status']) || $value['recommender_status'] == 'pending')
                                                             && (empty($value['approver_status']) || $value['approver_status'] == 'pending');
+                                                        $is_recommended_stage = ($value['status'] == 'recommended'
+                                                            || $value['recommender_status'] == 'recommended')
+                                                            && (empty($value['approver_status']) || $value['approver_status'] == 'pending');
+                                                        $can_delete_stage = $is_pre_recommender_stage || $is_recommended_stage;
                                                         $is_owner = ((int) $value["staff_id"] === (int) $staff_id)
                                                             || ((int) ($value['applied_by'] ?? 0) === (int) $staff_id)
                                                             || ((string) ($value['applied_by'] ?? '') === (string) $this->customlib->getAdminSessionUserName());
@@ -219,15 +223,15 @@ if ($value["status"] == "approved") {
                                                         <?php }
     ?>
                                                         <?php 
-                                                        // Applicant can delete before recommender action; admin with delete privilege can also delete in same stage
-                                                        if ($is_pre_recommender_stage) {
+                                                        // Applicant can delete before approver acts; admin with delete privilege can also delete
+                                                        if ($can_delete_stage) {
                                                             if ($is_owner || $this->rbac->hasPrivilege('approve_leave_request', 'can_delete')) { ?>
                                                                 <a onclick="getDelete('<?php echo $value["id"] ?>','<?php echo $value["staff_id"] ?>')"  class="btn btn-default btn-xs" data-toggle="tooltip" title="<?php echo $this->lang->line('delete'); ?>" ><i class="fa fa-remove"></i></a>
                                                             <?php }
                                                         }
 
-                                                        if ($is_owner && !$is_pre_recommender_stage) { ?>
-                                                            <span class="label label-default" data-toggle="tooltip" title="This request can no longer be edited/deleted once recommender action starts.">Locked after recommender action</span>
+                                                        if ($is_owner && !$can_delete_stage) { ?>
+                                                            <span class="label label-default" data-toggle="tooltip" title="This request can no longer be edited/deleted once approver action starts.">Locked after approver action</span>
                                                         <?php }
 
                                                         // Revert Approval button — for admin, super admin, or the configured approver
