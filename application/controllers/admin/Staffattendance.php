@@ -69,9 +69,8 @@ class Staffattendance extends Admin_Controller
         } else {
             $user_type            = $this->input->post('user_id');
             $date                 = $this->input->post('date');
-            $user_list            = $this->staffattendancemodel->get();
-            $data['userlist']     = $user_list;
-            $data['class_id']     = $user_list;
+            $data['userlist']     = [];
+            $data['class_id']     = $user_type_id;
             $data['user_type_id'] = $user_type_id;
             $data['section_id']   = "";
             $data['date']         = $date;
@@ -233,15 +232,19 @@ class Staffattendance extends Admin_Controller
             $this->load->model('attendance_model'); // Load the new attendance model
 
             if (!empty($resultlist)) {
-                foreach ($resultlist as $key => &$value) { // Use & to modify $value by reference
+                $current_date = date('Y-m-d', $this->customlib->datetostrtotime($date));
+                $staff_ids    = array_column($resultlist, 'staff_id');
+
+                // Single query for all staff punches on the selected date
+                $all_punches = $this->attendance_model->get_raw_biometric_punches_by_staff_ids_and_date($staff_ids, $current_date);
+
+                foreach ($resultlist as $key => &$value) {
                     if (!IsNullOrEmptyString($value['staff_attendance_type_id'])) {
                         $is_first_time_attendance = false;
                     }
-                    // Fetch raw biometric punches for each staff member
-                    $staff_id = $value['staff_id'];
-                    $current_date = date('Y-m-d', $this->customlib->datetostrtotime($date));
-                    $raw_punches = $this->attendance_model->get_raw_biometric_punches_by_staff_id_and_date($staff_id, $current_date);
-                    $value['biometric_raw_punches'] = $raw_punches;
+                    $value['biometric_raw_punches'] = isset($all_punches[$value['staff_id']])
+                        ? $all_punches[$value['staff_id']]
+                        : [];
                 }
             }
             $data['is_first_time_attendance']  = $is_first_time_attendance;

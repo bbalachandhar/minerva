@@ -219,28 +219,38 @@ class Billdesk extends Student_Controller
                 }
 
                 $ecom_order_ref_no = $data['params']['reference_no'] . time() . rand(11, 99);
-                
+
                 // Determine course name if possible, otherwise use ID
                 $course_applied = 'N/A';
-                if (!empty($online_student_details['ug_course_id'])) {
-                    // You would typically fetch the actual course name from a course model here
-                    // For now, using the ID or a placeholder.
-                    $course_applied = "UG Course ID: " . $online_student_details['ug_course_id'];
-                } elseif (!empty($online_student_details['pg_course_id'])) {
-                    $course_applied = "PG Course ID: " . $online_student_details['pg_course_id'];
-                } elseif (!empty($online_student_details['lateral_course_id'])) {
-                    $course_applied = "Lateral Course ID: " . $online_student_details['lateral_course_id'];
+                if (!empty($online_student_details['admission_course_id'])) {
+                    $course_row = $this->db->select('course_name')->get_where('online_admission_courses', ['id' => $online_student_details['admission_course_id']])->row_array();
+                    if (!empty($course_row['course_name'])) {
+                        $course_applied = $course_row['course_name'];
+                    }
                 }
-                
-                $ecom_additional_info = [
+
+                // Additional info shared across the main order AND each split_payment child.
+                // Billdesk reconciliation reports surface these fields, so keep them consistent.
+                $shared_additional_info = [
                     'additional_info1' => $online_student_details['firstname'] . ' ' . $online_student_details['lastname'], // Student Name
-                    'additional_info2' => $online_student_details['email'], // Email ID
-                    'additional_info3' => $online_student_details['mobileno'], // Student Mobile No
-                    'additional_info4' => $online_student_details['adhar_no'], // Aadhar No
-                    'additional_info5' => $online_student_details['father_name'], // Father Name
-                    'additional_info6' => $online_student_details['mother_name'], // Mother Name
-                    'additional_info7' => $course_applied, // Course Applied
+                    'additional_info2' => (string) ($data['params']['reference_no'] ?? ''),                                 // Application Ref No
+                    'additional_info3' => $online_student_details['mobileno'],                                              // Mobile
+                    'additional_info4' => $online_student_details['email'],                                                 // Email
+                    'additional_info5' => $online_student_details['father_name'],                                           // Father Name
+                    'additional_info6' => $online_student_details['quota_type'] ?? 'NA',                                   // Quota Type
+                    'additional_info7' => $course_applied,                                                                  // Course Applied
                 ];
+
+                $ecom_additional_info = $shared_additional_info;
+
+                // Apply the same additional_info to the split_payment child if one was added above
+                if (!empty($split_payment_payload)) {
+                    $split_payment_payload[0] = array_merge(
+                        $split_payment_payload[0],
+                        $shared_additional_info
+                    );
+                }
+
                 $gateway_module = 'online_admission'; // Set module for gateway_ins
 
                 // For online admission, menu settings are not relevant, can unset or let it be

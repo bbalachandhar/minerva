@@ -570,14 +570,96 @@ class Onlinestudent_model extends MY_Model
     }
 
     public function paymentSuccess($payment)
-    {   
-        $paid_status=1;
-        if(isset($payment['paid_status']) && !empty($payment['paid_status'])){
-            $paid_status=$payment['paid_status'];
+    {
+        $paid_status = 1;
+        if (isset($payment['paid_status']) && !empty($payment['paid_status'])) {
+            $paid_status = $payment['paid_status'];
         }
-        unset($payment['paid_status']);        
-        $this->db->update("online_admissions", array("paid_status" => $paid_status, "form_status" => 1), array("id" => $payment['online_admission_id']));        
+        unset($payment['paid_status']);
+
+        $this->db->update("online_admissions", array("paid_status" => $paid_status, "form_status" => 1), array("id" => $payment['online_admission_id']));
         $this->db->insert("online_admission_payment", $payment);
+
+        // Also record in incidental_fee_collections for unified daily/weekly/monthly reports.
+        // Only do this for fully-paid gateway transactions (paid_status=1).
+        if ((int) $paid_status === 1) {
+            $this->_insertGatewayPaymentToIncidental($payment);
+        }
+    }
+
+    /**
+     * Insert a gateway application-fee payment into incidental_fee_collections
+     * so it shows up in daily/weekly/monthly collection reports alongside manual payments.
+     */
+    private function _insertGatewayPaymentToIncidental(array $payment)
+    {
+        $admission_id = (int) ($payment['online_admission_id'] ?? 0);
+        if ($admission_id === 0) {
+            return;
+        }
+
+        // Get reference_no for this admission
+        $row = $this->db->select('reference_no')
+                        ->get_where('online_admissions', ['id' => $admission_id])
+                        ->row_array();
+        if (empty($row['reference_no'])) {
+            return;
+        }
+        $ref_no = trim($row['reference_no']);
+
+        // Avoid duplicate: skip if an application-fee incidental record already exists for this ref
+        $existing = $this->db
+            ->select('ifc.id')
+            ->from('incidental_fee_collections ifc')
+            ->join('incidental_fee_types ift', 'ift.id = ifc.incidental_fee_type_id', 'inner')
+            ->where("REPLACE(ifc.application_ref_no,' ','')", preg_replace('/\s+/', '', $ref_no))
+            ->where("LOWER(ift.title) LIKE '%application%'", null, false)
+            ->get()->row_array();
+        if (!empty($existing)) {
+            return; // already recorded (e.g. manual payment was made first)
+        }
+
+        // Find the application fee type (title LIKE '%application%')
+        $fee_type = $this->db
+            ->where("LOWER(title) LIKE '%application%'", null, false)
+            ->order_by('id', 'DESC')
+            ->limit(1)
+            ->get('incidental_fee_types')
+            ->row_array();
+        if (empty($fee_type)) {
+            log_message('error', 'Onlinestudent_model::_insertGatewayPaymentToIncidental — no application fee type found');
+            return;
+        }
+
+        // Get current session from sch_settings
+        $settings = $this->db->select('session_id')->get('sch_settings')->row_array();
+        $session_id = (int) ($settings['session_id'] ?? 0);
+
+        // Generate next receipt number (IFC-XXXXXX)
+        $last = $this->db
+            ->select_max('id')
+            ->get('incidental_fee_collections')
+            ->row_array();
+        $next_id     = (int) ($last['id'] ?? 0) + 1;
+        $receipt_no  = 'IFC-' . str_pad($next_id, 6, '0', STR_PAD_LEFT);
+
+        $amount      = (float) ($payment['paid_amount'] ?? 0);
+        $txn_id      = isset($payment['transaction_id']) ? (string) $payment['transaction_id'] : null;
+        $pay_mode    = isset($payment['payment_mode'])   ? (string) $payment['payment_mode']   : 'online';
+        $pay_date    = isset($payment['date'])           ? date('Y-m-d', strtotime($payment['date'])) : date('Y-m-d');
+
+        $this->db->insert('incidental_fee_collections', [
+            'incidental_fee_type_id' => (int) $fee_type['id'],
+            'session_id'             => $session_id,
+            'application_ref_no'     => $ref_no,
+            'amount_collected'       => $amount,
+            'bill_date'              => $pay_date,
+            'date_collected'         => $payment['date'] ?? date('Y-m-d H:i:s'),
+            'receipt_no'             => $receipt_no,
+            'payment_mode'           => $pay_mode,
+            'txn_id'                 => $txn_id,
+            'notes'                  => $payment['note'] ?? ('Online gateway payment — ' . $pay_mode),
+        ]);
     }
 
     public function getclassbyclasssectionid($class_section_id)

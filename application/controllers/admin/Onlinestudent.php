@@ -557,7 +557,10 @@ class Onlinestudent extends Admin_Controller
                     $row[] = $value->mobileno;
                 }
 
-                $app_fee_is_paid = !empty($app_fee_paid_refs[$application_ref_no]);
+                // App fee is paid if: manually recorded via incidental_fee_collections (fee type LIKE '%application%')
+                // OR paid via online payment gateway (paid_status=1 on online_admissions row)
+                $app_fee_is_paid = !empty($app_fee_paid_refs[$application_ref_no])
+                    || (int) ($value->paid_status ?? 0) === 1;
 
                 // Form Status: application fee paid or not (binary)
                 if ($app_fee_is_paid) {
@@ -715,7 +718,10 @@ class Onlinestudent extends Admin_Controller
             $ref_clean   = !empty($r['reference_no']) ? preg_replace('/\s+/', '', (string) $r['reference_no']) : '';
             $course_fee  = ($r['course_fee_total'] !== null && $r['course_fee_total'] !== '') ? (float) $r['course_fee_total'] : 0;
             $paid_amount = isset($paid_amount_map[$ref_clean]) ? (float) $paid_amount_map[$ref_clean] : 0;
-            $app_is_paid = !empty($app_fee_paid[$ref_clean]);
+            // App fee is paid if: manually recorded via incidental_fee_collections
+            // OR paid via online gateway (paid_status=1 on online_admissions row)
+            $app_is_paid = !empty($app_fee_paid[$ref_clean])
+                || (int) ($r['paid_status'] ?? 0) === 1;
 
             $middle    = ($sch_setting->middlename && !empty($r['middlename'])) ? $r['middlename'] . ' ' : '';
             $last      = ($sch_setting->lastname   && !empty($r['lastname']))   ? $r['lastname'] : '';

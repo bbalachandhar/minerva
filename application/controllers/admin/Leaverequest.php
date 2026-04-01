@@ -2158,7 +2158,7 @@ class Leaverequest extends Admin_Controller
                     $this->form_validation->set_message('handle_upload', $this->lang->line('extension_not_allowed'));
                     return false;
                 }
-                if ($file_size > $result->file_size) {
+                if ((int) $result->file_size > 0 && $file_size > $result->file_size) {
                     $this->form_validation->set_message('handle_upload', $this->lang->line('file_size_shoud_be_less_than') . number_format($result->file_size / 1048576, 2) . " MB");
                     return false;
                 }

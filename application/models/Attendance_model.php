@@ -791,6 +791,26 @@ class Attendance_model extends CI_Model {
         return $query->result_array();
     }
 
+    /**
+     * Batch-fetch biometric punches for multiple staff on a single date.
+     * Returns an array keyed by staff_id, each value an array of punch_time strings.
+     */
+    public function get_raw_biometric_punches_by_staff_ids_and_date(array $staff_ids, $date) {
+        if (empty($staff_ids)) {
+            return [];
+        }
+        $query = $this->db->select('staff_id, punch_time')
+                          ->where_in('staff_id', $staff_ids)
+                          ->where('DATE(punch_time)', $date)
+                          ->order_by('punch_time', 'ASC')
+                          ->get('staff_biometric_punches');
+        $grouped = [];
+        foreach ($query->result_array() as $row) {
+            $grouped[$row['staff_id']][] = ['punch_time' => $row['punch_time']];
+        }
+        return $grouped;
+    }
+
     private function getHolidayAttendanceTypeId()
     {
         $row = $this->db->select('id')
