@@ -36,13 +36,12 @@ class Incidental_fee_collection_model extends CI_Model {
 
     public function get_receipt_no() {
         $prefix = "IFC-"; // Incidental Fee Collection
-        $last_receipt = $this->db->select('receipt_no')->order_by('id', 'DESC')->limit(1)->get('incidental_fee_collections')->row();
-        if ($last_receipt) {
-            $last_num = (int) str_replace($prefix, '', $last_receipt->receipt_no);
-            $new_num = $last_num + 1;
-        } else {
-            $new_num = 1;
-        }
+        // Use MAX on the numeric suffix to avoid ID/receipt_no ordering mismatch
+        $row = $this->db->query(
+            "SELECT MAX(CAST(SUBSTRING(receipt_no, " . (strlen($prefix) + 1) . ") AS UNSIGNED)) AS max_num FROM incidental_fee_collections WHERE receipt_no LIKE ?"
+            , [$prefix . '%']
+        )->row();
+        $new_num = $row && $row->max_num ? (int)$row->max_num + 1 : 1;
         return $prefix . str_pad($new_num, 6, '0', STR_PAD_LEFT);
     }
 
