@@ -34,9 +34,11 @@
                                 </div>
                             </div>
                             <div class="col-md-8 text-right" style="padding-top:6px;">
-                                <small class="text-muted"><i class="fa fa-info-circle"></i>
-                                    Showing <?php echo count($staff_list); ?> active staff members.
-                                    Leave blank to clear a balance.
+                                <small class="text-muted">
+                                    <i class="fa fa-info-circle"></i>
+                                    Values shown are the current <strong>closing balance</strong> (latest processed month).
+                                    Hover over an input to see which month it reflects.
+                                    Editing a value updates that month's closing balance directly.
                                 </small>
                             </div>
                         </div>
@@ -66,7 +68,9 @@
                                         <?php foreach ($leave_types as $lt): ?>
                                             <?php
                                                 $ltid    = $lt['id'];
-                                                $current = isset($balances[$sid][$ltid]) ? $balances[$sid][$ltid] : '';
+                                                $entry   = isset($balances[$sid][$ltid]) ? $balances[$sid][$ltid] : null;
+                                                $current = $entry !== null ? $entry['closing_balance'] : '';
+                                                $label   = $entry ? 'As of ' . date('M Y', mktime(0,0,0,$entry['month'],1,$entry['year'])) : 'No data';
                                             ?>
                                             <td style="text-align:center; padding:4px 6px;">
                                                 <input type="number"
@@ -77,7 +81,8 @@
                                                     data-staff-id="<?php echo $sid; ?>"
                                                     data-leave-type-id="<?php echo $ltid; ?>"
                                                     value="<?php echo htmlspecialchars($current); ?>"
-                                                    placeholder="0">
+                                                    placeholder="0"
+                                                    title="<?php echo $label; ?>">
                                             </td>
                                         <?php endforeach; ?>
                                         <td style="text-align:center; padding:4px 6px;">

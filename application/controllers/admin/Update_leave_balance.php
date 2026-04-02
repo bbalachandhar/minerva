@@ -38,16 +38,27 @@ class Update_leave_balance extends Admin_Controller {
             ->get()
             ->result_array();
 
-        // Load existing balances indexed by [staff_id][leave_type_id]
-        $rows = $this->db
-            ->select('staff_id, leave_type_id, alloted_leave')
-            ->from('staff_leave_details')
-            ->get()
-            ->result_array();
+        // Load the latest closing_balance from staff_monthly_leave_balance per staff+leave_type
+        // Subquery picks the most recent (year, month) row for each staff+leave_type pair.
+        $rows = $this->db->query("
+            SELECT smlb.staff_id, smlb.leave_type_id, smlb.closing_balance, smlb.year, smlb.month
+            FROM staff_monthly_leave_balance smlb
+            INNER JOIN (
+                SELECT staff_id, leave_type_id, MAX(year*100+month) AS ym
+                FROM staff_monthly_leave_balance
+                GROUP BY staff_id, leave_type_id
+            ) latest ON latest.staff_id = smlb.staff_id
+                     AND latest.leave_type_id = smlb.leave_type_id
+                     AND latest.ym = smlb.year*100+smlb.month
+        ")->result_array();
 
         $data['balances'] = [];
         foreach ($rows as $row) {
-            $data['balances'][$row['staff_id']][$row['leave_type_id']] = $row['alloted_leave'];
+            $data['balances'][$row['staff_id']][$row['leave_type_id']] = [
+                'closing_balance' => $row['closing_balance'],
+                'year'            => $row['year'],
+                'month'           => $row['month'],
+            ];
         }
 
         $data['settings'] = $this->setting_model->getSetting();
@@ -100,8 +111,10 @@ class Update_leave_balance extends Admin_Controller {
     }
 
     private function _save_balances(array $balances) {
-        $updated = 0;
+        $updated  = 0;
         $inserted = 0;
+        $cur_year  = (int) date('Y');
+        $cur_month = (int) date('n');
 
         $this->db->trans_start();
 
@@ -109,32 +122,44 @@ class Update_leave_balance extends Admin_Controller {
             $staff_id = (int) $staff_id;
             if (!$staff_id) continue;
 
-            foreach ($leave_types as $leave_type_id => $balance) {
+            foreach ($leave_types as $leave_type_id => $new_balance) {
                 $leave_type_id = (int) $leave_type_id;
                 if (!$leave_type_id) continue;
+                if ($new_balance === null) continue;
+                $new_balance = ($new_balance === '') ? 0 : max(0, (float) $new_balance);
 
-                // Allow empty/zero to clear balance; skip only truly null submissions
-                if ($balance === null) continue;
-                $balance_value = ($balance === '') ? '' : (string) floatval($balance);
-
-                $existing = $this->db
+                // Find the most recent row for this staff+leave_type
+                $latest = $this->db
                     ->where('staff_id', $staff_id)
                     ->where('leave_type_id', $leave_type_id)
-                    ->get('staff_leave_details')
-                    ->row();
+                    ->order_by('year', 'DESC')
+                    ->order_by('month', 'DESC')
+                    ->limit(1)
+                    ->get('staff_monthly_leave_balance')
+                    ->row_array();
 
-                if ($existing) {
-                    $this->db->where('id', $existing->id);
-                    $this->db->update('staff_leave_details', [
-                        'alloted_leave' => $balance_value,
-                        'updated_at'    => date('Y-m-d H:i:s'),
+                if (!empty($latest)) {
+                    // Update closing_balance of the most recent row
+                    $this->db->where('id', $latest['id']);
+                    $this->db->update('staff_monthly_leave_balance', [
+                        'closing_balance' => $new_balance,
+                        'updated_at'      => date('Y-m-d H:i:s'),
                     ]);
                     $updated++;
                 } else {
-                    $this->db->insert('staff_leave_details', [
-                        'staff_id'      => $staff_id,
-                        'leave_type_id' => $leave_type_id,
-                        'alloted_leave' => $balance_value,
+                    // No row exists yet — create one for the current month
+                    $this->db->insert('staff_monthly_leave_balance', [
+                        'staff_id'                  => $staff_id,
+                        'leave_type_id'             => $leave_type_id,
+                        'year'                      => $cur_year,
+                        'month'                     => $cur_month,
+                        'opening_balance'           => 0,
+                        'earned_in_month'           => 0,
+                        'used_for_lop_adjustment'   => 0,
+                        'used_for_leave_application'=> 0,
+                        'other_deductions'          => 0,
+                        'closing_balance'           => $new_balance,
+                        'last_processed_date'       => date('Y-m-d'),
                     ]);
                     $inserted++;
                 }
