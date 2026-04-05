@@ -60,6 +60,15 @@ class Schsettings extends Admin_Controller
         
         // Fetch monthly leave increment rules
         $data['leave_increment_rules'] = $this->get_leave_increment_rules();
+        // Leave increment monitor (expected vs processed rows for a month)
+        $monitor_year  = (int) ($this->input->get('leave_monitor_year') ?: date('Y'));
+        $monitor_month = (int) ($this->input->get('leave_monitor_month') ?: date('n'));
+        $monitor_year  = max(2000, min(((int) date('Y')) + 1, $monitor_year));
+        $monitor_month = max(1, min(12, $monitor_month));
+
+        $data['leave_monitor_year'] = $monitor_year;
+        $data['leave_monitor_month'] = $monitor_month;
+        $data['leave_increment_monitor'] = $this->get_leave_increment_monitor($monitor_year, $monitor_month);
 	 
         $this->load->view('layout/header', $data);
         $this->load->view('setting/settingList', $data);
@@ -323,7 +332,7 @@ class Schsettings extends Admin_Controller
                 'monthly_leave_increment_enabled' => $this->input->post('monthly_leave_increment_enabled') ? 1 : 0,
                 'monthly_increment_leave_type_id' => $this->input->post('monthly_increment_leave_type_id') ?: null,
                 'monthly_increment_days' => $this->input->post('monthly_increment_days') ?: 1.00,
-                'leave_reset_month' => $this->input->post('leave_reset_month') ?: 1,
+                'leave_reset_month' => ($this->input->post('leave_reset_month') !== '' && $this->input->post('leave_reset_month') !== null) ? (int)$this->input->post('leave_reset_month') : null,
             );
             
             if (isset($_FILES["admission_logo_left"]) && !empty($_FILES['admission_logo_left']['name'])) {
@@ -2187,6 +2196,88 @@ class Schsettings extends Admin_Controller
             ->order_by('lt.type', 'asc')
             ->get()
             ->result_array();
+    }
+    
+    /**
+     * Build monitor summary for one month to detect partial processing.
+     */
+    private function get_leave_increment_monitor($year, $month)
+    {
+        $active_staff_count = (int) $this->db->where('is_active', 1)->count_all_results('staff');
+
+        $enabled_rules = $this->db
+            ->select('mlr.leave_type_id, mlr.increment_days, lt.type as leave_type_name')
+            ->from('monthly_leave_increment_rules mlr')
+            ->join('leave_types lt', 'lt.id = mlr.leave_type_id', 'left')
+            ->where('mlr.enabled', 1)
+            ->where('lt.is_active', 'yes')
+            ->order_by('lt.type', 'asc')
+            ->get()
+            ->result_array();
+
+        if (empty($enabled_rules)) {
+            return [
+                'active_staff_count' => $active_staff_count,
+                'year' => (int) $year,
+                'month' => (int) $month,
+                'rows' => [],
+                'is_complete' => true,
+            ];
+        }
+
+        $leave_type_ids = array_map(function ($r) {
+            return (int) $r['leave_type_id'];
+        }, $enabled_rules);
+
+        $processed_counts = $this->db
+            ->select('leave_type_id, COUNT(DISTINCT staff_id) as processed_rows')
+            ->from('staff_monthly_leave_balance')
+            ->where('year', (int) $year)
+            ->where('month', (int) $month)
+            ->where_in('leave_type_id', $leave_type_ids)
+            ->group_by('leave_type_id')
+            ->get()
+            ->result_array();
+
+        $count_map = [];
+        foreach ($processed_counts as $pc) {
+            $count_map[(int) $pc['leave_type_id']] = (int) $pc['processed_rows'];
+        }
+
+        $rows = [];
+        $is_complete = true;
+
+        foreach ($enabled_rules as $rule) {
+            $lt_id = (int) $rule['leave_type_id'];
+            $processed = isset($count_map[$lt_id]) ? (int) $count_map[$lt_id] : 0;
+            $expected = $active_staff_count;
+            $missing = max(0, $expected - $processed);
+            $percent = $expected > 0 ? round(($processed / $expected) * 100, 2) : 100;
+            $status = ($processed >= $expected) ? 'complete' : (($processed > 0) ? 'partial' : 'not_started');
+
+            if ($status !== 'complete') {
+                $is_complete = false;
+            }
+
+            $rows[] = [
+                'leave_type_id' => $lt_id,
+                'leave_type_name' => $rule['leave_type_name'],
+                'increment_days' => $rule['increment_days'],
+                'processed_rows' => $processed,
+                'expected_rows' => $expected,
+                'missing_rows' => $missing,
+                'completion_percent' => $percent,
+                'status' => $status,
+            ];
+        }
+
+        return [
+            'active_staff_count' => $active_staff_count,
+            'year' => (int) $year,
+            'month' => (int) $month,
+            'rows' => $rows,
+            'is_complete' => $is_complete,
+        ];
     }
     
     /**

@@ -1256,6 +1256,23 @@ class Payroll_model extends MY_Model
             }
         }
         
+        // Seed earned_in_month from monthly_leave_increment_rules if the feature is
+        // enabled. This ensures payroll running in a later month still only sees the
+        // credits that were due for the target month — not future months' credits.
+        $earned_in_month = 0.0;
+        $inc_settings = $this->setting_model->getSetting();
+        if (!empty($inc_settings->monthly_leave_increment_enabled)) {
+            $inc_rule = $this->db
+                ->where('leave_type_id', (int)$leave_type_id)
+                ->where('enabled', 1)
+                ->limit(1)
+                ->get('monthly_leave_increment_rules')
+                ->row_array();
+            if (!empty($inc_rule)) {
+                $earned_in_month = (float) $inc_rule['increment_days'];
+            }
+        }
+
         // Create new record
         $data = [
             'staff_id' => $staff_id,
@@ -1263,11 +1280,11 @@ class Payroll_model extends MY_Model
             'year' => $year,
             'month' => $month,
             'opening_balance' => $opening_balance,
-            'earned_in_month' => 0,
+            'earned_in_month' => $earned_in_month,
             'used_for_lop_adjustment' => 0,
             'used_for_leave_application' => 0,
             'other_deductions' => 0,
-            'closing_balance' => $opening_balance,
+            'closing_balance' => $opening_balance + $earned_in_month,
             'created_at' => date('Y-m-d H:i:s'),
             'updated_at' => date('Y-m-d H:i:s'),
             'notes' => 'Auto-created on ' . date('Y-m-d H:i:s')
@@ -1331,6 +1348,22 @@ class Payroll_model extends MY_Model
             }
         }
 
+        // Seed earned_in_month from monthly_leave_increment_rules (same logic as
+        // getOrCreateMonthlyBalance) so preview/simulate paths are also consistent.
+        $earned_in_month_snap = 0.0;
+        $inc_settings_snap = $this->setting_model->getSetting();
+        if (!empty($inc_settings_snap->monthly_leave_increment_enabled)) {
+            $inc_rule_snap = $this->db
+                ->where('leave_type_id', (int)$leave_type_id)
+                ->where('enabled', 1)
+                ->limit(1)
+                ->get('monthly_leave_increment_rules')
+                ->row_array();
+            if (!empty($inc_rule_snap)) {
+                $earned_in_month_snap = (float) $inc_rule_snap['increment_days'];
+            }
+        }
+
         return [
             'id' => null,
             'staff_id' => $staff_id,
@@ -1338,11 +1371,11 @@ class Payroll_model extends MY_Model
             'year' => $year,
             'month' => $month,
             'opening_balance' => $opening_balance,
-            'earned_in_month' => 0,
+            'earned_in_month' => $earned_in_month_snap,
             'used_for_lop_adjustment' => 0,
             'used_for_leave_application' => 0,
             'other_deductions' => 0,
-            'closing_balance' => $opening_balance,
+            'closing_balance' => $opening_balance + $earned_in_month_snap,
         ];
     }
 

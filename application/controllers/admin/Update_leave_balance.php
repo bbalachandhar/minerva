@@ -21,7 +21,7 @@ class Update_leave_balance extends Admin_Controller {
 
         // All active leave types
         $data['leave_types'] = $this->db
-            ->select('id, type')
+            ->select('id, type, requires_balance_check, credit_source_type_id')
             ->from('leave_types')
             ->where('is_active', 'yes')
             ->order_by('type', 'asc')
@@ -38,24 +38,74 @@ class Update_leave_balance extends Admin_Controller {
             ->get()
             ->result_array();
 
-        // Load the latest closing_balance from staff_monthly_leave_balance per staff+leave_type
-        // Subquery picks the most recent (year, month) row for each staff+leave_type pair.
+        // Build a deterministic matrix for every active staff x active leave type.
+        // Priority: latest monthly closing_balance, fallback: staff_leave_details.alloted_leave.
         $rows = $this->db->query("
-            SELECT smlb.staff_id, smlb.leave_type_id, smlb.closing_balance, smlb.year, smlb.month
-            FROM staff_monthly_leave_balance smlb
-            INNER JOIN (
-                SELECT staff_id, leave_type_id, MAX(year*100+month) AS ym
-                FROM staff_monthly_leave_balance
-                GROUP BY staff_id, leave_type_id
-            ) latest ON latest.staff_id = smlb.staff_id
-                     AND latest.leave_type_id = smlb.leave_type_id
-                     AND latest.ym = smlb.year*100+smlb.month
+            SELECT
+                s.id AS staff_id,
+                lt.id AS leave_type_id,
+                COALESCE(smlb.closing_balance, sld.alloted_leave, 0) AS base_balance,
+                smlb.year,
+                smlb.month,
+                lt.credit_source_type_id,
+                lt.requires_balance_check,
+                CASE
+                    WHEN COALESCE(lt.credit_source_type_id, 0) > 0 THEN COALESCE((
+                        SELECT SUM(r.leave_days)
+                        FROM staff_leave_request r
+                        WHERE r.staff_id = s.id
+                          AND r.leave_type_id = lt.id
+                          AND r.leave_direction = 'credit'
+                          AND r.status IN ('approve', 'approved')
+                          AND (
+                                smlb.id IS NULL
+                                OR r.leave_from > LAST_DAY(STR_TO_DATE(CONCAT(smlb.year, '-', LPAD(smlb.month, 2, '0'), '-01'), '%Y-%m-%d'))
+                              )
+                    ), 0)
+                    ELSE 0
+                END AS extra_credit,
+                CASE
+                    WHEN COALESCE(lt.credit_source_type_id, 0) > 0 THEN COALESCE((
+                        SELECT SUM(r.leave_days)
+                        FROM staff_leave_request r
+                        WHERE r.staff_id = s.id
+                          AND r.leave_type_id = lt.id
+                          AND r.leave_direction = 'debit'
+                          AND r.status IN ('approve', 'approved')
+                          AND (
+                                smlb.id IS NULL
+                                OR r.leave_from > LAST_DAY(STR_TO_DATE(CONCAT(smlb.year, '-', LPAD(smlb.month, 2, '0'), '-01'), '%Y-%m-%d'))
+                              )
+                    ), 0)
+                    ELSE 0
+                END AS extra_debit
+            FROM staff s
+            JOIN leave_types lt ON lt.is_active = 'yes'
+            LEFT JOIN staff_leave_details sld
+                ON sld.staff_id = s.id
+               AND sld.leave_type_id = lt.id
+            LEFT JOIN staff_monthly_leave_balance smlb
+                ON smlb.id = (
+                    SELECT b.id
+                    FROM staff_monthly_leave_balance b
+                    WHERE b.staff_id = s.id
+                      AND b.leave_type_id = lt.id
+                    ORDER BY b.year DESC, b.month DESC, b.id DESC
+                    LIMIT 1
+                )
+            WHERE s.is_active = 1
         ")->result_array();
 
         $data['balances'] = [];
         foreach ($rows as $row) {
+            $display_balance = (float) $row['base_balance'];
+
+            if ((int) ($row['credit_source_type_id'] ?? 0) > 0) {
+                $display_balance += (float) ($row['extra_credit'] ?? 0) - (float) ($row['extra_debit'] ?? 0);
+            }
+
             $data['balances'][$row['staff_id']][$row['leave_type_id']] = [
-                'closing_balance' => $row['closing_balance'],
+                'closing_balance' => $display_balance,
                 'year'            => $row['year'],
                 'month'           => $row['month'],
             ];

@@ -381,11 +381,12 @@
                                 <div class="row">
                                     <div class="col-md-6">
                                         <div class="form-group row">
-                                            <label class="col-sm-4">Reset Month</label>
+                                            <label class="col-sm-4">Reset Month <small class="text-muted">(optional)</small></label>
                                             <div class="col-sm-8">
                                                 <select id="leave_reset_month" name="leave_reset_month" class="form-control">
+                                                    <option value="" <?php echo (empty($result->leave_reset_month)) ? 'selected' : ''; ?>>— No automatic reset —</option>
                                                     <?php
-                                                    $months = array(1 => 'January', 2 => 'February', 3 => 'March', 4 => 'April', 5 => 'May', 6 => 'June', 
+                                                    $months = array(1 => 'January', 2 => 'February', 3 => 'March', 4 => 'April', 5 => 'May', 6 => 'June',
                                                                    7 => 'July', 8 => 'August', 9 => 'September', 10 => 'October', 11 => 'November', 12 => 'December');
                                                     foreach ($months as $month_num => $month_name):
                                                     ?>
@@ -394,7 +395,7 @@
                                                         </option>
                                                     <?php endforeach; ?>
                                                 </select>
-                                                <small class="text-muted">Month when leave count resets to 0 (typically start of financial/academic year)</small>
+                                                <small class="text-muted">Month when leave count resets to 0 (typically start of financial/academic year). Leave blank to disable annual reset.</small>
                                             </div>
                                         </div>
                                     </div>
@@ -411,9 +412,114 @@
                                 <div class="row">
                                     <div class="col-md-12">
                                         <div class="alert alert-warning">
-                                            <strong>Important:</strong> After enabling this feature, set up a cron job to run daily:
-                                            <br><code>0 2 * * * curl "<?php echo base_url(); ?>cron_leave_increment/process?secret_key=<?php echo $result->cron_secret_key; ?>"</code>
-                                            <br>Or manually trigger: <a href="<?php echo base_url('cron_leave_increment/manual_process'); ?>" target="_blank">Run Manual Process</a>
+                                            <strong>Important:</strong> After enabling this feature, set up a cron job to run daily:<br>
+                                            <code>0 2 * * * curl "<?php echo base_url(); ?>cron_leave_increment/process?secret_key=<?php echo $result->cron_secret_key; ?>"</code>
+                                            <br><br>
+                                            <strong>Backfill past months</strong> (run once per missed month, oldest first):<br>
+                                            <code><?php echo base_url('cron_leave_increment/manual_process'); ?>?year=YYYY&amp;month=M</code><br>
+                                            <em>Example — backfill March 2026:</em>
+                                            <a href="<?php echo base_url('cron_leave_increment/manual_process'); ?>?year=<?php echo date('Y'); ?>&amp;month=3" target="_blank">
+                                                <?php echo base_url('cron_leave_increment/manual_process'); ?>?year=<?php echo date('Y'); ?>&amp;month=3
+                                            </a><br>
+                                            This creates a <code>staff_monthly_leave_balance</code> row per staff member:
+                                            <code>opening=prev_closing, earned=rule_days, closing=opening+earned</code>.<br><br>
+                                            Or trigger for the <strong>current month</strong>:
+                                            <a href="<?php echo base_url('cron_leave_increment/manual_process'); ?>" target="_blank">Run Manual Process</a>
+                                        </div>
+                                    </div>
+                                </div><!--./row-->
+
+                                <!-- Leave Increment Processing Monitor -->
+                                <div class="row">
+                                    <div class="col-md-12">
+                                        <div class="panel panel-default" style="margin-top:10px;">
+                                            <div class="panel-heading">
+                                                <strong><i class="fa fa-bar-chart"></i> Leave Increment Processing Monitor</strong>
+                                                <?php
+                                                    $monitor_ts = mktime(0, 0, 0, (int)$leave_monitor_month, 1, (int)$leave_monitor_year);
+                                                    $prev_ts = strtotime('-1 month', $monitor_ts);
+                                                    $next_ts = strtotime('+1 month', $monitor_ts);
+                                                    $prev_link = base_url('schsettings/index?leave_monitor_year=' . date('Y', $prev_ts) . '&leave_monitor_month=' . date('n', $prev_ts));
+                                                    $curr_link = base_url('schsettings/index?leave_monitor_year=' . date('Y') . '&leave_monitor_month=' . date('n'));
+                                                    $next_link = base_url('schsettings/index?leave_monitor_year=' . date('Y', $next_ts) . '&leave_monitor_month=' . date('n', $next_ts));
+                                                ?>
+                                                <span class="pull-right" style="font-weight:normal;">
+                                                    <a href="<?php echo $prev_link; ?>">&larr; Previous</a>
+                                                    &nbsp;|&nbsp;
+                                                    <a href="<?php echo $curr_link; ?>">Current Month</a>
+                                                    &nbsp;|&nbsp;
+                                                    <a href="<?php echo $next_link; ?>">Next &rarr;</a>
+                                                </span>
+                                            </div>
+                                            <div class="panel-body">
+                                                <p style="margin-bottom:10px;">
+                                                    <strong>Target Month:</strong>
+                                                    <?php echo date('F Y', $monitor_ts); ?>
+                                                    &nbsp;&nbsp;|&nbsp;&nbsp;
+                                                    <strong>Active Staff:</strong>
+                                                    <?php echo (int)$leave_increment_monitor['active_staff_count']; ?>
+                                                </p>
+
+                                                <?php if (empty($leave_increment_monitor['rows'])): ?>
+                                                    <div class="alert alert-info" style="margin-bottom:0;">
+                                                        No enabled leave increment rules found.
+                                                    </div>
+                                                <?php else: ?>
+                                                    <?php if ($leave_increment_monitor['is_complete']): ?>
+                                                        <div class="alert alert-success" style="margin-bottom:10px;">
+                                                            <strong>Complete:</strong> All enabled leave types are fully processed for this month.
+                                                        </div>
+                                                    <?php else: ?>
+                                                        <div class="alert alert-danger" style="margin-bottom:10px;">
+                                                            <strong>Partial:</strong> Some leave types are not fully processed.
+                                                            Run manual process for this month to auto-heal missing rows:
+                                                            <a href="<?php echo base_url('cron_leave_increment/manual_process?year=' . (int)$leave_monitor_year . '&month=' . (int)$leave_monitor_month); ?>" target="_blank">
+                                                                Run <?php echo date('M Y', $monitor_ts); ?> Manual Process
+                                                            </a>
+                                                        </div>
+                                                    <?php endif; ?>
+
+                                                    <div class="table-responsive">
+                                                        <table class="table table-bordered table-condensed" style="margin-bottom:0;">
+                                                            <thead>
+                                                                <tr style="background:#f5f5f5;">
+                                                                    <th>Leave Type</th>
+                                                                    <th style="text-align:center;">Rule (Days/Month)</th>
+                                                                    <th style="text-align:center;">Processed</th>
+                                                                    <th style="text-align:center;">Expected</th>
+                                                                    <th style="text-align:center;">Missing</th>
+                                                                    <th style="text-align:center;">Completion</th>
+                                                                    <th style="text-align:center;">Status</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                <?php foreach ($leave_increment_monitor['rows'] as $mr): ?>
+                                                                    <?php
+                                                                        $status_class = 'label-default';
+                                                                        $status_text  = 'Not Started';
+                                                                        if ($mr['status'] === 'complete') {
+                                                                            $status_class = 'label-success';
+                                                                            $status_text  = 'Complete';
+                                                                        } elseif ($mr['status'] === 'partial') {
+                                                                            $status_class = 'label-danger';
+                                                                            $status_text  = 'Partial';
+                                                                        }
+                                                                    ?>
+                                                                    <tr>
+                                                                        <td><?php echo htmlspecialchars($mr['leave_type_name']); ?></td>
+                                                                        <td style="text-align:center;"><?php echo number_format((float)$mr['increment_days'], 2); ?></td>
+                                                                        <td style="text-align:center;"><?php echo (int)$mr['processed_rows']; ?></td>
+                                                                        <td style="text-align:center;"><?php echo (int)$mr['expected_rows']; ?></td>
+                                                                        <td style="text-align:center;"><?php echo (int)$mr['missing_rows']; ?></td>
+                                                                        <td style="text-align:center;"><?php echo number_format((float)$mr['completion_percent'], 2); ?>%</td>
+                                                                        <td style="text-align:center;"><span class="label <?php echo $status_class; ?>"><?php echo $status_text; ?></span></td>
+                                                                    </tr>
+                                                                <?php endforeach; ?>
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                <?php endif; ?>
+                                            </div>
                                         </div>
                                     </div>
                                 </div><!--./row-->

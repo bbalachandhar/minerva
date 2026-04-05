@@ -80,8 +80,10 @@
                                                     name="balances[<?php echo $sid; ?>][<?php echo $ltid; ?>]"
                                                     data-staff-id="<?php echo $sid; ?>"
                                                     data-leave-type-id="<?php echo $ltid; ?>"
+                                                    data-server-value="<?php echo htmlspecialchars($current); ?>"
                                                     value="<?php echo htmlspecialchars($current); ?>"
                                                     placeholder="0"
+                                                    autocomplete="off"
                                                     title="<?php echo $label; ?>">
                                             </td>
                                         <?php endforeach; ?>
@@ -119,6 +121,12 @@ $(function () {
 
     var saveAllUrl  = '<?php echo site_url("admin/update_leave_balance/ajax_save_all"); ?>';
     var saveOneUrl  = '<?php echo site_url("admin/update_leave_balance/ajax_save_one"); ?>';
+
+    // Force server-rendered values on load to avoid browser restoring stale form state.
+    $('.balance-input').each(function () {
+        var serverValue = $(this).attr('data-server-value');
+        $(this).val(serverValue !== undefined ? serverValue : '');
+    });
 
     // ── Live search ──────────────────────────────────────────────────
     $('#staffSearch').on('keyup', function () {

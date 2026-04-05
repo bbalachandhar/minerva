@@ -267,7 +267,7 @@ class Staff extends Admin_Controller
                                 ->where('leave_type_id', $value['leave_type_id'])
                                 ->where('leave_direction', 'credit')
                                 ->where_in('status', ['approve', 'approved'])
-                                ->where('date >', $since_date)
+                                ->where('leave_from >', $since_date)
                                 ->get('staff_leave_request')
                                 ->row_array()['total'] ?? 0);
 
@@ -277,7 +277,7 @@ class Staff extends Admin_Controller
                                 ->where('leave_type_id', $value['leave_type_id'])
                                 ->where('leave_direction', 'debit')
                                 ->where_in('status', ['approve', 'approved'])
-                                ->where('date >', $since_date)
+                                ->where('leave_from >', $since_date)
                                 ->get('staff_leave_request')
                                 ->row_array()['total'] ?? 0);
 
