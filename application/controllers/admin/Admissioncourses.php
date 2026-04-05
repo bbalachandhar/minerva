@@ -29,15 +29,16 @@ class Admissioncourses extends Admin_Controller
             $this->session->set_flashdata('error', validation_errors());
         } else {
             $data = array(
-                'course_name' => $this->input->post('course_name'),
-                'course_code' => $this->input->post('course_code'),
-                'course_level' => $this->input->post('course_level'),
+                'course_name'   => $this->input->post('course_name'),
+                'course_code'   => $this->input->post('course_code'),
+                'course_level'  => $this->input->post('course_level'),
                 'admission_type' => $this->input->post('admission_type'),
-                'govt_fee' => (float)$this->input->post('govt_fee'),
-                'mgt_fee' => (float)$this->input->post('mgt_fee'),
-                'sort_order' => ($this->input->post('sort_order') !== '' ? (int)$this->input->post('sort_order') : 0),
-                'description' => $this->input->post('description'),
-                'is_active'   => $this->input->post('is_active'),
+                'govt_fee'      => (float)$this->input->post('govt_fee'),
+                'mgt_fee'       => (float)$this->input->post('mgt_fee'),
+                'sort_order'    => ($this->input->post('sort_order') !== '' ? (int)$this->input->post('sort_order') : 0),
+                'description'   => $this->input->post('description'),
+                'is_active'     => $this->input->post('is_active'),
+                'is_restricted' => (int)(bool)$this->input->post('is_restricted'),
             );
 
             $this->Onlineadmissioncourses_model->add($data);
@@ -69,16 +70,17 @@ class Admissioncourses extends Admin_Controller
             $this->load->view('layout/footer');
         } else {
             $save_data = array(
-                'id'          => $id,
-                'course_name' => $this->input->post('course_name'),
-                'course_code' => $this->input->post('course_code'),
-                'course_level' => $this->input->post('course_level'),
+                'id'            => $id,
+                'course_name'   => $this->input->post('course_name'),
+                'course_code'   => $this->input->post('course_code'),
+                'course_level'  => $this->input->post('course_level'),
                 'admission_type' => $this->input->post('admission_type'),
-                'govt_fee' => (float)$this->input->post('govt_fee'),
-                'mgt_fee' => (float)$this->input->post('mgt_fee'),
-                'sort_order' => ($this->input->post('sort_order') !== '' ? (int)$this->input->post('sort_order') : 0),
-                'description' => $this->input->post('description'),
-                'is_active'   => $this->input->post('is_active'),
+                'govt_fee'      => (float)$this->input->post('govt_fee'),
+                'mgt_fee'       => (float)$this->input->post('mgt_fee'),
+                'sort_order'    => ($this->input->post('sort_order') !== '' ? (int)$this->input->post('sort_order') : 0),
+                'description'   => $this->input->post('description'),
+                'is_active'     => $this->input->post('is_active'),
+                'is_restricted' => (int)(bool)$this->input->post('is_restricted'),
             );
 
             $this->Onlineadmissioncourses_model->add($save_data);

@@ -51,3 +51,4 @@ api/application/config/autoload.php
 
 *.md
 *.sql
+uploads/.gitkeep

@@ -219,6 +219,9 @@
                 <?php if (!empty($enquiry_id)) { ?>
                     <input type="hidden" name="enquiry_id" value="<?php echo htmlspecialchars($enquiry_id); ?>">
                 <?php } ?>
+                <?php if (!empty($employee_id)) { ?>
+                    <input type="hidden" name="employee_id" value="<?php echo (int)$employee_id; ?>">
+                <?php } ?>
                 <div class="section-card">
                     <h5 class="text-center mb-4">APPLICATION FORM FOR ADMISSION</h5>
                     <div class="mb-4">
@@ -271,7 +274,7 @@
                                     <option value="">Select a Course</option>
                                     <?php if (!empty($ug_first_year_courses)) { ?>
                                         <?php foreach ($ug_first_year_courses as $course) { ?>
-                                            <option value="<?php echo (int)$course['id']; ?>" data-govt-fee="<?php echo (float)$course['govt_fee']; ?>" data-mgt-fee="<?php echo (float)$course['mgt_fee']; ?>" data-is-barch="<?php echo (stripos($course['course_name'], 'ARCH') !== false) ? '1' : '0'; ?>"><?php echo htmlspecialchars($course['course_name']); ?></option>
+                                            <option value="<?php echo (int)$course['id']; ?>" data-govt-fee="<?php echo (float)$course['govt_fee']; ?>" data-mgt-fee="<?php echo (float)$course['mgt_fee']; ?>" data-is-barch="<?php echo (stripos($course['course_name'], 'ARCH') !== false) ? '1' : '0'; ?>" data-is-restricted="<?php echo !empty($course['is_restricted']) ? '1' : '0'; ?>"><?php echo htmlspecialchars($course['course_name']); ?></option>
                                         <?php } ?>
                                     <?php } ?>
                                 </select>
@@ -279,7 +282,7 @@
                                     <option value="">Select a Course</option>
                                     <?php if (!empty($ug_lateral_courses)) { ?>
                                         <?php foreach ($ug_lateral_courses as $course) { ?>
-                                            <option value="<?php echo (int)$course['id']; ?>" data-govt-fee="<?php echo (float)$course['govt_fee']; ?>" data-mgt-fee="<?php echo (float)$course['mgt_fee']; ?>" data-is-barch="<?php echo (stripos($course['course_name'], 'ARCH') !== false) ? '1' : '0'; ?>"><?php echo htmlspecialchars($course['course_name']); ?></option>
+                                            <option value="<?php echo (int)$course['id']; ?>" data-govt-fee="<?php echo (float)$course['govt_fee']; ?>" data-mgt-fee="<?php echo (float)$course['mgt_fee']; ?>" data-is-barch="<?php echo (stripos($course['course_name'], 'ARCH') !== false) ? '1' : '0'; ?>" data-is-restricted="<?php echo !empty($course['is_restricted']) ? '1' : '0'; ?>"><?php echo htmlspecialchars($course['course_name']); ?></option>
                                         <?php } ?>
                                     <?php } ?>
                                 </select>
@@ -287,10 +290,13 @@
                                     <option value="">Select a Course</option>
                                     <?php if (!empty($pg_first_year_courses)) { ?>
                                         <?php foreach ($pg_first_year_courses as $course) { ?>
-                                            <option value="<?php echo (int)$course['id']; ?>" data-govt-fee="<?php echo (float)$course['govt_fee']; ?>" data-mgt-fee="<?php echo (float)$course['mgt_fee']; ?>" data-is-barch="<?php echo (stripos($course['course_name'], 'ARCH') !== false) ? '1' : '0'; ?>"><?php echo htmlspecialchars($course['course_name']); ?></option>
+                                            <option value="<?php echo (int)$course['id']; ?>" data-govt-fee="<?php echo (float)$course['govt_fee']; ?>" data-mgt-fee="<?php echo (float)$course['mgt_fee']; ?>" data-is-barch="<?php echo (stripos($course['course_name'], 'ARCH') !== false) ? '1' : '0'; ?>" data-is-restricted="<?php echo !empty($course['is_restricted']) ? '1' : '0'; ?>"><?php echo htmlspecialchars($course['course_name']); ?></option>
                                         <?php } ?>
                                     <?php } ?>
                                 </select>
+                                <div id="course_restriction_alert" class="alert alert-warning mt-2" style="display:none;">
+                                    <i class="bi bi-exclamation-triangle-fill me-2"></i>This course is filled and no vacancies currently, kindly choose other available course.
+                                </div>
                             </div>
                         </div>
                         <div class="col-md-3">
@@ -1378,6 +1384,30 @@ $(document).ready(function() {
             }
         });
     }
+
+    // Course restriction check — bypassed when form is opened by staff via employee_id link
+    var isStaffReferral = ($('input[name="employee_id"]').length > 0 && parseInt($('input[name="employee_id"]').val()) > 0);
+
+    function checkCourseRestriction($select) {
+        if (isStaffReferral) {
+            // Staff referrals are always allowed regardless of seat restriction
+            $('#course_restriction_alert').hide();
+            $('#submit_application_btn').prop('disabled', false);
+            return;
+        }
+        var selected = $select.find('option:selected');
+        if (selected.val() && selected.data('is-restricted') == '1') {
+            $('#course_restriction_alert').show();
+            $('#submit_application_btn').prop('disabled', true);
+        } else {
+            $('#course_restriction_alert').hide();
+            $('#submit_application_btn').prop('disabled', false);
+        }
+    }
+
+    $('#ug_course').on('change', function() { checkCourseRestriction($(this)); });
+    $('#lateral_course').on('change', function() { checkCourseRestriction($(this)); });
+    $('#pg_course').on('change', function() { checkCourseRestriction($(this)); });
 
     // Handler for the main submit button, which now just opens the modal
     $('#submit_application_btn').on('click', function(e) {

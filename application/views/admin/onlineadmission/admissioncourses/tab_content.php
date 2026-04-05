@@ -71,6 +71,15 @@
                             </select>
                             <span class="text-danger"><?php echo form_error('is_active'); ?></span>
                         </div>
+                        <div class="form-group">
+                            <label>Restrict Online Applications</label>
+                            <select class="form-control" name="is_restricted">
+                                <option value="0" <?php echo set_select('is_restricted', '0', true); ?>>No (Applications Allowed)</option>
+                                <option value="1" <?php echo set_select('is_restricted', '1'); ?>>Yes (Restrict Online Applications)</option>
+                            </select>
+                            <span class="text-danger"><?php echo form_error('is_restricted'); ?></span>
+                            <p class="help-block"><i class="fa fa-info-circle"></i> Set to <strong>Yes</strong> when this course has no available seats. Students selecting this course on the public admission form will see a message: <em>&ldquo;This course is filled and no vacancies currently, kindly choose other available course.&rdquo;</em> and will not be able to submit their application.</p>
+                        </div>
                     </div><!-- /.box-body -->
                     <div class="box-footer">
                         <button type="submit" class="btn btn-info pull-right"><?php echo $this->lang->line('save'); ?></button>
@@ -108,6 +117,7 @@
                                 <th>Sort</th>
                                 <th><?php echo $this->lang->line('description'); ?></th>
                                 <th><?php echo $this->lang->line('status'); ?></th>
+                                <th>Restricted</th>
                                 <th class="text-right noExport"><?php echo $this->lang->line('action'); ?></th>
                             </tr>
                         </thead>
@@ -132,6 +142,7 @@
                                         <td class="mailbox-name"><?php echo (int)$course['sort_order']; ?></td>
                                         <td class="mailbox-name"><?php echo $course['description'] ?></td>
                                         <td class="mailbox-name"><?php echo ($course['is_active'] == 1) ? $this->lang->line('active') : $this->lang->line('inactive'); ?></td>
+                                        <td class="mailbox-name"><?php echo !empty($course['is_restricted']) ? '<span class="label label-danger">Yes</span>' : '<span class="label label-success">No</span>'; ?></td>
                                         <td class="mailbox-date text-right">
                                             <?php if ($this->rbac->hasPrivilege('online_admission_admission_courses', 'can_edit')) { ?>
                                                 <a data-placement="left" href="<?php echo base_url(); ?>admin/admissioncourses/edit/<?php echo $course['id'] ?>" class="btn btn-default btn-xs" data-toggle="tooltip" title="<?php echo $this->lang->line('edit'); ?>">

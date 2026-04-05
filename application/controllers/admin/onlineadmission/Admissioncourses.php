@@ -56,6 +56,7 @@ class Admissioncourses extends Admin_Controller
             'course_code' => $course_code,
             'description' => $description,
             'is_active'   => $is_active,
+            'is_restricted' => (int)(bool)$this->input->post('is_restricted'),
             'created_at'  => date('Y-m-d H:i:s'),
             'updated_at'  => date('Y-m-d H:i:s'),
         );
@@ -117,12 +118,13 @@ class Admissioncourses extends Admin_Controller
             }
             
             $data = array(
-                'id'          => $id,
-                'course_name' => $course_name,
-                'course_code' => $course_code,
-                'description' => $this->input->post('description'),
-                'is_active'   => $this->input->post('is_active'),
-                'updated_at'  => date('Y-m-d H:i:s'),
+                'id'            => $id,
+                'course_name'   => $course_name,
+                'course_code'   => $course_code,
+                'description'   => $this->input->post('description'),
+                'is_active'     => $this->input->post('is_active'),
+                'is_restricted' => (int)(bool)$this->input->post('is_restricted'),
+                'updated_at'    => date('Y-m-d H:i:s'),
             );
             $this->Onlineadmissioncourses_model->add($data);
             $this->session->set_flashdata('msg', '<div class="alert alert-success">' . $this->lang->line('update_message') . '</div>');

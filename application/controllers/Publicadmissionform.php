@@ -79,6 +79,7 @@ class PublicAdmissionForm extends CI_Controller
         $this->data['email'] = $this->input->get('email');
         $this->data['mobileno'] = $this->input->get('mobileno');
         $this->data['enquiry_id'] = $this->input->get('enquiry_id');
+        $this->data['employee_id'] = (int)$this->input->get('employee_id');
         // This is a direct copy from Public_admission::index(), adapted for CI_Controller
         // No checks for module_lib->hasActive('online_admission') here, assume always active for this controller
         $this->data['active_menu'] = 'online_admission';
@@ -1536,6 +1537,38 @@ class PublicAdmissionForm extends CI_Controller
             $course_meta = $this->get_selected_course_meta($courseLevel, $data);
             $insert_data_online_admission = array_merge($insert_data_online_admission, $course_meta);
 
+            // Course restriction check (server-side safety guard)
+            // Bypassed when a staff member referred the applicant via employee_id
+            $employee_id_post = (int)$this->input->post('employee_id');
+            if ($employee_id_post <= 0) {
+                $course_id_to_check = null;
+                if ($courseLevel == 'ug') {
+                    $course_id_to_check = $this->input->post('ug_course');
+                } elseif ($courseLevel == 'lateral') {
+                    $course_id_to_check = $this->input->post('lateral_course');
+                } elseif ($courseLevel == 'pg') {
+                    $course_id_to_check = $this->input->post('pg_course');
+                }
+                if (!empty($course_id_to_check)) {
+                    $course_check = $this->Onlineadmissioncourses_model->getById((int)$course_id_to_check);
+                    if ($course_check && !empty($course_check->is_restricted)) {
+                        $field_key = ($courseLevel == 'lateral') ? 'lateral_course' : (($courseLevel == 'pg') ? 'pg_course' : 'ug_course');
+                        $msg = array('status' => 'fail', 'error' => array($field_key => 'This course is filled and no vacancies currently, kindly choose other available course.'));
+                        echo json_encode($msg);
+                        return;
+                    }
+                }
+            }
+
+            // Attach tracking fields
+            $enquiry_id_post = trim((string)$this->input->post('enquiry_id'));
+            if ($enquiry_id_post !== '' && ctype_digit($enquiry_id_post)) {
+                $insert_data_online_admission['enquiry_id'] = (int)$enquiry_id_post;
+            }
+            if ($employee_id_post > 0) {
+                $insert_data_online_admission['referred_by_employee_id'] = $employee_id_post;
+            }
+
             $online_admission_id = $this->onlinestudent_model->add($insert_data_online_admission);
 
             // Update enquiry status only when a valid enquiry_id is provided
@@ -2082,6 +2115,37 @@ class PublicAdmissionForm extends CI_Controller
 
             $course_meta = $this->get_selected_course_meta($courseLevel, $data);
             $insert_data_online_admission = array_merge($insert_data_online_admission, $course_meta);
+
+            // Course restriction check (server-side safety guard)
+            // Bypassed when a staff member referred the applicant via employee_id
+            $employee_id_post = (int)($data['employee_id'] ?? 0);
+            if ($employee_id_post <= 0) {
+                $course_id_to_check = null;
+                if ($courseLevel == 'ug') {
+                    $course_id_to_check = $this->input->post('ug_course');
+                } elseif ($courseLevel == 'lateral') {
+                    $course_id_to_check = $this->input->post('lateral_course');
+                } elseif ($courseLevel == 'pg') {
+                    $course_id_to_check = $this->input->post('pg_course');
+                }
+                if (!empty($course_id_to_check)) {
+                    $course_check = $this->Onlineadmissioncourses_model->getById((int)$course_id_to_check);
+                    if ($course_check && !empty($course_check->is_restricted)) {
+                        $field_key = ($courseLevel == 'lateral') ? 'lateral_course' : (($courseLevel == 'pg') ? 'pg_course' : 'ug_course');
+                        echo json_encode(['status' => 'fail', 'error' => [$field_key => 'This course is filled and no vacancies currently, kindly choose other available course.']]);
+                        return;
+                    }
+                }
+            }
+
+            // Attach tracking fields
+            $enquiry_id_post = trim((string)($data['enquiry_id'] ?? ''));
+            if ($enquiry_id_post !== '' && ctype_digit($enquiry_id_post)) {
+                $insert_data_online_admission['enquiry_id'] = (int)$enquiry_id_post;
+            }
+            if ($employee_id_post > 0) {
+                $insert_data_online_admission['referred_by_employee_id'] = $employee_id_post;
+            }
 
             $online_admission_id = $this->onlinestudent_model->add($insert_data_online_admission);
             
