@@ -686,6 +686,27 @@ class Payroll extends Admin_Controller
             + (($first_half_absent + $second_half_absent) * $half_day_weight)
             + $weekend_lop_days;
 
+        // Special attendance override: when admin explicitly entered LOP days for this
+        // staff/month via the Special Attendance screen, that value takes precedence over
+        // the punch-derived computation.  We also recompute a synthetic present count so
+        // the zero-attendance rule in resolvePayrollLopValues() does not misfire for staff
+        // who had zero biometric records but were marked present via special attendance.
+        if ($this->db->table_exists('special_attendance_inputs')) {
+            $sa_row = $this->db->select('lop_days')
+                ->where('staff_id', (int) $staff_id)
+                ->where('month',    (int) $month_num)
+                ->where('year',     (int) $year)
+                ->limit(1)
+                ->get('special_attendance_inputs')
+                ->row_array();
+            if (!empty($sa_row)) {
+                $lop_days      = max(0, (float) $sa_row['lop_days']);
+                // synthetic present = working days minus special-LOP (floored at 0)
+                $present       = max(0, $working_days - (int) round($lop_days));
+                $total_present = (float) $present;
+            }
+        }
+
         $paid_days = $total_present;
         $od_adjusted_days = 0.0;
         $od_carry_forward_days = 0.0;
