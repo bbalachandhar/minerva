@@ -214,10 +214,12 @@ class SpecialAttendance_model extends CI_Model {
 
     private function countWeekendDaysBetween($start_date, $end_date, array $weekend_lookup, array $working_lookup)
     {
+        // Count ALL non-working days between two working days (weekends + holidays),
+        // not just Sundays, because holidays are also sandwichable.
         $count = 0;
         $cursor = date('Y-m-d', strtotime($start_date . ' +1 day'));
         while ($cursor < $end_date) {
-            if (isset($weekend_lookup[$cursor]) && !isset($working_lookup[$cursor])) {
+            if (!isset($working_lookup[$cursor])) {
                 $count++;
             }
             $cursor = date('Y-m-d', strtotime($cursor . ' +1 day'));

@@ -700,10 +700,15 @@ class Payroll extends Admin_Controller
                 ->get('special_attendance_inputs')
                 ->row_array();
             if (!empty($sa_row)) {
-                $lop_days      = max(0, (float) $sa_row['lop_days']);
-                // synthetic present = working days minus special-LOP (floored at 0)
-                $present       = max(0, $working_days - (int) round($lop_days));
-                $total_present = (float) $present;
+                $lop_days = max(0, (float) $sa_row['lop_days']);
+                // lop_days is a calendar-day value (e.g. 26.5 out of 31 for March).
+                // The synthetic 'present' only needs to be > 0 to prevent the
+                // zero-attendance rule from misfiring. Only allow 0 (full-month LOP)
+                // when lop_days equals or exceeds the total calendar days.
+                $total_month_days = (float) cal_days_in_month(CAL_GREGORIAN, (int) $month_num, (int) $year);
+                $paid_cal_present = max(0.0, $total_month_days - $lop_days);
+                $present          = ($paid_cal_present > 0.0) ? 1 : 0;
+                $total_present    = $paid_cal_present;
             }
         }
 
@@ -2067,8 +2072,9 @@ class Payroll extends Admin_Controller
         }
 
         // Keep net salary aligned with current calculated statutory values.
+        // Subtract LOP deduction from gross before applying other deductions.
         $net_salary = $this->roundPayrollAmount(
-            (float) $gross_salary - ((float) $total_deduction + (float) $employee_epf + (float) $employee_esi + (float) $tax)
+            (float) $gross_salary - (float) $lop_deduction - ((float) $total_deduction + (float) $employee_epf + (float) $employee_esi + (float) $tax)
         );
 
             $data = array(
