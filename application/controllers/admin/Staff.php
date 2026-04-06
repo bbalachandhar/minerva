@@ -211,139 +211,95 @@ class Staff extends Admin_Controller
 
         $attendencetypes             = $this->staffattendancemodel->getStaffAttendanceType();
         $data['attendencetypeslist'] = $attendencetypes;
-        $i                           = 0;
         $leaveDetail                 = array();
-        
-        // Check if staff_monthly_leave_balance table exists - use try/catch for safety
-        $use_monthly_balance = false;
-        try {
-            $result = $this->db->query("SHOW TABLES LIKE 'staff_monthly_leave_balance'");
-            $use_monthly_balance = ($result->num_rows() > 0);
-        } catch (Exception $e) {
-            $use_monthly_balance = false;
-        }
-        
-        foreach ($alloted_leavetype as $key => $value) {
-            $count_leaves[]                   = $this->leaverequest_model->countLeavesData($id, $value["leave_type_id"]);
-            
-            $leaveDetail[$i]['type']          = $value["type"];
-            $leaveDetail[$i]['alloted_leave'] = $value["alloted_leave"];
-            
-            // Get the most recent monthly balance for this leave type (only if table exists)
-            if ($use_monthly_balance) {
-                try {
-                    $monthly_balance = $this->db->select('opening_balance, used_for_lop_adjustment, used_for_leave_application, closing_balance, year, month')
-                        ->where('staff_id', $id)
-                        ->where('leave_type_id', $value["leave_type_id"])
-                        ->order_by('year', 'DESC')
-                        ->order_by('month', 'DESC')
-                        ->limit(1)
-                        ->get('staff_monthly_leave_balance')
-                        ->row_array();
-                    
-                    // If monthly balance exists, show cumulative used and current closing balance
-                    $credit_source_type_id = isset($value['credit_source_type_id']) ? (int)$value['credit_source_type_id'] : 0;
-                    $is_credit_consumer    = $credit_source_type_id > 0;
-                    $is_credit_earner      = isset($value['requires_balance_check']) && (int)$value['requires_balance_check'] === 0 && !$is_credit_consumer;
 
-                    if (!empty($monthly_balance)) {
-                        $opening_balance   = (float)($monthly_balance['opening_balance'] ?? 0);
-                        $earned_in_month   = (float)($monthly_balance['earned_in_month'] ?? 0);
-                        $used_lop          = (float)($monthly_balance['used_for_lop_adjustment'] ?? 0);
-                        $used_leave        = (float)($monthly_balance['used_for_leave_application'] ?? 0);
-                        $closing_balance   = (float)($monthly_balance['closing_balance'] ?? 0);
+        $leave_rows = $this->db->query(" 
+            SELECT
+                lt.id AS leave_type_id,
+                lt.type,
+                sld.id AS staff_leave_detail_id,
+                COALESCE(smlb.closing_balance, sld.alloted_leave, 0) AS base_balance,
+                COALESCE(smlb.used_for_lop_adjustment, 0) AS used_for_lop_adjustment,
+                COALESCE(smlb.used_for_leave_application, 0) AS used_for_leave_application,
+                smlb.year,
+                smlb.month,
+                lt.credit_source_type_id,
+                lt.requires_balance_check,
+                CASE
+                    WHEN COALESCE(lt.credit_source_type_id, 0) > 0 THEN COALESCE((
+                        SELECT SUM(r.leave_days)
+                        FROM staff_leave_request r
+                        WHERE r.staff_id = ?
+                          AND r.leave_type_id = lt.id
+                          AND r.leave_direction = 'credit'
+                          AND r.status IN ('approve', 'approved')
+                          AND (
+                                smlb.id IS NULL
+                                OR r.leave_from > LAST_DAY(STR_TO_DATE(CONCAT(smlb.year, '-', LPAD(smlb.month, 2, '0'), '-01'), '%Y-%m-%d'))
+                              )
+                    ), 0)
+                    ELSE 0
+                END AS extra_credit,
+                CASE
+                    WHEN COALESCE(lt.credit_source_type_id, 0) > 0 THEN COALESCE((
+                        SELECT SUM(r.leave_days)
+                        FROM staff_leave_request r
+                        WHERE r.staff_id = ?
+                          AND r.leave_type_id = lt.id
+                          AND r.leave_direction = 'debit'
+                          AND r.status IN ('approve', 'approved')
+                          AND (
+                                smlb.id IS NULL
+                                OR r.leave_from > LAST_DAY(STR_TO_DATE(CONCAT(smlb.year, '-', LPAD(smlb.month, 2, '0'), '-01'), '%Y-%m-%d'))
+                              )
+                    ), 0)
+                    ELSE 0
+                END AS extra_debit
+            FROM leave_types lt
+            LEFT JOIN staff_leave_details sld
+                ON sld.staff_id = ?
+               AND sld.leave_type_id = lt.id
+            LEFT JOIN staff_monthly_leave_balance smlb
+                ON smlb.id = (
+                    SELECT b.id
+                    FROM staff_monthly_leave_balance b
+                    WHERE b.staff_id = ?
+                      AND b.leave_type_id = lt.id
+                    ORDER BY b.year DESC, b.month DESC, b.id DESC
+                    LIMIT 1
+                )
+            WHERE lt.is_active = 'yes'
+            ORDER BY lt.type ASC
+        ", array($id, $id, $id, $id))->result_array();
 
-                        if ($is_credit_consumer) {
-                            // CPL: closing_balance is the last payroll-processed state.
-                            // Add any credits/debits approved after that balance period
-                            // (not yet picked up by payroll).
-                            $bal_month  = (int)($monthly_balance['month'] ?? 0);
-                            $bal_year   = (int)($monthly_balance['year'] ?? 0);
-                            $since_date = date('Y-m-t', mktime(0, 0, 0, $bal_month, 1, $bal_year));
+        foreach ($leave_rows as $row) {
+            $leave_type_id    = (int) ($row['leave_type_id'] ?? 0);
+            $display_balance  = (float) ($row['base_balance'] ?? 0);
+            $approve_leave    = 0.0;
 
-                            $extra_credits = (float)($this->db
-                                ->select('SUM(leave_days) as total', false)
-                                ->where('staff_id', $id)
-                                ->where('leave_type_id', $value['leave_type_id'])
-                                ->where('leave_direction', 'credit')
-                                ->where_in('status', ['approve', 'approved'])
-                                ->where('leave_from >', $since_date)
-                                ->get('staff_leave_request')
-                                ->row_array()['total'] ?? 0);
-
-                            $extra_used = (float)($this->db
-                                ->select('SUM(leave_days) as total', false)
-                                ->where('staff_id', $id)
-                                ->where('leave_type_id', $value['leave_type_id'])
-                                ->where('leave_direction', 'debit')
-                                ->where_in('status', ['approve', 'approved'])
-                                ->where('leave_from >', $since_date)
-                                ->get('staff_leave_request')
-                                ->row_array()['total'] ?? 0);
-
-                            $leaveDetail[$i]['alloted_leave'] = $closing_balance + $extra_credits;
-                            $leaveDetail[$i]['approve_leave'] = $used_lop + $used_leave + $extra_used;
-                            $leaveDetail[$i]['available']     = ($closing_balance + $extra_credits) - ($used_lop + $used_leave + $extra_used);
-                        } elseif ($is_credit_earner) {
-                            // alloted_leave = total accumulated pool (closing balance)
-                            // approve_leave = how much already consumed from pool by LOP/leave
-                            // available     = what's left in pool
-                            $leaveDetail[$i]['alloted_leave']   = $closing_balance;
-                            $leaveDetail[$i]['approve_leave']   = $used_lop + $used_leave;
-                            $leaveDetail[$i]['available']       = $closing_balance - $used_lop - $used_leave;
-                            $leaveDetail[$i]['earned_in_month'] = $earned_in_month; // extra info for view
-                        } else {
-                            $leaveDetail[$i]['alloted_leave'] = $opening_balance;
-                            $leaveDetail[$i]['approve_leave'] = $used_lop + $used_leave;
-                            $leaveDetail[$i]['available']     = $closing_balance;
-                        }
-                    } else {
-                        // No monthly balance row yet — use leave application counts
-                        if ($is_credit_consumer) {
-                            // No monthly balance yet: base from staff_leave_details + all CPL credits earned
-                            $base_alloted = (float)($value['alloted_leave'] ?? 0);
-
-                            $all_credits = (float)($this->db
-                                ->select('SUM(leave_days) as total', false)
-                                ->where('staff_id', $id)
-                                ->where('leave_type_id', $value['leave_type_id'])
-                                ->where('leave_direction', 'credit')
-                                ->where_in('status', ['approve', 'approved'])
-                                ->get('staff_leave_request')
-                                ->row_array()['total'] ?? 0);
-
-                            $all_used = (float)($this->db
-                                ->select('SUM(leave_days) as total', false)
-                                ->where('staff_id', $id)
-                                ->where('leave_type_id', $value['leave_type_id'])
-                                ->where('leave_direction', 'debit')
-                                ->where_in('status', ['approve', 'approved'])
-                                ->get('staff_leave_request')
-                                ->row_array()['total'] ?? 0);
-
-                            $leaveDetail[$i]['alloted_leave'] = $base_alloted + $all_credits;
-                            $leaveDetail[$i]['approve_leave'] = $all_used;
-                            $leaveDetail[$i]['available']     = max(0, $base_alloted + $all_credits - $all_used);
-                        } else {
-                            // No monthly balance yet, use leave applications count only
-                            $approve_leave = isset($count_leaves[$i]['approve_leave']) ? (float)$count_leaves[$i]['approve_leave'] : 0;
-                            $leaveDetail[$i]['approve_leave'] = $approve_leave;
-                            $leaveDetail[$i]['available'] = (float)$value["alloted_leave"] - $approve_leave;
-                        }
-                    }
-                } catch (Exception $e) {
-                    // If query fails, fallback to old method
-                    $approve_leave = isset($count_leaves[$i]['approve_leave']) ? (float)$count_leaves[$i]['approve_leave'] : 0;
-                    $leaveDetail[$i]['approve_leave'] = $approve_leave;
-                    $leaveDetail[$i]['available'] = (float)$value["alloted_leave"] - $approve_leave;
-                }
+            if ((int) ($row['credit_source_type_id'] ?? 0) > 0) {
+                $display_balance += (float) ($row['extra_credit'] ?? 0) - (float) ($row['extra_debit'] ?? 0);
+                $approve_leave = (float) ($row['used_for_lop_adjustment'] ?? 0)
+                    + (float) ($row['used_for_leave_application'] ?? 0)
+                    + (float) ($row['extra_debit'] ?? 0);
+            } elseif (!empty($row['year']) || !empty($row['month'])) {
+                $approve_leave = (float) ($row['used_for_lop_adjustment'] ?? 0)
+                    + (float) ($row['used_for_leave_application'] ?? 0);
             } else {
-                // Table doesn't exist, use leave applications count only
-                $approve_leave = isset($count_leaves[$i]['approve_leave']) ? (float)$count_leaves[$i]['approve_leave'] : 0;
-                $leaveDetail[$i]['approve_leave'] = $approve_leave;
-                $leaveDetail[$i]['available'] = (float)$value["alloted_leave"] - $approve_leave;
+                $count_leave_row = $this->leaverequest_model->countLeavesData($id, $leave_type_id);
+                $approve_leave = isset($count_leave_row['approve_leave']) ? (float) $count_leave_row['approve_leave'] : 0.0;
             }
-            $i++;
+
+            $leaveDetail[] = array(
+                'id'            => $leave_type_id,
+                'altid'         => isset($row['staff_leave_detail_id']) ? $row['staff_leave_detail_id'] : null,
+                'type'          => $row['type'],
+                'alloted_leave' => $display_balance,
+                'approve_leave' => $approve_leave,
+                'available'     => $display_balance,
+                'year'          => $row['year'],
+                'month'         => $row['month'],
+            );
         }
         $data["leavedetails"]  = $leaveDetail;
         $data["staff_leaves"]  = $staff_leaves;

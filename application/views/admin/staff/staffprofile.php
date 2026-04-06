@@ -1101,7 +1101,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                 <div class="col-lg-3 col-md-4 col-sm-6 col-xs-12">
                                     <div class="staffprofile" style="background: linear-gradient(135deg, #16a085, #1abc9c);">
                                         <h5>Working Days</h5>
-                                        <h4><?php echo $summary['working_days']; ?></h4>
+                                        <h4 class="total_working_days"><?php echo $summary['working_days']; ?></h4>
                                         <div class="icon mt12font40">
                                             <i class="fa fa-briefcase"></i>
                                         </div>
@@ -1110,7 +1110,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                 <div class="col-lg-3 col-md-4 col-sm-6 col-xs-12">
                                     <div class="staffprofile" style="background: linear-gradient(135deg, #34495e, #2c3e50);">
                                         <h5>Weekends</h5>
-                                        <h4><?php echo $summary['weekends']; ?></h4>
+                                        <h4 class="total_weekends"><?php echo $summary['weekends']; ?></h4>
                                         <div class="icon mt12font40">
                                             <i class="fa fa-bed"></i>
                                         </div>
@@ -1326,26 +1326,27 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                             </div>
                         <?php } ?>
                         <div class="tab-pane" id="leaves">
+                            <?php
+                            $format_leave_count = function ($value) {
+                                $formatted = number_format((float) $value, 2, '.', '');
+                                $formatted = rtrim(rtrim($formatted, '0'), '.');
+                                return $formatted === '' ? '0' : $formatted;
+                            };
+                            ?>
                             <div class="row row-flex">
                                 <?php foreach ($leavedetails as $ldkey => $ldvalue) {
                                 ?>
-                                    <?php if (!empty($ldvalue["alloted_leave"])) {
-                                    ?>
                                         <div class="col-lg-3 col-md-4 col-sm-6 col-xs-12">
                                             <div class="staffprofile">
-                                                <h5><?php echo $ldvalue["type"] . " (" . $ldvalue["alloted_leave"] . ")"; ?></h5>
+                                                <h5><?php echo $ldvalue["type"] . " (" . $format_leave_count($ldvalue["alloted_leave"]) . ")"; ?></h5>
                                                 <p><?php echo $this->lang->line('used'); ?>: <?php
-                                                                                                if (!empty($ldvalue["approve_leave"])) {
-                                                                                                    echo number_format($ldvalue["approve_leave"], 2);
-                                                                                                } else {
-                                                                                                    echo "0";
-                                                                                                }
+                                                                                                echo $format_leave_count(isset($ldvalue["approve_leave"]) ? $ldvalue["approve_leave"] : 0);
                                                                                                 ?></p>
                                                 <p><?php echo $this->lang->line('available'); ?>: <?php 
                                                     if (isset($ldvalue["available"])) {
-                                                        echo number_format($ldvalue["available"], 2);
+                                                        echo $format_leave_count($ldvalue["available"]);
                                                     } else {
-                                                        echo number_format($ldvalue["alloted_leave"] - $ldvalue["approve_leave"], 2);
+                                                        echo $format_leave_count($ldvalue["alloted_leave"] - $ldvalue["approve_leave"]);
                                                     }
                                                 ?></p>
                                                 <div class="icon">
@@ -1353,9 +1354,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                                 </div>
                                             </div>
                                         </div><!--./col-md-3-->
-                                <?php
-                                    }
-                                }
+                                <?php }
                                 ?>
                             </div>
                             <div class="timeline-header no-border">
@@ -1952,6 +1951,10 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
         var days  = new Date(year, month, 0).getDate();
         var dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
+        var now = new Date();
+        var isCurrentMonth = (year === now.getFullYear() && month === (now.getMonth() + 1));
+        var cutoffDay = isCurrentMonth ? now.getDate() : days;
+
         // Debug: log data availability
         console.log('[MonthView] year='+year+' month='+month+' days='+days);
         console.log('[MonthView] staffAttData=', window.staffAttData);
@@ -1978,15 +1981,40 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
             'FHA' : 'First Half Absent',
         };
 
+        var summary = {
+            present: 0,
+            absent: 0,
+            late: 0,
+            permission: 0,
+            half_day: 0,
+            holidays: 0,
+            working_days: 0,
+            weekends: 0
+        };
+
+        function isPresentLike(code) {
+            return code === 'P' || code === 'FHL' || code === 'SHL' || code === 'FHP' || code === 'SHP';
+        }
+
+        function isHalfDayLike(code) {
+            return code === 'HD' || code === 'FHA' || code === 'SHA';
+        }
+
+        function formatSummaryCount(value) {
+            return (value % 1 === 0) ? String(parseInt(value, 10)) : value.toFixed(1);
+        }
+
         var rows = '';
         for (var d = 1; d <= days; d++) {
             var dateStr = year + '-' + String(month).padStart(2,'0') + '-' + String(d).padStart(2,'0');
             var dayName = dayNames[new Date(dateStr).getDay()];
             var keyCode = '', labelClass = 'label-default', fullLabel = '', qualifier = '', inTime = '-', outTime = '-';
+            var isHolidayDate = (window.staffHolidayDates && window.staffHolidayDates.indexOf(dateStr) !== -1);
+            var isWeekendDate = (window.staffWeekendDates && window.staffWeekendDates.indexOf(dateStr) !== -1);
 
-            if (window.staffHolidayDates && window.staffHolidayDates.indexOf(dateStr) !== -1) {
+            if (isHolidayDate) {
                 keyCode = 'H'; fullLabel = 'Holiday'; labelClass = 'label-info';
-            } else if (window.staffWeekendDates && window.staffWeekendDates.indexOf(dateStr) !== -1) {
+            } else if (isWeekendDate) {
                 keyCode = 'W'; fullLabel = 'Weekend'; labelClass = 'label-default';
             } else if (window.staffAttData && window.staffAttData[dateStr]) {
                 var rec = window.staffAttData[dateStr];
@@ -2005,6 +2033,31 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                 }
                 if (rec.in_time)  inTime  = rec.in_time;
                 if (rec.out_time) outTime = rec.out_time;
+            }
+
+            if (d <= cutoffDay) {
+                var isCountableHoliday = isHolidayDate && !isWeekendDate;
+                if (isCountableHoliday) {
+                    summary.holidays++;
+                } else if (isWeekendDate) {
+                    summary.weekends++;
+                } else {
+                    summary.working_days++;
+                    if (isHalfDayLike(keyCode)) {
+                        summary.half_day++;
+                    } else if (isPresentLike(keyCode)) {
+                        summary.present++;
+                    } else if (keyCode === 'A') {
+                        summary.absent++;
+                    }
+
+                    if (keyCode === 'FHL' || keyCode === 'SHL') {
+                        summary.late++;
+                    }
+                    if (keyCode === 'FHP' || keyCode === 'SHP') {
+                        summary.permission++;
+                    }
+                }
             }
 
             var statusCell = '';
@@ -2032,6 +2085,18 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                   + '</tr>';
         }
         $('#monthattendancebody').html(rows);
+
+        var totalPresent = summary.present + (summary.half_day * 0.5);
+        var totalAbsent  = summary.absent + (summary.half_day * 0.5);
+
+        $('.total_present').text(formatSummaryCount(totalPresent));
+        $('.total_absent').text(formatSummaryCount(totalAbsent));
+        $('.total_late').text(formatSummaryCount(summary.late));
+        $('.total_permission').text(formatSummaryCount(summary.permission));
+        $('.total_half_day').text(formatSummaryCount(summary.half_day));
+        $('.total_holiday').text(formatSummaryCount(summary.holidays));
+        $('.total_working_days').text(formatSummaryCount(summary.working_days));
+        $('.total_weekends').text(formatSummaryCount(summary.weekends));
     }
 
     function ajax_attendance(id, year) {
@@ -2058,8 +2123,8 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                 if (result.comp_dates)  window.staffCompDates    = result.comp_dates;
                 // Re-init tooltips on newly loaded content
                 $('#ajaxattendance [data-toggle="tooltip"]').tooltip({container:'body'});
-                // Re-render month view if active
-                if ($('#monthattendance').is(':visible')) renderMonthView();
+                // Keep summary cards synced with selected month/year
+                renderMonthView();
                 $('.modal_inner_loader').fadeOut("slow");
             },
             error: function(xhr) {
