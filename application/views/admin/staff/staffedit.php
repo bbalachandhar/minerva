@@ -598,9 +598,7 @@ if ($staff["date_of_leaving"]) {
                                             <div class="tshadow mb25 bozero">
                                                 <h4 class="pagetitleh2"><?php echo $this->lang->line('leaves'); ?>
                                                 </h4>
-                                                <?php if (empty($can_edit_leave_section)) { ?>
-                                                    <p class="text-muted" style="margin: 0 10px 10px;">Only Admin and Super Admin can edit this section.</p>
-                                                <?php } ?>
+                                                <p class="text-muted" style="margin: 0 10px 10px;">Read-only. Update leave balances from Update Leave Balance module.</p>
 
                                                 <div class="row around10" >
                                                     <?php
@@ -612,7 +610,7 @@ $j = 0;
                                                         <div class="col-md-4">
                                                             <div class="form-group">
                                                                 <label for="exampleInputEmail1"><?php echo $leave["type"]; ?></label>
-                                                                <input id="ifsc_code" name="alloted_leave[]" placeholder="<?php echo $this->lang->line('number_of_leaves'); ?>" type="text" class="form-control" <?php echo empty($can_edit_leave_section) ? 'readonly' : ''; ?> value="<?php
+                                                                <input id="ifsc_code" name="alloted_leave[]" placeholder="<?php echo $this->lang->line('number_of_leaves'); ?>" type="text" class="form-control" readonly value="<?php
 if (array_key_exists($j, $staffLeaveDetails)) {
             echo $staffLeaveDetails[$j]["alloted_leave"];
         }

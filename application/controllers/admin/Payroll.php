@@ -424,6 +424,18 @@ class Payroll extends Admin_Controller
 
         $is_full_month_lop = ($total_days_of_month > 0 && $actual_lop_days >= (float) $total_days_of_month);
 
+        // Zero-attendance rule: if no effective present days (P* = 0), force full-month LOP
+        // for all calendar days. Leave balances must not offset LOP when staff had zero
+        // physical attendance in the month — actual_lop = total_days, adjusted = 0.
+        if (!$is_full_month_lop && !empty($lop_summary)) {
+            $effective_present = (int) ($lop_summary['present'] ?? 0) + (int) ($lop_summary['half_day'] ?? 0);
+            if ($effective_present === 0) {
+                $is_full_month_lop = true;
+                $actual_lop_days   = (float) $total_days_of_month;
+                $net_lop_days      = (float) $total_days_of_month;
+            }
+        }
+
         if (!$is_full_month_lop && ($persist_adjustment || $actual_lop_days > 0)) {
             $adjusted_result = $persist_adjustment
                 ? $this->payroll_model->processLOPWithMonthlyBalance((int) $staff_id, $actual_lop_days, $month_num, (int) $year)
@@ -2772,8 +2784,11 @@ class Payroll extends Admin_Controller
             }
 
             $existing_status = strtolower(trim((string) ($existing_payslip['status'] ?? '')));
+            // When overwriting, only 'paid' payslips are frozen. 'generated' payslips are
+            // recomputed fresh so the zero-attendance rule (and any other recalculations) fire.
             $use_committed_lop = !empty($existing_payslip)
-                && in_array($existing_status, $this->getCommittedPayrollStatuses(), true);
+                && in_array($existing_status, $this->getCommittedPayrollStatuses(), true)
+                && !($overwrite && $existing_status === 'generated');
 
             // If overwriting and recomputing LOP, reset the monthly balance adjustments first.
             if (!empty($staff['payslip_id']) && $overwrite && !$use_committed_lop) {
@@ -2793,7 +2808,7 @@ class Payroll extends Admin_Controller
                 $month,
                 $year,
                 (array) $lop_summary,
-                $existing_payslip,
+                $use_committed_lop ? $existing_payslip : [],
                 true
             );
             $actual_lop_days = (float) ($lop_values['actual_lop_days'] ?? 0);

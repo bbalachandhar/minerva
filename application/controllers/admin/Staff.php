@@ -1861,20 +1861,9 @@ class Staff extends Admin_Controller
                 $data_update['date_of_leaving'] = null;
             }
 
+            // Leave balances must not be edited from staff profile edit screen.
+            // Use admin/update_leave_balance for controlled updates.
             $leave_array = array();
-            if ($this->canEditLeavesSection()) {
-                $leave_type_ids = $this->input->post('leave_type_id');
-                $alloted_leaves = $this->input->post('alloted_leave');
-                if (!empty($leave_type_ids)) {
-                    foreach ($leave_type_ids as $key => $leave_type_id) {
-                        $leave_array[] = array(
-                            'staff_id' => $id,
-                            'leave_type_id' => $leave_type_id,
-                            'alloted_leave' => $alloted_leaves[$key],
-                        );
-                    }
-                }
-            }
             $role_array = array('role_id' => $this->input->post('role'), 'staff_id' => $id);
 
             if (isset($_FILES["file"]) && !empty($_FILES['file']['name'])) {
