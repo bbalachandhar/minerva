@@ -11,6 +11,11 @@
                     <div class="box-header with-border">
                         <h3 class="box-title"><?php echo $this->lang->line('student_list'); ?></h3>
                         <div class="box-tools pull-right" style="display:flex;gap:8px;align-items:center;">
+                            <select id="filter_submitted_by" class="form-control input-sm" style="width:150px;">
+                                <option value="">All Submitted By</option>
+                                <option value="student">By Direct Student</option>
+                                <option value="staff">By Staff</option>
+                            </select>
                             <select id="filter_form_status" class="form-control input-sm" style="width:150px;">
                                 <option value="">All Course Fee Status</option>
                                 <option value="applied">Applied</option>
@@ -21,7 +26,7 @@
                             <select id="filter_quota" class="form-control input-sm" style="width:150px;">
                                 <option value="">All Quota</option>
                                 <option value="management">Management</option>
-                                <option value="govt">Government</option>
+                                <option value="government">Government</option>
                             </select>
                         </div><!-- /.box-tools -->
                     </div><!-- /.box-header -->
@@ -41,6 +46,7 @@
                                             <th><?php echo $this->lang->line('father_name'); ?></th>
                                         <?php }?>
                                         <th>Application Date</th>
+                                        <th><?php echo $this->lang->line('submitted_by'); ?></th>
                                         <th><?php echo $this->lang->line('gender'); ?></th>
                                         <th>Quota Type</th>
                                                                                 <th>Course Fee</th>
@@ -128,8 +134,10 @@
         var params = {};
         var quota = $('#filter_quota').val();
         var status = $('#filter_form_status').val();
+        var submittedBy = $('#filter_submitted_by').val();
         if (quota !== '') params.quota_type_filter = quota;
         if (status !== '') params.paid_status_filter = status;
+        if (submittedBy !== '') params.submitted_by_filter = submittedBy;
         initDatatable('student-list', 'admin/onlinestudent/getstudentlist', params, [], 10);
         $('.student-list').off('draw.dt').on('draw.dt', function() {
             var info = $('.student-list').DataTable().page.info();
@@ -139,7 +147,7 @@
 
     $(document).ready(function () {
         loadStudentTable();
-        $('#filter_form_status, #filter_quota').on('change', function() {
+        $('#filter_form_status, #filter_quota, #filter_submitted_by').on('change', function() {
             loadStudentTable();
         });
 
@@ -150,9 +158,11 @@
             e.stopImmediatePropagation();
             var quota  = $('#filter_quota').val();
             var status = $('#filter_form_status').val();
+            var submittedBy = $('#filter_submitted_by').val();
             var url    = '<?php echo base_url("admin/onlinestudent/export_excel"); ?>?';
             if (quota  !== '') url += 'quota_type_filter='  + encodeURIComponent(quota)  + '&';
             if (status !== '') url += 'paid_status_filter=' + encodeURIComponent(status) + '&';
+            if (submittedBy !== '') url += 'submitted_by_filter=' + encodeURIComponent(submittedBy) + '&';
             window.location.href = url;
         });
 

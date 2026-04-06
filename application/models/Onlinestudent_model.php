@@ -73,7 +73,7 @@ class Onlinestudent_model extends MY_Model
         }
     }
 
-    public function getstudentlist($carray = null, $id = null, $quota_type_filter = null, $paid_status_filter = null)
+    public function getstudentlist($carray = null, $id = null, $quota_type_filter = null, $paid_status_filter = null, $submitted_by_filter = null)
     {
         $class_section_array=$this->customlib->get_myClassSection();        
 
@@ -85,6 +85,12 @@ class Onlinestudent_model extends MY_Model
 
         if (!empty($quota_type_filter)) {
             $this->datatables->where('online_admissions.quota_type', $quota_type_filter);
+        }
+        if ($submitted_by_filter === 'student') {
+            $this->datatables->where('(online_admissions.referred_by_employee_id IS NULL OR online_admissions.referred_by_employee_id = 0)', null, false);
+        } elseif ($submitted_by_filter === 'staff') {
+            $this->datatables->where('online_admissions.referred_by_employee_id IS NOT NULL', null, false);
+            $this->datatables->where('online_admissions.referred_by_employee_id !=', 0);
         }
         if ($paid_status_filter !== null && $paid_status_filter !== false && $paid_status_filter !== '') {
             // Filter by Course Fee Status column
@@ -118,9 +124,9 @@ class Onlinestudent_model extends MY_Model
         $this->datatables
             ->select('online_admissions.vehroute_id,vehicle_routes.route_id,vehicle_routes.vehicle_id,transport_route.route_title,vehicles.vehicle_no,hostel_rooms.room_no,vehicles.driver_name,vehicles.driver_contact,hostel.id as `hostel_id`,hostel.hostel_name,room_types.id as `room_type_id`,room_types.room_type ,online_admissions.hostel_room_id,class_sections.id as class_section_id,classes.id AS `class_id`,classes.class,sections.id AS `section_id`,sections.section,online_admissions.id,online_admissions.admission_no, online_admissions.roll_no,online_admissions.admission_date,online_admissions.firstname, online_admissions.lastname,online_admissions.image,    online_admissions.mobileno,online_admissions.email,online_admissions.state,online_admissions.city , online_admissions.pincode , online_admissions.note, online_admissions.religion,online_admissions.cast, school_houses.house_name,online_admissions.dob ,online_admissions.current_address, online_admissions.previous_school,
             online_admissions.guardian_is,
-            online_admissions.permanent_address,IFNULL(online_admissions.category_id, 0) as `category_id`,IFNULL(categories.category, "") as `category`,online_admissions.adhar_no,online_admissions.samagra_id,online_admissions.bank_account_no,online_admissions.bank_name, online_admissions.ifsc_code , online_admissions.guardian_name,online_admissions.father_pic,online_admissions.height ,online_admissions.weight,online_admissions.measurement_date, online_admissions.mother_pic,online_admissions.guardian_pic, online_admissions.guardian_relation,online_admissions.guardian_phone,online_admissions.guardian_address,online_admissions.is_enroll ,online_admissions.created_at,online_admissions.document ,online_admissions.updated_at,online_admissions.father_name,online_admissions.father_phone,online_admissions.blood_group,online_admissions.school_house_id,online_admissions.father_occupation,online_admissions.mother_name,online_admissions.mother_phone,online_admissions.mother_occupation,online_admissions.guardian_occupation,online_admissions.gender,online_admissions.guardian_is,online_admissions.rte,online_admissions.guardian_email,online_admissions.reference_no,online_admissions.paid_status,online_admissions.form_status,online_admissions.submit_date,online_admissions.middlename,online_admissions.admission_course_id,online_admissions.course_level,online_admissions.admission_type,online_admissions.quota_type, COALESCE(online_admissions.course_fee_total, IF(online_admissions.quota_type = "management", online_admission_courses.mgt_fee, online_admission_courses.govt_fee)) as course_fee_total, CONCAT(staff.name, " ", staff.surname) as payment_updated_by_name, online_admissions.payment_updated_at, IFNULL(online_admission_courses.course_name, "N/A") as `course_name`')
-->orderable('online_admissions.reference_no,online_admissions.firstname,classes.class,online_admissions.father_name,online_admissions.dob,online_admissions.gender,online_admissions.quota_type,online_admissions.mobileno,online_admissions.form_status,online_admissions.paid_status,online_admissions.is_enroll,online_admissions.created_at,online_admissions.payment_updated_at,online_admission_courses.course_name,payment_updated_by_name," " ')
-->searchable('online_admissions.reference_no,online_admissions.firstname,classes.class,online_admissions.father_name,online_admissions.dob,online_admissions.gender,online_admissions.quota_type,online_admissions.mobileno,online_admission_courses.course_name,staff.name,staff.surname')
+            online_admissions.permanent_address,IFNULL(online_admissions.category_id, 0) as `category_id`,IFNULL(categories.category, "") as `category`,online_admissions.adhar_no,online_admissions.samagra_id,online_admissions.bank_account_no,online_admissions.bank_name, online_admissions.ifsc_code , online_admissions.guardian_name,online_admissions.father_pic,online_admissions.height ,online_admissions.weight,online_admissions.measurement_date, online_admissions.mother_pic,online_admissions.guardian_pic, online_admissions.guardian_relation,online_admissions.guardian_phone,online_admissions.guardian_address,online_admissions.is_enroll ,online_admissions.created_at,online_admissions.document ,online_admissions.updated_at,online_admissions.father_name,online_admissions.father_phone,online_admissions.blood_group,online_admissions.school_house_id,online_admissions.father_occupation,online_admissions.mother_name,online_admissions.mother_phone,online_admissions.mother_occupation,online_admissions.guardian_occupation,online_admissions.gender,online_admissions.guardian_is,online_admissions.rte,online_admissions.guardian_email,online_admissions.reference_no,online_admissions.paid_status,online_admissions.form_status,online_admissions.submit_date,online_admissions.middlename,online_admissions.admission_course_id,online_admissions.course_level,online_admissions.admission_type,online_admissions.quota_type, online_admissions.referred_by_employee_id, COALESCE(online_admissions.course_fee_total, IF(online_admissions.quota_type = "management", online_admission_courses.mgt_fee, online_admission_courses.govt_fee)) as course_fee_total, CONCAT(staff.name, " ", staff.surname) as payment_updated_by_name, online_admissions.payment_updated_at, IFNULL(online_admission_courses.course_name, "N/A") as `course_name`, CONCAT(submitter_staff.name, " ", submitter_staff.surname) as submitted_by_name')
+->orderable('online_admissions.reference_no,online_admissions.firstname,classes.class,online_admissions.father_name,online_admissions.created_at,submitter_staff.name,online_admissions.gender,online_admissions.quota_type,online_admissions.mobileno,online_admissions.form_status,online_admissions.paid_status,online_admissions.is_enroll,online_admissions.created_at,online_admissions.payment_updated_at,online_admission_courses.course_name,payment_updated_by_name," " ')
+->searchable('online_admissions.reference_no,online_admissions.firstname,classes.class,online_admissions.father_name,online_admissions.dob,online_admissions.gender,online_admissions.quota_type,online_admissions.mobileno,online_admission_courses.course_name,staff.name,staff.surname,submitter_staff.name,submitter_staff.surname')
            
             ->join('class_sections','class_sections.id = online_admissions.class_section_id', 'left')
             ->join('classes','class_sections.class_id = classes.id', 'left')
@@ -134,6 +140,7 @@ class Onlinestudent_model extends MY_Model
             ->join('vehicles', 'vehicles.id = vehicle_routes.vehicle_id', 'left')
             ->join('school_houses', 'school_houses.id = online_admissions.school_house_id', 'left')
             ->join('staff', 'staff.id = online_admissions.payment_updated_by', 'left')
+            ->join('staff submitter_staff', 'submitter_staff.id = online_admissions.referred_by_employee_id', 'left')
             ->join('online_admission_courses', 'online_admission_courses.id = COALESCE(online_admissions.admission_course_id, online_admissions.ug_course_id)', 'left');            
             if(!empty($class_section_array)){
                 foreach ($class_section_array as $class_sectionkey => $class_sectionvalue) {

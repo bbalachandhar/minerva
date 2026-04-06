@@ -456,9 +456,13 @@ class Onlinestudent extends Admin_Controller
             }
         }
 
-        $quota_type_filter   = $this->input->post('quota_type_filter');
-        $paid_status_filter  = $this->input->post('paid_status_filter');
-        $student_result = $this->onlinestudent_model->getstudentlist($carray, null, $quota_type_filter, $paid_status_filter);
+        $quota_type_filter    = $this->input->post('quota_type_filter');
+        if ($quota_type_filter === 'govt') {
+            $quota_type_filter = 'government';
+        }
+        $paid_status_filter   = $this->input->post('paid_status_filter');
+        $submitted_by_filter  = $this->input->post('submitted_by_filter');
+        $student_result = $this->onlinestudent_model->getstudentlist($carray, null, $quota_type_filter, $paid_status_filter, $submitted_by_filter);
 
         $m               = json_decode($student_result);
         $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
@@ -543,6 +547,12 @@ class Onlinestudent extends Admin_Controller
                 }
 
                 $row[] = $application_date;
+                $submitted_by_name = trim((string) ($value->submitted_by_name ?? ''));
+                if (!empty($value->referred_by_employee_id)) {
+                    $row[] = $submitted_by_name !== '' ? $submitted_by_name : 'Staff';
+                } else {
+                    $row[] = 'Student';
+                }
                 $row[] = $this->lang->line(strtolower($value->gender));
                 $row[] = !empty($value->quota_type) ? $value->quota_type : "N/A";
 
@@ -623,15 +633,21 @@ class Onlinestudent extends Admin_Controller
             access_denied();
         }
 
-        $quota_type_filter  = $this->input->get('quota_type_filter');
-        $paid_status_filter = $this->input->get('paid_status_filter');
-        $sch_setting        = $this->sch_setting_detail;
+        $quota_type_filter   = $this->input->get('quota_type_filter');
+        if ($quota_type_filter === 'govt') {
+            $quota_type_filter = 'government';
+        }
+        $paid_status_filter  = $this->input->get('paid_status_filter');
+        $submitted_by_filter = $this->input->get('submitted_by_filter');
+        $sch_setting         = $this->sch_setting_detail;
 
         // --- Build the base query (mirrors getstudentlist) ---
         $this->db->select(
             'oa.id, oa.reference_no, oa.firstname, oa.middlename, oa.lastname,
              oa.father_name, oa.gender, oa.mobileno, oa.email,
              oa.quota_type, oa.paid_status, oa.form_status, oa.created_at,
+             oa.referred_by_employee_id,
+             CONCAT(submitter_staff.name, " ", submitter_staff.surname) as submitted_by_name,
              COALESCE(oa.course_fee_total,
                  IF(oa.quota_type = "management", oac.mgt_fee, oac.govt_fee)
              ) AS course_fee_total,
@@ -641,9 +657,17 @@ class Onlinestudent extends Admin_Controller
         $this->db->from('online_admissions oa');
         $this->db->join('online_admission_courses oac',
             'oac.id = COALESCE(oa.admission_course_id, oa.ug_course_id)', 'left');
+        $this->db->join('staff submitter_staff', 'submitter_staff.id = oa.referred_by_employee_id', 'left');
 
         if (!empty($quota_type_filter)) {
             $this->db->where('oa.quota_type', $quota_type_filter);
+        }
+
+        if ($submitted_by_filter === 'student') {
+            $this->db->where('(oa.referred_by_employee_id IS NULL OR oa.referred_by_employee_id = 0)', null, false);
+        } elseif ($submitted_by_filter === 'staff') {
+            $this->db->where('oa.referred_by_employee_id IS NOT NULL', null, false);
+            $this->db->where('oa.referred_by_employee_id !=', 0);
         }
 
         // Course fee status filter (same logic as model)
@@ -695,6 +719,7 @@ class Onlinestudent extends Admin_Controller
             $headers[] = 'Father Name';
         }
         $headers[] = 'Application Date';
+        $headers[] = 'Submitted By';
         $headers[] = 'Gender';
         $headers[] = 'Quota Type';
         $headers[] = 'Course Fee';
@@ -757,6 +782,12 @@ class Onlinestudent extends Admin_Controller
                 $cell_data[] = $r['father_name'];
             }
             $cell_data[] = $app_date;
+            if (!empty($r['referred_by_employee_id'])) {
+                $submitted_by_name = trim((string) ($r['submitted_by_name'] ?? ''));
+                $cell_data[] = $submitted_by_name !== '' ? $submitted_by_name : 'Staff';
+            } else {
+                $cell_data[] = 'Student';
+            }
             $cell_data[] = $r['gender'];
             $cell_data[] = !empty($r['quota_type']) ? $r['quota_type'] : 'N/A';
             $cell_data[] = number_format($course_fee, 2, '.', '');
