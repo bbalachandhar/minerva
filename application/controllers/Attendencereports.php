@@ -778,8 +778,9 @@ class Attendencereports extends Admin_Controller
                     $permission_total = 0;
 
                     foreach ($rows as $row) {
-                        $in_time = $row['in_time'] ?? '';
+                        $in_time  = $row['in_time'] ?? '';
                         $out_time = $row['out_time'] ?? '';
+                        $row_date = $row['date'] ?? '';
 
                         $late_for_day = 0;
                         if (!empty($in_time)) {
@@ -790,6 +791,14 @@ class Attendencereports extends Admin_Controller
                             }
                         }
                         $late_total += $late_for_day;
+
+                        // Do not count a permission on a day that is already recorded as HD
+                        // (half-day leave). The HD status fully accounts for that day's partial
+                        // absence; counting it as a permission too would double-report it.
+                        $day_result_key = strtoupper(trim($date_result[$row_date][$staff_id]['key'] ?? ''));
+                        if ($day_result_key === 'HD') {
+                            continue;
+                        }
 
                         if (!empty($in_time) && !empty($settings['FHP']) && $this->timeInRange($in_time, $settings['FHP']->entry_time_from, $settings['FHP']->entry_time_to)) {
                             $permission_total += 1;
