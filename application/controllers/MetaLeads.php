@@ -33,6 +33,55 @@ class MetaLeads extends CI_Controller
         $this->load->database();
         $this->load->model('enquiry_model');
         $this->load->model('setting_model');
+        $this->_ensure_log_table();
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    //  Auto-create the webhook event log table if it doesn't exist yet.
+    // ─────────────────────────────────────────────────────────────────────
+    private function _ensure_log_table()
+    {
+        $this->db->query("CREATE TABLE IF NOT EXISTS `meta_webhook_events` (
+            `id`               INT(11)      NOT NULL AUTO_INCREMENT,
+            `received_at`      DATETIME     NOT NULL,
+            `source_ip`        VARCHAR(45)  DEFAULT NULL,
+            `signature_status` ENUM('ok','fail','skipped') NOT NULL DEFAULT 'skipped',
+            `leadgen_id`       VARCHAR(64)  DEFAULT NULL,
+            `page_id`          VARCHAR(64)  DEFAULT NULL,
+            `form_id`          VARCHAR(64)  DEFAULT NULL,
+            `outcome`          VARCHAR(50)  NOT NULL DEFAULT 'pending',
+            `enquiry_id`       INT(11)      DEFAULT NULL,
+            `note`             VARCHAR(500) DEFAULT NULL,
+            PRIMARY KEY (`id`),
+            KEY `idx_received_at` (`received_at`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    //  Insert a skeleton log row at the very start of every POST hit.
+    //  Returns the inserted row id (0 on failure).
+    // ─────────────────────────────────────────────────────────────────────
+    private function _log_webhook_start()
+    {
+        $ip = $_SERVER['HTTP_X_FORWARDED_FOR'] ?? ($_SERVER['REMOTE_ADDR'] ?? '');
+        $ip = trim(explode(',', $ip)[0]);  // first IP if comma-list
+        $this->db->insert('meta_webhook_events', [
+            'received_at'      => date('Y-m-d H:i:s'),
+            'source_ip'        => substr($ip, 0, 45),
+            'signature_status' => 'skipped',
+            'outcome'          => 'pending',
+        ]);
+        return (int) $this->db->insert_id();
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    //  Update log row with final status information.
+    // ─────────────────────────────────────────────────────────────────────
+    private function _log_webhook_update($log_id, array $fields)
+    {
+        if ($log_id > 0) {
+            $this->db->where('id', $log_id)->update('meta_webhook_events', $fields);
+        }
     }
 
     // ─────────────────────────────────────────────────────────────────────
@@ -98,16 +147,27 @@ class MetaLeads extends CI_Controller
     {
         $raw_body = file_get_contents('php://input');
 
+        // ── Log the raw incoming hit immediately ──────────────────────────
+        $log_id = $this->_log_webhook_start();
+
         // ── 1. Verify HMAC signature ──────────────────────────────────────
-        if (!$this->_verify_signature($raw_body)) {
+        $sig_header   = $_SERVER['HTTP_X_HUB_SIGNATURE_256'] ?? '';
+        $sig_verified = $this->_verify_signature($raw_body);
+        $sig_status   = ($sig_header === '') ? 'skipped' : ($sig_verified ? 'ok' : 'fail');
+
+        if (!$sig_verified) {
             log_message('error', '[MetaLeads] HMAC signature verification failed. Possible spoofed POST.');
+            $this->_log_webhook_update($log_id, ['signature_status' => $sig_status, 'outcome' => 'hmac_fail', 'note' => 'Signature mismatch']);
             $this->output->set_status_header(200)->set_output('EVENT_RECEIVED'); // always 200 to Meta
             return;
         }
 
+        $this->_log_webhook_update($log_id, ['signature_status' => $sig_status]);
+
         $setting = $this->setting_model->getSetting();
         $enabled = (int) ($setting->meta_leads_enabled ?? 0);
         if ($enabled !== 1) {
+            $this->_log_webhook_update($log_id, ['outcome' => 'disabled', 'note' => 'meta_leads_enabled != 1']);
             $this->output->set_status_header(200)->set_output('EVENT_RECEIVED');
             return;
         }
@@ -115,12 +175,14 @@ class MetaLeads extends CI_Controller
         $payload = json_decode($raw_body, true);
         if (!is_array($payload)) {
             log_message('error', '[MetaLeads] Invalid JSON payload.');
+            $this->_log_webhook_update($log_id, ['outcome' => 'parse_fail', 'note' => 'Invalid JSON body']);
             $this->output->set_status_header(200)->set_output('EVENT_RECEIVED');
             return;
         }
 
         // ── 2. Walk through all entries & changes ─────────────────────────
         $entries = $payload['entry'] ?? [];
+        $processed = 0;
         foreach ($entries as $entry) {
             $changes = $entry['changes'] ?? [];
             foreach ($changes as $change) {
@@ -137,9 +199,27 @@ class MetaLeads extends CI_Controller
                     continue;
                 }
 
+                // Update log with lead identifiers before processing
+                $this->_log_webhook_update($log_id, [
+                    'leadgen_id' => substr($leadgen_id, 0, 64),
+                    'page_id'    => substr($page_id, 0, 64),
+                    'form_id'    => substr($form_id, 0, 64),
+                ]);
+
                 log_message('info', "[MetaLeads] New lead event: leadgen_id={$leadgen_id}, form_id={$form_id}, page_id={$page_id}");
-                $this->_process_lead($leadgen_id, $form_id, $page_id, $ad_id, $setting);
+                list($outcome, $enquiry_id, $note) = $this->_process_lead($leadgen_id, $form_id, $page_id, $ad_id, $setting);
+
+                $this->_log_webhook_update($log_id, [
+                    'outcome'    => $outcome,
+                    'enquiry_id' => $enquiry_id,
+                    'note'       => substr($note, 0, 500),
+                ]);
+                $processed++;
             }
+        }
+
+        if ($processed === 0) {
+            $this->_log_webhook_update($log_id, ['outcome' => 'no_leadgen_field', 'note' => 'No leadgen changes in payload']);
         }
 
         // Meta requires a 200 response within 20 seconds.
@@ -147,7 +227,8 @@ class MetaLeads extends CI_Controller
     }
 
     // ─────────────────────────────────────────────────────────────────────
-    //  Fetch lead data from Graph API and insert enquiry record
+    //  Fetch lead data from Graph API and insert enquiry record.
+    //  Returns [ $outcome_string, $enquiry_id|null, $note_string ]
     // ─────────────────────────────────────────────────────────────────────
     private function _process_lead($leadgen_id, $form_id, $page_id, $ad_id, $setting)
     {
@@ -156,7 +237,7 @@ class MetaLeads extends CI_Controller
 
         if ($access_token === '') {
             log_message('error', '[MetaLeads] Page access token not configured.');
-            return;
+            return ['no_access_token', null, 'Page access token not configured'];
         }
 
         // ── Fetch full lead from Graph API ────────────────────────────────
@@ -167,8 +248,9 @@ class MetaLeads extends CI_Controller
         $lead_data = $this->_graph_get($graph_url);
 
         if (empty($lead_data) || !isset($lead_data['field_data'])) {
+            $api_err = isset($lead_data['error']['message']) ? $lead_data['error']['message'] : 'no field_data';
             log_message('error', "[MetaLeads] Could not fetch lead data for leadgen_id={$leadgen_id}. Response: " . json_encode($lead_data));
-            return;
+            return ['graph_api_error', null, 'Graph API error: ' . substr($api_err, 0, 200)];
         }
 
         // ── Map Meta field_data array → flat key/value ────────────────────
@@ -190,7 +272,7 @@ class MetaLeads extends CI_Controller
 
         if ($name === '' || $mobile === '') {
             log_message('error', "[MetaLeads] leadgen_id={$leadgen_id} missing name or mobile. fields=" . json_encode($fields));
-            return;
+            return ['missing_name_mobile', null, 'Lead has no name or mobile. keys=' . implode(',', array_keys($fields))];
         }
 
         // ── Look up the meta vendor row ───────────────────────────────────
@@ -282,12 +364,17 @@ class MetaLeads extends CI_Controller
         $this->db->insert('enquiry', $enquiry_data);
         $new_id = (int) $this->db->insert_id();
 
+        if ($new_id === 0) {
+            return ['db_insert_fail', null, 'INSERT failed: ' . $this->db->error()['message']];
+        }
+
         // Update last_used_at on meta vendor
         if ($vendor_id) {
             $this->db->where('id', $vendor_id)->update('lead_api_vendors', ['last_used_at' => date('Y-m-d H:i:s')]);
         }
 
         log_message('info', "[MetaLeads] Enquiry created id={$new_id} ref={$ref_no} for leadgen_id={$leadgen_id}");
+        return ['created', $new_id, "ref={$ref_no} name={$name}"];
     }
 
     // ─────────────────────────────────────────────────────────────────────

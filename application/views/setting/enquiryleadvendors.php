@@ -214,6 +214,121 @@
                 </div>
                 <!-- / Meta Lead Ads -->
 
+                <!-- ═══════════════════════════════════════════════════════ -->
+                <!--  Meta Integration Diagnostics                           -->
+                <!-- ═══════════════════════════════════════════════════════ -->
+                <div class="box box-info" id="metaDiagnosticsBox" style="margin-top:24px;">
+                    <div class="box-header with-border">
+                        <h3 class="box-title"><i class="fa fa-stethoscope"></i> Meta Integration Diagnostics</h3>
+                        <div class="box-tools pull-right">
+                            <button type="button" class="btn btn-box-tool" data-widget="collapse">
+                                <i class="fa fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="box-body" style="display:none;">
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="well well-sm">
+                                    <strong>Step 1 — Check Integration Status</strong>
+                                    <p class="text-muted" style="margin:6px 0 10px;">Verifies your Page Access Token and whether the page is subscribed to <code>leadgen</code> webhooks.</p>
+                                    <button type="button" class="btn btn-info btn-sm" id="btnCheckMetaStatus">
+                                        <i class="fa fa-search"></i> Check Status
+                                    </button>
+                                    <div id="metaStatusResult" style="margin-top:14px; display:none;"></div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="well well-sm">
+                                    <strong>Step 2 — Subscribe Page to Webhook</strong>
+                                    <p class="text-muted" style="margin:6px 0 10px;">
+                                        Click to call <code>POST /{page_id}/subscribed_apps?subscribed_fields=leadgen</code> using your stored Page Access Token.
+                                        This is required before Meta will send lead events to your webhook URL.
+                                    </p>
+                                    <button type="button" class="btn btn-warning btn-sm" id="btnSubscribeMetaPage">
+                                        <i class="fa fa-link"></i> Subscribe Page to leadgen Webhooks
+                                    </button>
+                                    <div id="metaSubscribeResult" style="margin-top:14px; display:none;"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ── Token Renewal Instructions ─────────────────────────────── -->
+                        <div class="panel panel-default" style="margin-top:18px;">
+                            <div class="panel-heading" style="cursor:pointer;" data-toggle="collapse" data-target="#tokenRenewalBody">
+                                <strong><i class="fa fa-key"></i> How to renew your Page Access Token</strong>
+                                <span class="pull-right text-muted" style="font-size:12px;">
+                                    Needed when you see <em>"Session has expired"</em> or <em>"Invalid OAuth access token"</em>
+                                    <i class="fa fa-chevron-down" style="margin-left:6px;"></i>
+                                </span>
+                            </div>
+                            <div id="tokenRenewalBody" class="panel-collapse collapse">
+                                <div class="panel-body" style="font-size:13px; line-height:1.9;">
+
+                                    <div class="alert alert-warning" style="padding:8px 12px; font-size:12px; margin-bottom:14px;">
+                                        <i class="fa fa-exclamation-triangle"></i>
+                                        <strong>Why tokens expire:</strong> Tokens obtained directly from Graph API Explorer are short-lived (~2 hours) or 60-day user tokens.
+                                        You need a <strong>Page Access Token derived from a long-lived user token</strong> — this type <em>never expires</em> as long as the user does not revoke app access.
+                                    </div>
+
+                                    <ol style="padding-left:18px; margin:0;">
+                                        <li style="margin-bottom:10px;">
+                                            <strong>Get a short-lived user token</strong><br>
+                                            Open <a href="https://developers.facebook.com/tools/explorer/" target="_blank">Graph API Explorer <i class="fa fa-external-link"></i></a>,
+                                            select your app, click <strong>Generate Access Token</strong>.<br>
+                                            Required permissions: <code>pages_manage_metadata</code>, <code>pages_read_engagement</code>, <code>leads_retrieval</code>.
+                                        </li>
+                                        <li style="margin-bottom:10px;">
+                                            <strong>Exchange for a long-lived user token</strong><br>
+                                            Open a new browser tab and go to:
+                                            <div class="well well-sm" style="margin:6px 0; font-size:12px; word-break:break-all; background:#f9f9f9;">
+                                                https://graph.facebook.com/v19.0/oauth/access_token<br>
+                                                &nbsp;&nbsp;?grant_type=fb_exchange_token<br>
+                                                &nbsp;&nbsp;&amp;client_id=<strong>YOUR_APP_ID</strong><br>
+                                                &nbsp;&nbsp;&amp;client_secret=<strong><?php echo htmlspecialchars($setting->meta_app_secret ?? 'YOUR_APP_SECRET', ENT_QUOTES); ?></strong><br>
+                                                &nbsp;&nbsp;&amp;fb_exchange_token=<strong>SHORT_LIVED_TOKEN_FROM_STEP_1</strong>
+                                            </div>
+                                            Copy the <code>access_token</code> from the JSON response. This is your 60-day user token.
+                                        </li>
+                                        <li style="margin-bottom:10px;">
+                                            <strong>Get the permanent Page Access Token</strong><br>
+                                            Call:
+                                            <div class="well well-sm" style="margin:6px 0; font-size:12px; word-break:break-all; background:#f9f9f9;">
+                                                https://graph.facebook.com/v19.0/me/accounts<br>
+                                                &nbsp;&nbsp;?access_token=<strong>LONG_LIVED_USER_TOKEN_FROM_STEP_2</strong>
+                                            </div>
+                                            Find your page in the <code>data</code> array. Copy its <code>access_token</code> field.
+                                            This page token <strong>does not expire</strong> unless you deauthorise the app.
+                                        </li>
+                                        <li style="margin-bottom:10px;">
+                                            <strong>Paste the new token here</strong><br>
+                                            Scroll up to <em>Meta Lead Ads Integration</em>, paste into <strong>Page Access Token</strong>, and click <strong>Save Meta Settings</strong>.
+                                        </li>
+                                        <li>
+                                            <strong>Re-subscribe the page</strong><br>
+                                            Come back here and click <strong>Subscribe Page to leadgen Webhooks</strong> — the subscription may lapse when a token expires.
+                                            Then click <strong>Check Status</strong> to confirm everything is green.
+                                        </li>
+                                    </ol>
+
+                                </div>
+                            </div>
+                        </div>
+                        <!-- ── /Token Renewal Instructions ─────────────────────────────── -->
+
+                        <div style="margin-top:10px;">
+                            <strong>Recent Webhook Events</strong>
+                            <button type="button" class="btn btn-default btn-xs" id="btnLoadMetaEvents" style="margin-left:10px;">
+                                <i class="fa fa-refresh"></i> Load / Refresh
+                            </button>
+                            <div id="metaEventsTable" style="margin-top:10px;"></div>
+                        </div>
+
+                    </div>
+                </div>
+                <!-- / Meta Integration Diagnostics -->
+
             </div>
         </div>
     </section>
@@ -546,5 +661,117 @@
             complete : function() { $btn.prop('disabled', false).html('<i class="fa fa-save"></i> Save Meta Settings'); }
         });
     });
+})(jQuery);
+
+/* ── Meta Diagnostics section ───────────────────────────────────────────── */
+(function($) {
+    'use strict';
+
+    var checkUrl     = '<?php echo site_url('schsettings/ajax_check_meta_page_status'); ?>';
+    var subscribeUrl = '<?php echo site_url('schsettings/ajax_subscribe_meta_page'); ?>';
+    var eventsUrl    = '<?php echo site_url('schsettings/ajax_get_meta_events'); ?>';
+
+    // ── Check Status ──────────────────────────────────────────────────────
+    $('#btnCheckMetaStatus').on('click', function() {
+        var $btn = $(this).prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Checking...');
+        $('#metaStatusResult').hide();
+        $.getJSON(checkUrl, function(r) {
+            var html = '';
+            if (!r || r.status !== 'success') {
+                html = '<div class="alert alert-danger">' + (r ? r.message : 'Request failed') + '</div>';
+            } else {
+                var d = r.data;
+                var tokenBadge = d.token_valid
+                    ? '<span class="label label-success"><i class="fa fa-check"></i> Token Valid</span>'
+                    : '<span class="label label-danger"><i class="fa fa-times"></i> Token Invalid</span>';
+                var subBadge = d.subscribed
+                    ? '<span class="label label-success"><i class="fa fa-check"></i> Page Subscribed to leadgen</span>'
+                    : '<span class="label label-warning"><i class="fa fa-warning"></i> Page NOT subscribed to leadgen</span>';
+                html += '<p>' + tokenBadge + (d.token_error ? ' &mdash; ' + $('<span>').text(d.token_error).html() : '') + '</p>';
+                html += '<p>' + subBadge   + (d.sub_error   ? ' &mdash; ' + $('<span>').text(d.sub_error).html()   : '') + '</p>';
+                if (!d.subscribed) {
+                    html += '<div class="alert alert-warning" style="padding:8px 12px; font-size:12px;">'
+                        + '<strong>Action required:</strong> Use the <em>Subscribe Page</em> button on the right to register your page for <code>leadgen</code> events. '
+                        + 'Without this, Meta verifies your webhook URL but never sends lead data.'
+                        + '</div>';
+                }
+                if (d.last_event) {
+                    var ev = d.last_event;
+                    html += '<p class="text-muted" style="font-size:12px; margin-top:6px;">'
+                        + '<i class="fa fa-history"></i> Last webhook hit: <strong>' + $('<span>').text(ev.received_at).html() + '</strong>'
+                        + ' &mdash; outcome: <code>' + $('<span>').text(ev.outcome).html() + '</code>'
+                        + (ev.note ? ' &mdash; ' + $('<span>').text(ev.note).html() : '')
+                        + '</p>';
+                } else {
+                    html += '<p class="text-muted" style="font-size:12px; margin-top:6px;"><i class="fa fa-info-circle"></i> No webhook events recorded yet.</p>';
+                }
+            }
+            $('#metaStatusResult').html(html).show();
+        }).fail(function() {
+            $('#metaStatusResult').html('<div class="alert alert-danger">Request failed.</div>').show();
+        }).always(function() {
+            $btn.prop('disabled', false).html('<i class="fa fa-search"></i> Check Status');
+        });
+    });
+
+    // ── Subscribe Page ────────────────────────────────────────────────────
+    $('#btnSubscribeMetaPage').on('click', function() {
+        if (!confirm('This will call POST /{page_id}/subscribed_apps?subscribed_fields=leadgen using your current Page Access Token. Continue?')) { return; }
+        var $btn = $(this).prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Subscribing...');
+        $('#metaSubscribeResult').hide();
+        $.post(subscribeUrl, function(r) {
+            var cls = (r && r.status === 'success') ? 'success' : 'danger';
+            var msg = r ? r.message : 'Request failed';
+            $('#metaSubscribeResult').html('<div class="alert alert-' + cls + '">' + $('<span>').text(msg).html() + '</div>').show();
+        }, 'json').fail(function() {
+            $('#metaSubscribeResult').html('<div class="alert alert-danger">Request failed.</div>').show();
+        }).always(function() {
+            $btn.prop('disabled', false).html('<i class="fa fa-link"></i> Subscribe Page to leadgen Webhooks');
+        });
+    });
+
+    // ── Load Recent Events ────────────────────────────────────────────────
+    $('#btnLoadMetaEvents').on('click', function() {
+        var $btn = $(this).prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Loading...');
+        $.getJSON(eventsUrl, function(r) {
+            if (!r || r.status !== 'success') {
+                $('#metaEventsTable').html('<div class="alert alert-danger">' + (r ? r.message : 'Request failed') + '</div>');
+                return;
+            }
+            if (!r.rows || r.rows.length === 0) {
+                $('#metaEventsTable').html('<p class="text-muted">No webhook events recorded yet. Meta has not contacted the webhook URL.</p>');
+                return;
+            }
+            var cols = ['id','received_at','source_ip','signature_status','leadgen_id','page_id','form_id','outcome','enquiry_id','note'];
+            var html = '<div class="table-responsive"><table class="table table-condensed table-striped table-bordered" style="font-size:12px;">';
+            html += '<thead><tr>';
+            cols.forEach(function(c) { html += '<th>' + c + '</th>'; });
+            html += '</tr></thead><tbody>';
+            r.rows.forEach(function(row) {
+                html += '<tr>';
+                cols.forEach(function(c) {
+                    var val = row[c] !== null && row[c] !== undefined ? row[c] : '';
+                    var safe = $('<span>').text(String(val)).html();
+                    if (c === 'outcome') {
+                        var cls2 = safe === 'created' ? 'success' : (safe === 'pending' ? 'default' : 'danger');
+                        safe = '<span class="label label-' + cls2 + '">' + safe + '</span>';
+                    }
+                    if (c === 'signature_status') {
+                        var cls3 = safe === 'ok' ? 'success' : (safe === 'skipped' ? 'default' : 'danger');
+                        safe = '<span class="label label-' + cls3 + '">' + safe + '</span>';
+                    }
+                    html += '<td>' + safe + '</td>';
+                });
+                html += '</tr>';
+            });
+            html += '</tbody></table></div>';
+            $('#metaEventsTable').html(html);
+        }).fail(function() {
+            $('#metaEventsTable').html('<div class="alert alert-danger">Request failed.</div>');
+        }).always(function() {
+            $btn.prop('disabled', false).html('<i class="fa fa-refresh"></i> Load / Refresh');
+        });
+    });
+
 })(jQuery);
 </script>

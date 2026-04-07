@@ -2038,7 +2038,17 @@ class Schsettings extends Admin_Controller
         $data['lead_vendors'] = $this->getLeadVendors();
         $data['setting']      = $this->setting_model->getSetting();
         $data['courselist']   = $this->db->get('online_admission_courses')->result();
-        $data['webhook_url']  = base_url('metaleads/webhook');
+
+        // Build webhook URL from the actual request origin (scheme + host) so it
+        // always reflects the externally-accessible address regardless of base_url config.
+        $is_https   = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+                   || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
+        $scheme     = $is_https ? 'https' : 'http';
+        $host       = $_SERVER['HTTP_HOST'] ?? parse_url(base_url(), PHP_URL_HOST);
+        // Preserve any subfolder the app lives in (e.g. /minerva on localhost)
+        $base_parsed = parse_url(base_url());
+        $subfolder   = rtrim($base_parsed['path'] ?? '', '/');
+        $data['webhook_url'] = $scheme . '://' . $host . $subfolder . '/metaleads/webhook';
 
         $this->load->view('layout/header', $data);
         $this->load->view('setting/enquiryleadvendors', $data);
@@ -2464,6 +2474,176 @@ class Schsettings extends Admin_Controller
 
         $token = bin2hex(random_bytes(24)); // 48-character hex token
         echo json_encode(['status' => 'success', 'token' => $token]);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    //  AJAX: Check Meta page token validity + leadgen subscription status
+    //  URL: schsettings/ajax_check_meta_page_status
+    // ─────────────────────────────────────────────────────────────────────
+    public function ajax_check_meta_page_status()
+    {
+        if (!$this->rbac->hasPrivilege('general_setting', 'can_edit')) {
+            echo json_encode(['status' => 'fail', 'message' => 'Permission denied.']); return;
+        }
+
+        $this->load->model('setting_model');
+        $setting      = $this->setting_model->getSetting();
+        $access_token = trim((string) ($setting->meta_page_access_token ?? ''));
+        $page_id      = trim((string) ($setting->meta_page_id ?? ''));
+
+        $result = [
+            'token_valid'   => false,
+            'token_error'   => '',
+            'subscribed'    => false,
+            'sub_error'     => '',
+            'last_event'    => null,
+        ];
+
+        if ($access_token === '') {
+            echo json_encode(['status' => 'fail', 'message' => 'Page access token not configured.']); return;
+        }
+        if ($page_id === '') {
+            echo json_encode(['status' => 'fail', 'message' => 'Page ID not configured.']); return;
+        }
+
+        $base = 'https://graph.facebook.com/v19.0';
+
+        // 1. Validate token via /me
+        $me = $this->_meta_graph_get("{$base}/me?access_token=" . urlencode($access_token));
+        if (!empty($me['id'])) {
+            $result['token_valid'] = true;
+        } else {
+            $result['token_error'] = $me['error']['message'] ?? 'Unknown error';
+        }
+
+        // 2. Check if page is subscribed to leadgen
+        $sub_url  = "{$base}/{$page_id}/subscribed_apps?access_token=" . urlencode($access_token);
+        $sub_data = $this->_meta_graph_get($sub_url);
+        if (isset($sub_data['data']) && is_array($sub_data['data'])) {
+            foreach ($sub_data['data'] as $app) {
+                $subscribed_fields = $app['subscribed_fields'] ?? [];
+                if (in_array('leadgen', $subscribed_fields, true)) {
+                    $result['subscribed'] = true;
+                    break;
+                }
+            }
+            if (!$result['subscribed']) {
+                $result['sub_error'] = 'Page is not subscribed to leadgen field';
+            }
+        } else {
+            $result['sub_error'] = $sub_data['error']['message'] ?? 'Could not read subscribed apps';
+        }
+
+        // 3. Most recent webhook event
+        $this->load->database();
+        $last = $this->db->query("SELECT id, received_at, outcome, note FROM meta_webhook_events ORDER BY id DESC LIMIT 1")->row_array();
+        if ($last) {
+            $result['last_event'] = $last;
+        }
+
+        echo json_encode(['status' => 'success', 'data' => $result]);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    //  AJAX: Subscribe the Facebook page to leadgen webhook field
+    //  URL: schsettings/ajax_subscribe_meta_page
+    // ─────────────────────────────────────────────────────────────────────
+    public function ajax_subscribe_meta_page()
+    {
+        if (!$this->rbac->hasPrivilege('general_setting', 'can_edit')) {
+            echo json_encode(['status' => 'fail', 'message' => 'Permission denied.']); return;
+        }
+
+        $this->load->model('setting_model');
+        $setting      = $this->setting_model->getSetting();
+        $access_token = trim((string) ($setting->meta_page_access_token ?? ''));
+        $page_id      = trim((string) ($setting->meta_page_id ?? ''));
+
+        if ($access_token === '' || $page_id === '') {
+            echo json_encode(['status' => 'fail', 'message' => 'Page ID and access token must be configured first.']); return;
+        }
+
+        $base    = 'https://graph.facebook.com/v19.0';
+        $post_url = "{$base}/{$page_id}/subscribed_apps";
+
+        $ch = curl_init($post_url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST           => true,
+            CURLOPT_POSTFIELDS     => http_build_query([
+                'subscribed_fields' => 'leadgen',
+                'access_token'      => $access_token,
+            ]),
+            CURLOPT_TIMEOUT        => 15,
+            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_SSL_VERIFYHOST => 2,
+            CURLOPT_USERAGENT      => 'Minerva-MetaLeads/1.0',
+        ]);
+        $response = curl_exec($ch);
+        $err      = curl_error($ch);
+        curl_close($ch);
+
+        if ($err) {
+            echo json_encode(['status' => 'fail', 'message' => 'cURL error: ' . $err]); return;
+        }
+
+        $decoded = json_decode($response, true);
+        if (!empty($decoded['success'])) {
+            echo json_encode(['status' => 'success', 'message' => 'Page successfully subscribed to leadgen webhooks!']);
+        } else {
+            $msg = $decoded['error']['message'] ?? ('Unexpected response: ' . $response);
+            echo json_encode(['status' => 'fail', 'message' => $msg]);
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    //  AJAX: Return the last 20 webhook event log rows
+    //  URL: schsettings/ajax_get_meta_events
+    // ─────────────────────────────────────────────────────────────────────
+    public function ajax_get_meta_events()
+    {
+        if (!$this->rbac->hasPrivilege('general_setting', 'can_edit')) {
+            echo json_encode(['status' => 'fail', 'message' => 'Permission denied.']); return;
+        }
+
+        $this->load->database();
+
+        // Table may not exist yet on systems that never received a webhook
+        $table_exists = $this->db->query(
+            "SELECT COUNT(*) AS cnt FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'meta_webhook_events'"
+        )->row_array();
+
+        if (empty($table_exists['cnt'])) {
+            echo json_encode(['status' => 'success', 'rows' => [], 'message' => 'No webhook events recorded yet.']);
+            return;
+        }
+
+        $rows = $this->db->query(
+            "SELECT id, received_at, source_ip, signature_status, leadgen_id, page_id, form_id, outcome, enquiry_id, note
+               FROM meta_webhook_events
+              ORDER BY id DESC
+              LIMIT 20"
+        )->result_array();
+
+        echo json_encode(['status' => 'success', 'rows' => $rows]);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    //  Internal helper: cURL GET to Meta Graph API
+    // ─────────────────────────────────────────────────────────────────────
+    private function _meta_graph_get($url)
+    {
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT        => 15,
+            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_SSL_VERIFYHOST => 2,
+            CURLOPT_USERAGENT      => 'Minerva-MetaLeads/1.0',
+        ]);
+        $response = curl_exec($ch);
+        curl_close($ch);
+        return $response ? (json_decode($response, true) ?? []) : [];
     }
 
 }
