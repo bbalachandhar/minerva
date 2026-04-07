@@ -431,7 +431,7 @@ class Payroll_model extends MY_Model
             );
         }
 
-        $this->db->select('id, basic, total_allowance, total_deduction, month, year, net_salary, tax, status, (basic + total_allowance - total_deduction) as gross_salary');
+        $this->db->select('id, basic, total_allowance, total_deduction, month, year, net_salary, tax, status, (basic + total_allowance) as gross_salary');
         $this->db->from('staff_payslip');
         $this->db->where('staff_id', $staff_id);
         if ($only_paid) {
@@ -460,7 +460,7 @@ class Payroll_model extends MY_Model
 
         if ($query->num_rows() > 0) {
             foreach ($query->result() as $payslip) {
-                $gross = (float) $payslip->basic + (float) $payslip->total_allowance - (float) $payslip->total_deduction;
+                $gross = (float) $payslip->basic + (float) $payslip->total_allowance;
                 $ytd_gross += $gross;
                 $ytd_tax += (float) $payslip->tax;
                 $payslip_count++;
