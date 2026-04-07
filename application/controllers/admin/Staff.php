@@ -218,7 +218,7 @@ class Staff extends Admin_Controller
                 lt.id AS leave_type_id,
                 lt.type,
                 sld.id AS staff_leave_detail_id,
-                COALESCE(smlb.closing_balance, sld.alloted_leave, 0) AS base_balance,
+                COALESCE(smlb.closing_balance, sld.alloted_leave, 0) + COALESCE(smlb.admin_adjustment, 0) AS base_balance,
                 COALESCE(smlb.used_for_lop_adjustment, 0) AS used_for_lop_adjustment,
                 COALESCE(smlb.used_for_leave_application, 0) AS used_for_leave_application,
                 smlb.year,

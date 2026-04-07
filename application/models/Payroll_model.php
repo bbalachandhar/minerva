@@ -1241,7 +1241,8 @@ class Payroll_model extends MY_Model
         
         if ($prev_query->num_rows() > 0) {
             $prev_balance = $prev_query->row_array();
-            $opening_balance = $prev_balance['closing_balance'];
+            // Include any admin-applied override delta so manual adjustments survive payroll re-runs.
+            $opening_balance = (float) $prev_balance['closing_balance'] + (float) ($prev_balance['admin_adjustment'] ?? 0);
         } else {
             // No previous month - get from staff_leave_details
             if ($this->isManualSeedAllowedForLeaveType($leave_type_id)) {
@@ -1334,7 +1335,8 @@ class Payroll_model extends MY_Model
 
         if ($prev_query->num_rows() > 0) {
             $prev_balance = $prev_query->row_array();
-            $opening_balance = $prev_balance['closing_balance'];
+            // Include admin override delta so preview is consistent with actual run.
+            $opening_balance = (float) $prev_balance['closing_balance'] + (float) ($prev_balance['admin_adjustment'] ?? 0);
         } else {
             if ($this->isManualSeedAllowedForLeaveType($leave_type_id)) {
                 $this->db->where('staff_id', $staff_id);

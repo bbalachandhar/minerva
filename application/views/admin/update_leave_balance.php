@@ -36,9 +36,10 @@
                             <div class="col-md-8 text-right" style="padding-top:6px;">
                                 <small class="text-muted">
                                     <i class="fa fa-info-circle"></i>
-                                    Values shown are the current <strong>closing balance</strong> (latest processed month).
-                                    Hover over an input to see which month it reflects.
-                                    Editing a value updates that month's closing balance directly.
+                                    Values shown are the current effective balance (payroll closing + any admin adjustment).
+                                    Editing a value stores a persistent admin adjustment — <strong>the override survives payroll re-runs</strong>.
+                                    Cells marked <span class="label label-warning" style="font-size:9px;">ADJ</span> have an active admin override.
+                                    All changes are recorded in the audit log.
                                 </small>
                             </div>
                         </div>
@@ -70,9 +71,18 @@
                                                 $ltid    = $lt['id'];
                                                 $entry   = isset($balances[$sid][$ltid]) ? $balances[$sid][$ltid] : null;
                                                 $current = $entry !== null ? $entry['closing_balance'] : '';
+                                                $adj     = $entry ? (float) ($entry['admin_adjustment'] ?? 0) : 0;
                                                 $label   = $entry ? 'As of ' . date('M Y', mktime(0,0,0,$entry['month'],1,$entry['year'])) : 'No data';
+                                                if (abs($adj) > 0.001) {
+                                                    $label .= ' | Admin adj: ' . ($adj > 0 ? '+' : '') . number_format($adj, 2);
+                                                }
                                             ?>
                                             <td style="text-align:center; padding:4px 6px;">
+                                                <?php if (abs($adj) > 0.001): ?>
+                                                    <span class="label label-warning"
+                                                          style="font-size:9px; display:block; margin-bottom:2px; cursor:default;"
+                                                          title="Admin override active. Adj: <?php echo htmlspecialchars(($adj > 0 ? '+' : '') . number_format($adj, 2)); ?>">ADJ</span>
+                                                <?php endif; ?>
                                                 <input type="number"
                                                     class="form-control input-sm balance-input"
                                                     style="width:80px; margin:auto; text-align:center;"
@@ -84,7 +94,7 @@
                                                     value="<?php echo htmlspecialchars($current); ?>"
                                                     placeholder="0"
                                                     autocomplete="off"
-                                                    title="<?php echo $label; ?>">
+                                                    title="<?php echo htmlspecialchars($label); ?>">
                                             </td>
                                         <?php endforeach; ?>
                                         <td style="text-align:center; padding:4px 6px;">

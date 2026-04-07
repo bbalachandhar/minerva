@@ -45,6 +45,7 @@ class Update_leave_balance extends Admin_Controller {
                 s.id AS staff_id,
                 lt.id AS leave_type_id,
                 COALESCE(smlb.closing_balance, sld.alloted_leave, 0) AS base_balance,
+                COALESCE(smlb.admin_adjustment, 0) AS admin_adjustment,
                 smlb.year,
                 smlb.month,
                 lt.credit_source_type_id,
@@ -98,16 +99,17 @@ class Update_leave_balance extends Admin_Controller {
 
         $data['balances'] = [];
         foreach ($rows as $row) {
-            $display_balance = (float) $row['base_balance'];
+            $display_balance = (float) $row['base_balance'] + (float) ($row['admin_adjustment'] ?? 0);
 
             if ((int) ($row['credit_source_type_id'] ?? 0) > 0) {
                 $display_balance += (float) ($row['extra_credit'] ?? 0) - (float) ($row['extra_debit'] ?? 0);
             }
 
             $data['balances'][$row['staff_id']][$row['leave_type_id']] = [
-                'closing_balance' => $display_balance,
-                'year'            => $row['year'],
-                'month'           => $row['month'],
+                'closing_balance'  => $display_balance,
+                'admin_adjustment' => (float) ($row['admin_adjustment'] ?? 0),
+                'year'             => $row['year'],
+                'month'            => $row['month'],
             ];
         }
 
@@ -165,6 +167,7 @@ class Update_leave_balance extends Admin_Controller {
         $inserted = 0;
         $cur_year  = (int) date('Y');
         $cur_month = (int) date('n');
+        $performed_by = $this->customlib->getStaffID();
 
         $this->db->trans_start();
 
@@ -189,28 +192,108 @@ class Update_leave_balance extends Admin_Controller {
                     ->row_array();
 
                 if (!empty($latest)) {
-                    // Update closing_balance of the most recent row
+                    // closing_balance = payroll-computed (admin never touches it directly).
+                    // admin_adjustment = total admin offset on top of payroll closing.
+                    // Effective balance shown to admin = closing_balance + admin_adjustment.
+                    $old_closing   = (float) $latest['closing_balance'];
+                    $old_adj       = (float) ($latest['admin_adjustment'] ?? 0);
+                    $old_effective = $old_closing + $old_adj;
+                    $new_adj       = $new_balance - $old_closing;  // new total admin offset
+                    $cascade_delta = $new_adj - $old_adj;           // net change to propagate
+
                     $this->db->where('id', $latest['id']);
                     $this->db->update('staff_monthly_leave_balance', [
-                        'closing_balance' => $new_balance,
-                        'updated_at'      => date('Y-m-d H:i:s'),
+                        // closing_balance intentionally NOT updated — payroll owns it
+                        'admin_adjustment' => $new_adj,
+                        'notes'            => trim(($latest['notes'] ?? '') . ' [Admin override ' . date('Y-m-d H:i') . ': ' . number_format($old_effective, 2) . ' → ' . number_format($new_balance, 2) . ']'),
+                        'updated_at'       => date('Y-m-d H:i:s'),
                     ]);
+
+                    // ── Cascade: if the NEXT month's row already exists, repatch its
+                    //    opening_balance so payroll does not silently undo this override.
+                    $next_month = (int) $latest['month'] + 1;
+                    $next_year  = (int) $latest['year'];
+                    if ($next_month > 12) { $next_month = 1; $next_year++; }
+
+                    $next_row = $this->db
+                        ->where('staff_id', $staff_id)
+                        ->where('leave_type_id', $leave_type_id)
+                        ->where('year', $next_year)
+                        ->where('month', $next_month)
+                        ->limit(1)
+                        ->get('staff_monthly_leave_balance')
+                        ->row_array();
+
+                    if (!empty($next_row) && abs($cascade_delta) > 0.001) {
+                        $new_next_opening   = (float) $next_row['opening_balance'] + $cascade_delta;
+                        $new_next_closing   = $new_next_opening
+                            + (float) $next_row['earned_in_month']
+                            - (float) $next_row['used_for_lop_adjustment']
+                            - (float) $next_row['used_for_leave_application']
+                            - (float) $next_row['other_deductions'];
+                        $this->db->where('id', $next_row['id']);
+                        $this->db->update('staff_monthly_leave_balance', [
+                            'opening_balance' => max(0, $new_next_opening),
+                            'closing_balance' => max(0, $new_next_closing),
+                            'updated_at'      => date('Y-m-d H:i:s'),
+                        ]);
+                    }
+
+                    // Audit log — records effective balance (closing + admin_adjustment)
+                    if (abs($new_balance - $old_effective) > 0.001) {
+                        $this->db->insert('staff_leave_balance_audit', [
+                            'balance_id'     => (int) $latest['id'],
+                            'staff_id'       => $staff_id,
+                            'leave_type_id'  => $leave_type_id,
+                            'action_type'    => 'ADMIN_OVERRIDE',
+                            'amount'         => $cascade_delta,
+                            'balance_before' => $old_effective,
+                            'balance_after'  => $new_balance,
+                            'reference_id'   => null,
+                            'reference_type' => 'admin_update_leave_balance',
+                            'performed_by'   => $performed_by,
+                            'reason'         => 'Manual override via Update Leave Balance page',
+                            'created_at'     => date('Y-m-d H:i:s'),
+                        ]);
+                    }
+
                     $updated++;
                 } else {
                     // No row exists yet — create one for the current month
                     $this->db->insert('staff_monthly_leave_balance', [
-                        'staff_id'                  => $staff_id,
-                        'leave_type_id'             => $leave_type_id,
-                        'year'                      => $cur_year,
-                        'month'                     => $cur_month,
-                        'opening_balance'           => 0,
-                        'earned_in_month'           => 0,
-                        'used_for_lop_adjustment'   => 0,
-                        'used_for_leave_application'=> 0,
-                        'other_deductions'          => 0,
-                        'closing_balance'           => $new_balance,
-                        'last_processed_date'       => date('Y-m-d'),
+                        'staff_id'                   => $staff_id,
+                        'leave_type_id'              => $leave_type_id,
+                        'year'                       => $cur_year,
+                        'month'                      => $cur_month,
+                        'opening_balance'            => $new_balance,
+                        'earned_in_month'            => 0,
+                        'used_for_lop_adjustment'    => 0,
+                        'used_for_leave_application' => 0,
+                        'other_deductions'           => 0,
+                        'closing_balance'            => $new_balance,
+                        'admin_adjustment'           => 0,
+                        'last_processed_date'        => date('Y-m-d'),
+                        'notes'                      => 'Admin-seeded on ' . date('Y-m-d H:i:s'),
+                        'created_at'                 => date('Y-m-d H:i:s'),
+                        'updated_at'                 => date('Y-m-d H:i:s'),
                     ]);
+                    // Audit for newly seeded row
+                    if ($new_balance > 0) {
+                        $this->db->insert('staff_leave_balance_audit', [
+                            'balance_id'     => $this->db->insert_id(),
+                            'staff_id'       => $staff_id,
+                            'leave_type_id'  => $leave_type_id,
+                            'action_type'    => 'ADMIN_OVERRIDE',
+                            'amount'         => $new_balance,
+                            'balance_before' => 0,
+                            'balance_after'  => $new_balance,
+                            'reference_id'   => null,
+                            'reference_type' => 'admin_update_leave_balance',
+                            'performed_by'   => $performed_by,
+                            'reason'         => 'Admin-seeded initial balance',
+                            'created_at'     => date('Y-m-d H:i:s'),
+                        ]);
+                    }
                     $inserted++;
                 }
             }
@@ -224,7 +307,7 @@ class Update_leave_balance extends Admin_Controller {
 
         return [
             'status'   => 'success',
-            'message'  => 'Leave balances saved successfully. Updated: ' . $updated . ', New: ' . $inserted . '.',
+            'message'  => 'Leave balances saved. Updated: ' . $updated . ', New: ' . $inserted . '. Payroll for next month will use the updated balances as opening balance.',
             'updated'  => $updated,
             'inserted' => $inserted,
         ];
