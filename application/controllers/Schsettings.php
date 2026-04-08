@@ -2531,14 +2531,28 @@ class Schsettings extends Admin_Controller
                 $result['sub_error'] = 'Page is not subscribed to leadgen field';
             }
         } else {
-            $result['sub_error'] = $sub_data['error']['message'] ?? 'Could not read subscribed apps';
+            $err_code = $sub_data['error']['code'] ?? 0;
+            $err_msg  = $sub_data['error']['message'] ?? 'Could not read subscribed apps';
+            // Error 100 with "nonexisting field" means the token lacks pages_manage_metadata
+            // — this does NOT mean the page is unsubscribed, subscription status is just unreadable.
+            if ($err_code == 100 || stripos($err_msg, 'nonexisting field') !== false) {
+                $result['sub_error']      = 'Cannot verify — token lacks pages_manage_metadata permission to READ subscription status. Use the Subscribe button to force-subscribe the page.';
+                $result['sub_perm_hint']  = true;
+            } else {
+                $result['sub_error'] = $err_msg;
+            }
         }
 
-        // 3. Most recent webhook event
+        // 3. Most recent webhook event (table is created lazily on first POST hit)
         $this->load->database();
-        $last = $this->db->query("SELECT id, received_at, outcome, note FROM meta_webhook_events ORDER BY id DESC LIMIT 1")->row_array();
-        if ($last) {
-            $result['last_event'] = $last;
+        $events_table_exists = $this->db->query(
+            "SELECT COUNT(*) AS cnt FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'meta_webhook_events'"
+        )->row_array();
+        if (!empty($events_table_exists['cnt'])) {
+            $last = $this->db->query("SELECT id, received_at, outcome, note FROM meta_webhook_events ORDER BY id DESC LIMIT 1")->row_array();
+            if ($last) {
+                $result['last_event'] = $last;
+            }
         }
 
         echo json_encode(['status' => 'success', 'data' => $result]);
@@ -2591,8 +2605,17 @@ class Schsettings extends Admin_Controller
         if (!empty($decoded['success'])) {
             echo json_encode(['status' => 'success', 'message' => 'Page successfully subscribed to leadgen webhooks!']);
         } else {
-            $msg = $decoded['error']['message'] ?? ('Unexpected response: ' . $response);
-            echo json_encode(['status' => 'fail', 'message' => $msg]);
+            $err_code = $decoded['error']['code'] ?? 0;
+            $err_msg  = $decoded['error']['message'] ?? ('Unexpected response: ' . $response);
+            // Error 100 / "missing permissions" / "does not exist" = User token used instead of Page token.
+            // The subscribed_apps POST endpoint only accepts a Page Access Token.
+            if ($err_code == 100 || stripos($err_msg, 'missing permissions') !== false
+                || stripos($err_msg, 'does not exist') !== false
+                || stripos($err_msg, 'Unsupported post request') !== false) {
+                $err_msg = 'Token type error: the stored token is a User Access Token, but this endpoint requires a Page Access Token. '
+                    . 'Go to Graph API Explorer → call GET /me/accounts → find your page in the list → copy its access_token → paste it in Page Access Token field above and Save.';
+            }
+            echo json_encode(['status' => 'fail', 'message' => $err_msg]);
         }
     }
 

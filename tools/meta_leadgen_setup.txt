@@ -1,0 +1,148 @@
+================================================================================
+META LEAD ADS INTEGRATION — ROOT CAUSE & SETUP NOTES
+Date: 2026-04-08
+================================================================================
+
+BACKGROUND
+----------
+Meta (Facebook) Lead Ads sends a webhook POST to your server whenever a user
+submits a lead form on a Facebook/Instagram ad. The webhook URL is:
+
+  https://mce.beebasoft.com/metaleads/webhook
+
+The flow is:
+  1. Meta sends GET with hub.verify_token + hub.challenge  →  we echo challenge
+  2. User submits a lead form  →  Meta POSTs leadgen_id/form_id/page_id
+  3. We call Graph API to fetch the lead field data
+  4. We insert an enquiry record automatically
+
+--------------------------------------------------------------------------------
+ROOT CAUSE OF "Unsupported post request / Object does not exist" ERROR
+--------------------------------------------------------------------------------
+
+SYMPTOM:
+  - "Check Status" shows: Token Valid ✓
+  - "Subscribe Page" shows: "Unsupported post request. Object with ID
+    '867308779699481' does not exist, cannot be loaded due to missing
+    permissions, or does not support this operation."
+
+ROOT CAUSE:
+  The stored token is a USER ACCESS TOKEN, not a PAGE ACCESS TOKEN.
+
+  These are two DIFFERENT token types from Meta's Graph API:
+
+  USER ACCESS TOKEN:
+    - Belongs to your Facebook user account
+    - Obtained from Graph API Explorer → "Generate Access Token"
+    - Passes the GET /me validity check → shows "Token Valid"
+    - CANNOT call POST /{page_id}/subscribed_apps  ← THIS IS THE PROBLEM
+    - Short-lived (~2 hours) unless exchanged for a long-lived token
+
+  PAGE ACCESS TOKEN:
+    - Belongs to the Facebook Page itself (not your user)
+    - Obtained from GET /me/accounts using a long-lived user token
+    - Required for: POST /{page_id}/subscribed_apps (subscribe to webhooks)
+    - Required for: fetching lead data on webhook POSTs
+    - Never expires as long as the user doesn't revoke app access
+
+  "Token Valid" only checks GET /me — both token types pass this.
+  It does NOT verify the token type or its permissions.
+
+--------------------------------------------------------------------------------
+HOW TO GET THE CORRECT PAGE ACCESS TOKEN (step-by-step)
+--------------------------------------------------------------------------------
+
+REQUIRED PERMISSIONS ON YOUR META APP:
+  - pages_manage_metadata   (to subscribe the page to webhooks)
+  - pages_read_engagement   (to read page info)
+  - leads_retrieval         (to fetch lead form submissions)
+
+STEP 1 — Get a short-lived User Token
+  a. Go to: https://developers.facebook.com/tools/explorer/
+  b. Select your App from the top-right dropdown
+  c. Click "Generate Access Token"
+  d. Grant permissions: pages_manage_metadata, pages_read_engagement, leads_retrieval
+  e. Copy the token shown
+
+STEP 2 — Exchange for a Long-Lived User Token (60 days)
+  Open in browser (replace YOUR_APP_ID, YOUR_APP_SECRET, SHORT_TOKEN):
+
+  https://graph.facebook.com/v19.0/oauth/access_token
+    ?grant_type=fb_exchange_token
+    &client_id=YOUR_APP_ID
+    &client_secret=YOUR_APP_SECRET
+    &fb_exchange_token=SHORT_TOKEN_FROM_STEP_1
+
+  Copy the access_token from the JSON response.
+
+STEP 3 — Get the Permanent Page Access Token
+  Open in browser (replace LONG_TOKEN):
+
+  https://graph.facebook.com/v19.0/me/accounts?access_token=LONG_TOKEN_FROM_STEP_2
+
+  Find the entry where "id" = 867308779699481 (your page ID).
+  Copy THAT entry's "access_token" value.
+
+  This is the Page Access Token. It never expires as long as:
+    - You don't deauthorise the app from the page
+    - The user account that generated it stays as page admin
+
+STEP 4 — Save in Minerva
+  Settings → Enquiry Lead Gen Vendors → Meta Lead Ads Integration section
+    - Paste the token from Step 3 into "Page Access Token"
+    - Click "Save Meta Settings"
+
+STEP 5 — Subscribe the Page
+  Click "Subscribe Page to leadgen Webhooks"
+  Expected result: "Page successfully subscribed to leadgen webhooks!"
+
+STEP 6 — Verify
+  Click "Check Status"
+  Expected: Token Valid ✓  |  (subscription status may show unknown if
+  pages_manage_metadata read is restricted — that is fine, the
+  subscription is still active after Step 5 succeeds)
+
+--------------------------------------------------------------------------------
+WEBHOOK VERIFICATION STATUS
+--------------------------------------------------------------------------------
+
+  Webhook URL  : https://mce.beebasoft.com/metaleads/webhook
+  Verify Token : stored in sch_settings.meta_verify_token
+  Page ID      : 867308779699481
+  Integration  : ENABLED (meta_leads_enabled = 1)
+
+  meta_webhook_events table: auto-created on first POST hit from Meta.
+  After a lead form submission, check Recent Webhook Events for outcome.
+
+--------------------------------------------------------------------------------
+LEAD VENDOR SETUP
+--------------------------------------------------------------------------------
+
+  Webhook uses vendor_code = 'meta' (lead_api_vendors id=4, is_active=1)
+  Duplicate vendor 'meta_leads' (id=3) has been DEACTIVATED.
+
+  When a webhook lead is inserted into enquiry:
+    source           = 'API - META'
+    reference        = 'meta'
+    reference_name   = 'Meta Lead Ads (Facebook/Instagram)'
+    lead_vendor_id   = 4
+
+--------------------------------------------------------------------------------
+CODE FILES INVOLVED
+--------------------------------------------------------------------------------
+
+  application/controllers/MetaLeads.php          — webhook handler
+  application/controllers/Schsettings.php        — settings save, diagnostics
+  application/views/setting/enquiryleadvendors.php — settings UI
+  application/config/routes.php                  — $route['metaleads/webhook']
+  application/models/Setting_model.php           — getSetting() includes meta_*
+
+  DB tables:
+    sch_settings         — meta_leads_enabled, meta_verify_token,
+                           meta_page_access_token, meta_page_id,
+                           meta_app_secret, meta_default_course_id
+    lead_api_vendors     — vendor authentication
+    meta_webhook_events  — webhook event log (auto-created)
+    enquiry              — lead inserted here on each webhook hit
+
+================================================================================

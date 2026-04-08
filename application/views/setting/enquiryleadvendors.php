@@ -675,7 +675,11 @@
     $('#btnCheckMetaStatus').on('click', function() {
         var $btn = $(this).prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Checking...');
         $('#metaStatusResult').hide();
-        $.getJSON(checkUrl, function(r) {
+        $.ajax({
+            url: checkUrl,
+            type: 'GET',
+            dataType: 'json',
+            success: function(r) {
             var html = '';
             if (!r || r.status !== 'success') {
                 html = '<div class="alert alert-danger">' + (r ? r.message : 'Request failed') + '</div>';
@@ -684,12 +688,17 @@
                 var tokenBadge = d.token_valid
                     ? '<span class="label label-success"><i class="fa fa-check"></i> Token Valid</span>'
                     : '<span class="label label-danger"><i class="fa fa-times"></i> Token Invalid</span>';
-                var subBadge = d.subscribed
-                    ? '<span class="label label-success"><i class="fa fa-check"></i> Page Subscribed to leadgen</span>'
-                    : '<span class="label label-warning"><i class="fa fa-warning"></i> Page NOT subscribed to leadgen</span>';
+                var subBadge;
+                if (d.subscribed) {
+                    subBadge = '<span class="label label-success"><i class="fa fa-check"></i> Page Subscribed to leadgen</span>';
+                } else if (d.sub_perm_hint) {
+                    subBadge = '<span class="label label-info"><i class="fa fa-question-circle"></i> Subscription status unknown (permission)</span>';
+                } else {
+                    subBadge = '<span class="label label-warning"><i class="fa fa-warning"></i> Page NOT subscribed to leadgen</span>';
+                }
                 html += '<p>' + tokenBadge + (d.token_error ? ' &mdash; ' + $('<span>').text(d.token_error).html() : '') + '</p>';
                 html += '<p>' + subBadge   + (d.sub_error   ? ' &mdash; ' + $('<span>').text(d.sub_error).html()   : '') + '</p>';
-                if (!d.subscribed) {
+                if (!d.subscribed && !d.sub_perm_hint) {
                     html += '<div class="alert alert-warning" style="padding:8px 12px; font-size:12px;">'
                         + '<strong>Action required:</strong> Use the <em>Subscribe Page</em> button on the right to register your page for <code>leadgen</code> events. '
                         + 'Without this, Meta verifies your webhook URL but never sends lead data.'
@@ -707,10 +716,14 @@
                 }
             }
             $('#metaStatusResult').html(html).show();
-        }).fail(function() {
-            $('#metaStatusResult').html('<div class="alert alert-danger">Request failed.</div>').show();
-        }).always(function() {
-            $btn.prop('disabled', false).html('<i class="fa fa-search"></i> Check Status');
+            },
+            error: function(xhr, status, err) {
+                var detail = xhr.responseText ? xhr.responseText.substring(0, 300) : err;
+                $('#metaStatusResult').html('<div class="alert alert-danger"><strong>Request failed</strong> (HTTP ' + xhr.status + '): <pre style="font-size:11px;white-space:pre-wrap;margin:4px 0 0;">' + $('<span>').text(detail).html() + '</pre></div>').show();
+            },
+            complete: function() {
+                $btn.prop('disabled', false).html('<i class="fa fa-search"></i> Check Status');
+            }
         });
     });
 
