@@ -780,11 +780,6 @@ class Leaverequest extends Admin_Controller
         $staff_details = $this->staff_model->get($current_staff_id);
         $data['current_staff_details'] = $staff_details;
 
-        $this->load->model('subjecttimetable_model');
-        $data['staff_timetable'] = $this->subjecttimetable_model->getStaffTimetable(
-            $current_staff_id, date('Y-m-01'), date('Y-m-t')
-        );
-
         $department_id = $this->getStaffDepartmentId($current_staff_id, $staff_details);
         $data['potential_substitutes'] = $department_id > 0
             ? $this->staff_model->getEmployeeByDepartment($department_id, $current_staff_id)

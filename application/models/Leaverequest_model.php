@@ -23,13 +23,15 @@ class Leaverequest_model extends MY_model
 
         $query = $this->db->select('staff.name,staff.surname,staff.employee_id,staff_leave_request.*,leave_types.type,
             recommender.name as recommender_name, recommender.surname as recommender_surname,
-            approver.name as approver_name, approver.surname as approver_surname, department.department_name')
+            approver.name as approver_name, approver.surname as approver_surname, department.department_name,
+            IFNULL(CONCAT(applier_staff.name, \' \', applier_staff.surname, \' (\', applier_staff.employee_id, \')\'), \'\') AS applied_by_label')
             ->join("staff", "staff.id = staff_leave_request.staff_id")
             ->join("leave_types", "leave_types.id = staff_leave_request.leave_type_id")
             ->join("staff_roles", "staff_roles.staff_id = staff.id")
             ->join("roles", "staff_roles.role_id = roles.id")
             ->join("staff as recommender", "recommender.id = staff_leave_request.recommender_id", "left")
             ->join("staff as approver", "approver.id = staff_leave_request.approver_id", "left")
+            ->join("staff as applier_staff", "applier_staff.id = staff_leave_request.applied_by", "left")
             ->join("department", "department.id = staff.department", "left")
             ->where("staff.is_active", "1")
             ->order_by("staff_leave_request.id", "desc")
@@ -37,12 +39,7 @@ class Leaverequest_model extends MY_model
 
         $result = $query->result_array();
         foreach ($result as $key => $value) {
-            $applied_by = $this->staff_model->get($value['applied_by']);
-            if (!empty($applied_by['employee_id'])) {
-                $result[$key]['applied_by'] = $applied_by['name'] . ' ' . $applied_by['surname'] . ' (' . $applied_by['employee_id'] . ')';
-            } else {
-                $result[$key]['applied_by'] = '';
-            }
+            $result[$key]['applied_by'] = $value['applied_by_label'];
         }
         return $result;
     }
