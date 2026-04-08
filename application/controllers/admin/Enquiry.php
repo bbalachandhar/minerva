@@ -61,61 +61,12 @@ class Enquiry extends Admin_Controller
             ->get()
             ->result_array();
 
-        $last_follow_up_from = '';
-        $last_follow_up_to   = '';
-
-        if ($this->input->post('search') === 'search_filter') {
-            $class                  = $this->input->post("class");
-            $department_id          = $this->input->post("department_id");
-            $source                 = $this->input->post("source");
-            $lead_vendor_id         = (int) $this->input->post("lead_vendor_id");
-            $status                 = $this->input->post("status");
-            $raw_date_from          = trim((string) $this->input->post("from_date"));
-            $raw_date_to            = trim((string) $this->input->post("to_date"));
-            $raw_last_follow_up_from = trim((string) $this->input->post("last_follow_up_from"));
-            $raw_last_follow_up_to   = trim((string) $this->input->post("last_follow_up_to"));
-            $date_from              = !empty($raw_date_from) ? date("Y-m-d", $this->customlib->datetostrtotime($raw_date_from)) : '';
-            $date_to                = !empty($raw_date_to) ? date("Y-m-d", $this->customlib->datetostrtotime($raw_date_to)) : '';
-            $last_follow_up_from    = !empty($raw_last_follow_up_from) ? date("Y-m-d", $this->customlib->datetostrtotime($raw_last_follow_up_from)) : '';
-            $last_follow_up_to      = !empty($raw_last_follow_up_to) ? date("Y-m-d", $this->customlib->datetostrtotime($raw_last_follow_up_to)) : '';
-            $data["source_select"]  = $source;
-            $data["selected_lead_vendor"] = $lead_vendor_id;
-            $data["status"]         = $status;
-            $data["selected_class"] = $class;
-            $data["selected_department"] = $department_id;
-            $data["last_follow_up_from"] = $raw_last_follow_up_from;
-            $data["last_follow_up_to"]   = $raw_last_follow_up_to;
-            log_message('error', '[Enquiry DEBUG] raw_from=' . $raw_last_follow_up_from . ' raw_to=' . $raw_last_follow_up_to . ' conv_from=' . $last_follow_up_from . ' conv_to=' . $last_follow_up_to);
-            $enquiry_list           = $this->enquiry_model->searchEnquiry($class, $source, $date_from, $date_to, $status, $department_id, $lead_vendor_id, $last_follow_up_from, $last_follow_up_to);
-            log_message('error', '[Enquiry DEBUG] results_count=' . count($enquiry_list));
-        } else {
-            $enquiry_list = $this->enquiry_model->getenquiry_list(null, array('active'));
-        }
-        
-        foreach ($enquiry_list as $key => $value) {
-            $follow_up                          = $this->enquiry_model->getFollowByEnquiry($value["id"]);
-            $enquiry_list[$key]["followupdate"] = isset($follow_up["date"]) ? $follow_up["date"] : '';
-            $enquiry_list[$key]["next_date"]    = isset($follow_up["next_date"]) ? $follow_up["next_date"] : '';
-            $enquiry_list[$key]["response"]     = isset($follow_up["response"]) ? $follow_up["response"] : '';
-            $enquiry_list[$key]["note"]         = isset($follow_up["note"]) ? $follow_up["note"] : '';
-            $enquiry_list[$key]["followup_by"]  = isset($follow_up["followup_by"]) ? $follow_up["followup_by"] : '';
-        }
-   
         $data['prefill_name']    = $this->input->get('name', TRUE);
         $data['prefill_email']   = $this->input->get('email', TRUE);
         $data['prefill_contact'] = $this->input->get('mobileno', TRUE);
 
-        // DB query already filters by next follow-up date via COALESCE; no PHP post-filter needed.
-   
-        
-        // enforce newest-first ordering by enquiry `date` (in case data source/order differs)
-        usort($enquiry_list, function ($a, $b) {
-            $da = !empty($a['date']) ? $a['date'] : '0000-00-00';
-            $db = !empty($b['date']) ? $b['date'] : '0000-00-00';
-            return strcmp($db, $da); // descending by YYYY-MM-DD string
-        });
-
-        $data['enquiry_list']   = $enquiry_list;
+        // Table rows are loaded asynchronously via dtenquirylist() SSP endpoint.
+        $data['enquiry_list']   = [];
         $data['enquiry_status'] = $this->enquiry_status;
         $data['Reference']      = $this->enquiry_model->get_reference();
         $data['sourcelist']     = $this->enquiry_model->getComplaintSource();
@@ -449,6 +400,234 @@ class Enquiry extends Admin_Controller
             $array = array('status' => 'fail', 'error' => '', 'message' => '');
         }
         echo json_encode($array);
+    }
+
+    // -------------------------------------------------------------------------
+    // DataTables Server-Side Processing endpoint
+    // GET  admin/enquiry/dtenquirylist
+    // -------------------------------------------------------------------------
+    public function dtenquirylist()
+    {
+        if (!$this->rbac->hasPrivilege('admission_enquiry', 'can_view')) {
+            echo json_encode(['draw' => 0, 'recordsTotal' => 0, 'recordsFiltered' => 0, 'data' => []]);
+            return;
+        }
+
+        $draw       = (int) $this->input->get('draw');
+        $start      = (int) $this->input->get('start');
+        $length     = (int) $this->input->get('length');
+        if ($length <= 0) {
+            $length = 50;
+        }
+
+        $search_param = $this->input->get('search');
+        $search_val   = isset($search_param['value']) ? trim((string) $search_param['value']) : '';
+
+        $order_param = $this->input->get('order');
+        $order_col   = isset($order_param[0]['column']) ? (int) $order_param[0]['column'] : 6;
+        $order_dir   = isset($order_param[0]['dir'])    ? $order_param[0]['dir']           : 'desc';
+
+        // Date inputs arrive in the school display format; convert to Y-m-d for SQL
+        $raw_df  = trim((string) $this->input->get('filter_date_from'));
+        $raw_dt  = trim((string) $this->input->get('filter_date_to'));
+        $raw_ff  = trim((string) $this->input->get('filter_next_followup_from'));
+        $raw_ft  = trim((string) $this->input->get('filter_next_followup_to'));
+
+        $filter = [
+            'status'           => $this->input->get('filter_status') ?: 'active',
+            'class'            => (int) $this->input->get('filter_class'),
+            'department_id'    => (int) $this->input->get('filter_department_id'),
+            'source'           => $this->input->get('filter_source'),
+            'lead_vendor_id'   => (int) $this->input->get('filter_lead_vendor_id'),
+            'date_from'        => !empty($raw_df) ? date('Y-m-d', $this->customlib->datetostrtotime($raw_df)) : '',
+            'date_to'          => !empty($raw_dt) ? date('Y-m-d', $this->customlib->datetostrtotime($raw_dt)) : '',
+            'next_followup_from' => !empty($raw_ff) ? date('Y-m-d', $this->customlib->datetostrtotime($raw_ff)) : '',
+            'next_followup_to'   => !empty($raw_ft) ? date('Y-m-d', $this->customlib->datetostrtotime($raw_ft)) : '',
+        ];
+
+        $result = $this->enquiry_model->dtenquirylist_ssp($draw, $start, $length, $search_val, $order_col, $order_dir, $filter);
+
+        $date_fmt = $this->customlib->getSchoolDateFormat();
+        $fmt = function ($d) use ($date_fmt) {
+            if (empty($d) || $d === '0000-00-00') {
+                return '';
+            }
+            $ts = strtotime($d);
+            return $ts ? date($date_fmt, $ts) : '';
+        };
+
+        $current_date   = date('Y-m-d');
+        $enquiry_status = $this->enquiry_status;
+        $rows = [];
+
+        foreach ($result['data'] as $row) {
+            $id         = (int) $row['id'];
+            $status_key = strtolower(trim($row['status'] ?? ''));
+            $ref_no     = !empty($row['ref_no'])
+                ? htmlspecialchars($row['ref_no'], ENT_QUOTES)
+                : date('Y') . str_pad($id, 6, '0', STR_PAD_LEFT);
+
+            // Lead vendor cell
+            $lv_html = '';
+            if (!empty($row['duplicate_source_vendor_id'])) {
+                $lv_html .= '<span class="label label-warning" title="This record was a duplicate when submitted">Duplicate</span><br>';
+            }
+            $lv_html .= !empty($row['lead_vendor_name']) ? htmlspecialchars($row['lead_vendor_name'], ENT_QUOTES) : '-';
+
+            // Duplicate source cell
+            $dup_html = !empty($row['duplicate_source_vendor_id'])
+                ? '<span title="Original vendor">' . htmlspecialchars($row['duplicate_source_vendor_name'] ?? '', ENT_QUOTES) . '</span>'
+                : '<span class="text-muted">-</span>';
+
+            // Date values
+            $enq_date     = $row['date'] ?? '';
+            $last_fu      = $row['followupdate'] ?? '';
+            $next_date    = !empty($row['next_date']) ? trim($row['next_date']) : '';
+            $display_next = !empty($next_date) ? $next_date : ($row['follow_up_date'] ?? '');
+            $next_order   = (!empty($display_next) && $display_next !== '0000-00-00') ? $display_next : '9999-12-31';
+
+            // Cell colour class for next follow-up and status columns
+            $fu_cls = '';
+            $st_cls = '';
+            if ($status_key === 'application_done') {
+                $fu_cls = $st_cls = 'cell-alert-green';
+            } elseif (!empty($display_next) && $display_next !== '0000-00-00') {
+                if ($display_next === $current_date) {
+                    $fu_cls = $st_cls = 'cell-alert-yellow';
+                } elseif ($display_next < $current_date && $status_key === 'active') {
+                    $fu_cls = $st_cls = 'cell-alert-red';
+                }
+            }
+
+            $status_label = isset($enquiry_status[$status_key])
+                ? htmlspecialchars($enquiry_status[$status_key], ENT_QUOTES)
+                : htmlspecialchars($status_key, ENT_QUOTES);
+
+            $rows[] = [
+                $ref_no,                                                                                  // 0
+                htmlspecialchars($row['name']    ?? '', ENT_QUOTES),                                      // 1
+                htmlspecialchars($row['contact'] ?? '', ENT_QUOTES),                                      // 2
+                htmlspecialchars($row['source']  ?? '', ENT_QUOTES),                                      // 3
+                $lv_html,                                                                                  // 4
+                $dup_html,                                                                                 // 5
+                '<span data-order="' . $enq_date . '">' . $fmt($enq_date) . '</span>',                    // 6
+                $fmt($last_fu),                                                                            // 7
+                '<span data-order="' . $next_order . '">' . $fmt($display_next !== '0000-00-00' ? $display_next : '') . '</span>', // 8
+                $status_label,                                                                             // 9
+                $this->_enquiry_action_html($id, $status_key, (int) ($row['created_by'] ?? 0), $row['email'] ?? '', $row['name'] ?? '', $row['contact'] ?? ''), // 10
+                $fu_cls,   // 11 — hidden column, read by createdRow for follow-up cell colour
+                $st_cls,   // 12 — hidden column, read by createdRow for status cell colour
+            ];
+        }
+
+        $this->output->set_content_type('application/json');
+        echo json_encode([
+            'draw'            => $result['draw'],
+            'recordsTotal'    => $result['recordsTotal'],
+            'recordsFiltered' => $result['recordsFiltered'],
+            'data'            => $rows,
+        ]);
+    }
+
+    private function _enquiry_action_html($id, $status, $created_by, $email, $name, $contact)
+    {
+        $staff_id = (int) $this->customlib->getStaffID();
+        $s        = addslashes($status);
+        $html     = "<div class='white-space-nowrap'>";
+
+        if ($this->rbac->hasPrivilege('follow_up_admission_enquiry', 'can_view')) {
+            $html .= "<a class='btn btn-default btn-xs' onclick=\"follow_up($id,'$s',$created_by);\" "
+                   . "data-target='#follow_up' data-toggle='modal' title='Follow Up'>"
+                   . "<i class='fa fa-phone'></i></a>";
+            $conv_url = base_url('publicadmissionform?email=' . rawurlencode($email)
+                . '&name=' . rawurlencode($name)
+                . '&mobileno=' . rawurlencode($contact)
+                . '&enquiry_id=' . $id
+                . '&employee_id=' . $staff_id);
+            $html .= "<a href='$conv_url' class='btn btn-default btn-xs' "
+                   . "data-toggle='tooltip' title='Create Admission' target='_blank'>"
+                   . "<i class='fa fa-user-plus'></i></a>";
+        }
+        if ($this->rbac->hasPrivilege('admission_enquiry', 'can_edit')) {
+            $html .= "<a onclick=\"getRecord($id,'$s')\" class='btn btn-default btn-xs' "
+                   . "data-target='#myModaledit' data-toggle='modal' title='Edit'>"
+                   . "<i class='fa fa-pencil'></i></a>";
+        }
+        if ($this->rbac->hasPrivilege('admission_enquiry', 'can_delete')) {
+            $html .= "<a href='#' class='btn btn-default btn-xs' "
+                   . "onclick='delete_enquiry($id)' title='Delete'>"
+                   . "<i class='fa fa-remove'></i></a>";
+        }
+
+        return $html . '</div>';
+    }
+
+    // -------------------------------------------------------------------------
+    // CSV export — all filtered records (used by Excel/CSV DataTable buttons)
+    // GET  admin/enquiry/exportenquiry
+    // -------------------------------------------------------------------------
+    public function exportenquiry()
+    {
+        if (!$this->rbac->hasPrivilege('admission_enquiry', 'can_view')) {
+            access_denied();
+        }
+
+        $raw_df = trim((string) $this->input->get('filter_date_from'));
+        $raw_dt = trim((string) $this->input->get('filter_date_to'));
+        $raw_ff = trim((string) $this->input->get('filter_next_followup_from'));
+        $raw_ft = trim((string) $this->input->get('filter_next_followup_to'));
+
+        $filter = [
+            'status'           => $this->input->get('filter_status') ?: 'active',
+            'class'            => (int) $this->input->get('filter_class'),
+            'department_id'    => (int) $this->input->get('filter_department_id'),
+            'source'           => $this->input->get('filter_source'),
+            'lead_vendor_id'   => (int) $this->input->get('filter_lead_vendor_id'),
+            'date_from'        => !empty($raw_df) ? date('Y-m-d', $this->customlib->datetostrtotime($raw_df)) : '',
+            'date_to'          => !empty($raw_dt) ? date('Y-m-d', $this->customlib->datetostrtotime($raw_dt)) : '',
+            'next_followup_from' => !empty($raw_ff) ? date('Y-m-d', $this->customlib->datetostrtotime($raw_ff)) : '',
+            'next_followup_to'   => !empty($raw_ft) ? date('Y-m-d', $this->customlib->datetostrtotime($raw_ft)) : '',
+        ];
+
+        $result   = $this->enquiry_model->dtenquirylist_ssp(0, 0, 99999, '', 6, 'desc', $filter);
+        $date_fmt = $this->customlib->getSchoolDateFormat();
+        $fmt      = function ($d) use ($date_fmt) {
+            if (empty($d) || $d === '0000-00-00') {
+                return '';
+            }
+            $ts = strtotime($d);
+            return $ts ? date($date_fmt, $ts) : '';
+        };
+        $es = $this->enquiry_status;
+
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="enquiry_export_' . date('Ymd_His') . '.csv"');
+        header('Pragma: no-cache');
+        header('Expires: 0');
+
+        $out = fopen('php://output', 'w');
+        fputcsv($out, ['Ref No', 'Name', 'Contact', 'Email', 'City', 'State', 'Source', 'Lead Vendor', 'Course', 'Enquiry Date', 'Last Follow-Up', 'Next Follow-Up', 'Status']);
+        foreach ($result['data'] as $row) {
+            $sk   = strtolower($row['status'] ?? '');
+            $next = !empty($row['next_date']) ? $row['next_date'] : ($row['follow_up_date'] ?? '');
+            fputcsv($out, [
+                !empty($row['ref_no']) ? $row['ref_no'] : date('Y') . str_pad($row['id'], 6, '0', STR_PAD_LEFT),
+                $row['name']    ?? '',
+                $row['contact'] ?? '',
+                $row['email']   ?? '',
+                $row['city']    ?? '',
+                $row['state']   ?? '',
+                $row['source']  ?? '',
+                $row['lead_vendor_name']      ?? '',
+                $row['admission_course_name'] ?? '',
+                $fmt($row['date']        ?? ''),
+                $fmt($row['followupdate'] ?? ''),
+                $fmt($next),
+                isset($es[$sk]) ? $es[$sk] : $sk,
+            ]);
+        }
+        fclose($out);
+        exit;
     }
 
     public function bulk_meta_leads_upload()

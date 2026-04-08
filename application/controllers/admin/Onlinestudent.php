@@ -446,15 +446,7 @@ class Onlinestudent extends Admin_Controller
 
     public function getstudentlist()
     {
-        $class             = $this->class_model->get();
-        $data['classlist'] = $class;
-        $sch_setting       = $this->sch_setting_detail;
-        $carray = array();
-        if (!empty($data['classlist'])) {
-            foreach ($data['classlist'] as $key => $value) {
-                $carray[] = $value['id'];
-            }
-        }
+        $sch_setting = $this->sch_setting_detail;
 
         $quota_type_filter    = $this->input->post('quota_type_filter');
         if ($quota_type_filter === 'govt') {
@@ -462,7 +454,7 @@ class Onlinestudent extends Admin_Controller
         }
         $paid_status_filter   = $this->input->post('paid_status_filter');
         $submitted_by_filter  = $this->input->post('submitted_by_filter');
-        $student_result = $this->onlinestudent_model->getstudentlist($carray, null, $quota_type_filter, $paid_status_filter, $submitted_by_filter);
+        $student_result = $this->onlinestudent_model->getstudentlist(null, null, $quota_type_filter, $paid_status_filter, $submitted_by_filter);
 
         $m               = json_decode($student_result);
         $currency_symbol = $this->customlib->getSchoolCurrencyFormat();

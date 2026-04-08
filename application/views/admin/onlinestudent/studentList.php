@@ -130,46 +130,101 @@
 <script>
     ( function ( $ ) {
     'use strict';
-    function loadStudentTable() {
+    var studentTable;
+
+    function getFilterParams() {
         var params = {};
-        var quota = $('#filter_quota').val();
-        var status = $('#filter_form_status').val();
+        var quota       = $('#filter_quota').val();
+        var status      = $('#filter_form_status').val();
         var submittedBy = $('#filter_submitted_by').val();
-        if (quota !== '') params.quota_type_filter = quota;
-        if (status !== '') params.paid_status_filter = status;
-        if (submittedBy !== '') params.submitted_by_filter = submittedBy;
-        initDatatable('student-list', 'admin/onlinestudent/getstudentlist', params, [], 10);
-        $('.student-list').off('draw.dt').on('draw.dt', function() {
-            var info = $('.student-list').DataTable().page.info();
-            $('#student-list-footer').text('Total Records: ' + info.recordsTotal);
-        });
+        if (quota       !== '') params.quota_type_filter    = quota;
+        if (status      !== '') params.paid_status_filter   = status;
+        if (submittedBy !== '') params.submitted_by_filter  = submittedBy;
+        return params;
     }
 
     $(document).ready(function () {
-        loadStudentTable();
-        $('#filter_form_status, #filter_quota, #filter_submitted_by').on('change', function() {
-            loadStudentTable();
+        studentTable = $('.student-list').DataTable({
+            dom: '<"top"f><Bl>r<t>ip',
+            lengthMenu: [[10, 50, 100, -1], [10, 50, 100, "All"]],
+            buttons: [
+                {
+                    extend:    'copy',
+                    text:      '<i class="fa fa-files-o"></i>',
+                    titleAttr: 'Copy',
+                    className: 'btn-copy',
+                    title: $('.student-list').data('export-title'),
+                    exportOptions: { columns: ['thead th:not(.noExport)'] }
+                },
+                {
+                    text:      '<i class="fa fa-file-excel-o"></i>',
+                    titleAttr: 'Excel',
+                    className: 'btn-excel',
+                    action: function () {
+                        var p = getFilterParams();
+                        var url = '<?php echo base_url("admin/onlinestudent/export_excel"); ?>?';
+                        $.each(p, function (k, v) { url += encodeURIComponent(k) + '=' + encodeURIComponent(v) + '&'; });
+                        window.location.href = url;
+                    }
+                },
+                {
+                    text:      '<i class="fa fa-file-text-o"></i>',
+                    titleAttr: 'CSV',
+                    className: 'btn-csv',
+                    action: function () {
+                        var p = getFilterParams();
+                        var url = '<?php echo base_url("admin/onlinestudent/export_excel"); ?>?format=csv&';
+                        $.each(p, function (k, v) { url += encodeURIComponent(k) + '=' + encodeURIComponent(v) + '&'; });
+                        window.location.href = url;
+                    }
+                },
+                {
+                    extend:    'print',
+                    text:      '<i class="fa fa-print"></i>',
+                    titleAttr: 'Print',
+                    className: 'btn-print',
+                    title: $('.student-list').data('export-title'),
+                    customize: function (win) {
+                        $(win.document.body).find('th').addClass('display').css('text-align', 'center');
+                        $(win.document.body).find('table').addClass('display').css('font-size', '14px');
+                        $(win.document.body).find('td').addClass('display').css('text-align', 'left');
+                        $(win.document.body).find('h1').css('text-align', 'center');
+                    },
+                    exportOptions: { columns: ['thead th:not(.noExport)'] }
+                }
+            ],
+            language: {
+                processing: '<i class="fa fa-spinner fa-spin fa-1x fa-fw"></i><span class="sr-only">Loading...</span> ',
+                sLengthMenu: '_MENU_'
+            },
+            pageLength: 10,
+            searching: true,
+            aaSorting: [],
+            aoColumnDefs: [{ bSortable: false, aTargets: [-1], sClass: 'dt-body-right' }],
+            processing: true,
+            serverSide: true,
+            ajax: {
+                url:     '<?php echo base_url("admin/onlinestudent/getstudentlist"); ?>',
+                type:    'POST',
+                dataSrc: 'data',
+                data: function (d) {
+                    return $.extend({}, d, getFilterParams());
+                }
+            }
         });
 
-        // Override the generic Excel button to export online admission data
-        // (the default initDatatable button is hardcoded to the login-detail report)
-        $(document).on('click', '.btn-excel', function(e) {
-            e.preventDefault();
-            e.stopImmediatePropagation();
-            var quota  = $('#filter_quota').val();
-            var status = $('#filter_form_status').val();
-            var submittedBy = $('#filter_submitted_by').val();
-            var url    = '<?php echo base_url("admin/onlinestudent/export_excel"); ?>?';
-            if (quota  !== '') url += 'quota_type_filter='  + encodeURIComponent(quota)  + '&';
-            if (status !== '') url += 'paid_status_filter=' + encodeURIComponent(status) + '&';
-            if (submittedBy !== '') url += 'submitted_by_filter=' + encodeURIComponent(submittedBy) + '&';
-            window.location.href = url;
+        studentTable.on('draw.dt', function () {
+            var info = studentTable.page.info();
+            $('#student-list-footer').text('Total Records: ' + info.recordsTotal);
+        });
+
+        $('#filter_form_status, #filter_quota, #filter_submitted_by').on('change', function () {
+            studentTable.ajax.reload();
         });
 
         // prevent any delegated row click from blocking anchor navigation
-        $(document).on('click', '.student-list td a', function(e) {
+        $(document).on('click', '.student-list td a', function (e) {
             e.stopPropagation();
-            // allow default action
         });
     });
 } ( jQuery ) )

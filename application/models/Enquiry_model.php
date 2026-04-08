@@ -151,6 +151,38 @@ class enquiry_model extends MY_Model
         return $query->row_array();
     }
 
+    public function getLatestFollowUps($enquiry_ids)
+    {
+        if (empty($enquiry_ids)) {
+            return [];
+        }
+
+        // Sanitize IDs
+        $enquiry_ids = array_map('intval', $enquiry_ids);
+        $mapped = [];
+
+        // Chunk IDs to avoid hitting max_allowed_packet limits in MySQL if there are many thousand queries
+        $chunks = array_chunk($enquiry_ids, 1000);
+        foreach ($chunks as $chunk) {
+            $ids_string = implode(',', $chunk);
+            $sql = "SELECT f.* FROM follow_up f
+                    JOIN (
+                        SELECT MAX(id) as max_id FROM follow_up
+                        WHERE enquiry_id IN ({$ids_string})
+                        GROUP BY enquiry_id
+                    ) max_f ON f.id = max_f.max_id";
+
+            $query = $this->db->query($sql);
+            $result = $query->result_array();
+
+            foreach ($result as $row) {
+                $mapped[$row['enquiry_id']] = $row;
+            }
+        }
+
+        return $mapped;
+    }
+
     public function getfollow_up_list($enquiry_id, $follow_up = null)
     {
         $this->db->select('follow_up.*, staff.employee_id, staff.name, staff.surname,enquiry.created_by')->from('follow_up');
@@ -333,6 +365,122 @@ class enquiry_model extends MY_Model
         $this->db->where("contact", $phone_number);
         $result = $this->db->get();
         return $result->row_array();
+    }
+
+    /**
+     * Server-Side Processing query for DataTables.
+     * Returns paginated, searched, ordered enquiry rows with follow-up data
+     * resolved in a single LEFT JOIN subquery (no N+1).
+     */
+    public function dtenquirylist_ssp($draw, $start, $length, $search_value, $order_col_idx, $order_dir, $filter)
+    {
+        $db = $this->db;
+
+        // Map DataTable column index → SQL expression
+        $col_map = [
+            0 => 'e.id',
+            1 => 'e.name',
+            2 => 'e.contact',
+            3 => 'e.source',
+            4 => 'lv.vendor_name',
+            5 => 'dsv.vendor_name',
+            6 => 'e.date',
+            7 => 'f.date',
+            8 => 'COALESCE(f.next_date, e.follow_up_date)',
+            9 => 'e.status',
+        ];
+        $order_col = isset($col_map[$order_col_idx]) ? $col_map[$order_col_idx] : 'e.id';
+        $order_dir = strtoupper($order_dir) === 'ASC' ? 'ASC' : 'DESC';
+
+        // Build filter WHERE parts (no search)
+        $filter_parts = [];
+        $status = !empty($filter['status']) ? $filter['status'] : 'active';
+        if ($status !== 'all') {
+            $filter_parts[] = "e.status = " . $db->escape($status);
+        }
+        if (!empty($filter['class'])) {
+            $filter_parts[] = "e.class_id = " . (int) $filter['class'];
+        }
+        if (!empty($filter['department_id'])) {
+            $filter_parts[] = "c.department_id = " . (int) $filter['department_id'];
+        }
+        if (!empty($filter['source'])) {
+            $filter_parts[] = "e.source = " . $db->escape($filter['source']);
+        }
+        if (!empty($filter['lead_vendor_id'])) {
+            $filter_parts[] = "e.lead_vendor_id = " . (int) $filter['lead_vendor_id'];
+        }
+        if (!empty($filter['date_from'])) {
+            $filter_parts[] = "e.date >= " . $db->escape($filter['date_from']);
+        }
+        if (!empty($filter['date_to'])) {
+            $filter_parts[] = "e.date <= " . $db->escape($filter['date_to']);
+        }
+        $has_fu_filter = !empty($filter['next_followup_from']) && !empty($filter['next_followup_to']);
+        if ($has_fu_filter) {
+            $filter_parts[] = "COALESCE(f.next_date, e.follow_up_date) BETWEEN "
+                . $db->escape($filter['next_followup_from'])
+                . " AND "
+                . $db->escape($filter['next_followup_to']);
+        }
+
+        $filter_where = !empty($filter_parts) ? 'WHERE ' . implode(' AND ', $filter_parts) : '';
+
+        // Add search condition on top of filter
+        $search_where = $filter_where;
+        if (!empty($search_value)) {
+            $sv = $db->escape('%' . $search_value . '%');
+            $sc = [
+                "e.name LIKE $sv", "e.contact LIKE $sv", "e.email LIKE $sv",
+                "e.source LIKE $sv", "e.ref_no LIKE $sv",
+                "lv.vendor_name LIKE $sv", "e.city LIKE $sv",
+            ];
+            $s_sql = '(' . implode(' OR ', $sc) . ')';
+            $search_where = !empty($filter_where) ? "$filter_where AND $s_sql" : "WHERE $s_sql";
+        }
+
+        // Base FROM + JOINs  (follow_up resolved once per enquiry via correlated MAX subquery)
+        $base_from = "FROM enquiry e
+            LEFT JOIN classes c ON c.id = e.class_id
+            LEFT JOIN online_admission_courses oac ON oac.id = e.admission_course_id
+            LEFT JOIN lead_api_vendors lv ON lv.id = e.lead_vendor_id
+            LEFT JOIN lead_api_vendors dsv ON dsv.id = e.duplicate_source_vendor_id
+            LEFT JOIN follow_up f ON f.id = (
+                SELECT MAX(f2.id) FROM follow_up f2 WHERE f2.enquiry_id = e.id
+            )";
+
+        // Count without search (for recordsTotal per filter set)
+        $records_total = (int) $db->query("SELECT COUNT(e.id) as cnt $base_from $filter_where")->row_array()['cnt'];
+
+        // Count with search (for recordsFiltered)
+        $records_filtered = (int) $db->query("SELECT COUNT(e.id) as cnt $base_from $search_where")->row_array()['cnt'];
+
+        // Paginated data
+        $start  = max(0, (int) $start);
+        $length = max(1, min(200, (int) $length));
+
+        $rows = $db->query("
+            SELECT
+                e.id, e.ref_no, e.name, e.contact, e.email, e.state, e.city,
+                e.source, e.date, e.follow_up_date, e.status, e.created_by, e.assigned,
+                e.lead_vendor_id, e.duplicate_source_vendor_id,
+                oac.course_name as admission_course_name,
+                lv.vendor_name as lead_vendor_name,
+                dsv.vendor_name as duplicate_source_vendor_name,
+                f.date as followupdate,
+                f.next_date
+            $base_from
+            $search_where
+            ORDER BY $order_col $order_dir
+            LIMIT $start, $length
+        ")->result_array();
+
+        return [
+            'draw'            => (int) $draw,
+            'recordsTotal'    => $records_total,
+            'recordsFiltered' => $records_filtered,
+            'data'            => $rows,
+        ];
     }
 
 }

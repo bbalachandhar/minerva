@@ -108,11 +108,11 @@ class Onlinestudent_model extends MY_Model
                 . "AND (LOWER(ift2.title) LIKE '%tuition%' OR LOWER(ift2.title) LIKE '%tution%' OR LOWER(ift2.title) LIKE '%other fee%'))";
             $course_fee_expr = "COALESCE(online_admissions.course_fee_total, IF(online_admissions.quota_type = 'management', online_admission_courses.mgt_fee, online_admission_courses.govt_fee))";
             if ($paid_status_filter === 'applied') {
-                // Applied: app fee paid, no course fee paid yet
-                $this->datatables->where("$app_fee_subquery > 0 AND $paid_subquery <= 0", null, false);
+                // Applied: app fee paid (via incidental_fee OR gateway paid_status=1), no course fee paid yet
+                $this->datatables->where("($app_fee_subquery > 0 OR online_admissions.paid_status = 1) AND $paid_subquery <= 0", null, false);
             } elseif ($paid_status_filter === '0') {
-                // Not Paid: app fee not paid and no course fee paid
-                $this->datatables->where("$app_fee_subquery = 0 AND $paid_subquery <= 0", null, false);
+                // Not Paid: app fee NOT paid (neither incidental_fee NOR gateway) and no course fee paid
+                $this->datatables->where("$app_fee_subquery = 0 AND online_admissions.paid_status != 1 AND $paid_subquery <= 0", null, false);
             } elseif ($paid_status_filter === '2') {
                 // Partially Paid: some course fee paid but not fully
                 $this->datatables->where("$paid_subquery > 0 AND ($course_fee_expr <= 0 OR $paid_subquery < $course_fee_expr)", null, false);

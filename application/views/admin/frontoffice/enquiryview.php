@@ -174,99 +174,7 @@ if ($enkey == $status) {
                                                     <th class="text-right noExport1"><?php echo $this->lang->line('action'); ?></th>
                                                 </tr>
                                             </thead>
-                                            <tbody>
-                                                <?php
-
-if (empty($enquiry_list)) {
-    ?>
-                                                    <?php
-} else {
-    foreach ($enquiry_list as $key => $value) {
-        $current_date = date("Y-m-d");
-        $next_followup_date = isset($value["next_date"]) ? trim((string) $value["next_date"]) : '';
-        $display_next_date = $next_followup_date;
-        if (empty($display_next_date)) {
-            $display_next_date = isset($value["follow_up_date"]) ? $value["follow_up_date"] : '';
-        }
-
-        $status_key = strtolower(trim((string) ($value["status"] ?? '')));
-        $followup_cell_class = '';
-        $status_cell_class = '';
-        if ($status_key === 'application_done') {
-            $followup_cell_class = 'cell-alert-green';
-            $status_cell_class = 'cell-alert-green';
-        } elseif (!empty($display_next_date) && $display_next_date !== '0000-00-00') {
-            if ($display_next_date === $current_date) {
-                $followup_cell_class = 'cell-alert-yellow';
-                $status_cell_class = 'cell-alert-yellow';
-            } elseif ($display_next_date < $current_date && $status_key === 'active') {
-                $followup_cell_class = 'cell-alert-red';
-                $status_cell_class = 'cell-alert-red';
-            }
-        }
-        ?>
-                                                        <tr>
-                                                            <td class="mailbox-name">
-                                                                <?php echo !empty($value['ref_no']) ? $value['ref_no'] : date('Y') . str_pad($value['id'], 6, '0', STR_PAD_LEFT); ?>
-                                                            </td>
-                                                            <td class="mailbox-name"><?php echo $value['name']; ?> </td>
-                                                            <td class="mailbox-name"><?php echo $value['contact']; ?> </td>
-                                                            <td class="mailbox-name"><?php echo $value['source']; ?></td>
-                                                            <td class="mailbox-name">
-                                                                <?php if (!empty($value['duplicate_source_vendor_id'])): ?>
-                                                                    <span class="label label-warning" title="This record was a duplicate when submitted">Duplicate</span><br>
-                                                                <?php endif; ?>
-                                                                <?php echo !empty($value['lead_vendor_name']) ? html_escape($value['lead_vendor_name']) : '-'; ?>
-                                                            </td>
-                                                            <td class="mailbox-name">
-                                                                <?php if (!empty($value['duplicate_source_vendor_id'])): ?>
-                                                                    <span title="Original record was first submitted by this vendor"><?php echo html_escape($value['duplicate_source_vendor_name']); ?></span>
-                                                                <?php else: ?>
-                                                                    <span class="text-muted">-</span>
-                                                                <?php endif; ?>
-                                                            </td>
-                                                            <td class="mailbox-name" data-order="<?php echo $value['date']; ?>"> <?php
-if (!empty($value["date"])) {
-            echo date($this->customlib->getSchoolDateFormat(), $this->customlib->dateyyyymmddTodateformat($value['date']));
-        }
-        ?></td>
-                                                            <td class="mailbox-name"> <?php
-if (!empty($value["followupdate"])) {
-            echo date($this->customlib->getSchoolDateFormat(), $this->customlib->dateyyyymmddTodateformat($value['followupdate']));
-        }
-        ?></td>
-                                                            <td class="mailbox-name <?php echo $followup_cell_class; ?>" data-order="<?php echo (!empty($display_next_date) && $display_next_date != '0000-00-00') ? $display_next_date : '9999-12-31'; ?>"> <?php
-if (!empty($display_next_date) && $display_next_date != '0000-00-00') {
-            echo date($this->customlib->getSchoolDateFormat(), $this->customlib->dateyyyymmddTodateformat($display_next_date));
-        }
-        ?></td>
-                                                            <td class="<?php echo $status_cell_class; ?>"> <?php echo $enquiry_status[$value["status"]] ?></td>
-                                                            <td class="mailbox-date text-right white-space-nowrap">
-                                                                                                                                <?php if ($this->rbac->hasPrivilege('follow_up_admission_enquiry', 'can_view')) {?>
-                                                                                                                                    <a class="btn btn-default btn-xs" onclick="follow_up('<?php echo $value['id']; ?>', '<?php echo $value['status']; ?>', '<?php echo $value['created_by']; ?>');"  data-target="#follow_up" data-toggle="modal"  title="<?php echo $this->lang->line('follow_up_admission_enquiry'); ?>">
-                                                                                                                                        <i class="fa fa-phone"></i>
-                                                                                                                                    </a>
-                                                                                                                                    <a href="<?php echo site_url('publicadmissionform?email=' . urlencode($value['email']) . '&name=' . urlencode($value['name']) . '&mobileno=' . urlencode($value['contact']) . '&enquiry_id=' . (int)$value['id'] . '&employee_id=' . (int)$this->customlib->getStaffID()); ?>" class="btn btn-default btn-xs" data-toggle="tooltip" title="Create Admission" target="_blank">
-                                                                                                                                        <i class="fa fa-user-plus"></i>
-                                                                                                                                    </a>                                                                                                                                <?php }
-                                                                ?>                                                                <?php if ($this->rbac->hasPrivilege('admission_enquiry', 'can_edit')) {?>
-                                                                    <a  onclick="getRecord('<?php echo $value['id']; ?>', '<?php echo $value['status']; ?>')" class="btn btn-default btn-xs" data-target="#myModaledit" data-toggle="modal"   title="<?php echo $this->lang->line('edit'); ?>"><i class="fa fa-pencil"></i>
-                                                                    </a>
-                                                                <?php }
-        ?>
-                                                                <?php if ($this->rbac->hasPrivilege('admission_enquiry', 'can_delete')) {?>
-                                                                    <a href="#" class="btn btn-default btn-xs" data-toggle="tooltip" title="" onclick="delete_enquiry('<?php echo $value["id"] ?>')" data-original-title="<?php echo $this->lang->line('delete'); ?>">
-                                                                        <i class="fa fa-remove"></i>
-                                                                    </a>
-                                                                <?php }
-        ?>
-                                                            </td>
-                                                        </tr>
-                                                        <?php
-}
-}
-?>
-                                            </tbody>
+                                            <tbody></tbody>
                                         </table><!-- /.table -->
                                         <div style="text-align:right;font-weight:bold;padding:6px 4px;" id="enquiry-list-footer"></div>
                                     </div>
@@ -719,93 +627,125 @@ if (!empty($display_next_date) && $display_next_date != '0000-00-00') {
     }
 
     function update() {
-        window.location.reload(true);
+        // Reload only the DataTable rows, not the whole page
+        if (window.enquiryTable) {
+            window.enquiryTable.ajax.reload(null, false);
+        }
     }
 </script>
 <script type="text/javascript">
+    // Active filter state — updated when the user clicks Search
+    var dtFilters = {
+        filter_status:             '<?php echo addslashes($status); ?>',
+        filter_class:              '<?php echo addslashes($selected_class); ?>',
+        filter_department_id:      '<?php echo addslashes($selected_department); ?>',
+        filter_source:             '<?php echo addslashes($source_select); ?>',
+        filter_lead_vendor_id:     '<?php echo (int)$selected_lead_vendor; ?>',
+        filter_date_from:          '',
+        filter_date_to:            '',
+        filter_next_followup_from: '',
+        filter_next_followup_to:   ''
+    };
+
     $(document).ready(function () {
-        $("#enquirytable").DataTable({
-            searching: true,
-            paging: true,
-            pageLength: 25,
-            bSort: true,
-            info: false,
-            /* default ordering: enquiry date descending (newest first) */
+        window.enquiryTable = $("#enquirytable").DataTable({
+            processing:  true,
+            serverSide:  true,
+            ajax: {
+                url:  '<?php echo base_url("admin/enquiry/dtenquirylist"); ?>',
+                type: 'GET',
+                data: function (d) {
+                    return $.extend({}, d, dtFilters);
+                }
+            },
+            pageLength: 50,
             order: [[6, 'desc']],
             dom: "Bfrtip",
-            initComplete: function() {
-                var total = this.api().data().count();
-                $('#enquiry-list-footer').text('Total Records: ' + total);
+            columns: [
+                { data: 0,  orderable: true  },   // ref_no
+                { data: 1,  orderable: true  },   // name
+                { data: 2,  orderable: true  },   // contact
+                { data: 3,  orderable: true  },   // source
+                { data: 4,  orderable: false },   // lead vendor
+                { data: 5,  orderable: false },   // dup source
+                { data: 6,  orderable: true  },   // enquiry date
+                { data: 7,  orderable: true  },   // last follow-up
+                { data: 8,  orderable: true  },   // next follow-up
+                { data: 9,  orderable: true  },   // status
+                { data: 10, orderable: false },   // actions
+                { data: 11, visible: false, orderable: false, searchable: false }, // followup colour
+                { data: 12, visible: false, orderable: false, searchable: false }  // status colour
+            ],
+            createdRow: function (row, data) {
+                if (data[11]) { $('td', row).eq(8).addClass(data[11]); }
+                if (data[12]) { $('td', row).eq(9).addClass(data[12]); }
+            },
+            drawCallback: function () {
+                var info = this.api().page.info();
+                $('#enquiry-list-footer').text('Total Records: ' + info.recordsDisplay);
             },
             buttons: [
-
                 {
-                    extend: 'copyHtml5',
-                    text: '<i class="fa fa-files-o"></i>',
-                    titleAttr: 'Copy',
-                    title: $('.download_label').html(),
-                    exportOptions: {
-                        columns: ':visible'
+                    extend:    'copyHtml5',
+                    text:      '<i class="fa fa-files-o"></i>',
+                    titleAttr: 'Copy (current page)',
+                    title:     $('.download_label').html(),
+                    exportOptions: { columns: ':visible:not(:last-child)' }
+                },
+                {
+                    text:      '<i class="fa fa-file-excel-o"></i>',
+                    titleAttr: 'Export to Excel (all filtered records)',
+                    action: function () {
+                        window.location = '<?php echo base_url("admin/enquiry/exportenquiry"); ?>?' + $.param(dtFilters);
                     }
                 },
-
                 {
-                    extend: 'excelHtml5',
-                    text: '<i class="fa fa-file-excel-o"></i>',
-                    titleAttr: 'Excel',
-                    title: $('.download_label').html(),
-                    exportOptions: {
-                        columns: ':visible'
+                    text:      '<i class="fa fa-file-text-o"></i>',
+                    titleAttr: 'Export to CSV (all filtered records)',
+                    action: function () {
+                        window.location = '<?php echo base_url("admin/enquiry/exportenquiry"); ?>?' + $.param(dtFilters);
                     }
                 },
-
                 {
-                    extend: 'csvHtml5',
-                    text: '<i class="fa fa-file-text-o"></i>',
-                    titleAttr: 'CSV',
-                    title: $('.download_label').html(),
-                    exportOptions: {
-                        columns: ':visible'
-                    }
+                    extend:    'pdfHtml5',
+                    text:      '<i class="fa fa-file-pdf-o"></i>',
+                    titleAttr: 'PDF (current page)',
+                    title:     $('.download_label').html(),
+                    exportOptions: { columns: ':visible:not(:last-child)' }
                 },
-
                 {
-                    extend: 'pdfHtml5',
-                    text: '<i class="fa fa-file-pdf-o"></i>',
-                    titleAttr: 'PDF',
-                    title: $('.download_label').html(),
-                    exportOptions: {
-                        columns: ':visible'
-
-                    }
-                },
-
-                {
-                    extend: 'print',
-                    text: '<i class="fa fa-print"></i>',
-                    titleAttr: 'Print',
-                    title: $('.download_label').html(),
+                    extend:    'print',
+                    text:      '<i class="fa fa-print"></i>',
+                    titleAttr: 'Print (current page)',
+                    title:     $('.download_label').html(),
                     customize: function (win) {
-                        $(win.document.body)
-                                .css('font-size', '10pt');
-
-                        $(win.document.body).find('table')
-                                .addClass('compact')
-                                .css('font-size', 'inherit');
+                        $(win.document.body).css('font-size', '10pt');
+                        $(win.document.body).find('table').addClass('compact').css('font-size', 'inherit');
                     },
-                    exportOptions: {                    
-                        columns: 'th:not(:last-child)'                    
-                    },
+                    exportOptions: { columns: ':visible:not(:last-child)' }
                 },
-
                 {
-                    extend: 'colvis',
-                    text: '<i class="fa fa-columns"></i>',
-                    titleAttr: 'Columns',
-                    title: $('.download_label').html(),
-                    postfixButtons: ['colvisRestore']
-                },
+                    extend:        'colvis',
+                    text:          '<i class="fa fa-columns"></i>',
+                    titleAttr:     'Columns',
+                    postfixButtons:['colvisRestore']
+                }
             ]
+        });
+
+        // Intercept the filter form — update dtFilters and reload DT without a full page reload
+        $('form[action$="admin/enquiry"]').on('submit', function (e) {
+            e.preventDefault();
+            dtFilters.filter_status             = $('[name="status"]').val()             || '';
+            dtFilters.filter_class              = $('[name="class"]').val()               || '';
+            dtFilters.filter_department_id      = $('[name="department_id"]').val()       || '';
+            dtFilters.filter_source             = $('[name="source"]').val()              || '';
+            dtFilters.filter_lead_vendor_id     = $('[name="lead_vendor_id"]').val()      || '';
+            dtFilters.filter_date_from          = $('[name="from_date"]').val()           || '';
+            dtFilters.filter_date_to            = $('[name="to_date"]').val()             || '';
+            dtFilters.filter_next_followup_from = $('[name="last_follow_up_from"]').val() || '';
+            dtFilters.filter_next_followup_to   = $('[name="last_follow_up_to"]').val()   || '';
+            window.enquiryTable.ajax.reload();
         });
     });
 
