@@ -666,6 +666,7 @@ class Payroll extends Admin_Controller
 
         $paid_leave_absent = $this->getPaidLeaveAbsentCountRange($period['start_date'], $period['end_date'], $staff_id);
         $weekend_lop_days = $this->getNonPayableWeekendCountRange($staff_id, $period['start_date'], $period['end_date'], $context);
+        $weekend_lop_dates = $this->getNonPayableWeekendDatesRange($staff_id, $period['start_date'], $period['end_date'], $context);
 
         // Debit-direction (applyleave) absent days ALWAYS subtract from LOP in BOTH modes.
         // Staff explicitly consumed their balance for these days — they must never become LOP,
@@ -744,6 +745,7 @@ class Payroll extends Admin_Controller
             'late_half_days' => $late_half_days,
             'permission_half_days' => $permission_half_days,
             'weekend_lop_days' => $weekend_lop_days,
+            'weekend_lop_dates' => $weekend_lop_dates,
             'lop_days' => $lop_days,
             'paid_days' => $paid_days,
             'od_adjusted_days' => $od_adjusted_days,
@@ -1340,6 +1342,68 @@ class Payroll extends Admin_Controller
         }
 
         return (float) max(0, $non_payable_weekends);
+    }
+
+    private function getNonPayableWeekendDatesRange($staff_id, $start_date, $end_date, $context = null)
+    {
+        if ($context === null) {
+            $context = $this->getWorkingDayContextRange($start_date, $end_date);
+        }
+
+        $weekend_dates = $context['weekend_day_dates'] ?? [];
+        $working_dates = $context['working_day_dates'] ?? [];
+
+        if (empty($weekend_dates) || empty($working_dates)) {
+            return [];
+        }
+
+        sort($weekend_dates);
+
+        $extended_start = date('Y-m-d', strtotime($start_date . ' -10 day'));
+        $extended_end = date('Y-m-d', strtotime($end_date . ' +10 day'));
+        $extended_context = $this->getWorkingDayContextRange($extended_start, $extended_end);
+        $working_dates_extended = $extended_context['working_day_dates'] ?? $working_dates;
+        sort($working_dates_extended);
+
+        $attendance_cache = [];
+        $non_payable_weekend_dates = [];
+
+        foreach ($weekend_dates as $weekend_date) {
+            $prev_working_date = null;
+            $next_working_date = null;
+
+            foreach ($working_dates_extended as $working_date) {
+                if ($working_date < $weekend_date) {
+                    $prev_working_date = $working_date;
+                    continue;
+                }
+
+                if ($working_date > $weekend_date) {
+                    $next_working_date = $working_date;
+                    break;
+                }
+            }
+
+            if (empty($prev_working_date) || empty($next_working_date)) {
+                continue;
+            }
+
+            if (!isset($attendance_cache[$prev_working_date])) {
+                $attendance_cache[$prev_working_date] = $this->staffattendancemodel->searchStaffattendance($prev_working_date, $staff_id, false);
+            }
+            if (!isset($attendance_cache[$next_working_date])) {
+                $attendance_cache[$next_working_date] = $this->staffattendancemodel->searchStaffattendance($next_working_date, $staff_id, false);
+            }
+
+            $prev_absent = $this->isAbsentForWeekendBridge((array) ($attendance_cache[$prev_working_date] ?? []), (int) $staff_id);
+            $next_absent = $this->isAbsentForWeekendBridge((array) ($attendance_cache[$next_working_date] ?? []), (int) $staff_id);
+
+            if ($prev_absent && $next_absent) {
+                $non_payable_weekend_dates[] = $weekend_date;
+            }
+        }
+
+        return array_values(array_unique($non_payable_weekend_dates));
     }
 
     private function getPaidLeaveAbsentCount($month_num, $year, $staff_id, $context = null)
@@ -2819,6 +2883,13 @@ class Payroll extends Admin_Controller
 
             // If overwriting and recomputing LOP, reset the monthly balance adjustments first.
             if (!empty($staff['payslip_id']) && $overwrite && !$use_committed_lop) {
+                // Remove prior payroll-generated LOP audit rows so reruns do not duplicate history.
+                $this->payroll_model->clearPayrollLopAuditForMonth(
+                    (int) $staff['id'],
+                    (int) $month_numeric,
+                    (int) $year
+                );
+
                 $this->db->where('staff_id', $staff['id']);
                 $this->db->where('year', (int)$year);
                 $this->db->where('month', (int)$month_numeric);

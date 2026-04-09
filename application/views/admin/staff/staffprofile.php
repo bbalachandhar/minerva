@@ -1332,25 +1332,125 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                 $formatted = rtrim(rtrim($formatted, '0'), '.');
                                 return $formatted === '' ? '0' : $formatted;
                             };
+                            $leave_transactions = isset($leave_transactions) && is_array($leave_transactions) ? $leave_transactions : [];
+                            $leave_transactions_by_type = [];
+                            foreach ($leave_transactions as $txn) {
+                                $txn_leave_type_id = isset($txn['leave_type_id']) ? (int) $txn['leave_type_id'] : 0;
+                                if (!isset($leave_transactions_by_type[$txn_leave_type_id])) {
+                                    $leave_transactions_by_type[$txn_leave_type_id] = [];
+                                }
+                                $leave_transactions_by_type[$txn_leave_type_id][] = $txn;
+                            }
                             ?>
                             <div class="row row-flex">
                                 <?php foreach ($leavedetails as $ldkey => $ldvalue) {
+                                    $leave_type_id = isset($ldvalue['id']) ? (int) $ldvalue['id'] : 0;
+                                    $type_transactions = isset($leave_transactions_by_type[$leave_type_id]) ? $leave_transactions_by_type[$leave_type_id] : [];
+                                    $request_style_history = !empty($type_transactions);
+                                    foreach ($type_transactions as $type_txn) {
+                                        $history_action = strtoupper(trim((string) ($type_txn['action_type'] ?? '')));
+                                        if (!in_array($history_action, ['CREDIT_APPLIED', 'PAYROLL_DEBIT'], true)) {
+                                            $request_style_history = false;
+                                            break;
+                                        }
+                                    }
                                 ?>
-                                        <div class="col-lg-3 col-md-4 col-sm-6 col-xs-12">
-                                            <div class="staffprofile">
-                                                <h5><?php echo $ldvalue["type"] . " (" . $format_leave_count($ldvalue["alloted_leave"]) . ")"; ?></h5>
-                                                <p><?php echo $this->lang->line('used'); ?>: <?php
-                                                                                                echo $format_leave_count(isset($ldvalue["approve_leave"]) ? $ldvalue["approve_leave"] : 0);
-                                                                                                ?></p>
-                                                <p><?php echo $this->lang->line('available'); ?>: <?php 
-                                                    if (isset($ldvalue["available"])) {
-                                                        echo $format_leave_count($ldvalue["available"]);
-                                                    } else {
-                                                        echo $format_leave_count($ldvalue["alloted_leave"] - $ldvalue["approve_leave"]);
-                                                    }
-                                                ?></p>
-                                                <div class="icon">
-                                                    <i class="fa fa-plane"></i>
+                                        <div class="col-lg-6 col-md-6 col-sm-12 col-xs-12">
+                                            <div class="staffprofile" style="background: linear-gradient(135deg, #f8fbff, #eef6ff); border: 1px solid #d9e7ff; color: #2c3e50; min-height: 240px;">
+                                                <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
+                                                    <div>
+                                                        <h5 style="color:#1f3f75;font-weight:700;margin:0;"><?php echo htmlspecialchars((string) ($ldvalue["type"] ?? ''), ENT_QUOTES, 'UTF-8'); ?></h5>
+                                                        <p style="margin:6px 0 0 0;color:#1e8449;font-size:14px;"><strong>Available:</strong> <?php echo $format_leave_count(isset($ldvalue["available"]) ? $ldvalue["available"] : 0); ?></p>
+                                                    </div>
+                                                    <span class="label label-primary" style="font-size:11px;padding:4px 8px;">Employee History</span>
+                                                </div>
+
+                                                <div style="margin-top:8px;font-size:12px;line-height:1.6;">
+                                                    <div><strong>Opening:</strong> <?php echo $format_leave_count(isset($ldvalue['opening']) ? $ldvalue['opening'] : 0); ?></div>
+                                                    <div><strong>Consumed:</strong> <?php echo $format_leave_count(isset($ldvalue['consumed']) ? $ldvalue['consumed'] : 0); ?></div>
+                                                </div>
+
+                                                <div style="margin-top:10px;border-top:1px solid #d9e7ff;padding-top:8px;">
+                                                    <div style="font-weight:700;color:#1f3f75;margin-bottom:6px;font-size:12px;">Transaction History</div>
+                                                    <div style="max-height:190px;overflow:auto;">
+                                                        <table class="table table-condensed" style="margin-bottom:0;background:#fff;">
+                                                            <thead>
+                                                                <tr>
+                                                                    <?php if ($request_style_history) { ?>
+                                                                        <th style="font-size:11px;">Entry</th>
+                                                                        <th style="font-size:11px;">Applied For</th>
+                                                                        <th style="font-size:11px;">Processed On</th>
+                                                                        <th class="text-right" style="font-size:11px;">Days</th>
+                                                                    <?php } else { ?>
+                                                                        <th style="font-size:11px;">Date</th>
+                                                                        <th style="font-size:11px;">Type</th>
+                                                                        <th class="text-right" style="font-size:11px;">Amount</th>
+                                                                        <th class="text-right" style="font-size:11px;">After</th>
+                                                                        <th style="font-size:11px;">Reason</th>
+                                                                    <?php } ?>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                <?php
+                                                                if (!empty($type_transactions)) {
+                                                                    foreach ($type_transactions as $txn) {
+                                                                        if ($request_style_history) {
+                                                                            $history_action = strtoupper(trim((string) ($txn['action_type'] ?? '')));
+                                                                            $is_payroll_debit = ($history_action === 'PAYROLL_DEBIT');
+                                                                            $applied_for_date = isset($txn['applied_for_date']) ? (string) $txn['applied_for_date'] : '';
+                                                                            $applied_for_label = isset($txn['applied_for_label']) ? (string) $txn['applied_for_label'] : '';
+                                                                            $approved_on_date = isset($txn['approved_on_date']) ? (string) $txn['approved_on_date'] : '';
+                                                                            $applied_for_display = $is_payroll_debit
+                                                                                ? ($applied_for_label !== '' ? $applied_for_label : '-')
+                                                                                : ($applied_for_date !== '' ? date($this->customlib->getSchoolDateFormat(), strtotime($applied_for_date)) : '-');
+                                                                            $approved_on_display = $approved_on_date !== '' ? date($this->customlib->getSchoolDateFormat() . ' H:i', strtotime($approved_on_date)) : '-';
+                                                                            $entry_label = $is_payroll_debit ? 'Used in Payroll' : 'Approved';
+                                                                            $days_color = $is_payroll_debit ? '#c0392b' : '#1e8449';
+                                                                            $days_prefix = $is_payroll_debit ? '-' : '';
+                                                                            ?>
+                                                                            <tr>
+                                                                                <td style="font-size:11px;"><?php echo $entry_label; ?></td>
+                                                                                <td class="white-space-nowrap" style="font-size:11px;"><?php echo $applied_for_display; ?></td>
+                                                                                <td class="white-space-nowrap" style="font-size:11px;"><?php echo $approved_on_display; ?></td>
+                                                                                <td class="text-right" style="font-size:11px;font-weight:700;color:<?php echo $days_color; ?>;"><?php echo $days_prefix . $format_leave_count((float) ($txn['amount'] ?? 0)); ?></td>
+                                                                            </tr>
+                                                                            <?php
+                                                                            continue;
+                                                                        }
+                                                                        $action_type = strtoupper(trim((string) ($txn['action_type'] ?? '')));
+                                                                        $is_credit = (
+                                                                            strpos($action_type, 'CREDIT') !== false
+                                                                            || in_array($action_type, ['PAYROLL_OD_SYNC', 'CREDIT_APPLIED'], true)
+                                                                        );
+                                                                        $amount_color = $is_credit ? '#1e8449' : '#c0392b';
+                                                                        $amount_prefix = $is_credit ? '+' : '-';
+                                                                        $created_at = isset($txn['created_at']) ? (string) $txn['created_at'] : '';
+                                                                        $date_display = $created_at !== '' ? date($this->customlib->getSchoolDateFormat() . ' H:i', strtotime($created_at)) : '-';
+                                                                        $reason_display = trim((string) ($txn['reason'] ?? ''));
+                                                                        if ($reason_display === '') {
+                                                                            $reason_display = '-';
+                                                                        }
+                                                                        ?>
+                                                                        <tr>
+                                                                            <td class="white-space-nowrap" style="font-size:11px;"><?php echo $date_display; ?></td>
+                                                                            <td style="font-size:11px;"><span class="label <?php echo $is_credit ? 'label-success' : 'label-danger'; ?>" style="font-size:10px;"><?php echo htmlspecialchars($action_type, ENT_QUOTES, 'UTF-8'); ?></span></td>
+                                                                            <td class="text-right" style="font-size:11px;color: <?php echo $amount_color; ?>;font-weight:700;"><?php echo $amount_prefix . $format_leave_count((float) ($txn['amount'] ?? 0)); ?></td>
+                                                                            <td class="text-right" style="font-size:11px;"><?php echo $format_leave_count((float) ($txn['balance_after'] ?? 0)); ?></td>
+                                                                            <td style="font-size:11px;"><?php echo htmlspecialchars($reason_display, ENT_QUOTES, 'UTF-8'); ?></td>
+                                                                        </tr>
+                                                                        <?php
+                                                                    }
+                                                                } else {
+                                                                    ?>
+                                                                    <tr>
+                                                                        <td colspan="5" class="text-center text-muted" style="font-size:11px;">No transactions for this leave type.</td>
+                                                                    </tr>
+                                                                    <?php
+                                                                }
+                                                                ?>
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div><!--./col-md-3-->

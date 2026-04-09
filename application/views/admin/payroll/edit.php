@@ -224,6 +224,7 @@ $image=$this->media_storage->getImageURL("uploads/staff_images/" . $file);
                                             </thead>
                                             <tbody>
                                                 <?php
+                                            $sandwich_weekend_notes = [];
                                             $attendence_key_index = 0;
                                             foreach ($monthAttendance as $attendence_key => $attendence_value) {
                                             ?>
@@ -312,6 +313,20 @@ if ($is_current_payroll_month && !empty($payroll_lop_summary)) {
 $total_absent_display = (float) $total_absent + (float) $weekend_lop_days;
 $sandwich_valid_days = max(0, (float) $weekend_count - (float) $weekend_lop_days);
 $paid_days_display = (float) $total_present + (float) $sandwich_valid_days;
+
+if ((float) $weekend_lop_days > 0) {
+    $weekend_lop_dates = [];
+    if ($is_current_payroll_month && !empty($payroll_lop_summary['weekend_lop_dates']) && is_array($payroll_lop_summary['weekend_lop_dates'])) {
+        $weekend_lop_dates = $payroll_lop_summary['weekend_lop_dates'];
+    }
+    $sandwich_weekend_notes[] = [
+        'month_label' => date("F Y", strtotime($attendence_key)),
+        'weekend_lop_days' => (float) $weekend_lop_days,
+        'weekend_count' => (int) $weekend_count,
+        'sandwich_valid_days' => (float) $sandwich_valid_days,
+        'weekend_lop_dates' => $weekend_lop_dates,
+    ];
+}
 
 // For current payroll month, use values from payslip; for other months, query monthly balance
 if ($is_current_payroll_month) {
@@ -418,6 +433,29 @@ if (!empty($date_of_joining)) {
                                             </tbody>
                                         </table>
                                     </div>
+                                    <?php if (!empty($sandwich_weekend_notes)) { ?>
+                                        <div style="margin-top:10px;padding:10px 12px;border:1px solid #ffe58f;background:#fffbe6;color:#8a6d3b;border-radius:4px;font-size:12px;line-height:1.6;">
+                                            <strong><i class="fa fa-exclamation-triangle"></i> Sandwich Weekend LOP Note:</strong>
+                                            <?php foreach ($sandwich_weekend_notes as $sandwich_note) { ?>
+                                                <div style="margin-top:4px;">
+                                                    In <?php echo $sandwich_note['month_label']; ?>, <?php echo rtrim(rtrim(number_format((float) $sandwich_note['weekend_lop_days'], 1, '.', ''), '0'), '.'); ?> weekend day(s) were counted as LOP under the sandwich rule.
+                                                    A weekend day becomes LOP when both adjacent working days are absent-like.
+                                                    (Weekend days: <?php echo (int) $sandwich_note['weekend_count']; ?>,
+                                                    Payable weekends: <?php echo rtrim(rtrim(number_format((float) $sandwich_note['sandwich_valid_days'], 1, '.', ''), '0'), '.'); ?>)
+                                                    <?php if (!empty($sandwich_note['weekend_lop_dates']) && is_array($sandwich_note['weekend_lop_dates'])) { ?>
+                                                        <br>
+                                                        Sandwich LOP dates:
+                                                        <?php
+                                                        $formatted_dates = array_map(function ($date_value) {
+                                                            return date('d M Y', strtotime($date_value));
+                                                        }, $sandwich_note['weekend_lop_dates']);
+                                                        echo implode(', ', $formatted_dates);
+                                                        ?>
+                                                    <?php } ?>
+                                                </div>
+                                            <?php } ?>
+                                        </div>
+                                    <?php } ?>
                                 </div>
                             </div>
                         </div>

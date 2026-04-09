@@ -290,18 +290,270 @@ class Staff extends Admin_Controller
                 $approve_leave = isset($count_leave_row['approve_leave']) ? (float) $count_leave_row['approve_leave'] : 0.0;
             }
 
+            $available_balance = max(0.0, (float) $display_balance);
+            $consumed_balance = max(0.0, (float) $approve_leave);
+            $opening_balance = max(0.0, $available_balance + $consumed_balance);
+
             $leaveDetail[] = array(
                 'id'            => $leave_type_id,
                 'altid'         => isset($row['staff_leave_detail_id']) ? $row['staff_leave_detail_id'] : null,
                 'type'          => $row['type'],
                 'alloted_leave' => $display_balance,
                 'approve_leave' => $approve_leave,
-                'available'     => $display_balance,
+                'available'     => $available_balance,
+                'consumed'      => $consumed_balance,
+                'opening'       => $opening_balance,
                 'year'          => $row['year'],
                 'month'         => $row['month'],
             );
         }
+
+        $leave_transactions = [];
+        $date_based_leave_type_ids = [];
+        if ($this->db->table_exists('staff_leave_balance_audit')) {
+            $leave_transactions = $this->db
+                ->select('a.id, a.leave_type_id, a.action_type, a.amount, a.balance_before, a.balance_after, a.reference_id, a.reference_type, a.reason, a.created_at, lt.type as leave_type_name')
+                ->from('staff_leave_balance_audit a')
+                ->join('leave_types lt', 'lt.id = a.leave_type_id', 'left')
+                ->where('a.staff_id', (int) $id)
+                ->where_not_in('a.action_type', ['LOP_ADJUSTMENT', 'PAYROLL_OD_SYNC'])
+                ->order_by('a.created_at', 'DESC')
+                ->order_by('a.id', 'DESC')
+                ->limit(300)
+                ->get()
+                ->result_array();
+
+            foreach ($leave_transactions as $audit_txn) {
+                $audit_action = strtoupper(trim((string) ($audit_txn['action_type'] ?? '')));
+                if (strpos($audit_action, 'CREDIT') !== false) {
+                    $date_based_leave_type_ids[(int) ($audit_txn['leave_type_id'] ?? 0)] = true;
+                }
+            }
+        }
+
+        $monthly_credit_rows = [];
+
+        // Monthly earned/admin credits are stored in monthly balance rows (not always in audit).
+        // Append them so leave cards show credit entries with dates.
+        if ($this->db->table_exists('staff_monthly_leave_balance')) {
+            $monthly_credit_rows = $this->db
+                ->select('smlb.id, smlb.leave_type_id, lt.type as leave_type_name, smlb.year, smlb.month, smlb.opening_balance, smlb.earned_in_month, smlb.admin_adjustment, smlb.used_for_lop_adjustment, smlb.used_for_leave_application, smlb.closing_balance, smlb.last_processed_date, smlb.created_at, smlb.updated_at')
+                ->from('staff_monthly_leave_balance smlb')
+                ->join('leave_types lt', 'lt.id = smlb.leave_type_id', 'left')
+                ->where('smlb.staff_id', (int) $id)
+                ->order_by('smlb.year', 'DESC')
+                ->order_by('smlb.month', 'DESC')
+                ->order_by('smlb.id', 'DESC')
+                ->get()
+                ->result_array();
+
+            foreach ($monthly_credit_rows as $credit_row) {
+                $earned_credit = (float) ($credit_row['earned_in_month'] ?? 0);
+                $admin_credit = (float) ($credit_row['admin_adjustment'] ?? 0);
+                $credit_amount = $earned_credit + max(0.0, $admin_credit);
+
+                $event_time = !empty($credit_row['created_at'])
+                    ? $credit_row['created_at']
+                    : $credit_row['last_processed_date'];
+
+                $ym_label = sprintf('%04d-%02d', (int) ($credit_row['year'] ?? 0), (int) ($credit_row['month'] ?? 0));
+                if ($credit_amount > 0) {
+                    $opening_balance = (float) ($credit_row['opening_balance'] ?? 0);
+                    $leave_transactions[] = [
+                        'id' => 0,
+                        'leave_type_id' => (int) ($credit_row['leave_type_id'] ?? 0),
+                        'action_type' => 'MONTHLY_CREDIT',
+                        'amount' => $credit_amount,
+                        'balance_before' => $opening_balance,
+                        'balance_after' => $opening_balance + $credit_amount,
+                        'reference_id' => (int) ($credit_row['id'] ?? 0),
+                        'reference_type' => 'monthly_balance',
+                        'reason' => 'Monthly leave credit for ' . $ym_label,
+                        'created_at' => $event_time,
+                        'leave_type_name' => $credit_row['leave_type_name'] ?? '',
+                    ];
+                }
+
+                $lop_adjusted = (float) ($credit_row['used_for_lop_adjustment'] ?? 0);
+                if ($lop_adjusted > 0 && empty($date_based_leave_type_ids[(int) ($credit_row['leave_type_id'] ?? 0)])) {
+                    $lop_event_time = !empty($credit_row['last_processed_date'])
+                        ? $credit_row['last_processed_date']
+                        : (!empty($credit_row['updated_at']) ? $credit_row['updated_at'] : $event_time);
+
+                    $balance_after = (float) ($credit_row['closing_balance'] ?? 0);
+                    $balance_before = $balance_after + $lop_adjusted;
+
+                    $leave_transactions[] = [
+                        'id' => 0,
+                        'leave_type_id' => (int) ($credit_row['leave_type_id'] ?? 0),
+                        'action_type' => 'LOP_ADJUSTMENT',
+                        'amount' => $lop_adjusted,
+                        'balance_before' => $balance_before,
+                        'balance_after' => $balance_after,
+                        'reference_id' => (int) ($credit_row['id'] ?? 0),
+                        'reference_type' => 'monthly_balance',
+                        'reason' => 'Payroll LOP adjustment for ' . $ym_label,
+                        'created_at' => $lop_event_time,
+                        'leave_type_name' => $credit_row['leave_type_name'] ?? '',
+                    ];
+                }
+            }
+        }
+
+        if ($this->db->table_exists('staff_leave_request')) {
+            $credit_requests = $this->db
+                ->select('slr.id, slr.leave_type_id, slr.leave_from, slr.leave_to, slr.leave_days, slr.created_at, slr.updated_at, lt.type as leave_type_name')
+                ->from('staff_leave_request slr')
+                ->join('leave_types lt', 'lt.id = slr.leave_type_id', 'left')
+                ->where('slr.staff_id', (int) $id)
+                ->where('slr.leave_direction', 'credit')
+                ->where_in('slr.status', ['approve', 'approved'])
+                ->order_by('slr.leave_from', 'DESC')
+                ->order_by('slr.id', 'DESC')
+                ->get()
+                ->result_array();
+
+            foreach ($credit_requests as $request_row) {
+                $date_based_leave_type_ids[(int) ($request_row['leave_type_id'] ?? 0)] = true;
+                $applied_for_date = !empty($request_row['leave_from']) ? $request_row['leave_from'] : null;
+                $approved_on_date = !empty($request_row['updated_at']) ? $request_row['updated_at'] : ($request_row['created_at'] ?? null);
+                $leave_transactions[] = [
+                    'id' => 0,
+                    'leave_type_id' => (int) ($request_row['leave_type_id'] ?? 0),
+                    'action_type' => 'CREDIT_APPLIED',
+                    'amount' => (float) ($request_row['leave_days'] ?? 0),
+                    'balance_before' => 0,
+                    'balance_after' => 0,
+                    'reference_id' => (int) ($request_row['id'] ?? 0),
+                    'reference_type' => 'leave_request',
+                    'reason' => 'Approved credit request',
+                    'created_at' => $approved_on_date,
+                    'applied_for_date' => $applied_for_date,
+                    'approved_on_date' => $approved_on_date,
+                    'leave_type_name' => $request_row['leave_type_name'] ?? '',
+                ];
+            }
+        }
+
+        if (!empty($monthly_credit_rows) && !empty($date_based_leave_type_ids)) {
+            foreach ($monthly_credit_rows as $credit_row) {
+                $leave_type_id = (int) ($credit_row['leave_type_id'] ?? 0);
+                $lop_adjusted = (float) ($credit_row['used_for_lop_adjustment'] ?? 0);
+                if (empty($date_based_leave_type_ids[$leave_type_id]) || $lop_adjusted <= 0) {
+                    continue;
+                }
+
+                $processed_on = !empty($credit_row['last_processed_date'])
+                    ? $credit_row['last_processed_date']
+                    : (!empty($credit_row['updated_at']) ? $credit_row['updated_at'] : $credit_row['created_at']);
+                $payroll_month_label = date('F Y', strtotime(sprintf('%04d-%02d-01', (int) ($credit_row['year'] ?? 0), (int) ($credit_row['month'] ?? 0))));
+                $balance_after = (float) ($credit_row['closing_balance'] ?? 0);
+                $balance_before = $balance_after + $lop_adjusted;
+
+                $leave_transactions[] = [
+                    'id' => 0,
+                    'leave_type_id' => $leave_type_id,
+                    'action_type' => 'PAYROLL_DEBIT',
+                    'amount' => $lop_adjusted,
+                    'balance_before' => $balance_before,
+                    'balance_after' => $balance_after,
+                    'reference_id' => (int) ($credit_row['id'] ?? 0),
+                    'reference_type' => 'monthly_balance',
+                    'reason' => 'Used in payroll for ' . $payroll_month_label,
+                    'created_at' => $processed_on,
+                    'applied_for_label' => $payroll_month_label,
+                    'approved_on_date' => $processed_on,
+                    'leave_type_name' => $credit_row['leave_type_name'] ?? '',
+                ];
+            }
+        }
+
+        if (!empty($leave_transactions) && !empty($date_based_leave_type_ids)) {
+            $leave_transactions = array_values(array_filter($leave_transactions, function ($txn) use ($date_based_leave_type_ids) {
+                $leave_type_id = (int) ($txn['leave_type_id'] ?? 0);
+                $action_type = strtoupper(trim((string) ($txn['action_type'] ?? '')));
+                if (in_array($action_type, ['LOP_ADJUSTMENT', 'MONTHLY_CREDIT'], true) && !empty($date_based_leave_type_ids[$leave_type_id])) {
+                    return false;
+                }
+                return true;
+            }));
+
+            $latest_payroll_debit_by_period = [];
+            foreach ($leave_transactions as $txn) {
+                $leave_type_id = (int) ($txn['leave_type_id'] ?? 0);
+                $action_type = strtoupper(trim((string) ($txn['action_type'] ?? '')));
+                if ($action_type !== 'PAYROLL_DEBIT' || empty($date_based_leave_type_ids[$leave_type_id])) {
+                    continue;
+                }
+
+                $period_label = strtolower(trim((string) ($txn['applied_for_label'] ?? '')));
+                if ($period_label === '') {
+                    $period_label = strtolower(trim((string) ($txn['reason'] ?? '')));
+                }
+                $period_key = $leave_type_id . '|' . $period_label;
+                $txn_time = isset($txn['created_at']) ? strtotime((string) $txn['created_at']) : 0;
+                if (!isset($latest_payroll_debit_by_period[$period_key]) || $txn_time > $latest_payroll_debit_by_period[$period_key]['time']) {
+                    $latest_payroll_debit_by_period[$period_key] = [
+                        'time' => $txn_time,
+                        'signature' => md5(json_encode([
+                            $txn['leave_type_id'] ?? null,
+                            $period_label,
+                            $txn['action_type'] ?? null,
+                            $txn['amount'] ?? null,
+                            $txn['created_at'] ?? null,
+                            $txn['reason'] ?? null,
+                        ])),
+                    ];
+                }
+            }
+
+            if (!empty($latest_payroll_debit_by_period)) {
+                $leave_transactions = array_values(array_filter($leave_transactions, function ($txn) use ($date_based_leave_type_ids, $latest_payroll_debit_by_period) {
+                    $leave_type_id = (int) ($txn['leave_type_id'] ?? 0);
+                    $action_type = strtoupper(trim((string) ($txn['action_type'] ?? '')));
+                    if ($action_type !== 'PAYROLL_DEBIT' || empty($date_based_leave_type_ids[$leave_type_id])) {
+                        return true;
+                    }
+
+                    $period_label = strtolower(trim((string) ($txn['applied_for_label'] ?? '')));
+                    if ($period_label === '') {
+                        $period_label = strtolower(trim((string) ($txn['reason'] ?? '')));
+                    }
+                    $period_key = $leave_type_id . '|' . $period_label;
+
+                    $signature = md5(json_encode([
+                        $txn['leave_type_id'] ?? null,
+                        $period_label,
+                        $txn['action_type'] ?? null,
+                        $txn['amount'] ?? null,
+                        $txn['created_at'] ?? null,
+                        $txn['reason'] ?? null,
+                    ]));
+
+                    return isset($latest_payroll_debit_by_period[$period_key])
+                        && $latest_payroll_debit_by_period[$period_key]['signature'] === $signature;
+                }));
+            }
+        }
+
+        if (!empty($leave_transactions)) {
+            usort($leave_transactions, function ($a, $b) {
+                $a_time = isset($a['created_at']) ? strtotime((string) $a['created_at']) : 0;
+                $b_time = isset($b['created_at']) ? strtotime((string) $b['created_at']) : 0;
+                if ($a_time === $b_time) {
+                    return ((int) ($b['id'] ?? 0)) <=> ((int) ($a['id'] ?? 0));
+                }
+                return $b_time <=> $a_time;
+            });
+
+            // Keep payload bounded for profile response.
+            if (count($leave_transactions) > 400) {
+                $leave_transactions = array_slice($leave_transactions, 0, 400);
+            }
+        }
+
         $data["leavedetails"]  = $leaveDetail;
+        $data["leave_transactions"] = $leave_transactions;
         $data["staff_leaves"]  = $staff_leaves;
         $data['staffLeaveDetails'] = (array) $leaveDetail; // Ensure it's an array
         $data['staff_doc_id']  = $id;

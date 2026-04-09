@@ -902,6 +902,30 @@ class Payroll_model extends MY_Model
             $seen[$leave_type_id] = true;
         }
 
+        // Ensure all non-LOP leave types are considered for payroll LOP adjustment,
+        // even when staff_leave_details does not have a row (e.g. CPL carried via
+        // monthly balance table). Availability is validated later from monthly balance.
+        $all_paid_types = $this->db
+            ->select('id, type')
+            ->from('leave_types')
+            ->where('is_lop', 0)
+            ->get()
+            ->result_array();
+
+        foreach ((array) $all_paid_types as $leave_type_row) {
+            $leave_type_id = (int) ($leave_type_row['id'] ?? 0);
+            if ($leave_type_id <= 0 || isset($seen[$leave_type_id])) {
+                continue;
+            }
+
+            $pool[] = [
+                'leave_type_id' => $leave_type_id,
+                'type' => (string) ($leave_type_row['type'] ?? ''),
+                'staff_id' => (int) $staff_id,
+            ];
+            $seen[$leave_type_id] = true;
+        }
+
         usort($pool, function ($left, $right) use ($od_type_ids) {
             $left_is_od = in_array((int) ($left['leave_type_id'] ?? 0), $od_type_ids, true) ? 1 : 0;
             $right_is_od = in_array((int) ($right['leave_type_id'] ?? 0), $od_type_ids, true) ? 1 : 0;
@@ -1525,11 +1549,13 @@ class Payroll_model extends MY_Model
             
             $opening_balance = floatval($balance['opening_balance'] ?? 0);
             $earned_in_month = floatval($balance['earned_in_month'] ?? 0);
+            $used_for_lop_adjustment = floatval($balance['used_for_lop_adjustment'] ?? 0);
             $used_for_leave_application = floatval($balance['used_for_leave_application'] ?? 0);
             $other_deductions = floatval($balance['other_deductions'] ?? 0);
             
-            // Calculate available balance
-            $available = $opening_balance + $earned_in_month - $used_for_leave_application - $other_deductions;
+            // Calculate currently available balance. Subtracting prior LOP usage
+            // keeps repeated payroll runs idempotent for the same month.
+            $available = $opening_balance + $earned_in_month - $used_for_lop_adjustment - $used_for_leave_application - $other_deductions;
             
             if ($available <= 0) {
                 continue;
@@ -1539,7 +1565,6 @@ class Payroll_model extends MY_Model
             $to_adjust = min($available, $remaining_lop);
             
             // Update monthly balance
-            $used_for_lop_adjustment = floatval($balance['used_for_lop_adjustment'] ?? 0);
             $new_used_lop = $used_for_lop_adjustment + $to_adjust;
             $new_closing = $opening_balance + $earned_in_month - $new_used_lop - $used_for_leave_application - $other_deductions;
             
@@ -1660,6 +1685,39 @@ class Payroll_model extends MY_Model
         ];
         
         return $this->db->insert('staff_leave_balance_audit', $data);
+    }
+
+    /**
+     * Remove previously generated payroll LOP audit entries for a month.
+     * This keeps overwrite/re-run payroll operations idempotent in audit history.
+     *
+     * @param int $staff_id
+     * @param int $month
+     * @param int $year
+     * @return int Affected rows
+     */
+    public function clearPayrollLopAuditForMonth($staff_id, $month, $year)
+    {
+        $staff_id = (int) $staff_id;
+        $month = (int) $month;
+        $year = (int) $year;
+
+        if (!$this->db->table_exists('staff_leave_balance_audit')) {
+            return 0;
+        }
+
+        $sql = "
+            DELETE a
+            FROM staff_leave_balance_audit a
+            INNER JOIN staff_monthly_leave_balance b ON b.id = a.balance_id
+            WHERE b.staff_id = ?
+              AND b.month = ?
+              AND b.year = ?
+              AND a.action_type IN ('LOP_ADJUSTMENT', 'PAYROLL_OD_SYNC')
+        ";
+
+        $this->db->query($sql, [$staff_id, $month, $year]);
+        return (int) $this->db->affected_rows();
     }
 
     /**
