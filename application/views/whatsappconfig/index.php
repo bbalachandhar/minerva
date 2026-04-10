@@ -122,12 +122,21 @@
                                                 </div>
                                                 
                                                 <div class="form-group">
-                                                    <label class="col-sm-5 control-label"><?php echo $this->lang->line('registered_phone_number'); ?><small class="req"> *</small></label>
+                                                    <label class="col-sm-5 control-label">Phone Number ID <small class="req"> *</small></label>
                                                     <div class="col-sm-7">
                                                         <input type="text" class="form-control" name="meta_sender_phone_number"  value="<?php echo $meta_result->contact; ?>">
+                                                        <small class="text-muted">Numeric ID from Meta Business Suite (not the actual phone number)</small>
                                                         <span class=" text text-danger meta_sender_phone_number_error"></span>
                                                     </div>
                                                 </div>	
+
+                                                <div class="form-group">
+                                                    <label class="col-sm-5 control-label">WhatsApp Business Account ID (WABA ID)</label>
+                                                    <div class="col-sm-7">
+                                                        <input type="text" class="form-control" name="meta_waba_id" value="<?php echo isset($meta_result->waba_id) ? $meta_result->waba_id : ''; ?>">
+                                                        <small class="text-muted">Found in Meta Business Suite → WhatsApp → Account ID</small>
+                                                    </div>
+                                                </div>
 
 												<div class="form-group">
                                                     <label class="col-sm-5 control-label"><?php echo $this->lang->line('language'); ?><small class="req"> *</small></label>
@@ -183,7 +192,52 @@
                     <!-- /.tab-content -->
                 </div>
             </div>
-        </div>  
+        </div>
+
+        <!-- ── One-Time Phone Number Activation ─────────────────────────── -->
+        <div class="row">
+            <div class="col-md-12">
+                <div class="box box-warning" id="box-activate-number">
+                    <div class="box-header with-border">
+                        <h3 class="box-title"><i class="fa fa-phone-square"></i> One-Time Phone Number Activation</h3>
+                        <div class="box-tools pull-right">
+                            <button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i></button>
+                        </div>
+                    </div>
+                    <div class="box-body">
+                        <p class="text-muted" style="margin-bottom:12px;">
+                            After adding a phone number to your WABA, Meta requires a one-time registration call before it can send messages.
+                            Run this <strong>once per phone number</strong> — the Phone Number ID is pre-filled from your saved config above.
+                        </p>
+                        <div class="row">
+                            <div class="col-md-5">
+                                <div class="form-group">
+                                    <label>Phone Number ID <small class="req">*</small></label>
+                                    <input type="text" id="activate_phone_number_id" class="form-control"
+                                        placeholder="e.g. 123456789012345"
+                                        value="<?php echo isset($meta_result->contact) ? $meta_result->contact : ''; ?>">
+                                    <small class="text-muted">Pre-filled from saved config. Edit if activating a different number.</small>
+                                </div>
+                                <div class="form-group">
+                                    <label>2FA PIN (6 digits) <small class="req">*</small></label>
+                                    <input type="text" id="activate_pin" class="form-control" maxlength="6"
+                                        placeholder="e.g. 123456">
+                                    <small class="text-muted">Set any 6-digit PIN. Note it down — you'll need it if you ever re-register this number.</small>
+                                </div>
+                                <button type="button" id="btn-activate-number" class="btn btn-warning">
+                                    <i class="fa fa-bolt"></i> Activate Number
+                                </button>
+                                &nbsp;<span id="activate_loader"></span>
+                            </div>
+                            <div class="col-md-7">
+                                <div id="activate_result" style="display:none; margin-top:5px;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </section>
 </div>
 
@@ -247,6 +301,49 @@ function check_in_array($find, $array) {
             },
             error: function () {
                 $(".twilio_loader").html('');
+            }
+        });
+    });
+
+    /* -------------------------  Activate Phone Number  -------------------------- */
+    $(document).on('click', '#btn-activate-number', function () {
+        var phone_id = $.trim($('#activate_phone_number_id').val());
+        var pin      = $.trim($('#activate_pin').val());
+
+        if (!phone_id) { alert('Please enter a Phone Number ID.'); return; }
+        if (!/^\d{6}$/.test(pin)) { alert('PIN must be exactly 6 digits.'); return; }
+
+        $('#activate_result').hide();
+        $('#activate_loader').html('<img src="' + img_path + '">');
+        $(this).prop('disabled', true);
+
+        $.ajax({
+            type: "POST",
+            dataType: "JSON",
+            url: "<?php echo site_url('whatsappconfig/activate_phone_number'); ?>",
+            data: { phone_number_id: phone_id, pin: pin },
+            success: function (data) {
+                $('#activate_loader').html('');
+                $('#btn-activate-number').prop('disabled', false);
+                if (data.st === 0) {
+                    $('#activate_result')
+                        .removeClass('alert-danger').addClass('alert alert-success')
+                        .html('<i class="fa fa-check-circle"></i> <strong>Activated successfully!</strong> The number is now ready to send messages.')
+                        .show();
+                } else {
+                    $('#activate_result')
+                        .removeClass('alert-success').addClass('alert alert-danger')
+                        .html('<i class="fa fa-times-circle"></i> <strong>Error:</strong> ' + data.msg)
+                        .show();
+                }
+            },
+            error: function () {
+                $('#activate_loader').html('');
+                $('#btn-activate-number').prop('disabled', false);
+                $('#activate_result')
+                    .removeClass('alert-success').addClass('alert alert-danger')
+                    .html('<i class="fa fa-times-circle"></i> Request failed. Check your network.')
+                    .show();
             }
         });
     });

@@ -16,13 +16,54 @@ class Whatsappgateway
         $this->_CI->load->model('setting_model');
         $this->_CI->load->model('student_model');
         $this->_CI->load->model('whatsappconfig_model');
-        $this->sch_setting = $this->_CI->setting_model->get(); 		
-		
+        $this->sch_setting = $this->_CI->setting_model->get();
+    }
+
+    /**
+     * Log a single WhatsApp send (one message, one recipient).
+     * Called internally by one-to-one send methods.
+     */
+    private function logSent($notification_type, $recipient)
+    {
+        $user_id = $this->_CI->session->userdata('user_id') ?: null;
+        $this->_CI->db->insert('whatsapp_message_log', [
+            'notification_type' => $notification_type,
+            'triggered_by'      => $user_id,
+            'is_bulk'           => 0,
+            'recipient'         => substr(preg_replace('/\D/', '', $recipient), -10), // last 10 digits only
+            'recipient_group'   => null,
+            'recipient_count'   => 1,
+            'month'             => (int) date('n'),
+            'year'              => (int) date('Y'),
+        ]);
+    }
+
+    /**
+     * Log a bulk WhatsApp send (one log row for the entire batch).
+     * Call this ONCE from the controller after the send loop completes.
+     *
+     * @param string $notification_type  e.g. 'student_absent_attendence'
+     * @param string $group_label        Human-readable group, e.g. 'Class 10A - Section B' or 'All MCA students'
+     * @param int    $count              Number of recipients in the batch
+     */
+    public function logBulkSent($notification_type, $group_label, $count)
+    {
+        $user_id = $this->_CI->session->userdata('user_id') ?: null;
+        $this->_CI->db->insert('whatsapp_message_log', [
+            'notification_type' => $notification_type,
+            'triggered_by'      => $user_id,
+            'is_bulk'           => 1,
+            'recipient'         => null,
+            'recipient_group'   => $group_label,
+            'recipient_count'   => (int) $count,
+            'month'             => (int) date('n'),
+            'year'              => (int) date('Y'),
+        ]);
     }
 	
 	/* ================= META ================= */
-	private function sendMetaTemplate($whatsapp_detail,$send_to,$template_id,$language,$msg) {
-		
+	private function sendMetaTemplate($whatsapp_detail, $send_to, $template_id, $language, $msg, $notification_type = '')
+	{
 		$params = [
 			'access_token'    => $whatsapp_detail->authkey,
 			'phone_number_id' => $whatsapp_detail->contact,
@@ -32,7 +73,7 @@ class Whatsappgateway
 
 		$components = [
 			[
-				"type" => "body",
+				"type"       => "body",
 				"parameters" => []
 			]
 		];
@@ -44,48 +85,46 @@ class Whatsappgateway
 			];
 		}
 
-		return $this->_CI->meta_whatsapp->sendTemplate($send_to,$template_id,$language,$components);
-		
+		$result = $this->_CI->meta_whatsapp->sendTemplate($send_to, $template_id, $language, $components);
+		if ($result && $notification_type) {
+			$this->logSent($notification_type, $send_to);
+		}
+		return $result;
 	}
 	/* ================= META ================= */
-	
+
 	/* ================= TWILIO ================= */
-	public function sendByTwilio($whatsapp_detail, $send_to, $template_id, $msg)
-    {
-        $params = [
-            'username' => $whatsapp_detail->username,
-            'password' => $whatsapp_detail->password,
-            'api_version' => '2010-04-01',
-            'number' => $whatsapp_detail->contact,
-            'whatsapp_template_id' => $template_id,
-        ];
+	public function sendByTwilio($whatsapp_detail, $send_to, $template_id, $msg, $notification_type = '')
+	{
+		$params = [
+			'username'             => $whatsapp_detail->username,
+			'password'             => $whatsapp_detail->password,
+			'api_version'          => '2010-04-01',
+			'number'               => $whatsapp_detail->contact,
+			'whatsapp_template_id' => $template_id,
+		];
 
-        $this->_CI->load->library('twilio_whatsapp', $params);
+		$this->_CI->load->library('twilio_whatsapp', $params);
 
-        $response = $this->_CI->twilio_whatsapp->send($whatsapp_detail->contact, $send_to, $msg);
-
-        return ($response && empty($response->error_message));
-    }
+		$response = $this->_CI->twilio_whatsapp->send($whatsapp_detail->contact, $send_to, $msg);
+		$success = ($response && empty($response->error_message));
+		if ($success && $notification_type) {
+			$this->logSent($notification_type, $send_to);
+		}
+		return $success;
+	}
 	/* ================= TWILIO ================= */
 
     public function sendStudentLoginCredential($chk_mail_sms, $sender_details, $template, $template_id)
-    {   
+    {
         $whatsapp_detail = $this->_CI->whatsappconfig_model->getActiveWhatsApp();
-        $msg        = $this->getLoginCredentialContent($sender_details['credential_for'], $sender_details, $template, $whatsapp_detail->type);		
-		
+        $msg     = $this->getLoginCredentialContent($sender_details['credential_for'], $sender_details, $template, $whatsapp_detail->type);
         $send_to = $sender_details['contact_no'];
         if (!empty($whatsapp_detail)) {
-            if ($whatsapp_detail->type == 'twilio') {                 
-				
-				return $this->sendByTwilio($whatsapp_detail, $send_to, $template_id, $msg);
-		
-            } else if ($whatsapp_detail->type == 'meta') {				
-				
-				return $this->sendMetaTemplate($whatsapp_detail,$send_to,$template_id,$whatsapp_detail->language,$msg);				
-				
-			} else {
-
-            }
+            if ($whatsapp_detail->type == 'twilio') {
+                return $this->sendByTwilio($whatsapp_detail, $send_to, $template_id, $msg, 'student_login_credential');
+            } else if ($whatsapp_detail->type == 'meta') {
+                return $this->sendMetaTemplate($whatsapp_detail, $send_to, $template_id, $whatsapp_detail->language, $msg, 'student_login_credential');
         }
         return true;
     }
@@ -130,22 +169,15 @@ class Whatsappgateway
 
 	
 	public function sendStaffLoginCredential($chk_mail_sms, $sender_details, $template, $template_id)
-    { 
+    {
         $whatsapp_detail = $this->_CI->whatsappconfig_model->getActiveWhatsApp();
-        $msg        = $this->getLoginCredentialContent($sender_details['credential_for'], $sender_details, $template, $whatsapp_detail->type);		
-		
+        $msg     = $this->getLoginCredentialContent($sender_details['credential_for'], $sender_details, $template, $whatsapp_detail->type);
         $send_to = $sender_details['contact_no'];
         if (!empty($whatsapp_detail)) {
             if ($whatsapp_detail->type == 'twilio') {
-
-                return $this->sendByTwilio($whatsapp_detail, $send_to, $template_id, $msg);
-				
+                return $this->sendByTwilio($whatsapp_detail, $send_to, $template_id, $msg, 'staff_login_credential');
             } else if ($whatsapp_detail->type == 'meta') {
-				
-				return $this->sendMetaTemplate($whatsapp_detail,$send_to,$template_id,$whatsapp_detail->language,$msg);
-				
-			} else {
-
+                return $this->sendMetaTemplate($whatsapp_detail, $send_to, $template_id, $whatsapp_detail->language, $msg, 'staff_login_credential');
             }
         }
         return true;
@@ -272,18 +304,11 @@ class Whatsappgateway
     {
         $whatsapp_detail = $this->_CI->whatsappconfig_model->getActiveWhatsApp();
         $msg = $this->getStudentRegistrationContent($student_id, $template);
-
         if (!empty($whatsapp_detail)) {
             if ($whatsapp_detail->type == 'twilio') {
-
-                return $this->sendByTwilio($whatsapp_detail, $send_to, $template_id, $msg);
-				
+                return $this->sendByTwilio($whatsapp_detail, $send_to, $template_id, $msg, 'student_admission');
             } else if ($whatsapp_detail->type == 'meta') {
-				
-				return $this->sendMetaTemplate($whatsapp_detail,$send_to,$template_id,$whatsapp_detail->language,$msg);
-				
-			} else {
-
+                return $this->sendMetaTemplate($whatsapp_detail, $send_to, $template_id, $whatsapp_detail->language, $msg, 'student_admission');
             }
         }
         return true;
@@ -317,18 +342,11 @@ class Whatsappgateway
     {
         $whatsapp_detail = $this->_CI->whatsappconfig_model->getActiveWhatsApp();
         $msg = $this->sentAddFeeWhatsapp_key($sender_details, $template);
-
         if (!empty($whatsapp_detail)) {
             if ($whatsapp_detail->type == 'twilio') {
-
-                return $this->sendByTwilio($whatsapp_detail, $send_to, $template_id, $msg);
-				
+                return $this->sendByTwilio($whatsapp_detail, $send_to, $template_id, $msg, 'fee_submission');
             } else if ($whatsapp_detail->type == 'meta') {
-				
-				return $this->sendMetaTemplate($whatsapp_detail,$send_to,$template_id,$whatsapp_detail->language,$msg);
-				
-			} else {
-
+                return $this->sendMetaTemplate($whatsapp_detail, $send_to, $template_id, $whatsapp_detail->language, $msg, 'fee_submission');
             }
         }
         return true;
@@ -336,33 +354,21 @@ class Whatsappgateway
 	
 	public function sentAddGroupFeeWhatsapp($sender_details, $send_to, $template, $template_id)
     {
-		
-		$whatsapp_detail = $this->_CI->whatsappconfig_model->getActiveWhatsApp();
-		
-		$invoice_id=[];
-        $sub_invoice_id=[];
-        
+        $whatsapp_detail = $this->_CI->whatsappconfig_model->getActiveWhatsApp();
+        $invoice_id = [];
+        $sub_invoice_id = [];
         foreach ($sender_details['invoice'] as $inv_key => $inv_value) {
-            $invoice_id[]=$inv_value['invoice_id'];
-            $sub_invoice_id[]=$inv_value['sub_invoice_id'];
+            $invoice_id[]     = $inv_value['invoice_id'];
+            $sub_invoice_id[] = $inv_value['sub_invoice_id'];
         }
-        
-        $sender_details['invoice_id']= "(".implode(',', $invoice_id).")";
-        $sender_details['sub_invoice_id']= "(".implode(',', $sub_invoice_id).")";
-		
+        $sender_details['invoice_id']     = '(' . implode(',', $invoice_id) . ')';
+        $sender_details['sub_invoice_id'] = '(' . implode(',', $sub_invoice_id) . ')';
         $msg = $this->getGroupAddFeeWhatsappKeys($sender_details, $template);
-
         if (!empty($whatsapp_detail)) {
             if ($whatsapp_detail->type == 'twilio') {
-
-                return $this->sendByTwilio($whatsapp_detail, $send_to, $template_id, $msg);
-				
+                return $this->sendByTwilio($whatsapp_detail, $send_to, $template_id, $msg, 'fee_submission');
             } else if ($whatsapp_detail->type == 'meta') {
-				
-				return $this->sendMetaTemplate($whatsapp_detail,$send_to,$template_id,$whatsapp_detail->language,$msg);
-				
-			} else {
-
+                return $this->sendMetaTemplate($whatsapp_detail, $send_to, $template_id, $whatsapp_detail->language, $msg, 'fee_submission');
             }
         }
         return true;
@@ -570,26 +576,17 @@ class Whatsappgateway
         return $foundValues;
     }
 
-    public function student_apply_leave($sender_details, $template,$template_id)
+    public function student_apply_leave($sender_details, $template, $template_id)
     {
         $whatsapp_detail = $this->_CI->whatsappconfig_model->getActiveWhatsApp();
-    
         if (!empty($whatsapp_detail)) {
-
             $send_to = $sender_details['contact_no'];
-            $msg        = $this->getstudent_apply_leaveContent($sender_details, $template);
-			
-            if ($whatsapp_detail->type == 'twilio') {                
-
-                return $this->sendByTwilio($whatsapp_detail, $send_to, $template_id, $msg);
-				
+            $msg     = $this->getstudent_apply_leaveContent($sender_details, $template);
+            if ($whatsapp_detail->type == 'twilio') {
+                return $this->sendByTwilio($whatsapp_detail, $send_to, $template_id, $msg, 'student_leave');
             } else if ($whatsapp_detail->type == 'meta') {
-				
-				return $this->sendMetaTemplate($whatsapp_detail,$send_to,$template_id,$whatsapp_detail->language,$msg);
-				
-			} else {
-
-            } 
+                return $this->sendMetaTemplate($whatsapp_detail, $send_to, $template_id, $whatsapp_detail->language, $msg, 'student_leave');
+            }
         }
     }
 
@@ -613,26 +610,18 @@ class Whatsappgateway
         return $foundValues;
     }
 
-    //send staff attendance whatsapp and notification on app absent   
-    public function sentAbsentStaffWhatsapp($sender_details, $template,$template_id)
+    //send staff attendance whatsapp and notification on app absent
+    public function sentAbsentStaffWhatsapp($sender_details, $template, $template_id)
     {
         $whatsapp_detail = $this->_CI->whatsappconfig_model->getActiveWhatsApp();
         if (!empty($whatsapp_detail)) {
-
             $send_to = $sender_details['contact_no'];
-            $msg        = $this->getAbsentStaffContent($sender_details, $template);
-			
-            if ($whatsapp_detail->type == 'twilio') {                
-
-                return $this->sendByTwilio($whatsapp_detail, $send_to, $template_id, $msg);
-				
+            $msg     = $this->getAbsentStaffContent($sender_details, $template);
+            if ($whatsapp_detail->type == 'twilio') {
+                return $this->sendByTwilio($whatsapp_detail, $send_to, $template_id, $msg, 'staff_absent_attendance');
             } else if ($whatsapp_detail->type == 'meta') {
-				
-				return $this->sendMetaTemplate($whatsapp_detail,$send_to,$template_id,$whatsapp_detail->language,$msg);
-				
-			} else {
-
-            } 
+                return $this->sendMetaTemplate($whatsapp_detail, $send_to, $template_id, $whatsapp_detail->language, $msg, 'staff_absent_attendance');
+            }
         }
     }
   
@@ -658,27 +647,18 @@ class Whatsappgateway
     }
     //send staff attendance whatsapp notification on app absent   
 
-    //send staff attendance whatsapp notification on app absent   
-    public function sentPresentStaffWhatsapp($sender_details, $template,$template_id)
+    //send staff attendance whatsapp notification on app present
+    public function sentPresentStaffWhatsapp($sender_details, $template, $template_id)
     {
-
         $whatsapp_detail = $this->_CI->whatsappconfig_model->getActiveWhatsApp();
         if (!empty($whatsapp_detail)) {
-
             $send_to = $sender_details['contact_no'];
-            $msg        = $this->getPresentStaffContent($sender_details, $template);
-			
-            if ($whatsapp_detail->type == 'twilio') {                
-
-                 return $this->sendByTwilio($whatsapp_detail, $send_to, $template_id, $msg);
-				 
+            $msg     = $this->getPresentStaffContent($sender_details, $template);
+            if ($whatsapp_detail->type == 'twilio') {
+                return $this->sendByTwilio($whatsapp_detail, $send_to, $template_id, $msg, 'staff_present_attendance');
             } else if ($whatsapp_detail->type == 'meta') {
-				
-				return $this->sendMetaTemplate($whatsapp_detail,$send_to,$template_id,$whatsapp_detail->language,$msg);
-				
-			} else {
-
-            } 
+                return $this->sendMetaTemplate($whatsapp_detail, $send_to, $template_id, $whatsapp_detail->language, $msg, 'staff_present_attendance');
+            }
         }
     }
   
@@ -699,25 +679,16 @@ class Whatsappgateway
 
     //send staff attendance whatsapp notification on app absent  
 
-    public function sentCBSEExamResultWhatsapp($detail, $template,$chk_mail_sms,$send_to,$template_id)
+    public function sentCBSEExamResultWhatsapp($detail, $template, $chk_mail_sms, $send_to, $template_id)
     {
         $whatsapp_detail = $this->_CI->whatsappconfig_model->getActiveWhatsApp();
-
         if (!empty($whatsapp_detail)) {
-            
-			$msg        = $this->getCBSEExamResultContent($detail, $template);
-			
-            if ($whatsapp_detail->type == 'twilio') {                
-
-                return $this->sendByTwilio($whatsapp_detail, $send_to, $template_id, $msg);
-				
+            $msg = $this->getCBSEExamResultContent($detail, $template);
+            if ($whatsapp_detail->type == 'twilio') {
+                return $this->sendByTwilio($whatsapp_detail, $send_to, $template_id, $msg, 'cbse_exam_result');
             } else if ($whatsapp_detail->type == 'meta') {
-				
-				return $this->sendMetaTemplate($whatsapp_detail,$send_to,$template_id,$whatsapp_detail->language,$msg);
-				
-			} else {
-
-            } 
+                return $this->sendMetaTemplate($whatsapp_detail, $send_to, $template_id, $whatsapp_detail->language, $msg, 'cbse_exam_result');
+            }
         }
     }
 
@@ -739,23 +710,16 @@ class Whatsappgateway
 
     //==================send notification by whatsapp FOR ONLINE COURSE===================//
 
-    public function publishsendWhatsapp($sender_details,$template,$send_to,$template_id)
+    public function publishsendWhatsapp($sender_details, $template, $send_to, $template_id)
     {
         $whatsapp_detail = $this->_CI->whatsappconfig_model->getActiveWhatsApp();
         $msg = $this->getpublishcontent($sender_details, $template);
-
-         if (!empty($whatsapp_detail)) {            
+        if (!empty($whatsapp_detail)) {
             if ($whatsapp_detail->type == 'twilio') {
-                
-                return $this->sendByTwilio($whatsapp_detail, $send_to, $template_id, $msg);
-				
+                return $this->sendByTwilio($whatsapp_detail, $send_to, $template_id, $msg, 'online_classes');
             } else if ($whatsapp_detail->type == 'meta') {
-				
-				return $this->sendMetaTemplate($whatsapp_detail,$send_to,$template_id,$whatsapp_detail->language,$msg);
-				
-			} else {
-
-            }  
+                return $this->sendMetaTemplate($whatsapp_detail, $send_to, $template_id, $whatsapp_detail->language, $msg, 'online_classes');
+            }
         }
     }
 
@@ -774,23 +738,16 @@ class Whatsappgateway
         return $foundValues;
     }
 
-    public function purchasesendWhatsapp($sender_details,$template,$send_to,$template_id)
+    public function purchasesendWhatsapp($sender_details, $template, $send_to, $template_id)
     {
         $whatsapp_detail = $this->_CI->whatsappconfig_model->getActiveWhatsApp();
         $msg = $this->getpurchasecontent($sender_details, $template);
-
-         if (!empty($whatsapp_detail)) {            
+        if (!empty($whatsapp_detail)) {
             if ($whatsapp_detail->type == 'twilio') {
-                
-				return $this->sendByTwilio($whatsapp_detail, $send_to, $template_id, $msg);
-				
+                return $this->sendByTwilio($whatsapp_detail, $send_to, $template_id, $msg, 'online_classes');
             } else if ($whatsapp_detail->type == 'meta') {
-				
-				return $this->sendMetaTemplate($whatsapp_detail,$send_to,$template_id,$whatsapp_detail->language,$msg);
-				
-			} else {
-
-            }  
+                return $this->sendMetaTemplate($whatsapp_detail, $send_to, $template_id, $whatsapp_detail->language, $msg, 'online_classes');
+            }
         }
     }
 
@@ -814,22 +771,16 @@ class Whatsappgateway
 
     //==================send notificaion by whatsapp in GMEET================//
     
-    public function sentOnlineMeetingStaffwhatsapp($sender_details,$template,$send_to,$template_id)
+    public function sentOnlineMeetingStaffwhatsapp($sender_details, $template, $send_to, $template_id)
     {
         $whatsapp_detail = $this->_CI->whatsappconfig_model->getActiveWhatsApp();
         $msg = $this->getOnlineMeetingStaffcontent($sender_details["$send_to"], $template);
-         if (!empty($whatsapp_detail)) {            
+        if (!empty($whatsapp_detail)) {
             if ($whatsapp_detail->type == 'twilio') {
-                
-				return $this->sendByTwilio($whatsapp_detail, $send_to, $template_id, $msg);
-				
+                return $this->sendByTwilio($whatsapp_detail, $send_to, $template_id, $msg, 'online_meeting');
             } else if ($whatsapp_detail->type == 'meta') {
-				
-				return $this->sendMetaTemplate($whatsapp_detail,$send_to,$template_id,$whatsapp_detail->language,$msg);
-				
-			} else {
-
-            }  
+                return $this->sendMetaTemplate($whatsapp_detail, $send_to, $template_id, $whatsapp_detail->language, $msg, 'online_meeting');
+            }
         }
     }
 
@@ -848,22 +799,16 @@ class Whatsappgateway
         return $foundValues;
     }
 
-    public function sentstudentOnlineClasswhatsapp($sender_details,$template,$send_to,$template_id){
+public function sentstudentOnlineClasswhatsapp($sender_details, $template, $send_to, $template_id)
+    {
         $whatsapp_detail = $this->_CI->whatsappconfig_model->getActiveWhatsApp();
         $msg = $this->getstudentOnlineClasscontent($sender_details["$send_to"], $template);
-
-        if(!empty($whatsapp_detail)) {            
+        if (!empty($whatsapp_detail)) {
             if ($whatsapp_detail->type == 'twilio') {
-				
-                return $this->sendByTwilio($whatsapp_detail, $send_to, $template_id, $msg);
-				
+                return $this->sendByTwilio($whatsapp_detail, $send_to, $template_id, $msg, 'online_classes');
             } else if ($whatsapp_detail->type == 'meta') {
-				
-				return $this->sendMetaTemplate($whatsapp_detail,$send_to,$template_id,$whatsapp_detail->language,$msg);
-				
-			} else {
-
-            }  
+                return $this->sendMetaTemplate($whatsapp_detail, $send_to, $template_id, $whatsapp_detail->language, $msg, 'online_classes');
+            }
         }
     }
 
@@ -884,22 +829,16 @@ class Whatsappgateway
     //==================send notificaion by whatsapp in GMEET================//
 
     //===============send notification by whatsapp in Zoom================//
-    public function sentZoomMeetingStaffwhatsapp($sender_details,$template,$send_to,$template_id)
+    public function sentZoomMeetingStaffwhatsapp($sender_details, $template, $send_to, $template_id)
     {
         $whatsapp_detail = $this->_CI->whatsappconfig_model->getActiveWhatsApp();
         $msg = $this->getZoomMeetingStaffcontent($sender_details["$send_to"], $template);
-         if (!empty($whatsapp_detail)) {            
+        if (!empty($whatsapp_detail)) {
             if ($whatsapp_detail->type == 'twilio') {
-				
-                return $this->sendByTwilio($whatsapp_detail, $send_to, $template_id, $msg);
-				
+                return $this->sendByTwilio($whatsapp_detail, $send_to, $template_id, $msg, 'zoom_online_meeting_start');
             } else if ($whatsapp_detail->type == 'meta') {
-				
-				return $this->sendMetaTemplate($whatsapp_detail,$send_to,$template_id,$whatsapp_detail->language,$msg);
-				
-			} else {
-
-            } 
+                return $this->sendMetaTemplate($whatsapp_detail, $send_to, $template_id, $whatsapp_detail->language, $msg, 'zoom_online_meeting_start');
+            }
         }
     }
 
@@ -918,23 +857,16 @@ class Whatsappgateway
         return $foundValues;
     }
 
-    public function sentstudentZoomClasswhatsapp($sender_details,$template,$send_to,$template_id)
+public function sentstudentZoomClasswhatsapp($sender_details, $template, $send_to, $template_id)
     {
         $whatsapp_detail = $this->_CI->whatsappconfig_model->getActiveWhatsApp();
         $msg = $this->getstudentZoomClasscontent($sender_details["$send_to"], $template);
-
-        if(!empty($whatsapp_detail)) {         
+        if (!empty($whatsapp_detail)) {
             if ($whatsapp_detail->type == 'twilio') {
-				
-                return $this->sendByTwilio($whatsapp_detail, $send_to, $template_id, $msg);
-				
+                return $this->sendByTwilio($whatsapp_detail, $send_to, $template_id, $msg, 'zoom_online_classes_start');
             } else if ($whatsapp_detail->type == 'meta') {
-				
-				return $this->sendMetaTemplate($whatsapp_detail,$send_to,$template_id,$whatsapp_detail->language,$msg);
-				
-			} else {
-
-            }  
+                return $this->sendMetaTemplate($whatsapp_detail, $send_to, $template_id, $whatsapp_detail->language, $msg, 'zoom_online_classes_start');
+            }
         }
     }
 
@@ -955,23 +887,16 @@ class Whatsappgateway
     //===============send notification by whatsapp in Zoom================//
 
     //===================behavioural=====================//
-    public function sentBehaviourIncidentAssignedstudentWhatsapp($sender_details,$template,$send_to,$template_id)
+    public function sentBehaviourIncidentAssignedstudentWhatsapp($sender_details, $template, $send_to, $template_id)
     {
         $whatsapp_detail = $this->_CI->whatsappconfig_model->getActiveWhatsApp();
         $msg = $this->getstudentBehaviourIncidentAssignedcontent($sender_details["$send_to"], $template);
-
-        if(!empty($whatsapp_detail)) {            
+        if (!empty($whatsapp_detail)) {
             if ($whatsapp_detail->type == 'twilio') {
-				
-                return $this->sendByTwilio($whatsapp_detail, $send_to, $template_id, $msg);
-				
+                return $this->sendByTwilio($whatsapp_detail, $send_to, $template_id, $msg, 'behaviour_incident');
             } else if ($whatsapp_detail->type == 'meta') {
-				
-				return $this->sendMetaTemplate($whatsapp_detail,$send_to,$template_id,$whatsapp_detail->language,$msg);
-				
-			} else {
-
-            }  
+                return $this->sendMetaTemplate($whatsapp_detail, $send_to, $template_id, $whatsapp_detail->language, $msg, 'behaviour_incident');
+            }
         }
     }
 

@@ -1108,6 +1108,23 @@ if ($this->module_lib->hasActive('expense')) {
 }
 }
 ?>
+<?php
+if ($this->module_lib->hasActive('whatsapp_messaging')) {
+    ?>
+                                <div class="col-lg-3 col-md-6 col-sm-6">
+                                    <div class="info-box" id="whatsapp-msg-widget" data-url="<?php echo site_url('admin/admin/whatsapp_sent_widget'); ?>">
+                                        <a href="<?php echo site_url('whatsappconfig'); ?>">
+                                            <span class="info-box-icon" style="background:#25D366;color:#fff;"><i class="fa fa-whatsapp"></i></span>
+                                            <div class="info-box-content">
+                                                <span class="info-box-text">WhatsApp Sent (This Month)</span>
+                                                <span class="info-box-number wa-count fo-skeleton">0</span>
+                                            </div>
+                                        </a>
+                                    </div>
+                                </div>
+    <?php
+}
+?>
 
                     </div>
 
@@ -1657,6 +1674,7 @@ if (($this->module_lib->hasActive('fees_collection')) || ($this->module_lib->has
                     $libraryOverview.find('.lib-dueforreturn, .lib-forreturn, .lib-total-issued, .lib-total, .lib-issued-progress, .lib-availble, .lib-availble-progress').addClass('fo-skeleton');
 
                     $('#monthly-fees-collection-widget .mfc-amount, #monthly-income-widget .mi-amount, #monthly-expense-widget .me-amount').addClass('fo-skeleton');
+                    $('#whatsapp-msg-widget .wa-count').addClass('fo-skeleton');
 
                     $('#staff-approved-leave-widget .sal-approved, #staff-approved-leave-widget .sal-total').addClass('fo-skeleton');
                     $('#student-approved-leave-widget .stl-approved, #student-approved-leave-widget .stl-total').addClass('fo-skeleton');
@@ -1683,6 +1701,7 @@ if (($this->module_lib->hasActive('fees_collection')) || ($this->module_lib->has
                     $libraryOverview.find('.lib-dueforreturn, .lib-forreturn, .lib-total-issued, .lib-total, .lib-issued-progress, .lib-availble, .lib-availble-progress').removeClass('fo-skeleton');
 
                     $('#monthly-fees-collection-widget .mfc-amount, #monthly-income-widget .mi-amount, #monthly-expense-widget .me-amount').removeClass('fo-skeleton');
+                    $('#whatsapp-msg-widget .wa-count').removeClass('fo-skeleton');
 
                     $('#staff-approved-leave-widget .sal-approved, #staff-approved-leave-widget .sal-total').removeClass('fo-skeleton');
                     $('#student-approved-leave-widget .stl-approved, #student-approved-leave-widget .stl-total').removeClass('fo-skeleton');
@@ -2200,6 +2219,26 @@ if (($this->module_lib->hasActive('fees_collection')) || ($this->module_lib->has
                     $monthlyExpense.find('.fo-skeleton').removeClass('fo-skeleton');
                 }).fail(function() {
                     $monthlyExpense.find('.fo-skeleton').removeClass('fo-skeleton');
+                });
+            }
+        }
+
+        var $waWidget = $('#whatsapp-msg-widget');
+        if ($waWidget.length) {
+            var waUrl = $waWidget.data('url');
+            if (waUrl) {
+                $.ajax({
+                    url: waUrl,
+                    method: 'GET',
+                    dataType: 'json'
+                }).done(function(resp) {
+                    if (!resp || resp.status !== 'success') {
+                        return;
+                    }
+                    $waWidget.find('.wa-count').text(resp.data.count || 0);
+                    $waWidget.find('.fo-skeleton').removeClass('fo-skeleton');
+                }).fail(function() {
+                    $waWidget.find('.fo-skeleton').removeClass('fo-skeleton');
                 });
             }
         }

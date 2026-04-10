@@ -89,6 +89,7 @@ class Whatsappconfig extends Admin_Controller
                 'language'  => $this->input->post('meta_language'),
                 'authkey'  => $this->input->post('meta_access_token'),
                 'contact'   => $this->input->post('meta_sender_phone_number'),
+                'waba_id'   => $this->input->post('meta_waba_id'),
                 'is_active' => $this->input->post('meta_status'),
             );
             $this->whatsappconfig_model->add($data);
@@ -103,6 +104,56 @@ class Whatsappconfig extends Admin_Controller
             );
 
             echo json_encode(array('st' => 1, 'msg' => $data));
+        }
+    }
+
+    public function activate_phone_number()
+    {
+        $phone_number_id = $this->input->post('phone_number_id');
+        $pin             = $this->input->post('pin');
+
+        if (empty($phone_number_id) || !preg_match('/^\d{6}$/', $pin)) {
+            echo json_encode(['st' => 1, 'msg' => 'Invalid Phone Number ID or PIN.']);
+            return;
+        }
+
+        // Retrieve the saved System User token from config
+        $result = $this->whatsappconfig_model->get();
+        $meta   = null;
+        foreach ($result as $row) {
+            if ($row->type === 'meta') { $meta = $row; break; }
+        }
+
+        if (empty($meta->authkey)) {
+            echo json_encode(['st' => 1, 'msg' => 'Access Token not saved yet. Save your Meta config first.']);
+            return;
+        }
+
+        $url     = 'https://graph.facebook.com/v19.0/' . urlencode($phone_number_id) . '/register';
+        $payload = json_encode(['messaging_product' => 'whatsapp', 'pin' => $pin]);
+
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST           => true,
+            CURLOPT_POSTFIELDS     => $payload,
+            CURLOPT_HTTPHEADER     => [
+                'Authorization: Bearer ' . $meta->authkey,
+                'Content-Type: application/json',
+            ],
+            CURLOPT_TIMEOUT        => 15,
+        ]);
+        $response = curl_exec($ch);
+        $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        $decoded = json_decode($response, true);
+
+        if ($http_code === 200 && !empty($decoded['success'])) {
+            echo json_encode(['st' => 0, 'msg' => 'Phone number activated successfully.']);
+        } else {
+            $error = isset($decoded['error']['message']) ? $decoded['error']['message'] : 'Unknown error (HTTP ' . $http_code . ')';
+            echo json_encode(['st' => 1, 'msg' => $error]);
         }
     }
 

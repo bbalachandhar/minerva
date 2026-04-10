@@ -1369,8 +1369,25 @@ class Admin extends Admin_Controller
             ->set_output(json_encode($response));
     }
 
-    public function income_donut_widget()
+    public function whatsapp_sent_widget()
     {
+        $row = $this->db
+            ->select_sum('recipient_count')
+            ->where('month', (int) date('n'))
+            ->where('year',  (int) date('Y'))
+            ->get('whatsapp_message_log')->row();
+
+        $count = $row ? (int) $row->recipient_count : 0;
+
+        return $this->output
+            ->set_content_type('application/json')
+            ->set_output(json_encode([
+                'status' => 'success',
+                'data'   => ['count' => $count],
+            ]));
+    }
+
+    public function income_donut_widget()    {
         if (!$this->rbac->hasPrivilege('income_donut_graph', 'can_view')) {
             access_denied();
         }
