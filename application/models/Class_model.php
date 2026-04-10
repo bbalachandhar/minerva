@@ -43,11 +43,25 @@ class Class_model extends MY_Model
         $carray   = array();
         if (isset($role_id) && ($userdata["role_id"] == 2) && ($userdata["class_teacher"] == "yes")) {
             if ($userdata["class_teacher"] == 'yes') {
-             
                 $classlist = $this->teacher_model->get_teacherrestricted_mode($userdata["id"]);
+
+                // Fallback for edge cases with missing teacher-class mapping/session rows.
+                if (empty($classlist)) {
+                    $this->db->select()->from('classes');
+                    if ($id != null) {
+                        $this->db->where('id', $id);
+                    } else {
+                        $this->db->order_by('class', 'asc');
+                    }
+                    $query = $this->db->get();
+                    if ($id != null) {
+                        $classlist = $query->row_array();
+                    } else {
+                        $classlist = $query->result_array();
+                    }
+                }
             }
         } else {
-         
             $this->db->select()->from('classes');
             if ($id != null) {
                 $this->db->where('id', $id);

@@ -72,6 +72,26 @@ class Section_model extends MY_Model {
         if (isset($role_id) && ($userdata["role_id"] == 2) && ($userdata["class_teacher"] == "yes")) {
 
             $section = $this->teacher_model->get_teacherrestricted_modesections($userdata["id"], $classid);
+
+            // Fallback for edge cases with missing mapping/session rows.
+            if (empty($section)) {
+                $this->db->select('class_sections.id,class_sections.section_id,sections.section');
+                $this->db->from('class_sections');
+                $this->db->join('sections', 'sections.id = class_sections.section_id');
+                if (is_array($classid)) {
+                    $this->db->where_in('class_sections.class_id', $classid);
+                } else {
+                    $this->db->where('class_sections.class_id', $classid);
+                }
+                if ($department_id != null) {
+                    $this->db->join('classes', 'classes.id = class_sections.class_id');
+                    $this->db->where('classes.department_id', $department_id);
+                }
+                $this->db->group_by('sections.section');
+                $this->db->order_by('sections.section');
+                $query   = $this->db->get();
+                $section = $query->result_array();
+            }
         } else {
             $this->db->select('class_sections.id,class_sections.section_id,sections.section');
             $this->db->from('class_sections');
