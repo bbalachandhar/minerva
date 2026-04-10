@@ -52,6 +52,10 @@ class Whatsappconfig extends Admin_Controller
 
             $data = array(
                 'type'      => 'twilio',
+                'name'      => '',
+                'api_id'    => '',
+                'authkey'   => '',
+                'senderid'  => '',
                 'username'  => $this->input->post('twilio_account_sid'),
                 'password'  => $this->input->post('twilio_auth_token'),
                 'contact'   => $this->input->post('twilio_sender_phone_number'),
@@ -86,8 +90,11 @@ class Whatsappconfig extends Admin_Controller
 
             $data = array(
                 'type'      => 'meta',
+                'name'      => '',
+                'api_id'    => '',
+                'senderid'  => '',
                 'language'  => $this->input->post('meta_language'),
-                'authkey'  => $this->input->post('meta_access_token'),
+                'authkey'   => $this->input->post('meta_access_token'),
                 'contact'   => $this->input->post('meta_sender_phone_number'),
                 'waba_id'   => $this->input->post('meta_waba_id'),
                 'is_active' => $this->input->post('meta_status'),
