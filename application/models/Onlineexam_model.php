@@ -355,11 +355,31 @@ class Onlineexam_model extends MY_model
         return $this->db->insert_id();
     }
 
+    public function hasApplicantExamSchema()
+    {
+        return $this->db->field_exists('candidate_type', 'onlineexam_students')
+            && $this->db->field_exists('online_admission_id', 'onlineexam_students');
+    }
+
     public function examstudentsID($student_session_id, $onlineexam_id)
     {
         $this->db->from('onlineexam_students');
         $this->db->where('student_session_id', $student_session_id);
         $this->db->where('onlineexam_id', $onlineexam_id);
+        $query = $this->db->get();
+        return $query->row();
+    }
+
+    public function examapplicantID($online_admission_id, $onlineexam_id)
+    {
+        if (!$this->hasApplicantExamSchema()) {
+            return null;
+        }
+
+        $this->db->from('onlineexam_students');
+        $this->db->where('online_admission_id', $online_admission_id);
+        $this->db->where('onlineexam_id', $onlineexam_id);
+        $this->db->where('candidate_type', 'applicant');
         $query = $this->db->get();
         return $query->row();
     }
@@ -376,6 +396,24 @@ class Onlineexam_model extends MY_model
         $query = $this->db->query($query);
         return $query->result();
      }
+
+    public function getApplicantexam($online_admission_id)
+    {
+        if (!$this->hasApplicantExamSchema()) {
+            return array();
+        }
+
+        $query = "SELECT onlineexam.*,onlineexam_students.id as `onlineexam_student_id`,
+            (select count(*) from onlineexam_attempts WHERE onlineexam_attempts.onlineexam_student_id = onlineexam_students.id) as counter
+            FROM `onlineexam`
+            INNER JOIN onlineexam_students on onlineexam_students.onlineexam_id=onlineexam.id
+            WHERE onlineexam_students.online_admission_id=" . $this->db->escape($online_admission_id) . "
+              and onlineexam_students.candidate_type='applicant'
+              and onlineexam.is_active=1
+            order by onlineexam.exam_from desc";
+        $query = $this->db->query($query);
+        return $query->result();
+    }
 
     public function getstudentexamlist($student_session_id)
     {
@@ -406,6 +444,109 @@ class Onlineexam_model extends MY_model
             ->where('onlineexam.exam_to  < ',$today_date)
             ->from('onlineexam');
         return $this->datatables->generate('json');
+    }
+
+    public function getapplicantexamlist($online_admission_id)
+    {
+        if (!$this->hasApplicantExamSchema()) {
+            return json_encode(array('draw' => 0, 'recordsTotal' => 0, 'recordsFiltered' => 0, 'data' => array()));
+        }
+
+        $today_date = date('Y-m-d H:i:s');
+        $this->datatables->where("onlineexam_students.online_admission_id", $online_admission_id);
+        $this->datatables->where("onlineexam_students.candidate_type", 'applicant');
+        $this->datatables->where("onlineexam.is_active", 1);
+        $this->datatables
+            ->select('onlineexam.*,onlineexam_students.id as `onlineexam_student_id`,(select count(*) from onlineexam_attempts WHERE onlineexam_attempts.onlineexam_student_id = onlineexam_students.id) as counter')
+            ->join("onlineexam_students", "onlineexam_students.onlineexam_id=onlineexam.id", "left")
+            ->searchable('onlineexam.exam,onlineexam.attempt,exam_from,exam_to,duration')
+            ->orderable('onlineexam.exam," ",exam_from,exam_to,duration,attempt," "," " ')
+            ->sort('onlineexam.exam_from', 'desc')
+            ->where('onlineexam.exam_to  >= ', $today_date)
+            ->from('onlineexam');
+        return $this->datatables->generate('json');
+    }
+
+    public function getapplicantclosedexamlist($online_admission_id)
+    {
+        if (!$this->hasApplicantExamSchema()) {
+            return json_encode(array('draw' => 0, 'recordsTotal' => 0, 'recordsFiltered' => 0, 'data' => array()));
+        }
+
+        $today_date = date('Y-m-d H:i:s');
+        $this->datatables->where("onlineexam_students.online_admission_id", $online_admission_id);
+        $this->datatables->where("onlineexam_students.candidate_type", 'applicant');
+        $this->datatables
+            ->select('onlineexam.*,onlineexam_students.id as `onlineexam_student_id`,(select count(*) from onlineexam_attempts WHERE onlineexam_attempts.onlineexam_student_id = onlineexam_students.id) as counter')
+            ->join("onlineexam_students", "onlineexam_students.onlineexam_id=onlineexam.id", "left")
+            ->searchable('onlineexam.exam,onlineexam.attempt,exam_from,exam_to,duration," "," ", " "," "')
+            ->orderable('onlineexam.exam," "," ",attempt,exam_from,exam_to,duration," "," " ')
+            ->sort('onlineexam.exam_from', 'desc')
+            ->where('onlineexam.exam_to  < ', $today_date)
+            ->from('onlineexam');
+        return $this->datatables->generate('json');
+    }
+
+    public function searchOnlineExamApplicants($onlineexam_id)
+    {
+        if (!$this->hasApplicantExamSchema()) {
+            return array();
+        }
+
+        $this->db->select('online_admissions.id,online_admissions.reference_no,online_admissions.firstname,online_admissions.middlename,online_admissions.lastname,online_admissions.mobileno,online_admissions.email,online_admissions.gender,online_admissions.form_status,online_admissions.paid_status, IFNULL(onlineexam_students.id, 0) as onlineexam_student_id, IFNULL(onlineexam_students.online_admission_id, 0) as onlineexam_student_admission_id');
+        $this->db->from('online_admissions');
+        $this->db->join('onlineexam_students', 'onlineexam_students.online_admission_id = online_admissions.id and onlineexam_students.onlineexam_id=' . $this->db->escape($onlineexam_id) . ' and onlineexam_students.candidate_type="applicant"', 'left');
+        $this->db->where('online_admissions.is_enroll', 0);
+        $this->db->where('online_admissions.form_status', 1);
+        $this->db->order_by('online_admissions.id', 'desc');
+
+        $query = $this->db->get();
+        return $query->result_array();
+    }
+
+    public function addApplicants($data_insert, $data_delete, $onlineexam_id)
+    {
+        if (!$this->hasApplicantExamSchema()) {
+            return false;
+        }
+
+        $this->db->trans_begin();
+        if (!empty($data_insert)) {
+            $this->db->insert_batch('onlineexam_students', $data_insert);
+        }
+        if (!empty($data_delete)) {
+            $this->db->select('id');
+            $this->db->from('onlineexam_students');
+            $this->db->where('onlineexam_id', $onlineexam_id);
+            $this->db->where('candidate_type', 'applicant');
+            $this->db->where_in('online_admission_id', $data_delete);
+            $assignment_rows = $this->db->get()->result_array();
+
+            $assignment_ids = array();
+            if (!empty($assignment_rows)) {
+                $assignment_ids = array_column($assignment_rows, 'id');
+            }
+
+            if (!empty($assignment_ids)) {
+                $this->db->where_in('onlineexam_student_id', $assignment_ids);
+                $this->db->delete('onlineexam_attempts');
+
+                $this->db->where_in('onlineexam_student_id', $assignment_ids);
+                $this->db->delete('onlineexam_student_results');
+            }
+
+            $this->db->where('onlineexam_id', $onlineexam_id);
+            $this->db->where('candidate_type', 'applicant');
+            $this->db->where_in('online_admission_id', $data_delete);
+            $this->db->delete('onlineexam_students');
+        }
+        if ($this->db->trans_status() === false) {
+            $this->db->trans_rollback();
+            return false;
+        } else {
+            $this->db->trans_commit();
+            return true;
+        }
     }
 
     public function getExamQuestions($id = null, $random_type = false)

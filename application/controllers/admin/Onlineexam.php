@@ -521,6 +521,106 @@ class Onlineexam extends Admin_Controller
         }
     }
 
+    public function assignapplicants($id)
+    {
+        if (!$this->rbac->hasPrivilege('online_assign_view_student', 'can_view')) {
+            access_denied();
+        }
+
+        if (!$this->onlineexam_model->hasApplicantExamSchema()) {
+            $this->session->set_flashdata('msg', '<div class="alert alert-warning">Applicant exam schema is not migrated yet. Please run migration first.</div>');
+            redirect('admin/onlineexam/assign/' . $id);
+        }
+
+        $this->session->set_userdata('top_menu', 'Online_Examinations');
+        $this->session->set_userdata('sub_menu', 'Online_Examinations/Onlineexam');
+        $data['id']          = $id;
+        $data['title']       = 'assign applicants';
+        $data['onlineexam']  = $this->onlineexam_model->get($id);
+        $data['sch_setting'] = $this->sch_setting_detail;
+
+        $data['resultlist'] = $this->onlineexam_model->searchOnlineExamApplicants($id);
+
+        $this->load->view('layout/header', $data);
+        $this->load->view('admin/onlineexam/assign_applicants', $data);
+        $this->load->view('layout/footer', $data);
+    }
+
+    public function addapplicants()
+    {
+        if (!$this->rbac->hasPrivilege('online_assign_view_student', 'can_edit')) {
+            $array = array('status' => 'fail', 'error' => array('onlineexam_id' => $this->lang->line('access_denied')));
+            echo json_encode($array);
+            return;
+        }
+
+        $this->form_validation->set_rules('onlineexam_id', $this->lang->line('exam_id'), 'required|trim|xss_clean');
+
+        if ($this->form_validation->run() == false) {
+            $data = array(
+                'onlineexam_id' => form_error('onlineexam_id'),
+            );
+            $array = array('status' => 'fail', 'error' => $data);
+            echo json_encode($array);
+            return;
+        }
+
+        if (!$this->onlineexam_model->hasApplicantExamSchema()) {
+            $array = array('status' => 'fail', 'error' => array('onlineexam_id' => 'Applicant exam schema is not migrated yet.'));
+            echo json_encode($array);
+            return;
+        }
+
+        $onlineexam_id  = $this->input->post('onlineexam_id');
+        $all_applicants = $this->input->post('all_applicants');
+        $applicants_id  = $this->input->post('applicants_id');
+
+        if (!is_array($all_applicants)) {
+            $all_applicants = array();
+        }
+        if (!is_array($applicants_id)) {
+            $applicants_id = array();
+        }
+
+        $assigned_applicants = array();
+        foreach ($all_applicants as $assigned_id) {
+            if (!empty($assigned_id) && (int) $assigned_id > 0) {
+                $assigned_applicants[] = (int) $assigned_id;
+            }
+        }
+
+        $selected_applicants = array();
+        foreach ($applicants_id as $selected_id) {
+            if (!empty($selected_id) && (int) $selected_id > 0) {
+                $selected_applicants[] = (int) $selected_id;
+            }
+        }
+
+        $array_insert = array();
+        $array_delete = array();
+
+        if (!empty($assigned_applicants)) {
+            $array_delete = array_diff($assigned_applicants, $selected_applicants);
+        }
+
+        $applicant_array = array_diff($selected_applicants, $assigned_applicants);
+        if (!empty($applicant_array)) {
+            foreach ($applicant_array as $insert_value) {
+                $array_insert[] = array(
+                    'onlineexam_id'      => $onlineexam_id,
+                    'student_session_id' => null,
+                    'online_admission_id'=> $insert_value,
+                    'candidate_type'     => 'applicant',
+                );
+            }
+        }
+
+        $this->onlineexam_model->addApplicants($array_insert, $array_delete, $onlineexam_id);
+
+        $array = array('status' => 'success', 'error' => '', 'message' => $this->lang->line('success_message'));
+        echo json_encode($array);
+    }
+
     public function getOnlineExamByID()
     {
         $id = $this->input->post('recordid');

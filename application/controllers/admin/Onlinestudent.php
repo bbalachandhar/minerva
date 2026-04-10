@@ -534,10 +534,6 @@ class Onlinestudent extends Admin_Controller
                 $row[] = $value->firstname . " " . $middlename. " " . $last_name;
                 $row[] = !empty($value->course_name) ? $value->course_name : "N/A";
 
-                if ($sch_setting->father_name) {
-                    $row[] = $value->father_name;
-                }
-
                 $row[] = $application_date;
                 $submitted_by_name = trim((string) ($value->submitted_by_name ?? ''));
                 if (!empty($value->referred_by_employee_id)) {
@@ -588,20 +584,13 @@ class Onlinestudent extends Admin_Controller
                     $eyebtn = "<a class='btn btn-primary btn-xs mt-5 pull-right' data-toggle='tooltip' title='View Fee Receipt' onclick='viewFeeReceipt(" . json_encode($application_ref_no) . ")'><i class='fa fa-eye'></i></a>";
                 }
 
+                $paybtn = "";
                 if ($sch_setting->online_admission_payment == 'yes') {
-
-                    $paybtn = "";
                     if (!$app_fee_is_paid && $value->paid_status != 2) {
                         $paybtn = "<a class='btn btn-default btn-xs mt-5 pull-right' data-toggle='tooltip' title='" . $this->lang->line('add_payment') . "' onclick='addpayment(" . '"' . $value->id . '","' . $value->reference_no . '"' . "  )'><i class='fa fa-usd'></i></a>";
                     }
-
                     if ($app_fee_is_paid) {
-                        $row[] = '<span class="label label-success">' . $this->lang->line('paid') . '</span>';
-                        $paybtn = ''; // hide pay button if app fee already paid
-                    } elseif ($value->paid_status == 2) {
-                        $row[] = '<span class="label label-info">' . $this->lang->line('processing') . '</span>';
-                    } else {
-                        $row[] = '<span class="label label-danger">' . $this->lang->line('unpaid') . '</span>';
+                        $paybtn = '';
                     }
                 }
 

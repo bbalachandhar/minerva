@@ -1,3 +1,4 @@
+<?php if (empty($wrapped_layout)): ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -5,7 +6,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Application Form Review - <?php echo isset($reference_no) ? $reference_no : 'N/A'; ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
+</head>
+<body>
+<?php endif; ?>
+<style>
+    /* Bootstrap 5 compatibility utilities (used when wrapped in AdminLTE/Bootstrap 3 layout) */
+    .fw-bold { font-weight: 700 !important; }
+    .mb-2 { margin-bottom: 0.5rem !important; }
+    .mb-3 { margin-bottom: 1rem !important; }
+    .mb-4 { margin-bottom: 1.5rem !important; }
+    .mt-4 { margin-top: 1.5rem !important; }
+    .text-uppercase { text-transform: uppercase !important; }
         body {
             font-family: 'Poppins', sans-serif;
         }
@@ -99,8 +110,6 @@
             }
         }
     </style>
-</head>
-<body>
     <?php
     $courses = [
         1 => 'B.Arch - Bachelor of Architecture',
@@ -148,6 +157,11 @@
                          <p><span class="data-label">Quota Type:</span> <span class="data-value text-uppercase"><?php echo (isset($quota_type) && !empty($quota_type)) ? $quota_type : 'N/A'; ?></span></p>
                          <p><span class="data-label">Academic Year:</span> <span class="data-value">2026-2027</span></p>
                          <p><span class="data-label">Application Ref No:</span> <span class="data-value"><?php echo isset($reference_no) ? $reference_no : 'N/A'; ?></span></p>
+                        <?php if ((isset($form_status) && (int)$form_status === 1) && !empty($applicant_username) && !empty($applicant_password) && !empty($applicant_login_url)) { ?>
+                        <p><span class="data-label">Applicant Login Username:</span> <span class="data-value"><?php echo $applicant_username; ?></span></p>
+                        <p><span class="data-label">Applicant Login Password:</span> <span class="data-value"><?php echo $applicant_password; ?></span></p>
+                        <p><span class="data-label">Applicant Login URL:</span> <span class="data-value"><a href="<?php echo $applicant_login_url; ?>" target="_blank"><?php echo $applicant_login_url; ?></a></span></p>
+                        <?php } ?>
                          <p><span class="data-label">Application Fee Status:</span> <span class="data-value"><?php echo (isset($paid_status) && $paid_status == 1) ? '<span style="color: #28a745; font-weight: bold;">PAID</span>' : '<span style="color: #dc3545; font-weight: bold;">PENDING</span>'; ?></span></p>
                     </div>
                     <div class="col-md-3">
@@ -405,9 +419,17 @@
             <!-- End Declaration and Signature Section -->
             
             <div class="text-center mt-4 no-print">
+                <div style="margin-bottom:20px; text-align:left; border:1px solid #d9edf7; background:#f4fbff; padding:15px; border-radius:4px;">
+                    <h4 style="margin-top:0;">First Time Login?</h4>
+                    <p style="margin-bottom:6px;"><strong>Login URL:</strong> <a href="<?php echo site_url('site/userlogin'); ?>" target="_blank"><?php echo site_url('site/userlogin'); ?></a></p>
+                    <p style="margin-bottom:6px;"><strong>Default Password:</strong> Your Reference Number + @ApplicantPortal<?php echo date('Y'); ?></p>
+                    <p style="margin-bottom:0;"><strong>Example:</strong> If your reference is REF001, password is REF001@ApplicantPortal<?php echo date('Y'); ?></p>
+                </div>
                 <button onclick="window.print()" class="btn btn-primary">Print Application</button>
             </div>
         </div>
     </div>
+<?php if (empty($wrapped_layout)): ?>
 </body>
 </html>
+<?php endif; ?>

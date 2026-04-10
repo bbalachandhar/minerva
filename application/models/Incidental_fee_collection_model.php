@@ -66,7 +66,7 @@ class Incidental_fee_collection_model extends CI_Model {
 
     // Method to get collections for reporting
     public function get_collections_report($filters = array()) {
-        $this->db->select('incidental_fee_collections.*, incidental_fee_collections.non_student_name, incidental_fee_collections.payment_mode, incidental_fee_collections.application_ref_no, incidental_fee_types.title as fee_type_title, students.firstname, students.lastname, students.admission_no, classes.class as class_name, sections.section, sessions.session as session_name, staff.name as collected_by_name');
+        $this->db->select('incidental_fee_collections.*, incidental_fee_collections.non_student_name, incidental_fee_collections.payment_mode, incidental_fee_collections.application_ref_no, incidental_fee_types.title as fee_type_title, students.firstname, students.lastname, students.admission_no, classes.class as class_name, sections.section, sessions.session as session_name, staff.name as collected_by_name, oac.course_name as online_course_name');
         $this->db->from('incidental_fee_collections');
         $this->db->join('incidental_fee_types', 'incidental_fee_types.id = incidental_fee_collections.incidental_fee_type_id', 'left');
         $this->db->join('students', 'students.id = incidental_fee_collections.student_id', 'left');
@@ -74,7 +74,9 @@ class Incidental_fee_collection_model extends CI_Model {
         $this->db->join('classes', 'classes.id = student_session.class_id', 'left');
         $this->db->join('sections', 'sections.id = student_session.section_id', 'left');
         $this->db->join('sessions', 'sessions.id = incidental_fee_collections.session_id', 'left');
-        $this->db->join('staff', 'staff.id = incidental_fee_collections.collected_by', 'left'); // Join with staff table
+        $this->db->join('staff', 'staff.id = incidental_fee_collections.collected_by', 'left');
+        $this->db->join('online_admissions oa', 'oa.reference_no = incidental_fee_collections.application_ref_no', 'left');
+        $this->db->join('online_admission_courses oac', 'oac.id = COALESCE(oa.admission_course_id, oa.ug_course_id)', 'left');
 
         if (!empty($filters['session_id'])) {
             $this->db->where('incidental_fee_collections.session_id', $filters['session_id']);

@@ -145,7 +145,15 @@
                                                     }
                                                 ?></td>
                                                 <td><?php echo $collection['admission_no']; ?></td>
-                                                <td><?php echo $collection['class_name'] . ' (' . $collection['section'] . ')'; ?></td>
+                                                <td><?php
+                                                    if (!empty($collection['class_name'])) {
+                                                        echo htmlspecialchars($collection['class_name']) . (!empty($collection['section']) ? ' (' . htmlspecialchars($collection['section']) . ')' : '');
+                                                    } elseif (!empty($collection['online_course_name'])) {
+                                                        echo htmlspecialchars($collection['online_course_name']);
+                                                    } else {
+                                                        echo '—';
+                                                    }
+                                                ?></td>
                                                 <td><?php echo $collection['fee_type_title']; ?></td>
                                                 <td><?php echo $collection['amount_collected']; ?></td>
                                                 <td><?php echo !empty($collection['payment_mode']) ? $collection['payment_mode'] : 'N/A'; ?></td>

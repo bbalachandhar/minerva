@@ -8,6 +8,13 @@
                         <h3 class="box-title"><i class="fa fa-search"></i> <?php echo $this->lang->line('select_criteria'); ?></h3>
                     </div>
                     <div class="box-body">
+                        <div class="row">
+                            <div class="col-md-12 text-right" style="margin-bottom:10px;">
+                                <a href="<?php echo site_url('admin/onlineexam/assignapplicants/' . $id); ?>" class="btn btn-default btn-sm">
+                                    <i class="fa fa-user-plus"></i> Assign Applicants
+                                </a>
+                            </div>
+                        </div>
                         <form role="form" action="<?php echo site_url('admin/onlineexam/assign/' . $id) ?>" method="post" class="row">
                             <?php echo $this->customlib->getCSRF(); ?>
                             <input type="hidden" name="onlineexam_id" value="<?php echo $onlineexam->id; ?>">

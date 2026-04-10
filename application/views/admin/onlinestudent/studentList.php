@@ -42,9 +42,6 @@
                                         <th style="width:5%"><?php echo $this->lang->line('reference_no'); ?></th>
                                         <th><?php echo $this->lang->line('student_name'); ?></th>
                                         <th class="white-space-nowrap">Course</th>
-                                         <?php if ($sch_setting->father_name) {?>
-                                            <th><?php echo $this->lang->line('father_name'); ?></th>
-                                        <?php }?>
                                         <th>Application Date</th>
                                         <th><?php echo $this->lang->line('submitted_by'); ?></th>
                                         <th><?php echo $this->lang->line('gender'); ?></th>
@@ -56,9 +53,6 @@
                                        <?php }?>
                                         <th>Form Status</th>
                                         <th>Course Fee Status</th>
-                                        <?php if ($sch_setting->online_admission_payment == 'yes') {?>
-                                            <th>App. Fee</th>
-                                            <?php }?>
                                         <th class="text-right noExport"><?php echo $this->lang->line('action'); ?></th>
                                     </tr>
                                 </thead>

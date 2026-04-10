@@ -688,6 +688,10 @@ class Public_admission extends Front_Controller
                 $this->data['online_admission_payment'] = $this->sch_setting_detail->online_admission_payment;
                 $this->data['online_admission_amount']  = $this->sch_setting_detail->online_admission_amount;
                 $this->data['online_admission_conditions'] = $this->sch_setting_detail->online_admission_conditions;
+                $current_year = date('Y');
+                $this->data['applicant_login_url'] = site_url('site/userlogin');
+                $this->data['applicant_username'] = $result['reference_no'];
+                $this->data['applicant_password'] = $result['reference_no'] . '@ApplicantPortal' . $current_year;
                 $setting_data                              = $this->setting_model->get();
                 $this->data['setting_data'] = $setting_data;
                 $this->data['currencies'] = $currencies;
@@ -770,11 +774,54 @@ class Public_admission extends Front_Controller
             $mobileno     = $result['mobileno'];
             $email        = $result['email'];
 
-            $sender_details = array('firstname' => $firstname, 'lastname' => $lastname, 'email' => $email, 'date' => $date, 'reference_no' => $reference_no, 'mobileno' => $mobileno, 'guardian_email' => $result['guardian_email'], 'guardian_phone' => $result['guardian_phone']);
+            $current_year = date('Y');
+            $login_url = site_url('site/userlogin');
+            $applicant_username = $reference_no;
+            $applicant_password_plain = $reference_no . '@ApplicantPortal' . $current_year;
+
+            if ($this->db->field_exists('applicant_password', 'online_admissions')) {
+                $this->db->where('id', $admission_id);
+                $this->db->update('online_admissions', array('applicant_password' => md5($applicant_password_plain)));
+            }
+
+            $sender_details = array(
+                'firstname' => $firstname,
+                'lastname' => $lastname,
+                'email' => $email,
+                'date' => $date,
+                'reference_no' => $reference_no,
+                'mobileno' => $mobileno,
+                'guardian_email' => $result['guardian_email'],
+                'guardian_phone' => $result['guardian_phone'],
+                'applicant_username' => $applicant_username,
+                'applicant_password' => $applicant_password_plain,
+                'login_url' => $login_url,
+            );
 
             $this->mailsmsconf->mailsms('online_admission_form_submission', $sender_details);
 
-            $array = array('status' => '1', 'error' => '', 'id' => $admission_id, 'msg' => '', 'reference_no' => $reference_no);
+            if (!empty($email) && filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                $subject = 'Applicant Portal Login Credentials';
+                $message = '<p>Dear ' . htmlspecialchars(trim($firstname . ' ' . $lastname)) . ',</p>'
+                    . '<p>Your application has been submitted successfully.</p>'
+                    . '<p><strong>Reference No:</strong> ' . htmlspecialchars($reference_no) . '<br>'
+                    . '<strong>Username:</strong> ' . htmlspecialchars($applicant_username) . '<br>'
+                    . '<strong>Password:</strong> ' . htmlspecialchars($applicant_password_plain) . '<br>'
+                    . '<strong>Login URL:</strong> <a href="' . $login_url . '">' . $login_url . '</a></p>'
+                    . '<p>Please keep these credentials secure.</p>';
+                $this->mailer->send_mail($email, $subject, $message);
+            }
+
+            $array = array(
+                'status' => '1',
+                'error' => '',
+                'id' => $admission_id,
+                'msg' => '',
+                'reference_no' => $reference_no,
+                'username' => $applicant_username,
+                'password' => $applicant_password_plain,
+                'login_url' => $login_url,
+            );
 
         } else {
             $array = array('status' => '0', 'error' => form_error('checkterm'), 'msg' => '');
@@ -1214,6 +1261,406 @@ class Public_admission extends Front_Controller
 
         echo json_encode(['status' => 1, 'message' => $this->lang->line('currency_changed_successfully')]);
 
+    }
+
+    private function getExamApplicantBySession()
+    {
+        $reference_no = $this->session->userdata('validlogin');
+        if (empty($reference_no)) {
+            return null;
+        }
+
+        $admission_id = $this->onlinestudent_model->getidbyrefno($reference_no);
+        if (empty($admission_id)) {
+            return null;
+        }
+
+        $applicant = $this->onlinestudent_model->get($admission_id);
+        if (empty($applicant)) {
+            return null;
+        }
+
+        return $applicant;
+    }
+
+    public function exam_list()
+    {
+        $applicant = $this->getExamApplicantBySession();
+        if (empty($applicant)) {
+            redirect('public_admission');
+        }
+
+        $this->load->model('onlineexam_model');
+
+        if (!$this->onlineexam_model->hasApplicantExamSchema()) {
+            $this->session->set_flashdata('msg', '<div class="alert alert-warning">Online exam for applicants is not enabled yet. Please contact administrator.</div>');
+            redirect('public_admission/online_admission_review/' . $applicant['reference_no']);
+        }
+
+        $data                     = array();
+        $data['sch_setting']      = $this->sch_setting_detail;
+        $data['sch_name']         = $this->sch_setting_detail->name ?? 'Applicant Portal';
+        $data['applicant']        = $applicant;
+        $data['onlineexam']       = $this->onlineexam_model->getApplicantexam($applicant['id']);
+        $data['reference_no']     = $applicant['reference_no'];
+        // Build applicant_info object for the layout header
+        $applicant_obj            = new stdClass();
+        $applicant_obj->firstname    = $applicant['firstname'];
+        $applicant_obj->lastname     = $applicant['lastname'];
+        $applicant_obj->reference_no = $applicant['reference_no'];
+        $data['applicant_info']   = $applicant_obj;
+        $data['title']            = 'Online Exams';
+        $this->load->view('layout/applicant/header', $data);
+        $this->load->view('public_admission/exam_list', $data);
+        $this->load->view('layout/applicant/footer', $data);
+    }
+
+    public function exam_view($id)
+    {
+        $applicant = $this->getExamApplicantBySession();
+        if (empty($applicant)) {
+            redirect('public_admission');
+        }
+
+        $this->load->model('onlineexam_model');
+        $this->load->model('onlineexamresult_model');
+
+        if (!$this->onlineexam_model->hasApplicantExamSchema()) {
+            $this->session->set_flashdata('msg', '<div class="alert alert-warning">Online exam for applicants is not enabled yet. Please contact administrator.</div>');
+            redirect('public_admission/online_admission_review/' . $applicant['reference_no']);
+        }
+
+        $exam                 = $this->onlineexam_model->getexamdetails($id);
+        $online_exam_validate = $this->onlineexam_model->examapplicantID($applicant['id'], $id);
+        if (empty($exam) || empty($online_exam_validate)) {
+            show_404();
+        }
+
+        $data                        = array();
+        $data['sch_setting']         = $this->sch_setting_detail;
+        $data['question_true_false'] = $this->config->item('question_true_false');
+        $data['exam']                = $exam;
+        $data['applicant']           = $applicant;
+        $data['questionOpt']         = $this->customlib->getQuesOption();
+        $data['online_exam_validate']= $online_exam_validate;
+        $data['question_result']     = $this->onlineexamresult_model->getResultByStudent($online_exam_validate->id, $online_exam_validate->onlineexam_id);
+        $data['result_prepare']      = $this->onlineexamresult_model->checkResultPrepare($online_exam_validate->id);
+
+        $filetype                    = $this->filetype_model->get();
+        $data['allowed_extension']   = array_map('trim', array_map('strtolower', explode(',', $filetype->file_extension)));
+        $data['allowed_mime_type']   = array_map('trim', array_map('strtolower', explode(',', $filetype->file_mime)));
+        $data['allowed_upload_size'] = $filetype->file_size;
+
+        $this->load->view('public_admission/exam_view', $data);
+    }
+
+    public function getApplicantExamForm()
+    {
+        $applicant = $this->getExamApplicantBySession();
+        if (empty($applicant)) {
+            echo json_encode(array('status' => 1, 'message' => 'Session expired'));
+            return;
+        }
+
+        $this->load->model('onlineexam_model');
+
+        if (!$this->onlineexam_model->hasApplicantExamSchema()) {
+            echo json_encode(array('status' => 1, 'message' => 'Applicant exam schema missing'));
+            return;
+        }
+
+        $question_status = 0;
+        $recordid        = $this->input->post('recordid');
+        $exam            = $this->onlineexam_model->getexamdetails($recordid);
+        if (empty($exam)) {
+            echo json_encode(array('status' => 1, 'message' => 'Exam not found'));
+            return;
+        }
+
+        $data                 = array();
+        $data['exam']         = $exam;
+        $data['questions']    = $this->onlineexam_model->getExamQuestions($recordid, $exam->is_random_question);
+        $onlineexam_student   = $this->onlineexam_model->examapplicantID($applicant['id'], $exam->id);
+        if (empty($onlineexam_student)) {
+            echo json_encode(array('status' => 1, 'message' => 'Applicant is not assigned to this exam'));
+            return;
+        }
+
+        $data['onlineexam_student_id'] = $onlineexam_student;
+        $getStudentAttemts             = $this->onlineexam_model->getStudentAttemts($onlineexam_student->id);
+        $data['question_status']       = 0;
+        $data['exam_duration']         = $exam->duration;
+
+        if (strtotime(date('Y-m-d H:i:s')) >= strtotime(date($exam->exam_to))) {
+            $question_status         = 1;
+            $data['question_status'] = 1;
+        } else if ($exam->attempt > $getStudentAttemts) {
+            $this->onlineexam_model->addStudentAttemts(array('onlineexam_student_id' => $onlineexam_student->id));
+        } else {
+            $question_status         = 1;
+            $data['question_status'] = 1;
+        }
+
+        $data['questionOpt'] = $this->customlib->getQuesOption();
+        $pag_content         = $this->load->view('user/onlineexam/_searchQuestionByExamID', $data, true);
+
+        $total_remaining_seconds = round((strtotime($exam->exam_to) - strtotime(date('Y-m-d H:i:s'))) / 3600 * 60 * 60, 1);
+        $exam_duration           = ($total_remaining_seconds < getSecondsFromHMS($exam->duration)) ? getHMSFromSeconds($total_remaining_seconds) : $exam->duration;
+
+        echo json_encode(array('status' => 0, 'exam' => $exam, 'duration' => $exam_duration, 'page' => $pag_content, 'question_status' => $question_status, 'total_question' => count($data['questions'])));
+    }
+
+    public function save_applicant_exam()
+    {
+        $applicant = $this->getExamApplicantBySession();
+        if (empty($applicant)) {
+            redirect('public_admission');
+        }
+
+        $this->load->model('onlineexam_model');
+
+        if (!$this->onlineexam_model->hasApplicantExamSchema()) {
+            redirect('public_admission/exam_list', 'refresh');
+        }
+
+        if ($this->input->server('REQUEST_METHOD') == 'POST') {
+            $onlineexam_student_id = (int) $this->input->post('onlineexam_student_id');
+            if ($onlineexam_student_id <= 0) {
+                redirect('public_admission/exam_list', 'refresh');
+            }
+
+            $this->db->where('id', $onlineexam_student_id);
+            $this->db->where('online_admission_id', $applicant['id']);
+            $this->db->where('candidate_type', 'applicant');
+            $exam_assignment = $this->db->get('onlineexam_students')->row();
+            if (empty($exam_assignment)) {
+                redirect('public_admission/exam_list', 'refresh');
+            }
+
+            if ((int) $exam_assignment->is_attempted === 1) {
+                $this->session->set_flashdata('msg', '<div class="alert alert-warning">This exam is already submitted.</div>');
+                redirect('public_admission/exam_list', 'refresh');
+            }
+
+            $this->db->where('onlineexam_student_id', $onlineexam_student_id);
+            $existing_result_count = (int) $this->db->count_all_results('onlineexam_student_results');
+            if ($existing_result_count > 0) {
+                $this->onlineexam_model->updateExamResult($onlineexam_student_id);
+                $this->session->set_flashdata('msg', '<div class="alert alert-warning">This exam is already submitted.</div>');
+                redirect('public_admission/exam_list', 'refresh');
+            }
+
+            $total_rows = $this->input->post('total_rows');
+            if (!empty($total_rows)) {
+                $save_result = array();
+                foreach ($total_rows as $row_key => $row_value) {
+                    if (($_POST['question_type_' . $row_value]) == "singlechoice") {
+                        if (isset($_POST['radio' . $row_value])) {
+                            $save_result[] = array(
+                                'onlineexam_student_id'  => $onlineexam_student_id,
+                                'onlineexam_question_id' => $this->input->post('question_id_' . $row_value),
+                                'select_option'          => $_POST['radio' . $row_value],
+                                'attachment_name'        => "",
+                                'attachment_upload_name' => "",
+                            );
+                        }
+                    } elseif (($_POST['question_type_' . $row_value]) == "true_false") {
+                        if (isset($_POST['radio' . $row_value])) {
+                            $save_result[] = array(
+                                'onlineexam_student_id'  => $onlineexam_student_id,
+                                'onlineexam_question_id' => $this->input->post('question_id_' . $row_value),
+                                'select_option'          => $_POST['radio' . $row_value],
+                                'attachment_name'        => "",
+                                'attachment_upload_name' => "",
+                            );
+                        }
+                    } elseif (($_POST['question_type_' . $row_value]) == "multichoice") {
+                        if (isset($_POST['checkbox' . $row_value])) {
+                            $save_result[] = array(
+                                'onlineexam_student_id'  => $onlineexam_student_id,
+                                'onlineexam_question_id' => $this->input->post('question_id_' . $row_value),
+                                'select_option'          => json_encode($_POST['checkbox' . $row_value]),
+                                'attachment_name'        => "",
+                                'attachment_upload_name' => "",
+                            );
+                        }
+                    } elseif (($_POST['question_type_' . $row_value]) == "descriptive") {
+                        if (isset($_POST['answer' . $row_value]) || (isset($_FILES["attachment" . $row_value]) && !empty($_FILES["attachment" . $row_value]['name']))) {
+                            $inst_array = array(
+                                'onlineexam_student_id'  => $onlineexam_student_id,
+                                'onlineexam_question_id' => $this->input->post('question_id_' . $row_value),
+                                'select_option'          => $_POST['answer' . $row_value],
+                            );
+
+                            $file_name        = "";
+                            $upload_file_name = "";
+                            if (isset($_FILES["attachment" . $row_value]) && !empty($_FILES["attachment" . $row_value]['name'])) {
+                                $file_name        = $_FILES["attachment" . $row_value]["name"];
+                                $fileInfo         = pathinfo($_FILES["attachment" . $row_value]["name"]);
+                                $upload_file_name = time() . uniqid(rand()) . '.' . $fileInfo['extension'];
+                                $upload_dir = "./uploads/onlinexam_images/";
+                                $this->customlib->ensureDirectoryExists($upload_dir);
+                                move_uploaded_file($_FILES["attachment" . $row_value]["tmp_name"], $upload_dir . $upload_file_name);
+                            }
+                            $inst_array['attachment_name']        = $file_name;
+                            $inst_array['attachment_upload_name'] = $upload_file_name;
+                            $save_result[]                        = $inst_array;
+                        }
+                    }
+                }
+
+                $this->load->model('onlineexamresult_model');
+                $this->onlineexamresult_model->add($save_result);
+                $this->onlineexam_model->updateExamResult($onlineexam_student_id);
+            }
+        }
+
+        redirect('public_admission/exam_list', 'refresh');
+    }
+
+    /**
+     * Applicant dashboard - main portal page
+     */
+    public function applicant_dashboard()
+    {
+        // Check if applicant is logged in
+        $reference_no = $this->session->userdata('validlogin');
+        if (empty($reference_no)) {
+            $this->session->set_flashdata('login_error', 'Please login first');
+            redirect('site/userlogin');
+            return;
+        }
+
+        // Get applicant info with course name and total fee (same as payment_history)
+        $ref_clean = preg_replace('/\s+/', '', $reference_no);
+        $this->db->select('oa.*, IFNULL(oac.course_name, "N/A") as course_name,
+            COALESCE(oa.course_fee_total,
+                IF(oa.quota_type = "management", oac.mgt_fee, oac.govt_fee)
+            ) as total_fee');
+        $this->db->from('online_admissions oa');
+        $this->db->join('online_admission_courses oac',
+            'oac.id = COALESCE(oa.admission_course_id, oa.ug_course_id)', 'left');
+        $this->db->where("REPLACE(oa.reference_no, ' ', '') = " . $this->db->escape($ref_clean), null, false);
+        $applicant_info = $this->db->get()->row();
+
+        if (!$applicant_info) {
+            $this->session->unset_userdata('validlogin');
+            redirect('site/userlogin');
+            return;
+        }
+
+        // Get payment history from incidental_fee_collections (same source as admin eye icon)
+        $this->load->model('Onlinestudent_model');
+        $date_format     = $this->customlib->getSchoolDateFormat();
+        $payment_history = $this->Onlinestudent_model->get_payment_history_by_ref($ref_clean, $date_format);
+        $total_paid      = array_sum(array_column($payment_history, 'amount_raw'));
+        $total_fee       = (float) ($applicant_info->total_fee ?? 0);
+        $balance         = $total_fee - $total_paid;
+
+        // Get assigned exams
+        $this->load->model('onlineexam_model');
+        if ($this->onlineexam_model->hasApplicantExamSchema()) {
+            $assigned_exams = $this->db
+                ->select('os.is_attempted, oe.exam')
+                ->from('onlineexam_students os')
+                ->join('onlineexam oe', 'oe.id = os.onlineexam_id')
+                ->where('os.online_admission_id', $applicant_info->id)
+                ->where('os.candidate_type', 'applicant')
+                ->order_by('os.id', 'DESC')
+                ->get()
+                ->result();
+        } else {
+            $assigned_exams = array();
+        }
+
+        $this->data['applicant_info']  = $applicant_info;
+        $this->data['payment_history'] = $payment_history;
+        $this->data['total_paid']      = $total_paid;
+        $this->data['total_fee']       = $total_fee;
+        $this->data['balance']         = $balance;
+        $this->data['assigned_exams']  = $assigned_exams;
+        $this->data['title']           = 'Applicant Portal';
+        $this->data['sch_name']        = $this->sch_setting_detail->name ?? 'Applicant Portal';
+
+        $this->load->view('layout/applicant/header', $this->data);
+        $this->load->view('public_admission/applicant_dashboard', $this->data);
+        $this->load->view('layout/applicant/footer', $this->data);
+    }
+
+    /**
+     * Payment history page
+     */
+    public function payment_history()
+    {
+        // Check if applicant is logged in
+        $reference_no = $this->session->userdata('validlogin');
+        if (empty($reference_no)) {
+            redirect('site/userlogin');
+            return;
+        }
+
+        // Get applicant info with course name and fee total
+        $this->db->select('oa.*, IFNULL(oac.course_name, "N/A") as course_name,
+            COALESCE(oa.course_fee_total,
+                IF(oa.quota_type = "management", oac.mgt_fee, oac.govt_fee)
+            ) as total_fee');
+        $this->db->from('online_admissions oa');
+        $this->db->join('online_admission_courses oac',
+            'oac.id = COALESCE(oa.admission_course_id, oa.ug_course_id)', 'left');
+        $ref_clean = preg_replace('/\s+/', '', $reference_no);
+        $this->db->where("REPLACE(oa.reference_no, ' ', '') = " . $this->db->escape($ref_clean), null, false);
+        $applicant_info = $this->db->get()->row();
+
+        if (!$applicant_info) {
+            $this->session->unset_userdata('validlogin');
+            redirect('site/userlogin');
+            return;
+        }
+
+        // Load same model used by admin eye icon
+        $this->load->model('Onlinestudent_model');
+        $date_format   = $this->customlib->getSchoolDateFormat();
+        $payment_history = $this->Onlinestudent_model->get_payment_history_by_ref($ref_clean, $date_format);
+
+        $total_paid = array_sum(array_column($payment_history, 'amount_raw'));
+        $total_fee  = (float) ($applicant_info->total_fee ?? 0);
+        $balance    = $total_fee - $total_paid;
+
+        // Receipt header image
+        $header_row = $this->db->select('header_image')->from('print_headerfooter')
+            ->where('print_type', 'online_admission_receipt')->get()->row_array();
+        $header_image = '';
+        if (!empty($header_row['header_image'])) {
+            $header_image = base_url('uploads/print_headerfooter/online_admission_receipt/' . $header_row['header_image']);
+        }
+
+        $this->data['applicant_info']  = $applicant_info;
+        $this->data['payment_history'] = $payment_history;
+        $this->data['total_paid']      = $total_paid;
+        $this->data['total_fee']       = $total_fee;
+        $this->data['balance']         = $balance;
+        $this->data['header_image']    = $header_image;
+        $this->data['sch_phone']       = $this->sch_setting_detail->phone ?? '';
+        $this->data['sch_email']       = $this->sch_setting_detail->email ?? '';
+        $this->data['title']           = 'Fee Payment Receipt';
+        $this->data['sch_name']        = $this->sch_setting_detail->name ?? 'Applicant Portal';
+
+        $this->load->view('layout/applicant/header', $this->data);
+        $this->load->view('public_admission/payment_history', $this->data);
+        $this->load->view('layout/applicant/footer', $this->data);
+    }
+
+    /**
+     * Logout applicant
+     */
+    public function applicant_logout()
+    {
+        if (!empty($this->session->userdata('validlogin'))) {
+            $this->session->unset_userdata('validlogin');
+        }
+        
+        $this->session->set_flashdata('success_msg', 'Logged out successfully');
+        redirect('site/userlogin');
     }
 }
 ?>

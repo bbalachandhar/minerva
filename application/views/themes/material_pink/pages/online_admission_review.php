@@ -127,6 +127,11 @@
                 <li><?php echo $this->lang->line('form_status') ?><span class="text-danger"><?php echo $this->lang->line('not_submitted') ?></span></li>
                 <?php }else{ ?>
                      <li><?php echo $this->lang->line('form_status') ?><span class="text-success"><?php echo $this->lang->line('submitted') ?></span></li>
+                   <?php if (!empty($applicant_username) && !empty($applicant_password) && !empty($applicant_login_url)) { ?>
+                   <li>Applicant Login Username<span><?php echo $applicant_username; ?></span></li>
+                   <li>Applicant Login Password<span><?php echo $applicant_password; ?></span></li>
+                   <li>Applicant Login URL<span><a href="<?php echo $applicant_login_url; ?>" target="_blank"><?php echo $applicant_login_url; ?></a></span></li>
+                   <?php } ?>
                   <?php } ?>
                   <?php 
                    if($online_admission_payment=='yes'){  
@@ -812,6 +817,12 @@
                 <div class="printcontent" id="printfooter">
                     <?php $this->setting_model->get_onlineadmissionfooter(); ?>   
                  </div> 
+                <div class="printcontent" style="margin-top:15px; border:1px solid #d9edf7; background:#f4fbff; padding:15px;">
+                  <h4 style="margin-top:0;">First Time Login?</h4>
+                  <p style="margin-bottom:6px;"><strong>Login URL:</strong> <a href="<?php echo site_url('site/userlogin'); ?>" target="_blank"><?php echo site_url('site/userlogin'); ?></a></p>
+                  <p style="margin-bottom:6px;"><strong>Default Password:</strong> Your Reference Number + @ApplicantPortal<?php echo date('Y'); ?></p>
+                  <p style="margin-bottom:0;"><strong>Example:</strong> If your reference is REF001, password is REF001@ApplicantPortal<?php echo date('Y'); ?></p>
+                </div>
     </div>
 </div>
 <script type="text/javascript">

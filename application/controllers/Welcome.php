@@ -831,6 +831,10 @@ class Welcome extends Front_Controller
             $this->data['online_admission_payment'] = $this->sch_setting_detail->online_admission_payment;
             $this->data['online_admission_amount']  = $this->sch_setting_detail->online_admission_amount;
             $this->data['online_admission_conditions'] = $this->sch_setting_detail->online_admission_conditions;
+            $current_year = date('Y');
+            $this->data['applicant_login_url'] = site_url('site/userlogin');
+            $this->data['applicant_username'] = $result['reference_no'];
+            $this->data['applicant_password'] = $result['reference_no'] . '@ApplicantPortal' . $current_year;
             $setting_data                              = $this->setting_model->get();
             $this->data['setting_data'] = $setting_data;
             $this->data['currencies'] = $currencies;
@@ -958,8 +962,21 @@ class Welcome extends Front_Controller
         
         if ($this->sch_setting_detail->institution_type == 'school') {
             $this->load_theme('pages/online_admission_review', $this->config->item('front_layout'));
-        } else {
+        } elseif ($status == 'admin') {
+            // Admin viewing: college_admission_review has its own standalone HTML shell
             $this->load->view('public_admission/college_admission_review', $this->data);
+        } else {
+            // Applicant viewing their own form: wrap with applicant portal layout
+            $this->data['wrapped_layout'] = 'applicant';
+            $this->data['sch_name'] = $this->sch_setting_detail->name ?? 'Applicant Portal';
+            $applicant_obj = new stdClass();
+            $applicant_obj->firstname   = $result['firstname'];
+            $applicant_obj->lastname    = $result['lastname'];
+            $applicant_obj->reference_no = $result['reference_no'];
+            $this->data['applicant_info'] = $applicant_obj;
+            $this->load->view('layout/applicant/header', $this->data);
+            $this->load->view('public_admission/college_admission_review', $this->data);
+            $this->load->view('layout/applicant/footer', $this->data);
         }
  
         } else {
@@ -1508,11 +1525,54 @@ class Welcome extends Front_Controller
             $mobileno     = $result['mobileno'];
             $email        = $result['email'];
 
-            $sender_details = array('firstname' => $firstname, 'lastname' => $lastname, 'email' => $email, 'date' => $date, 'reference_no' => $reference_no, 'mobileno' => $mobileno, 'guardian_email' => $result['guardian_email'], 'guardian_phone' => $result['guardian_phone']);
+            $current_year = date('Y');
+            $login_url = site_url('site/userlogin');
+            $applicant_username = $reference_no;
+            $applicant_password_plain = $reference_no . '@ApplicantPortal' . $current_year;
+
+            if ($this->db->field_exists('applicant_password', 'online_admissions')) {
+                $this->db->where('id', $admission_id);
+                $this->db->update('online_admissions', array('applicant_password' => md5($applicant_password_plain)));
+            }
+
+            $sender_details = array(
+                'firstname' => $firstname,
+                'lastname' => $lastname,
+                'email' => $email,
+                'date' => $date,
+                'reference_no' => $reference_no,
+                'mobileno' => $mobileno,
+                'guardian_email' => $result['guardian_email'],
+                'guardian_phone' => $result['guardian_phone'],
+                'applicant_username' => $applicant_username,
+                'applicant_password' => $applicant_password_plain,
+                'login_url' => $login_url,
+            );
 
             $this->mailsmsconf->mailsms('online_admission_form_submission', $sender_details);
 
-            $array = array('status' => '1', 'error' => '', 'id' => $admission_id, 'msg' => '', 'reference_no' => $reference_no);
+            if (!empty($email) && filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                $subject = 'Applicant Portal Login Credentials';
+                $message = '<p>Dear ' . htmlspecialchars(trim($firstname . ' ' . $lastname)) . ',</p>'
+                    . '<p>Your application has been submitted successfully.</p>'
+                    . '<p><strong>Reference No:</strong> ' . htmlspecialchars($reference_no) . '<br>'
+                    . '<strong>Username:</strong> ' . htmlspecialchars($applicant_username) . '<br>'
+                    . '<strong>Password:</strong> ' . htmlspecialchars($applicant_password_plain) . '<br>'
+                    . '<strong>Login URL:</strong> <a href="' . $login_url . '">' . $login_url . '</a></p>'
+                    . '<p>Please keep these credentials secure.</p>';
+                $this->mailer->send_mail($email, $subject, $message);
+            }
+
+            $array = array(
+                'status' => '1',
+                'error' => '',
+                'id' => $admission_id,
+                'msg' => '',
+                'reference_no' => $reference_no,
+                'username' => $applicant_username,
+                'password' => $applicant_password_plain,
+                'login_url' => $login_url,
+            );
 
         } else {
             $array = array('status' => '0', 'error' => form_error('checkterm'), 'msg' => '');
