@@ -31,7 +31,8 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                     <tr>
                                         <th><?php echo $this->lang->line('biometric_user'); ?></th>
                                         <th><?php echo $this->lang->line('name'); ?></th>
-                                        <th><?php echo $this->lang->line('admission_no'); ?></th>
+                                        <th>Library ID</th>
+                                        <th>User Category</th>
                                         <th><?php echo $this->lang->line('date'); ?></th>
                                         <th><?php echo $this->lang->line('check_in'); ?></th>
                                         <th><?php echo $this->lang->line('check_out'); ?></th>
@@ -64,7 +65,8 @@ $(document).ready(function() {
         "columns": [
             { "data": "user_id" },
             { "data": "name" },
-            { "data": "admission_no" },
+            { "data": "library_id" },
+            { "data": "user_category" },
             { "data": "attendance_date" },
             { "data": "in_time" },
             { "data": "out_time" },

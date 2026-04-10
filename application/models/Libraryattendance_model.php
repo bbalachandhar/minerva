@@ -208,9 +208,23 @@ class Libraryattendance_model extends MY_Model
      */
     public function get_attendance_records_dt($date = null)
     {
-        $this->db->select('library_attendance.id, library_attendance.user_id, library_attendance.user_type, library_attendance.name, students.admission_no, library_attendance.attendance_date, library_attendance.in_time, library_attendance.out_time, library_attendance.duration');
+        $this->db->select("library_attendance.id, library_attendance.user_id, library_attendance.user_type, library_attendance.name,
+            CASE
+                WHEN library_attendance.user_type = 'student' THEN students.admission_no
+                WHEN library_attendance.user_type = 'staff' THEN staff.employee_id
+                ELSE ''
+            END AS library_id,
+            CASE
+                WHEN library_attendance.user_type = 'student' THEN 'Student'
+                WHEN library_attendance.user_type = 'staff' THEN IFNULL(staff_designation_category.name, '')
+                ELSE ''
+            END AS user_category,
+            library_attendance.attendance_date, library_attendance.in_time, library_attendance.out_time, library_attendance.duration", false);
         $this->db->from('library_attendance');
         $this->db->join('students', 'students.id = library_attendance.user_id AND library_attendance.user_type = "student"', 'left');
+        $this->db->join('categories', 'categories.id = students.category_id', 'left');
+        $this->db->join('staff', 'staff.id = library_attendance.user_id AND library_attendance.user_type = "staff"', 'left');
+        $this->db->join('staff_designation_category', 'staff_designation_category.id = staff.category_id', 'left');
 
         if ($date) {
             $this->db->where('attendance_date', $date);
@@ -222,7 +236,10 @@ class Libraryattendance_model extends MY_Model
         $result = $query->result_array();
 
         foreach ($result as &$row) {
-            $row['admission_no'] = isset($row['admission_no']) && $row['admission_no'] !== null ? $row['admission_no'] : '';
+            $row['library_id']    = isset($row['library_id']) && $row['library_id'] !== null ? $row['library_id'] : '';
+            $row['user_category'] = isset($row['user_category']) && $row['user_category'] !== null ? $row['user_category'] : '';
+            // Backward-compatible alias for any cached/older DataTables config still expecting admission_no.
+            $row['admission_no']  = $row['library_id'];
         }
         unset($row);
         
