@@ -32,7 +32,6 @@ class MetaLeads extends CI_Controller
         parent::__construct();
         $this->load->database();
         $this->load->model('enquiry_model');
-        $this->load->model('setting_model');
         $this->_ensure_log_table();
     }
 
@@ -174,8 +173,10 @@ class MetaLeads extends CI_Controller
 
         $this->_log_webhook_update($log_id, ['signature_status' => $sig_status]);
 
-        $setting = $this->setting_model->getSetting();
-        $enabled = (int) ($setting->meta_leads_enabled ?? 0);
+        // Direct DB query — getSetting() requires language_model which is not loaded in webhook context
+        $setting = $this->db->select('meta_leads_enabled, meta_app_secret, meta_page_access_token, meta_default_course_id')
+            ->limit(1)->get('sch_settings')->row_array();
+        $enabled = (int) ($setting['meta_leads_enabled'] ?? 0);
         if ($enabled !== 1) {
             $this->_log_webhook_update($log_id, ['outcome' => 'disabled', 'note' => 'meta_leads_enabled != 1']);
             $this->output->set_status_header(200)->set_output('EVENT_RECEIVED');
@@ -217,7 +218,7 @@ class MetaLeads extends CI_Controller
                 ]);
 
                 log_message('info', "[MetaLeads] New lead event: leadgen_id={$leadgen_id}, form_id={$form_id}, page_id={$page_id}");
-                list($outcome, $enquiry_id, $note) = $this->_process_lead($leadgen_id, $form_id, $page_id, $ad_id, $setting);
+                list($outcome, $enquiry_id, $note) = $this->_process_lead($leadgen_id, $form_id, $page_id, $ad_id, (object) $setting);
 
                 $this->_log_webhook_update($log_id, [
                     'outcome'    => $outcome,
@@ -413,9 +414,9 @@ class MetaLeads extends CI_Controller
             return true;
         }
 
-        // App Secret must be stored in sch_settings as meta_app_secret
-        $setting    = $this->setting_model->getSetting();
-        $app_secret = trim((string) ($setting->meta_app_secret ?? ''));
+        // App Secret — direct DB query to avoid getSetting() language_model dependency
+        $row        = $this->db->select('meta_app_secret')->limit(1)->get('sch_settings')->row_array();
+        $app_secret = trim((string) ($row['meta_app_secret'] ?? ''));
         if ($app_secret === '') {
             log_message('debug', '[MetaLeads] meta_app_secret not configured — skipping HMAC check.');
             return true;
