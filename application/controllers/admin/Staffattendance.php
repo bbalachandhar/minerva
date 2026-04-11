@@ -890,8 +890,9 @@ class Staffattendance extends Admin_Controller
             $setting = $this->setting_model->getSetting();
             if ($setting && isset($setting->id)) {
                 $this->setting_model->add([
-                    'id' => $setting->id,
-                    'last_processed_attendance_date' => $to_date,
+                    'id'                                   => $setting->id,
+                    'last_processed_attendance_date'       => $to_date,
+                    'last_processed_attendance_datetime'   => date('Y-m-d H:i:s'),
                 ]);
             }
         }
@@ -929,20 +930,25 @@ class Staffattendance extends Admin_Controller
         $data['title'] = $this->lang->line('process_biometric_attendance');
 
         $setting = $this->setting_model->getSetting();
-        $last_processed_attendance_date = isset($setting->last_processed_attendance_date) ? $setting->last_processed_attendance_date : null;
+
+        // Prefer the datetime field; fall back to date-only for backward compatibility.
+        $last_processed_dt = !empty($setting->last_processed_attendance_datetime)
+            ? $setting->last_processed_attendance_datetime
+            : (!empty($setting->last_processed_attendance_date)
+                ? $setting->last_processed_attendance_date . ' 00:00:00'
+                : null);
 
         $today = date('Y-m-d');
         $this_month_first_day = date('Y-m-01');
 
-        if ($last_processed_attendance_date === null || $last_processed_attendance_date === '') {
-            // First time processing, process from the beginning of the current month
+        if (empty($last_processed_dt)) {
+            // First time: process from the beginning of the current month.
             $from_date = $this_month_first_day;
-        } elseif ($last_processed_attendance_date === $today) {
-            // Allow reprocessing today's attendance
-            $from_date = $today;
         } else {
-            // Process from the day after the last processed date
-            $from_date = date('Y-m-d', strtotime($last_processed_attendance_date . ' +1 day'));
+            // Start from the DATE of the last run so that punches added in the same
+            // day after the previous run (e.g. afternoon punches missed by the morning
+            // cron) are always re-included on the next run, even if it is the next day.
+            $from_date = date('Y-m-d', strtotime($last_processed_dt));
         }
 
         $to_date = $today; // Always process up to today
@@ -960,7 +966,7 @@ class Staffattendance extends Admin_Controller
             
             $final_msg = '<div class="alert alert-success">Biometric attendance processed successfully for ' . $processed_dates_count . ' day(s) up to ' . $to_date . '.</div>';
         } else {
-            $final_msg = '<div class="alert alert-info">No new attendance data to process. Last processed date: ' . ($last_processed_attendance_date ?: 'N/A') . '</div>';
+            $final_msg = '<div class="alert alert-info">No new attendance data to process. Last processed: ' . ($last_processed_dt ?: 'N/A') . '</div>';
         }
 
         if (!empty($overall_unmatched_staff_ids)) {
