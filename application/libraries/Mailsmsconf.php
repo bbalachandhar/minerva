@@ -277,7 +277,17 @@ $sender_details['parent_app_key']=$recipient_data['parent_app_key'];
                     // Assuming 'email' is always present in $sender_details for enquiry
                     $this->CI->mailgateway->sentEnquiryMail($sender_details, $chk_mail_sms['template'], $chk_mail_sms['subject'], $sender_details['email']);
                 }
-                // SMS and Notification logic can be added here if needed, similar to other sections
+                if (!empty($chk_mail_sms['whatsapp']) && !empty($sender_details['contact'])) {
+                    $raw = preg_replace('/\D/', '', $sender_details['contact']);
+                    $wa_number = (strlen($raw) === 10) ? '91' . $raw : $raw;
+                    $this->CI->load->library('whatsappgateway');
+                    $this->CI->whatsappgateway->sendOnlineadmissionformsubmit(
+                        $sender_details,
+                        $chk_mail_sms['template'],
+                        $wa_number,
+                        $chk_mail_sms['template_id']
+                    );
+                }
             } elseif ($send_for == "student_login_credential") {
 
                 if ($chk_mail_sms['mail'] && $chk_mail_sms['template'] != "") {

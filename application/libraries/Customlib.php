@@ -1441,6 +1441,7 @@ class Customlib
                         'mail'               => $note_value->is_mail,
                         'sms'                => $note_value->is_sms,
                         'notification'       => $note_value->is_notification,
+                        'whatsapp'           => $note_value->is_whatsapp,
                         'student_recipient'  => $note_value->is_student_recipient,
                         'guardian_recipient' => $note_value->is_guardian_recipient,
                         'staff_recipient'    => $note_value->is_staff_recipient,
