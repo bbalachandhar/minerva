@@ -125,6 +125,7 @@ class Whatsappgateway
                 return $this->sendByTwilio($whatsapp_detail, $send_to, $template_id, $msg, 'student_login_credential');
             } else if ($whatsapp_detail->type == 'meta') {
                 return $this->sendMetaTemplate($whatsapp_detail, $send_to, $template_id, $whatsapp_detail->language, $msg, 'student_login_credential');
+            }
         }
         return true;
     }
