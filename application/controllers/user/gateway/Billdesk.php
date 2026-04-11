@@ -693,15 +693,19 @@ class Billdesk extends Student_Controller
                         $online_admission_id = $params_from_gateway_ins['online_admission_id'];
                         $transaction_id = $response['transactionid'];
 
+                        // Use admission_amount (excluding processing charge) for the receipt,
+                        // so incidental_fee_collections shows Rs.1000 not Rs.1020.
+                        $admission_fee_amount = (float) ($params_from_gateway_ins['admission_amount'] ?? $response['amount']);
+
                         $payment_data = [
                             'online_admission_id' => $online_admission_id,
-                            'transaction_id' => $transaction_id,
-                            'paid_amount' => $response['amount'], // Amount from BillDesk response
-                            'payment_mode' => 'Billdesk',
-                            'payment_type' => 'online_admission',
-                            'note'         => 'Online payment via BillDesk. TXN: ' . $transaction_id,
-                            'date'         => date('Y-m-d H:i:s'),
-                            'paid_status'  => 1, // Successfully paid
+                            'transaction_id'      => $transaction_id,
+                            'paid_amount'         => $admission_fee_amount,
+                            'payment_mode'        => 'Billdesk',
+                            'payment_type'        => 'online_admission',
+                            'note'                => 'Online payment via BillDesk. TXN: ' . $transaction_id,
+                            'date'                => date('Y-m-d H:i:s'),
+                            'paid_status'         => 1,
                         ];
 
                         $this->onlinestudent_model->paymentSuccess($payment_data);
