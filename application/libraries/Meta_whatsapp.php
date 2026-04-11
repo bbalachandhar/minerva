@@ -30,6 +30,8 @@ class Meta_whatsapp {
             ]
         ];
 
+        log_message('debug', 'Meta WhatsApp payload: ' . json_encode($postData));
+
         $ch = curl_init($url);
         curl_setopt_array($ch, [
             CURLOPT_POST => true,
