@@ -90,14 +90,22 @@ class MetaLeads extends CI_Controller
     // ─────────────────────────────────────────────────────────────────────
     public function webhook()
     {
-        $method = strtoupper($this->input->server('REQUEST_METHOD'));
+        try {
+            $method = strtoupper($this->input->server('REQUEST_METHOD'));
 
-        if ($method === 'GET') {
-            $this->_handle_verification();
-        } elseif ($method === 'POST') {
-            $this->_handle_lead_event();
-        } else {
-            $this->output->set_status_header(405)->set_output('Method Not Allowed');
+            if ($method === 'GET') {
+                $this->_handle_verification();
+            } elseif ($method === 'POST') {
+                $this->_handle_lead_event();
+            } else {
+                $this->output->set_status_header(405)->set_output('Method Not Allowed');
+            }
+        } catch (Throwable $e) {
+            log_message('error', '[MetaLeads] Fatal in webhook(): ' . $e->getMessage()
+                . ' in ' . $e->getFile() . ':' . $e->getLine());
+            // Always 200 to Meta — never let crashes cause delivery rejection
+            http_response_code(200);
+            echo 'EVENT_RECEIVED';
         }
     }
 
@@ -146,7 +154,9 @@ class MetaLeads extends CI_Controller
     private function _handle_lead_event()
     {
         $raw_body = file_get_contents('php://input');
+        $log_id   = 0;
 
+        try {
         // ── Log the raw incoming hit immediately ──────────────────────────
         $log_id = $this->_log_webhook_start();
 
@@ -224,6 +234,18 @@ class MetaLeads extends CI_Controller
 
         // Meta requires a 200 response within 20 seconds.
         $this->output->set_status_header(200)->set_output('EVENT_RECEIVED');
+
+        } catch (Throwable $e) {
+            // Never let an internal error return non-200 to Meta — that causes
+            // rejected delivery and stops webhook retries.
+            log_message('error', '[MetaLeads] Uncaught exception in _handle_lead_event: ' . $e->getMessage()
+                . ' in ' . $e->getFile() . ':' . $e->getLine());
+            $this->_log_webhook_update($log_id, [
+                'outcome' => 'exception',
+                'note'    => substr($e->getMessage() . ' @ ' . basename($e->getFile()) . ':' . $e->getLine(), 0, 500),
+            ]);
+            $this->output->set_status_header(200)->set_output('EVENT_RECEIVED');
+        }
     }
 
     // ─────────────────────────────────────────────────────────────────────
