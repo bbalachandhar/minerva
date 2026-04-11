@@ -643,9 +643,11 @@ class Onlinestudent_model extends MY_Model
             return;
         }
 
-        // Get current session from sch_settings
-        $settings = $this->db->select('session_id')->get('sch_settings')->row_array();
-        $session_id = (int) ($settings['session_id'] ?? 0);
+        // Get session_id and the configured application fee amount from sch_settings.
+        // Using online_admission_amount directly (never the gateway total which includes processing charge).
+        $settings   = $this->db->select('session_id, online_admission_amount')->get('sch_settings')->row_array();
+        $session_id = (int)   ($settings['session_id']              ?? 0);
+        $amount     = (float) ($settings['online_admission_amount'] ?? $payment['paid_amount'] ?? 0);
 
         // Generate next receipt number using max numeric suffix (same as Incidental_fee_collection_model::get_receipt_no)
         $prefix = 'IFC-';
@@ -656,10 +658,9 @@ class Onlinestudent_model extends MY_Model
         $new_num    = ($suffix_row && $suffix_row->max_num) ? (int) $suffix_row->max_num + 1 : 1;
         $receipt_no = $prefix . str_pad($new_num, 6, '0', STR_PAD_LEFT);
 
-        $amount      = (float) ($payment['paid_amount'] ?? 0);
-        $txn_id      = isset($payment['transaction_id']) ? (string) $payment['transaction_id'] : null;
-        $pay_mode    = isset($payment['payment_mode'])   ? (string) $payment['payment_mode']   : 'online';
-        $pay_date    = isset($payment['date'])           ? date('Y-m-d', strtotime($payment['date'])) : date('Y-m-d');
+        $txn_id   = isset($payment['transaction_id']) ? (string) $payment['transaction_id'] : null;
+        $pay_mode = isset($payment['payment_mode'])   ? (string) $payment['payment_mode']   : 'online';
+        $pay_date = isset($payment['date'])           ? date('Y-m-d', strtotime($payment['date'])) : date('Y-m-d');
 
         $insert_data = [
             'incidental_fee_type_id' => (int) $fee_type['id'],
