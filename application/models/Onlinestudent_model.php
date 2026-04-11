@@ -605,14 +605,19 @@ class Onlinestudent_model extends MY_Model
             return;
         }
 
-        // Get reference_no for this admission
-        $row = $this->db->select('reference_no')
+        // Get reference_no and name for this admission
+        $row = $this->db->select('reference_no, firstname, middlename, lastname')
                         ->get_where('online_admissions', ['id' => $admission_id])
                         ->row_array();
         if (empty($row['reference_no'])) {
             return;
         }
-        $ref_no = trim($row['reference_no']);
+        $ref_no      = trim($row['reference_no']);
+        $applicant_name = trim(implode(' ', array_filter([
+            $row['firstname'] ?? '',
+            $row['middlename'] ?? '',
+            $row['lastname']  ?? '',
+        ])));
 
         // Avoid duplicate: skip if an application-fee incidental record already exists for this ref
         $existing = $this->db
@@ -642,23 +647,25 @@ class Onlinestudent_model extends MY_Model
         $settings = $this->db->select('session_id')->get('sch_settings')->row_array();
         $session_id = (int) ($settings['session_id'] ?? 0);
 
-        // Generate next receipt number (IFC-XXXXXX)
-        $last = $this->db
-            ->select_max('id')
-            ->get('incidental_fee_collections')
-            ->row_array();
-        $next_id     = (int) ($last['id'] ?? 0) + 1;
-        $receipt_no  = 'IFC-' . str_pad($next_id, 6, '0', STR_PAD_LEFT);
+        // Generate next receipt number using max numeric suffix (same as Incidental_fee_collection_model::get_receipt_no)
+        $prefix = 'IFC-';
+        $suffix_row = $this->db->query(
+            "SELECT MAX(CAST(SUBSTRING(receipt_no, " . (strlen($prefix) + 1) . ") AS UNSIGNED)) AS max_num FROM incidental_fee_collections WHERE receipt_no LIKE ?",
+            [$prefix . '%']
+        )->row();
+        $new_num    = ($suffix_row && $suffix_row->max_num) ? (int) $suffix_row->max_num + 1 : 1;
+        $receipt_no = $prefix . str_pad($new_num, 6, '0', STR_PAD_LEFT);
 
         $amount      = (float) ($payment['paid_amount'] ?? 0);
         $txn_id      = isset($payment['transaction_id']) ? (string) $payment['transaction_id'] : null;
         $pay_mode    = isset($payment['payment_mode'])   ? (string) $payment['payment_mode']   : 'online';
         $pay_date    = isset($payment['date'])           ? date('Y-m-d', strtotime($payment['date'])) : date('Y-m-d');
 
-        $this->db->insert('incidental_fee_collections', [
+        $insert_data = [
             'incidental_fee_type_id' => (int) $fee_type['id'],
             'session_id'             => $session_id,
             'application_ref_no'     => $ref_no,
+            'non_student_name'       => $applicant_name,
             'amount_collected'       => $amount,
             'bill_date'              => $pay_date,
             'date_collected'         => $payment['date'] ?? date('Y-m-d H:i:s'),
@@ -666,7 +673,16 @@ class Onlinestudent_model extends MY_Model
             'payment_mode'           => $pay_mode,
             'txn_id'                 => $txn_id,
             'notes'                  => $payment['note'] ?? ('Online gateway payment — ' . $pay_mode),
-        ]);
+        ];
+
+        $insert_ok = $this->db->insert('incidental_fee_collections', $insert_data);
+        if (!$insert_ok) {
+            $err = $this->db->error();
+            log_message('error', 'Onlinestudent_model::_insertGatewayPaymentToIncidental — INSERT failed for ref_no=' . $ref_no
+                . ' receipt_no=' . $receipt_no . ' error=[' . $err['code'] . '] ' . $err['message']);
+        } else {
+            log_message('debug', 'Onlinestudent_model::_insertGatewayPaymentToIncidental — created incidental receipt ' . $receipt_no . ' for ref_no=' . $ref_no);
+        }
     }
 
     public function getclassbyclasssectionid($class_section_id)

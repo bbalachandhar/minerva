@@ -699,9 +699,9 @@ class Billdesk extends Student_Controller
                             'paid_amount' => $response['amount'], // Amount from BillDesk response
                             'payment_mode' => 'Billdesk',
                             'payment_type' => 'online_admission',
-                            'date' => date('Y-m-d H:i:s'),
-                            'gateway_name' => 'billdesk',
-                            'paid_status' => 1 // Successfully paid
+                            'note'         => 'Online payment via BillDesk. TXN: ' . $transaction_id,
+                            'date'         => date('Y-m-d H:i:s'),
+                            'paid_status'  => 1, // Successfully paid
                         ];
 
                         $this->onlinestudent_model->paymentSuccess($payment_data);
