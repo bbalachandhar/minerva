@@ -295,7 +295,9 @@ class MetaLeads extends CI_Controller
 
         if ($name === '' || $mobile === '') {
             log_message('error', "[MetaLeads] leadgen_id={$leadgen_id} missing name or mobile. fields=" . json_encode($fields));
-            return ['missing_name_mobile', null, 'Lead has no name or mobile. keys=' . implode(',', array_keys($fields))];
+            $debug = [];
+            foreach ($fields as $k => $v) { $debug[] = $k . '=' . $v; }
+            return ['missing_name_mobile', null, substr(implode('; ', $debug), 0, 500)];
         }
 
         // ── Look up the meta vendor row ───────────────────────────────────
