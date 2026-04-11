@@ -276,11 +276,11 @@ class MetaLeads extends CI_Controller
         }
 
         // ── Look up the meta vendor row ───────────────────────────────────
-        $vendor = $this->db
+        $vendor_result = $this->db
             ->where('vendor_code', 'meta')
             ->limit(1)
-            ->get('lead_api_vendors')
-            ->row_array();
+            ->get('lead_api_vendors');
+        $vendor = ($vendor_result !== false) ? $vendor_result->row_array() : [];
 
         $vendor_id   = !empty($vendor['id']) ? (int) $vendor['id'] : null;
         $vendor_name = !empty($vendor['vendor_name']) ? $vendor['vendor_name'] : 'Meta Lead Ads';
@@ -291,13 +291,13 @@ class MetaLeads extends CI_Controller
         $admission_type      = null;
 
         if ($program !== '') {
-            $course = $this->db
+            $course_result = $this->db
                 ->select('id, course_level, admission_type')
                 ->like('course_name', $program)
                 ->order_by('id', 'ASC')
                 ->limit(1)
-                ->get('online_admission_courses')
-                ->row_array();
+                ->get('online_admission_courses');
+            $course = ($course_result !== false) ? $course_result->row_array() : [];
             if (!empty($course)) {
                 $admission_course_id = (int) $course['id'];
                 $course_level        = $course['course_level'] ?? null;
@@ -306,12 +306,12 @@ class MetaLeads extends CI_Controller
         }
 
         if ($admission_course_id === null && $default_course_id > 0) {
-            $course = $this->db
+            $course_result2 = $this->db
                 ->select('id, course_level, admission_type')
                 ->where('id', $default_course_id)
                 ->limit(1)
-                ->get('online_admission_courses')
-                ->row_array();
+                ->get('online_admission_courses');
+            $course = ($course_result2 !== false) ? $course_result2->row_array() : [];
             if (!empty($course)) {
                 $admission_course_id = (int) $course['id'];
                 $course_level        = $course['course_level'] ?? null;
