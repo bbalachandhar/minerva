@@ -556,11 +556,15 @@ class Staffattendance extends Admin_Controller
         }
 
         // Update sync marker on successful fetch.
-        // Keep the greater timestamp so historical backfills don't move sync backwards.
+        // Cap at today's end-of-day so a future to_date (e.g. end of month) never blocks the cron.
+        $today_end = date('Y-m-d') . ' 23:59:59';
+        $capped_sync = (strtotime($toDateTime) > strtotime($today_end)) ? $today_end : $toDateTime;
         $setting = $this->setting_model->getSetting();
         $current_sync = (!empty($setting->last_biometric_sync_datetime)) ? $setting->last_biometric_sync_datetime : null;
-        $new_sync = $toDateTime;
-        if (!empty($current_sync) && strtotime($current_sync) > strtotime($toDateTime)) {
+        $new_sync = $capped_sync;
+        // Only move the marker forward (don't let historical backfills move it backwards).
+        // But never allow a future date beyond today.
+        if (!empty($current_sync) && strtotime($current_sync) > strtotime($capped_sync) && strtotime($current_sync) <= strtotime($today_end)) {
             $new_sync = $current_sync;
         }
         $this->setting_model->add(['id' => $setting->id, 'last_biometric_sync_datetime' => $new_sync]);
