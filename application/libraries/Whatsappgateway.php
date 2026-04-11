@@ -78,11 +78,15 @@ class Whatsappgateway
 			]
 		];
 
-		foreach ($msg as $value) {
-			$components[0]['parameters'][] = [
+		foreach ($msg as $key => $value) {
+			$param = [
 				"type" => "text",
-				"text" => $value
+				"text" => (string)$value
 			];
+			if (!is_numeric($key)) {
+				$param["parameter_name"] = $key;
+			}
+			$components[0]['parameters'][] = $param;
 		}
 
 		$result = $this->_CI->meta_whatsapp->sendTemplate($send_to, $template_id, $language, $components);
