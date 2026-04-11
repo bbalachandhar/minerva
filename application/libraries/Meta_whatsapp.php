@@ -55,6 +55,8 @@ class Meta_whatsapp {
 
         if ($http_code >= 400) {
             log_message('error', 'Meta WhatsApp API error (HTTP ' . $http_code . '): ' . $response);
+        } else {
+            log_message('debug', 'Meta WhatsApp API response (HTTP ' . $http_code . '): ' . $response);
         }
 
         return $response;
