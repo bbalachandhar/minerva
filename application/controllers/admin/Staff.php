@@ -2599,6 +2599,7 @@ class Staff extends Admin_Controller
     public function import()
     {
         $data['field'] = array(
+            "biometric_id"             => "biometric_id",
             "employee_id"              => "employee_id",
             "prefix"                   => "prefix",
             "ug_qualification"         => "ug_qualification",
