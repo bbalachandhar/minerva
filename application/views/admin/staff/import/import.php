@@ -63,9 +63,9 @@ foreach ($field as $key => $value) {
                                 <div class="col-md-3">
 
                                     <div class="form-group">
-                                        <label for="exampleInputEmail1"><?php echo $this->lang->line('role'); ?></label><small class="req"> *</small>
+                                        <label for="exampleInputEmail1"><?php echo $this->lang->line('role'); ?> <small class="text-muted">(Default — overridden per row)</small></label>
                                         <select  id="role" name="role" class="form-control" >
-                                            <option value=""   ><?php echo $this->lang->line('select'); ?></option>
+                                            <option value=""   >-- Use role from CSV --</option>
                                             <?php
 foreach ($roles as $key => $role) {
     ?>
@@ -73,6 +73,7 @@ foreach ($roles as $key => $role) {
                                             <?php }
 ?>
                                         </select>
+                                        <small class="text-muted">If the CSV <code>role</code> column is blank, this default is used.</small>
                                         <span class="text-danger"><?php echo form_error('role'); ?></span>
                                     </div>
                                 </div>

@@ -2663,6 +2663,11 @@ class Staff extends Admin_Controller
 
         $roles               = $this->role_model->get();
         $data["roles"]       = $roles;
+        // Build role name → id map for per-row CSV role resolution
+        $role_map = [];
+        foreach ($roles as $r_item) {
+            $role_map[strtolower(trim($r_item['name']))] = $r_item['id'];
+        }
         $all_designations    = $this->staff_model->getStaffDesignation();
         $designation_map     = [];
         foreach ($all_designations as $designation_item) {
@@ -2683,7 +2688,8 @@ class Staff extends Admin_Controller
         $data["department"]  = $all_departments;
 
         $this->form_validation->set_rules('file', $this->lang->line('image'), 'callback_handle_csv_upload');
-        $this->form_validation->set_rules('role', $this->lang->line('role'), 'required');
+        // role is now optional — each CSV row can specify its own role; dropdown is fallback default
+        $this->form_validation->set_rules('role', $this->lang->line('role'), 'permit_empty');
 
         if ($this->form_validation->run() == false) {
             $this->load->view("layout/header", $data);
@@ -2793,7 +2799,12 @@ class Staff extends Admin_Controller
                             } else {
                                 $password = $this->role->get_random_password($chars_min = 6, $chars_max = 6, $use_upper_case = false, $include_numbers = true, $include_special_chars = false);
                                 $staff_data['password'] = $this->enc_lib->passHashEnc($password);
-                                $role_array = array('role_id' => $this->input->post('role'), 'staff_id' => 0);
+                                // Resolve role: prefer CSV column 'role', fall back to UI dropdown
+                                $csv_role_raw   = strtolower(trim(isset($r_value['role']) ? $r_value['role'] : ''));
+                                $resolved_role  = !empty($csv_role_raw) && isset($role_map[$csv_role_raw])
+                                    ? $role_map[$csv_role_raw]
+                                    : ($this->input->post('role') ?: 2); // 2 = Teacher as last-resort default
+                                $role_array = array('role_id' => $resolved_role, 'staff_id' => 0);
                                 $insert_id = $this->staff_model->batchInsert($staff_data, $role_array);
                                 $staff_id  = $insert_id;
                                 $inserted_count++; // Keep track of inserted records
