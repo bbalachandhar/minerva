@@ -35,6 +35,8 @@
 # git pull on any instance will NEVER touch uploaded files (images, docs, etc.)
 uploads/**/*
 !uploads/**/.gitkeep
+!uploads/staff_images/default_male.jpg
+!uploads/staff_images/default_female.jpg
 
 # Ignore temporary, backup, and local config files
 /temp/
