@@ -4393,6 +4393,7 @@ CREATE TABLE `online_admissions` (
   `payment_updated_by` int(11) DEFAULT NULL,
   `payment_updated_at` timestamp NULL DEFAULT NULL,
   `form_status` int(11) NOT NULL,
+  `applicant_password` varchar(255) DEFAULT NULL,
   `enquiry_id` int(11) DEFAULT NULL,
   `referred_by_employee_id` int(11) DEFAULT NULL,
   `transaction_id` varchar(255) DEFAULT NULL,
