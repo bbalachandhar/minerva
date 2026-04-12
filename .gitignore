@@ -11,7 +11,7 @@
 !/application/logs/.gitkeep
 /application/sessions/*
 !/application/sessions/.gitkeep
-/application/tmp/*
+/application/tmp/**
 !/application/tmp/.gitkeep
 
 # Ignore API CodeIgniter runtime directories
@@ -66,5 +66,7 @@ api/application/config/autoload.php
 # Ignore non-code files (brochures, reports, office docs, local csv exports)
 *.docx
 *.pptx
+*.bak
+*.bak_*
 dist/
 "minerva logos/"
