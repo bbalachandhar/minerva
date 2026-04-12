@@ -7996,6 +7996,17 @@ INSERT INTO `staff_designation_category` VALUES (1,'Teaching','Teaching & Academ
 UNLOCK TABLES;
 
 --
+-- Dumping data for table `staff`
+-- Default Super Admin login: admin@minerva.com / Admin@123  (change after first login)
+--
+
+LOCK TABLES `staff` WRITE;
+/*!40000 ALTER TABLE `staff` DISABLE KEYS */;
+INSERT INTO `staff` VALUES (1,NULL,NULL,NULL,NULL,NULL,NULL,NULL,'ADMIN001','ADMIN001',0,0,NULL,NULL,'','','Super Admin','','','','',NULL,'','admin@minerva.com','2020-01-01','',NULL,NULL,'','',NULL,'','','$2y$12$PIOkaxhP/AomzsyzqdiAAe1Pj2vtVLMIM7znyHwp7Fkkc94NAqeaK','Male','','','','','','',NULL,'','','','','','','','','','','','',0,1,'',NULL,NULL,NULL,'2020-01-01 00:00:00','2020-01-01 00:00:00',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,1,1,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL);
+/*!40000 ALTER TABLE `staff` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
 -- Dumping data for table `staff_roles`
 --
 
