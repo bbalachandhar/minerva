@@ -219,13 +219,14 @@ if (!function_exists('main_menu_array')) {
                 'staff'             => array('index','profile','edit','leaverequest','rating','disablestafflist','create'),             
                 'staffattendance'   => array('index'),                 
                 'payroll'           => array('index','edit','create'),                 
-                'leaverequest'      => array('leaverequest'),  
+                'leaverequest'      => array('leaverequest','applyleave','claimleave'),  
                 'leavetypes'        => array('index','leaveedit','createleavetype'),  
                 'department'        => array('department','departmentedit'),  
                 'designation'       => array('designation','designationedit'),
                 'specialattendance' => array('index','search','generate_attendance','get_employees_by_department'),
                 'leave_balance_setup' => array('index','ajax_save_balances','ajax_get_staff_balances'),
                 'attendance_exceptions' => array('index','resolve','get_punch_context'),
+                'update_leave_balance' => array('index'),
             ), 
             
             'communicate' => array(          

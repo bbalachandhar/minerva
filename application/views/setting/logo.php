@@ -659,7 +659,7 @@
 
 </script>
 
-
+<script type="text/javascript">
     // New Admission Left Logo upload
     $('.upload_admission_left_logo').on('click', function (e) {
         e.preventDefault();

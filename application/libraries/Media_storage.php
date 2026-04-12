@@ -65,12 +65,6 @@ class Media_storage
                     @chmod($built, 0755);
                 }
             }
-
-            // Drop an .htaccess in the newly created leaf to block direct HTTP access
-            $htaccess = $destination_dir . DIRECTORY_SEPARATOR . '.htaccess';
-            if (!file_exists($htaccess)) {
-                @file_put_contents($htaccess, "Options -Indexes\nDeny from all\n");
-            }
         }
 
         // Escalate permissions until the directory is writable
