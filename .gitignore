@@ -23,7 +23,8 @@
 !/api/application/sessions/.gitkeep
 
 # Ignore environment-specific configurations (contains sensitive data)
-/application/config/production/
+/application/config/production/*
+!/application/config/production/*.example
 
 # Instance-specific configs — each deployment has its own copy.
 # Track *.example versions instead (no credentials, placeholder values).
