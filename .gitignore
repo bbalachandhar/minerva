@@ -80,3 +80,9 @@ dist/
 tools/*.xlsx
 tools/*.csv
 tools/~$*
+
+# backend/import — ignore all CSVs except app-provided sample/template files
+backend/import/*.csv
+!backend/import/*sample*.csv
+!backend/import/*csvfile.csv
+!backend/import/*template.csv
