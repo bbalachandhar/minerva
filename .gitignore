@@ -21,8 +21,10 @@
 /application/config/database.php
 /application/config/config.php
 
-# Ignore user-uploaded content
-/uploads/
+# Uploads — ignore all actual files but track directory structure via .gitkeep
+# git pull on any instance will NEVER touch uploaded files (images, docs, etc.)
+uploads/**/*
+!uploads/**/.gitkeep
 
 # Ignore temporary, backup, and local config files
 /temp/
@@ -45,15 +47,14 @@ Thumbs.db
 /backend/report/
 
 /.github
-uploads/
-
-application/config/production/
 
 # API environment-specific configs
 api/application/config/config.php
 api/application/config/database.php
 api/application/config/autoload.php
 
-*.md
-*.sql
-uploads/.gitkeep
+# Ignore non-code files (brochures, reports, office docs, local csv exports)
+*.docx
+*.pptx
+dist/
+"minerva logos/"
