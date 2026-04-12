@@ -70,3 +70,13 @@ api/application/config/autoload.php
 *.bak_*
 dist/
 "minerva logos/"
+
+# Data import/export files — never commit raw data, cleaned CSVs, or xlsx dumps
+# Root-level data files
+/*.xlsx
+/*.csv
+
+# tools/ data files (sql migration scripts are intentionally tracked)
+tools/*.xlsx
+tools/*.csv
+tools/~$*
