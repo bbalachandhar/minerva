@@ -7561,6 +7561,26 @@ CREATE TABLE `zoom_settings` (
 SET FOREIGN_KEY_CHECKS=0;
 
 --
+-- Dumping data for table `sessions`
+--
+
+LOCK TABLES `sessions` WRITE;
+/*!40000 ALTER TABLE `sessions` DISABLE KEYS */;
+INSERT INTO `sessions` VALUES (1,'2025-26','yes','2025-04-01 00:00:00','2025-04-01 00:00:00');
+/*!40000 ALTER TABLE `sessions` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Dumping data for table `sch_settings` (generic)
+--
+
+LOCK TABLES `sch_settings` WRITE;
+/*!40000 ALTER TABLE `sch_settings` DISABLE KEYS */;
+INSERT INTO `sch_settings` VALUES (1,'college','','','Your Institution',0,1,0,'','admin@example.com','','',1,'["1"]','AMACE','d-m-Y','12-hour',68,'$','disabled','0,1',1,1,'Asia/Kolkata',1,'eb20349e363e11f1812e5e3e258c24b2eb2034a8363e11f1812e5e3e258c24b2','after_number','#,###.##','yes',7,1,'0.00','','','','','','blue.jpg',60,0,0,'','',0,1,0,0,NULL,NULL,NULL,'','',0,1,'no',1,'yes',1000,'','','percentage','2.00','',NULL,0,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,'mceadmin@beebasoft.com','http://localhost/amace/api/','','','','','',1,1,'Monday',0,'enabled','disabled',1,'enabled',1,0,'[\"email\"]','[\"email\"]',1,1,0,0,0,0,'','qrcode',1,0,0,0,'',NULL,NULL,0,'',NULL,NULL,0,'',NULL,NULL,NULL,'2022-12-30 01:14:20','2026-04-12 08:33:33',NULL,'16:30:00','13:00:00','16:30:00',2,2,'yearly',NULL,NULL,1,0,0,1,'1775982280-172800838069db56c84f8a1-matt01.png','1775982310-149450048969db56e6f2ef1-COLLEGE LOGO.jpg','https://amace.edu.in',0,3,2,1,NULL,'1.00',1,2,NULL,10,'compensation,comp-off,compoff,compensatory off','1,7',1,'','',NULL,1,NULL,1,1,NULL,1,3,5,15,30,0,'','','','',NULL,'');
+/*!40000 ALTER TABLE `sch_settings` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
 -- Dumping data for table `addons`
 --
 
@@ -7751,16 +7771,6 @@ INSERT INTO `roles_permissions` VALUES (11,1,78,1,1,1,1,'2018-07-03 00:49:43','2
 UNLOCK TABLES;
 
 --
--- Dumping data for table `sch_settings`
---
-
-LOCK TABLES `sch_settings` WRITE;
-/*!40000 ALTER TABLE `sch_settings` DISABLE KEYS */;
-INSERT INTO `sch_settings` VALUES (1,'college','http://localhost/amace/','/Applications/XAMPP/xamppfiles/htdocs/amace/','ARULMIGU MEENAKSHI AMMAN COLLEGE OF ENGINEERING',0,1,0,'','admin@amace.edu.in','+91 89398 04010','Vadamavandal Village, Vembakkam TK, Near Kanchipuram, Tamil Nadu - 604410. India',4,'[\"4\"]','AMACE','d-m-Y','12-hour','68','$','disabled','0,1',1,1,'Asia/Kolkata',21,'eb20349e363e11f1812e5e3e258c24b2eb2034a8363e11f1812e5e3e258c24b2','after_number','#,###.##','yes','7',1,0.00,'1775981827-105707845169db550315a5c-COLLEGE LOGO.jpg','1775982813-194810903669db58ddc6a38-AMACE BANNER.png','1775981890-45198747569db5542883e7-COLLEGE LOGO.jpg','','','blue.jpg',60,0,0,'','',0,1,0,0,NULL,NULL,NULL,'','',0,1,'no',1,'yes',1000,'','','percentage',2.00,'',NULL,0,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,'mceadmin@beebasoft.com','http://localhost/amace/api/','','','','','',1,1,'Monday',0,'enabled','disabled',1,'enabled',1,0,'[\"email\"]','[\"email\"]',1,1,0,0,0,0,'','qrcode',1,0,0,0,'',NULL,NULL,0,'',NULL,NULL,0,'',NULL,NULL,NULL,'2022-12-30 01:14:20','2026-04-12 08:33:33',NULL,'16:30:00','13:00:00','16:30:00',2,2,'yearly',NULL,NULL,1,0,'0',1,'1775982280-172800838069db56c84f8a1-matt01.png','1775982310-149450048969db56e6f2ef1-COLLEGE LOGO.jpg','https://amace.edu.in',0,3,2,1,NULL,1.00,1,'2',NULL,'10','compensation,comp-off,compoff,compensatory off','1,7',1,'','',NULL,1,NULL,1,1,NULL,1,3,5,15,30,0,'','','','',NULL,'');
-/*!40000 ALTER TABLE `sch_settings` ENABLE KEYS */;
-UNLOCK TABLES;
-
---
 -- Dumping data for table `sidebar_menus`
 --
 
@@ -7851,7 +7861,7 @@ INSERT INTO `student_edit_fields` VALUES (1,'firstname',1,'2026-01-07 06:14:08',
 UNLOCK TABLES;
 
 --
--- Dumping data for table `staff` (superadmin seed only)
+-- Dumping data for table `staff` (superadmin only)
 --
 
 LOCK TABLES `staff` WRITE;
