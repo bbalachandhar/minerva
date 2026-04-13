@@ -62,6 +62,19 @@
                                 </div>
 
                                 <div class="form-group">
+                                    <label>Class Type</label>
+                                    <div>
+                                        <label class="radio-inline">
+                                            <input type="radio" name="class_type" value="academic" checked> Academic
+                                        </label>
+                                        <label class="radio-inline">
+                                            <input type="radio" name="class_type" value="applicant"> Applicant
+                                        </label>
+                                    </div>
+                                    <small class="text-muted">"Applicant" classes are for scholarship exam question bank only — they won't appear in enrollment, fees, or reports.</small>
+                                </div>
+
+                                <div class="form-group">
                                     <label for="exampleInputEmail1"><?php echo $this->lang->line('sections'); ?></label><small class="req"> *</small>
 
 

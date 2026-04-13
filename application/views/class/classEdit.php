@@ -51,6 +51,18 @@
                                     <input autofocus="" id="class" name="class" placeholder="" type="text" class="form-control"  value="<?php echo set_value('class', $class_data['class']); ?>" />
                                     <span class="text-danger"><?php echo form_error('class'); ?></span>
                                 </div>
+                                <div class="form-group">
+                                    <label>Class Type</label>
+                                    <div>
+                                        <label class="radio-inline">
+                                            <input type="radio" name="class_type" value="academic" <?php echo (($class_data['class_type'] ?? 'academic') == 'academic') ? 'checked' : ''; ?>> Academic
+                                        </label>
+                                        <label class="radio-inline">
+                                            <input type="radio" name="class_type" value="applicant" <?php echo (($class_data['class_type'] ?? '') == 'applicant') ? 'checked' : ''; ?>> Applicant
+                                        </label>
+                                    </div>
+                                    <small class="text-muted">"Applicant" classes are for scholarship exam question bank only — they won't appear in enrollment, fees, or reports.</small>
+                                </div>
                                 <?php if ($sch_setting->institution_type == 'college') { ?>
                                 <div class="form-group">
                                     <label for="exampleInputEmail1">Department</label><small class="req"> *</small>

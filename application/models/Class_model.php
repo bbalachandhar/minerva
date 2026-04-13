@@ -48,9 +48,12 @@ class Class_model extends MY_Model
                 // Fallback for edge cases with missing teacher-class mapping/session rows.
                 if (empty($classlist)) {
                     $this->db->select()->from('classes');
+                    // When fetching a specific class by ID (e.g. edit form), show it regardless
+                    // of type. When listing all, exclude applicant-only classes.
                     if ($id != null) {
                         $this->db->where('id', $id);
                     } else {
+                        $this->db->where('class_type', 'academic');
                         $this->db->order_by('class', 'asc');
                     }
                     $query = $this->db->get();
@@ -63,9 +66,12 @@ class Class_model extends MY_Model
             }
         } else {
             $this->db->select()->from('classes');
+            // When fetching a specific class by ID (e.g. edit form), show it regardless
+            // of type. When listing all, exclude applicant-only classes.
             if ($id != null) {
                 $this->db->where('id', $id);
             } else {
+                $this->db->where('class_type', 'academic');
                 $this->db->order_by('class', 'asc');
             }
             $query = $this->db->get();
@@ -77,6 +83,29 @@ class Class_model extends MY_Model
         }
 
         return $classlist;
+    }
+
+    /**
+     * Returns only applicant-type classes (used in Question Bank import & settings dropdown).
+     */
+    public function getApplicantClasses()
+    {
+        $this->db->select()->from('classes');
+        $this->db->where('class_type', 'applicant');
+        $this->db->order_by('class', 'asc');
+        return $this->db->get()->result_array();
+    }
+
+    /**
+     * Returns all classes (academic + applicant) — used in Question Bank import modal
+     * so staff can tag questions against an applicant class.
+     */
+    public function getAllForQuestionBank()
+    {
+        $this->db->select()->from('classes');
+        $this->db->order_by('class_type', 'asc');
+        $this->db->order_by('class', 'asc');
+        return $this->db->get()->result_array();
     }
 
     /**

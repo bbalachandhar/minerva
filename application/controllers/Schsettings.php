@@ -585,6 +585,9 @@ class Schsettings extends Admin_Controller
                 $setting->base_url        = ($setting->base_url == "") ? base_url() : $setting->base_url;
                 $setting->folder_path     = FCPATH;
         $data['result']       = $setting;
+        $this->load->model('class_model');
+        $data['applicant_class_list'] = $this->class_model->getApplicantClasses();
+        $data['applicant_class_id']   = $setting->applicant_class_id ?? null;
         $this->load->view('layout/header');
         $this->load->view('setting/miscellaneous', $data);
         $this->load->view('layout/footer');
@@ -610,6 +613,7 @@ class Schsettings extends Admin_Controller
             'staff_notification_email' => $this->input->post('staff_notification_email'),
             'scan_code_type'           => $this->input->post('scan_code_type'),
             'download_admit_card'      => $this->input->post('download_admit_card'),
+            'applicant_class_id'       => $this->input->post('applicant_class_id') ?: null,
         );
 
         $this->setting_model->add($data);

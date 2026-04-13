@@ -42,7 +42,7 @@ class Question extends Admin_Controller
         $this->session->set_userdata('top_menu', 'Online_Examinations');
         $this->session->set_userdata('sub_menu', 'Online_Examinations/question');
         $data                   = array();
-        $class                  = $this->class_model->get();
+        $class                  = $this->class_model->getAllForQuestionBank();
         $data['classlist']      = $class;
         $subjectlist            = $this->subject_model->get();
         $data['subjectlist']    = $subjectlist;

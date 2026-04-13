@@ -47,8 +47,9 @@ class Classes extends Admin_Controller
         } else {
             $class       = $this->input->post('class');
             $class_array = array(
-                'class' => $this->input->post('class'),
+                'class'         => $this->input->post('class'),
                 'department_id' => $this->input->post('department_id'),
+                'class_type'    => $this->input->post('class_type') ?: 'academic',
             );
             $sections = $this->input->post('sections');
             $this->classsection_model->add($class_array, $sections);
@@ -153,9 +154,10 @@ class Classes extends Admin_Controller
             if (!empty($add_result)) {
                 $vehicle_batch_array = array();
                 $class_array         = array(
-                    'id'    => $class_id,
-                    'class' => $this->input->post('class'),
+                    'id'           => $class_id,
+                    'class'        => $this->input->post('class'),
                     'department_id' => $this->input->post('department_id'),
+                    'class_type'   => $this->input->post('class_type') ?: 'academic',
                 );
                 foreach ($add_result as $vec_add_key => $vec_add_value) {
                     $vehicle_batch_array[] = $vec_add_value;
@@ -163,9 +165,10 @@ class Classes extends Admin_Controller
                 $this->classsection_model->add($class_array, $vehicle_batch_array);
             } else {
                 $class_array = array(
-                    'id'    => $class_id,
-                    'class' => $this->input->post('class'),
+                    'id'           => $class_id,
+                    'class'        => $this->input->post('class'),
                     'department_id' => $this->input->post('department_id'),
+                    'class_type'   => $this->input->post('class_type') ?: 'academic',
                 );
                 $this->classsection_model->update($class_array);
             }

@@ -45,6 +45,20 @@
                                                 </label>
                                             </div>
                                         </div>
+                                        <div class="form-group row">
+                                            <label class="col-sm-4">Applicant Exam Class <small>(current year)</small></label>
+                                            <div class="col-sm-8">
+                                                <select name="applicant_class_id" class="form-control">
+                                                    <option value="">-- None --</option>
+                                                    <?php foreach ($applicant_class_list as $ac): ?>
+                                                    <option value="<?php echo $ac['id']; ?>" <?php echo ($applicant_class_id == $ac['id']) ? 'selected' : ''; ?>>
+                                                        <?php echo htmlspecialchars($ac['class']); ?>
+                                                    </option>
+                                                    <?php endforeach; ?>
+                                                </select>
+                                                <small class="text-muted">Select the applicant class for scholarship exam question bank tagging this year.</small>
+                                            </div>
+                                        </div>
                                     </div>
                                     </div>
                                 </div><!--./row-->
