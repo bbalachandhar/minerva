@@ -16,11 +16,29 @@
                         <h4>
                             <a href="#" data-toggle="popover" class="detail_popover"><?php echo $onlineexam->exam; ?></a>
                         </h4>
-                        <p class="text-muted">Only submitted and not yet enrolled applicants are shown here.</p>
+                        <p class="text-muted">Only submitted and not yet enrolled applicants are shown below. They are loaded automatically — no manual linking needed.</p>
+
+                        <?php if (!empty($resultlist)) { ?>
+                        <div class="alert alert-info" style="margin-bottom:10px">
+                            <i class="fa fa-lightbulb-o"></i>
+                            <strong>Bulk assign:</strong> Click <strong>"Assign All"</strong> below to select all <?php echo count($resultlist); ?> applicant(s) at once, then click <strong>Save</strong>.
+                        </div>
+                        <?php } ?>
 
                         <form method="post" action="<?php echo site_url('admin/onlineexam/addapplicants') ?>" id="assign_applicant_form">
                             <?php echo $this->customlib->getCSRF(); ?>
                             <input type="hidden" name="onlineexam_id" value="<?php echo $onlineexam->id; ?>">
+
+                            <?php if (!empty($resultlist) && $this->rbac->hasPrivilege('online_assign_view_student', 'can_edit')) { ?>
+                            <div style="margin-bottom:10px">
+                                <button type="button" id="assign_all_btn" class="btn btn-success btn-sm">
+                                    <i class="fa fa-check-square-o"></i> Assign All (<?php echo count($resultlist); ?>)
+                                </button>
+                                <button type="button" id="deselect_all_btn" class="btn btn-default btn-sm">
+                                    <i class="fa fa-square-o"></i> Deselect All
+                                </button>
+                            </div>
+                            <?php } ?>
 
                             <div class="table-responsive">
                                 <table class="table table-striped">
@@ -76,6 +94,16 @@
 <script type="text/javascript">
     $("#select_all_applicants").change(function () {
         $(".applicant_checkbox").prop('checked', $(this).prop("checked"));
+    });
+
+    $("#assign_all_btn").click(function () {
+        $(".applicant_checkbox").prop('checked', true);
+        $("#select_all_applicants").prop('checked', true);
+    });
+
+    $("#deselect_all_btn").click(function () {
+        $(".applicant_checkbox").prop('checked', false);
+        $("#select_all_applicants").prop('checked', false);
     });
 
     $('.applicant_checkbox').change(function () {
