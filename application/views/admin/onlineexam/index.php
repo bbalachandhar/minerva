@@ -17,6 +17,83 @@ $language_name = $language["short_code"];
     <section class="content">
         <div class="row">
             <div class="col-md-12">
+
+                <!-- Applicant Scholarship Exam Setup Guide -->
+                <div class="box box-warning collapsed-box" id="applicant-exam-guide">
+                    <div class="box-header with-border" style="cursor:pointer" data-widget="collapse">
+                        <h3 class="box-title"><i class="fa fa-info-circle"></i> &nbsp;Applicant Scholarship Exam — Setup Guide</h3>
+                        <div class="box-tools pull-right">
+                            <button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-plus"></i></button>
+                        </div>
+                    </div>
+                    <div class="box-body" style="display:none">
+                        <p class="text-muted" style="margin-bottom:10px">Follow these steps <strong>in order</strong> each academic year to run the scholarship entrance exam for admission applicants.</p>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <ol style="line-height:2">
+                                    <li>
+                                        <strong>Create an Applicant Class</strong><br>
+                                        <em>Academics &rarr; Classes &rarr; Add Class</em><br>
+                                        Name it e.g. <code>Applicants 2026-2027</code>, select a section (e.g. <code>A</code>), set <strong>Class Type = Applicant</strong>.<br>
+                                        <small class="text-muted">This class is invisible to enrollment, fees, attendance, and reports — it's for question bank tagging only.</small>
+                                    </li>
+                                    <li style="margin-top:8px">
+                                        <strong>Set it as the active Applicant Class</strong><br>
+                                        <em>System Settings &rarr; Miscellaneous &rarr; Applicant Exam Class</em><br>
+                                        Select <code>Applicants 2026-2027</code> and save.
+                                    </li>
+                                    <li style="margin-top:8px">
+                                        <strong>Create a Subject for the exam</strong><br>
+                                        <em>Academics &rarr; Subjects &rarr; Add</em><br>
+                                        Create a subject like <code>Scholarship Exam</code> if it doesn't exist yet.
+                                    </li>
+                                    <li style="margin-top:8px">
+                                        <strong>Import Questions</strong><br>
+                                        <em>Online Examinations &rarr; Question Bank &rarr; Import</em><br>
+                                        Select <strong>Class:</strong> <code>Applicants 2026-2027</code>, <strong>Section:</strong> <code>A</code>, <strong>Subject:</strong> <code>Scholarship Exam</code>.<br>
+                                        Upload the CSV (<code>import_question_fixed.csv</code> — 70 singlechoice questions).<br>
+                                        <small class="text-muted">Use the sample file format from the export button. Question type must be <code>singlechoice</code>. Encoding must be UTF-8.</small>
+                                    </li>
+                                </ol>
+                            </div>
+                            <div class="col-md-6">
+                                <ol start="5" style="line-height:2">
+                                    <li>
+                                        <strong>Create the Exam</strong><br>
+                                        Click <strong>+ Add Exam</strong> on this page.<br>
+                                        Fill title, set date/time window, duration, pass marks, attempt limit (1).<br>
+                                        Set <strong>Candidate Type = Applicant</strong> when assigning candidates.
+                                    </li>
+                                    <li style="margin-top:8px">
+                                        <strong>Add Questions to the Exam</strong><br>
+                                        Open the exam &rarr; <em>Questions</em> tab &rarr; select from Question Bank.<br>
+                                        Filter by <strong>Class:</strong> <code>Applicants 2026-2027</code> to find the imported questions.
+                                    </li>
+                                    <li style="margin-top:8px">
+                                        <strong>Assign Applicants</strong><br>
+                                        Open the exam &rarr; <em>Assign Applicants</em>.<br>
+                                        Search and add applicants who have registered through Online Admission.
+                                    </li>
+                                    <li style="margin-top:8px">
+                                        <strong>Publish the Exam</strong><br>
+                                        Toggle <strong>Published = Yes</strong> on the exam.<br>
+                                        Applicants log in at <em>Online Admission portal &rarr; Exam</em> tab to attempt it.
+                                    </li>
+                                    <li style="margin-top:8px">
+                                        <strong>Publish Results</strong><br>
+                                        After exam closes, toggle <strong>Result Published = Yes</strong>.<br>
+                                        Applicants can view their score from the portal.
+                                    </li>
+                                </ol>
+                            </div>
+                        </div>
+                        <div class="alert alert-info" style="margin-top:10px;margin-bottom:0">
+                            <i class="fa fa-refresh"></i> <strong>Next year?</strong> Create a new Applicant Class (e.g. <code>Applicants 2027-2028</code>), update it in Miscellaneous settings, and import fresh questions. Old applicant class questions remain archived.
+                        </div>
+                    </div>
+                </div>
+                <!-- /Applicant Scholarship Exam Setup Guide -->
+
                 <div class="nav-tabs-custom theme-shadow">
                     <div class="box-header ptbnull">
                             <h3 class="box-title titlefix pt5">  <?php echo $this->lang->line('online_exam_list'); ?></h3>
