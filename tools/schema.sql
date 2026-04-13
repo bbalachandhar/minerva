@@ -1171,6 +1171,7 @@ CREATE TABLE `classes` (
   `department_id` int(11) DEFAULT NULL,
   `class` varchar(60) DEFAULT NULL,
   `is_active` varchar(255) DEFAULT 'no',
+  `class_type` enum('academic','applicant') NOT NULL DEFAULT 'academic',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`id`)
@@ -5229,6 +5230,7 @@ CREATE TABLE `sch_settings` (
   `meta_page_id` varchar(64) DEFAULT NULL,
   `meta_default_course_id` int(11) DEFAULT NULL,
   `meta_app_secret` varchar(255) DEFAULT NULL,
+  `applicant_class_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `lang_id` (`lang_id`),
   KEY `session_id` (`session_id`)
