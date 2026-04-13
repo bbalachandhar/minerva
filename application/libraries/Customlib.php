@@ -1521,6 +1521,9 @@ class Customlib
         $result = $this->getLoggedInUserData();
         $admin = $this->CI->session->userdata('admin');
         if ($result && $admin) {
+            if (!isset($this->CI->staff_model)) {
+                return array();
+            }
             $id             = $result["id"];
             $data           = $this->CI->staff_model->get($id);
             $setting_result = $this->CI->setting_model->get();

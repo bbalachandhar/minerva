@@ -62,7 +62,7 @@ $language_name = $language["short_code"];
                                         <strong>Create the Exam</strong><br>
                                         Click <strong>+ Add Exam</strong> on this page.<br>
                                         Fill title, set date/time window, duration, pass marks, attempt limit (1).<br>
-                                        Set <strong>Candidate Type = Applicant</strong> when assigning candidates.
+                                        On the assign page, select <strong>Candidate Type = Applicant</strong> to assign applicants.
                                     </li>
                                     <li style="margin-top:8px">
                                         <strong>Add Questions to the Exam</strong><br>

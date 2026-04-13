@@ -4,9 +4,15 @@ class Onlineexam_model extends MY_model
     public function __construct()
     { 
         parent::__construct();
-        $this->current_session = $this->setting_model->getCurrentSession();
+        $this->current_session    = $this->setting_model->getCurrentSession();
         $this->sch_setting_detail = $this->setting_model->getSetting();
-        $this->userdata = $this->customlib->getUserData();        
+        // getUserData() requires staff_model which is only available in admin context
+        $admin = $this->session->userdata('admin');
+        if ($admin) {
+            $this->userdata = $this->customlib->getUserData();
+        } else {
+            $this->userdata = array();
+        }
     }
 
     public function add($data)
@@ -403,7 +409,7 @@ class Onlineexam_model extends MY_model
             return array();
         }
 
-        $query = "SELECT onlineexam.*,onlineexam_students.id as `onlineexam_student_id`,
+        $query = "SELECT onlineexam.*,onlineexam_students.id as `onlineexam_student_id`,onlineexam_students.is_attempted,
             (select count(*) from onlineexam_attempts WHERE onlineexam_attempts.onlineexam_student_id = onlineexam_students.id) as counter
             FROM `onlineexam`
             INNER JOIN onlineexam_students on onlineexam_students.onlineexam_id=onlineexam.id
@@ -497,7 +503,6 @@ class Onlineexam_model extends MY_model
         $this->db->from('online_admissions');
         $this->db->join('onlineexam_students', 'onlineexam_students.online_admission_id = online_admissions.id and onlineexam_students.onlineexam_id=' . $this->db->escape($onlineexam_id) . ' and onlineexam_students.candidate_type="applicant"', 'left');
         $this->db->where('online_admissions.is_enroll', 0);
-        $this->db->where('online_admissions.form_status', 1);
         $this->db->order_by('online_admissions.id', 'desc');
 
         $query = $this->db->get();

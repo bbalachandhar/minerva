@@ -66,7 +66,24 @@
                     <h3 class="box-title"><i class="fa fa-user"></i> Applicant Details</h3>
                 </div>
                 <div class="box-body no-padding">
-                    <table class="table table-striped">
+                    <div style="display:flex;align-items:flex-start;gap:0;">
+                        <!-- Profile photo -->
+                        <div style="padding:16px 12px 12px 16px;text-align:center;min-width:120px;">
+                            <?php
+                            if (!empty($applicant_info->image) && file_exists(FCPATH . $applicant_info->image)) {
+                                $photo_src = base_url($applicant_info->image);
+                            } elseif (strtolower($applicant_info->gender ?? '') === 'female') {
+                                $photo_src = base_url('uploads/staff_images/default_female.jpg');
+                            } else {
+                                $photo_src = base_url('uploads/staff_images/default_male.jpg');
+                            }
+                            ?>
+                            <img src="<?php echo $photo_src; ?>"
+                                 alt="Photo"
+                                 style="width:100px;height:110px;object-fit:cover;border-radius:6px;border:2px solid #d2d6de;box-shadow:0 2px 6px rgba(0,0,0,0.15);">
+                        </div>
+                        <!-- Details table -->
+                        <table class="table table-striped" style="margin-bottom:0;flex:1;">
                         <tr>
                             <th width="38%" style="padding-left:12px;">Name</th>
                             <td><?php echo htmlspecialchars(trim($applicant_info->firstname . ' ' . $applicant_info->lastname)); ?></td>
@@ -107,6 +124,7 @@
                             </td>
                         </tr>
                     </table>
+                    </div>
                 </div>
                 <div class="box-footer">
                     <a href="<?php echo base_url('welcome/online_admission_review/' . $applicant_info->reference_no); ?>" class="btn btn-primary btn-sm">

@@ -9,13 +9,27 @@
                     </div>
                     <div class="box-body">
                         <div class="row">
-                            <div class="col-md-12 text-right" style="margin-bottom:10px;">
-                                <a href="<?php echo site_url('admin/onlineexam/assignapplicants/' . $id); ?>" class="btn btn-default btn-sm">
-                                    <i class="fa fa-user-plus"></i> Assign Applicants
-                                </a>
+                            <div class="col-md-12" style="margin-bottom:15px;">
+                                <label style="display:block;margin-bottom:5px;font-weight:600;">Candidate Type</label>
+                                <div class="btn-group" data-toggle="buttons">
+                                    <label class="btn btn-default active" id="btn_candidate_student">
+                                        <input type="radio" name="candidate_type_ui" value="student" checked> <i class="fa fa-graduation-cap"></i> Student
+                                    </label>
+                                    <label class="btn btn-default" id="btn_candidate_applicant">
+                                        <input type="radio" name="candidate_type_ui" value="applicant"> <i class="fa fa-user-plus"></i> Applicant
+                                    </label>
+                                </div>
+                                <small class="text-muted" style="display:block;margin-top:4px;">Select <strong>Applicant</strong> to assign online admission candidates.</small>
                             </div>
                         </div>
                         <form role="form" action="<?php echo site_url('admin/onlineexam/assign/' . $id) ?>" method="post" class="row">
+                        <script>
+                        $(document).ready(function(){
+                            $('#btn_candidate_applicant').on('click', function(){
+                                window.location.href = '<?php echo site_url('admin/onlineexam/assignapplicants/' . $id); ?>';
+                            });
+                        });
+                        </script>
                             <?php echo $this->customlib->getCSRF(); ?>
                             <input type="hidden" name="onlineexam_id" value="<?php echo $onlineexam->id; ?>">
                                 <div class="col-md-6">

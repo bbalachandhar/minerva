@@ -627,7 +627,7 @@ $('#myimgModal').on('shown.bs.modal', function (event) {
         $('#section_id').html("");
         $('#search_section_id').html("");
         var class_id = $(this).val();
-        getSectionByClass(class_id, section_id);
+        getSectionByClass(class_id, '');
     });
 
     function getSectionByClass(class_id, section_id) {

@@ -43,8 +43,8 @@ class Public_admission extends Front_Controller
             $this->data['header_image'] = '';
             if ($header_footer) {
                 foreach($header_footer as $head_foot){
-                    if($head_foot->print_type == 'general_purpose'){
-                        $this->data['header_image'] = $head_foot->header_image;
+                    if((is_object($head_foot) ? $head_foot->print_type : $head_foot['print_type']) == 'general_purpose'){
+                        $this->data['header_image'] = is_object($head_foot) ? $head_foot->header_image : $head_foot['header_image'];
                         break;
                     }
                 }
@@ -1338,6 +1338,7 @@ class Public_admission extends Front_Controller
 
         $data                        = array();
         $data['sch_setting']         = $this->sch_setting_detail;
+        $data['sch_name']            = $this->sch_setting_detail->name ?? 'Applicant Portal';
         $data['question_true_false'] = $this->config->item('question_true_false');
         $data['exam']                = $exam;
         $data['applicant']           = $applicant;
@@ -1351,7 +1352,17 @@ class Public_admission extends Front_Controller
         $data['allowed_mime_type']   = array_map('trim', array_map('strtolower', explode(',', $filetype->file_mime)));
         $data['allowed_upload_size'] = $filetype->file_size;
 
+        // Build applicant_info object required by the layout header
+        $applicant_obj               = new stdClass();
+        $applicant_obj->firstname    = $applicant['firstname'];
+        $applicant_obj->lastname     = $applicant['lastname'];
+        $applicant_obj->reference_no = $applicant['reference_no'];
+        $data['applicant_info']      = $applicant_obj;
+        $data['title']               = 'Exam: ' . $exam->exam;
+
+        $this->load->view('layout/applicant/header', $data);
         $this->load->view('public_admission/exam_view', $data);
+        $this->load->view('layout/applicant/footer', $data);
     }
 
     public function getApplicantExamForm()
@@ -1387,18 +1398,20 @@ class Public_admission extends Front_Controller
         }
 
         $data['onlineexam_student_id'] = $onlineexam_student;
-        $getStudentAttemts             = $this->onlineexam_model->getStudentAttemts($onlineexam_student->id);
         $data['question_status']       = 0;
         $data['exam_duration']         = $exam->duration;
 
-        if (strtotime(date('Y-m-d H:i:s')) >= strtotime(date($exam->exam_to))) {
+        if (strtotime(date('Y-m-d H:i:s')) >= strtotime($exam->exam_to)) {
+            // Exam window has closed
             $question_status         = 1;
             $data['question_status'] = 1;
-        } else if ($exam->attempt > $getStudentAttemts) {
-            $this->onlineexam_model->addStudentAttemts(array('onlineexam_student_id' => $onlineexam_student->id));
+        } else if ($onlineexam_student->is_attempted) {
+            // Applicant already submitted — block re-entry
+            $question_status         = 1;
+            $data['question_status'] = 1;
         } else {
-            $question_status         = 1;
-            $data['question_status'] = 1;
+            // Exam open and not yet submitted — allow access
+            $question_status = 0;
         }
 
         $data['questionOpt'] = $this->customlib->getQuesOption();
@@ -1408,6 +1421,53 @@ class Public_admission extends Front_Controller
         $exam_duration           = ($total_remaining_seconds < getSecondsFromHMS($exam->duration)) ? getHMSFromSeconds($total_remaining_seconds) : $exam->duration;
 
         echo json_encode(array('status' => 0, 'exam' => $exam, 'duration' => $exam_duration, 'page' => $pag_content, 'question_status' => $question_status, 'total_question' => count($data['questions'])));
+    }
+
+    public function hall_ticket($exam_id = null)
+    {
+        $applicant = $this->getExamApplicantBySession();
+        if (empty($applicant)) {
+            redirect('public_admission');
+            return;
+        }
+
+        $exam_id = (int) $exam_id;
+        if ($exam_id <= 0) {
+            redirect('public_admission/exam_list');
+            return;
+        }
+
+        $this->load->model('onlineexam_model');
+
+        // Verify this exam is actually assigned to this applicant
+        $this->db->where('os.onlineexam_id', $exam_id);
+        $this->db->where('os.online_admission_id', (int) $applicant['id']);
+        $this->db->where('os.candidate_type', 'applicant');
+        $this->db->from('onlineexam_students os');
+        $this->db->join('onlineexam oe', 'oe.id = os.onlineexam_id', 'inner');
+        $this->db->select('os.id as onlineexam_student_id, os.is_attempted, oe.*');
+        $exam_assignment = $this->db->get()->row();
+
+        if (empty($exam_assignment)) {
+            redirect('public_admission/exam_list');
+            return;
+        }
+
+        // Fetch print header for online_exam type
+        $this->db->where('print_type', 'online_exam');
+        $print_header = $this->db->get('print_headerfooter')->row();
+
+        // School settings
+        $sch_setting = $this->setting_model->getSetting();
+
+        $data = array(
+            'applicant'    => $applicant,
+            'exam'         => $exam_assignment,
+            'print_header' => $print_header,
+            'sch_setting'  => $sch_setting,
+        );
+
+        $this->load->view('public_admission/hall_ticket', $data);
     }
 
     public function save_applicant_exam()
@@ -1438,6 +1498,10 @@ class Public_admission extends Front_Controller
             }
 
             if ((int) $exam_assignment->is_attempted === 1) {
+                if ($this->input->is_ajax_request()) {
+                    echo json_encode(['success' => false, 'message' => 'This exam has already been submitted.']);
+                    return;
+                }
                 $this->session->set_flashdata('msg', '<div class="alert alert-warning">This exam is already submitted.</div>');
                 redirect('public_admission/exam_list', 'refresh');
             }
@@ -1446,6 +1510,10 @@ class Public_admission extends Front_Controller
             $existing_result_count = (int) $this->db->count_all_results('onlineexam_student_results');
             if ($existing_result_count > 0) {
                 $this->onlineexam_model->updateExamResult($onlineexam_student_id);
+                if ($this->input->is_ajax_request()) {
+                    echo json_encode(['success' => false, 'message' => 'This exam has already been submitted.']);
+                    return;
+                }
                 $this->session->set_flashdata('msg', '<div class="alert alert-warning">This exam is already submitted.</div>');
                 redirect('public_admission/exam_list', 'refresh');
             }
@@ -1515,6 +1583,41 @@ class Public_admission extends Front_Controller
             }
         }
 
+        // Return JSON for AJAX submissions (exam_view AJAX submit)
+        if ($this->input->is_ajax_request()) {
+            $exam_data      = $this->db->get_where('onlineexam', ['id' => $exam_assignment->onlineexam_id])->row();
+            $publish_result = ($exam_data && (int) $exam_data->publish_result === 1) ? 1 : 0;
+
+            $this->db->select(
+                'COUNT(oq.id)                                                                           AS total_questions,
+                 SUM(oq.marks)                                                                          AS total_marks,
+                 SUM(CASE WHEN osr.select_option = q.correct THEN oq.marks ELSE 0 END)                  AS obtained_marks,
+                 SUM(CASE WHEN osr.select_option = q.correct THEN 1       ELSE 0 END)                   AS correct_count,
+                 COUNT(osr.id)                                                                          AS answered',
+                false
+            );
+            $this->db->from('onlineexam_questions oq');
+            $this->db->join('questions q', 'q.id = oq.question_id', 'inner');
+            $this->db->join(
+                'onlineexam_student_results osr',
+                'osr.onlineexam_question_id = oq.id AND osr.onlineexam_student_id = ' . (int) $onlineexam_student_id,
+                'left'
+            );
+            $this->db->where('oq.onlineexam_id', (int) $exam_assignment->onlineexam_id);
+            $score = $this->db->get()->row();
+
+            echo json_encode([
+                'success'         => true,
+                'publish_result'  => $publish_result,
+                'total_questions' => (int)   ($score->total_questions ?? 0),
+                'total_marks'     => round((float) ($score->total_marks    ?? 0), 2),
+                'obtained_marks'  => round((float) ($score->obtained_marks ?? 0), 2),
+                'correct'         => (int)   ($score->correct_count         ?? 0),
+                'answered'        => (int)   ($score->answered              ?? 0),
+            ]);
+            return;
+        }
+
         redirect('public_admission/exam_list', 'refresh');
     }
 
@@ -1557,9 +1660,10 @@ class Public_admission extends Front_Controller
         $total_fee       = (float) ($applicant_info->total_fee ?? 0);
         $balance         = $total_fee - $total_paid;
 
-        // Get assigned exams
-        $this->load->model('onlineexam_model');
-        if ($this->onlineexam_model->hasApplicantExamSchema()) {
+        // Get assigned exams — query directly to avoid loading onlineexam_model (which requires staff context)
+        $has_schema = $this->db->field_exists('candidate_type', 'onlineexam_students')
+                      && $this->db->field_exists('online_admission_id', 'onlineexam_students');
+        if ($has_schema) {
             $assigned_exams = $this->db
                 ->select('os.is_attempted, oe.exam')
                 ->from('onlineexam_students os')

@@ -13,10 +13,32 @@
                     </div>
                     <div class="box-body">
                         <?php if ($this->session->flashdata('msg')) { echo $this->session->flashdata('msg'); } ?>
+
+                        <div class="row" style="margin-bottom:15px;">
+                            <div class="col-md-12">
+                                <label style="display:block;margin-bottom:5px;font-weight:600;">Candidate Type</label>
+                                <div class="btn-group" data-toggle="buttons">
+                                    <label class="btn btn-default" id="btn_candidate_student">
+                                        <input type="radio" name="candidate_type_ui" value="student"> <i class="fa fa-graduation-cap"></i> Student
+                                    </label>
+                                    <label class="btn btn-default active" id="btn_candidate_applicant">
+                                        <input type="radio" name="candidate_type_ui" value="applicant" checked> <i class="fa fa-user-plus"></i> Applicant
+                                    </label>
+                                </div>
+                                <small class="text-muted" style="display:block;margin-top:4px;">Assigning as <strong>Applicant</strong> — candidate_type will be saved as <code>applicant</code>.</small>
+                                <script>
+                                $(document).ready(function(){
+                                    $('#btn_candidate_student').on('click', function(){
+                                        window.location.href = '<?php echo site_url('admin/onlineexam/assign/' . $id); ?>';
+                                    });
+                                });
+                                </script>
+                            </div>
+                        </div>
                         <h4>
                             <a href="#" data-toggle="popover" class="detail_popover"><?php echo $onlineexam->exam; ?></a>
                         </h4>
-                        <p class="text-muted">Only submitted and not yet enrolled applicants are shown below. They are loaded automatically — no manual linking needed.</p>
+                        <p class="text-muted">All applicants who have not yet been enrolled are shown below. They are loaded automatically — no manual linking needed.</p>
 
                         <?php if (!empty($resultlist)) { ?>
                         <div class="alert alert-info" style="margin-bottom:10px">
