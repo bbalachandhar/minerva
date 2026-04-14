@@ -313,6 +313,10 @@
                 <li>Ensure stable internet connectivity before starting the exam.</li>
                 <li>In case of any technical issue, contact the admission office immediately.</li>
             </ol>
+            <div style="margin-top:12px;padding:10px 14px;background:#fff3cd;border-left:4px solid #e6a817;border-radius:3px;color:#5a3e00;font-size:13px;line-height:1.8;">
+                <strong>&#9733; Scholarship Eligibility &mdash; Mandatory Attendance Notice:</strong><br>
+                Only candidates who are physically present at the examination centre, attend the exam in person, and duly sign the college attendance register on the scheduled date shall be deemed eligible for the scholarship. Remote or online-only participation, without in-person attendance, will render the candidate ineligible for scholarship benefits.
+            </div>
         </div>
 
         <!-- Signature strip -->
@@ -326,12 +330,10 @@
 
     <!-- Footer -->
     <div class="hall-footer">
-        <?php if (!empty($print_header->footer_content)): ?>
-            <?php echo $print_header->footer_content; ?>
-        <?php else: ?>
-            <?php echo htmlspecialchars($sch_setting->name ?? ''); ?> &nbsp;|&nbsp;
-            <?php echo htmlspecialchars($sch_setting->address ?? ''); ?>
-            <?php if (!empty($sch_setting->phone)): ?>&nbsp;|&nbsp; Ph: <?php echo htmlspecialchars($sch_setting->phone); ?><?php endif; ?>
+        <strong><?php echo htmlspecialchars($sch_setting->name ?? ''); ?></strong><br>
+        <?php echo htmlspecialchars($sch_setting->address ?? ''); ?>
+        <?php if (!empty($sch_setting->phone)): ?>
+            &nbsp;|&nbsp; Ph: <?php echo htmlspecialchars($sch_setting->phone); ?>
         <?php endif; ?>
     </div>
 
