@@ -105,6 +105,15 @@ class Mailsmsconf
                     
                 }
 
+                if (!empty($chk_mail_sms['whatsapp'])) {
+                    $this->CI->load->library('whatsappgateway');
+                    foreach ($contact_numbers as $key => $contact_numbersvalue) {
+                        $raw = preg_replace('/\D/', '', $contact_numbersvalue);
+                        $wa_number = (strlen($raw) === 10) ? '91' . $raw : $raw;
+                        $this->CI->whatsappgateway->sentAddGroupFeeWhatsapp($sender_details, $wa_number, $chk_mail_sms['template'], $chk_mail_sms['template_id']);
+                    }
+                }
+
             } elseif ($send_for == "fee_submission") {
                
                 $sender_details->amount      = amountFormat($sender_details->amount);
@@ -136,6 +145,15 @@ class Mailsmsconf
                     $this->CI->smsgateway->sentAddFeeNotification($sender_details, $chk_mail_sms['template'], $chk_mail_sms['subject']);
                 }
                 }
+
+                if (!empty($chk_mail_sms['whatsapp'])) {
+                    $this->CI->load->library('whatsappgateway');
+                    foreach ($contact_numbers as $key => $contact_numbersvalue) {
+                        $raw = preg_replace('/\D/', '', $contact_numbersvalue);
+                        $wa_number = (strlen($raw) === 10) ? '91' . $raw : $raw;
+                        $this->CI->whatsappgateway->sentAddFeeWhatsapp($sender_details, $wa_number, $chk_mail_sms['template'], $chk_mail_sms['template_id']);
+                    }
+                }
             } elseif ($send_for == "fee_processing") {
 
                 if ($chk_mail_sms['mail'] && $chk_mail_sms['template'] != "" && $chk_mail_sms['student_recipient']) {
@@ -163,6 +181,20 @@ class Mailsmsconf
                     $sender_details->app_keys=$sender_details->parent_app_key;
                     $this->CI->smsgateway->sentFeeProcessingNotification($sender_details, $chk_mail_sms['template'], $chk_mail_sms['subject']);
                 }
+
+                if (!empty($chk_mail_sms['whatsapp'])) {
+                    $this->CI->load->library('whatsappgateway');
+                    if ($chk_mail_sms['student_recipient'] && !empty($sender_details->mobileno)) {
+                        $raw = preg_replace('/\D/', '', $sender_details->mobileno);
+                        $wa_number = (strlen($raw) === 10) ? '91' . $raw : $raw;
+                        $this->CI->whatsappgateway->sentFeeProcessingNotification($sender_details, $wa_number, $chk_mail_sms['template'], $chk_mail_sms['template_id']);
+                    }
+                    if ($chk_mail_sms['guardian_recipient'] && !empty($sender_details->guardian_phone)) {
+                        $raw = preg_replace('/\D/', '', $sender_details->guardian_phone);
+                        $wa_number = (strlen($raw) === 10) ? '91' . $raw : $raw;
+                        $this->CI->whatsappgateway->sentFeeProcessingNotification($sender_details, $wa_number, $chk_mail_sms['template'], $chk_mail_sms['template_id']);
+                    }
+                }
                 
             } elseif ($send_for == "student_absent_attendence") {
 
@@ -189,6 +221,15 @@ class Mailsmsconf
 
                 if ($chk_mail_sms['notification'] && $chk_mail_sms['template'] != "" && $chk_mail_sms['guardian_recipient']) {
                     $this->CI->smsgateway->sentNotification($sender_details->parent_app_key, $sender_details, $chk_mail_sms['subject'], $chk_mail_sms['template']);
+                }
+
+                if (!empty($chk_mail_sms['whatsapp'])) {
+                    $this->CI->load->library('whatsappgateway');
+                    foreach ($contact_numbers as $key => $contact_numbersvalue) {
+                        $raw = preg_replace('/\D/', '', $contact_numbersvalue);
+                        $wa_number = (strlen($raw) === 10) ? '91' . $raw : $raw;
+                        $this->CI->whatsappgateway->sentfeesreminderNotification($sender_details, $wa_number, $chk_mail_sms['template'], $chk_mail_sms['template_id']);
+                    }
                 }
             } elseif ($send_for == "homework") {
 
@@ -548,6 +589,20 @@ $sender_details['parent_app_key']=$recipient_data['parent_app_key'];
                          $detail['app_key']=$detail['parent_app_key'];
                         $this->CI->smsgateway->sentPresentStudentNotification($detail, $template, $subject);
                     }
+
+                    if (!empty($chk_mail_sms['whatsapp'])) {
+                        $this->CI->load->library('whatsappgateway');
+                        if ($chk_mail_sms['student_recipient'] && !empty($detail['mobileno'])) {
+                            $raw = preg_replace('/\D/', '', $detail['mobileno']);
+                            $wa_number = (strlen($raw) === 10) ? '91' . $raw : $raw;
+                            $this->CI->whatsappgateway->sendPresentAttendancenotification($detail, $template, $template_id, $wa_number);
+                        }
+                        if ($chk_mail_sms['guardian_recipient'] && !empty($detail['guardian_phone'])) {
+                            $raw = preg_replace('/\D/', '', $detail['guardian_phone']);
+                            $wa_number = (strlen($raw) === 10) ? '91' . $raw : $raw;
+                            $this->CI->whatsappgateway->sendPresentAttendancenotification($detail, $template, $template_id, $wa_number);
+                        }
+                    }
                 }
             }
         }
@@ -718,6 +773,20 @@ $sender_details['parent_app_key']=$recipient_data['parent_app_key'];
                          $detail['app_key']=$detail['parent_app_key'];
                         $this->CI->smsgateway->sentAbsentStudentNotification($detail, $template, $subject);
                     }
+
+                    if (!empty($chk_mail_sms['whatsapp'])) {
+                        $this->CI->load->library('whatsappgateway');
+                        if ($chk_mail_sms['student_recipient'] && !empty($detail['mobileno'])) {
+                            $raw = preg_replace('/\D/', '', $detail['mobileno']);
+                            $wa_number = (strlen($raw) === 10) ? '91' . $raw : $raw;
+                            $this->CI->whatsappgateway->sendAbsentAttendancenotification($detail, $template, $template_id, $wa_number);
+                        }
+                        if ($chk_mail_sms['guardian_recipient'] && !empty($detail['guardian_phone'])) {
+                            $raw = preg_replace('/\D/', '', $detail['guardian_phone']);
+                            $wa_number = (strlen($raw) === 10) ? '91' . $raw : $raw;
+                            $this->CI->whatsappgateway->sendAbsentAttendancenotification($detail, $template, $template_id, $wa_number);
+                        }
+                    }
                 }
             }
         }
@@ -845,6 +914,13 @@ $sender_details['parent_app_key']=$recipient_data['parent_app_key'];
 
                     if (!empty($student_notification_list)) {
                         $this->CI->smsgateway->sentHomeworkStudentNotification($student_notification_list, $template, $email_subject);
+                    }
+                }
+
+                if (!empty($chk_mail_sms['whatsapp'])) {
+                    $this->CI->load->library('whatsappgateway');
+                    if (!empty($student_sms_list)) {
+                        $this->CI->whatsappgateway->sendstudentlhomework($student_sms_list, $template, $template_id, 'homework');
                     }
                 }
             }
@@ -986,6 +1062,13 @@ $sender_details['parent_app_key']=$recipient_data['parent_app_key'];
                         $this->CI->smsgateway->sentHomeworkStudentNotification($student_notification_list, $template, $email_subject);
                     }
                 }
+
+                if (!empty($chk_mail_sms['whatsapp'])) {
+                    $this->CI->load->library('whatsappgateway');
+                    if (!empty($student_sms_list)) {
+                        $this->CI->whatsappgateway->sendstudentlhomework($student_sms_list, $template, $template_id, 'homework_evaluation');
+                    }
+                }
             }
         }
     }
@@ -1045,6 +1128,13 @@ $sender_details['parent_app_key']=$recipient_data['parent_app_key'];
                 if ($chk_mail_sms['notification']) {
                     if (!empty($student_notification_list)) {
                         $this->CI->smsgateway->sentOnlineexamStudentNotification($student_notification_list, $template, $subject);
+                    }
+                }
+
+                if (!empty($chk_mail_sms['whatsapp'])) {
+                    $this->CI->load->library('whatsappgateway');
+                    if (!empty($student_sms_list)) {
+                        $this->CI->whatsappgateway->sentOnlineexamStudentWhatsapp($student_sms_list, $template, $template_id);
                     }
                 }
             }

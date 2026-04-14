@@ -189,29 +189,21 @@ class Whatsappgateway
     }  
 
 
-    public function sendstudentlhomework($sender_details, $template, $template_id)
-    { 
-
+public function sendstudentlhomework($sender_details, $template, $template_id, $notification_type = 'homework')
+    {
         $whatsapp_detail = $this->_CI->whatsappconfig_model->getActiveWhatsApp();
-        $msg = $this->getstudenthomeworkkey($sender_details, $template, $whatsapp_detail->type);    
-        
-        foreach ($sender_details as $student_key => $student_value) {
-        //student and parent contact number loop will executed
-        $send_to = $student_key;
-
-        if (!empty($whatsapp_detail)) {
-            if ($whatsapp_detail->type == 'twilio') {
-				
-                return $this->sendByTwilio($whatsapp_detail, $send_to, $template_id, $msg);
-				
-            } else if ($whatsapp_detail->type == 'meta') {
-				
-				return $this->sendMetaTemplate($whatsapp_detail,$send_to,$template_id,$whatsapp_detail->language,$msg);
-				
-			} else {
-
-            }
+        if (empty($whatsapp_detail)) {
+            return true;
         }
+        $msg = $this->getstudenthomeworkkey($sender_details, $template, $whatsapp_detail->type);
+
+        foreach ($sender_details as $student_key => $student_value) {
+            $send_to = $student_key;
+            if ($whatsapp_detail->type == 'twilio') {
+                $this->sendByTwilio($whatsapp_detail, $send_to, $template_id, $msg, $notification_type);
+            } else if ($whatsapp_detail->type == 'meta') {
+                $this->sendMetaTemplate($whatsapp_detail, $send_to, $template_id, $whatsapp_detail->language, $msg, $notification_type);
+            }
         }
         return true;
     }
@@ -246,11 +238,11 @@ class Whatsappgateway
         if (!empty($whatsapp_detail)) {
             if ($whatsapp_detail->type == 'twilio') {
                 
-				return $this->sendByTwilio($whatsapp_detail, $send_to, $template_id, $msg);
+				return $this->sendByTwilio($whatsapp_detail, $send_to, $template_id, $msg, 'student_absent_attendence');
 				
             } else if ($whatsapp_detail->type == 'meta') {
 				
-				return $this->sendMetaTemplate($whatsapp_detail,$send_to,$template_id,$whatsapp_detail->language,$msg);
+				return $this->sendMetaTemplate($whatsapp_detail,$send_to,$template_id,$whatsapp_detail->language,$msg, 'student_absent_attendence');
 				
 			} else {
 
@@ -271,11 +263,11 @@ class Whatsappgateway
         if (!empty($whatsapp_detail)) {
             if ($whatsapp_detail->type == 'twilio') {
 
-                return $this->sendByTwilio($whatsapp_detail, $send_to, $template_id, $msg);
+                return $this->sendByTwilio($whatsapp_detail, $send_to, $template_id, $msg, 'student_present_attendence');
 				
             } else if ($whatsapp_detail->type == 'meta') {
 				
-				return $this->sendMetaTemplate($whatsapp_detail,$send_to,$template_id,$whatsapp_detail->language,$msg);
+				return $this->sendMetaTemplate($whatsapp_detail,$send_to,$template_id,$whatsapp_detail->language,$msg, 'student_present_attendence');
 				
 			} else {
 
@@ -501,11 +493,11 @@ class Whatsappgateway
 				 
 				if ($whatsapp_detail->type == 'twilio') {
 
-					return $this->sendByTwilio($whatsapp_detail, $send_to, $template_id, $msg);
+					return $this->sendByTwilio($whatsapp_detail, $send_to, $template_id, $msg, 'exam_result');
 			   
 				} else if ($whatsapp_detail->type == 'meta') {
 				
-					return $this->sendMetaTemplate($whatsapp_detail,$send_to,$template_id,$whatsapp_detail->language,$msg);
+					return $this->sendMetaTemplate($whatsapp_detail,$send_to,$template_id,$whatsapp_detail->language,$msg, 'exam_result');
 				
 				} else {
 
@@ -537,50 +529,31 @@ class Whatsappgateway
     public function sentOnlineexamStudentWhatsapp($detail, $template, $template_id)
     {
         $whatsapp_detail = $this->_CI->whatsappconfig_model->getActiveWhatsApp();
-    
         if (!empty($whatsapp_detail)) {
-
             foreach ($detail as $student_key => $student_value) {
-				
                 $send_to = $student_key;
-                $msg  = $this->getOnlineexamStudentContent_key($detail[$student_key], $template);
-				
-            if ($whatsapp_detail->type == 'twilio') {                
-
-                return $this->sendByTwilio($whatsapp_detail, $send_to, $template_id, $msg);
-				
-            } else if ($whatsapp_detail->type == 'meta') {
-				
-				return $this->sendMetaTemplate($whatsapp_detail,$send_to,$template_id,$whatsapp_detail->language,$msg);
-				
-			} else {
-
-            } 
+                $msg     = $this->getOnlineexamStudentContent_key($student_value, $template);
+                if ($whatsapp_detail->type == 'twilio') {
+                    $this->sendByTwilio($whatsapp_detail, $send_to, $template_id, $msg, 'online_examination_publish_exam');
+                } else if ($whatsapp_detail->type == 'meta') {
+                    $this->sendMetaTemplate($whatsapp_detail, $send_to, $template_id, $whatsapp_detail->language, $msg, 'online_examination_publish_exam');
+                }
+            }
         }
-        }
+        return true;
     }
-    
+
     public function getOnlineexamStudentContent_key($data, $template)
     {
-
-         foreach ($data as $key => $value) {
-            
-            $foundValues = [];
-            
-            preg_match_all('/{{(.*?)}}/', $template, $matches); // Match all placeholders
-            
-            // Extract values from the $data array if the key exists in the template
-            foreach ($matches[1] as $key1) {
-
-                if (isset($data[$key1])) {
-                    $foundValues[$key1] = $data[$key1]; // Add to foundValues array   
-                    
-                }
-            } 
+        $foundValues = [];
+        preg_match_all('/{{(.*?)}}/', $template, $matches);
+        foreach ($matches[1] as $key1) {
+            if (isset($data[$key1])) {
+                $foundValues[$key1] = $data[$key1];
+            }
         }
         return $foundValues;
     }
-
     public function student_apply_leave($sender_details, $template, $template_id)
     {
         $whatsapp_detail = $this->_CI->whatsappconfig_model->getActiveWhatsApp();
@@ -922,36 +895,28 @@ public function sentstudentZoomClasswhatsapp($sender_details, $template, $send_t
     //===================behavioural=====================//
 
     //==================online admission fees submission===============//
-    public function sentstudentOnlineadmissionFeessubmissionWhatsapp($sender_details,$template,$send_to,$template_id)
+    public function sentstudentOnlineadmissionFeessubmissionWhatsapp($sender_details, $template, $send_to, $template_id)
     {
         $whatsapp_detail = $this->_CI->whatsappconfig_model->getActiveWhatsApp();
         $msg = $this->getstudentOnlineadmissionFeescontent($sender_details, $template);
-        if(!empty($whatsapp_detail)) {            
+        if (!empty($whatsapp_detail)) {
             if ($whatsapp_detail->type == 'twilio') {
-				
-                return $this->sendByTwilio($whatsapp_detail, $send_to, $template_id, $msg);
-				
+                return $this->sendByTwilio($whatsapp_detail, $send_to, $template_id, $msg, 'online_admission_fees_submission');
             } else if ($whatsapp_detail->type == 'meta') {
-				
-				return $this->sendMetaTemplate($whatsapp_detail,$send_to,$template_id,$whatsapp_detail->language,$msg);
-				
-			} else {
-
-            }  
+                return $this->sendMetaTemplate($whatsapp_detail, $send_to, $template_id, $whatsapp_detail->language, $msg, 'online_admission_fees_submission');
+            }
         }
+        return true;
     }
 
     public function getstudentOnlineadmissionFeescontent($data, $template)
     {
-       foreach ($data as $key => $value) {
-            $foundValues = [];
-            preg_match_all('/{{(.*?)}}/', $template, $matches); // Match all placeholders
-            // Extract values from the $data array if the key exists in the template
-            foreach ($matches[1] as $key1) {
-                if (isset($data[$key1])) {
-                    $foundValues[$key1] = $data[$key1]; // Add to foundValues array   
-                }
-            } 
+        $foundValues = [];
+        preg_match_all('/{{(.*?)}}/', $template, $matches);
+        foreach ($matches[1] as $key1) {
+            if (isset($data[$key1])) {
+                $foundValues[$key1] = $data[$key1];
+            }
         }
         return $foundValues;
     }
@@ -965,11 +930,11 @@ public function sentstudentZoomClasswhatsapp($sender_details, $template, $send_t
         if(!empty($whatsapp_detail)) {            
             if ($whatsapp_detail->type == 'twilio') {
                 
-				return $this->sendByTwilio($whatsapp_detail, $send_to, $template_id, $msg);
+				return $this->sendByTwilio($whatsapp_detail, $send_to, $template_id, $msg, 'online_admission_form_submission');
 					
             } else if ($whatsapp_detail->type == 'meta') {
 				
-				return $this->sendMetaTemplate($whatsapp_detail,$send_to,$template_id,$whatsapp_detail->language,$msg);
+				return $this->sendMetaTemplate($whatsapp_detail,$send_to,$template_id,$whatsapp_detail->language,$msg, 'online_admission_form_submission');
 				
 			} else {
 
@@ -995,45 +960,31 @@ public function sentstudentZoomClasswhatsapp($sender_details, $template, $send_t
 
 
     //=========fees reminder===============//
-    public function sentfeesreminderNotification($sender_details,$send_to,$template,$template_id)
+    public function sentfeesreminderNotification($sender_details, $send_to, $template, $template_id)
     {
-         $whatsapp_detail = $this->_CI->whatsappconfig_model->getActiveWhatsApp();
-    
+        $whatsapp_detail = $this->_CI->whatsappconfig_model->getActiveWhatsApp();
         if (!empty($whatsapp_detail)) {
-			
-			$msg        = $this->getfeesreminderContent($sender_details, $template);
-			
-            if ($whatsapp_detail->type == 'twilio') {                
-
-                return $this->sendByTwilio($whatsapp_detail, $send_to, $template_id, $msg);
-				
-            }else if ($whatsapp_detail->type == 'meta') {
-				
-				return $this->sendMetaTemplate($whatsapp_detail,$send_to,$template_id,$whatsapp_detail->language,$msg);
-				
-			}  
+            $msg = $this->getfeesreminderContent($sender_details, $template);
+            if ($whatsapp_detail->type == 'twilio') {
+                return $this->sendByTwilio($whatsapp_detail, $send_to, $template_id, $msg, 'fees_reminder');
+            } else if ($whatsapp_detail->type == 'meta') {
+                return $this->sendMetaTemplate($whatsapp_detail, $send_to, $template_id, $whatsapp_detail->language, $msg, 'fees_reminder');
+            }
         }
-
+        return true;
     }
 
     public function getfeesreminderContent($data, $template)
     {
-         foreach ($data as $key => $value) {
-            $foundValues = [];
-            preg_match_all('/{{(.*?)}}/', $template, $matches); // Match all placeholders
-            // Extract values from the $data array if the key exists in the template
-            foreach ($matches[1] as $key1) {
-
-                if (isset($data->$key1)) {
-                    $foundValues[$key1] = $data->$key1; // Add to foundValues array   
-                    
-                }
-            } 
+        $foundValues = [];
+        preg_match_all('/{{(.*?)}}/', $template, $matches);
+        foreach ($matches[1] as $key1) {
+            if (isset($data->$key1)) {
+                $foundValues[$key1] = $data->$key1;
+            }
         }
         return $foundValues;
     }
-	
-	
 
 //=========fees reminder===============//
 
@@ -1048,12 +999,12 @@ public function sentstudentZoomClasswhatsapp($sender_details, $template, $send_t
 			 
             if ($whatsapp_detail->type == 'twilio') {               
 
-                return $this->sendByTwilio($whatsapp_detail, $send_to, $template_id, $msg);
+                return $this->sendByTwilio($whatsapp_detail, $send_to, $template_id, $msg, 'fee_processing');
 				
 				
             }else if ($whatsapp_detail->type == 'meta') {
 				
-				return $this->sendMetaTemplate($whatsapp_detail,$send_to,$template_id,$whatsapp_detail->language,$msg);
+				return $this->sendMetaTemplate($whatsapp_detail,$send_to,$template_id,$whatsapp_detail->language,$msg, 'fee_processing');
 				
 			}  
         }
