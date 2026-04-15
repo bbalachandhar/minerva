@@ -16,7 +16,7 @@
                <div class="box-body">
                   <?php
 
-if ($online_exam_validate->is_attempted == 1 && ($exam->is_quiz)) {
+if ($online_exam_validate->is_attempted == 1 && ($exam->is_quiz) && !empty($exam->show_result_immediately)) {
     $exam->publish_result = true;
 } else if (($exam->auto_publish_date != "0000-00-00" && $exam->auto_publish_date != "" && $exam->auto_publish_date != null) && $exam->publish_result) {
     $exam->publish_result = true;

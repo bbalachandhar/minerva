@@ -211,6 +211,8 @@ function findOption($questionOpt, $find)
                     <div class="form-group">
                   <label class="checkbox-inline"><input type="checkbox" class="is_quiz" value="1" name="is_quiz"><?php echo $this->lang->line('quiz'); ?></label>
                   <span class="help-block"><?php echo $this->lang->line('check_on_quiz_message'); ?></span>
+                  <label class="checkbox-inline" style="margin-left:20px;"><input type="checkbox" class="show_result_immediately" value="1" name="show_result_immediately"> Show result immediately after submission</label>
+                  <span class="help-block" style="margin-left:20px;">If unchecked, result is hidden until you manually publish it.</span>
                  </div>
                      </div>
                     </div>
@@ -598,6 +600,7 @@ $(document).on('submit','#delete_question',function(e) {
 
         $('#myModal').on('hidden.bs.modal', function () {
             $('.is_quiz').attr('checked', false);
+            $('input[name=show_result_immediately]').prop('checked', false);
 
             $(this).find(":input, select, textarea")
                     .not('input:checkbox,input:radio')
@@ -721,6 +724,9 @@ $(document).on('submit','#delete_question',function(e) {
                         var is_quiz=(data.result.is_quiz == 0)?false:true;
 
                         $('input[name=is_quiz]').prop('checked',is_quiz);
+
+                        var chk_show_result_immediately=(data.result.show_result_immediately == 0)?false:true;
+                        $('input[name=show_result_immediately]').prop('checked',chk_show_result_immediately);
 
                         if(is_quiz){
                             $("input.publish_result").attr("disabled", true);

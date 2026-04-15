@@ -246,6 +246,45 @@ class Onlineexam_model extends MY_model
         }
     }
 
+    /**
+     * Returns students/applicants who are assigned to the exam in the given class+section.
+     * Used by the evaluation page student picker AJAX endpoint.
+     */
+    public function getStudentsForEval($class_id, $section_id, $onlineexam_id)
+    {
+        $class_id      = (int) $class_id;
+        $section_id    = (int) $section_id;
+        $onlineexam_id = (int) $onlineexam_id;
+
+        // Determine if the selected class is an applicant-type class
+        $class_row = $this->db->select('class_type')->from('classes')->where('id', $class_id)->get()->row();
+        $is_applicant = ($class_row && $class_row->class_type === 'applicant');
+
+        if ($is_applicant) {
+            $this->db->select("os.id as onlineexam_student_id,
+                oa.firstname, '' as middlename, oa.lastname,
+                oa.reference_no as admission_no, 'applicant' as candidate_type");
+            $this->db->from('onlineexam_students os');
+            $this->db->join('online_admissions oa', 'oa.id = os.online_admission_id');
+            $this->db->where('os.onlineexam_id', $onlineexam_id);
+            $this->db->where('os.candidate_type', 'applicant');
+        } else {
+            $this->db->select("os.id as onlineexam_student_id,
+                s.firstname, s.middlename, s.lastname,
+                s.admission_no, 'student' as candidate_type");
+            $this->db->from('onlineexam_students os');
+            $this->db->join('student_session ss', 'ss.id = os.student_session_id');
+            $this->db->join('students s', 's.id = ss.student_id');
+            $this->db->where('os.onlineexam_id', $onlineexam_id);
+            $this->db->where('ss.class_id', $class_id);
+            if ($section_id > 0) {
+                $this->db->where('ss.section_id', $section_id);
+            }
+        }
+        $this->db->order_by('lastname, firstname');
+        return $this->db->get()->result();
+    }
+
     public function searchOnlineExamStudents($class_id, $section_id, $onlineexam_id)
     {
         $this->db->select('classes.id AS `class_id`,student_session.id as student_session_id,students.id,classes.class,sections.id AS `section_id`,sections.section,students.id,students.admission_no , students.roll_no,students.admission_date,students.firstname,students.middlename,  students.lastname,students.image,  students.mobileno,students.email,students.state,students.city,students.pincode,students.religion,     students.dob ,students.current_address,students.permanent_address,IFNULL(students.category_id, 0) as `category_id`,IFNULL(categories.category, "") as `category`,students.adhar_no,students.samagra_id,students.bank_account_no,students.bank_name,students.ifsc_code, students.guardian_name , students.guardian_relation,students.guardian_phone,students.guardian_address,students.is_active ,students.created_at ,students.updated_at,students.father_name,students.rte,students.gender,IFNULL(onlineexam_students.id, 0) as onlineexam_student_id,IFNULL(onlineexam_students.student_session_id, 0) as onlineexam_student_session_id')->from('students');

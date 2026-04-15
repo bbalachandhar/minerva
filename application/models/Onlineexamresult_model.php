@@ -173,6 +173,48 @@ class Onlineexamresult_model extends CI_Model
         return $query->result();
     } 
 
+    /**
+     * Returns all question results for the given onlineexam_student.id values,
+     * ordered by student then question. Used by the per-student paper view.
+     */
+    public function getStudentPapers($onlineexam_id, $student_ids)
+    {
+        $select = 'onlineexam_student_results.*,
+            onlineexam_questions.marks as question_marks,
+            onlineexam_questions.neg_marks as question_neg_marks,
+            onlineexam_questions.question_id as oq_question_id,
+            questions.question, questions.question_type,
+            questions.correct as correct_answer,
+            questions.opt_a, questions.opt_b, questions.opt_c, questions.opt_d, questions.opt_e,
+            onlineexam_students.candidate_type,
+            onlineexam_students.online_admission_id,
+            COALESCE(students.firstname, oa.firstname) as firstname,
+            COALESCE(students.middlename, \'\') as middlename,
+            COALESCE(students.lastname, oa.lastname) as lastname,
+            COALESCE(students.mobileno, oa.mobileno) as mobileno,
+            COALESCE(students.admission_no, oa.reference_no) as admission_no,
+            COALESCE(students.guardian_name, \'\') as guardian_name,
+            COALESCE(students.guardian_phone, \'\') as guardian_phone,
+            COALESCE(reg_class.class, app_class.class) as class,
+            COALESCE(reg_section.section, \'\') as section';
+
+        $this->db->select($select, false)->from('onlineexam_student_results');
+        $this->db->join('onlineexam_questions', 'onlineexam_questions.id = onlineexam_student_results.onlineexam_question_id');
+        $this->db->join('questions', 'questions.id = onlineexam_questions.question_id');
+        $this->db->join('onlineexam_students', 'onlineexam_students.id = onlineexam_student_results.onlineexam_student_id');
+        $this->db->join('student_session', 'student_session.id = onlineexam_students.student_session_id', 'left');
+        $this->db->join('students', 'students.id = student_session.student_id', 'left');
+        $this->db->join('classes as reg_class', 'reg_class.id = student_session.class_id', 'left');
+        $this->db->join('sections as reg_section', 'reg_section.id = student_session.section_id', 'left');
+        $this->db->join('online_admissions as oa', 'oa.id = onlineexam_students.online_admission_id', 'left');
+        $this->db->join('class_sections as app_cs', 'app_cs.id = oa.class_section_id', 'left');
+        $this->db->join('classes as app_class', 'app_class.id = app_cs.class_id', 'left');
+        $this->db->where('onlineexam_questions.onlineexam_id', $onlineexam_id);
+        $this->db->where_in('onlineexam_student_results.onlineexam_student_id', $student_ids);
+        $this->db->order_by('onlineexam_student_results.onlineexam_student_id, onlineexam_student_results.onlineexam_question_id');
+        return $this->db->get()->result();
+    }
+
     public function onlineexamrank($onlineexam_student_id, $exam_id)
     {    
 

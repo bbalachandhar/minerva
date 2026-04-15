@@ -48,6 +48,11 @@
                                         <div class="col-sm-3 text-right" style="padding-top:8px;">
                                             <?php if ((int)$exam->is_attempted === 1): ?>
                                                 <span class="label label-success" style="font-size:13px; padding:6px 10px; display:inline-block; margin-bottom:6px;"><i class="fa fa-check"></i> Attempted</span><br>
+                                                <?php if (!empty($exam->publish_result) || ($exam->is_quiz && !empty($exam->show_result_immediately))): ?>
+                                                    <a href="<?php echo site_url('public_admission/exam_view/' . $exam->id); ?>" class="btn btn-success btn-sm" style="margin-bottom:6px;">
+                                                        <i class="fa fa-bar-chart"></i> View Result
+                                                    </a><br>
+                                                <?php endif; ?>
                                             <?php else: ?>
                                                 <a href="<?php echo site_url('public_admission/exam_view/' . $exam->id); ?>" class="btn btn-primary btn-sm" style="margin-bottom:6px;">
                                                     <i class="fa fa-pencil"></i> Open Exam

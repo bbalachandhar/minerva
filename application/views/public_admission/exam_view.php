@@ -122,15 +122,174 @@
                 </div>
             </div>
 
-            <?php if ($online_exam_validate->is_attempted) { ?>
-                <div class="alert alert-success">You have already submitted this exam.</div>
-            <?php } ?>
+            <?php
+/* Determine effective publish status (same logic as user/onlineexam/view.php) */
+$show_result = false;
+if ($online_exam_validate->is_attempted) {
+    if ($exam->is_quiz && !empty($exam->show_result_immediately)) {
+        $show_result = true;
+    } elseif ($exam->publish_result) {
+        $show_result = true;
+    }
+}
+?>
 
+            <?php if ($online_exam_validate->is_attempted && $show_result): ?>
+                <!-- ===== RESULT VIEW ===== -->
+                <?php
+                $total_questions = 0;
+                $exam_total_marks = 0;
+                $exam_total_scored = 0;
+                $correct_ans = 0;
+                $questionOpt = $this->customlib->getQuesOption();
+                // Escape < chars that are NOT a recognised HTML tag (e.g. math 3<x<5, chemistry Al<Ga).
+                // Only allow through tags that CKEditor actually produces; everything else (e.g. <x, <y)
+                // gets escaped to &lt; so the browser never treats it as markup.
+                $safe_html = function($text) {
+                    $known = 'a|abbr|b|blockquote|br|caption|cite|code|col|colgroup|div|em|h[1-6]|hr|i|img|li|ol|p|pre|s|span|strong|sub|sup|table|tbody|td|tfoot|th|thead|tr|u|ul';
+                    return preg_replace('/<(?!\/?(?:' . $known . ')\b)(?!!--)/i', '&lt;', $text);
+                };
+                if (!empty($question_result)) {
+                    $total_questions = count($question_result);
+                    foreach ($question_result as $qr) {
+                        $exam_total_marks += (float)$qr->marks;
+                        $exam_total_scored += (float)$qr->score_marks;
+                        if ($qr->question_type == 'singlechoice' || $qr->question_type == 'true_false') {
+                            if ($qr->select_option == $qr->correct) $correct_ans++;
+                        }
+                    }
+                }
+                ?>
+                <div class="box box-success">
+                    <div class="box-header with-border">
+                        <h3 class="box-title"><i class="fa fa-trophy"></i> Your Result — <?php echo htmlspecialchars($exam->exam); ?></h3>
+                    </div>
+                    <div class="box-body">
+                        <div class="row text-center" style="margin-bottom:20px;">
+                            <div class="col-sm-3">
+                                <div class="info-box bg-aqua">
+                                    <span class="info-box-icon"><i class="fa fa-question-circle"></i></span>
+                                    <div class="info-box-content">
+                                        <span class="info-box-text">Total Questions</span>
+                                        <span class="info-box-number"><?php echo $total_questions; ?></span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-3">
+                                <div class="info-box bg-green">
+                                    <span class="info-box-icon"><i class="fa fa-check"></i></span>
+                                    <div class="info-box-content">
+                                        <span class="info-box-text">Correct</span>
+                                        <span class="info-box-number"><?php echo $correct_ans; ?></span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-3">
+                                <div class="info-box bg-yellow">
+                                    <span class="info-box-icon"><i class="fa fa-star"></i></span>
+                                    <div class="info-box-content">
+                                        <span class="info-box-text">Your Score</span>
+                                        <span class="info-box-number"><?php echo $exam_total_scored; ?> / <?php echo $exam_total_marks; ?></span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-3">
+                                <div class="info-box bg-navy">
+                                    <span class="info-box-icon"><i class="fa fa-percent"></i></span>
+                                    <div class="info-box-content">
+                                        <span class="info-box-text">Score %</span>
+                                        <span class="info-box-number"><?php echo $exam_total_marks > 0 ? number_format(($exam_total_scored / $exam_total_marks) * 100, 1) : 0; ?>%</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <?php if (!empty($question_result)): ?>
+                        <h4 style="margin-bottom:15px;"><i class="fa fa-file-text-o"></i> Your Answer Sheet</h4>
+                        <div class="legend-row" style="margin-bottom:12px; font-size:13px;">
+                            <span style="color:#5cb85c;"><i class="fa fa-check-circle"></i> Correct</span> &nbsp;&nbsp;
+                            <span style="color:#d9534f;"><i class="fa fa-times-circle"></i> Wrong</span> &nbsp;&nbsp;
+                            <span style="color:#aaa;"><i class="fa fa-minus-circle"></i> Not Attempted</span>
+                        </div>
+                        <?php foreach ($question_result as $qi => $qr): ?>
+                            <?php
+                            $is_correct = ($qr->question_type == 'singlechoice' || $qr->question_type == 'true_false') && $qr->select_option == $qr->correct;
+                            $not_attempted = empty($qr->select_option);
+                            $border_color = $not_attempted ? '#aaa' : ($is_correct ? '#5cb85c' : '#d9534f');
+                            $icon = $not_attempted ? '<i class="fa fa-minus-circle" style="color:#aaa"></i>' : ($is_correct ? '<i class="fa fa-check-circle" style="color:#5cb85c"></i>' : '<i class="fa fa-times-circle" style="color:#d9534f"></i>');
+                            ?>
+                            <div style="border-left:4px solid <?php echo $border_color; ?>; padding:10px 14px; margin-bottom:12px; background:#fafafa; border-radius:3px;">
+                                <div style="margin-bottom:6px;">
+                                    <strong>Q<?php echo $qi + 1; ?>.</strong> <?php echo $icon; ?>
+                                    <span style="font-size:12px; color:#777; margin-left:8px;">(<?php echo $qr->marks; ?> mark<?php echo $qr->marks != 1 ? 's' : ''; ?>)</span>
+                                    <div style="margin-top:4px;"><?php echo $safe_html($qr->question); ?></div>
+                                </div>
+                                <?php if ($qr->question_type == 'singlechoice' || $qr->question_type == 'multichoice'): ?>
+                                    <div class="row" style="font-size:13px; margin-top:6px;">
+                                        <?php foreach ($questionOpt as $opt_key => $opt_label): ?>
+                                            <?php if (!empty($qr->$opt_key)): ?>
+                                                <?php
+                                                $isYourAnswer = ($qr->select_option == $opt_key);
+                                                $isCorrect = ($qr->correct == $opt_key);
+                                                $optStyle = '';
+                                                $optIcon  = '';
+                                                if ($isYourAnswer && $isCorrect) {
+                                                    $optStyle = 'background:#dff0d8; border-radius:3px; padding:2px 6px;';
+                                                    $optIcon  = ' <i class="fa fa-check" style="color:#3c763d"></i> <em style="color:#3c763d">(Your answer — Correct)</em>';
+                                                } elseif ($isYourAnswer && !$isCorrect) {
+                                                    $optStyle = 'background:#f2dede; border-radius:3px; padding:2px 6px;';
+                                                    $optIcon  = ' <i class="fa fa-times" style="color:#a94442"></i> <em style="color:#a94442">(Your answer — Wrong)</em>';
+                                                } elseif ($isCorrect) {
+                                                    $optStyle = 'background:#dff0d8; border-radius:3px; padding:2px 6px;';
+                                                    $optIcon  = ' <i class="fa fa-check" style="color:#3c763d"></i> <em style="color:#3c763d">(Correct Answer)</em>';
+                                                }
+                                                ?>
+                                                <div class="col-sm-6" style="margin-bottom:4px;">
+                                                    <span style="<?php echo $optStyle; ?>">
+                                                        <strong><?php echo $opt_label; ?>.</strong> <?php echo $safe_html(html_entity_decode($qr->$opt_key)); ?><?php echo $optIcon; ?>
+                                                    </span>
+                                                </div>
+                                            <?php endif; ?>
+                                        <?php endforeach; ?>
+                                    </div>
+                                <?php elseif ($qr->question_type == 'true_false'): ?>
+                                    <div style="font-size:13px; margin-top:6px;">
+                                        <?php foreach (['True' => 'True', 'False' => 'False'] as $tf_val => $tf_label): ?>
+                                            <?php
+                                            $isYA = ($qr->select_option == $tf_val);
+                                            $isCr = ($qr->correct == $tf_val);
+                                            $s = ''; $em = '';
+                                            if ($isYA && $isCr)  { $s = 'background:#dff0d8; border-radius:3px; padding:2px 8px;'; $em = ' <em style="color:#3c763d">(Your answer — Correct)</em>'; }
+                                            elseif ($isYA)        { $s = 'background:#f2dede; border-radius:3px; padding:2px 8px;'; $em = ' <em style="color:#a94442">(Your answer — Wrong)</em>'; }
+                                            elseif ($isCr)        { $s = 'background:#dff0d8; border-radius:3px; padding:2px 8px;'; $em = ' <em style="color:#3c763d">(Correct Answer)</em>'; }
+                                            ?>
+                                            <span style="<?php echo $s; ?> margin-right:12px;"><?php echo $tf_label; ?><?php echo $em; ?></span>
+                                        <?php endforeach; ?>
+                                    </div>
+                                <?php else: ?>
+                                    <div style="font-size:13px; margin-top:4px;">
+                                        <strong>Your Answer:</strong> <?php echo !empty($qr->select_option) ? html_entity_decode($qr->select_option) : '<em style="color:#aaa">Not attempted</em>'; ?>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                        <?php endforeach; ?>
+                        <?php endif; ?>
+                    </div>
+                </div>
+
+            <?php elseif ($online_exam_validate->is_attempted && !$show_result): ?>
+                <div class="alert alert-info">
+                    <i class="fa fa-clock-o"></i>
+                    <strong>Exam Submitted.</strong> Your result will be published by the institution. Please check back later.
+                </div>
+
+            <?php else: ?>
             <form id="exam_form" method="post" action="<?php echo site_url('public_admission/save_applicant_exam'); ?>" enctype="multipart/form-data">
                 <?php echo $this->customlib->getCSRF(); ?>
                 <div id="questiondata"></div>
                 <div id="wait" style="display:none;">Please wait while loading questions...</div>
             </form>
+            <?php endif; ?>
     </div><!-- /.col-md-12 -->
 </div><!-- /.row -->
 </section><!-- /.content -->

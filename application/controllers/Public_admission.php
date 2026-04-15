@@ -1587,7 +1587,12 @@ class Public_admission extends Front_Controller
         // Return JSON for AJAX submissions (exam_view AJAX submit)
         if ($this->input->is_ajax_request()) {
             $exam_data      = $this->db->get_where('onlineexam', ['id' => $exam_assignment->onlineexam_id])->row();
-            $publish_result = ($exam_data && (int) $exam_data->publish_result === 1) ? 1 : 0;
+            // For quiz with immediate result enabled, show score even before admin publishes
+            if ($exam_data && $exam_data->is_quiz && !empty($exam_data->show_result_immediately)) {
+                $publish_result = 1;
+            } else {
+                $publish_result = ($exam_data && (int) $exam_data->publish_result === 1) ? 1 : 0;
+            }
 
             $this->db->select(
                 'COUNT(oq.id)                                                                           AS total_questions,
@@ -1658,15 +1663,24 @@ class Public_admission extends Front_Controller
         $date_format     = $this->customlib->getSchoolDateFormat();
         $payment_history = $this->Onlinestudent_model->get_payment_history_by_ref($ref_clean, $date_format);
         $total_paid      = array_sum(array_column($payment_history, 'amount_raw'));
-        $total_fee       = (float) ($applicant_info->total_fee ?? 0);
-        $balance         = $total_fee - $total_paid;
+
+        // Total due = course fee + application fee (application fee is collected separately on top of course fee)
+        $course_fee      = (float) ($applicant_info->total_fee ?? 0);
+        $application_fee = 0.0;
+        foreach ($payment_history as $p) {
+            if (stripos($p['fee_type'], 'application') !== false) {
+                $application_fee += (float) $p['amount_raw'];
+            }
+        }
+        $total_fee = $course_fee + $application_fee;
+        $balance   = $total_fee - $total_paid;
 
         // Get assigned exams — query directly to avoid loading onlineexam_model (which requires staff context)
         $has_schema = $this->db->field_exists('candidate_type', 'onlineexam_students')
                       && $this->db->field_exists('online_admission_id', 'onlineexam_students');
         if ($has_schema) {
             $assigned_exams = $this->db
-                ->select('os.is_attempted, oe.exam')
+                ->select('os.is_attempted, oe.id, oe.exam, oe.publish_result, oe.is_quiz, oe.show_result_immediately')
                 ->from('onlineexam_students os')
                 ->join('onlineexam oe', 'oe.id = os.onlineexam_id')
                 ->where('os.online_admission_id', $applicant_info->id)

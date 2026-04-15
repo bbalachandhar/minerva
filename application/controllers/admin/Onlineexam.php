@@ -420,6 +420,67 @@ class Onlineexam extends Admin_Controller
         exit();
     }
 
+    /**
+     * AJAX GET: returns students/applicants enrolled in exam for the selected class+section.
+     * Params: class_id, section_id, onlineexam_id (GET).
+     */
+    public function getStudentsForEval()
+    {
+        $class_id      = (int) $this->input->get('class_id');
+        $section_id    = (int) $this->input->get('section_id');
+        $onlineexam_id = (int) $this->input->get('onlineexam_id');
+
+        if ($class_id < 1 || $onlineexam_id < 1) {
+            echo json_encode(array());
+            return;
+        }
+
+        $students = $this->onlineexam_model->getStudentsForEval($class_id, $section_id, $onlineexam_id);
+        header('Content-Type: application/json');
+        echo json_encode($students);
+    }
+
+    /**
+     * AJAX POST: returns rendered HTML of exam papers for selected students.
+     * Params: onlineexam_id, student_ids[] (array of onlineexam_students.id).
+     */
+    public function getStudentPapers()
+    {
+        $onlineexam_id   = (int) $this->input->post('onlineexam_id');
+        $student_ids_raw = $this->input->post('student_ids');
+
+        if (empty($student_ids_raw) || !is_array($student_ids_raw)) {
+            echo json_encode(array('status' => 'fail', 'message' => 'No students selected'));
+            return;
+        }
+
+        $student_ids = array_values(array_filter(array_map('intval', $student_ids_raw), function ($v) {
+            return $v > 0;
+        }));
+
+        if (empty($student_ids)) {
+            echo json_encode(array('status' => 'fail', 'message' => 'Invalid student IDs'));
+            return;
+        }
+
+        $results = $this->onlineexamresult_model->getStudentPapers($onlineexam_id, $student_ids);
+
+        // Group rows by onlineexam_student_id
+        $grouped = array();
+        foreach ($results as $row) {
+            $sid = $row->onlineexam_student_id;
+            if (!array_key_exists($sid, $grouped)) {
+                $grouped[$sid] = array('student' => $row, 'questions' => array());
+            }
+            $grouped[$sid]['questions'][] = $row;
+        }
+
+        $data['grouped']     = $grouped;
+        $data['sch_setting'] = $this->sch_setting_detail;
+        $html = $this->load->view('admin/onlineexam/_evalution_papers', $data, true);
+        echo json_encode(array('status' => 'success', 'html' => $html));
+    }
+
     public function assign($id)
     {
         if (!$this->rbac->hasPrivilege('online_assign_view_student', 'can_view')) {
@@ -867,13 +928,14 @@ class Onlineexam extends Admin_Controller
 
             $array = array('status' => 0, 'error' => $msg, 'message' => '');
         } else {
-            $is_active          = 0;
-            $publish_result     = 0;
-            $is_marks_display   = 0;
-            $is_neg_marking     = 0;
-            $is_random_question = 0;
-            $is_quiz            = 0;
-            $auto_publish_date  = "";
+            $is_active                = 0;
+            $publish_result           = 0;
+            $is_marks_display         = 0;
+            $is_neg_marking           = 0;
+            $is_random_question       = 0;
+            $is_quiz                  = 0;
+            $show_result_immediately  = 0;
+            $auto_publish_date        = "";
             if (isset($_POST['is_active'])) {
                 $is_active = 1;
             }
@@ -888,6 +950,9 @@ class Onlineexam extends Admin_Controller
             }
             if (isset($_POST['is_random_question'])) {
                 $is_random_question = 1;
+            }
+            if (isset($_POST['show_result_immediately'])) {
+                $show_result_immediately = 1;
             }
             if (isset($_POST['auto_publish_date']) && $_POST['auto_publish_date'] != "") {
 
@@ -914,11 +979,13 @@ class Onlineexam extends Admin_Controller
                 'passing_percentage' => $this->input->post('passing_percentage'),
             );
             if (isset($_POST['is_quiz']) && $_POST['is_quiz'] != "") {
-                $insert_data['publish_result']    = 0;
-                $insert_data['auto_publish_date'] = null;
-                $insert_data['is_quiz']           = 1;
+                $insert_data['publish_result']           = 0;
+                $insert_data['auto_publish_date']        = null;
+                $insert_data['is_quiz']                  = 1;
+                $insert_data['show_result_immediately']  = $show_result_immediately;
             } else {
-                $insert_data['is_quiz'] = $is_quiz;
+                $insert_data['is_quiz']                 = $is_quiz;
+                $insert_data['show_result_immediately'] = 0;
             }
 
             $id = $this->input->post('recordid');

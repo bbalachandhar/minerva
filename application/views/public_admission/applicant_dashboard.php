@@ -170,7 +170,7 @@
                             <tfoot style="background:#f9f9f9;">
                                 <?php if ($total_fee > 0): ?>
                                 <tr>
-                                    <td colspan="4"><strong>Total Course Fee</strong></td>
+                                    <td colspan="4"><strong>Total Fee (Course + Application)</strong></td>
                                     <td style="text-align:right;"><strong>&#8377; <?php echo number_format($total_fee, 2); ?></strong></td>
                                 </tr>
                                 <?php endif; ?>
@@ -222,9 +222,17 @@
                                         <span class="product-description">
                                             <?php if ($exam->is_attempted == 1): ?>
                                                 <span class="label label-success">Attempted</span>
+                                                <?php if (!empty($exam->publish_result) || ($exam->is_quiz && !empty($exam->show_result_immediately))): ?>
+                                                    &nbsp;<a href="<?php echo site_url('public_admission/exam_view/' . $exam->id); ?>" class="btn btn-xs btn-success">
+                                                        <i class="fa fa-bar-chart"></i> View Result
+                                                    </a>
+                                                <?php endif; ?>
                                             <?php else: ?>
                                                 <span class="label label-info">Pending</span>
                                             <?php endif; ?>
+                                            &nbsp;<a href="<?php echo site_url('public_admission/hall_ticket/' . $exam->id); ?>" target="_blank" class="btn btn-xs btn-default">
+                                                <i class="fa fa-print"></i> Hall Ticket
+                                            </a>
                                         </span>
                                     </div>
                                 </li>
