@@ -18,6 +18,9 @@
                     <div class="box box-primary">
                         <div class="box-header with-border">
                             <h3 class="box-title"><?php echo $this->lang->line('edit_class'); ?></h3>
+                            <div class="box-tools pull-right">
+                                <button type="submit" form="form1" class="btn btn-info btn-sm"><?php echo $this->lang->line('save'); ?></button>
+                            </div>
                         </div><!-- /.box-header -->
                         <form id="form1" action="<?php echo site_url('classes/edit/' . $id) ?>"  method="post" accept-charset="utf-8">
                             <div class="box-body">
@@ -96,7 +99,12 @@
                                 <?php } ?>
                                 <div class="form-group">
                                     <label for="exampleInputEmail1"><?php echo $this->lang->line('sections'); ?></label><small class="req"> *</small>
-
+                                    <div class="checkbox" style="margin-bottom:4px">
+                                        <label style="font-weight:bold">
+                                            <input type="checkbox" id="edit-section-all"> Select All
+                                        </label>
+                                    </div>
+                                    <hr style="margin:4px 0 6px">
 
                                     <?php
                                     foreach ($vehiclelist as $vehicle) {
@@ -236,6 +244,22 @@
 </div><!-- /.content-wrapper -->
 
 <script>
+// Select All sections (edit form)
+$('#edit-section-all').on('change', function () {
+    $('input[name="sections[]"]').prop('checked', this.checked);
+});
+$('input[name="sections[]"]').on('change', function () {
+    var total   = $('input[name="sections[]"]').length;
+    var checked = $('input[name="sections[]"]:checked').length;
+    $('#edit-section-all').prop('checked', checked === total).prop('indeterminate', checked > 0 && checked < total);
+});
+// Pre-set indeterminate state on load
+$(function () {
+    var total   = $('input[name="sections[]"]').length;
+    var checked = $('input[name="sections[]"]:checked').length;
+    $('#edit-section-all').prop('checked', checked === total).prop('indeterminate', checked > 0 && checked < total);
+});
+
 $(document).on('change', '.class-active-chk', function () {
     var chk = $(this);
     var id  = chk.data('id');

@@ -76,7 +76,12 @@
 
                                 <div class="form-group">
                                     <label for="exampleInputEmail1"><?php echo $this->lang->line('sections'); ?></label><small class="req"> *</small>
-
+                                    <div class="checkbox" style="margin-bottom:4px">
+                                        <label style="font-weight:bold">
+                                            <input type="checkbox" id="add-section-all"> Select All
+                                        </label>
+                                    </div>
+                                    <hr style="margin:4px 0 6px">
 
                                     <?php
                                     foreach ($vehiclelist as $vehicle) {
@@ -244,6 +249,16 @@
 </div><!-- /.content-wrapper -->
 
 <script>
+// Select All sections (add form)
+$('#add-section-all').on('change', function () {
+    $('input[name="sections[]"]').prop('checked', this.checked);
+});
+$('input[name="sections[]"]').on('change', function () {
+    var total   = $('input[name="sections[]"]').length;
+    var checked = $('input[name="sections[]"]:checked').length;
+    $('#add-section-all').prop('checked', checked === total).prop('indeterminate', checked > 0 && checked < total);
+});
+
 $(document).on('change', '.class-active-chk', function () {
     var chk   = $(this);
     var id    = chk.data('id');
