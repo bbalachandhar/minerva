@@ -333,6 +333,126 @@ class Question extends Admin_Controller
         redirect('admin/question', 'refresh');
     }
 
+    public function uploadQuestionImage()
+    {
+        if (!$this->rbac->hasPrivilege('question_bank', 'can_add')) {
+            echo json_encode(array('status' => 0, 'msg' => 'Access denied'));
+            return;
+        }
+
+        if (!isset($_FILES['qfile']) || empty($_FILES['qfile']['name'])) {
+            echo json_encode(array('status' => 0, 'msg' => 'No file selected'));
+            return;
+        }
+
+        $finfo     = finfo_open(FILEINFO_MIME_TYPE);
+        $mtype     = finfo_file($finfo, $_FILES['qfile']['tmp_name']);
+        finfo_close($finfo);
+        $allowed_mime = array('image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp');
+        $ext          = strtolower(pathinfo($_FILES['qfile']['name'], PATHINFO_EXTENSION));
+        $allowed_ext  = array('jpg', 'jpeg', 'png', 'gif', 'webp');
+        $max_size     = 5 * 1024 * 1024; // 5 MB
+
+        if (!in_array($mtype, $allowed_mime) || !in_array($ext, $allowed_ext)) {
+            echo json_encode(array('status' => 0, 'msg' => 'Only image files (jpg, png, gif, webp) are allowed'));
+            return;
+        }
+
+        if ($_FILES['qfile']['size'] > $max_size) {
+            echo json_encode(array('status' => 0, 'msg' => 'File size must be under 5 MB'));
+            return;
+        }
+
+        $dir_path   = "uploads/gallery/media/";
+        $thumb_path = "uploads/gallery/media/thumb/";
+        if (!is_dir(FCPATH . $dir_path)) {
+            mkdir(FCPATH . $dir_path, 0755, true);
+        }
+        if (!is_dir(FCPATH . $thumb_path)) {
+            mkdir(FCPATH . $thumb_path, 0755, true);
+        }
+
+        $unique   = uniqid('qimg_', true);
+        $filename = $unique . '.' . $ext;
+
+        if (!move_uploaded_file($_FILES['qfile']['tmp_name'], FCPATH . $dir_path . $filename)) {
+            echo json_encode(array('status' => 0, 'msg' => 'Failed to save file'));
+            return;
+        }
+
+        // Generate thumbnail (max 200×200)
+        $src_path   = FCPATH . $dir_path . $filename;
+        $thumb_name = 'thumb_' . $filename;
+        $thumb_dest = FCPATH . $thumb_path . $thumb_name;
+
+        list($orig_w, $orig_h) = getimagesize($src_path);
+        $ratio  = min(200 / $orig_w, 200 / $orig_h, 1);
+        $new_w  = max(1, (int)($orig_w * $ratio));
+        $new_h  = max(1, (int)($orig_h * $ratio));
+
+        $thumb_created = false;
+        switch ($mtype) {
+            case 'image/jpeg':
+            case 'image/jpg':
+                $src_img = imagecreatefromjpeg($src_path);
+                break;
+            case 'image/png':
+                $src_img = imagecreatefrompng($src_path);
+                break;
+            case 'image/gif':
+                $src_img = imagecreatefromgif($src_path);
+                break;
+            case 'image/webp':
+                $src_img = imagecreatefromwebp($src_path);
+                break;
+            default:
+                $src_img = false;
+        }
+
+        if ($src_img) {
+            $dst_img = imagecreatetruecolor($new_w, $new_h);
+            imagecopyresampled($dst_img, $src_img, 0, 0, 0, 0, $new_w, $new_h, $orig_w, $orig_h);
+            switch ($mtype) {
+                case 'image/jpeg':
+                case 'image/jpg':
+                    imagejpeg($dst_img, $thumb_dest, 85);
+                    break;
+                case 'image/png':
+                    imagepng($dst_img, $thumb_dest);
+                    break;
+                case 'image/gif':
+                    imagegif($dst_img, $thumb_dest);
+                    break;
+                case 'image/webp':
+                    imagewebp($dst_img, $thumb_dest, 85);
+                    break;
+            }
+            imagedestroy($src_img);
+            imagedestroy($dst_img);
+            $thumb_created = true;
+        }
+
+        // Store in cms_media for it to appear in the gallery
+        $data = array(
+            'image'      => $_FILES['qfile']['name'],
+            'img_name'   => $filename,
+            'file_type'  => $mtype,
+            'file_size'  => $_FILES['qfile']['size'],
+            'thumb_name' => $thumb_created ? $thumb_name : $filename,
+            'thumb_path' => $thumb_path,
+            'dir_path'   => $dir_path,
+        );
+        $this->load->model('cms_media_model');
+        $this->cms_media_model->add($data);
+
+        echo json_encode(array(
+            'status'  => 1,
+            'url'     => base_url($dir_path . $filename),
+            'thumb'   => base_url($thumb_created ? $thumb_path . $thumb_name : $dir_path . $filename),
+            'name'    => $_FILES['qfile']['name'],
+        ));
+    }
+
     public function getimages()
     {
         $keyword         = "";

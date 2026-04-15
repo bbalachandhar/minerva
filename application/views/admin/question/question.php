@@ -232,25 +232,58 @@ function findOption($questionOpt, $find)
         <h4 class="modal-title imgModal-title"><?php echo $this->lang->line('images'); ?> </h4>
       </div>
       <div class="modal-body imgModal-body pupscroll">
-          <div class="form-group">
-            <input type="text" name="search_box" id="search_box" class="form-control" placeholder="<?php echo $this->lang->line('search') ?>..." />
-          </div>
-          <div class="div_load">
-          <div class="loading-overlay">
-            <div class="overlay-content"> <?php echo $this->lang->line('loading'); ?> </div>
-        </div>
-             <label class="total displaynone"></label>
-<div class="row" id="media_div">
-
-</div>
-<div class="row" id="pagination">
-
-</div>
+          <!-- Tabs -->
+          <ul class="nav nav-tabs" id="imgModalTabs" style="margin-bottom:12px;">
+            <li class="active"><a href="#tab-gallery" data-toggle="tab">Media Library</a></li>
+            <li><a href="#tab-upload" data-toggle="tab"><i class="fa fa-upload"></i> Upload New Image</a></li>
+          </ul>
+          <div class="tab-content">
+            <!-- Gallery tab -->
+            <div class="tab-pane active" id="tab-gallery">
+              <div class="form-group">
+                <input type="text" name="search_box" id="search_box" class="form-control" placeholder="<?php echo $this->lang->line('search') ?>..." />
+              </div>
+              <div class="div_load">
+                <div class="loading-overlay">
+                  <div class="overlay-content"> <?php echo $this->lang->line('loading'); ?> </div>
+                </div>
+                <label class="total displaynone"></label>
+                <div class="row" id="media_div"></div>
+                <div class="row" id="pagination"></div>
+              </div>
+            </div>
+            <!-- Upload tab -->
+            <div class="tab-pane" id="tab-upload">
+              <div class="row">
+                <div class="col-md-6 col-md-offset-3">
+                  <div style="border:2px dashed #ccc;border-radius:6px;padding:30px;text-align:center;cursor:pointer;background:#fafafa;" id="qimg-drop-zone">
+                    <i class="fa fa-image fa-3x" style="color:#aaa;margin-bottom:10px;display:block;"></i>
+                    <p style="color:#666;margin:0 0 10px;">Drag &amp; drop an image here, or click to select</p>
+                    <input type="file" id="qimg-file-input" accept="image/jpeg,image/png,image/gif,image/webp" style="display:none;">
+                    <button type="button" class="btn btn-default" id="qimg-browse-btn"><i class="fa fa-folder-open"></i> Browse</button>
+                  </div>
+                  <div id="qimg-preview-wrap" style="display:none;margin-top:15px;text-align:center;">
+                    <img id="qimg-preview" src="" style="max-width:100%;max-height:250px;border:1px solid #ddd;border-radius:4px;padding:4px;">
+                    <p id="qimg-filename" style="margin-top:6px;color:#555;font-size:13px;"></p>
+                    <div id="qimg-upload-progress" style="display:none;margin-top:8px;">
+                      <div class="progress"><div class="progress-bar progress-bar-striped active" style="width:100%">Uploading...</div></div>
+                    </div>
+                    <div id="qimg-upload-result" style="margin-top:8px;"></div>
+                    <button type="button" class="btn btn-success" id="qimg-upload-btn" style="margin-top:10px;">
+                      <i class="fa fa-upload"></i> Upload &amp; Insert
+                    </button>
+                    <button type="button" class="btn btn-default" id="qimg-clear-btn" style="margin-top:10px;margin-left:6px;">
+                      <i class="fa fa-times"></i> Clear
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
       </div>
-<div class="modal-footer">
+      <div class="modal-footer">
                 <button type="button" class="btn btn-default" data-dismiss="modal"><?php echo $this->lang->line('cancel'); ?> </button>
-                <button type="button" class="btn btn-primary add_media"><?php echo $this->lang->line('add'); ?></button>
+                <button type="button" class="btn btn-primary add_media" id="btn-add-media"><?php echo $this->lang->line('add'); ?></button>
             </div>
     </div>
   </div>
@@ -692,6 +725,118 @@ $('#myimgModal').on('shown.bs.modal', function (event) {
 
       }
     });
+
+    // ── Direct image upload within the image picker modal ──────────────────
+    (function () {
+        var pendingUploadUrl = null;
+
+        // Hide "Add" button when upload tab is active
+        $('#imgModalTabs a[data-toggle="tab"]').on('shown.bs.tab', function () {
+            var activeTab = $(this).attr('href');
+            if (activeTab === '#tab-upload') {
+                $('#btn-add-media').hide();
+            } else {
+                $('#btn-add-media').show();
+            }
+        });
+
+        // Reset upload tab when modal opens
+        $('#myimgModal').on('shown.bs.modal', function () {
+            pendingUploadUrl = null;
+            resetUploadTab();
+        });
+
+        function resetUploadTab() {
+            $('#qimg-file-input').val('');
+            $('#qimg-preview-wrap').hide();
+            $('#qimg-upload-result').html('');
+            $('#qimg-upload-progress').hide();
+            pendingUploadUrl = null;
+        }
+
+        // Click drop zone → open file browser
+        $('#qimg-browse-btn, #qimg-drop-zone').on('click', function (e) {
+            if ($(e.target).is('#qimg-browse-btn') || $(e.target).closest('#qimg-drop-zone').length) {
+                $('#qimg-file-input').trigger('click');
+            }
+        });
+
+        // File selected → show preview
+        $('#qimg-file-input').on('change', function () {
+            var file = this.files[0];
+            if (!file) return;
+            showPreview(file);
+        });
+
+        // Drag & drop
+        $('#qimg-drop-zone').on('dragover', function (e) {
+            e.preventDefault();
+            $(this).css('border-color', '#337ab7');
+        }).on('dragleave drop', function (e) {
+            e.preventDefault();
+            $(this).css('border-color', '#ccc');
+            if (e.type === 'drop') {
+                var file = e.originalEvent.dataTransfer.files[0];
+                if (file) showPreview(file);
+            }
+        });
+
+        function showPreview(file) {
+            var reader = new FileReader();
+            reader.onload = function (e) {
+                $('#qimg-preview').attr('src', e.target.result);
+                $('#qimg-filename').text(file.name + ' (' + (file.size / 1024).toFixed(1) + ' KB)');
+                $('#qimg-preview-wrap').show();
+                $('#qimg-upload-result').html('');
+                pendingUploadUrl = null;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // Upload & Insert button
+        $('#qimg-upload-btn').on('click', function () {
+            var file = $('#qimg-file-input')[0].files[0];
+            if (!file) { alert('Please select an image first.'); return; }
+
+            var formData = new FormData();
+            formData.append('qfile', file);
+
+            $('#qimg-upload-progress').show();
+            $('#qimg-upload-result').html('');
+
+            $.ajax({
+                url: baseurl + 'admin/question/uploadQuestionImage',
+                type: 'POST',
+                data: formData,
+                contentType: false,
+                processData: false,
+                success: function (data) {
+                    $('#qimg-upload-progress').hide();
+                    if (data.status === 1) {
+                        $('#qimg-upload-result').html('<div class="alert alert-success" style="padding:6px 10px;">Uploaded! Inserting into editor...</div>');
+                        InsertHTML('<img src="' + data.url + '" alt="' + data.name + '">');
+                        setTimeout(function () {
+                            $('#myimgModal').modal('hide');
+                            resetUploadTab();
+                            // Switch back to gallery tab and refresh
+                            $('#imgModalTabs a[href="#tab-gallery"]').tab('show');
+                        }, 800);
+                    } else {
+                        $('#qimg-upload-result').html('<div class="alert alert-danger" style="padding:6px 10px;">' + (data.msg || 'Upload failed') + '</div>');
+                    }
+                },
+                error: function () {
+                    $('#qimg-upload-progress').hide();
+                    $('#qimg-upload-result').html('<div class="alert alert-danger" style="padding:6px 10px;">Upload error. Please try again.</div>');
+                }
+            });
+        });
+
+        // Clear button
+        $('#qimg-clear-btn').on('click', function () {
+            resetUploadTab();
+        });
+    })();
 </script>
 
 <script type="text/javascript">
