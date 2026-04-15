@@ -631,6 +631,7 @@ $('#myimgModal').on('shown.bs.modal', function (event) {
       button = $(event.relatedTarget);
       target_textbox = button.data('location');
       console.log(target_textbox);
+      getImages(1); // refresh gallery each time the modal opens
 })
 
  $('.modal').on("hidden.bs.modal", function (e) { //fire on closing modal box
@@ -755,11 +756,17 @@ $('#myimgModal').on('shown.bs.modal', function (event) {
             pendingUploadUrl = null;
         }
 
-        // Click drop zone → open file browser
-        $('#qimg-browse-btn, #qimg-drop-zone').on('click', function (e) {
-            if ($(e.target).is('#qimg-browse-btn') || $(e.target).closest('#qimg-drop-zone').length) {
-                $('#qimg-file-input').trigger('click');
+        // Click drop zone → open file browser (exclude browse button area to prevent double-trigger)
+        $('#qimg-drop-zone').on('click', function (e) {
+            if (!$(e.target).closest('#qimg-browse-btn').length) {
+                setTimeout(function () { $('#qimg-file-input')[0].click(); }, 50);
             }
+        });
+
+        // Browse button – stop propagation so drop zone handler doesn't also fire
+        $('#qimg-browse-btn').on('click', function (e) {
+            e.stopPropagation();
+            setTimeout(function () { $('#qimg-file-input')[0].click(); }, 50);
         });
 
         // File selected → show preview

@@ -441,6 +441,8 @@ class Question extends Admin_Controller
             'thumb_name' => $thumb_created ? $thumb_name : $filename,
             'thumb_path' => $thumb_path,
             'dir_path'   => $dir_path,
+            'vid_url'    => '',
+            'vid_title'  => '',
         );
         $this->load->model('cms_media_model');
         $this->cms_media_model->add($data);
