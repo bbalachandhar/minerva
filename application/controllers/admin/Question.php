@@ -628,12 +628,13 @@ class Question extends Admin_Controller
                 $row[] = ($value->question_type != "") ? $question_type[$value->question_type] : "";
                 $row[] = ($value->level != "") ? $question_level[$value->level] : "";
 
-                // Show thumbnail if question is image-only (text is empty after stripping tags)
-                $q_plain = trim(strip_tags($value->question));
-                if ($q_plain === '' && preg_match('/<img[^>]+src=["\']([^"\']+)["\'][^>]*>/i', $value->question, $_img)) {
-                    $row[] = '<a href="' . site_url('admin/question/read/' . $value->id) . '" target="_blank">'
-                           . '<img src="' . htmlspecialchars($_img[1], ENT_QUOTES, 'UTF-8') . '" style="max-height:60px;max-width:140px;border-radius:3px;cursor:pointer;" alt="Question image">'
-                           . '</a>';
+                // If question contains an image, show a thumbnail + any text; otherwise plain readmorelink
+                if (preg_match('/<img[^>]+src=["\']([^"\']+)["\'][^>]*>/i', $value->question, $_img)) {
+                    $q_text  = trim(strip_tags($value->question));
+                    $thumb   = '<a href="' . site_url('admin/question/read/' . $value->id) . '" target="_blank">'
+                             . '<img src="' . htmlspecialchars($_img[1], ENT_QUOTES, 'UTF-8') . '" style="max-height:60px;max-width:140px;border-radius:3px;cursor:pointer;display:block;" alt="Question image">'
+                             . '</a>';
+                    $row[]   = $thumb . ($q_text !== '' ? '<small>' . htmlspecialchars(substr($q_text, 0, 80), ENT_QUOTES, 'UTF-8') . '</small>' : '');
                 } else {
                     $row[] = readmorelink($value->question, site_url('admin/question/read/' . $value->id));
                 }
