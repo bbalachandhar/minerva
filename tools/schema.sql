@@ -1363,6 +1363,20 @@ CREATE TABLE `content_types` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Dumping data for table `content_types`
+--
+
+INSERT INTO `content_types` (`id`, `name`, `description`, `is_active`) VALUES
+(1,'Lecture Notes','Class lecture notes and study material',1),
+(2,'Study Material','Reference books, guides and supplementary material',1),
+(3,'Assignment','Assignment sheets and worksheets',1),
+(4,'Question Paper','Previous year and sample question papers',1),
+(5,'Lab Manual','Laboratory manuals and practical guides',1),
+(6,'Video Lecture','Recorded video lectures',1),
+(7,'Project Report','Project reports and case studies',1),
+(8,'Others','Miscellaneous content',1);
+
+--
 -- Table structure for table `contents`
 --
 
