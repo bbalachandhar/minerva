@@ -335,6 +335,7 @@ class Question extends Admin_Controller
 
     public function uploadQuestionImage()
     {
+        $this->output->set_content_type('application/json');
         if (!$this->rbac->hasPrivilege('question_bank', 'can_add')) {
             echo json_encode(array('status' => 0, 'msg' => 'Access denied'));
             return;

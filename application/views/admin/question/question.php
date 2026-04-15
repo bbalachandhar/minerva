@@ -806,6 +806,7 @@ $('#myimgModal').on('shown.bs.modal', function (event) {
             data: formData,
             contentType: false,
             processData: false,
+            dataType: 'json',
             success: function (data) {
                 $('#qimg-upload-progress').hide();
                 if (data.status === 1) {
