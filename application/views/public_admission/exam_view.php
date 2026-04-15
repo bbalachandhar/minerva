@@ -320,26 +320,25 @@
     function doSubmitExam(autoSubmit) {
         if (examSubmitting) return;
         if (!autoSubmit) {
-            Swal.fire({
-                title:              'Submit Exam?',
-                html:               '<p>You are about to <strong>submit your exam</strong>.</p>' +
-                                    '<ul style="text-align:left;margin-top:10px;padding-left:20px;line-height:1.9;">' +
-                                    '<li>All your selected answers will be saved.</li>' +
-                                    '<li>Unanswered questions will be left blank.</li>' +
-                                    '<li><strong>You will not be able to change your answers after this.</strong></li>' +
-                                    '<li>You will be taken to the Dashboard once submitted.</li>' +
-                                    '</ul>',
-                icon:               'question',
-                showCancelButton:   true,
-                confirmButtonText:  '<i class="fa fa-paper-plane"></i>&nbsp; Yes, Submit Now',
-                cancelButtonText:   '<i class="fa fa-arrow-left"></i>&nbsp; No, Go Back',
-                confirmButtonColor: '#d9534f',
-                cancelButtonColor:  '#367fa9',
-                allowOutsideClick:  false,
-                allowEscapeKey:     false,
-                reverseButtons:     true
-            }).then(function(result) {
-                if (result.value) {
+            swal({
+                title:             'Submit Exam?',
+                html:              '<p>You are about to <strong>submit your exam</strong>.</p>' +
+                                   '<ul style="text-align:left;margin-top:10px;padding-left:20px;line-height:1.9;">' +
+                                   '<li>All your selected answers will be saved.</li>' +
+                                   '<li>Unanswered questions will be left blank.</li>' +
+                                   '<li><strong>You cannot change your answers after this.</strong></li>' +
+                                   '<li>You will be taken to the Dashboard once submitted.</li>' +
+                                   '</ul>',
+                type:              'warning',
+                showCancelButton:  true,
+                confirmButtonText: 'Yes, Submit Now',
+                cancelButtonText:  'No, Go Back',
+                confirmButtonColor:'#d9534f',
+                cancelButtonColor: '#367fa9',
+                allowOutsideClick: false,
+                allowEscapeKey:    false
+            }, function(confirmed) {
+                if (confirmed) {
                     _runSubmit();
                 }
             });
@@ -361,40 +360,40 @@
             contentType: false,
             dataType:    'json',
             success: function(res) {
-                var html, icon = 'success';
+                var html;
                 if (res.publish_result == 1) {
                     html = '<p style="margin-bottom:8px;">Your exam has been submitted successfully.</p>' +
                            '<table class="table table-bordered table-condensed" style="text-align:left;margin-bottom:0;">' +
-                           '<tr><td><strong>Total Questions</strong></td><td>'                    + res.total_questions + '</td></tr>' +
-                           '<tr><td><strong>Answered</strong></td><td>'                          + res.answered        + '</td></tr>' +
-                           '<tr class="success"><td><strong>Correct Answers</strong></td><td>'  + res.correct         + '</td></tr>' +
-                           '<tr class="info"><td><strong>Your Score</strong></td><td><strong>'  + res.obtained_marks  + ' / ' + res.total_marks + '</strong></td></tr>' +
+                           '<tr><td><strong>Total Questions</strong></td><td>'                   + res.total_questions + '</td></tr>' +
+                           '<tr><td><strong>Answered</strong></td><td>'                         + res.answered        + '</td></tr>' +
+                           '<tr><td><strong>Correct Answers</strong></td><td>'                  + res.correct         + '</td></tr>' +
+                           '<tr><td><strong>Your Score</strong></td><td><strong>'               + res.obtained_marks  + ' / ' + res.total_marks + '</strong></td></tr>' +
                            '</table>';
                 } else {
                     html = '<p>Your exam has been submitted successfully.</p>' +
-                           '<p style="color:#777;margin-top:8px;">Results will be announced after evaluation. You will be notified when results are published.</p>';
+                           '<p style="color:#777;margin-top:8px;">Results will be announced after evaluation.</p>';
                 }
-                Swal.fire({
-                    title:              'Exam Submitted!',
-                    html:               html,
-                    icon:               icon,
-                    confirmButtonText:  '<i class="fa fa-home"></i> Go to Dashboard',
-                    allowOutsideClick:  false,
-                    allowEscapeKey:     false,
-                    confirmButtonColor: '#367fa9'
-                }).then(function() {
-                    window.onbeforeunload = null;
+                window.onbeforeunload = null;
+                swal({
+                    title:             'Exam Submitted!',
+                    html:              html,
+                    type:              'success',
+                    confirmButtonText: 'Go to Dashboard',
+                    allowOutsideClick: false,
+                    allowEscapeKey:    false,
+                    confirmButtonColor:'#367fa9'
+                }, function() {
                     window.location = dashboardUrl;
                 });
             },
             error: function() {
                 examSubmitting = false;
-                Swal.fire({
+                swal({
                     title:             'Submission Error',
-                    text:              'Could not submit your exam. Please check your internet connection and try again. Your answers are still saved on this page.',
-                    icon:              'error',
+                    text:              'Could not submit your exam. Please check your internet connection and try again.',
+                    type:              'error',
                     confirmButtonText: 'OK, Try Again',
-                    confirmButtonColor: '#d9534f'
+                    confirmButtonColor:'#d9534f'
                 });
             }
         });
