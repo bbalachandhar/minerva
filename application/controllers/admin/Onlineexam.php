@@ -272,12 +272,12 @@ class Onlineexam extends Admin_Controller
         $this->session->set_userdata('sub_menu', 'Online_Examinations/Onlineexam');
         $data['id']         = $id;
         $data['title']      = 'student fees';
-        $class              = $this->class_model->get();
+        $class              = $this->class_model->getAll();
         $data['classlist']  = $class;
         $onlineexam         = $this->onlineexam_model->get($id);
         $data['onlineexam'] = $onlineexam;
 
-        $onlineexam_questions         = $this->onlineexamquestion_model->getByExamNoLimit($id, 'descriptive');
+        $onlineexam_questions         = $this->onlineexamquestion_model->getByExamNoLimit($id);
         $data['onlineexam_questions'] = $onlineexam_questions;
 
         $data['sch_setting'] = $this->sch_setting_detail;

@@ -15,20 +15,53 @@ class Onlineexamresult_model extends CI_Model
 
     public function getDescriptionRecord($per_page, $start, $where,$exam_id)
     {
-        $this->db->select('`onlineexam_student_results`.*, onlineexam_questions.marks  as `question_marks`,onlineexam_questions.neg_marks  as `question_neg_marks`,`onlineexam_questions`.`question_id`, `questions`.`question`, `questions`.`question_type`,onlineexam_students.student_session_id, student_session.student_id,students.firstname,students.middlename,students.lastname,students.mobileno, students.email,students.admission_no , students.guardian_name , students.guardian_relation,students.guardian_phone,students.guardian_address, students.roll_no,students.admission_date,classes.class,sections.section')->from('onlineexam_student_results');
+        $select = '`onlineexam_student_results`.*,
+            onlineexam_questions.marks as `question_marks`,
+            onlineexam_questions.neg_marks as `question_neg_marks`,
+            `onlineexam_questions`.`question_id`,
+            `questions`.`question`, `questions`.`question_type`,
+            onlineexam_students.student_session_id,
+            onlineexam_students.candidate_type,
+            onlineexam_students.online_admission_id,
+            COALESCE(student_session.student_id, 0) as student_id,
+            COALESCE(students.firstname, oa.firstname) as firstname,
+            COALESCE(students.middlename, \'\') as middlename,
+            COALESCE(students.lastname, oa.lastname) as lastname,
+            COALESCE(students.mobileno, oa.mobileno) as mobileno,
+            COALESCE(students.email, oa.email) as email,
+            COALESCE(students.admission_no, oa.reference_no) as admission_no,
+            COALESCE(students.guardian_name, \'\') as guardian_name,
+            COALESCE(students.guardian_relation, \'\') as guardian_relation,
+            COALESCE(students.guardian_phone, \'\') as guardian_phone,
+            COALESCE(students.guardian_address, \'\') as guardian_address,
+            COALESCE(students.roll_no, oa.reference_no) as roll_no,
+            COALESCE(students.admission_date, oa.created_at) as admission_date,
+            COALESCE(reg_class.class, app_class.class) as class,
+            COALESCE(reg_section.section, \'\') as section,
+            COALESCE(student_session.class_id, app_cs.class_id) as effective_class_id';
+
+        $this->db->select($select)->from('onlineexam_student_results');
         $this->db->join('onlineexam_questions', 'onlineexam_questions.id = onlineexam_student_results.onlineexam_question_id');
         $this->db->join('questions', 'questions.id = onlineexam_questions.question_id');
         $this->db->join('onlineexam_students', 'onlineexam_students.id = onlineexam_student_results.onlineexam_student_id');
-        $this->db->join('student_session', 'student_session.id = onlineexam_students.student_session_id');
-        $this->db->join('students', 'students.id = student_session.student_id');
-        $this->db->join('classes', 'classes.id = student_session.class_id');
-        $this->db->join('sections', 'sections.id = student_session.section_id');
-        $this->db->where('questions.question_type', 'descriptive');
+        // Regular student path
+        $this->db->join('student_session', 'student_session.id = onlineexam_students.student_session_id', 'left');
+        $this->db->join('students', 'students.id = student_session.student_id', 'left');
+        $this->db->join('classes as reg_class', 'reg_class.id = student_session.class_id', 'left');
+        $this->db->join('sections as reg_section', 'reg_section.id = student_session.section_id', 'left');
+        // Applicant path
+        $this->db->join('online_admissions as oa', 'oa.id = onlineexam_students.online_admission_id', 'left');
+        $this->db->join('class_sections as app_cs', 'app_cs.id = oa.class_section_id', 'left');
+        $this->db->join('classes as app_class', 'app_class.id = app_cs.class_id', 'left');
+
         $this->db->where('onlineexam_questions.onlineexam_id', $exam_id);
         if (!empty($where)) {
-
             if (isset($where['class_id']) && $where['class_id'] != "") {
+                $this->db->group_start();
                 $this->db->where('student_session.class_id', $where['class_id']);
+                // For applicants: include them when selected class is an applicant-type class
+                $this->db->or_where("(onlineexam_students.candidate_type = 'applicant' AND EXISTS (SELECT 1 FROM classes ac WHERE ac.id = " . (int)$where['class_id'] . " AND ac.class_type = 'applicant'))", null, false);
+                $this->db->group_end();
             }
             if (isset($where['section_id']) && $where['section_id'] != "") {
                 $this->db->where('student_session.section_id', $where['section_id']);
@@ -43,21 +76,20 @@ class Onlineexamresult_model extends CI_Model
         if ($query->num_rows() >= 1) {
             $result = $query->result();
 
-            //======
-            $this->db->from('onlineexam_student_results');
+            //====== count query ======
+            $this->db->select('COUNT(*) as cnt')->from('onlineexam_student_results');
             $this->db->join('onlineexam_questions', 'onlineexam_questions.id = onlineexam_student_results.onlineexam_question_id');
             $this->db->join('questions', 'questions.id = onlineexam_questions.question_id');
             $this->db->join('onlineexam_students', 'onlineexam_students.id = onlineexam_student_results.onlineexam_student_id');
-            $this->db->join('student_session', 'student_session.id = onlineexam_students.student_session_id');
-            $this->db->join('students', 'students.id = student_session.student_id');
-            $this->db->join('classes', 'classes.id = student_session.class_id');
-            $this->db->join('sections', 'sections.id = student_session.section_id');
-            $this->db->where('questions.question_type', 'descriptive');
+            $this->db->join('student_session', 'student_session.id = onlineexam_students.student_session_id', 'left');
+            $this->db->join('online_admissions as oa', 'oa.id = onlineexam_students.online_admission_id', 'left');
             $this->db->where('onlineexam_questions.onlineexam_id', $exam_id);
             if (!empty($where)) {
-
                 if (isset($where['class_id']) && $where['class_id'] != "") {
+                    $this->db->group_start();
                     $this->db->where('student_session.class_id', $where['class_id']);
+                    $this->db->or_where("(onlineexam_students.candidate_type = 'applicant' AND EXISTS (SELECT 1 FROM classes ac WHERE ac.id = " . (int)$where['class_id'] . " AND ac.class_type = 'applicant'))", null, false);
+                    $this->db->group_end();
                 }
                 if (isset($where['section_id']) && $where['section_id'] != "") {
                     $this->db->where('student_session.section_id', $where['section_id']);
@@ -67,7 +99,6 @@ class Onlineexamresult_model extends CI_Model
                 }
             }
             $num_results = $this->db->count_all_results();
-            //======
 
             return json_encode(array('total_row' => $num_results, 'total_result' => $result));
         } else {
