@@ -729,122 +729,119 @@ $('#myimgModal').on('shown.bs.modal', function (event) {
     });
 
     // ── Direct image upload within the image picker modal ──────────────────
-    (function () {
-        var pendingUploadUrl = null;
+    function qimgResetUploadTab() {
+        var inp = document.getElementById('qimg-file-input');
+        if (inp) inp.value = '';
+        $('#qimg-preview-wrap').hide();
+        $('#qimg-preview').attr('src', '');
+        $('#qimg-upload-result').html('');
+        $('#qimg-upload-progress').hide();
+    }
 
-        // Hide "Add" button when upload tab is active
-        $('#imgModalTabs a[data-toggle="tab"]').on('shown.bs.tab', function () {
-            var activeTab = $(this).attr('href');
-            if (activeTab === '#tab-upload') {
-                $('#btn-add-media').hide();
-            } else {
-                $('#btn-add-media').show();
-            }
-        });
-
-        // Reset upload tab when modal opens
-        $('#myimgModal').on('shown.bs.modal', function () {
-            pendingUploadUrl = null;
-            resetUploadTab();
-        });
-
-        function resetUploadTab() {
-            $('#qimg-file-input').val('');
-            $('#qimg-preview-wrap').hide();
-            $('#qimg-upload-result').html('');
-            $('#qimg-upload-progress').hide();
-            pendingUploadUrl = null;
+    // Hide/show "Add" footer button based on active tab
+    $(document).on('shown.bs.tab', '#imgModalTabs a[data-toggle="tab"]', function () {
+        if ($(this).attr('href') === '#tab-upload') {
+            $('#btn-add-media').hide();
+        } else {
+            $('#btn-add-media').show();
         }
+    });
 
-        // Click drop zone → open file browser (exclude browse button area to prevent double-trigger)
-        $('#qimg-drop-zone').on('click', function (e) {
-            if (!$(e.target).closest('#qimg-browse-btn').length) {
-                setTimeout(function () { $('#qimg-file-input')[0].click(); }, 50);
-            }
-        });
+    // When the image picker modal opens: reset upload tab, show Add button
+    $('#myimgModal').on('shown.bs.modal', function () {
+        $('#btn-add-media').show();
+        qimgResetUploadTab();
+        $('#imgModalTabs a[href="#tab-gallery"]').tab('show');
+    });
 
-        // Browse button – stop propagation so drop zone handler doesn't also fire
-        $('#qimg-browse-btn').on('click', function (e) {
-            e.stopPropagation();
-            setTimeout(function () { $('#qimg-file-input')[0].click(); }, 50);
-        });
+    // Open file picker when browse button clicked
+    $(document).on('click', '#qimg-browse-btn', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        document.getElementById('qimg-file-input').click();
+    });
 
-        // File selected → show preview
-        $('#qimg-file-input').on('change', function () {
-            var file = this.files[0];
-            if (!file) return;
-            showPreview(file);
-        });
-
-        // Drag & drop
-        $('#qimg-drop-zone').on('dragover', function (e) {
+    // Open file picker when clicking the drop zone itself (not the button)
+    $(document).on('click', '#qimg-drop-zone', function (e) {
+        if (!$(e.target).is('#qimg-browse-btn') && !$(e.target).closest('#qimg-browse-btn').length) {
             e.preventDefault();
-            $(this).css('border-color', '#337ab7');
-        }).on('dragleave drop', function (e) {
-            e.preventDefault();
-            $(this).css('border-color', '#ccc');
-            if (e.type === 'drop') {
-                var file = e.originalEvent.dataTransfer.files[0];
-                if (file) showPreview(file);
-            }
-        });
-
-        function showPreview(file) {
-            var reader = new FileReader();
-            reader.onload = function (e) {
-                $('#qimg-preview').attr('src', e.target.result);
-                $('#qimg-filename').text(file.name + ' (' + (file.size / 1024).toFixed(1) + ' KB)');
-                $('#qimg-preview-wrap').show();
-                $('#qimg-upload-result').html('');
-                pendingUploadUrl = null;
-            };
-            reader.readAsDataURL(file);
+            document.getElementById('qimg-file-input').click();
         }
+    });
 
-        // Upload & Insert button
-        $('#qimg-upload-btn').on('click', function () {
-            var file = $('#qimg-file-input')[0].files[0];
-            if (!file) { alert('Please select an image first.'); return; }
+    // File selected via dialog → preview
+    $(document).on('change', '#qimg-file-input', function () {
+        var file = this.files && this.files[0];
+        if (!file) return;
+        qimgShowPreview(file);
+    });
 
-            var formData = new FormData();
-            formData.append('qfile', file);
+    // Drag & drop onto drop zone
+    $(document).on('dragover', '#qimg-drop-zone', function (e) {
+        e.preventDefault();
+        $(this).css('border-color', '#337ab7');
+    });
+    $(document).on('dragleave', '#qimg-drop-zone', function (e) {
+        e.preventDefault();
+        $(this).css('border-color', '#ccc');
+    });
+    $(document).on('drop', '#qimg-drop-zone', function (e) {
+        e.preventDefault();
+        $(this).css('border-color', '#ccc');
+        var file = e.originalEvent.dataTransfer.files[0];
+        if (file) qimgShowPreview(file);
+    });
 
-            $('#qimg-upload-progress').show();
-            $('#qimg-upload-result').html('');
+    function qimgShowPreview(file) {
+        // Release any previous object URL
+        var prev = $('#qimg-preview').data('objurl');
+        if (prev) URL.revokeObjectURL(prev);
 
-            $.ajax({
-                url: baseurl + 'admin/question/uploadQuestionImage',
-                type: 'POST',
-                data: formData,
-                contentType: false,
-                processData: false,
-                success: function (data) {
-                    $('#qimg-upload-progress').hide();
-                    if (data.status === 1) {
-                        $('#qimg-upload-result').html('<div class="alert alert-success" style="padding:6px 10px;">Uploaded! Inserting into editor...</div>');
-                        InsertHTML('<img src="' + data.url + '" alt="' + data.name + '">');
-                        setTimeout(function () {
-                            $('#myimgModal').modal('hide');
-                            resetUploadTab();
-                            // Switch back to gallery tab and refresh
-                            $('#imgModalTabs a[href="#tab-gallery"]').tab('show');
-                        }, 800);
-                    } else {
-                        $('#qimg-upload-result').html('<div class="alert alert-danger" style="padding:6px 10px;">' + (data.msg || 'Upload failed') + '</div>');
-                    }
-                },
-                error: function () {
-                    $('#qimg-upload-progress').hide();
-                    $('#qimg-upload-result').html('<div class="alert alert-danger" style="padding:6px 10px;">Upload error. Please try again.</div>');
+        var objUrl = URL.createObjectURL(file);
+        $('#qimg-preview').data('objurl', objUrl).attr('src', objUrl);
+        $('#qimg-filename').text(file.name + ' (' + (file.size / 1024).toFixed(1) + ' KB)');
+        $('#qimg-upload-result').html('');
+        $('#qimg-preview-wrap').show();
+    }
+
+    // Upload & Insert
+    $(document).on('click', '#qimg-upload-btn', function () {
+        var inp = document.getElementById('qimg-file-input');
+        var file = inp && inp.files && inp.files[0];
+        if (!file) { alert('Please select an image first.'); return; }
+
+        var formData = new FormData();
+        formData.append('qfile', file);
+
+        $('#qimg-upload-progress').show();
+        $('#qimg-upload-result').html('');
+
+        $.ajax({
+            url: baseurl + 'admin/question/uploadQuestionImage',
+            type: 'POST',
+            data: formData,
+            contentType: false,
+            processData: false,
+            success: function (data) {
+                $('#qimg-upload-progress').hide();
+                if (data.status === 1) {
+                    InsertHTML('<img src="' + data.url + '" alt="' + (data.name || '') + '">');
+                    $('#myimgModal').modal('hide');
+                } else {
+                    $('#qimg-upload-result').html('<div class="alert alert-danger" style="padding:6px 10px;">' + (data.msg || 'Upload failed') + '</div>');
                 }
-            });
+            },
+            error: function () {
+                $('#qimg-upload-progress').hide();
+                $('#qimg-upload-result').html('<div class="alert alert-danger" style="padding:6px 10px;">Upload error. Please try again.</div>');
+            }
         });
+    });
 
-        // Clear button
-        $('#qimg-clear-btn').on('click', function () {
-            resetUploadTab();
-        });
-    })();
+    // Clear button
+    $(document).on('click', '#qimg-clear-btn', function () {
+        qimgResetUploadTab();
+    });
 </script>
 
 <script type="text/javascript">
