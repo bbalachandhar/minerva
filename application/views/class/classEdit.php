@@ -63,6 +63,15 @@
                                     </div>
                                     <small class="text-muted">"Applicant" classes are for scholarship exam question bank only — they won't appear in enrollment, fees, or reports.</small>
                                 </div>
+                                <div class="form-group">
+                                    <label>Active</label>
+                                    <div class="checkbox">
+                                        <label>
+                                            <input type="checkbox" name="is_active" value="yes" <?php echo (($class_data['is_active'] ?? 'no') === 'yes') ? 'checked' : ''; ?>>
+                                            Enable this class (uncheck to deactivate)
+                                        </label>
+                                    </div>
+                                </div>
                                 <?php if ($sch_setting->institution_type == 'college') { ?>
                                 <div class="form-group">
                                     <label for="exampleInputEmail1">Department</label><small class="req"> *</small>
@@ -141,7 +150,7 @@
                                         </th>
                                         <th><?php echo $this->lang->line('sections'); ?>
                                         </th>
-
+                                        <th>Active</th>
                                         <th class="text-right noExport"><?php echo $this->lang->line('action'); ?></th>
                                     </tr>
                                 </thead>
@@ -152,7 +161,9 @@
                                         <tr>
                                             <td class="mailbox-name">
                                                 <?php echo $vehroute->class; ?>
-
+                                                <?php if (($vehroute->class_type ?? '') === 'applicant'): ?>
+                                                    <span class="label label-info" style="margin-left:4px">Applicant</span>
+                                                <?php endif; ?>
                                             </td>
 
 
@@ -170,6 +181,15 @@
                                                 }
                                                 ?>
 
+                                            </td>
+                                            <td>
+                                                <?php if ($this->rbac->hasPrivilege('class', 'can_edit')): ?>
+                                                    <input type="checkbox" class="class-active-chk"
+                                                        data-id="<?php echo $vehroute->id; ?>"
+                                                        <?php echo (($vehroute->is_active ?? 'no') === 'yes') ? 'checked' : ''; ?>>
+                                                <?php else: ?>
+                                                    <?php echo (($vehroute->is_active ?? 'no') === 'yes') ? 'Yes' : 'No'; ?>
+                                                <?php endif; ?>
                                             </td>
                                             <td class="mailbox-date pull-right">
                                                 <?php
@@ -214,6 +234,24 @@
         </div>   <!-- /.row -->
     </section><!-- /.content -->
 </div><!-- /.content-wrapper -->
+
+<script>
+$(document).on('change', '.class-active-chk', function () {
+    var chk = $(this);
+    var id  = chk.data('id');
+    $.post('<?php echo base_url(); ?>classes/toggleActive/' + id, {
+        '<?php echo $this->security->get_csrf_token_name(); ?>': '<?php echo $this->security->get_csrf_hash(); ?>'
+    }, function (data) {
+        if (data.status === 1) {
+            chk.prop('checked', data.is_active === 'yes');
+        } else {
+            chk.prop('checked', !chk.prop('checked')); // revert
+        }
+    }, 'json').fail(function () {
+        chk.prop('checked', !chk.prop('checked'));
+    });
+});
+</script>
 
 <?php
 

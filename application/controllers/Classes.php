@@ -175,6 +175,7 @@ class Classes extends Admin_Controller
                     'class'        => $this->input->post('class'),
                     'department_id' => $this->input->post('department_id'),
                     'class_type'   => $this->input->post('class_type') ?: 'academic',
+                    'is_active'    => $this->input->post('is_active') ? 'yes' : 'no',
                 );
                 foreach ($add_result as $vec_add_key => $vec_add_value) {
                     $vehicle_batch_array[] = $vec_add_value;
@@ -186,6 +187,7 @@ class Classes extends Admin_Controller
                     'class'        => $this->input->post('class'),
                     'department_id' => $this->input->post('department_id'),
                     'class_type'   => $this->input->post('class_type') ?: 'academic',
+                    'is_active'    => $this->input->post('is_active') ? 'yes' : 'no',
                 );
                 $this->classsection_model->update($class_array);
             }
