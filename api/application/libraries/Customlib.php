@@ -15,6 +15,11 @@ class Customlib {
         $this->CI->load->model('Setting_model');
     }
     
+    public function getBaseUrl()
+    {
+        return base_url();
+    }
+
     public function getSchoolCurrencyPrice()
     {
        

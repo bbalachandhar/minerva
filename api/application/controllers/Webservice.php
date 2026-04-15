@@ -92,7 +92,7 @@ class Webservice extends CI_Controller
             'api_base_url' => $api_base_url,
             'school_name' => isset($setting->name) ? (string) $setting->name : '',
             'school_code' => isset($setting->dise_code) ? (string) $setting->dise_code : '',
-            'app_logo' => isset($setting->app_logo) && $setting->app_logo ? (string) $this->media_storage->getImageURL('uploads/school_content/logo/app_logo/' . $setting->app_logo) : '',
+            'app_logo' => isset($setting->app_logo) && $setting->app_logo ? $site_root . '/uploads/school_content/logo/app_logo/' . $setting->app_logo : '',
             'app_primary_color_code' => isset($setting->app_primary_color_code) ? (string) $setting->app_primary_color_code : '',
             'app_secondary_color_code' => isset($setting->app_secondary_color_code) ? (string) $setting->app_secondary_color_code : '',
             'date_format' => isset($setting->date_format) ? (string) $setting->date_format : '',
