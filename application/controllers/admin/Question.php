@@ -292,7 +292,7 @@ class Question extends Admin_Controller
     public function addform()
     {
         $data                        = array();
-        $data['classList']           = $this->class_model->get();
+        $data['classList']           = $this->class_model->getAllForQuestionBank();
         $subject_result              = $this->subject_model->get();
         $data['subjectlist']         = $subject_result;
         $data['question_true_false'] = $this->config->item('question_true_false');
@@ -311,7 +311,7 @@ class Question extends Admin_Controller
         $data['recordid']            = $this->input->post('recordid');
         $question_result             = $this->question_model->get($data['recordid']);
         $data['question_result']     = $question_result;
-        $data['classList']           = $this->class_model->get();
+        $data['classList']           = $this->class_model->getAllForQuestionBank();
         $data['sectionList']         = $this->section_model->getClassBySection($question_result->class_id);
         $subject_result              = $this->subject_model->get();
         $data['subjectlist']         = $subject_result;
