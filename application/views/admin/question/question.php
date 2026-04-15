@@ -256,13 +256,14 @@ function findOption($questionOpt, $find)
             <div class="tab-pane" id="tab-upload">
               <div class="row">
                 <div class="col-md-6 col-md-offset-3">
-                  <div style="border:2px dashed #ccc;border-radius:6px;padding:30px;text-align:center;cursor:pointer;background:#fafafa;" id="qimg-drop-zone">
+                  <!-- label-for means clicking anywhere on it natively opens the file dialog (no JS click() needed) -->
+                  <label for="qimg-file-input" id="qimg-drop-zone" style="display:block;border:2px dashed #ccc;border-radius:6px;padding:30px;text-align:center;cursor:pointer;background:#fafafa;margin-bottom:0;">
                     <i class="fa fa-image fa-3x" style="color:#aaa;margin-bottom:10px;display:block;"></i>
-                    <p style="color:#666;margin:0 0 10px;">Drag &amp; drop an image here, or click to select</p>
-                    <p style="color:#999;font-size:12px;margin:0;">Max size: 1 MB &mdash; JPG, PNG, GIF, WebP</p>
-                    <input type="file" id="qimg-file-input" accept="image/jpeg,image/png,image/gif,image/webp" style="display:none;">
-                    <button type="button" class="btn btn-default" id="qimg-browse-btn"><i class="fa fa-folder-open"></i> Browse</button>
-                  </div>
+                    <p style="color:#666;margin:0 0 6px;">Drag &amp; drop an image here, or click to select</p>
+                    <p style="color:#999;font-size:12px;margin:0 0 10px;">Max size: 1 MB &mdash; JPG, PNG, GIF, WebP</p>
+                    <span class="btn btn-default btn-sm"><i class="fa fa-folder-open"></i> Browse</span>
+                    <input type="file" id="qimg-file-input" name="qfile" accept="image/jpeg,image/png,image/gif,image/webp" style="position:absolute;opacity:0;width:0;height:0;overflow:hidden;">
+                  </label>
                   <div id="qimg-preview-wrap" style="display:none;margin-top:15px;text-align:center;">
                     <img id="qimg-preview" src="" style="max-width:100%;max-height:250px;border:1px solid #ddd;border-radius:4px;padding:4px;">
                     <p id="qimg-filename" style="margin-top:6px;color:#555;font-size:13px;"></p>
@@ -738,7 +739,7 @@ $('#myimgModal').on('shown.bs.modal', function (event) {
         $('#qimg-upload-progress').hide();
     }
 
-    // Hide/show "Add" footer button based on active tab
+    // Hide/show footer "Add" button based on active tab
     $(document).on('shown.bs.tab', '#imgModalTabs a[data-toggle="tab"]', function () {
         if ($(this).attr('href') === '#tab-upload') {
             $('#btn-add-media').hide();
@@ -747,56 +748,39 @@ $('#myimgModal').on('shown.bs.modal', function (event) {
         }
     });
 
-    // When the image picker modal opens: reset upload tab, show Add button
+    // When the image picker modal opens: reset upload tab, switch to gallery
     $('#myimgModal').on('shown.bs.modal', function () {
         $('#btn-add-media').show();
         qimgResetUploadTab();
         $('#imgModalTabs a[href="#tab-gallery"]').tab('show');
     });
 
-    // Open file picker when browse button clicked
-    $(document).on('click', '#qimg-browse-btn', function (e) {
-        e.preventDefault();
-        e.stopPropagation();
-        document.getElementById('qimg-file-input').click();
-    });
-
-    // Open file picker when clicking the drop zone itself (not the button)
-    $(document).on('click', '#qimg-drop-zone', function (e) {
-        if (!$(e.target).is('#qimg-browse-btn') && !$(e.target).closest('#qimg-browse-btn').length) {
-            e.preventDefault();
-            document.getElementById('qimg-file-input').click();
-        }
-    });
-
-    // File selected via dialog → preview
+    // File selected via native label→input click or drag-drop → show preview
     $(document).on('change', '#qimg-file-input', function () {
         var file = this.files && this.files[0];
         if (!file) return;
         qimgShowPreview(file);
     });
 
-    // Drag & drop onto drop zone
+    // Drag & drop visual feedback and file handling
     $(document).on('dragover', '#qimg-drop-zone', function (e) {
         e.preventDefault();
-        $(this).css('border-color', '#337ab7');
+        $(this).css({'border-color': '#337ab7', 'background': '#eef5ff'});
     });
     $(document).on('dragleave', '#qimg-drop-zone', function (e) {
         e.preventDefault();
-        $(this).css('border-color', '#ccc');
+        $(this).css({'border-color': '#ccc', 'background': '#fafafa'});
     });
     $(document).on('drop', '#qimg-drop-zone', function (e) {
         e.preventDefault();
-        $(this).css('border-color', '#ccc');
+        $(this).css({'border-color': '#ccc', 'background': '#fafafa'});
         var file = e.originalEvent.dataTransfer.files[0];
         if (file) qimgShowPreview(file);
     });
 
     function qimgShowPreview(file) {
-        // Release any previous object URL
         var prev = $('#qimg-preview').data('objurl');
         if (prev) URL.revokeObjectURL(prev);
-
         var objUrl = URL.createObjectURL(file);
         $('#qimg-preview').data('objurl', objUrl).attr('src', objUrl);
         $('#qimg-filename').text(file.name + ' (' + (file.size / 1024).toFixed(1) + ' KB)');
@@ -804,7 +788,7 @@ $('#myimgModal').on('shown.bs.modal', function (event) {
         $('#qimg-preview-wrap').show();
     }
 
-    // Upload & Insert
+    // Upload & Insert button
     $(document).on('click', '#qimg-upload-btn', function () {
         var inp = document.getElementById('qimg-file-input');
         var file = inp && inp.files && inp.files[0];
