@@ -157,11 +157,13 @@ class Classsection_model extends MY_Model
             $array          = array();
             if (!empty($vehicle_routes)) {
                 foreach ($vehicle_routes as $vehicle_key => $vehicle_value) {
-                    $vec_route        = new stdClass();
-                    $vec_route->id    = $vehicle_value['id'];
-                    $vec_route->class = $vehicle_value['class'];
-                    $vec_route->vehicles = $this->getVechileByRoute($vehicle_value['id']);
-                    $array[]             = $vec_route;
+                    $vec_route             = new stdClass();
+                    $vec_route->id         = $vehicle_value['id'];
+                    $vec_route->class      = $vehicle_value['class'];
+                    $vec_route->is_active  = $vehicle_value['is_active'];
+                    $vec_route->class_type = $vehicle_value['class_type'];
+                    $vec_route->vehicles   = $this->getVechileByRoute($vehicle_value['id']);
+                    $array[]               = $vec_route;
                 }
             }
             return $array;

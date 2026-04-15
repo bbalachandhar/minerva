@@ -157,9 +157,9 @@
 
                                         <th><?php echo $this->lang->line('class'); ?>
                                         </th>
-                                        <th ><?php echo $this->lang->line('sections'); ?>
+                                        <th><?php echo $this->lang->line('sections'); ?>
                                         </th>
-
+                                        <th>Active</th>
                                         <th class="text-right noExport"><?php echo $this->lang->line('action'); ?></th>
                                     </tr>
                                 </thead>
@@ -170,24 +170,34 @@
                                         <tr>
                                             <td class="mailbox-name">
                                                 <?php echo $vehroute->class; ?>
-
+                                                <?php if ($vehroute->class_type === 'applicant'): ?>
+                                                    <span class="label label-info" style="font-size:10px;">Applicant</span>
+                                                <?php endif; ?>
                                             </td>
-
 
                                             <td>
                                                 <?php
                                                 $vehicles = $vehroute->vehicles;
                                                 if (!empty($vehicles)) {
-
-
                                                     foreach ($vehicles as $key => $value) {
-
-
                                                         echo "<div>" . $value->section . "</div>";
                                                     }
                                                 }
                                                 ?>
-
+                                            </td>
+                                            <td>
+                                                <?php if ($this->rbac->hasPrivilege('class', 'can_edit')): ?>
+                                                <label class="class-active-toggle" style="margin:0;cursor:pointer;" title="Click to toggle active status">
+                                                    <input type="checkbox" class="class-active-chk" data-id="<?php echo $vehroute->id; ?>"
+                                                        <?php echo ($vehroute->is_active === 'yes') ? 'checked' : ''; ?>
+                                                        style="width:18px;height:18px;cursor:pointer;vertical-align:middle;">
+                                                    <span style="vertical-align:middle;margin-left:4px;font-size:12px;color:<?php echo ($vehroute->is_active === 'yes') ? '#3c763d' : '#a94442'; ?>">
+                                                        <?php echo ($vehroute->is_active === 'yes') ? 'Yes' : 'No'; ?>
+                                                    </span>
+                                                </label>
+                                                <?php else: ?>
+                                                    <?php echo ($vehroute->is_active === 'yes') ? '<span class="text-success">Yes</span>' : '<span class="text-danger">No</span>'; ?>
+                                                <?php endif; ?>
                                             </td>
                                             <td class="mailbox-date pull-right">
                                                 <?php
@@ -232,4 +242,34 @@
         </div>   <!-- /.row -->
     </section><!-- /.content -->
 </div><!-- /.content-wrapper -->
+
+<script>
+$(document).on('change', '.class-active-chk', function () {
+    var chk   = $(this);
+    var id    = chk.data('id');
+    var label = chk.closest('label');
+    var span  = label.find('span');
+
+    $.ajax({
+        url: '<?php echo site_url("classes/toggleActive"); ?>/' + id,
+        type: 'POST',
+        dataType: 'json',
+        success: function (data) {
+            if (data.status === 1) {
+                var active = (data.is_active === 'yes');
+                chk.prop('checked', active);
+                span.text(active ? 'Yes' : 'No').css('color', active ? '#3c763d' : '#a94442');
+            } else {
+                // revert checkbox on failure
+                chk.prop('checked', !chk.prop('checked'));
+                alert('Could not update: ' + (data.msg || 'unknown error'));
+            }
+        },
+        error: function () {
+            chk.prop('checked', !chk.prop('checked'));
+            alert('Request failed. Please try again.');
+        }
+    });
+});
+</script>
 

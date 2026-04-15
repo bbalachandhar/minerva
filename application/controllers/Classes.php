@@ -85,6 +85,23 @@ class Classes extends Admin_Controller
         $this->load->view('layout/footer', $data);
     }
 
+    public function toggleActive($id)
+    {
+        if (!$this->rbac->hasPrivilege('class', 'can_edit')) {
+            echo json_encode(array('status' => 0, 'msg' => 'Access denied'));
+            return;
+        }
+        $this->output->set_content_type('application/json');
+        $current = $this->db->select('is_active')->where('id', (int)$id)->get('classes')->row();
+        if (!$current) {
+            echo json_encode(array('status' => 0, 'msg' => 'Not found'));
+            return;
+        }
+        $new_state = ($current->is_active === 'yes') ? 'no' : 'yes';
+        $this->db->where('id', (int)$id)->update('classes', array('is_active' => $new_state));
+        echo json_encode(array('status' => 1, 'is_active' => $new_state));
+    }
+
     public function delete($id)
     {
         if (!$this->rbac->hasPrivilege('class', 'can_delete')) {
