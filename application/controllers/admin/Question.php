@@ -627,8 +627,17 @@ class Question extends Admin_Controller
                 $row[] = $value->name .' '. $code ;
                 $row[] = ($value->question_type != "") ? $question_type[$value->question_type] : "";
                 $row[] = ($value->level != "") ? $question_level[$value->level] : "";
-                $row[] = readmorelink($value->question, site_url('admin/question/read/' . $value->id));                
-                
+
+                // Show thumbnail if question is image-only (text is empty after stripping tags)
+                $q_plain = trim(strip_tags($value->question));
+                if ($q_plain === '' && preg_match('/<img[^>]+src=["\']([^"\']+)["\'][^>]*>/i', $value->question, $_img)) {
+                    $row[] = '<a href="' . site_url('admin/question/read/' . $value->id) . '" target="_blank">'
+                           . '<img src="' . htmlspecialchars($_img[1], ENT_QUOTES, 'UTF-8') . '" style="max-height:60px;max-width:140px;border-radius:3px;cursor:pointer;" alt="Question image">'
+                           . '</a>';
+                } else {
+                    $row[] = readmorelink($value->question, site_url('admin/question/read/' . $value->id));
+                }
+
                 if($superadmin_restriction == 'disabled'){
                     if($staffrole->id == 7){
                         $row[] = $value->staff_name. ' ' .$value->staff_surname. ' (' .$value->employee_id. ')';
