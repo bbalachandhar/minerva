@@ -259,6 +259,7 @@ function findOption($questionOpt, $find)
                   <div style="border:2px dashed #ccc;border-radius:6px;padding:30px;text-align:center;cursor:pointer;background:#fafafa;" id="qimg-drop-zone">
                     <i class="fa fa-image fa-3x" style="color:#aaa;margin-bottom:10px;display:block;"></i>
                     <p style="color:#666;margin:0 0 10px;">Drag &amp; drop an image here, or click to select</p>
+                    <p style="color:#999;font-size:12px;margin:0;">Max size: 1 MB &mdash; JPG, PNG, GIF, WebP</p>
                     <input type="file" id="qimg-file-input" accept="image/jpeg,image/png,image/gif,image/webp" style="display:none;">
                     <button type="button" class="btn btn-default" id="qimg-browse-btn"><i class="fa fa-folder-open"></i> Browse</button>
                   </div>

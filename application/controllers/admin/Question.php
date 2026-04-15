@@ -351,7 +351,7 @@ class Question extends Admin_Controller
         $allowed_mime = array('image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp');
         $ext          = strtolower(pathinfo($_FILES['qfile']['name'], PATHINFO_EXTENSION));
         $allowed_ext  = array('jpg', 'jpeg', 'png', 'gif', 'webp');
-        $max_size     = 5 * 1024 * 1024; // 5 MB
+        $max_size     = 1 * 1024 * 1024; // 1 MB
 
         if (!in_array($mtype, $allowed_mime) || !in_array($ext, $allowed_ext)) {
             echo json_encode(array('status' => 0, 'msg' => 'Only image files (jpg, png, gif, webp) are allowed'));
@@ -359,7 +359,7 @@ class Question extends Admin_Controller
         }
 
         if ($_FILES['qfile']['size'] > $max_size) {
-            echo json_encode(array('status' => 0, 'msg' => 'File size must be under 5 MB'));
+            echo json_encode(array('status' => 0, 'msg' => 'File size must be under 1 MB'));
             return;
         }
 
