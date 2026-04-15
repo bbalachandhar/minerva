@@ -630,7 +630,7 @@ class Question extends Admin_Controller
 
                 // If question contains an image, show a thumbnail + any text; otherwise plain readmorelink
                 if (preg_match('/<img[^>]+src=["\']([^"\']+)["\'][^>]*>/i', $value->question, $_img)) {
-                    $q_text  = trim(strip_tags($value->question));
+                    $q_text  = trim(html_entity_decode(strip_tags($value->question), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
                     $thumb   = '<a href="' . site_url('admin/question/read/' . $value->id) . '" target="_blank">'
                              . '<img src="' . htmlspecialchars($_img[1], ENT_QUOTES, 'UTF-8') . '" style="max-height:60px;max-width:140px;border-radius:3px;cursor:pointer;display:block;" alt="Question image">'
                              . '</a>';
