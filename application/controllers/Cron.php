@@ -509,7 +509,7 @@ class Cron extends MY_Controller
         $exam_from   = !empty($exam['exam_from'])  ? date('d M Y, h:i A', strtotime($exam['exam_from']))  : 'TBD';
         $exam_to     = !empty($exam['exam_to'])    ? date('d M Y, h:i A', strtotime($exam['exam_to']))    : 'TBD';
         $duration    = $exam['duration'];
-        $login_url   = site_url('site/userlogin');
+        $login_url   = site_url('site/applicantlogin');
         $current_year = date('Y');
 
         // Fetch all applicants assigned to this exam

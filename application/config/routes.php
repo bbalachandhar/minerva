@@ -116,6 +116,7 @@ $route['metaleads/webhook'] = 'metaleads/webhook';
 $route['enquiry'] = 'enquiry';
 $route['enquiry/(:any)'] = 'enquiry/$1';
 
+$route['site/applicantlogin'] = 'site/applicantlogin';
 $route['public_admission/applicant_dashboard'] = 'public_admission/applicant_dashboard';
 $route['public_admission/applicant_logout'] = 'public_admission/applicant_logout';
 $route['public_admission/payment_history'] = 'public_admission/payment_history';

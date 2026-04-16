@@ -623,6 +623,48 @@ class Site extends Public_Controller
         }
     }
 
+    /**
+     * Dedicated lightweight login for online exam applicants.
+     * Skips user/parent auth, notice loading, captcha, and Google Auth — just 2 DB queries.
+     */
+    public function applicantlogin()
+    {
+        // Already logged in? Go straight to dashboard.
+        if (!empty($this->session->userdata('validlogin'))) {
+            redirect('public_admission/applicant_dashboard');
+        }
+
+        // Minimal school info — single SELECT, no joins.
+        $school = $this->db->select('name, image, user_login_page_background')->from('sch_settings')->limit(1)->get()->row_array();
+        $data['name']  = !empty($school['name']) ? $school['name'] : '';
+        $data['school'] = $school;
+
+        $this->form_validation->set_rules('username', 'Reference Number', 'trim|required|xss_clean');
+        $this->form_validation->set_rules('password', 'Password', 'trim|required|xss_clean');
+
+        if ($this->form_validation->run() == false) {
+            $this->load->view('applicantlogin', $data);
+        } else {
+            $username = $this->input->post('username', true);
+            $password = $this->input->post('password', true);
+
+            $applicant = $this->db
+                ->select('id, reference_no, form_status')
+                ->where('reference_no', $username)
+                ->where('applicant_password', md5($password))
+                ->get('online_admissions')
+                ->row();
+
+            if (!empty($applicant)) {
+                $this->session->set_userdata('validlogin', $applicant->reference_no);
+                redirect('public_admission/applicant_dashboard');
+            } else {
+                $data['error_message'] = $this->lang->line('invalid_username_or_password');
+                $this->load->view('applicantlogin', $data);
+            }
+        }
+    }
+
     public function savemulticlass()
     {
         $student_id = '';
