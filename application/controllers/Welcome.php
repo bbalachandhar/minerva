@@ -1527,7 +1527,7 @@ class Welcome extends Front_Controller
             $email        = $result['email'];
 
             $current_year = date('Y');
-            $login_url = site_url('site/userlogin');
+            $login_url = site_url('site/applicantlogin');
             $applicant_username = $reference_no;
             $applicant_password_plain = $reference_no . '@ApplicantPortal' . $current_year;
 

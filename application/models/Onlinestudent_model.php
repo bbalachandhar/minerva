@@ -587,6 +587,19 @@ class Onlinestudent_model extends MY_Model
         $this->db->update("online_admissions", array("paid_status" => $paid_status, "form_status" => 1), array("id" => $payment['online_admission_id']));
         $this->db->insert("online_admission_payment", $payment);
 
+        // If applicant_password was never set (gateway paid before form submission step),
+        // set it now so the applicant can log in immediately after payment.
+        if ((int) $paid_status === 1) {
+            $row = $this->db->select('reference_no, applicant_password')
+                            ->get_where('online_admissions', array('id' => $payment['online_admission_id']))
+                            ->row_array();
+            if (!empty($row['reference_no']) && empty($row['applicant_password'])) {
+                $plain = $row['reference_no'] . '@ApplicantPortal' . date('Y');
+                $this->db->where('id', $payment['online_admission_id'])
+                         ->update('online_admissions', array('applicant_password' => md5($plain)));
+            }
+        }
+
         // Also record in incidental_fee_collections for unified daily/weekly/monthly reports.
         // Only do this for fully-paid gateway transactions (paid_status=1).
         if ((int) $paid_status === 1) {
