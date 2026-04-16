@@ -665,7 +665,7 @@ class Onlinestudent extends Admin_Controller
                 . " AND (LOWER(ift2.title) LIKE '%tuition%' OR LOWER(ift2.title) LIKE '%tution%' OR LOWER(ift2.title) LIKE '%other fee%'))";
             $course_fee   = "COALESCE(oa.course_fee_total, IF(oa.quota_type='management', oac.mgt_fee, oac.govt_fee))";
             if ($paid_status_filter === 'applied') {
-                $this->db->where("$app_fee_sub > 0 AND $paid_sub <= 0", null, false);
+                $this->db->where("($app_fee_sub > 0 OR oa.paid_status = 1) AND $paid_sub <= 0", null, false);
             } elseif ($paid_status_filter === '0') {
                 $this->db->where("$app_fee_sub = 0 AND $paid_sub <= 0", null, false);
             } elseif ($paid_status_filter === '2') {

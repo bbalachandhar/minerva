@@ -86,7 +86,7 @@ class Site extends Public_Controller
             $captcha               = $this->captchalib->generate_captcha();
             $data['captcha_image'] = isset($captcha['image']) ? $captcha['image'] : "";
             $data['name']          = $app_name;
-            $this->load->view('admin/login', $data);
+            $this->load->view('admin/login_bg', $data);
         } else {
             $login_post = array(
                 'email'    => $this->input->post('username'),
@@ -172,12 +172,12 @@ class Site extends Public_Controller
                     $data['name']          = $app_name;
                     $data['error_message'] = $this->lang->line('your_account_is_disabled_please_contact_to_administrator');
 
-                    $this->load->view('admin/login', $data);
+                    $this->load->view('admin/login_bg', $data);
                 }
             } else {
                 $data['name']          = $app_name;
                 $data['error_message'] = $this->lang->line('invalid_username_or_password');
-                $this->load->view('admin/login', $data);
+                $this->load->view('admin/login_bg', $data);
             }
         }
     }
@@ -220,7 +220,7 @@ class Site extends Public_Controller
         $data['school']     = $app_name[0];
          
         if ($this->form_validation->run() == false) {
-            $this->load->view('admin/forgotpassword', $data);
+            $this->load->view('admin/forgotpassword_bg', $data);
         } else {
             $email = $this->input->post('email');
 
@@ -255,7 +255,7 @@ class Site extends Public_Controller
                 
             }
             
-            $this->load->view('admin/forgotpassword', $data);
+            $this->load->view('admin/forgotpassword_bg', $data);
         }
     }
 
@@ -265,6 +265,7 @@ class Site extends Public_Controller
         $app_name     = $this->setting_model->get();
         $data['name'] = $app_name[0]['name'];
         $data['admin_login_page_background'] = $app_name[0]['admin_login_page_background'];
+        $data['school'] = $app_name[0];
         if (!$verification_code) {
             show_404();
         }
@@ -282,7 +283,7 @@ class Site extends Public_Controller
                 
                 $data['verification_code'] = $verification_code;
                 //render
-                $this->load->view('admin/admin_resetpassword', $data);
+                $this->load->view('admin/admin_resetpassword_bg', $data);
             } else {
 
                 // finally change the password
@@ -344,7 +345,7 @@ class Site extends Public_Controller
                 $data['role']              = $role;
                 $data['verification_code'] = $verification_code;
                 //render
-                $this->load->view('resetpassword', $data);
+                $this->load->view('resetpassword_bg', $data);
             } else {
 
                 // finally change the password
@@ -376,6 +377,8 @@ class Site extends Public_Controller
 
     public function ufpassword()
     {  
+        $app_name = $this->setting_model->get();
+        $data['app_name'] = $app_name;
         
         $notice_content     = $this->config->item('ci_front_notice_content');
         $notices            = $this->cms_program_model->getByCategory($notice_content, array('start' => 0, 'limit' => 5));
@@ -385,7 +388,7 @@ class Site extends Public_Controller
         $this->form_validation->set_rules('user[]', $this->lang->line('user_type'), 'trim|required|xss_clean');
         if ($this->form_validation->run() == false) {
 
-            $this->load->view('ufpassword', $data);
+            $this->load->view('ufpassword_bg', $data);
         } else {
             $email    = $this->input->post('username');
             $usertype = $this->input->post('user[]');
@@ -424,7 +427,7 @@ class Site extends Public_Controller
             
             $data['notice']     = $notices; 
         
-            $this->load->view('ufpassword', $data);
+            $this->load->view('ufpassword_bg', $data);
         }
     }
 
@@ -434,7 +437,7 @@ class Site extends Public_Controller
 
         if (empty($school)) {
             $data['error_message'] = 'School settings not found. Please configure the application.';
-            $this->load->view('userlogin', $data);
+            $this->load->view('userlogin_bg', $data);
             return;
         }
 
@@ -489,7 +492,7 @@ class Site extends Public_Controller
             if ($this->captchalib->is_captcha('userlogin')) {
                 $data['captcha_image'] = $this->captchalib->generate_captcha()['image'];
             }
-            $this->load->view('userlogin', $data);
+            $this->load->view('userlogin_bg', $data);
         } else {
             $login_post = array(
                 'username' => $this->input->post('username'),
@@ -591,15 +594,15 @@ class Site extends Public_Controller
                         redirect('user/user/choose');
                     } else {
                         $data['error_message'] = $this->lang->line('account_suspended');
-                        $this->load->view('userlogin', $data);
+                        $this->load->view('userlogin_bg', $data);
                     }
                 } else {
                     $data['error_message'] = $this->lang->line('your_account_is_disabled_please_contact_to_administrator');
-                    $this->load->view('userlogin', $data);
+                    $this->load->view('userlogin_bg', $data);
                 }
             } else {
                 $data['error_message'] = $this->lang->line('invalid_username_or_password');
-                $this->load->view('userlogin', $data);
+                $this->load->view('userlogin_bg', $data);
             }
         }
     }

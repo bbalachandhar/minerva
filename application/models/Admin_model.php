@@ -247,7 +247,7 @@ class Admin_model extends CI_Model
 
     public function getOnlineStudentPaymentOverview()
     {
-        $students = $this->db->select('reference_no, course_fee_total')
+        $students = $this->db->select('reference_no, course_fee_total, paid_status')
             ->from('online_admissions')
             ->get()
             ->result_array();
@@ -326,7 +326,8 @@ class Admin_model extends CI_Model
             $ref         = preg_replace('/\s+/', '', (string) ($student['reference_no'] ?? ''));
             $course_fee  = (isset($student['course_fee_total']) && $student['course_fee_total'] !== null && $student['course_fee_total'] !== '') ? (float) $student['course_fee_total'] : 0;
             $paid_amount = isset($paid_map[$ref]) ? (float) $paid_map[$ref] : 0;
-            $app_is_paid = in_array($ref, $app_fee_refs, true);
+            $app_is_paid = in_array($ref, $app_fee_refs, true)
+                        || (int) ($student['paid_status'] ?? 0) === 1;
 
             if ($course_fee > 0 && $paid_amount >= $course_fee) {
                 $fully_paid++;

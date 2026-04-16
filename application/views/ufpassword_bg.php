@@ -10,10 +10,17 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:400,100,300,500">
     <link rel="stylesheet" href="<?php echo base_url(); ?>backend/usertemplate/assets/bootstrap/css/bootstrap.min.css">
     <link rel="stylesheet" href="<?php echo base_url(); ?>backend/usertemplate/assets/font-awesome/css/font-awesome.min.css">
+    <?php $btn_color = !empty($app_name[0]['app_primary_color_code']) ? htmlspecialchars($app_name[0]['app_primary_color_code']) : '#1F4E79'; ?>
     <style>
-        body { margin: 0; padding: 0; background: #1F4E79; font-family: 'Roboto', sans-serif; }
-        .login-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
-        .login-card { background: #fff; border-radius: 10px; padding: 36px 32px 28px; max-width: 420px; width: 100%; box-shadow: 0 8px 40px rgba(0,0,0,0.28); }
+        body { margin: 0; padding: 0; font-family: 'Roboto', sans-serif; }
+        .login-bg {
+            position: fixed; inset: 0; z-index: 0;
+            background-color: #1F4E79; background-size: cover; background-position: center; background-repeat: no-repeat;
+            filter: blur(6px) brightness(0.55);
+            transform: scale(1.04);
+        }
+        .login-wrap { position: relative; z-index: 1; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .login-card { background: rgba(255,255,255,0.97); border-radius: 10px; padding: 36px 32px 28px; max-width: 420px; width: 100%; box-shadow: 0 12px 48px rgba(0,0,0,0.45); }
         .login-logo { text-align: center; margin-bottom: 16px; }
         .login-logo img { max-height: 80px; width: auto; }
         .login-title { text-align: center; color: #1F4E79; font-size: 21px; font-weight: 700; margin-bottom: 4px; }
@@ -22,8 +29,8 @@
         .form-control { border-radius: 4px; height: 40px; }
         .input-icon { position: relative; }
         .input-icon .fa { position: absolute; top: 50%; right: 12px; transform: translateY(-50%); color: #aaa; }
-        .btn-login { background: #1F4E79; color: #fff; width: 100%; padding: 10px; border: none; border-radius: 4px; font-size: 15px; font-weight: 500; margin-top: 4px; cursor: pointer; transition: background 0.2s; }
-        .btn-login:hover { background: #163d61; color: #fff; }
+        .btn-login { background: <?php echo $btn_color; ?>; color: #fff; width: 100%; padding: 10px; border: none; border-radius: 4px; font-size: 15px; font-weight: 500; margin-top: 4px; cursor: pointer; transition: filter 0.2s; }
+        .btn-login:hover { filter: brightness(0.85); }
         .login-footer { text-align: center; margin-top: 18px; font-size: 13px; }
         .login-footer a { color: #1F4E79; }
         .hint-box { background: #eaf3fb; border-left: 4px solid #1F4E79; padding: 10px 14px; border-radius: 4px; font-size: 12px; color: #555; margin-bottom: 20px; }
@@ -32,6 +39,7 @@
     </style>
 </head>
 <body>
+<div class="login-bg"<?php if (!empty($app_name[0]['user_login_page_background'])): ?> style="background-image:url('<?php echo base_url(); ?>uploads/school_content/login_image/<?php echo htmlspecialchars($app_name[0]['user_login_page_background']); ?>')"<?php endif; ?>></div>
 <div class="login-wrap">
     <div class="login-card">
         <div class="login-logo">
