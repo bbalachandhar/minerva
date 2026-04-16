@@ -388,4 +388,88 @@ class Cron extends MY_Controller
         }
     }
 
+    /**
+     * Vehicle expiry reminder cron.
+     * Sends email + WhatsApp to the 3 configured staff assignees when any vehicle
+     * validity end-date is exactly 15, 10, or 5 days away.
+     *
+     * URL: http://yourdomain.com/index.php/cron/vehicleExpiryReminder/{cron_secret_key}
+     * Crontab (daily at 08:00):
+     *   0 8 * * * curl -s "https://yourdomain.com/index.php/cron/vehicleExpiryReminder/{key}" > /dev/null 2>&1
+     */
+    public function vehicleExpiryReminder($key = '')
+    {
+        if ($key == "" || $this->cron_key != $key) {
+            echo "Invalid Key or Direct access is not allowed";
+            return;
+        }
+
+        $this->load->model('vehicle_model');
+        $this->load->library('mailer');
+        $this->load->library('whatsappgateway');
+
+        $assignees = $this->vehicle_model->getAssignees();
+
+        if (empty($assignees)) {
+            echo "No assignees configured. Skipping vehicle expiry reminders.\n";
+            return;
+        }
+
+        // Optional WA template ID from config table (if set by admin)
+        $wa_template_id = $this->vehicle_model->getNotificationConfig('wa_template_id');
+
+        $reminder_days = [15, 10, 5];
+        $school_name   = $this->customlib->getSchoolName();
+        $total_sent    = 0;
+
+        foreach ($reminder_days as $days) {
+            $expiring = $this->vehicle_model->getExpiringVehicles($days);
+
+            if (empty($expiring)) {
+                continue;
+            }
+
+            foreach ($expiring as $vehicle) {
+                $expiry_date = $vehicle[$vehicle['expiry_field']];
+                $subject     = "[{$school_name}] Vehicle Expiry Alert – {$days} Days Remaining";
+                $message     = "Dear Staff,<br><br>"
+                    . "This is an automated reminder that the following vehicle validity is expiring in <strong>{$days} days</strong>:<br><br>"
+                    . "<table border='1' cellpadding='6' cellspacing='0' style='border-collapse:collapse'>"
+                    . "<tr><td><strong>Vehicle No.</strong></td><td>" . htmlspecialchars($vehicle['vehicle_no']) . "</td></tr>"
+                    . "<tr><td><strong>Model</strong></td><td>" . htmlspecialchars($vehicle['vehicle_model']) . "</td></tr>"
+                    . "<tr><td><strong>Registration No.</strong></td><td>" . htmlspecialchars($vehicle['registration_number']) . "</td></tr>"
+                    . "<tr><td><strong>Expiry Type</strong></td><td><strong>" . htmlspecialchars($vehicle['expiry_label']) . "</strong></td></tr>"
+                    . "<tr><td><strong>Expiry Date</strong></td><td>" . htmlspecialchars($expiry_date) . "</td></tr>"
+                    . "</table><br>"
+                    . "Please take necessary action before the expiry date.<br><br>"
+                    . "Regards,<br>{$school_name}";
+
+                $wa_vars = [
+                    'vehicle_no'      => $vehicle['vehicle_no'],
+                    'vehicle_model'   => $vehicle['vehicle_model'],
+                    'registration_no' => $vehicle['registration_number'],
+                    'expiry_type'     => $vehicle['expiry_label'],
+                    'expiry_date'     => $expiry_date,
+                    'days_remaining'  => (string)$days,
+                ];
+
+                foreach ($assignees as $assignee) {
+                    // --- Email ---
+                    if (!empty($assignee['email'])) {
+                        $this->mailer->compose_mail($assignee['email'], $subject, $message);
+                        $total_sent++;
+                    }
+
+                    // --- WhatsApp (only if template ID is configured) ---
+                    if (!empty($assignee['contact_no']) && !empty($wa_template_id)) {
+                        $phone = preg_replace('/\D/', '', $assignee['contact_no']);
+                        $this->whatsappgateway->sendVehicleExpiryReminder($phone, $wa_vars, $wa_template_id);
+                    }
+                }
+            }
+        }
+
+        echo "Vehicle expiry reminder cron completed. Emails sent: {$total_sent}\n";
+    }
+
 }

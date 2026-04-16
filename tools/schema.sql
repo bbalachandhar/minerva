@@ -7912,3 +7912,23 @@ SET FOREIGN_KEY_CHECKS=1;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
 -- Dump completed on 2026-04-12 23:17:37
+
+-- -------------------------------------------------------
+-- Vehicle expiry notification tables (added 2026-05-xx)
+-- -------------------------------------------------------
+DROP TABLE IF EXISTS `vehicle_expiry_assignees`;
+CREATE TABLE `vehicle_expiry_assignees` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `staff_id` int(11) NOT NULL,
+  `slot` tinyint(1) NOT NULL DEFAULT 1 COMMENT '1, 2 or 3',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uniq_slot` (`slot`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+DROP TABLE IF EXISTS `vehicle_notification_config`;
+CREATE TABLE `vehicle_notification_config` (
+  `id` int(1) NOT NULL DEFAULT 1,
+  `wa_template_id` varchar(255) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+INSERT INTO `vehicle_notification_config` (id, wa_template_id) VALUES (1, NULL);

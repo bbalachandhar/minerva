@@ -1028,8 +1028,32 @@ public function sentstudentZoomClasswhatsapp($sender_details, $template, $send_t
         return $foundValues;
     }
 
+    /**
+     * Send a vehicle expiry reminder via WhatsApp.
+     * Requires a pre-approved WhatsApp template created in your Twilio/Meta account.
+     *
+     * @param string $send_to       Recipient phone (digits only, with country code)
+     * @param array  $msg_vars      Assoc array of template placeholder values:
+     *                              vehicle_no, vehicle_model, registration_no,
+     *                              expiry_type, expiry_date, days_remaining
+     * @param string $template_id   Twilio template SID or Meta template name
+     * @return bool
+     */
+    public function sendVehicleExpiryReminder($send_to, $msg_vars, $template_id)
+    {
+        $whatsapp_detail = $this->_CI->whatsappconfig_model->getActiveWhatsApp();
+        if (empty($whatsapp_detail) || empty($template_id)) {
+            return false;
+        }
+        if ($whatsapp_detail->type == 'twilio') {
+            return $this->sendByTwilio($whatsapp_detail, $send_to, $template_id, $msg_vars, 'vehicle_expiry_reminder');
+        } elseif ($whatsapp_detail->type == 'meta') {
+            return $this->sendMetaTemplate($whatsapp_detail, $send_to, $template_id, $whatsapp_detail->language, $msg_vars, 'vehicle_expiry_reminder');
+        }
+        return false;
+    }
 
-
+}
 
 
 

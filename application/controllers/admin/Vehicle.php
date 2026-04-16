@@ -21,9 +21,12 @@ class Vehicle extends Admin_Controller
 
         $this->session->set_userdata('top_menu', 'Transport');
         $this->session->set_userdata('sub_menu', 'vehicle/index');
-        $data['title']       = 'Add Vehicle';
-        $listVehicle         = $this->vehicle_model->get();
-        $data['listVehicle'] = $listVehicle;
+        $data['title']           = 'Add Vehicle';
+        $listVehicle             = $this->vehicle_model->get();
+        $data['listVehicle']     = $listVehicle;
+        $data['staffList']       = $this->staff_model->getAll(null, 1);
+        $data['assigneesBySlot'] = $this->vehicle_model->getAssigneesBySlot();
+        $data['wa_template_id']  = $this->vehicle_model->getNotificationConfig('wa_template_id');
         $this->load->view('layout/header');
         $this->load->view('admin/vehicle/index', $data);
         $this->load->view('layout/footer');
@@ -193,6 +196,25 @@ class Vehicle extends Admin_Controller
         echo json_encode(array('page' => $page));
     }
     
+    public function saveAssignees()
+    {
+        if (!$this->rbac->hasPrivilege('vehicle', 'can_edit')) {
+            echo json_encode(['status' => 'fail', 'message' => 'Access denied']);
+            return;
+        }
+        $data = [
+            1 => (int)$this->input->post('assignee_1'),
+            2 => (int)$this->input->post('assignee_2'),
+            3 => (int)$this->input->post('assignee_3'),
+        ];
+        $this->vehicle_model->saveAssignees($data);
+
+        $wa_template_id = $this->input->post('wa_template_id');
+        $this->vehicle_model->saveNotificationConfig('wa_template_id', $wa_template_id ?: null);
+
+        echo json_encode(['status' => 'success', 'message' => $this->lang->line('success_message')]);
+    }
+
     public function handle_upload()
     {
         $image_validate = $this->config->item('file_validate');

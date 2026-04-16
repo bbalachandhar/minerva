@@ -112,4 +112,90 @@ class Vehicle_model extends MY_Model
         return $query->result();
     }
 
+    /**
+     * Get vehicles whose any end-date field falls exactly $days_ahead days from today.
+     * Returns an array of arrays, each including a 'expiry_label' and the vehicle fields.
+     */
+    public function getExpiringVehicles($days_ahead)
+    {
+        $target = date('Y-m-d', strtotime("+{$days_ahead} days"));
+        $end_fields = [
+            'fc_validity_end'    => 'FC Validity',
+            'insurance_end'      => 'Insurance',
+            'permit_expiry_end'  => 'Permit Expiry',
+            'road_tax_end'       => 'Road Tax',
+            'pollution_cert_end' => 'Pollution Certificate',
+            'green_tax_end'      => 'Green Tax',
+        ];
+
+        $results = [];
+        foreach ($end_fields as $field => $label) {
+            $this->db->select('*, "' . $this->db->escape_str($label) . '" AS expiry_label, "' . $this->db->escape_str($field) . '" AS expiry_field');
+            $this->db->from('vehicles');
+            $this->db->where($field, $target);
+            $rows = $this->db->get()->result_array();
+            $results = array_merge($results, $rows);
+        }
+        return $results;
+    }
+
+    /** Get the 3 configured notification assignees joined with staff details */
+    public function getAssignees()
+    {
+        $this->db->select('vea.slot, vea.staff_id, s.name, s.email, s.contact_no');
+        $this->db->from('vehicle_expiry_assignees vea');
+        $this->db->join('staff s', 's.id = vea.staff_id', 'inner');
+        $this->db->order_by('vea.slot', 'ASC');
+        return $this->db->get()->result_array();
+    }
+
+    /** Get raw assignee staff_ids keyed by slot (for form pre-population) */
+    public function getAssigneesBySlot()
+    {
+        $rows = $this->db->get('vehicle_expiry_assignees')->result_array();
+        $map  = [];
+        foreach ($rows as $row) {
+            $map[$row['slot']] = $row['staff_id'];
+        }
+        return $map;
+    }
+
+    /** Upsert the 3 assignee slots. $data = ['1'=>staff_id, '2'=>staff_id, '3'=>staff_id] */
+    public function saveAssignees($data)
+    {
+        foreach ([1, 2, 3] as $slot) {
+            $staff_id = isset($data[$slot]) ? (int)$data[$slot] : null;
+            $existing = $this->db->where('slot', $slot)->get('vehicle_expiry_assignees')->row();
+            if ($staff_id) {
+                if ($existing) {
+                    $this->db->where('slot', $slot)->update('vehicle_expiry_assignees', ['staff_id' => $staff_id]);
+                } else {
+                    $this->db->insert('vehicle_expiry_assignees', ['staff_id' => $staff_id, 'slot' => $slot]);
+                }
+            } else {
+                if ($existing) {
+                    $this->db->where('slot', $slot)->delete('vehicle_expiry_assignees');
+                }
+            }
+        }
+    }
+
+    /** Get a single value from vehicle_notification_config by key */
+    public function getNotificationConfig($key)
+    {
+        $row = $this->db->get('vehicle_notification_config')->row_array();
+        return ($row && array_key_exists($key, $row)) ? $row[$key] : null;
+    }
+
+    /** Save a key-value pair into vehicle_notification_config */
+    public function saveNotificationConfig($key, $value)
+    {
+        $exists = $this->db->get('vehicle_notification_config')->num_rows() > 0;
+        if ($exists) {
+            $this->db->where('id', 1)->update('vehicle_notification_config', [$key => $value]);
+        } else {
+            $this->db->insert('vehicle_notification_config', ['id' => 1, $key => $value]);
+        }
+    }
+
 }

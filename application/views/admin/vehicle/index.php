@@ -72,7 +72,127 @@
             </div>
         </div>
     </section>
+
+    <!-- ===== Vehicle Expiry Notification Assignees ===== -->
+    <section class="content">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="box box-warning">
+                    <div class="box-header ptbnull">
+                        <h3 class="box-title titlefix"><i class="fa fa-bell"></i> Vehicle Expiry Notification Assignees</h3>
+                        <small class="text-muted" style="display:block;margin-top:4px">
+                            These staff members will receive email &amp; WhatsApp alerts <strong>15, 10, and 5 days</strong> before any vehicle validity expires (FC, Insurance, Permit, Road Tax, Pollution Cert, Green Tax).
+                        </small>
+                    </div>
+                    <div class="box-body">
+                        <form id="vehicleAssigneesForm">
+                            <div class="row">
+                                <div class="col-sm-4">
+                                    <div class="form-group">
+                                        <label>Assignee 1</label>
+                                        <select name="assignee_1" class="form-control select2" style="width:100%">
+                                            <option value="">-- Select Staff --</option>
+                                            <?php foreach ($staffList as $s): ?>
+                                            <option value="<?php echo $s['id']; ?>" <?php echo (isset($assigneesBySlot[1]) && $assigneesBySlot[1] == $s['id']) ? 'selected' : ''; ?>>
+                                                <?php echo htmlspecialchars($s['name']); ?>
+                                            </option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-sm-4">
+                                    <div class="form-group">
+                                        <label>Assignee 2</label>
+                                        <select name="assignee_2" class="form-control select2" style="width:100%">
+                                            <option value="">-- Select Staff --</option>
+                                            <?php foreach ($staffList as $s): ?>
+                                            <option value="<?php echo $s['id']; ?>" <?php echo (isset($assigneesBySlot[2]) && $assigneesBySlot[2] == $s['id']) ? 'selected' : ''; ?>>
+                                                <?php echo htmlspecialchars($s['name']); ?>
+                                            </option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-sm-4">
+                                    <div class="form-group">
+                                        <label>Assignee 3</label>
+                                        <select name="assignee_3" class="form-control select2" style="width:100%">
+                                            <option value="">-- Select Staff --</option>
+                                            <?php foreach ($staffList as $s): ?>
+                                            <option value="<?php echo $s['id']; ?>" <?php echo (isset($assigneesBySlot[3]) && $assigneesBySlot[3] == $s['id']) ? 'selected' : ''; ?>>
+                                                <?php echo htmlspecialchars($s['name']); ?>
+                                            </option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-sm-6">
+                                    <div class="form-group">
+                                        <label>WhatsApp Template ID <small class="text-muted">(optional – Twilio SID or Meta template name)</small></label>
+                                        <input type="text" name="wa_template_id" class="form-control"
+                                               value="<?php echo htmlspecialchars($wa_template_id ?? ''); ?>"
+                                               placeholder="e.g. HXxxxxxxxx or vehicle_expiry_reminder">
+                                        <p class="help-block text-muted" style="font-size:12px">
+                                            Leave blank to send email only. To enable WhatsApp, create a pre-approved template in your Twilio/Meta account and paste its ID here.
+                                            Template variables: <code>{{vehicle_no}}</code> <code>{{vehicle_model}}</code> <code>{{registration_no}}</code> <code>{{expiry_type}}</code> <code>{{expiry_date}}</code> <code>{{days_remaining}}</code>
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="col-sm-6" style="padding-top:25px">
+                                    <div class="box box-solid box-default" style="margin-bottom:0">
+                                        <div class="box-body" style="padding:10px 15px">
+                                            <strong><i class="fa fa-info-circle text-info"></i> Cron Setup Instructions</strong><br>
+                                            <p class="text-muted" style="margin:8px 0 4px;font-size:12px">Run this cron daily at 8:00 AM on EC2:</p>
+                                            <code style="font-size:11px;display:block;word-break:break-all">0 8 * * * curl -s "<?php echo base_url(); ?>index.php/cron/vehicleExpiryReminder/<?php echo $this->setting_model->getSetting()->cron_secret_key; ?>" &gt; /dev/null 2&gt;&amp;1</code>
+                                            <p class="text-muted" style="margin:6px 0 0;font-size:11px">Add via <code>crontab -e</code> on the EC2 server.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-sm-12">
+                                    <button type="submit" class="btn btn-warning" id="saveAssigneesBtn"
+                                            data-loading-text="<i class='fa fa-spinner fa-spin'></i> Saving...">
+                                        <i class="fa fa-save"></i> Save Notification Settings
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
 </div>
+
+<script>
+$('#vehicleAssigneesForm').on('submit', function(e) {
+    e.preventDefault();
+    var $btn = $('#saveAssigneesBtn');
+    $btn.button('loading');
+    $.ajax({
+        url: '<?php echo site_url("admin/vehicle/saveAssignees"); ?>',
+        type: 'POST',
+        data: $(this).serialize(),
+        dataType: 'json',
+        success: function(res) {
+            if (res.status === 'success') {
+                successMsg(res.message);
+            } else {
+                errorMsg(res.message);
+            }
+        },
+        error: function() {
+            errorMsg('An error occurred. Please try again.');
+        },
+        complete: function() {
+            $btn.button('reset');
+        }
+    });
+});
+</script>
 
 <div class="modal fade" id="myModal" role="dialog" aria-labelledby="myModalLabel">
     <div class="modal-dialog modal-lg" role="document">
