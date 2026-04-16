@@ -472,4 +472,120 @@ class Cron extends MY_Controller
         echo "Vehicle expiry reminder cron completed. Emails sent: {$total_sent}\n";
     }
 
+    /**
+     * One-time bulk email: send online exam login credentials to all assigned applicants.
+     *
+     * URL: https://yourdomain.com/index.php/cron/sendExamInvitations/{cron_secret_key}/{exam_id}
+     *
+     * exam_id : the ID from the `onlineexam` table (default 1 if omitted)
+     */
+    public function sendExamInvitations($key = '', $exam_id = 1)
+    {
+        if ($key == '' || $this->cron_key != $key) {
+            echo "Invalid Key or Direct access is not allowed";
+            return;
+        }
+
+        $exam_id = (int) $exam_id;
+        if ($exam_id <= 0) {
+            echo "Invalid exam_id";
+            return;
+        }
+
+        $this->load->model('onlineexam_model');
+        $this->load->library('mailer');
+
+        // Fetch exam details
+        $this->db->from('onlineexam');
+        $this->db->where('id', $exam_id);
+        $exam = $this->db->get()->row_array();
+
+        if (empty($exam)) {
+            echo "Exam not found for id={$exam_id}";
+            return;
+        }
+
+        $exam_name   = $exam['exam'];
+        $exam_from   = !empty($exam['exam_from'])  ? date('d M Y, h:i A', strtotime($exam['exam_from']))  : 'TBD';
+        $exam_to     = !empty($exam['exam_to'])    ? date('d M Y, h:i A', strtotime($exam['exam_to']))    : 'TBD';
+        $duration    = $exam['duration'];
+        $login_url   = site_url('site/userlogin');
+        $current_year = date('Y');
+
+        // Fetch all applicants assigned to this exam
+        $this->db->select('oa.id, oa.reference_no, oa.firstname, oa.lastname, oa.email, oa.mobileno, oa.form_status');
+        $this->db->from('onlineexam_students es');
+        $this->db->join('online_admissions oa', 'oa.id = es.online_admission_id');
+        $this->db->where('es.onlineexam_id', $exam_id);
+        $this->db->where('es.candidate_type', 'applicant');
+        $this->db->order_by('oa.id', 'asc');
+        $applicants = $this->db->get()->result_array();
+
+        if (empty($applicants)) {
+            echo "No applicants assigned to exam id={$exam_id}";
+            return;
+        }
+
+        $sent = 0;
+        $skipped = 0;
+
+        foreach ($applicants as $app) {
+            $email = trim($app['email']);
+            if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                $skipped++;
+                continue;
+            }
+
+            $firstname = trim($app['firstname']);
+            $lastname  = trim($app['lastname']);
+            $name      = trim($firstname . ' ' . $lastname);
+            $username  = $app['reference_no'];
+            $password  = $username . '@ApplicantPortal' . $current_year;
+
+            $subject = 'Online Scholarship Exam – Login Credentials & Exam Details';
+
+            $message = '
+<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;border:1px solid #e0e0e0;border-radius:6px;">
+  <h2 style="color:#1F4E79;margin-bottom:4px;">Online Scholarship Exam</h2>
+  <p style="color:#555;margin-top:0;">' . htmlspecialchars($exam_name) . '</p>
+  <hr style="border:none;border-top:1px solid #e0e0e0;">
+  <p>Dear <strong>' . htmlspecialchars($name) . '</strong>,</p>
+  <p>You have been registered for the <strong>' . htmlspecialchars($exam_name) . '</strong>. Please find the exam details and your login credentials below.</p>
+
+  <table style="width:100%;border-collapse:collapse;margin:16px 0;">
+    <tr style="background:#f4f8fc;">
+      <td style="padding:8px 12px;font-weight:bold;width:40%;">Exam Period</td>
+      <td style="padding:8px 12px;">' . htmlspecialchars($exam_from) . ' &ndash; ' . htmlspecialchars($exam_to) . '</td>
+    </tr>
+    <tr>
+      <td style="padding:8px 12px;font-weight:bold;">Duration</td>
+      <td style="padding:8px 12px;">' . htmlspecialchars($duration) . ' hours</td>
+    </tr>
+    <tr style="background:#f4f8fc;">
+      <td style="padding:8px 12px;font-weight:bold;">Username</td>
+      <td style="padding:8px 12px;font-family:monospace;">' . htmlspecialchars($username) . '</td>
+    </tr>
+    <tr>
+      <td style="padding:8px 12px;font-weight:bold;">Password</td>
+      <td style="padding:8px 12px;font-family:monospace;">' . htmlspecialchars($password) . '</td>
+    </tr>
+    <tr style="background:#f4f8fc;">
+      <td style="padding:8px 12px;font-weight:bold;">Login URL</td>
+      <td style="padding:8px 12px;"><a href="' . $login_url . '" style="color:#1F4E79;">' . $login_url . '</a></td>
+    </tr>
+  </table>
+
+  <p style="background:#fff8e1;border-left:4px solid #f0a500;padding:10px 14px;border-radius:4px;">
+    Please log in before the exam window opens to verify your credentials. Keep this email for your reference.
+  </p>
+  <p style="color:#888;font-size:12px;margin-top:24px;">This is an automated email. Please do not reply.</p>
+</div>';
+
+            $this->mailer->compose_mail($email, $subject, $message);
+            $sent++;
+        }
+
+        echo "Exam invitation emails sent: {$sent} | Skipped (no valid email): {$skipped} | Total applicants: " . count($applicants) . "\n";
+    }
+
 }
