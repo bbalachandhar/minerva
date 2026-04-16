@@ -1427,8 +1427,8 @@ class Onlineexam extends Admin_Controller
         // Style header row
         $header_style = array(
             'font'      => array('bold' => true, 'color' => array('rgb' => 'FFFFFF')),
-            'fill'      => array('type' => PHPExcel_Style_Fill::FILL_SOLID, 'startcolor' => array('rgb' => '1F4E79')),
-            'alignment' => array('horizontal' => PHPExcel_Style_Alignment::HORIZONTAL_CENTER),
+            'fill'      => array('type' => 'solid', 'startcolor' => array('rgb' => '1F4E79')),
+            'alignment' => array('horizontal' => 'center'),
         );
         $sheet->getStyle('A1:M1')->applyFromArray($header_style);
 
@@ -1455,7 +1455,7 @@ class Onlineexam extends Admin_Controller
             // Shade not-attempted rows grey
             if ($r['attempted'] === 'No') {
                 $sheet->getStyle('A' . $row_num . ':M' . $row_num)
-                    ->getFill()->setFillType(PHPExcel_Style_Fill::FILL_SOLID)
+                    ->getFill()->setFillType('solid')
                     ->getStartColor()->setRGB('DDDDDD');
             }
             $row_num++;
