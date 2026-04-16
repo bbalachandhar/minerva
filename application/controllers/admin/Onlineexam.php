@@ -141,7 +141,10 @@ class Onlineexam extends Admin_Controller
                 $row[]     = $is_active;
                 $row[]     = $publish_result;
                 $row[]     = $subject_value->description;
-                $row[]     = $download_btn . " " . $assign . " " . $addquestion_btn . " " . $editbtn . " " . $question_list . " " . $deletebtn;
+                $cron_key_active   = $this->sch_setting_detail->cron_secret_key;
+                $invite_url_active = base_url() . 'index.php/cron/sendExamInvitations/' . urlencode($cron_key_active) . '/' . $subject_value->id;
+                $send_invite_btn   = "<a href='" . $invite_url_active . "' target='_blank' class='btn btn-info btn-xs' data-toggle='tooltip' title='Send exam invitation emails to all assigned applicants' onclick=\"return confirm('This will send invitation emails to ALL assigned applicants. Proceed?');\"><i class='fa fa-envelope'></i> Send Invitations</a>";
+                $row[]     = $download_btn . " " . $assign . " " . $addquestion_btn . " " . $editbtn . " " . $question_list . " " . $send_invite_btn . " " . $deletebtn;
                 $dt_data[] = $row;
             }
         }
@@ -253,7 +256,10 @@ class Onlineexam extends Admin_Controller
                 $row[]     = $is_active;
                 $row[]     = $publish_result;
                 $row[]     = $subject_value->description;
-                $row[]     = $download_btn . " " . $assign . " " . $addquestion_btn . " " . $editbtn . " " . $question_list . " " . $deletebtn;
+                $cron_key_closed   = $this->sch_setting_detail->cron_secret_key;
+                $invite_url_closed = base_url() . 'index.php/cron/sendExamInvitations/' . urlencode($cron_key_closed) . '/' . $subject_value->id;
+                $send_invite_btn   = "<a href='" . $invite_url_closed . "' target='_blank' class='btn btn-info btn-xs' data-toggle='tooltip' title='Send exam invitation emails to all assigned applicants' onclick=\"return confirm('This will send invitation emails to ALL assigned applicants. Proceed?');\"><i class='fa fa-envelope'></i> Send Invitations</a>";
+                $row[]     = $download_btn . " " . $assign . " " . $addquestion_btn . " " . $editbtn . " " . $question_list . " " . $send_invite_btn . " " . $deletebtn;
                 $dt_data[] = $row;
             }
         }
