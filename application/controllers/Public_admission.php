@@ -1337,6 +1337,12 @@ class Public_admission extends Front_Controller
             show_404();
         }
 
+        // Block direct URL access before exam window opens
+        if (strtotime(date('Y-m-d H:i:s')) < strtotime($exam->exam_from)) {
+            $this->session->set_flashdata('msg', '<div class="alert alert-warning"><i class="fa fa-clock-o"></i> The exam has not started yet. It is scheduled from <strong>' . $this->customlib->dateyyyymmddToDateTimeformat($exam->exam_from, false) . '</strong>. Please come back at that time.</div>');
+            redirect('public_admission/exam_list');
+        }
+
         $data                        = array();
         $data['sch_setting']         = $this->sch_setting_detail;
         $data['sch_name']            = $this->sch_setting_detail->name ?? 'Applicant Portal';
@@ -1402,7 +1408,13 @@ class Public_admission extends Front_Controller
         $data['question_status']       = 0;
         $data['exam_duration']         = $exam->duration;
 
-        if (strtotime(date('Y-m-d H:i:s')) >= strtotime($exam->exam_to)) {
+        $now = strtotime(date('Y-m-d H:i:s'));
+        if ($now < strtotime($exam->exam_from)) {
+            // Exam has not started yet
+            $question_status         = 1;
+            $data['question_status'] = 1;
+            $data['exam_not_started'] = true;
+        } else if ($now >= strtotime($exam->exam_to)) {
             // Exam window has closed
             $question_status         = 1;
             $data['question_status'] = 1;
