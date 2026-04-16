@@ -1708,6 +1708,12 @@ class Staff extends Admin_Controller
 
                 $insert_id = $this->staff_model->batchInsert($data_insert, $role_array, $leave_array, $data_setting);
                 $staff_id  = $insert_id;
+
+                if (!$staff_id) {
+                    $this->session->set_flashdata('msg', '<div class="alert alert-danger">Staff could not be saved. Please check for duplicate Biometric ID or contact the administrator.</div>');
+                    redirect('admin/staff/create');
+                }
+
                 if (!empty($custom_value_array)) {
                     $this->customfield_model->insertRecord($custom_value_array, $insert_id);
                 }
