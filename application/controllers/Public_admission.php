@@ -690,7 +690,7 @@ class Public_admission extends Front_Controller
                 $this->data['online_admission_amount']  = $this->sch_setting_detail->online_admission_amount;
                 $this->data['online_admission_conditions'] = $this->sch_setting_detail->online_admission_conditions;
                 $current_year = date('Y');
-                $this->data['applicant_login_url'] = site_url('site/userlogin');
+                $this->data['applicant_login_url'] = site_url('site/applicantlogin');
                 $this->data['applicant_username'] = $result['reference_no'];
                 $this->data['applicant_password'] = $result['reference_no'] . '@ApplicantPortal' . $current_year;
                 $setting_data                              = $this->setting_model->get();

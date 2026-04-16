@@ -598,27 +598,8 @@ class Site extends Public_Controller
                     $this->load->view('userlogin', $data);
                 }
             } else {
-                // Applicant login fallback on student/parent login route.
-                $applicant_login_success = false;
-                if ($this->db->table_exists('online_admissions') && $this->db->field_exists('applicant_password', 'online_admissions')) {
-                    $applicant = $this->db
-                        ->select('id, reference_no, form_status')
-                        ->where('reference_no', $this->input->post('username'))
-                        ->where('applicant_password', md5($this->input->post('password')))
-                        ->get('online_admissions')
-                        ->row();
-
-                    if (!empty($applicant)) {
-                        $this->session->set_userdata('validlogin', $applicant->reference_no);
-                        $applicant_login_success = true;
-                        redirect('public_admission/applicant_dashboard');
-                    }
-                }
-
-                if (!$applicant_login_success) {
-                    $data['error_message'] = $this->lang->line('invalid_username_or_password');
-                    $this->load->view('userlogin', $data);
-                }
+                $data['error_message'] = $this->lang->line('invalid_username_or_password');
+                $this->load->view('userlogin', $data);
             }
         }
     }

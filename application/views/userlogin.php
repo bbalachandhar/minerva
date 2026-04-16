@@ -71,11 +71,6 @@ if ($this->session->flashdata('message')) {
                                                 <span class="fa fa-lock form-control-feedback"></span>
                                                 <span class="text-danger"><?php echo form_error('password'); ?></span>
                                             </div>
-                                            <div class="form-group" style="margin-top:10px;">
-                                                <div class="alert alert-info" style="margin-bottom:0; font-size:12px;">
-                                                    Applicant Login: use Reference Number as Username and password in the format Reference Number + @ApplicantPortal<?php echo date('Y'); ?>.
-                                                </div>
-                                            </div>
                                             <?php if ($is_captcha) {?>
                                             <div class="form-group has-feedback row">
                                                 <div class='col-lg-7 col-md-12 col-sm-6'>
