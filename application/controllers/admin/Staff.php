@@ -1498,7 +1498,7 @@ class Staff extends Admin_Controller
             $data_insert = array(
                 'password'               => $this->enc_lib->passHashEnc($password),
                 'employee_id'            => $employee_id,
-                'biometric_id'           => $biometric_id,
+                'biometric_id'           => ($biometric_id == "") ? NULL : $biometric_id,
                 'name'                   => $name,
                 'email'                  => $email,
                 'dob'                    => date('Y-m-d', $this->customlib->datetostrtotime($dob)),
