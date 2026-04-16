@@ -29,13 +29,13 @@
                                 <option value="government">Government</option>
                             </select>
                             <div style="display:flex;align-items:center;gap:4px;">
-                                <input type="text" id="filter_submit_from" class="form-control input-sm datepicker-filter" placeholder="Submitted From" style="width:130px;" autocomplete="off">
+                                <input type="text" id="filter_submit_from" class="form-control input-sm date datepicker-filter" placeholder="Submitted From" style="width:130px;" autocomplete="off" readonly>
                                 <span style="color:#555;">–</span>
-                                <input type="text" id="filter_submit_to" class="form-control input-sm datepicker-filter" placeholder="Submitted To" style="width:130px;" autocomplete="off">
+                                <input type="text" id="filter_submit_to" class="form-control input-sm date datepicker-filter" placeholder="Submitted To" style="width:130px;" autocomplete="off" readonly>
                                 <button id="clear_submit_dates" class="btn btn-default btn-sm" title="Clear" style="display:none;"><i class="fa fa-times"></i></button>
                             </div>
                             <div style="display:flex;align-items:center;gap:4px;">
-                                <input type="text" id="filter_last_payment_date" class="form-control input-sm datepicker-filter" placeholder="Last Payment Date" style="width:145px;" autocomplete="off">
+                                <input type="text" id="filter_last_payment_date" class="form-control input-sm date datepicker-filter" placeholder="Last Payment Date" style="width:145px;" autocomplete="off" readonly>
                                 <button id="clear_payment_date" class="btn btn-default btn-sm" title="Clear" style="display:none;"><i class="fa fa-times"></i></button>
                             </div>
                         </div><!-- /.box-tools -->
@@ -232,19 +232,9 @@
             studentTable.ajax.reload();
         });
 
-        // Date filters — use school date format via flatpickr-style or default datepicker
-        var dateFormat = '<?php echo $this->customlib->getSchoolDateFormat(); ?>';
-        // Map PHP date formats to jQuery UI datepicker formats
-        var dpFormat = dateFormat.replace('Y','yy').replace('m','mm').replace('d','dd');
-        $('.datepicker-filter').datepicker({
-            dateFormat: dpFormat,
-            changeMonth: true,
-            changeYear: true,
-            onSelect: function () { $(this).trigger('input'); }
-        });
-
-        $('.datepicker-filter').on('input change', function () {
-            // show/hide clear buttons
+        // Date filters — use the app's bootstrap-datepicker (class 'date' is handled globally).
+        // We just need to react to changeDate and update the table.
+        $(document).on('changeDate', '.datepicker-filter', function () {
             var submitFrom = $('#filter_submit_from').val();
             var submitTo   = $('#filter_submit_to').val();
             var payDate    = $('#filter_last_payment_date').val();
@@ -262,13 +252,13 @@
         });
 
         $('#clear_submit_dates').on('click', function () {
-            $('#filter_submit_from, #filter_submit_to').val('').datepicker('setDate', null);
+            $('#filter_submit_from, #filter_submit_to').val('');
             $(this).hide();
             studentTable.ajax.reload();
         });
 
         $('#clear_payment_date').on('click', function () {
-            $('#filter_last_payment_date').val('').datepicker('setDate', null);
+            $('#filter_last_payment_date').val('');
             $(this).hide();
             studentTable.ajax.reload();
         });

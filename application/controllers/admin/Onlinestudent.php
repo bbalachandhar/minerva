@@ -718,10 +718,10 @@ class Onlinestudent extends Admin_Controller
 
         // Submission date range
         if (!empty($submit_date_from)) {
-            $this->db->where('oa.submit_date >=', $submit_date_from . ' 00:00:00');
+            $this->db->where('COALESCE(oa.submit_date, DATE(oa.created_at)) >=', $submit_date_from);
         }
         if (!empty($submit_date_to)) {
-            $this->db->where('oa.submit_date <=', $submit_date_to . ' 23:59:59');
+            $this->db->where('COALESCE(oa.submit_date, DATE(oa.created_at)) <=', $submit_date_to);
         }
 
         // Last payment received date

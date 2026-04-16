@@ -122,12 +122,12 @@ class Onlinestudent_model extends MY_Model
             }
         }
 
-        // Submission date range filter (uses submit_date, already in Y-m-d)
+        // Submission date range filter
         if (!empty($submit_date_from)) {
-            $this->datatables->where('online_admissions.submit_date >=', $submit_date_from . ' 00:00:00');
+            $this->datatables->where('COALESCE(online_admissions.submit_date, DATE(online_admissions.created_at)) >=', $submit_date_from);
         }
         if (!empty($submit_date_to)) {
-            $this->datatables->where('online_admissions.submit_date <=', $submit_date_to . ' 23:59:59');
+            $this->datatables->where('COALESCE(online_admissions.submit_date, DATE(online_admissions.created_at)) <=', $submit_date_to);
         }
 
         // Last payment received date filter — match against either gateway payment or incidental collection
@@ -606,7 +606,7 @@ class Onlinestudent_model extends MY_Model
         }
         unset($payment['paid_status']);
 
-        $this->db->update("online_admissions", array("paid_status" => $paid_status, "form_status" => 1), array("id" => $payment['online_admission_id']));
+        $this->db->update("online_admissions", array("paid_status" => $paid_status, "form_status" => 1, "submit_date" => date('Y-m-d')), array("id" => $payment['online_admission_id']));
         $this->db->insert("online_admission_payment", $payment);
 
         // If applicant_password was never set (gateway paid before form submission step),
