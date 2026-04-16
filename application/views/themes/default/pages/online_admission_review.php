@@ -953,7 +953,7 @@ if ($currencie_value->id == $this->customlib->getSchoolCurrency()) {
                  </div>
                   <div class="printcontent" style="margin-top:15px; border:1px solid #d9edf7; background:#f4fbff; padding:15px;">
                     <h4 style="margin-top:0;">First Time Login?</h4>
-                    <p style="margin-bottom:6px;"><strong>Login URL:</strong> <a href="<?php echo site_url('site/userlogin'); ?>" target="_blank"><?php echo site_url('site/userlogin'); ?></a></p>
+                    <p style="margin-bottom:6px;"><strong>Login URL:</strong> <a href="<?php echo site_url('site/applicantlogin'); ?>" target="_blank"><?php echo site_url('site/applicantlogin'); ?></a></p>
                     <p style="margin-bottom:6px;"><strong>Default Password:</strong> Your Reference Number + @ApplicantPortal<?php echo date('Y'); ?></p>
                     <p style="margin-bottom:0;"><strong>Example:</strong> If your reference is REF001, password is REF001@ApplicantPortal<?php echo date('Y'); ?></p>
                   </div>
