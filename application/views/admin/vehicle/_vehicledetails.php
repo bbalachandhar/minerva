@@ -33,6 +33,12 @@
                     <div class="route-text"><b><?php echo $this->lang->line('chasis_number'); ?>: </b><span><?php echo $editvehicle->chasis_number; ?></span></div>
                 </div>
                 <div class="col-lg-4 col-md-4 col-sm-4">
+                    <div class="route-text"><b>Engine Number: </b><span><?php echo $editvehicle->engine_number; ?></span></div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-lg-4 col-md-4 col-sm-4">
                     <div class="route-text"><b><?php echo $this->lang->line('max_seating_capacity'); ?>: </b><span><?php echo $editvehicle->max_seating_capacity; ?></span></div>
                 </div> 
             </div>

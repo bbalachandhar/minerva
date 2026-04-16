@@ -7357,6 +7357,7 @@ CREATE TABLE `vehicles` (
   `manufacture_year` varchar(4) DEFAULT NULL,
   `registration_number` varchar(50) NOT NULL,
   `chasis_number` varchar(100) NOT NULL,
+  `engine_number` varchar(100) DEFAULT NULL,
   `max_seating_capacity` varchar(255) NOT NULL,
   `driver_name` varchar(50) DEFAULT NULL,
   `driver_licence` varchar(50) NOT NULL DEFAULT 'None',

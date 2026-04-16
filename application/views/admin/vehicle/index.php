@@ -133,6 +133,15 @@
 
                                 <div class="col-sm-4">
                                     <div class="form-group">
+                                        <label>Engine Number</label>
+                                        <input id="engine_number" name="engine_number" placeholder="" type="text" class="form-control" value="<?php echo set_value('engine_number'); ?>" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-sm-4">
+                                    <div class="form-group">
                                         <label><?php echo $this->lang->line('max_seating_capacity'); ?> </label>
                                         <input id="max_seating_capacity" name="max_seating_capacity" placeholder="" type="text" class="form-control"  value="<?php echo set_value('max_seating_capacity'); ?>" />
                                         <span class="text-danger"><?php echo form_error('max_seating_capacity'); ?></span>
