@@ -65,6 +65,9 @@ api/application/config/config.php
 api/application/config/database.php
 api/application/config/autoload.php
 
+# Flutter app — separate project, will have its own repository
+minerva_flutter/
+
 # Ignore non-code files (brochures, reports, office docs, local csv exports)
 *.docx
 *.pptx

@@ -67,6 +67,18 @@ class Vehicle extends Admin_Controller
                 'max_seating_capacity' => $this->input->post('max_seating_capacity'),
                 'manufacture_year'      => $this->input->post('manufacture_year'),
                 'vehicle_photo'        => $vehicle_photo,
+                'fc_validity_start'    => ($ts = $this->customlib->datetostrtotime($this->input->post('fc_validity_start'))) ? date('Y-m-d', $ts) : null,
+                'fc_validity_end'      => ($ts = $this->customlib->datetostrtotime($this->input->post('fc_validity_end'))) ? date('Y-m-d', $ts) : null,
+                'insurance_start'      => ($ts = $this->customlib->datetostrtotime($this->input->post('insurance_start'))) ? date('Y-m-d', $ts) : null,
+                'insurance_end'        => ($ts = $this->customlib->datetostrtotime($this->input->post('insurance_end'))) ? date('Y-m-d', $ts) : null,
+                'permit_expiry_start'  => ($ts = $this->customlib->datetostrtotime($this->input->post('permit_expiry_start'))) ? date('Y-m-d', $ts) : null,
+                'permit_expiry_end'    => ($ts = $this->customlib->datetostrtotime($this->input->post('permit_expiry_end'))) ? date('Y-m-d', $ts) : null,
+                'road_tax_start'       => ($ts = $this->customlib->datetostrtotime($this->input->post('road_tax_start'))) ? date('Y-m-d', $ts) : null,
+                'road_tax_end'         => ($ts = $this->customlib->datetostrtotime($this->input->post('road_tax_end'))) ? date('Y-m-d', $ts) : null,
+                'pollution_cert_start' => ($ts = $this->customlib->datetostrtotime($this->input->post('pollution_cert_start'))) ? date('Y-m-d', $ts) : null,
+                'pollution_cert_end'   => ($ts = $this->customlib->datetostrtotime($this->input->post('pollution_cert_end'))) ? date('Y-m-d', $ts) : null,
+                'green_tax_start'      => ($ts = $this->customlib->datetostrtotime($this->input->post('green_tax_start'))) ? date('Y-m-d', $ts) : null,
+                'green_tax_end'        => ($ts = $this->customlib->datetostrtotime($this->input->post('green_tax_end'))) ? date('Y-m-d', $ts) : null,
             );
            
             $this->vehicle_model->add($data);
@@ -117,8 +129,19 @@ class Vehicle extends Admin_Controller
                 'registration_number'  => $this->input->post('registration_number'),
                 'chasis_number'        => $this->input->post('chasis_number'),
                 'max_seating_capacity' => $this->input->post('max_seating_capacity'),
-                'manufacture_year' => $this->input->post('manufacture_year'),        
-                
+                'manufacture_year'     => $this->input->post('manufacture_year'),
+                'fc_validity_start'    => ($ts = $this->customlib->datetostrtotime($this->input->post('fc_validity_start'))) ? date('Y-m-d', $ts) : null,
+                'fc_validity_end'      => ($ts = $this->customlib->datetostrtotime($this->input->post('fc_validity_end'))) ? date('Y-m-d', $ts) : null,
+                'insurance_start'      => ($ts = $this->customlib->datetostrtotime($this->input->post('insurance_start'))) ? date('Y-m-d', $ts) : null,
+                'insurance_end'        => ($ts = $this->customlib->datetostrtotime($this->input->post('insurance_end'))) ? date('Y-m-d', $ts) : null,
+                'permit_expiry_start'  => ($ts = $this->customlib->datetostrtotime($this->input->post('permit_expiry_start'))) ? date('Y-m-d', $ts) : null,
+                'permit_expiry_end'    => ($ts = $this->customlib->datetostrtotime($this->input->post('permit_expiry_end'))) ? date('Y-m-d', $ts) : null,
+                'road_tax_start'       => ($ts = $this->customlib->datetostrtotime($this->input->post('road_tax_start'))) ? date('Y-m-d', $ts) : null,
+                'road_tax_end'         => ($ts = $this->customlib->datetostrtotime($this->input->post('road_tax_end'))) ? date('Y-m-d', $ts) : null,
+                'pollution_cert_start' => ($ts = $this->customlib->datetostrtotime($this->input->post('pollution_cert_start'))) ? date('Y-m-d', $ts) : null,
+                'pollution_cert_end'   => ($ts = $this->customlib->datetostrtotime($this->input->post('pollution_cert_end'))) ? date('Y-m-d', $ts) : null,
+                'green_tax_start'      => ($ts = $this->customlib->datetostrtotime($this->input->post('green_tax_start'))) ? date('Y-m-d', $ts) : null,
+                'green_tax_end'        => ($ts = $this->customlib->datetostrtotime($this->input->post('green_tax_end'))) ? date('Y-m-d', $ts) : null,
             );            
             
             if (isset($_FILES["vehicle_photo"]) && $_FILES['vehicle_photo']['name'] != '' && (!empty($_FILES['vehicle_photo']['name']))) {

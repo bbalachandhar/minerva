@@ -90,6 +90,45 @@
             </div>
         </div>
     </div>
+
+    <!-- Validity / Expiry Date Fields -->
+    <div class="row"><div class="col-sm-12"><hr class="mt5 mb10"><h5 class="text-muted mb10"><i class="fa fa-calendar"></i> Validity &amp; Expiry Dates</h5></div></div>
+    <?php
+    $date_fmt = $this->customlib->getSchoolDateFormat();
+    $date_fields = [
+        'fc_validity_start'    => 'FC Validity Start',
+        'fc_validity_end'      => 'FC Validity End',
+        'insurance_start'      => 'Insurance Start',
+        'insurance_end'        => 'Insurance End',
+        'permit_expiry_start'  => 'Permit Expiry Start',
+        'permit_expiry_end'    => 'Permit Expiry End',
+        'road_tax_start'       => 'Road Tax Start',
+        'road_tax_end'         => 'Road Tax End',
+        'pollution_cert_start' => 'Pollution Certificate Start',
+        'pollution_cert_end'   => 'Pollution Certificate End',
+        'green_tax_start'      => 'Green Tax Start',
+        'green_tax_end'        => 'Green Tax End',
+    ];
+    $col = 0;
+    foreach ($date_fields as $field => $label):
+        if ($col % 2 === 0) echo '<div class="row">';
+        $raw = !empty($editvehicle->$field) ? $editvehicle->$field : '';
+        $ts  = $raw ? $this->customlib->dateyyyymmddTodateformat($raw) : null;
+        $val = $ts ? date($date_fmt, $ts) : '';
+    ?>
+        <div class="col-sm-6"><div class="form-group">
+            <label><?php echo $label; ?></label>
+            <input type="text" class="form-control vehicle-datepicker" name="<?php echo $field; ?>"
+                   autocomplete="off" value="<?php echo htmlspecialchars($val, ENT_QUOTES); ?>"
+                   placeholder="<?php echo $date_fmt; ?>">
+        </div></div>
+    <?php
+        $col++;
+        if ($col % 2 === 0) echo '</div>';
+    endforeach;
+    if ($col % 2 !== 0) echo '</div>';
+    ?>
+
     <div class="row">
         <div class="col-sm-12">
           <div class="form-group">

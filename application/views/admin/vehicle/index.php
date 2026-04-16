@@ -175,6 +175,47 @@
                                     </div>
                                 </div>
                             </div>
+
+                            <!-- Validity / Expiry Date Fields -->
+                            <div class="row"><div class="col-sm-12"><hr class="mt5 mb10"><h5 class="text-muted mb10"><i class="fa fa-calendar"></i> Validity &amp; Expiry Dates</h5></div></div>
+
+                            <div class="row">
+                                <div class="col-sm-6"><div class="form-group"><label>FC Validity Start</label>
+                                    <input type="text" class="form-control vehicle-datepicker" name="fc_validity_start" autocomplete="off" placeholder="<?php echo $this->customlib->getSchoolDateFormat(); ?>"></div></div>
+                                <div class="col-sm-6"><div class="form-group"><label>FC Validity End</label>
+                                    <input type="text" class="form-control vehicle-datepicker" name="fc_validity_end" autocomplete="off" placeholder="<?php echo $this->customlib->getSchoolDateFormat(); ?>"></div></div>
+                            </div>
+                            <div class="row">
+                                <div class="col-sm-6"><div class="form-group"><label>Insurance Start</label>
+                                    <input type="text" class="form-control vehicle-datepicker" name="insurance_start" autocomplete="off" placeholder="<?php echo $this->customlib->getSchoolDateFormat(); ?>"></div></div>
+                                <div class="col-sm-6"><div class="form-group"><label>Insurance End</label>
+                                    <input type="text" class="form-control vehicle-datepicker" name="insurance_end" autocomplete="off" placeholder="<?php echo $this->customlib->getSchoolDateFormat(); ?>"></div></div>
+                            </div>
+                            <div class="row">
+                                <div class="col-sm-6"><div class="form-group"><label>Permit Expiry Start</label>
+                                    <input type="text" class="form-control vehicle-datepicker" name="permit_expiry_start" autocomplete="off" placeholder="<?php echo $this->customlib->getSchoolDateFormat(); ?>"></div></div>
+                                <div class="col-sm-6"><div class="form-group"><label>Permit Expiry End</label>
+                                    <input type="text" class="form-control vehicle-datepicker" name="permit_expiry_end" autocomplete="off" placeholder="<?php echo $this->customlib->getSchoolDateFormat(); ?>"></div></div>
+                            </div>
+                            <div class="row">
+                                <div class="col-sm-6"><div class="form-group"><label>Road Tax Start</label>
+                                    <input type="text" class="form-control vehicle-datepicker" name="road_tax_start" autocomplete="off" placeholder="<?php echo $this->customlib->getSchoolDateFormat(); ?>"></div></div>
+                                <div class="col-sm-6"><div class="form-group"><label>Road Tax End</label>
+                                    <input type="text" class="form-control vehicle-datepicker" name="road_tax_end" autocomplete="off" placeholder="<?php echo $this->customlib->getSchoolDateFormat(); ?>"></div></div>
+                            </div>
+                            <div class="row">
+                                <div class="col-sm-6"><div class="form-group"><label>Pollution Certificate Start</label>
+                                    <input type="text" class="form-control vehicle-datepicker" name="pollution_cert_start" autocomplete="off" placeholder="<?php echo $this->customlib->getSchoolDateFormat(); ?>"></div></div>
+                                <div class="col-sm-6"><div class="form-group"><label>Pollution Certificate End</label>
+                                    <input type="text" class="form-control vehicle-datepicker" name="pollution_cert_end" autocomplete="off" placeholder="<?php echo $this->customlib->getSchoolDateFormat(); ?>"></div></div>
+                            </div>
+                            <div class="row">
+                                <div class="col-sm-6"><div class="form-group"><label>Green Tax Start</label>
+                                    <input type="text" class="form-control vehicle-datepicker" name="green_tax_start" autocomplete="off" placeholder="<?php echo $this->customlib->getSchoolDateFormat(); ?>"></div></div>
+                                <div class="col-sm-6"><div class="form-group"><label>Green Tax End</label>
+                                    <input type="text" class="form-control vehicle-datepicker" name="green_tax_end" autocomplete="off" placeholder="<?php echo $this->customlib->getSchoolDateFormat(); ?>"></div></div>
+                            </div>
+
                             <div class="row">
                                 <div class="col-sm-12">
                                   <div class="form-group">
@@ -245,7 +286,22 @@
 </div>
 
 <script>   
-    
+    var vehicle_date_format = '<?php echo strtr($this->customlib->getSchoolDateFormat(), ['d' => 'dd', 'm' => 'mm', 'Y' => 'yyyy', 'M' => 'MM']); ?>';
+
+    function initVehicleDatepickers(ctx) {
+        $(ctx).find('.vehicle-datepicker').datepicker({
+            todayHighlight: true,
+            format: vehicle_date_format,
+            autoclose: true,
+            weekStart: 1,
+            language: 'en'
+        });
+    }
+
+    $(document).ready(function() {
+        initVehicleDatepickers('#myModal');
+    });
+
     (function ($) {
         $('#myModal').on('hidden.bs.modal', function () {
             $(this).find('form').trigger('reset'); 
@@ -315,6 +371,7 @@ $('.editvehicle').click(function(){
        dataType:'json',
        success:function(response){
           $('#editvehicledata').html(response.page);
+          initVehicleDatepickers('#editvehicledata');
        }
    });
 })
