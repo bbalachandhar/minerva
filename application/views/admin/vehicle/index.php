@@ -168,6 +168,14 @@
 </div>
 
 <script>
+$(document).ready(function() {
+    $('[name="assignee_1"], [name="assignee_2"], [name="assignee_3"]').select2({
+        placeholder: '-- Select Staff --',
+        allowClear: true,
+        width: '100%'
+    });
+});
+
 $('#vehicleAssigneesForm').on('submit', function(e) {
     e.preventDefault();
     var $btn = $('#saveAssigneesBtn');
