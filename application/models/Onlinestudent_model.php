@@ -73,7 +73,7 @@ class Onlinestudent_model extends MY_Model
         }
     }
 
-    public function getstudentlist($carray = null, $id = null, $quota_type_filter = null, $paid_status_filter = null, $submitted_by_filter = null)
+    public function getstudentlist($carray = null, $id = null, $quota_type_filter = null, $paid_status_filter = null, $submitted_by_filter = null, $submit_date_from = null, $submit_date_to = null, $last_payment_date = null)
     {
         $class_section_array=$this->customlib->get_myClassSection();        
 
@@ -120,6 +120,28 @@ class Onlinestudent_model extends MY_Model
                 // Fully Paid: course fee fully paid
                 $this->datatables->where("$course_fee_expr > 0 AND $paid_subquery >= $course_fee_expr", null, false);
             }
+        }
+
+        // Submission date range filter (uses submit_date, already in Y-m-d)
+        if (!empty($submit_date_from)) {
+            $this->datatables->where('online_admissions.submit_date >=', $submit_date_from . ' 00:00:00');
+        }
+        if (!empty($submit_date_to)) {
+            $this->datatables->where('online_admissions.submit_date <=', $submit_date_to . ' 23:59:59');
+        }
+
+        // Last payment received date filter — match against either gateway payment or incidental collection
+        if (!empty($last_payment_date)) {
+            $lpd = $this->db->escape($last_payment_date);
+            $this->datatables->where(
+                "(EXISTS (SELECT 1 FROM online_admission_payment _lp"
+                . " WHERE _lp.online_admission_id = online_admissions.id AND DATE(_lp.date) = $lpd)"
+                . " OR EXISTS (SELECT 1 FROM incidental_fee_collections _lfc"
+                . " WHERE REPLACE(_lfc.application_ref_no,' ','') = REPLACE(online_admissions.reference_no,' ','')"
+                . " AND _lfc.application_ref_no IS NOT NULL AND _lfc.application_ref_no != ''"
+                . " AND DATE(_lfc.date_collected) = $lpd))",
+                null, false
+            );
         }
         $this->datatables
             ->select('online_admissions.vehroute_id,vehicle_routes.route_id,vehicle_routes.vehicle_id,transport_route.route_title,vehicles.vehicle_no,hostel_rooms.room_no,vehicles.driver_name,vehicles.driver_contact,hostel.id as `hostel_id`,hostel.hostel_name,room_types.id as `room_type_id`,room_types.room_type ,online_admissions.hostel_room_id,class_sections.id as class_section_id,classes.id AS `class_id`,classes.class,sections.id AS `section_id`,sections.section,online_admissions.id,online_admissions.admission_no, online_admissions.roll_no,online_admissions.admission_date,online_admissions.firstname, online_admissions.lastname,online_admissions.image,    online_admissions.mobileno,online_admissions.email,online_admissions.state,online_admissions.city , online_admissions.pincode , online_admissions.note, online_admissions.religion,online_admissions.cast, school_houses.house_name,online_admissions.dob ,online_admissions.current_address, online_admissions.previous_school,

@@ -454,7 +454,28 @@ class Onlinestudent extends Admin_Controller
         }
         $paid_status_filter   = $this->input->post('paid_status_filter');
         $submitted_by_filter  = $this->input->post('submitted_by_filter');
-        $student_result = $this->onlinestudent_model->getstudentlist(null, null, $quota_type_filter, $paid_status_filter, $submitted_by_filter);
+
+        $school_date_format  = $this->customlib->getSchoolDateFormat();
+        $submit_date_from    = null;
+        $submit_date_to      = null;
+        $last_payment_date   = null;
+        $raw_from = $this->input->post('submit_date_from');
+        if (!empty($raw_from)) {
+            $dt = DateTime::createFromFormat($school_date_format, $raw_from);
+            if ($dt) { $submit_date_from = $dt->format('Y-m-d'); }
+        }
+        $raw_to = $this->input->post('submit_date_to');
+        if (!empty($raw_to)) {
+            $dt = DateTime::createFromFormat($school_date_format, $raw_to);
+            if ($dt) { $submit_date_to = $dt->format('Y-m-d'); }
+        }
+        $raw_lpd = $this->input->post('last_payment_date');
+        if (!empty($raw_lpd)) {
+            $dt = DateTime::createFromFormat($school_date_format, $raw_lpd);
+            if ($dt) { $last_payment_date = $dt->format('Y-m-d'); }
+        }
+
+        $student_result = $this->onlinestudent_model->getstudentlist(null, null, $quota_type_filter, $paid_status_filter, $submitted_by_filter, $submit_date_from, $submit_date_to, $last_payment_date);
 
         $m               = json_decode($student_result);
         $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
@@ -622,6 +643,26 @@ class Onlinestudent extends Admin_Controller
         $submitted_by_filter = $this->input->get('submitted_by_filter');
         $sch_setting         = $this->sch_setting_detail;
 
+        $school_date_format  = $this->customlib->getSchoolDateFormat();
+        $submit_date_from    = null;
+        $submit_date_to      = null;
+        $last_payment_date   = null;
+        $raw_from = $this->input->get('submit_date_from');
+        if (!empty($raw_from)) {
+            $dt = DateTime::createFromFormat($school_date_format, $raw_from);
+            if ($dt) { $submit_date_from = $dt->format('Y-m-d'); }
+        }
+        $raw_to = $this->input->get('submit_date_to');
+        if (!empty($raw_to)) {
+            $dt = DateTime::createFromFormat($school_date_format, $raw_to);
+            if ($dt) { $submit_date_to = $dt->format('Y-m-d'); }
+        }
+        $raw_lpd = $this->input->get('last_payment_date');
+        if (!empty($raw_lpd)) {
+            $dt = DateTime::createFromFormat($school_date_format, $raw_lpd);
+            if ($dt) { $last_payment_date = $dt->format('Y-m-d'); }
+        }
+
         // --- Build the base query (mirrors getstudentlist) ---
         $this->db->select(
             'oa.id, oa.reference_no, oa.firstname, oa.middlename, oa.lastname,
@@ -673,6 +714,28 @@ class Onlinestudent extends Admin_Controller
             } elseif ($paid_status_filter === '1') {
                 $this->db->where("$course_fee > 0 AND $paid_sub >= $course_fee", null, false);
             }
+        }
+
+        // Submission date range
+        if (!empty($submit_date_from)) {
+            $this->db->where('oa.submit_date >=', $submit_date_from . ' 00:00:00');
+        }
+        if (!empty($submit_date_to)) {
+            $this->db->where('oa.submit_date <=', $submit_date_to . ' 23:59:59');
+        }
+
+        // Last payment received date
+        if (!empty($last_payment_date)) {
+            $lpd = $this->db->escape($last_payment_date);
+            $this->db->where(
+                "(EXISTS (SELECT 1 FROM online_admission_payment _lp"
+                . " WHERE _lp.online_admission_id = oa.id AND DATE(_lp.date) = $lpd)"
+                . " OR EXISTS (SELECT 1 FROM incidental_fee_collections _lfc"
+                . " WHERE REPLACE(_lfc.application_ref_no,' ','') = REPLACE(oa.reference_no,' ','')"
+                . " AND _lfc.application_ref_no IS NOT NULL AND _lfc.application_ref_no != ''"
+                . " AND DATE(_lfc.date_collected) = $lpd))",
+                null, false
+            );
         }
 
         $this->db->order_by('oa.id', 'DESC');

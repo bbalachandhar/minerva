@@ -10,7 +10,7 @@
                 <div class="box box-primary">
                     <div class="box-header with-border">
                         <h3 class="box-title"><?php echo $this->lang->line('student_list'); ?></h3>
-                        <div class="box-tools pull-right" style="display:flex;gap:8px;align-items:center;">
+                        <div class="box-tools pull-right" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
                             <select id="filter_submitted_by" class="form-control input-sm" style="width:150px;">
                                 <option value="">All Submitted By</option>
                                 <option value="student">By Direct Student</option>
@@ -28,6 +28,16 @@
                                 <option value="management">Management</option>
                                 <option value="government">Government</option>
                             </select>
+                            <div style="display:flex;align-items:center;gap:4px;">
+                                <input type="text" id="filter_submit_from" class="form-control input-sm datepicker-filter" placeholder="Submitted From" style="width:130px;" autocomplete="off">
+                                <span style="color:#555;">–</span>
+                                <input type="text" id="filter_submit_to" class="form-control input-sm datepicker-filter" placeholder="Submitted To" style="width:130px;" autocomplete="off">
+                                <button id="clear_submit_dates" class="btn btn-default btn-sm" title="Clear" style="display:none;"><i class="fa fa-times"></i></button>
+                            </div>
+                            <div style="display:flex;align-items:center;gap:4px;">
+                                <input type="text" id="filter_last_payment_date" class="form-control input-sm datepicker-filter" placeholder="Last Payment Date" style="width:145px;" autocomplete="off">
+                                <button id="clear_payment_date" class="btn btn-default btn-sm" title="Clear" style="display:none;"><i class="fa fa-times"></i></button>
+                            </div>
                         </div><!-- /.box-tools -->
                     </div><!-- /.box-header -->
                     <div class="box-body">
@@ -128,12 +138,18 @@
 
     function getFilterParams() {
         var params = {};
-        var quota       = $('#filter_quota').val();
-        var status      = $('#filter_form_status').val();
-        var submittedBy = $('#filter_submitted_by').val();
-        if (quota       !== '') params.quota_type_filter    = quota;
-        if (status      !== '') params.paid_status_filter   = status;
-        if (submittedBy !== '') params.submitted_by_filter  = submittedBy;
+        var quota           = $('#filter_quota').val();
+        var status          = $('#filter_form_status').val();
+        var submittedBy     = $('#filter_submitted_by').val();
+        var submitFrom      = $('#filter_submit_from').val();
+        var submitTo        = $('#filter_submit_to').val();
+        var lastPaymentDate = $('#filter_last_payment_date').val();
+        if (quota           !== '') params.quota_type_filter      = quota;
+        if (status          !== '') params.paid_status_filter     = status;
+        if (submittedBy     !== '') params.submitted_by_filter    = submittedBy;
+        if (submitFrom      !== '') params.submit_date_from       = submitFrom;
+        if (submitTo        !== '') params.submit_date_to         = submitTo;
+        if (lastPaymentDate !== '') params.last_payment_date      = lastPaymentDate;
         return params;
     }
 
@@ -213,6 +229,47 @@
         });
 
         $('#filter_form_status, #filter_quota, #filter_submitted_by').on('change', function () {
+            studentTable.ajax.reload();
+        });
+
+        // Date filters — use school date format via flatpickr-style or default datepicker
+        var dateFormat = '<?php echo $this->customlib->getSchoolDateFormat(); ?>';
+        // Map PHP date formats to jQuery UI datepicker formats
+        var dpFormat = dateFormat.replace('Y','yy').replace('m','mm').replace('d','dd');
+        $('.datepicker-filter').datepicker({
+            dateFormat: dpFormat,
+            changeMonth: true,
+            changeYear: true,
+            onSelect: function () { $(this).trigger('input'); }
+        });
+
+        $('.datepicker-filter').on('input change', function () {
+            // show/hide clear buttons
+            var submitFrom = $('#filter_submit_from').val();
+            var submitTo   = $('#filter_submit_to').val();
+            var payDate    = $('#filter_last_payment_date').val();
+            if (submitFrom !== '' || submitTo !== '') {
+                $('#clear_submit_dates').show();
+            } else {
+                $('#clear_submit_dates').hide();
+            }
+            if (payDate !== '') {
+                $('#clear_payment_date').show();
+            } else {
+                $('#clear_payment_date').hide();
+            }
+            studentTable.ajax.reload();
+        });
+
+        $('#clear_submit_dates').on('click', function () {
+            $('#filter_submit_from, #filter_submit_to').val('').datepicker('setDate', null);
+            $(this).hide();
+            studentTable.ajax.reload();
+        });
+
+        $('#clear_payment_date').on('click', function () {
+            $('#filter_last_payment_date').val('').datepicker('setDate', null);
+            $(this).hide();
             studentTable.ajax.reload();
         });
 
