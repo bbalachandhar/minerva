@@ -49,14 +49,17 @@ class Vehicle extends Admin_Controller
             $array = array('status' => 'fail', 'error' => $msg, 'message' => '');
         } else {            
             
-            $upload_result = $this->media_storage->fileupload("vehicle_photo", "./uploads/vehicle_photo/");
-            if ($upload_result['status'] === false) {
-                $msg = array('vehicle_photo' => $upload_result['message']);
-                $array = array('status' => 'fail', 'error' => $msg, 'message' => '');
-                echo json_encode($array);
-                return;
+            $vehicle_photo = '';
+            if (isset($_FILES["vehicle_photo"]) && !empty($_FILES['vehicle_photo']['name'])) {
+                $upload_result = $this->media_storage->fileupload("vehicle_photo", "./uploads/vehicle_photo/");
+                if ($upload_result['status'] === false) {
+                    $msg = array('vehicle_photo' => $upload_result['message']);
+                    $array = array('status' => 'fail', 'error' => $msg, 'message' => '');
+                    echo json_encode($array);
+                    return;
+                }
+                $vehicle_photo = $upload_result['message'];
             }
-            $vehicle_photo = $upload_result['message'];
             
             $data = array(
                 'vehicle_no'           => $this->input->post('vehicle_no'),
