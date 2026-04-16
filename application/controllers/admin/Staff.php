@@ -1710,7 +1710,7 @@ class Staff extends Admin_Controller
                 $staff_id  = $insert_id;
 
                 if (!$staff_id) {
-                    $this->session->set_flashdata('msg', '<div class="alert alert-danger">Staff could not be saved. Please check for duplicate Biometric ID or contact the administrator.</div>');
+                    $this->session->set_flashdata('msg', '<div class="alert alert-danger">Staff could not be saved. Please check for duplicate /empty Biometric ID or contact the administrator.</div>');
                     redirect('admin/staff/create');
                 }
 
