@@ -1424,14 +1424,6 @@ class Onlineexam extends Admin_Controller
         $headers = ['#', 'Name', 'Reference No', 'Mobile', 'Email', 'Attempted', 'Total Questions', 'Correct', 'Wrong', 'Skipped (Not Answered)', 'Max Marks', 'Marks Scored', 'Percentage (%)'];
         $sheet->fromArray($headers, null, 'A1');
 
-        // Style header row
-        $header_style = array(
-            'font'      => array('bold' => true, 'color' => array('rgb' => 'FFFFFF')),
-            'fill'      => array('type' => 'solid', 'startcolor' => array('rgb' => '1F4E79')),
-            'alignment' => array('horizontal' => 'center'),
-        );
-        $sheet->getStyle('A1:M1')->applyFromArray($header_style);
-
         $row_num = 2;
         $serial  = 1;
         foreach ($results as $r) {
@@ -1451,27 +1443,15 @@ class Onlineexam extends Admin_Controller
                 $r['percentage'],
             ];
             $sheet->fromArray($cell_data, null, 'A' . $row_num);
-
-            // Shade not-attempted rows grey
-            if ($r['attempted'] === 'No') {
-                $sheet->getStyle('A' . $row_num . ':M' . $row_num)
-                    ->getFill()->setFillType('solid')
-                    ->getStartColor()->setRGB('DDDDDD');
-            }
             $row_num++;
         }
 
-        // Auto-width columns
-        foreach (range('A', 'M') as $col) {
-            $sheet->getColumnDimension($col)->setAutoSize(true);
-        }
-
         $safe_name = preg_replace('/[^A-Za-z0-9_\-]/', '_', $exam_name);
-        $filename  = 'ExamResults_' . $safe_name . '_' . date('Y-m-d') . '.xlsx';
-        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        $filename  = 'ExamResults_' . $safe_name . '_' . date('Y-m-d') . '.xls';
+        header('Content-Type: application/vnd.ms-excel');
         header('Content-Disposition: attachment;filename="' . $filename . '"');
         header('Cache-Control: max-age=0');
-        $objWriter = PHPExcel_IOFactory::createWriter($this->excel, 'Excel2007');
+        $objWriter = PHPExcel_IOFactory::createWriter($this->excel, 'Excel5');
         $objWriter->save('php://output');
         exit;
     }
