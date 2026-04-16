@@ -144,7 +144,9 @@ class Onlineexam extends Admin_Controller
                 $cron_key_active   = $this->sch_setting_detail->cron_secret_key;
                 $invite_url_active = base_url() . 'index.php/cron/sendExamInvitations/' . urlencode($cron_key_active) . '/' . $subject_value->id;
                 $send_invite_btn   = "<a href='" . $invite_url_active . "' target='_blank' class='btn btn-info btn-xs' data-toggle='tooltip' title='Send exam invitation emails to all assigned applicants' onclick=\"return confirm('This will send invitation emails to ALL assigned applicants. Proceed?');\"><i class='fa fa-envelope'></i> Send Invitations</a>";
-                $row[]     = $download_btn . " " . $assign . " " . $addquestion_btn . " " . $editbtn . " " . $question_list . " " . $send_invite_btn . " " . $deletebtn;
+                $results_url_active = base_url() . 'index.php/admin/onlineexam/downloadresults/' . $subject_value->id;
+                $download_results_btn = "<a href='" . $results_url_active . "' class='btn btn-success btn-xs' data-toggle='tooltip' title='Download participant results as Excel'><i class='fa fa-download'></i> Download Results</a>";
+                $row[]     = $download_btn . " " . $assign . " " . $addquestion_btn . " " . $editbtn . " " . $question_list . " " . $send_invite_btn . " " . $download_results_btn . " " . $deletebtn;
                 $dt_data[] = $row;
             }
         }
@@ -259,7 +261,9 @@ class Onlineexam extends Admin_Controller
                 $cron_key_closed   = $this->sch_setting_detail->cron_secret_key;
                 $invite_url_closed = base_url() . 'index.php/cron/sendExamInvitations/' . urlencode($cron_key_closed) . '/' . $subject_value->id;
                 $send_invite_btn   = "<a href='" . $invite_url_closed . "' target='_blank' class='btn btn-info btn-xs' data-toggle='tooltip' title='Send exam invitation emails to all assigned applicants' onclick=\"return confirm('This will send invitation emails to ALL assigned applicants. Proceed?');\"><i class='fa fa-envelope'></i> Send Invitations</a>";
-                $row[]     = $download_btn . " " . $assign . " " . $addquestion_btn . " " . $editbtn . " " . $question_list . " " . $send_invite_btn . " " . $deletebtn;
+                $results_url_closed = base_url() . 'index.php/admin/onlineexam/downloadresults/' . $subject_value->id;
+                $download_results_btn = "<a href='" . $results_url_closed . "' class='btn btn-success btn-xs' data-toggle='tooltip' title='Download participant results as Excel'><i class='fa fa-download'></i> Download Results</a>";
+                $row[]     = $download_btn . " " . $assign . " " . $addquestion_btn . " " . $editbtn . " " . $question_list . " " . $send_invite_btn . " " . $download_results_btn . " " . $deletebtn;
                 $dt_data[] = $row;
             }
         }
@@ -1307,6 +1311,169 @@ class Onlineexam extends Admin_Controller
         $data['question_level']   = $this->config->item('question_level');
         $questionList = $this->load->view('admin/onlineexam/_getexamquestions', $data, true);
         echo json_encode(array('status' => 1, 'result' => $questionList, 'exam' => $exam));
+    }
+
+    public function downloadresults($exam_id)
+    {
+        if (!$this->rbac->hasPrivilege('onlineexam', 'can_view')) {
+            access_denied();
+        }
+
+        $exam_id = (int) $exam_id;
+        if ($exam_id <= 0) { show_404(); }
+
+        // Exam details
+        $exam = $this->onlineexam_model->get($exam_id);
+        if (empty($exam)) { show_404(); }
+        $exam_name      = is_array($exam) ? $exam['exam'] : $exam->exam;
+        $is_neg_marking = is_array($exam) ? (int)$exam['is_neg_marking'] : (int)$exam->is_neg_marking;
+
+        // Total questions and max marks for this exam
+        $totals = $this->db
+            ->select('COUNT(*) as total_q, SUM(oq.marks) as max_marks')
+            ->from('onlineexam_questions oq')
+            ->where('oq.onlineexam_id', $exam_id)
+            ->get()->row_array();
+        $total_questions = (int) $totals['total_q'];
+        $max_marks       = (float) $totals['max_marks'];
+
+        // All participants (both students and applicants)
+        $this->db->select('
+            os.id as os_id,
+            os.candidate_type,
+            os.is_attempted,
+            oa.reference_no,
+            CONCAT(oa.firstname, " ", COALESCE(oa.lastname, "")) as applicant_name,
+            oa.email,
+            oa.mobileno
+        ');
+        $this->db->from('onlineexam_students os');
+        $this->db->join('online_admissions oa', 'oa.id = os.online_admission_id', 'left');
+        $this->db->where('os.onlineexam_id', $exam_id);
+        $this->db->where('os.candidate_type', 'applicant');
+        $this->db->order_by('oa.firstname', 'asc');
+        $participants = $this->db->get()->result_array();
+
+        // Per-participant result calculation
+        $results = array();
+        foreach ($participants as $p) {
+            $os_id = (int) $p['os_id'];
+
+            if ($p['is_attempted'] == 0) {
+                $results[] = array(
+                    'name'       => trim($p['applicant_name']),
+                    'ref_no'     => $p['reference_no'],
+                    'mobile'     => $p['mobileno'],
+                    'email'      => $p['email'],
+                    'attempted'  => 'No',
+                    'correct'    => 0,
+                    'wrong'      => 0,
+                    'skipped'    => $total_questions,
+                    'marks'      => 0,
+                    'max_marks'  => $max_marks,
+                    'percentage' => '0.00',
+                );
+                continue;
+            }
+
+            $calc = $this->db->query("
+                SELECT
+                    SUM(CASE WHEN osr.select_option = q.correct THEN 1 ELSE 0 END) as correct,
+                    SUM(CASE WHEN osr.select_option != q.correct THEN 1 ELSE 0 END) as wrong,
+                    COUNT(*) as answered,
+                    SUM(CASE WHEN osr.select_option = q.correct THEN oq.marks ELSE 0 END)
+                        " . ($is_neg_marking ? "- SUM(CASE WHEN osr.select_option != q.correct THEN COALESCE(oq.neg_marks, 0) ELSE 0 END)" : "") . " as scored_marks
+                FROM onlineexam_student_results osr
+                JOIN onlineexam_questions oq ON oq.id = osr.onlineexam_question_id
+                JOIN questions q ON q.id = oq.question_id
+                WHERE osr.onlineexam_student_id = " . $os_id
+            )->row_array();
+
+            $correct       = (int) ($calc['correct'] ?? 0);
+            $wrong         = (int) ($calc['wrong']   ?? 0);
+            $answered      = (int) ($calc['answered'] ?? 0);
+            $scored        = max(0, (float) ($calc['scored_marks'] ?? 0));
+            $skipped       = $total_questions - $answered;
+            $percentage    = ($max_marks > 0) ? round(($scored / $max_marks) * 100, 2) : 0;
+
+            $results[] = array(
+                'name'       => trim($p['applicant_name']),
+                'ref_no'     => $p['reference_no'],
+                'mobile'     => $p['mobileno'],
+                'email'      => $p['email'],
+                'attempted'  => 'Yes',
+                'correct'    => $correct,
+                'wrong'      => $wrong,
+                'skipped'    => $skipped,
+                'marks'      => $scored,
+                'max_marks'  => $max_marks,
+                'percentage' => number_format($percentage, 2),
+            );
+        }
+
+        // Sort by marks descending for ranking
+        usort($results, function($a, $b) {
+            return $b['marks'] <=> $a['marks'];
+        });
+
+        // Build Excel
+        $this->load->library('excel');
+        $sheet = $this->excel->getActiveSheet();
+        $sheet->setTitle('Exam Results');
+
+        $headers = ['#', 'Name', 'Reference No', 'Mobile', 'Email', 'Attempted', 'Total Questions', 'Correct', 'Wrong', 'Skipped (Not Answered)', 'Max Marks', 'Marks Scored', 'Percentage (%)'];
+        $sheet->fromArray($headers, null, 'A1');
+
+        // Style header row
+        $header_style = array(
+            'font'      => array('bold' => true, 'color' => array('rgb' => 'FFFFFF')),
+            'fill'      => array('type' => PHPExcel_Style_Fill::FILL_SOLID, 'startcolor' => array('rgb' => '1F4E79')),
+            'alignment' => array('horizontal' => PHPExcel_Style_Alignment::HORIZONTAL_CENTER),
+        );
+        $sheet->getStyle('A1:M1')->applyFromArray($header_style);
+
+        $row_num = 2;
+        $serial  = 1;
+        foreach ($results as $r) {
+            $cell_data = [
+                $serial++,
+                $r['name'],
+                $r['ref_no'],
+                $r['mobile'],
+                $r['email'],
+                $r['attempted'],
+                $total_questions,
+                $r['correct'],
+                $r['wrong'],
+                $r['skipped'],
+                $r['max_marks'],
+                $r['marks'],
+                $r['percentage'],
+            ];
+            $sheet->fromArray($cell_data, null, 'A' . $row_num);
+
+            // Shade not-attempted rows grey
+            if ($r['attempted'] === 'No') {
+                $sheet->getStyle('A' . $row_num . ':M' . $row_num)
+                    ->getFill()->setFillType(PHPExcel_Style_Fill::FILL_SOLID)
+                    ->getStartColor()->setRGB('DDDDDD');
+            }
+            $row_num++;
+        }
+
+        // Auto-width columns
+        foreach (range('A', 'M') as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        $safe_name = preg_replace('/[^A-Za-z0-9_\-]/', '_', $exam_name);
+        $filename  = 'ExamResults_' . $safe_name . '_' . date('Y-m-d') . '.xlsx';
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment;filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+        $objWriter = PHPExcel_IOFactory::createWriter($this->excel, 'Excel2007');
+        $objWriter->save('php://output');
+        exit;
     }
 
     public function downloadattachment($doc)
