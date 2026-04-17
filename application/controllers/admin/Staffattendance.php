@@ -668,7 +668,12 @@ class Staffattendance extends Admin_Controller
                         $morning_session_status = $present_id;
                     } else {
                         $shl_range = isset($role_settings[$role_id][6]) ? $role_settings[$role_id][6] : null;
-                        if ($shl_range && !empty($shl_range['to']) && strtotime($in_time) > strtotime($shl_range['to'])) {
+                        // Skip if SHL window is unconfigured (00:00:00–00:00:00); !empty('00:00:00') is true in PHP
+                        // so we must explicitly exclude the zero-time placeholder to avoid a false positive
+                        // that would mark every unmatched in_time as both-halves-absent.
+                        $shl_configured = $shl_range
+                            && !($shl_range['from'] === '00:00:00' && $shl_range['to'] === '00:00:00');
+                        if ($shl_configured && strtotime($in_time) > strtotime($shl_range['to'])) {
                             $morning_session_status = 8;
                             $afternoon_session_status = 9;
                             $second_half_start = true;
