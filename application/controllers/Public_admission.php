@@ -477,6 +477,7 @@ class Public_admission extends Front_Controller
                     $this->data['measure_date']         = $this->input->post('measure_date');
                     
                     $this->data['admission_id']        = $insert_id;
+                    $this->_autoAssignApplicantExams($insert_id);
                     $this->session->set_userdata('validlogin', $reference_no);
                     $this->session->set_flashdata('msg', '<div class="alert alert-success">' . ' ' . $this->lang->line('thanks_for_registration_please_note_your_reference_number') . ' ' . $reference_no . ' ' . $this->lang->line('for_further_communication') . '</div>');
                     redirect('public_admission/online_admission_review/' . $reference_no);
@@ -1779,6 +1780,38 @@ class Public_admission extends Front_Controller
         $this->load->view('layout/applicant/header', $this->data);
         $this->load->view('public_admission/payment_history', $this->data);
         $this->load->view('layout/applicant/footer', $this->data);
+    }
+
+    private function _autoAssignApplicantExams($admission_id)
+    {
+        if (empty($admission_id) || !$this->db->field_exists('candidate_type', 'onlineexam_students')
+            || !$this->db->field_exists('online_admission_id', 'onlineexam_students')) {
+            return;
+        }
+
+        $this->db->select('DISTINCT(os.onlineexam_id) AS onlineexam_id', false);
+        $this->db->from('onlineexam_students os');
+        $this->db->join('onlineexam oe', 'oe.id = os.onlineexam_id', 'inner');
+        $this->db->where('os.candidate_type', 'applicant');
+        $this->db->where('oe.is_active', 1);
+        $this->db->where('oe.exam_to >=', date('Y-m-d H:i:s'));
+        $active_exams = $this->db->get()->result_array();
+
+        foreach ($active_exams as $exam_row) {
+            $exam_id = $exam_row['onlineexam_id'];
+            $already = $this->db->where('onlineexam_id', $exam_id)
+                ->where('online_admission_id', $admission_id)
+                ->where('candidate_type', 'applicant')
+                ->count_all_results('onlineexam_students');
+            if ($already == 0) {
+                $this->db->insert('onlineexam_students', [
+                    'onlineexam_id'       => $exam_id,
+                    'online_admission_id' => $admission_id,
+                    'candidate_type'      => 'applicant',
+                    'is_attempted'        => 0,
+                ]);
+            }
+        }
     }
 
     /**
