@@ -1789,6 +1789,16 @@ class Public_admission extends Front_Controller
             return;
         }
 
+        // Only assign exams to UG first-year applicants; PG and Lateral Entry are not eligible.
+        $admission_row = $this->db->select('course_level, admission_type')
+            ->where('id', $admission_id)
+            ->get('online_admissions')->row_array();
+        if (empty($admission_row)
+            || strtolower($admission_row['course_level'] ?? '') !== 'ug'
+            || strtolower($admission_row['admission_type'] ?? '') !== 'first_year') {
+            return;
+        }
+
         $this->db->select('DISTINCT(os.onlineexam_id) AS onlineexam_id', false);
         $this->db->from('onlineexam_students os');
         $this->db->join('onlineexam oe', 'oe.id = os.onlineexam_id', 'inner');
