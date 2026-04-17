@@ -40,13 +40,18 @@ foreach ($monthlist as $key => $value) {
             } elseif (array_key_exists($att_dates, $resultlist) && !empty($resultlist[$att_dates]["key"]) && !in_array($att_dates, $holiday_dates_year, true)) {
                 // Only show database record if it's NOT a holiday
                 $display_key = $resultlist[$att_dates]["key"];
-                if ($display_key === 'P' || in_array($display_key, $present_variant_keys)) {
-                    $display_class = 'att-cell-present';
-                } elseif ($display_key === 'HD') {
-                    $display_class = 'att-cell-halfday';
-                } elseif ($display_key === 'A') {
-                    $display_class = 'att-cell-absent';
-                }
+                $display_class = match($display_key) {
+                    'P'   => 'att-cell-present',
+                    'FHL' => 'att-cell-fhl',
+                    'SHL' => 'att-cell-shl',
+                    'FHP' => 'att-cell-fhp',
+                    'SHP' => 'att-cell-shp',
+                    'FHA' => 'att-cell-fha',
+                    'SHA' => 'att-cell-sha',
+                    'HD'  => 'att-cell-halfday',
+                    'A'   => 'att-cell-absent',
+                    default => '',
+                };
             }
             $tooltip_title = '';
             if (!empty($display_key) && !in_array($display_key, ['H', 'W']) && isset($resultlist[$att_dates])) {

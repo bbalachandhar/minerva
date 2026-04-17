@@ -1006,11 +1006,17 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                     display: inline-block;
                                     min-width: 28px;
                                 }
-                                .att-cell-present { background: linear-gradient(135deg, #2ecc71, #27ae60); }
-                                .att-cell-absent { background: linear-gradient(135deg, #e74c3c, #c0392b); }
-                                .att-cell-halfday { background: linear-gradient(135deg, #9b59b6, #8e44ad); }
-                                .att-cell-weekend { background: linear-gradient(135deg, #34495e, #2c3e50); }
-                                .att-cell-holiday { background: linear-gradient(135deg, #3498db, #2980b9); }
+                                .att-cell-present  { background: linear-gradient(135deg, #2ecc71, #27ae60); }
+                                .att-cell-fhl      { background: linear-gradient(135deg, #f39c12, #e67e22); } /* orange – First Half Late */
+                                .att-cell-shl      { background: linear-gradient(135deg, #e67e22, #d35400); } /* dark orange – Second Half Late */
+                                .att-cell-fhp      { background: linear-gradient(135deg, #1abc9c, #16a085); } /* teal – First Half Permission */
+                                .att-cell-shp      { background: linear-gradient(135deg, #3498db, #2980b9); } /* blue – Second Half Permission */
+                                .att-cell-fha      { background: linear-gradient(135deg, #e74c3c, #c0392b); opacity:.7; } /* light red – First Half Absent */
+                                .att-cell-sha      { background: linear-gradient(135deg, #e74c3c, #c0392b); opacity:.7; } /* light red – Second Half Absent */
+                                .att-cell-absent   { background: linear-gradient(135deg, #e74c3c, #c0392b); }
+                                .att-cell-halfday  { background: linear-gradient(135deg, #9b59b6, #8e44ad); }
+                                .att-cell-weekend  { background: linear-gradient(135deg, #34495e, #2c3e50); }
+                                .att-cell-holiday  { background: linear-gradient(135deg, #3498db, #2980b9); }
                                 .att-cell-compensation { background: linear-gradient(135deg, #f39c12, #f1c40f); }
                             </style>
                             <?php
@@ -1236,13 +1242,18 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                                         } elseif (array_key_exists($att_dates, $resultlist) && !empty($resultlist[$att_dates]["key"]) && !in_array($att_dates, $holiday_dates_year, true)) {
                                                             // Only show database record if it's NOT a holiday
                                                             $display_key = $resultlist[$att_dates]["key"];
-                                                            if ($display_key === 'P') {
-                                                                $display_class = 'att-cell-present';
-                                                            } elseif ($display_key === 'HD') {
-                                                                $display_class = 'att-cell-halfday';
-                                                            } elseif ($display_key === 'A') {
-                                                                $display_class = 'att-cell-absent';
-                                                            }
+                                                            $display_class = match($display_key) {
+                                                                'P'   => 'att-cell-present',
+                                                                'FHL' => 'att-cell-fhl',
+                                                                'SHL' => 'att-cell-shl',
+                                                                'FHP' => 'att-cell-fhp',
+                                                                'SHP' => 'att-cell-shp',
+                                                                'FHA' => 'att-cell-fha',
+                                                                'SHA' => 'att-cell-sha',
+                                                                'HD'  => 'att-cell-halfday',
+                                                                'A'   => 'att-cell-absent',
+                                                                default => '',
+                                                            };
                                                         }
                                                         $tooltip_title = '';
                                                         if (!empty($display_key) && !in_array($display_key, ['H', 'W']) && isset($resultlist[$att_dates])) {
