@@ -700,7 +700,12 @@ class Staffattendance extends Admin_Controller
                                 $afternoon_session_status = 9;
                             } else {
                                 $present_cutoff = null;
-                                if ($shp_range && !empty($shp_range['to'])) {
+                                // Same 00:00:00 guard as SHL: !empty('00:00:00') is true in PHP,
+                                // so explicitly skip the unconfigured placeholder to avoid treating
+                                // midnight as the cutoff and marking every out_time as afternoon-present.
+                                $shp_configured = $shp_range
+                                    && !($shp_range['from'] === '00:00:00' && $shp_range['to'] === '00:00:00');
+                                if ($shp_configured && !empty($shp_range['to'])) {
                                     $present_cutoff = $shp_range['to'];
                                 } elseif (!empty($settings->evening_session_end_time)) {
                                     $present_cutoff = $settings->evening_session_end_time;
