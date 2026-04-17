@@ -1540,6 +1540,9 @@ class Attendencereports extends Admin_Controller
         $morning_type_id = null;
         if (!empty($role_settings[$role_id])) {
             foreach ($role_settings[$role_id] as $type_id => $window) {
+                // Skip unconfigured 00:00:00–00:00:00 placeholder windows; !empty('00:00:00') is
+                // TRUE in PHP so we must guard explicitly to avoid false BETWEEN matches.
+                if ($window['from'] === '00:00:00' && $window['to'] === '00:00:00') continue;
                 if (!empty($window['from']) && !empty($window['to'])
                     && strtotime($in_time) >= strtotime($window['from'])
                     && strtotime($in_time) <= strtotime($window['to'])) {
@@ -1567,10 +1570,13 @@ class Attendencereports extends Admin_Controller
                 && strtotime($in_time) < strtotime($present_window['from'])) {
                 $morning_session_status = 1; // Early → Present
             } else {
-                // Past SHL window end → both halves absent
+                // Past SHL window end → both halves absent.
+                // Guard against unconfigured 00:00:00–00:00:00 placeholder:
+                // !empty('00:00:00') is TRUE in PHP, so explicitly skip it.
                 $shl_window = isset($role_settings[$role_id][6]) ? $role_settings[$role_id][6] : null;
-                if ($shl_window && !empty($shl_window['to'])
-                    && strtotime($in_time) > strtotime($shl_window['to'])) {
+                $shl_configured = $shl_window
+                    && !($shl_window['from'] === '00:00:00' && $shl_window['to'] === '00:00:00');
+                if ($shl_configured && strtotime($in_time) > strtotime($shl_window['to'])) {
                     $morning_session_status  = 8;
                     $afternoon_session_status = 9;
                     $second_half_start = true;
@@ -1615,8 +1621,12 @@ class Attendencereports extends Admin_Controller
                 } else {
                     // Step 3: full-day boundary = SHP window end, then evening_session_end_time.
                     // Departing at or after this = full afternoon present.
+                    // Step 3: full-day boundary = SHP window end, then evening_session_end_time.
+                    // Guard against unconfigured 00:00:00 placeholder (same PHP !empty() trap).
                     $present_cutoff = null;
-                    if ($shp_window && !empty($shp_window['to'])) {
+                    $shp_configured = $shp_window
+                        && !($shp_window['from'] === '00:00:00' && $shp_window['to'] === '00:00:00');
+                    if ($shp_configured && !empty($shp_window['to'])) {
                         $present_cutoff = $shp_window['to'];
                     } elseif (!empty($settings->evening_session_end_time)) {
                         $present_cutoff = $settings->evening_session_end_time;

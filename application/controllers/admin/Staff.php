@@ -3236,6 +3236,9 @@ class Staff extends Admin_Controller
         $morning_type_id = null;
         if (!empty($role_settings[$role_id])) {
             foreach ($role_settings[$role_id] as $type_id => $window) {
+                // Skip unconfigured 00:00:00–00:00:00 placeholder windows; !empty('00:00:00') is
+                // TRUE in PHP so we must guard explicitly to avoid false BETWEEN matches.
+                if ($window['from'] === '00:00:00' && $window['to'] === '00:00:00') continue;
                 if (!empty($window['from']) && !empty($window['to'])
                     && strtotime($in_time) >= strtotime($window['from'])
                     && strtotime($in_time) <= strtotime($window['to'])) {
