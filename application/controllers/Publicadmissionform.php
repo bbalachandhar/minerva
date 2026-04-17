@@ -507,6 +507,7 @@ class PublicAdmissionForm extends CI_Controller
                             
                             
                             $insert_id = $this->onlinestudent_model->add($data_db); // Renamed to avoid conflict with $data property
+                            $this->_autoAssignApplicantExams($insert_id);
                             if (!empty($custom_value_array)) {
                                 $this->customfield_model->onlineadmissioninsertRecord($custom_value_array, $insert_id);
                             }
@@ -863,6 +864,7 @@ class PublicAdmissionForm extends CI_Controller
             $sender_details = array('firstname' => $firstname, 'lastname' => $lastname, 'email' => $email, 'date' => $date, 'reference_no' => $reference_no, 'mobileno' => $mobileno, 'guardian_email' => $result['guardian_email'], 'guardian_phone' => $result['guardian_phone']);
 
             $this->mailsmsconf->mailsms('online_admission_form_submission', $sender_details);
+            $this->_autoAssignApplicantExams($admission_id);
 
             $array = array('status' => '1', 'error' => '', 'id' => $admission_id, 'msg' => '', 'reference_no' => $reference_no);
 
@@ -1570,6 +1572,7 @@ class PublicAdmissionForm extends CI_Controller
             }
 
             $online_admission_id = $this->onlinestudent_model->add($insert_data_online_admission);
+            $this->_autoAssignApplicantExams($online_admission_id);
 
             // Update enquiry status only when a valid enquiry_id is provided
             $enquiry_id = trim((string)$this->input->post('enquiry_id'));
@@ -2148,6 +2151,7 @@ class PublicAdmissionForm extends CI_Controller
             }
 
             $online_admission_id = $this->onlinestudent_model->add($insert_data_online_admission);
+            $this->_autoAssignApplicantExams($online_admission_id);
             
             // Debug: Check if insert was successful
             if (!$online_admission_id) {
@@ -2396,4 +2400,78 @@ class PublicAdmissionForm extends CI_Controller
 
         return ($course_name !== '' && stripos($course_name, 'ARCH') !== false);
     }
+
+    /**
+     * Auto-assign a newly created/submitted applicant to all active exams
+     * that are already configured for applicants (candidate_type = 'applicant').
+     * Safe to call multiple times — uses INSERT IGNORE / duplicate check.
+     */
+    private function _autoAssignApplicantExams($admission_id)
+    {
+        if (empty($admission_id) || !$this->db->field_exists('candidate_type', 'onlineexam_students')
+            || !$this->db->field_exists('online_admission_id', 'onlineexam_students')) {
+            return;
+        }
+
+        // Get distinct exam IDs already configured for applicants that are still active
+        $this->db->select('DISTINCT(os.onlineexam_id) AS onlineexam_id', false);
+        $this->db->from('onlineexam_students os');
+        $this->db->join('onlineexam oe', 'oe.id = os.onlineexam_id', 'inner');
+        $this->db->where('os.candidate_type', 'applicant');
+        $this->db->where('oe.is_active', 1);
+        $this->db->where('oe.exam_to >=', date('Y-m-d H:i:s'));
+        $active_exams = $this->db->get()->result_array();
+
+        foreach ($active_exams as $exam_row) {
+            $exam_id = $exam_row['onlineexam_id'];
+            // Skip if already assigned
+            $already = $this->db->where('onlineexam_id', $exam_id)
+                ->where('online_admission_id', $admission_id)
+                ->where('candidate_type', 'applicant')
+                ->count_all_results('onlineexam_students');
+            if ($already == 0) {
+                $this->db->insert('onlineexam_students', [
+                    'onlineexam_id'       => $exam_id,
+                    'online_admission_id' => $admission_id,
+                    'candidate_type'      => 'applicant',
+                    'is_attempted'        => 0,
+                ]);
+            }
+        }
+    }
+
+    /**
+     * Auto-assign a newly created/submitted applicant to all active exams
+     * already configured for applicants. Safe to call multiple times.
+     */
+    private function _autoAssignApplicantExams($admission_id)
+    {
+        if (empty($admission_id) || !$this->db->field_exists('candidate_type', 'onlineexam_students')
+            || !$this->db->field_exists('online_admission_id', 'onlineexam_students')) {
+            return;
+        }
+        $this->db->select('DISTINCT(os.onlineexam_id) AS onlineexam_id', false);
+        $this->db->from('onlineexam_students os');
+        $this->db->join('onlineexam oe', 'oe.id = os.onlineexam_id', 'inner');
+        $this->db->where('os.candidate_type', 'applicant');
+        $this->db->where('oe.is_active', 1);
+        $this->db->where('oe.exam_to >=', date('Y-m-d H:i:s'));
+        $active_exams = $this->db->get()->result_array();
+        foreach ($active_exams as $exam_row) {
+            $exam_id = $exam_row['onlineexam_id'];
+            $already = $this->db->where('onlineexam_id', $exam_id)
+                ->where('online_admission_id', $admission_id)
+                ->where('candidate_type', 'applicant')
+                ->count_all_results('onlineexam_students');
+            if ($already == 0) {
+                $this->db->insert('onlineexam_students', [
+                    'onlineexam_id'       => $exam_id,
+                    'online_admission_id' => $admission_id,
+                    'candidate_type'      => 'applicant',
+                    'is_attempted'        => 0,
+                ]);
+            }
+        }
+    }
+
 }
