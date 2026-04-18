@@ -1498,7 +1498,8 @@ class PublicAdmissionForm extends CI_Controller
             $normalized_dob = $this->normalize_dob_value($data['dob'] ?? '');
 
             $insert_data_online_admission = array(
-                'reference_no' => $reference_no,
+                'reference_no'       => $reference_no,
+                'applicant_password' => md5($reference_no . '@ApplicantPortal' . date('Y')),
                 'firstname' => $data['user_name'],
                 'mobileno' => $data['student_mobile'],
                 'email' => $data['student_email'],
@@ -2078,7 +2079,8 @@ class PublicAdmissionForm extends CI_Controller
             $normalized_dob = $this->normalize_dob_value($data['dob'] ?? '');
 
             $insert_data_online_admission = array(
-                'reference_no' => $reference_no,
+                'reference_no'       => $reference_no,
+                'applicant_password' => md5($reference_no . '@ApplicantPortal' . date('Y')),
                 'firstname' => $data['user_name'],
                 'mobileno' => $data['student_mobile'],
                 'email' => $data['student_email'],
