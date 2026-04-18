@@ -151,6 +151,15 @@ if (!empty($online_exam_validate)) {
     }
     ?>
                  <h4 class="text-center font-weight-bold"><?php echo $exam->exam; ?></h4>
+                 <?php if (!empty($question_result)): ?>
+                 <p class="text-center" style="margin:2px 0 6px;">
+                     <b><?php echo $this->lang->line('subject'); ?>:</b>
+                     <?php echo $question_result[0]->subject_name; ?>
+                     <?php if ($question_result[0]->subject_code) { echo '(' . $question_result[0]->subject_code . ')'; } ?>
+                     &nbsp;&nbsp;
+                     <b><?php echo $this->lang->line('marks'); ?>:</b> <?php echo $question_result[0]->marks; ?> <?php echo $this->lang->line('per_question'); ?>
+                 </p>
+                 <?php endif; ?>
                   <div class="row ">
                      <div class="col-md-4">
                                 <div><span class="font-weight-bold"><?php echo $this->lang->line('student_name'); ?> : </span>
@@ -281,10 +290,7 @@ if ($dispaly_negative_marks && $question_value->question_type != "descriptive") 
             ?>
                                                               </span>
                            </p>
-                           <p>
-                              <b><?php echo $this->lang->line('subject') ?>:</b>
-                              <?php echo $question_value->subject_name; ?> <?php if($question_value->subject_code){ echo ' ('.$question_value->subject_code.')'; } ?>
-                           </p>
+
                            <?php
 if ($question_value->question_type != "descriptive") {
 
@@ -297,21 +303,18 @@ if ($question_value->question_type != "descriptive") {
                         }
                         if ($question_display) {
                             if (($question_value->correct == $question_opt_key) && $question_value->select_option == null) {
-                                $cls     = "text text-success";
-                                $fa_icon = "fa fa-check-circle-o";
+                                $cls = "text text-success";
                             } elseif (($question_value->correct == $question_opt_key)) {
-                                $cls     = "text text-success";
-                                $fa_icon = "fa fa-check-circle";
+                                $cls = "text text-success";
                             } elseif (($question_value->select_option == $question_opt_key)) {
-                                $cls     = "text text-danger";
-                                $fa_icon = "fa fa-times-circle-o";
+                                $cls = "text text-danger";
                             } else {
-                                $cls     = "";
-                                $fa_icon = "fa fa-dot-circle-o";
+                                $cls = "";
                             }
+                            $opt_label = chr(96 + $question_total_option) . ')';
                             ?>
                            <div class="<?php echo $cls; ?>">
-                              <i class="<?php echo $fa_icon; ?>"></i> <?php echo $question_value->{$question_opt_key}; ?>
+                              <b><?php echo $opt_label; ?></b> <?php echo $question_value->{$question_opt_key}; ?>
                            </div>
                            <?php
 }
@@ -321,21 +324,17 @@ if ($question_value->question_type != "descriptive") {
                     foreach ($question_true_false as $question_true_false_key => $question_true_false_value) {
 
                         if (($question_value->correct == $question_true_false_key) && $question_value->select_option == null) {
-                            $cls     = "text text-success";
-                            $fa_icon = "fa fa-check-circle-o";
+                            $cls = "text text-success";
                         } elseif (($question_value->correct == $question_true_false_key)) {
-                            $cls     = "text text-success";
-                            $fa_icon = "fa fa-check-circle";
+                            $cls = "text text-success";
                         } elseif (($question_value->select_option == $question_true_false_key)) {
-                            $cls     = "text text-danger";
-                            $fa_icon = "fa fa-times-circle-o";
+                            $cls = "text text-danger";
                         } else {
-                            $cls     = "";
-                            $fa_icon = "fa fa-dot-circle-o";
+                            $cls = "";
                         }
                         ?>
                            <div class="<?php echo $cls; ?>">
-                              <i class="<?php echo $fa_icon; ?>"></i> <?php echo $question_true_false_value; ?>
+                              <?php echo $question_true_false_value; ?>
                            </div>
                            <?php
 }
@@ -353,21 +352,18 @@ if ($question_value->question_type != "descriptive") {
                             $selected_answer = isJSON($question_value->select_option) ? json_decode($question_value->select_option) : array();
 
                             if (in_array($question_opt_key, $correct_answer) && !in_array($question_opt_key, $selected_answer)) {
-                                $cls     = "text text-success";
-                                $fa_icon = "fa fa-check-circle-o";
+                                $cls = "text text-success";
                             } elseif (in_array($question_opt_key, $correct_answer)) {
-                                $cls     = "text text-success";
-                                $fa_icon = "fa fa-check-circle";
+                                $cls = "text text-success";
                             } elseif (in_array($question_opt_key, $selected_answer)) {
-                                $cls     = "text text-danger";
-                                $fa_icon = "fa fa-times-circle-o";
+                                $cls = "text text-danger";
                             } else {
-                                $cls     = "";
-                                $fa_icon = "fa fa-dot-circle-o";
+                                $cls = "";
                             }
+                            $opt_label = chr(96 + $question_total_option) . ')';
                             ?>
                            <div class="<?php echo $cls; ?>">
-                              <i class="<?php echo $fa_icon; ?>"></i> <?php echo $question_value->{$question_opt_key}; ?>
+                              <b><?php echo $opt_label; ?></b> <?php echo $question_value->{$question_opt_key}; ?>
                            </div>
                            <?php
 }
