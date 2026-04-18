@@ -40,7 +40,15 @@ foreach ($studentlistbysection as $stkey => $stvalue) {
         if ($stvalue['section_id'] == $snvalue["section_id"]) { ?>
                                         <div class="studentname">
                                             <a class="" href="<?php echo base_url() . "studentfee/addfee/" . $stvalue["student_session_id"] ?>">
-                                                <div class="icon"><img src="<?php echo base_url() . $stvalue["image"] . img_time(); ?>" alt="User Image"></div>
+                                                <div class="icon"><img src="<?php
+if (!empty($stvalue['image'])) {
+    echo base_url() . $stvalue['image'] . img_time();
+} elseif ($stvalue['gender'] == 'Female') {
+    echo base_url() . 'uploads/student_images/default_female.jpg' . img_time();
+} else {
+    echo base_url() . 'uploads/student_images/default_male.jpg' . img_time();
+}
+?>" alt="User Image"></div>
                                                 <div class="student-tittle"><?php echo $stvalue["firstname"] . " " . $stvalue["lastname"]; ?></div></a>
                                         </div>
                                         <?php
@@ -89,12 +97,10 @@ foreach ($studentlistbysection as $stkey => $stvalue) {
                                         <img width="115" height="115" class="mt5 mb10 sfborder-img-shadow img-responsive img-rounded" src="<?php
 if (!empty($student["image"])) {
     echo $this->media_storage->getImageURL($student["image"]);
+} elseif ($student['gender'] == 'Female') {
+    echo $this->media_storage->getImageURL("uploads/student_images/default_female.jpg");
 } else {
-    if ($student['gender'] == 'Female') {
-        echo $this->media_storage->getImageURL("uploads/student_images/default_female.jpg");
-    } elseif ($student['gender'] == 'Male') {
-        echo $this->media_storage->getImageURL("uploads/student_images/default_male.jpg");
-    }
+    echo $this->media_storage->getImageURL("uploads/student_images/default_male.jpg");
 }
 ?>
                 " alt="No Image">
