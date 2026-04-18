@@ -94,18 +94,27 @@ margin: 5px;
                </div>
                <hr class="hrtop">
                 <div class="row clear">
-                               <div class="col-md-4">
+                               <div class="col-md-3">
                                  <div><span class="font-weight-bold"><?php echo $this->lang->line('passing') ?>  (%) : </span>
                                  <?php echo $exam->passing_percentage; ?></div>
                         </div>
-                         <div class="col-md-4">
+                         <div class="col-md-3">
                               <div>
                                 <span class="font-weight-bold"><?php echo $this->lang->line('total_questions') ?> : </span> <?php echo $exam->total_ques; ?></div>
 
                               </div>
-<div class="col-md-4">
-                                 <div class="pull-right"><span class="font-weight-bold"><?php echo $this->lang->line('duration') ?> : </span>
+<div class="col-md-3">
+                                 <div><span class="font-weight-bold"><?php echo $this->lang->line('duration') ?> : </span>
                                  <?php echo $exam->duration; ?></div>
+                               </div>
+                               <div class="col-md-3">
+                                 <?php if (!empty($questions)): ?>
+                                 <div><span class="font-weight-bold"><?php echo $this->lang->line('subject') ?>: </span>
+                                 <?php echo $questions[0]->subject_name; ?>
+                                 <?php if ($questions[0]->subject_code) { echo ' (' . $questions[0]->subject_code . ')'; } ?>
+                                 &nbsp;&nbsp;<span class="font-weight-bold"><?php echo $this->lang->line('marks') ?>:</span> (<?php echo $questions[0]->onlineexam_question_marks; ?>)
+                                 </div>
+                                 <?php endif; ?>
                                </div>
                 </div>
                 <hr class="hrtop">
@@ -120,26 +129,8 @@ if (!empty($questions)) {
 <div class="mb10">
                        <div class="rltpaddleft">
                         <div class="row">
-                          <div class="col-md-4">
+                          <div class="col-md-12">
                          <span class="font-weight-bold"> <?php echo $this->lang->line('q_id') ?> :  </span> <?php echo $question_value->id; ?>
-                          </div>
-                            <div class="col-md-8">
-                             <span class="text text-danger pull-right">
-                             <span class="font-weight-bold"> <?php echo $this->lang->line('marks') ?>: </span>(<?php echo $question_value->onlineexam_question_marks ?>)&nbsp;&nbsp;&nbsp;
-                                <?php
-if ($dispaly_negative_marks && $question_value->question_type != "descriptive") {
-
-            ?>
-                                 <span class="font-weight-bold"><?php echo $this->lang->line('negative_marks') ?>: </span>(<?php echo $question_value->neg_marks; ?>)&nbsp;&nbsp;&nbsp;
-
-                                <?php
-}
-        ?>
-   <span >
-                                    <label><?php echo $this->lang->line('subject') ?>:</label>
-                                        <?php echo $question_value->subject_name; ?> <?php if($question_value->subject_code){ echo ' ('.$question_value->subject_code.')'; } ?>
-                                </span>
-                       </span>
                           </div>
                         </div>
 
@@ -156,10 +147,10 @@ if ($question_value->question_type != "descriptive") {
                         $question_display = false;
                     }
                     if ($question_display) {
-
+                        $opt_label = chr(96 + $question_total_option) . ')';
                         ?>
-                           <div class="text text-success">
-                              <i class="fa fa-circle-o"></i> <?php echo $question_value->{$question_opt_key}; ?>
+                           <div>
+                              <b><?php echo $opt_label; ?></b> <?php echo $question_value->{$question_opt_key}; ?>
                            </div>
                            <?php
 }
@@ -169,8 +160,8 @@ if ($question_value->question_type != "descriptive") {
                 foreach ($question_true_false as $question_true_false_key => $question_true_false_value) {
 
                     ?>
-                           <div class="text text-success">
-                              <i class="fa fa-circle-o"></i> <?php echo $question_true_false_value; ?>
+                           <div>
+                              <?php echo $question_true_false_value; ?>
                            </div>
                            <?php
 }
@@ -183,10 +174,10 @@ if ($question_value->question_type != "descriptive") {
                         $question_display = false;
                     }
                     if ($question_display) {
-
+                        $opt_label = chr(96 + $question_total_option) . ')';
                         ?>
-                           <div class="">
-                              <i class="fa fa-square-o"></i> <?php echo $question_value->{$question_opt_key}; ?>
+                           <div>
+                              <b><?php echo $opt_label; ?></b> <?php echo $question_value->{$question_opt_key}; ?>
                            </div>
                            <?php
 }
