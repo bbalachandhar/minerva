@@ -443,7 +443,8 @@ class PublicAdmissionForm extends CI_Controller
                                 $refence_status = $this->onlinestudent_model->checkreferenceno($reference_no);
                             } while ($refence_status);
         
-                            $data_db['reference_no'] = $reference_no;
+                            $data_db['reference_no']       = $reference_no;
+                            $data_db['applicant_password'] = md5($reference_no . '@ApplicantPortal' . date('Y'));
         
                             if (isset($_FILES["document"]) && !empty($_FILES['document']['name'])) {
                                 $upload_result = $this->media_storage->fileupload("document", "./uploads/student_documents/online_admission_doc/");
