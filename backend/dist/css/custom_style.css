@@ -1,0 +1,10 @@
+
+/* Fix: staff card images overflow their container */
+.staffleft-box img {
+    object-fit: cover;
+    object-position: top center;
+    display: block;
+}
+.staffleft-box {
+    overflow: hidden;
+}

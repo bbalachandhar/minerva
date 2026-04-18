@@ -1746,8 +1746,8 @@ box-sizing: border-box;
     box-shadow: 0 1px 1px rgba(0,0,0,0.1);
     border-radius: 2px;
     margin-bottom: 15px;} 
-.staffleft-box img{width: 100px; height: 100px; position: relative;z-index:1;background: #fff;}    
-.staffleft-box{float: left;padding-right: 10px;}   
+.staffleft-box img{width: 100px; height: 100px; position: relative;z-index:1;background: #fff;object-fit: cover;object-position: top;display: block;}    
+.staffleft-box{float: left;padding-right: 10px;overflow: hidden;}   
 .staffleft-content{overflow: hidden;} 
 .staffinfo-box h5{display: block;margin-bottom:5px;margin-top: 5px; 
   font-family:'Roboto-Bold'; font-size: 14px;
