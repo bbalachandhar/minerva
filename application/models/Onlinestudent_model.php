@@ -15,6 +15,10 @@ class Onlinestudent_model extends MY_Model
 
     public function add($data)
     {
+        // Safety net: ensure applicant_password is always set for applicant-portal logins
+        if (empty($data['applicant_password']) && !empty($data['reference_no'])) {
+            $data['applicant_password'] = md5($data['reference_no'] . '@ApplicantPortal' . date('Y'));
+        }
         $this->db->insert('online_admissions', $data);
         return $this->db->insert_id();
     }
