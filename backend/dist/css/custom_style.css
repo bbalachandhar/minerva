@@ -1,10 +1,20 @@
 
 /* Fix: staff card images overflow their container */
+.staffleft-box {
+    width: 100px;
+    height: 100px;
+    overflow: hidden;
+    flex-shrink: 0;
+    float: left;
+    padding-right: 0;
+    margin-right: 10px;
+}
 .staffleft-box img {
+    width: 100px !important;
+    height: 100px !important;
     object-fit: cover;
     object-position: top center;
     display: block;
-}
-.staffleft-box {
-    overflow: hidden;
+    position: static !important;
+    z-index: auto !important;
 }
