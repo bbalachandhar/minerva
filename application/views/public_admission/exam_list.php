@@ -47,19 +47,30 @@
                                         </div>
                                         <div class="col-sm-3 text-right" style="padding-top:8px;">
                                             <?php
-                                                $now_ts   = time();
-                                                $from_ts  = strtotime($exam->exam_from);
-                                                $to_ts    = strtotime($exam->exam_to);
+                                                $now_ts      = time();
+                                                $from_ts     = strtotime($exam->exam_from);
+                                                $to_ts       = strtotime($exam->exam_to);
                                                 $not_started = ($now_ts < $from_ts);
                                                 $expired     = ($now_ts >= $to_ts);
+                                                $attempts_used = (int)$exam->counter;
+                                                $attempts_max  = (int)$exam->attempt;
+                                                // can_retake: already attempted, window still open, and retakes remaining (0 = unlimited)
+                                                $can_retake = ($exam->is_attempted == 1) && !$expired && ($attempts_max === 0 || $attempts_used < $attempts_max);
                                             ?>
-                                            <?php if ((int)$exam->is_attempted === 1): ?>
+                                            <?php if ((int)$exam->is_attempted === 1 && !$can_retake): ?>
                                                 <span class="label label-success" style="font-size:13px; padding:6px 10px; display:inline-block; margin-bottom:6px;"><i class="fa fa-check"></i> Attempted</span><br>
                                                 <?php if (!empty($exam->publish_result) || ($exam->is_quiz && !empty($exam->show_result_immediately))): ?>
                                                     <a href="<?php echo site_url('public_admission/exam_view/' . $exam->id); ?>" class="btn btn-success btn-sm" style="margin-bottom:6px;">
                                                         <i class="fa fa-bar-chart"></i> View Result
                                                     </a><br>
                                                 <?php endif; ?>
+                                            <?php elseif ($can_retake): ?>
+                                                <span class="label label-info" style="font-size:13px; padding:6px 10px; display:inline-block; margin-bottom:6px;">
+                                                    <i class="fa fa-refresh"></i> Attempted (<?php echo $attempts_used; ?>/<?php echo $attempts_max ?: '&infin;'; ?>)
+                                                </span><br>
+                                                <a href="<?php echo site_url('public_admission/exam_view/' . $exam->id); ?>" class="btn btn-warning btn-sm" style="margin-bottom:6px;">
+                                                    <i class="fa fa-repeat"></i> Retake Exam
+                                                </a><br>
                                             <?php elseif ($not_started): ?>
                                                 <span class="label label-warning" style="font-size:13px; padding:6px 10px; display:inline-block; margin-bottom:6px;"><i class="fa fa-clock-o"></i> Not Started Yet</span><br>
                                             <?php elseif ($expired): ?>

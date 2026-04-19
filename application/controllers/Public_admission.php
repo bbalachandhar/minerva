@@ -1344,6 +1344,21 @@ class Public_admission extends Front_Controller
             redirect('public_admission/exam_list');
         }
 
+        // If already attempted but retake is allowed, reset so student can re-attempt
+        if (!empty($online_exam_validate->is_attempted)) {
+            $this->db->where('onlineexam_student_id', $online_exam_validate->id);
+            $attempt_count = (int)$this->db->count_all_results('onlineexam_attempts');
+            $max_attempts  = (int)$exam->attempt;
+            if ($max_attempts === 0 || $attempt_count < $max_attempts) {
+                // Clear previous results so retake is fresh
+                $this->db->where('onlineexam_student_id', $online_exam_validate->id);
+                $this->db->delete('onlineexam_student_results');
+                $this->db->where('id', $online_exam_validate->id);
+                $this->db->update('onlineexam_students', array('is_attempted' => 0));
+                $online_exam_validate->is_attempted = 0;
+            }
+        }
+
         $data                        = array();
         $data['sch_setting']         = $this->sch_setting_detail;
         $data['sch_name']            = $this->sch_setting_detail->name ?? 'Applicant Portal';
@@ -1420,9 +1435,18 @@ class Public_admission extends Front_Controller
             $question_status         = 1;
             $data['question_status'] = 1;
         } else if ($onlineexam_student->is_attempted) {
-            // Applicant already submitted — block re-entry
-            $question_status         = 1;
-            $data['question_status'] = 1;
+            // Check whether retake is still allowed
+            $this->db->where('onlineexam_student_id', $onlineexam_student->id);
+            $attempt_count = (int)$this->db->count_all_results('onlineexam_attempts');
+            $max_attempts  = (int)$exam->attempt;
+            if ($max_attempts === 0 || $attempt_count < $max_attempts) {
+                // Retake allowed (exam_view should have reset is_attempted, but guard here too)
+                $question_status = 0;
+            } else {
+                // All retakes exhausted — block re-entry
+                $question_status         = 1;
+                $data['question_status'] = 1;
+            }
         } else {
             // Exam open and not yet submitted — allow access
             $question_status = 0;
