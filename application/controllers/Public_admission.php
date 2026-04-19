@@ -1618,8 +1618,14 @@ class Public_admission extends Front_Controller
                 $this->load->model('onlineexamresult_model');
                 $this->onlineexamresult_model->add($save_result);
                 $this->onlineexam_model->updateExamResult($onlineexam_student_id);
+                // Record this attempt so retake counter is accurate for applicants
+                $this->onlineexam_model->addStudentAttemts(array('onlineexam_student_id' => $onlineexam_student_id));
+            } else {
+                // No answers posted (e.g. timer expired with nothing selected)
+                // Still mark as attempted and record the attempt
+                $this->onlineexam_model->updateExamResult($onlineexam_student_id);
+                $this->onlineexam_model->addStudentAttemts(array('onlineexam_student_id' => $onlineexam_student_id));
             }
-        }
 
         // Return JSON for AJAX submissions (exam_view AJAX submit)
         if ($this->input->is_ajax_request()) {
