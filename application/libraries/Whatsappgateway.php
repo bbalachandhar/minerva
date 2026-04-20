@@ -1054,23 +1054,3 @@ public function sentstudentZoomClasswhatsapp($sender_details, $template, $send_t
     }
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-	
-	
-	
-
-}
