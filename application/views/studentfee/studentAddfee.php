@@ -259,7 +259,7 @@ foreach ($student_due_fee as $key => $fee) {
             $total_discount_amount -= $fee_discount;
 
             // 3. Set the variables for display in this row.
-            $feetype_balance = $fee_paid + $fee_discount; // The balance is the total credit amount.
+            $feetype_balance = -($fee_paid + $fee_discount); // Credit should reduce the net payable balance.
             $fee_paid = 0; // The 'paid' amount for a credit fee is conceptually zero.
         }
         $total_balance_amount += $feetype_balance;
@@ -294,7 +294,9 @@ foreach ($student_due_fee as $key => $fee) {
             </td>
             <td align="left" class="">
             <?php
-            if ($feetype_balance == 0) {
+            if ($fee_value->amount == 0 && $feetype_balance < 0) {
+            ?><span class="label label-info"><?php echo $this->lang->line('credit'); ?></span><?php
+            } else if ($feetype_balance == 0) {
             ?><span class="label label-success"><?php echo $this->lang->line('paid'); ?></span><?php
             } else if (!empty($fee_value->amount_detail)) {
             ?><span class="label label-warning"><?php echo $this->lang->line('partial'); ?></span><?php
@@ -331,6 +333,8 @@ foreach ($student_due_fee as $key => $fee) {
             $display_none = "ss-none";
             if ($feetype_balance > 0) {
                 $display_none = "";
+            }
+            if ($feetype_balance != 0) {
                 echo amountFormat($feetype_balance);
             }
             ?>

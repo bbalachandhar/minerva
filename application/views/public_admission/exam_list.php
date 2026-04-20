@@ -68,7 +68,8 @@
                                                 <span class="label label-info" style="font-size:13px; padding:6px 10px; display:inline-block; margin-bottom:6px;">
                                                     <i class="fa fa-refresh"></i> Attempted (<?php echo $attempts_used; ?>/<?php echo $attempts_max ?: '&infin;'; ?>)
                                                 </span><br>
-                                                <a href="<?php echo site_url('public_admission/exam_view/' . $exam->id); ?>" class="btn btn-warning btn-sm" style="margin-bottom:6px;">
+                                                <a href="#" class="btn btn-warning btn-sm btn-retake-confirm" style="margin-bottom:6px;"
+                                                   data-url="<?php echo site_url('public_admission/exam_view/' . $exam->id); ?>">
                                                     <i class="fa fa-repeat"></i> Retake Exam
                                                 </a><br>
                                             <?php elseif ($not_started): ?>
@@ -94,3 +95,17 @@
         </div>
     </div>
 </section>
+
+<script>
+(function() {
+    document.querySelectorAll('.btn-retake-confirm').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            var url = this.getAttribute('data-url');
+            if (confirm('Warning: Your previously submitted answers will be permanently erased if you retake this exam.\n\nYou will need to answer all questions again from the beginning.\n\nAre you sure you want to retake the exam?')) {
+                window.location.href = url;
+            }
+        });
+    });
+})();
+</script>
