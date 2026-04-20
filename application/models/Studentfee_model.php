@@ -82,8 +82,23 @@ class Studentfee_model extends MY_Model {
             $result = $q->row();
             $a = json_decode($result->amount_detail, true);
 
+            // Resolve the outer JSON key: prefer direct key match, fall back to
+            // searching by the inv_no field (handles cases where outer key and
+            // inv_no diverged due to prior deletions or manual edits).
+            $outer_key = null;
             if (isset($a[$sub_invoice])) {
-                $deleted_payment_data = $a[$sub_invoice];
+                $outer_key = $sub_invoice;
+            } else {
+                foreach ($a as $k => $v) {
+                    if (isset($v['inv_no']) && (string)$v['inv_no'] === (string)$sub_invoice) {
+                        $outer_key = $k;
+                        break;
+                    }
+                }
+            }
+
+            if ($outer_key !== null) {
+                $deleted_payment_data = $a[$outer_key];
                 $student_session_id = null;
 
                 if ($result->student_fees_master_id) {
@@ -110,7 +125,9 @@ class Studentfee_model extends MY_Model {
                 $this->db->insert('student_fees_deposite_deleted', $log_data);
             }
 
-            unset($a[$sub_invoice]);
+            if ($outer_key !== null) {
+                unset($a[$outer_key]);
+            }
 
             if (!empty($a)) {
                 $data['amount_detail'] = json_encode($a);
@@ -129,7 +146,7 @@ class Studentfee_model extends MY_Model {
                 $this->log($message, $record_id, $action);
             }
 
-            $this->studentAppliedDiscount_model->remove($id, $sub_invoice);
+            $this->studentAppliedDiscount_model->remove($id, $outer_key !== null ? $outer_key : $sub_invoice);
         }
 
         $this->db->trans_complete();
