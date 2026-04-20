@@ -318,9 +318,11 @@ $sender_details['parent_app_key']=$recipient_data['parent_app_key'];
                     // Assuming 'email' is always present in $sender_details for enquiry
                     $this->CI->mailgateway->sentEnquiryMail($sender_details, $chk_mail_sms['template'], $chk_mail_sms['subject'], $sender_details['email']);
                 }
+                log_message('error', '[ENQUIRY_WA_DEBUG] is_whatsapp=' . var_export($chk_mail_sms['whatsapp'], true) . ' contact=' . var_export(isset($sender_details['contact']) ? $sender_details['contact'] : 'NOT_SET', true) . ' template_id=' . var_export($chk_mail_sms['template_id'], true) . ' template=' . substr($chk_mail_sms['template'], 0, 60));
                 if (!empty($chk_mail_sms['whatsapp']) && !empty($sender_details['contact'])) {
                     $raw = preg_replace('/\D/', '', $sender_details['contact']);
                     $wa_number = (strlen($raw) === 10) ? '91' . $raw : $raw;
+                    log_message('error', '[ENQUIRY_WA_DEBUG] Calling sendOnlineadmissionformsubmit to=' . $wa_number);
                     $this->CI->load->library('whatsappgateway');
                     $this->CI->whatsappgateway->sendOnlineadmissionformsubmit(
                         $sender_details,
@@ -328,6 +330,8 @@ $sender_details['parent_app_key']=$recipient_data['parent_app_key'];
                         $wa_number,
                         $chk_mail_sms['template_id']
                     );
+                } else {
+                    log_message('error', '[ENQUIRY_WA_DEBUG] SKIPPED — whatsapp flag empty or contact empty');
                 }
             } elseif ($send_for == "student_login_credential") {
 

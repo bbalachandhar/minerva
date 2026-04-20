@@ -926,19 +926,23 @@ public function sentstudentZoomClasswhatsapp($sender_details, $template, $send_t
     public function sendOnlineadmissionformsubmit($sender_details,$template,$send_to,$template_id)
     {
         $whatsapp_detail = $this->_CI->whatsappconfig_model->getActiveWhatsApp();
+        log_message('error', '[ENQUIRY_WA_DEBUG] whatsapp_detail=' . (empty($whatsapp_detail) ? 'EMPTY/NULL' : 'type=' . $whatsapp_detail->type . ' contact=' . $whatsapp_detail->contact));
         $msg = $this->getOnlineadmissionformsubmitcontent($sender_details, $template);
+        log_message('error', '[ENQUIRY_WA_DEBUG] msg_content=' . json_encode($msg) . ' send_to=' . $send_to . ' template_id=' . $template_id);
         if(!empty($whatsapp_detail)) {            
             if ($whatsapp_detail->type == 'twilio') {
-                
+                log_message('error', '[ENQUIRY_WA_DEBUG] Sending via Twilio');
 				return $this->sendByTwilio($whatsapp_detail, $send_to, $template_id, $msg, 'online_admission_form_submission');
 					
             } else if ($whatsapp_detail->type == 'meta') {
-				
+                log_message('error', '[ENQUIRY_WA_DEBUG] Sending via Meta template');
 				return $this->sendMetaTemplate($whatsapp_detail,$send_to,$template_id,$whatsapp_detail->language,$msg, 'online_admission_form_submission');
 				
 			} else {
-
+                log_message('error', '[ENQUIRY_WA_DEBUG] Unknown whatsapp type: ' . $whatsapp_detail->type);
             }  
+        } else {
+            log_message('error', '[ENQUIRY_WA_DEBUG] No active WhatsApp config found in DB');
         }
     }
 
