@@ -16,18 +16,26 @@
                                 <option value="student">By Direct Student</option>
                                 <option value="staff">By Staff</option>
                             </select>
-                            <select id="filter_form_status" class="form-control input-sm" style="width:150px;">
-                                <option value="">All Course Fee Status</option>
-                                <option value="applied">Applied</option>
-                                <option value="0">Not Paid</option>
-                                <option value="2">Partially Paid</option>
-                                <option value="1">Fully Paid</option>
-                            </select>
-                            <select id="filter_quota" class="form-control input-sm" style="width:150px;">
-                                <option value="">All Quota</option>
-                                <option value="management">Management</option>
-                                <option value="government">Government</option>
-                            </select>
+                            <div class="btn-group" id="filter_form_status_group">
+                                <button type="button" class="btn btn-default btn-sm dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" style="min-width:165px;text-align:left;">
+                                    <span id="filter_form_status_label">All Course Fee Status</span> <span class="caret" style="float:right;margin-top:5px;"></span>
+                                </button>
+                                <ul class="dropdown-menu" style="min-width:175px;padding:6px 10px;">
+                                    <li><label style="font-weight:normal;margin:0;"><input type="checkbox" class="filter-status-chk" value="applied"> Applied</label></li>
+                                    <li><label style="font-weight:normal;margin:0;"><input type="checkbox" class="filter-status-chk" value="0"> Not Paid</label></li>
+                                    <li><label style="font-weight:normal;margin:0;"><input type="checkbox" class="filter-status-chk" value="2"> Partially Paid</label></li>
+                                    <li><label style="font-weight:normal;margin:0;"><input type="checkbox" class="filter-status-chk" value="1"> Fully Paid</label></li>
+                                </ul>
+                            </div>
+                            <div class="btn-group" id="filter_quota_group">
+                                <button type="button" class="btn btn-default btn-sm dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" style="min-width:120px;text-align:left;">
+                                    <span id="filter_quota_label">All Quota</span> <span class="caret" style="float:right;margin-top:5px;"></span>
+                                </button>
+                                <ul class="dropdown-menu" style="min-width:130px;padding:6px 10px;">
+                                    <li><label style="font-weight:normal;margin:0;"><input type="checkbox" class="filter-quota-chk" value="management"> Management</label></li>
+                                    <li><label style="font-weight:normal;margin:0;"><input type="checkbox" class="filter-quota-chk" value="government"> Government</label></li>
+                                </ul>
+                            </div>
                             <div style="display:flex;align-items:center;gap:4px;">
                                 <input type="text" id="filter_submit_from" class="form-control input-sm date datepicker-filter" placeholder="Submitted From" style="width:130px;" autocomplete="off" readonly>
                                 <span style="color:#555;">–</span>
@@ -139,19 +147,29 @@
 
     function getFilterParams() {
         var params = {};
-        var quota           = $('#filter_quota').val();
-        var status          = $('#filter_form_status').val();
+        var quota = [];
+        $('.filter-quota-chk:checked').each(function () { quota.push($(this).val()); });
+        var status = [];
+        $('.filter-status-chk:checked').each(function () { status.push($(this).val()); });
         var submittedBy     = $('#filter_submitted_by').val();
         var submitFrom      = $('#filter_submit_from').val();
         var submitTo        = $('#filter_submit_to').val();
         var lastPaymentDate = $('#filter_last_payment_date').val();
-        if (quota           !== '') params.quota_type_filter      = quota;
-        if (status          !== '') params.paid_status_filter     = status;
+        if (quota.length   > 0) params.quota_type_filter  = quota;
+        if (status.length  > 0) params.paid_status_filter = status;
         if (submittedBy     !== '') params.submitted_by_filter    = submittedBy;
         if (submitFrom      !== '') params.submit_date_from       = submitFrom;
         if (submitTo        !== '') params.submit_date_to         = submitTo;
         if (lastPaymentDate !== '') params.last_payment_date      = lastPaymentDate;
         return params;
+    }
+
+    function updateDropdownLabel(checkboxClass, labelId, defaultText) {
+        var selected = [];
+        $('.' + checkboxClass + ':checked').each(function () {
+            selected.push($(this).closest('label').text().trim());
+        });
+        $('#' + labelId).text(selected.length > 0 ? selected.join(', ') : defaultText);
     }
 
     $(document).ready(function () {
@@ -174,7 +192,13 @@
                     action: function () {
                         var p = getFilterParams();
                         var url = '<?php echo base_url("admin/onlinestudent/export_excel"); ?>?';
-                        $.each(p, function (k, v) { url += encodeURIComponent(k) + '=' + encodeURIComponent(v) + '&'; });
+                        $.each(p, function (k, v) {
+                            if ($.isArray(v)) {
+                                $.each(v, function (i, val) { url += encodeURIComponent(k + '[]') + '=' + encodeURIComponent(val) + '&'; });
+                            } else {
+                                url += encodeURIComponent(k) + '=' + encodeURIComponent(v) + '&';
+                            }
+                        });
                         window.location.href = url;
                     }
                 },
@@ -185,7 +209,13 @@
                     action: function () {
                         var p = getFilterParams();
                         var url = '<?php echo base_url("admin/onlinestudent/export_excel"); ?>?format=csv&';
-                        $.each(p, function (k, v) { url += encodeURIComponent(k) + '=' + encodeURIComponent(v) + '&'; });
+                        $.each(p, function (k, v) {
+                            if ($.isArray(v)) {
+                                $.each(v, function (i, val) { url += encodeURIComponent(k + '[]') + '=' + encodeURIComponent(val) + '&'; });
+                            } else {
+                                url += encodeURIComponent(k) + '=' + encodeURIComponent(v) + '&';
+                            }
+                        });
                         window.location.href = url;
                     }
                 },
@@ -229,7 +259,21 @@
             $('#student-list-footer').text('Total Records: ' + info.recordsTotal);
         });
 
-        $('#filter_form_status, #filter_quota, #filter_submitted_by').on('change', function () {
+        // Single-select change
+        $('#filter_submitted_by').on('change', function () {
+            studentTable.ajax.reload();
+        });
+
+        // Dropdown checkboxes — keep open when clicking, update label, reload table
+        $(document).on('click', '#filter_form_status_group .dropdown-menu, #filter_quota_group .dropdown-menu', function (e) {
+            e.stopPropagation();
+        });
+        $(document).on('change', '.filter-status-chk', function () {
+            updateDropdownLabel('filter-status-chk', 'filter_form_status_label', 'All Course Fee Status');
+            studentTable.ajax.reload();
+        });
+        $(document).on('change', '.filter-quota-chk', function () {
+            updateDropdownLabel('filter-quota-chk', 'filter_quota_label', 'All Quota');
             studentTable.ajax.reload();
         });
 

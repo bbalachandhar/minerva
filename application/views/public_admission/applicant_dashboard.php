@@ -137,12 +137,7 @@
             <?php if ($total_fee > 0 || !empty($payment_history)): ?>
             <div class="box box-success">
                 <div class="box-header with-border">
-                    <h3 class="box-title"><i class="fa fa-credit-card"></i> Fee Summary</h3>
-                    <div class="box-tools pull-right">
-                        <a href="<?php echo base_url('public_admission/payment_history'); ?>" class="btn btn-success btn-xs">
-                            <i class="fa fa-list"></i> Full Receipt
-                        </a>
-                    </div>
+                    <h3 class="box-title"><i class="fa fa-credit-card"></i> Payment History</h3>
                 </div>
                 <div class="box-body no-padding">
                     <?php if (!empty($payment_history)): ?>
@@ -150,7 +145,7 @@
                             <thead>
                                 <tr style="background:#f9f9f9;">
                                     <th>Date</th>
-                                    <th>Receipt No.</th>
+                                    <th>Receipt / TXN</th>
                                     <th>Fee Type</th>
                                     <th>Mode</th>
                                     <th style="text-align:right;">Amount (&#8377;)</th>
@@ -160,9 +155,19 @@
                                 <?php foreach ($payment_history as $payment): ?>
                                     <tr>
                                         <td><?php echo htmlspecialchars($payment['date']); ?></td>
-                                        <td><?php echo htmlspecialchars($payment['receipt_no'] ?? '—'); ?></td>
+                                        <td>
+                                            <?php
+                                            if (!empty($payment['receipt_no'])) {
+                                                echo htmlspecialchars($payment['receipt_no']);
+                                            } elseif (!empty($payment['txn_id'])) {
+                                                echo '<small class="text-muted">TXN: </small>' . htmlspecialchars($payment['txn_id']);
+                                            } else {
+                                                echo '—';
+                                            }
+                                            ?>
+                                        </td>
                                         <td><?php echo htmlspecialchars($payment['fee_type'] ?? '—'); ?></td>
-                                        <td><?php echo htmlspecialchars(strtolower($payment['payment_mode'] ?? '')); ?></td>
+                                        <td><?php echo htmlspecialchars(ucfirst(strtolower($payment['payment_mode'] ?? '—'))); ?></td>
                                         <td style="text-align:right;">&#8377; <?php echo number_format($payment['amount_raw'], 2); ?></td>
                                     </tr>
                                 <?php endforeach; ?>
@@ -170,7 +175,7 @@
                             <tfoot style="background:#f9f9f9;">
                                 <?php if ($total_fee > 0): ?>
                                 <tr>
-                                    <td colspan="4"><strong>Total Fee (Course + Application)</strong></td>
+                                    <td colspan="4"><strong>Total Fee</strong></td>
                                     <td style="text-align:right;"><strong>&#8377; <?php echo number_format($total_fee, 2); ?></strong></td>
                                 </tr>
                                 <?php endif; ?>
@@ -186,6 +191,16 @@
                                 <?php endif; ?>
                             </tfoot>
                         </table>
+                        <?php if ($balance > 0): ?>
+                        <div class="box-footer" style="text-align:right;">
+                            <a href="<?php echo base_url('public_admission/initiate_course_fee_payment'); ?>"
+                               class="btn btn-success btn-lg"
+                               onclick="return confirm('You will be redirected to the payment gateway to pay ₹<?php echo number_format($balance, 2); ?> as course fee. Continue?');">
+                                <i class="fa fa-credit-card"></i>
+                                Pay Balance &#8377; <?php echo number_format($balance, 2); ?> Online
+                            </a>
+                        </div>
+                        <?php endif; ?>
                     <?php else: ?>
                         <div class="box-body">
                             <div class="callout callout-info" style="margin:0;">
@@ -222,7 +237,7 @@
                                         <span class="product-description">
                                             <?php if ($exam->is_attempted == 1): ?>
                                                 <span class="label label-success">Attempted</span>
-                                                <?php if (!empty($exam->publish_result) || ($exam->is_quiz && !empty($exam->show_result_immediately))): ?>
+                                                <?php if (!empty($exam->publish_result) || !empty($exam->publish_result_no_answers) || ($exam->is_quiz && !empty($exam->show_result_immediately))): ?>
                                                     &nbsp;<a href="<?php echo site_url('public_admission/exam_view/' . $exam->id); ?>" class="btn btn-xs btn-success">
                                                         <i class="fa fa-bar-chart"></i> View Result
                                                     </a>

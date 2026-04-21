@@ -1758,6 +1758,102 @@ class Public_admission extends Front_Controller
         $this->load->view('layout/applicant/footer', $this->data);
     }
 
+    public function initiate_course_fee_payment()
+    {
+        $reference_no = $this->session->userdata('validlogin');
+        if (empty($reference_no)) {
+            $this->session->set_flashdata('login_error', 'Please login first');
+            redirect('site/userlogin');
+            return;
+        }
+
+        $ref_clean = preg_replace('/\s+/', '', $reference_no);
+
+        // Get applicant info (same query as applicant_dashboard)
+        $this->db->select('oa.*, IFNULL(oac.course_name, "N/A") as course_name,
+            COALESCE(oa.course_fee_total,
+                IF(oa.quota_type = "management", oac.mgt_fee, oac.govt_fee)
+            ) as total_fee');
+        $this->db->from('online_admissions oa');
+        $this->db->join('online_admission_courses oac',
+            'oac.id = COALESCE(oa.admission_course_id, oa.ug_course_id)', 'left');
+        $this->db->where("REPLACE(oa.reference_no, ' ', '') = " . $this->db->escape($ref_clean), null, false);
+        $applicant_info = $this->db->get()->row();
+
+        if (!$applicant_info) {
+            $this->session->unset_userdata('validlogin');
+            redirect('site/userlogin');
+            return;
+        }
+
+        // Compute balance (same logic as applicant_dashboard)
+        $this->load->model('Onlinestudent_model');
+        $date_format     = $this->customlib->getSchoolDateFormat();
+        $payment_history = $this->Onlinestudent_model->get_payment_history_by_ref($ref_clean, $date_format);
+        $total_paid      = array_sum(array_column($payment_history, 'amount_raw'));
+        $course_fee      = (float) ($applicant_info->total_fee ?? 0);
+        $application_fee = 0.0;
+        foreach ($payment_history as $p) {
+            if (stripos($p['fee_type'], 'application') !== false) {
+                $application_fee += (float) $p['amount_raw'];
+            }
+        }
+        $total_fee = $course_fee + $application_fee;
+        $balance   = $total_fee - $total_paid;
+
+        if ($balance <= 0) {
+            $this->session->set_flashdata('msg', '<div class="alert alert-info">No balance due. Course fee is fully paid.</div>');
+            redirect('public_admission/applicant_dashboard');
+            return;
+        }
+
+        // Calculate processing charge (same formula as Publicadmissionform)
+        $processing_charge = 0;
+        if (!empty($this->sch_setting_detail->online_admission_processing_charge_type)
+            && !empty($this->sch_setting_detail->online_admission_processing_charge)
+            && $this->sch_setting_detail->online_admission_processing_charge > 0) {
+            $charge_type  = $this->sch_setting_detail->online_admission_processing_charge_type;
+            $charge_value = (float) $this->sch_setting_detail->online_admission_processing_charge;
+            if ($charge_type == 'percentage') {
+                $processing_charge = ($balance * $charge_value) / 100;
+            } elseif ($charge_type == 'fixed') {
+                $processing_charge = $charge_value;
+            }
+        }
+
+        $final_amount = $balance + $processing_charge;
+
+        $payment_params = [
+            'online_admission_id' => (int) $applicant_info->id,
+            'reference_no'        => trim($applicant_info->reference_no),
+            'total'               => $final_amount,
+            'course_fee_amount'   => $balance,
+            'processing_charge'   => $processing_charge,
+            'name'                => $applicant_info->firstname,
+            'guardian_phone'      => $applicant_info->father_phone ?? '',
+            'email'               => $applicant_info->email ?? '',
+            'item_type'           => 'online_course_fee',
+            'sch_setting_detail'  => $this->sch_setting_detail,
+        ];
+
+        $this->load->model('gateway_ins_model');
+        $ins_data = [
+            'unique_id'         => (int) $applicant_info->id,
+            'parameter_details' => json_encode($payment_params),
+            'gateway_name'      => 'billdesk',
+            'module'            => 'online_course_fee',
+            'payment_status'    => 'processing',
+            'created_at'        => date('Y-m-d H:i:s'),
+        ];
+        $gateway_ins_id = $this->gateway_ins_model->add_gateway_ins($ins_data);
+
+        $payment_params['gateway_ins_id'] = $gateway_ins_id;
+        $this->session->set_userdata('params', $payment_params);
+        $this->session->set_userdata('reference', (int) $applicant_info->id);
+
+        redirect('user/gateway/billdesk/index');
+    }
+
     /**
      * Payment history page
      */

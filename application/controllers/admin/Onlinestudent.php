@@ -449,10 +449,17 @@ class Onlinestudent extends Admin_Controller
         $sch_setting = $this->sch_setting_detail;
 
         $quota_type_filter    = $this->input->post('quota_type_filter');
-        if ($quota_type_filter === 'govt') {
-            $quota_type_filter = 'government';
+        if (!is_array($quota_type_filter) && !empty($quota_type_filter)) {
+            $quota_type_filter = [$quota_type_filter];
+        }
+        if (is_array($quota_type_filter)) {
+            $quota_type_filter = array_map(function($v) { return $v === 'govt' ? 'government' : $v; }, $quota_type_filter);
+            $quota_type_filter = array_values(array_filter($quota_type_filter));
         }
         $paid_status_filter   = $this->input->post('paid_status_filter');
+        if (!is_array($paid_status_filter) && $paid_status_filter !== null && $paid_status_filter !== '') {
+            $paid_status_filter = [$paid_status_filter];
+        }
         $submitted_by_filter  = $this->input->post('submitted_by_filter');
 
         $school_date_format  = $this->customlib->getSchoolDateFormat();
@@ -640,10 +647,17 @@ class Onlinestudent extends Admin_Controller
         }
 
         $quota_type_filter   = $this->input->get('quota_type_filter');
-        if ($quota_type_filter === 'govt') {
-            $quota_type_filter = 'government';
+        if (!is_array($quota_type_filter) && !empty($quota_type_filter)) {
+            $quota_type_filter = [$quota_type_filter];
+        }
+        if (is_array($quota_type_filter)) {
+            $quota_type_filter = array_map(function($v) { return $v === 'govt' ? 'government' : $v; }, $quota_type_filter);
+            $quota_type_filter = array_values(array_filter($quota_type_filter));
         }
         $paid_status_filter  = $this->input->get('paid_status_filter');
+        if (!is_array($paid_status_filter) && $paid_status_filter !== null && $paid_status_filter !== '') {
+            $paid_status_filter = [$paid_status_filter];
+        }
         $submitted_by_filter = $this->input->get('submitted_by_filter');
         $sch_setting         = $this->sch_setting_detail;
 
@@ -686,7 +700,12 @@ class Onlinestudent extends Admin_Controller
         $this->db->join('staff submitter_staff', 'submitter_staff.id = oa.referred_by_employee_id', 'left');
 
         if (!empty($quota_type_filter)) {
-            $this->db->where('oa.quota_type', $quota_type_filter);
+            if (is_array($quota_type_filter) && count($quota_type_filter) > 1) {
+                $this->db->where_in('oa.quota_type', $quota_type_filter);
+            } else {
+                $val = is_array($quota_type_filter) ? $quota_type_filter[0] : $quota_type_filter;
+                $this->db->where('oa.quota_type', $val);
+            }
         }
 
         if ($submitted_by_filter === 'student') {
@@ -697,7 +716,8 @@ class Onlinestudent extends Admin_Controller
         }
 
         // Course fee status filter (same logic as model)
-        if ($paid_status_filter !== null && $paid_status_filter !== '') {
+        if (!empty($paid_status_filter)) {
+            $paid_status_list = is_array($paid_status_filter) ? $paid_status_filter : [$paid_status_filter];
             $app_fee_sub  = "(SELECT COUNT(*) FROM incidental_fee_collections ifc_a"
                 . " INNER JOIN incidental_fee_types ift_a ON ift_a.id = ifc_a.incidental_fee_type_id"
                 . " WHERE REPLACE(ifc_a.application_ref_no,' ','') = REPLACE(oa.reference_no,' ','')"
@@ -709,14 +729,20 @@ class Onlinestudent extends Admin_Controller
                 . " AND ifc2.application_ref_no IS NOT NULL AND ifc2.application_ref_no != ''"
                 . " AND (LOWER(ift2.title) LIKE '%tuition%' OR LOWER(ift2.title) LIKE '%tution%' OR LOWER(ift2.title) LIKE '%other fee%'))";
             $course_fee   = "COALESCE(oa.course_fee_total, IF(oa.quota_type='management', oac.mgt_fee, oac.govt_fee))";
-            if ($paid_status_filter === 'applied') {
-                $this->db->where("($app_fee_sub > 0 OR oa.paid_status = 1) AND $paid_sub <= 0", null, false);
-            } elseif ($paid_status_filter === '0') {
-                $this->db->where("$app_fee_sub = 0 AND $paid_sub <= 0", null, false);
-            } elseif ($paid_status_filter === '2') {
-                $this->db->where("$paid_sub > 0 AND ($course_fee <= 0 OR $paid_sub < $course_fee)", null, false);
-            } elseif ($paid_status_filter === '1') {
-                $this->db->where("$course_fee > 0 AND $paid_sub >= $course_fee", null, false);
+            $conditions = [];
+            foreach ($paid_status_list as $psf) {
+                if ($psf === 'applied') {
+                    $conditions[] = "(($app_fee_sub > 0 OR oa.paid_status = 1) AND $paid_sub <= 0)";
+                } elseif ($psf === '0') {
+                    $conditions[] = "($app_fee_sub = 0 AND $paid_sub <= 0)";
+                } elseif ($psf === '2') {
+                    $conditions[] = "($paid_sub > 0 AND ($course_fee <= 0 OR $paid_sub < $course_fee))";
+                } elseif ($psf === '1') {
+                    $conditions[] = "($course_fee > 0 AND $paid_sub >= $course_fee)";
+                }
+            }
+            if (!empty($conditions)) {
+                $this->db->where('(' . implode(' OR ', $conditions) . ')', null, false);
             }
         }
 

@@ -59,7 +59,7 @@
                                             ?>
                                             <?php if ((int)$exam->is_attempted === 1 && !$can_retake): ?>
                                                 <span class="label label-success" style="font-size:13px; padding:6px 10px; display:inline-block; margin-bottom:6px;"><i class="fa fa-check"></i> Attempted</span><br>
-                                                <?php if (!empty($exam->publish_result) || ($exam->is_quiz && !empty($exam->show_result_immediately))): ?>
+                                                <?php if (!empty($exam->publish_result) || !empty($exam->publish_result_no_answers) || ($exam->is_quiz && !empty($exam->show_result_immediately))): ?>
                                                     <a href="<?php echo site_url('public_admission/exam_view/' . $exam->id); ?>" class="btn btn-success btn-sm" style="margin-bottom:6px;">
                                                         <i class="fa fa-bar-chart"></i> View Result
                                                     </a><br>

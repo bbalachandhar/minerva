@@ -88,7 +88,12 @@ class Onlinestudent_model extends MY_Model
         }
 
         if (!empty($quota_type_filter)) {
-            $this->datatables->where('online_admissions.quota_type', $quota_type_filter);
+            if (is_array($quota_type_filter) && count($quota_type_filter) > 1) {
+                $this->datatables->where_in('online_admissions.quota_type', $quota_type_filter);
+            } else {
+                $val = is_array($quota_type_filter) ? $quota_type_filter[0] : $quota_type_filter;
+                $this->datatables->where('online_admissions.quota_type', $val);
+            }
         }
         if ($submitted_by_filter === 'student') {
             $this->datatables->where('(online_admissions.referred_by_employee_id IS NULL OR online_admissions.referred_by_employee_id = 0)', null, false);
@@ -96,7 +101,8 @@ class Onlinestudent_model extends MY_Model
             $this->datatables->where('online_admissions.referred_by_employee_id IS NOT NULL', null, false);
             $this->datatables->where('online_admissions.referred_by_employee_id !=', 0);
         }
-        if ($paid_status_filter !== null && $paid_status_filter !== false && $paid_status_filter !== '') {
+        if (!empty($paid_status_filter) && $paid_status_filter !== false) {
+            $paid_status_list = is_array($paid_status_filter) ? $paid_status_filter : [$paid_status_filter];
             // Filter by Course Fee Status column
             $app_fee_subquery = "(SELECT COUNT(*) "
                 . "FROM incidental_fee_collections ifc_app "
@@ -111,18 +117,20 @@ class Onlinestudent_model extends MY_Model
                 . "AND ifc2.application_ref_no IS NOT NULL AND ifc2.application_ref_no != '' "
                 . "AND (LOWER(ift2.title) LIKE '%tuition%' OR LOWER(ift2.title) LIKE '%tution%' OR LOWER(ift2.title) LIKE '%other fee%'))";
             $course_fee_expr = "COALESCE(online_admissions.course_fee_total, IF(online_admissions.quota_type = 'management', online_admission_courses.mgt_fee, online_admission_courses.govt_fee))";
-            if ($paid_status_filter === 'applied') {
-                // Applied: app fee paid (via incidental_fee OR gateway paid_status=1), no course fee paid yet
-                $this->datatables->where("($app_fee_subquery > 0 OR online_admissions.paid_status = 1) AND $paid_subquery <= 0", null, false);
-            } elseif ($paid_status_filter === '0') {
-                // Not Paid: app fee NOT paid (neither incidental_fee NOR gateway) and no course fee paid
-                $this->datatables->where("$app_fee_subquery = 0 AND online_admissions.paid_status != 1 AND $paid_subquery <= 0", null, false);
-            } elseif ($paid_status_filter === '2') {
-                // Partially Paid: some course fee paid but not fully
-                $this->datatables->where("$paid_subquery > 0 AND ($course_fee_expr <= 0 OR $paid_subquery < $course_fee_expr)", null, false);
-            } elseif ($paid_status_filter === '1') {
-                // Fully Paid: course fee fully paid
-                $this->datatables->where("$course_fee_expr > 0 AND $paid_subquery >= $course_fee_expr", null, false);
+            $conditions = [];
+            foreach ($paid_status_list as $psf) {
+                if ($psf === 'applied') {
+                    $conditions[] = "(($app_fee_subquery > 0 OR online_admissions.paid_status = 1) AND $paid_subquery <= 0)";
+                } elseif ($psf === '0') {
+                    $conditions[] = "($app_fee_subquery = 0 AND online_admissions.paid_status != 1 AND $paid_subquery <= 0)";
+                } elseif ($psf === '2') {
+                    $conditions[] = "($paid_subquery > 0 AND ($course_fee_expr <= 0 OR $paid_subquery < $course_fee_expr))";
+                } elseif ($psf === '1') {
+                    $conditions[] = "($course_fee_expr > 0 AND $paid_subquery >= $course_fee_expr)";
+                }
+            }
+            if (!empty($conditions)) {
+                $this->datatables->where('(' . implode(' OR ', $conditions) . ')', null, false);
             }
         }
 
@@ -197,6 +205,7 @@ class Onlinestudent_model extends MY_Model
 
     public function get_payment_history_by_ref($ref_no_clean, $date_format = 'Y-m-d')
     {
+        // --- 1. Manual/incidental payments (incidental_fee_collections) ---
         $this->db->select('ifc.id, ifc.receipt_no, ifc.amount_collected, ifc.date_collected, ifc.bill_date,
             ifc.payment_mode, ifc.txn_id, ifc.bank_name, ifc.cheque_no, ifc.notes,
             ift.title as fee_type,
@@ -208,25 +217,79 @@ class Onlinestudent_model extends MY_Model
         $this->db->where('ifc.application_ref_no IS NOT NULL', null, false);
         $this->db->where('ifc.application_ref_no !=', '');
         $this->db->order_by('ifc.date_collected', 'ASC');
-        $rows = $this->db->get()->result_array();
+        $incidental_rows = $this->db->get()->result_array();
 
         $payments = [];
-        foreach ($rows as $row) {
+        foreach ($incidental_rows as $row) {
             $date_display = !empty($row['date_collected']) ? date($date_format, strtotime($row['date_collected'])) : (!empty($row['bill_date']) ? date($date_format, strtotime($row['bill_date'])) : '');
             $payments[] = [
-                'receipt_no'     => $row['receipt_no'],
-                'fee_type'       => $row['fee_type'],
-                'amount'         => number_format((float) $row['amount_collected'], 2),
-                'amount_raw'     => (float) $row['amount_collected'],
-                'date'           => $date_display,
-                'payment_mode'   => $row['payment_mode'],
-                'txn_id'         => $row['txn_id'],
-                'bank_name'      => $row['bank_name'],
-                'cheque_no'      => $row['cheque_no'],
-                'notes'          => $row['notes'],
-                'received_by'    => $row['received_by_name'],
+                'receipt_no'   => $row['receipt_no'],
+                'fee_type'     => $row['fee_type'],
+                'amount'       => number_format((float) $row['amount_collected'], 2),
+                'amount_raw'   => (float) $row['amount_collected'],
+                'date'         => $date_display,
+                'payment_mode' => $row['payment_mode'],
+                'txn_id'       => $row['txn_id'],
+                'bank_name'    => $row['bank_name'],
+                'cheque_no'    => $row['cheque_no'],
+                'notes'        => $row['notes'],
+                'received_by'  => $row['received_by_name'],
+                'source'       => 'incidental',
             ];
         }
+
+        // --- 2. Online/gateway payments (online_admission_payment) ---
+        // Deduplicate by transaction_id so retries don't show multiple times.
+        $gateway_sql = "SELECT MIN(oap.id) as id, oap.transaction_id, oap.payment_mode, oap.payment_type,
+                               oap.paid_amount, MIN(oap.date) as payment_date, oap.note
+                        FROM online_admission_payment oap
+                        INNER JOIN online_admissions oa ON oa.id = oap.online_admission_id
+                        WHERE REPLACE(oa.reference_no, ' ', '') = " . $this->db->escape($ref_no_clean) . "
+                        GROUP BY oap.transaction_id, oap.payment_mode, oap.payment_type, oap.paid_amount, oap.note
+                        ORDER BY payment_date ASC";
+        $gateway_rows = $this->db->query($gateway_sql)->result_array();
+
+        // Collect known incidental txn_ids to avoid double-counting if also recorded in incidental
+        $known_txn_ids = array_filter(array_column($payments, 'txn_id'));
+
+        foreach ($gateway_rows as $row) {
+            $txn = $row['transaction_id'] ?? '';
+            // Skip if same transaction already present from incidental_fee_collections
+            if ($txn && in_array($txn, $known_txn_ids)) {
+                continue;
+            }
+            $date_display = !empty($row['payment_date']) ? date($date_format, strtotime($row['payment_date'])) : '';
+            // Derive a human label from payment_type
+            $type_label = $row['payment_type'] ?? 'Online Payment';
+            if (stripos($type_label, 'online_admission') !== false) {
+                $type_label = 'Application Fee';
+            } elseif (stripos($type_label, 'course_fee') !== false) {
+                $type_label = 'Course Fee';
+            }
+            $payments[] = [
+                'receipt_no'   => '',
+                'fee_type'     => $type_label,
+                'amount'       => number_format((float) $row['paid_amount'], 2),
+                'amount_raw'   => (float) $row['paid_amount'],
+                'date'         => $date_display,
+                'payment_mode' => $row['payment_mode'],
+                'txn_id'       => $txn,
+                'bank_name'    => '',
+                'cheque_no'    => '',
+                'notes'        => $row['note'],
+                'received_by'  => '',
+                'source'       => 'gateway',
+            ];
+            if ($txn) {
+                $known_txn_ids[] = $txn;
+            }
+        }
+
+        // Sort merged list by date ascending
+        usort($payments, function ($a, $b) {
+            return strcmp($a['date'], $b['date']);
+        });
+
         return $payments;
     }
 
@@ -722,6 +785,100 @@ class Onlinestudent_model extends MY_Model
                 . ' receipt_no=' . $receipt_no . ' error=[' . $err['code'] . '] ' . $err['message']);
         } else {
             log_message('debug', 'Onlinestudent_model::_insertGatewayPaymentToIncidental — created incidental receipt ' . $receipt_no . ' for ref_no=' . $ref_no);
+        }
+    }
+
+    /**
+     * Record a successful course-fee gateway payment and create the IFC entry.
+     */
+    public function courseFeePaidSuccess(array $payment)
+    {
+        $insert = [
+            'online_admission_id' => $payment['online_admission_id'],
+            'transaction_id'      => $payment['transaction_id'],
+            'paid_amount'         => $payment['paid_amount'],
+            'payment_mode'        => $payment['payment_mode'],
+            'payment_type'        => 'course_fee',
+            'note'                => $payment['note'] ?? '',
+            'date'                => $payment['date'] ?? date('Y-m-d H:i:s'),
+        ];
+        $this->db->insert('online_admission_payment', $insert);
+        $this->_insertCourseFeeToIncidental($payment);
+    }
+
+    /**
+     * Insert a gateway course-fee payment into incidental_fee_collections
+     * using the TUITION FEE type and the actual paid amount.
+     */
+    private function _insertCourseFeeToIncidental(array $payment)
+    {
+        $admission_id = (int) ($payment['online_admission_id'] ?? 0);
+        if ($admission_id === 0) {
+            return;
+        }
+
+        $row = $this->db->select('reference_no, firstname, middlename, lastname')
+                        ->get_where('online_admissions', ['id' => $admission_id])
+                        ->row_array();
+        if (empty($row['reference_no'])) {
+            return;
+        }
+        $ref_no         = trim($row['reference_no']);
+        $applicant_name = trim(implode(' ', array_filter([
+            $row['firstname']  ?? '',
+            $row['middlename'] ?? '',
+            $row['lastname']   ?? '',
+        ])));
+
+        // Find the tuition/course fee type
+        $fee_type = $this->db
+            ->where("LOWER(title) LIKE '%tuition%'", null, false)
+            ->order_by('id', 'DESC')
+            ->limit(1)
+            ->get('incidental_fee_types')
+            ->row_array();
+        if (empty($fee_type)) {
+            log_message('error', 'Onlinestudent_model::_insertCourseFeeToIncidental — no tuition fee type found');
+            return;
+        }
+
+        $settings   = $this->db->select('session_id')->get('sch_settings')->row_array();
+        $session_id = (int) ($settings['session_id'] ?? 0);
+        $amount     = (float) $payment['paid_amount'];
+
+        $prefix     = 'IFC-';
+        $suffix_row = $this->db->query(
+            "SELECT MAX(CAST(SUBSTRING(receipt_no, " . (strlen($prefix) + 1) . ") AS UNSIGNED)) AS max_num FROM incidental_fee_collections WHERE receipt_no LIKE ?",
+            [$prefix . '%']
+        )->row();
+        $new_num    = ($suffix_row && $suffix_row->max_num) ? (int) $suffix_row->max_num + 1 : 1;
+        $receipt_no = $prefix . str_pad($new_num, 6, '0', STR_PAD_LEFT);
+
+        $txn_id   = isset($payment['transaction_id']) ? (string) $payment['transaction_id'] : null;
+        $pay_mode = isset($payment['payment_mode'])   ? (string) $payment['payment_mode']   : 'online';
+        $pay_date = isset($payment['date'])           ? date('Y-m-d', strtotime($payment['date'])) : date('Y-m-d');
+
+        $insert_data = [
+            'incidental_fee_type_id' => (int) $fee_type['id'],
+            'session_id'             => $session_id,
+            'application_ref_no'     => $ref_no,
+            'non_student_name'       => $applicant_name,
+            'amount_collected'       => $amount,
+            'bill_date'              => $pay_date,
+            'date_collected'         => $payment['date'] ?? date('Y-m-d H:i:s'),
+            'receipt_no'             => $receipt_no,
+            'payment_mode'           => $pay_mode,
+            'txn_id'                 => $txn_id,
+            'notes'                  => $payment['note'] ?? ('Course fee online gateway payment — ' . $pay_mode),
+        ];
+
+        $insert_ok = $this->db->insert('incidental_fee_collections', $insert_data);
+        if (!$insert_ok) {
+            $err = $this->db->error();
+            log_message('error', 'Onlinestudent_model::_insertCourseFeeToIncidental — INSERT failed for ref_no=' . $ref_no
+                . ' error=[' . $err['code'] . '] ' . $err['message']);
+        } else {
+            log_message('debug', 'Onlinestudent_model::_insertCourseFeeToIncidental — created receipt ' . $receipt_no . ' for ref_no=' . $ref_no);
         }
     }
 
