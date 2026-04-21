@@ -821,13 +821,21 @@ class Billdesk extends Student_Controller
             } catch (Exception $e) {
                 // Invalid response
                 log_message('error', 'Billdesk Callback Exception: ' . $e->getMessage());
-                $params_from_gateway_ins = json_decode($gateway_ins_record['parameter_details'], true);
+                $this->session->set_flashdata('msg', '<div class="alert alert-danger">Payment processing error. Please try again.</div>');
+                // Use gateway_ins_record if available, otherwise fall back to session params
+                if (!empty($gateway_ins_record['parameter_details'])) {
+                    $params_from_gateway_ins = json_decode($gateway_ins_record['parameter_details'], true);
+                } else {
+                    $params_from_gateway_ins = $this->session->userdata('params') ?? [];
+                }
                 $module = $params_from_gateway_ins['item_type'] ?? 'fees';
-
-                $this->session->set_flashdata('error', 'Payment processing error: ' . $e->getMessage());
                 if ($module == 'online_admission_fee') {
-                    $online_student_details = $this->onlinestudent_model->get($params_from_gateway_ins['online_admission_id']);
-                    redirect(base_url("onlineadmission/checkout/paymentfailed/" . $online_student_details['reference_no']));
+                    $ref = $params_from_gateway_ins['reference_no'] ?? '';
+                    if ($ref) {
+                        redirect(base_url("onlineadmission/checkout/paymentfailed/" . $ref));
+                    } else {
+                        redirect(base_url("onlineadmission/checkout"));
+                    }
                 } elseif ($module == 'online_course_fee') {
                     redirect(base_url("public_admission/applicant_dashboard"));
                 } else {
@@ -835,19 +843,23 @@ class Billdesk extends Student_Controller
                 }
             }
         } else {
-            // Invalid response
-            log_message('error', 'Billdesk Callback Error: Empty transaction_response POST data.');
-            $this->session->set_flashdata('error', 'Invalid response from payment gateway.');
-            // Try to figure out module from session and redirect appropriately
-            $params_from_gateway_ins = json_decode($gateway_ins_record['parameter_details'], true);
-            $module = $params_from_gateway_ins['item_type'] ?? 'fees';
+            // No POST data — user likely cancelled from the Billdesk window
+            log_message('error', 'Billdesk Callback: Empty transaction_response POST data (possible user cancellation).');
+            $this->session->set_flashdata('msg', '<div class="alert alert-warning">Payment was cancelled.</div>');
+            // Fall back to session params to determine where to redirect
+            $session_params = $this->session->userdata('params');
+            $module = $session_params['item_type'] ?? 'fees';
             if ($module == 'online_admission_fee') {
-                $online_student_details = $this->onlinestudent_model->get($params_from_gateway_ins['online_admission_id']);
-                redirect(base_url("onlineadmission/checkout/paymentfailed/" . $online_student_details['reference_no']));
+                $ref = $session_params['reference_no'] ?? '';
+                if ($ref) {
+                    redirect(base_url("onlineadmission/checkout/paymentfailed/" . $ref));
+                } else {
+                    redirect(base_url("onlineadmission/checkout"));
+                }
             } elseif ($module == 'online_course_fee') {
                 redirect(base_url("public_admission/applicant_dashboard"));
             } else {
-                $this->fail(['transaction_error_desc' => 'Invalid response from payment gateway']);
+                $this->fail(['transaction_error_desc' => 'Payment cancelled']);
             }
         }
     }
