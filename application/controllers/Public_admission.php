@@ -1724,7 +1724,7 @@ class Public_admission extends Front_Controller
                       && $this->db->field_exists('online_admission_id', 'onlineexam_students');
         if ($has_schema) {
             $assigned_exams = $this->db
-                ->select('os.is_attempted, oe.id, oe.exam, oe.publish_result, oe.is_quiz, oe.show_result_immediately')
+                ->select('os.is_attempted, oe.id, oe.exam, oe.publish_result, oe.publish_result_no_answers, oe.is_quiz, oe.show_result_immediately')
                 ->from('onlineexam_students os')
                 ->join('onlineexam oe', 'oe.id = os.onlineexam_id')
                 ->where('os.online_admission_id', $applicant_info->id)
