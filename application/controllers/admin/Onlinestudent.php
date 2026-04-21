@@ -564,6 +564,10 @@ class Onlinestudent extends Admin_Controller
                 }
                 $row[] = $this->lang->line(strtolower($value->gender));
                 $row[] = !empty($value->quota_type) ? $value->quota_type : "N/A";
+                $at_raw = isset($value->admission_type) ? $value->admission_type : '';
+                if ($at_raw === 'lateral') $row[] = 'Lateral';
+                elseif ($at_raw === 'first_year') $row[] = 'First Year';
+                else $row[] = 'N/A';
 
                 $application_ref_no = !empty($value->reference_no) ? preg_replace('/\s+/', '', (string) $value->reference_no) : '';
                 $course_fee = (isset($value->course_fee_total) && $value->course_fee_total !== null && $value->course_fee_total !== '') ? (float) $value->course_fee_total : 0;
@@ -766,6 +770,7 @@ class Onlinestudent extends Admin_Controller
         $headers[] = 'Submitted By';
         $headers[] = 'Gender';
         $headers[] = 'Quota Type';
+        $headers[] = 'Admission Type';
         $headers[] = 'Course Fee';
         $headers[] = 'Paid Amount';
         if ($sch_setting->mobile_no) {
@@ -834,6 +839,10 @@ class Onlinestudent extends Admin_Controller
             }
             $cell_data[] = $r['gender'];
             $cell_data[] = !empty($r['quota_type']) ? $r['quota_type'] : 'N/A';
+            $at_r = isset($r['admission_type']) ? $r['admission_type'] : '';
+            if ($at_r === 'lateral') $cell_data[] = 'Lateral';
+            elseif ($at_r === 'first_year') $cell_data[] = 'First Year';
+            else $cell_data[] = 'N/A';
             $cell_data[] = number_format($course_fee, 2, '.', '');
             $cell_data[] = number_format($paid_amount, 2, '.', '');
             if ($sch_setting->mobile_no) {
@@ -1169,6 +1178,7 @@ class Onlinestudent extends Admin_Controller
                 'updated_at' => date('Y-m-d H:i:s'),
                 'admission_course_id' => (int)$this->input->post('admission_course_id') ?: null,
                 'quota_type' => $this->input->post('quota_type') ?: null,
+                'admission_type' => $this->input->post('admission_type') ?: null,
             );
 
             // Recalculate course_fee_total when course or quota changes

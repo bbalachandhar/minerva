@@ -1668,6 +1668,7 @@ class Public_admission extends Front_Controller
         }
 
         redirect('public_admission/exam_list', 'refresh');
+        }
     }
 
     /**
@@ -1735,12 +1736,20 @@ class Public_admission extends Front_Controller
             $assigned_exams = array();
         }
 
+        // Detect first login and immediately reset the flag so it only fires once
+        $is_first_login = (int)($applicant_info->first_login ?? 0) === 1;
+        if ($is_first_login) {
+            $this->db->where('id', $applicant_info->id);
+            $this->db->update('online_admissions', ['first_login' => 0]);
+        }
+
         $this->data['applicant_info']  = $applicant_info;
         $this->data['payment_history'] = $payment_history;
         $this->data['total_paid']      = $total_paid;
         $this->data['total_fee']       = $total_fee;
         $this->data['balance']         = $balance;
         $this->data['assigned_exams']  = $assigned_exams;
+        $this->data['is_first_login']  = $is_first_login;
         $this->data['title']           = 'Applicant Portal';
         $this->data['sch_name']        = $this->sch_setting_detail->name ?? 'Applicant Portal';
 

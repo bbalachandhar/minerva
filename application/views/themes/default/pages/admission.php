@@ -103,6 +103,17 @@ foreach ($classlist as $class) {
         </div>
         <div class="col-md-3">
             <div class="form-group">
+                <label>Admission Type</label><small class="req"> *</small>
+                <select id="admission_type" name="admission_type" class="form-control" tabindex="4">
+                    <option value="">-- Select --</option>
+                    <option value="first_year" <?php echo set_select('admission_type', 'first_year'); ?>>First Year</option>
+                    <option value="lateral" <?php echo set_select('admission_type', 'lateral'); ?>>Lateral</option>
+                </select>
+                <span class="text-danger"><?php echo form_error('admission_type'); ?></span>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="form-group">
                 <label><?php echo $this->lang->line('first_name'); ?></label><small class="req"> *</small>
                 <input id="firstname" name="firstname" placeholder="" type="text" class="form-control"  value="<?php echo set_value('firstname'); ?>" autocomplete="off" tabindex="4" />
                 <span class="text-danger"><?php echo form_error('firstname'); ?></span>

@@ -4476,6 +4476,7 @@ CREATE TABLE `onlineexam` (
   `passing_percentage` float NOT NULL DEFAULT 0,
   `description` text DEFAULT NULL,
   `publish_result` int(11) NOT NULL DEFAULT 0,
+  `publish_result_no_answers` tinyint(1) NOT NULL DEFAULT 0,
   `answer_word_count` int(11) NOT NULL DEFAULT -1,
   `is_active` varchar(1) DEFAULT '0',
   `is_marks_display` int(11) NOT NULL DEFAULT 0,

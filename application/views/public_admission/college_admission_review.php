@@ -153,6 +153,12 @@
                         }
                         ?>
                          <p><span class="data-label">Course Level:</span> <span class="data-value text-uppercase"><?php echo (isset($course_level) && !empty($course_level)) ? $course_level : 'N/A'; ?></span></p>
+                         <p><span class="data-label">Admission Type:</span> <span class="data-value"><?php
+                             $at = isset($admission_type) ? $admission_type : '';
+                             if ($at === 'lateral') echo 'Lateral';
+                             elseif ($at === 'first_year') echo 'First Year';
+                             else echo 'N/A';
+                         ?></span></p>
                          <p><span class="data-label">Course applied:</span> <span class="data-value"><?php echo $applied_course_name; ?></span></p>
                          <p><span class="data-label">Quota Type:</span> <span class="data-value text-uppercase"><?php echo (isset($quota_type) && !empty($quota_type)) ? $quota_type : 'N/A'; ?></span></p>
                          <p><span class="data-label">Academic Year:</span> <span class="data-value">2026-2027</span></p>

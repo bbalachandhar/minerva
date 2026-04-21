@@ -570,6 +570,10 @@ class Welcome extends Front_Controller
                     if (isset($rte)) {
                         $data['rte'] = $this->input->post('rte');
                     }
+                    $admission_type_post = $this->input->post('admission_type');
+                    if (!empty($admission_type_post)) {
+                        $data['admission_type'] = $admission_type_post;
+                    }
 
                     do {
                         $reference_no   = mt_rand(100000, 999999);

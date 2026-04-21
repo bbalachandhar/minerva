@@ -302,7 +302,12 @@ function findOption($questionOpt, $find)
 
                                      <label class="checkbox-inline">
 <input type="checkbox" class="publish_result" name="publish_result" value="1">
-                                           <?php echo $this->lang->line('publish_result'); ?>
+                                           Publish Result with Answers
+                                        </label>
+
+                                     <label class="checkbox-inline">
+<input type="checkbox" class="publish_result_no_answers" name="publish_result_no_answers" value="1">
+                                           Publish Result without Answers
                                         </label>
 
                                      <label class="checkbox-inline">
@@ -750,6 +755,9 @@ $(document).on('submit','#delete_question',function(e) {
 
                         $('input[name=publish_result]').prop('checked',chk_result_status);
 
+                        var chk_result_no_ans=(data.result.publish_result_no_answers == 0)?false:true;
+                        $('input[name=publish_result_no_answers]').prop('checked',chk_result_no_ans);
+
                         var chk_is_random_question=(data.result.is_random_question == 0)?false:true;
                         $('input[name=is_random_question]').prop('checked',chk_is_random_question);
                         $('#myModal').modal('show');
@@ -1043,9 +1051,11 @@ $(document).on('submit','#delete_question',function(e) {
     $(".is_quiz").change(function() {
         if(this.checked) {
             $("input.publish_result").attr("disabled", true);
+            $("input.publish_result_no_answers").attr("disabled", true);
             $("input#auto_publish_date").val("").attr("disabled", true);
         }else{
             $("input.publish_result").removeAttr("disabled");
+            $("input.publish_result_no_answers").removeAttr("disabled");
             $("input#auto_publish_date").removeAttr("disabled");
         }
     });
