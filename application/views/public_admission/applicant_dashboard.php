@@ -253,3 +253,18 @@
         </div>
     </div>
 </section>
+
+<?php if (!empty($is_first_login)): ?>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    swal({
+        title: 'Welcome!',
+        text: 'Welcome to <?php echo addslashes($sch_name ?? 'Applicant Portal'); ?> Applicant Portal. Your application reference number is <?php echo addslashes($applicant_info->reference_no ?? ''); ?>. Please keep this reference number safe for future communication.',
+        type: 'success',
+        confirmButtonText: 'Get Started',
+        confirmButtonColor: '#3c8dbc',
+        closeOnClickOutside: false
+    });
+});
+</script>
+<?php endif; ?>

@@ -72,6 +72,17 @@ $current_community = isset($student['cast']) ? $student['cast'] : '';
                                         </select>
                                     </div>
                                 </div>
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label>Admission Type</label>
+                                        <select class="form-control" name="admission_type" id="admission_type">
+                                            <option value="">-- Select Admission Type --</option>
+                                            <?php $current_at = isset($student['admission_type']) ? $student['admission_type'] : ''; ?>
+                                            <option value="first_year" <?php echo ($current_at === 'first_year') ? 'selected' : ''; ?>>First Year</option>
+                                            <option value="lateral" <?php echo ($current_at === 'lateral') ? 'selected' : ''; ?>>Lateral</option>
+                                        </select>
+                                    </div>
+                                </div>
                             </div>
 
                             <!-- Personal Information Section -->

@@ -56,6 +56,7 @@
                                         <th><?php echo $this->lang->line('submitted_by'); ?></th>
                                         <th><?php echo $this->lang->line('gender'); ?></th>
                                         <th>Quota Type</th>
+                                        <th>Admission Type</th>
                                                                                 <th>Course Fee</th>
                                                                                 <th>Paid Amount</th>
                                           <?php if ($sch_setting->mobile_no) {?>

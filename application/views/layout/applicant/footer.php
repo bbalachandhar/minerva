@@ -12,6 +12,7 @@
 </div><!-- ./wrapper -->
 
 <script src="<?php echo base_url(); ?>backend/bootstrap/js/bootstrap.min.js"></script>
+<script src="<?php echo base_url(); ?>backend/sweet-alert/sweetalert2.min.js"></script>
 <link href="<?php echo base_url(); ?>backend/toast-alert/toastr.css" rel="stylesheet"/>
 <script src="<?php echo base_url(); ?>backend/toast-alert/toastr.js"></script>
 <script src="<?php echo base_url(); ?>backend/plugins/slimScroll/jquery.slimscroll.min.js"></script>

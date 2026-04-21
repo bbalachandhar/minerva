@@ -107,35 +107,94 @@
 <section class="content">
 <div class="row">
     <div class="col-md-12">
-            <div class="row" style="margin-bottom:10px;">
-                <div class="col-sm-6"><strong>Applicant:</strong> <?php echo $this->customlib->getFullName($applicant['firstname'], $applicant['middlename'], $applicant['lastname'], $sch_setting->middlename, $sch_setting->lastname); ?></div>
-                <div class="col-sm-6 text-right"><strong>Reference No:</strong> <?php echo $applicant['reference_no']; ?></div>
-            </div>
-
-            <div class="row" style="margin-bottom:15px;">
-                <div class="col-sm-12">
-                    <div class="well well-sm" style="margin-bottom:0;">
-                        <strong>Exam Window:</strong> <?php echo $this->customlib->dateyyyymmddToDateTimeformat($exam->exam_from, false); ?> to <?php echo $this->customlib->dateyyyymmddToDateTimeformat($exam->exam_to, false); ?> |
-                        <strong>Duration:</strong> <?php echo $exam->duration; ?> |
-                        <strong>Attempts:</strong> <?php echo $exam->attempt; ?>
-                    </div>
-                </div>
-            </div>
 
             <?php
 /* Determine effective publish status (same logic as user/onlineexam/view.php) */
 $show_result = false;
+$show_result_no_answers = false;
 if ($online_exam_validate->is_attempted) {
     if ($exam->is_quiz && !empty($exam->show_result_immediately)) {
         $show_result = true;
+    } elseif (!empty($exam->publish_result_no_answers)) {
+        $show_result_no_answers = true;
     } elseif ($exam->publish_result) {
         $show_result = true;
     }
 }
 ?>
 
-            <?php if ($online_exam_validate->is_attempted && $show_result): ?>
-                <!-- ===== RESULT VIEW ===== -->
+            <?php if ($online_exam_validate->is_attempted && $show_result_no_answers): ?>
+                <!-- ===== RESULT WITHOUT ANSWERS VIEW ===== -->
+                <?php
+                $exam_total_marks2  = 0;
+                $exam_total_scored2 = 0;
+                if (!empty($question_result)) {
+                    foreach ($question_result as $qr2) {
+                        $exam_total_marks2 += (float)$qr2->marks;
+                        if ((float)$qr2->score_marks > 0) {
+                            $exam_total_scored2 += (float)$qr2->score_marks;
+                        } elseif (!empty($qr2->select_option) && $qr2->select_option == $qr2->correct) {
+                            $exam_total_scored2 += (float)$qr2->marks;
+                        }
+                    }
+                }
+                $score_pct2 = $exam_total_marks2 > 0 ? round(($exam_total_scored2 / $exam_total_marks2) * 100, 1) : 0;
+                $sch_logo   = isset($sch_setting->logo) ? $sch_setting->logo : '';
+                $sch_nm     = $sch_name ?? 'Meenakshi College Of Engineering';
+                ?>
+                <style>
+                .mset-result-card { max-width:700px; margin:0 auto; font-family:Arial,sans-serif; }
+                .mset-header { text-align:center; border-bottom:3px solid #1a5c84; padding-bottom:14px; margin-bottom:20px; }
+                .mset-header img { height:70px; display:block; margin:0 auto 8px; }
+                .mset-header h2 { color:#1a5c84; font-size:20px; margin:0 0 4px; }
+                .mset-header p  { color:#555; font-size:13px; margin:0; }
+                .mset-congrats { background:linear-gradient(135deg,#1a5c84,#2980b9); color:#fff; border-radius:8px; padding:22px 20px; text-align:center; margin-bottom:24px; }
+                .mset-congrats h3 { font-size:24px; margin:0 0 6px; }
+                .mset-congrats p  { font-size:14px; margin:0; opacity:.9; }
+                .mset-score-box { background:#f0f8ff; border:2px solid #1a5c84; border-radius:8px; padding:20px; text-align:center; margin-bottom:24px; }
+                .mset-score-box .pct { font-size:52px; font-weight:bold; color:#1a5c84; line-height:1; }
+                .mset-score-box .lbl { font-size:14px; color:#555; margin-top:6px; }
+                .mset-score-box .raw { font-size:16px; color:#333; margin-top:8px; }
+                .mset-info-box { background:#fff; border:1px solid #ddd; border-radius:6px; padding:16px 20px; margin-bottom:24px; font-size:14px; line-height:1.8; }
+                .mset-info-box p { margin:0 0 8px; }
+                .mset-info-box a { color:#1a5c84; font-weight:bold; }
+                .mset-contact { background:#fff8e1; border-left:4px solid #f0ad4e; padding:12px 16px; border-radius:4px; font-size:13px; color:#555; }
+                .mset-contact strong { color:#333; }
+                </style>
+                <div class="mset-result-card">
+                    <div class="mset-header">
+                        <?php if (!empty($sch_logo)): ?>
+                        <img src="<?php echo base_url('uploads/logos/' . $sch_logo); ?>" alt="Logo">
+                        <?php endif; ?>
+                        <h2><?php echo htmlspecialchars($sch_nm); ?></h2>
+                        <p><?php echo htmlspecialchars($exam->exam); ?> — Result</p>
+                    </div>
+
+                    <div class="mset-congrats">
+                        <h3>&#127881; Congratulations!</h3>
+                        <p>You have successfully completed the <?php echo htmlspecialchars($exam->exam); ?>.</p>
+                    </div>
+
+                    <div class="mset-score-box">
+                        <div class="pct"><?php echo number_format($score_pct2, 1); ?>%</div>
+                        <div class="lbl">Your Score Percentage</div>
+                        <div class="raw"><?php echo $exam_total_scored2; ?> out of <?php echo $exam_total_marks2; ?> marks</div>
+                    </div>
+
+                    <div class="mset-info-box">
+                        <p>The result of <strong><?php echo htmlspecialchars($exam->exam); ?></strong> conducted at <strong><?php echo htmlspecialchars($sch_nm); ?></strong> on 19th April has been published on 22nd April 2026.</p>
+                        <p><strong>Candidate:</strong> <?php echo htmlspecialchars(($applicant['firstname'] ?? '') . ' ' . ($applicant['lastname'] ?? '')); ?></p>
+                        <p><strong>Reference No:</strong> <?php echo htmlspecialchars($applicant['reference_no'] ?? ''); ?></p>
+                    </div>
+
+                    <div class="mset-contact">
+                        <strong>Note:</strong> For details of the eligible scholarship amount, candidates may contact<br>
+                        <strong>Admission Head @ 8925977077</strong>
+                    </div>
+                </div>
+                <br>
+            <?php elseif ($online_exam_validate->is_attempted && $show_result): ?>
+                <!-- ===== RESULT VIEW (WITH ANSWERS) ===== -->
                 <?php
                 $total_questions = 0;
                 $exam_total_marks = 0;
@@ -153,7 +212,12 @@ if ($online_exam_validate->is_attempted) {
                     $total_questions = count($question_result);
                     foreach ($question_result as $qr) {
                         $exam_total_marks += (float)$qr->marks;
-                        $exam_total_scored += (float)$qr->score_marks;
+                        // If stored score_marks is non-zero use it, else calculate from correct answer
+                        if ((float)$qr->score_marks > 0) {
+                            $exam_total_scored += (float)$qr->score_marks;
+                        } elseif (!empty($qr->select_option) && $qr->select_option == $qr->correct) {
+                            $exam_total_scored += (float)$qr->marks;
+                        }
                         if ($qr->question_type == 'singlechoice' || $qr->question_type == 'true_false') {
                             if ($qr->select_option == $qr->correct) $correct_ans++;
                         }

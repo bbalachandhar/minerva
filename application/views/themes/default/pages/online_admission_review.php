@@ -184,6 +184,17 @@ if ($online_admission_payment == 'yes') {
               </div>
               <div class="col-md-3 col-lg-3 col-sm-3">
                   <div class="form-group">
+                    <label><b>Admission Type</b></label>
+                    <p><?php
+                        $at = isset($admission_type) ? $admission_type : '';
+                        if ($at === 'lateral') echo 'Lateral';
+                        elseif ($at === 'first_year') echo 'First Year';
+                        else echo '--';
+                    ?></p>
+                  </div>
+              </div>
+              <div class="col-md-3 col-lg-3 col-sm-3">
+                  <div class="form-group">
                       <label><b><?php echo $this->lang->line('first_name'); ?></b></label>
                       <p><?php echo $firstname; ?></p>
                   </div>

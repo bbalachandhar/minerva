@@ -952,6 +952,10 @@ class Onlineexam extends Admin_Controller
             if (isset($_POST['publish_result'])) {
                 $publish_result = 1;
             }
+            $publish_result_no_answers = 0;
+            if (isset($_POST['publish_result_no_answers'])) {
+                $publish_result_no_answers = 1;
+            }
             if (isset($_POST['is_marks_display'])) {
                 $is_marks_display = 1;
             }
@@ -982,15 +986,17 @@ class Onlineexam extends Admin_Controller
                 'description'        => $this->input->post('description'),
                 'session_id'         => $this->setting_model->getCurrentSession(),
                 'is_active'          => $is_active,
-                'publish_result'     => $publish_result,
-                'is_marks_display'   => $is_marks_display,
+                'publish_result'              => $publish_result,
+                'publish_result_no_answers'   => $publish_result_no_answers,
+                'is_marks_display'            => $is_marks_display,
                 'is_neg_marking'     => $is_neg_marking,
                 'is_random_question' => $is_random_question,
                 'passing_percentage' => $this->input->post('passing_percentage'),
             );
             if (isset($_POST['is_quiz']) && $_POST['is_quiz'] != "") {
-                $insert_data['publish_result']           = 0;
-                $insert_data['auto_publish_date']        = null;
+                $insert_data['publish_result']              = 0;
+                $insert_data['publish_result_no_answers']   = 0;
+                $insert_data['auto_publish_date']           = null;
                 $insert_data['is_quiz']                  = 1;
                 $insert_data['show_result_immediately']  = $show_result_immediately;
             } else {
