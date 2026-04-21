@@ -277,14 +277,14 @@ class Billdesk extends Student_Controller
                     $split_payment_payload[] = [
                         'mercid' => $onlineform_sub_merchant_id,
                         'amount' => $formatted_amount,
-                        'customer_refid' => $school_code . 'ORN' . $data['params']['reference_no'],
+                        'customer_refid' => $school_code . 'ORCF' . $data['params']['reference_no'],
                         'additional_info1' => 'NA', 'additional_info2' => 'NA', 'additional_info3' => 'NA',
                         'additional_info4' => 'NA', 'additional_info5' => 'NA', 'additional_info6' => 'NA',
                         'additional_info7' => 'NA',
                     ];
                 }
 
-                $ecom_order_ref_no = $data['params']['reference_no'] . 'CF' . time() . rand(11, 99);
+                $ecom_order_ref_no = $data['params']['reference_no'] . time() . rand(11, 99);
 
                 $shared_additional_info = [
                     'additional_info1' => $online_student_details['firstname'] . ' ' . $online_student_details['lastname'],
