@@ -211,7 +211,7 @@ class Billdesk extends Student_Controller
                     $split_payment_payload[] = [
                         'mercid' => $onlineform_sub_merchant_id,
                         'amount' => $formatted_amount,
-                        'customer_refid' => $data['params']['reference_no'],
+                        'customer_refid' => $data['params']['reference_no'] . time(),
                         'additional_info1' => 'NA', 'additional_info2' => 'NA', 'additional_info3' => 'NA',
                         'additional_info4' => 'NA', 'additional_info5' => 'NA', 'additional_info6' => 'NA',
                         'additional_info7' => 'NA',
@@ -277,7 +277,7 @@ class Billdesk extends Student_Controller
                     $split_payment_payload[] = [
                         'mercid' => $onlineform_sub_merchant_id,
                         'amount' => $formatted_amount,
-                        'customer_refid' => $data['params']['reference_no'] . 'CF',
+                        'customer_refid' => $data['params']['reference_no'] . 'CF' . time(),
                         'additional_info1' => 'NA', 'additional_info2' => 'NA', 'additional_info3' => 'NA',
                         'additional_info4' => 'NA', 'additional_info5' => 'NA', 'additional_info6' => 'NA',
                         'additional_info7' => 'NA',
