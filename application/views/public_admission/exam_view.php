@@ -189,7 +189,11 @@ if ($online_exam_validate->is_attempted) {
 
                     <div class="mset-contact">
                         <strong>Note:</strong> For details of the eligible scholarship amount, candidates may contact<br>
-                        <strong>Admission Head @ 8925977077</strong>
+                        <strong>FOR ADMISSION CONTACT</strong><br>
+                        Aravinda Krishnan - 8925977077<br>
+                        Durga Devi - 9363541221<br>
+                        Janani - 9363543717<br>
+                        Logeswari - 6379777176
                     </div>
                 </div>
                 <br>
