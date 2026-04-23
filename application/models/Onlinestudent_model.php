@@ -722,11 +722,12 @@ class Onlinestudent_model extends MY_Model
         ])));
 
         // Avoid duplicate: skip if an application-fee incidental record already exists for this ref
+        $ref_no_clean = preg_replace('/\s+/', '', $ref_no);
         $existing = $this->db
             ->select('ifc.id')
             ->from('incidental_fee_collections ifc')
             ->join('incidental_fee_types ift', 'ift.id = ifc.incidental_fee_type_id', 'inner')
-            ->where("REPLACE(ifc.application_ref_no,' ','')", preg_replace('/\s+/', '', $ref_no))
+            ->where("REPLACE(ifc.application_ref_no,' ','') = " . $this->db->escape($ref_no_clean), null, false)
             ->where("LOWER(ift.title) LIKE '%application%'", null, false)
             ->get()->row_array();
         if (!empty($existing)) {
@@ -829,6 +830,19 @@ class Onlinestudent_model extends MY_Model
             $row['middlename'] ?? '',
             $row['lastname']   ?? '',
         ])));
+
+        // Avoid duplicate: skip if a tuition-fee incidental record already exists for this ref
+        $ref_no_clean = preg_replace('/\s+/', '', $ref_no);
+        $existing_course = $this->db
+            ->select('ifc.id')
+            ->from('incidental_fee_collections ifc')
+            ->join('incidental_fee_types ift', 'ift.id = ifc.incidental_fee_type_id', 'inner')
+            ->where("REPLACE(ifc.application_ref_no,' ','') = " . $this->db->escape($ref_no_clean), null, false)
+            ->where("LOWER(ift.title) LIKE '%tuition%'", null, false)
+            ->get()->row_array();
+        if (!empty($existing_course)) {
+            return; // already recorded
+        }
 
         // Find the tuition/course fee type
         $fee_type = $this->db
