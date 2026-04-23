@@ -1743,15 +1743,19 @@ class Public_admission extends Front_Controller
             $this->db->update('online_admissions', ['first_login' => 0]);
         }
 
-        $this->data['applicant_info']  = $applicant_info;
-        $this->data['payment_history'] = $payment_history;
-        $this->data['total_paid']      = $total_paid;
-        $this->data['total_fee']       = $total_fee;
-        $this->data['balance']         = $balance;
-        $this->data['assigned_exams']  = $assigned_exams;
-        $this->data['is_first_login']  = $is_first_login;
-        $this->data['title']           = 'Applicant Portal';
-        $this->data['sch_name']        = $this->sch_setting_detail->name ?? 'Applicant Portal';
+        $this->data['applicant_info']           = $applicant_info;
+        $this->data['payment_history']          = $payment_history;
+        $this->data['total_paid']               = $total_paid;
+        $this->data['total_fee']                = $total_fee;
+        $this->data['balance']                  = $balance;
+        $this->data['course_fee']               = $course_fee;
+        $this->data['app_fee_paid']             = $application_fee > 0;
+        $this->data['online_admission_payment'] = $this->sch_setting_detail->online_admission_payment ?? 0;
+        $this->data['online_admission_amount']  = $this->sch_setting_detail->online_admission_amount ?? 0;
+        $this->data['assigned_exams']           = $assigned_exams;
+        $this->data['is_first_login']           = $is_first_login;
+        $this->data['title']                    = 'Applicant Portal';
+        $this->data['sch_name']                 = $this->sch_setting_detail->name ?? 'Applicant Portal';
 
         $this->load->view('layout/applicant/header', $this->data);
         $this->load->view('public_admission/applicant_dashboard', $this->data);
@@ -1842,6 +1846,103 @@ class Public_admission extends Front_Controller
             'parameter_details' => json_encode($payment_params),
             'gateway_name'      => 'billdesk',
             'module'            => 'online_course_fee',
+            'payment_status'    => 'processing',
+            'created_at'        => date('Y-m-d H:i:s'),
+        ];
+        $gateway_ins_id = $this->gateway_ins_model->add_gateway_ins($ins_data);
+
+        $payment_params['gateway_ins_id'] = $gateway_ins_id;
+        $this->session->set_userdata('params', $payment_params);
+        $this->session->set_userdata('reference', (int) $applicant_info->id);
+
+        redirect('user/gateway/billdesk/index');
+    }
+
+    public function initiate_application_fee_payment()
+    {
+        $reference_no = $this->session->userdata('validlogin');
+        if (empty($reference_no)) {
+            $this->session->set_flashdata('login_error', 'Please login first');
+            redirect('site/userlogin');
+            return;
+        }
+
+        $ref_clean = preg_replace('/\s+/', '', $reference_no);
+
+        $this->db->select('oa.*, IFNULL(oac.course_name, "N/A") as course_name,
+            COALESCE(oa.course_fee_total,
+                IF(oa.quota_type = "management", oac.mgt_fee, oac.govt_fee)
+            ) as total_fee');
+        $this->db->from('online_admissions oa');
+        $this->db->join('online_admission_courses oac',
+            'oac.id = COALESCE(oa.admission_course_id, oa.ug_course_id)', 'left');
+        $this->db->where("REPLACE(oa.reference_no, ' ', '') = " . $this->db->escape($ref_clean), null, false);
+        $applicant_info = $this->db->get()->row();
+
+        if (!$applicant_info) {
+            $this->session->unset_userdata('validlogin');
+            redirect('site/userlogin');
+            return;
+        }
+
+        // Check application fee is not already paid
+        $this->load->model('Onlinestudent_model');
+        $date_format     = $this->customlib->getSchoolDateFormat();
+        $payment_history = $this->Onlinestudent_model->get_payment_history_by_ref($ref_clean, $date_format);
+        $app_fee_already_paid = 0.0;
+        foreach ($payment_history as $p) {
+            if (stripos($p['fee_type'], 'application') !== false) {
+                $app_fee_already_paid += (float) $p['amount_raw'];
+            }
+        }
+        if ($app_fee_already_paid > 0) {
+            $this->session->set_flashdata('msg', '<div class="alert alert-info">Application fee has already been paid.</div>');
+            redirect('public_admission/applicant_dashboard');
+            return;
+        }
+
+        $admission_fee = (float) ($this->sch_setting_detail->online_admission_amount ?? 0);
+        if ($admission_fee <= 0) {
+            $this->session->set_flashdata('msg', '<div class="alert alert-warning">Application fee amount is not configured. Please contact the administrator.</div>');
+            redirect('public_admission/applicant_dashboard');
+            return;
+        }
+
+        // Calculate processing charge
+        $processing_charge = 0;
+        if (!empty($this->sch_setting_detail->online_admission_processing_charge_type)
+            && !empty($this->sch_setting_detail->online_admission_processing_charge)
+            && $this->sch_setting_detail->online_admission_processing_charge > 0) {
+            $charge_type  = $this->sch_setting_detail->online_admission_processing_charge_type;
+            $charge_value = (float) $this->sch_setting_detail->online_admission_processing_charge;
+            if ($charge_type == 'percentage') {
+                $processing_charge = ($admission_fee * $charge_value) / 100;
+            } elseif ($charge_type == 'fixed') {
+                $processing_charge = $charge_value;
+            }
+        }
+
+        $final_amount = $admission_fee + $processing_charge;
+
+        $payment_params = [
+            'online_admission_id' => (int) $applicant_info->id,
+            'reference_no'        => trim($applicant_info->reference_no),
+            'total'               => $final_amount,
+            'admission_amount'    => $admission_fee,
+            'processing_charge'   => $processing_charge,
+            'name'                => $applicant_info->firstname,
+            'guardian_phone'      => $applicant_info->father_phone ?? '',
+            'email'               => $applicant_info->email ?? '',
+            'item_type'           => 'online_admission_fee',
+            'sch_setting_detail'  => $this->sch_setting_detail,
+        ];
+
+        $this->load->model('gateway_ins_model');
+        $ins_data = [
+            'unique_id'         => (int) $applicant_info->id,
+            'parameter_details' => json_encode($payment_params),
+            'gateway_name'      => 'billdesk',
+            'module'            => 'online_admission_fee',
             'payment_status'    => 'processing',
             'created_at'        => date('Y-m-d H:i:s'),
         ];

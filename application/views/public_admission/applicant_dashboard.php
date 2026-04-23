@@ -191,22 +191,38 @@
                                 <?php endif; ?>
                             </tfoot>
                         </table>
-                        <?php if ($balance > 0): ?>
-                        <div class="box-footer" style="text-align:right;">
-                            <a href="<?php echo base_url('public_admission/initiate_course_fee_payment'); ?>"
-                               class="btn btn-success btn-lg"
-                               onclick="return confirm('You will be redirected to the payment gateway to pay ₹<?php echo number_format($balance, 2); ?> as course fee. Continue?');">
-                                <i class="fa fa-credit-card"></i>
-                                Pay Balance &#8377; <?php echo number_format($balance, 2); ?> Online
-                            </a>
-                        </div>
-                        <?php endif; ?>
                     <?php else: ?>
                         <div class="box-body">
                             <div class="callout callout-info" style="margin:0;">
                                 <p><i class="fa fa-info-circle"></i> No payments recorded yet.</p>
                             </div>
                         </div>
+                    <?php endif; ?>
+
+                    <?php
+                    $show_app_fee_btn    = !empty($online_admission_payment) && empty($app_fee_paid) && $online_admission_amount > 0;
+                    $show_course_fee_btn = $balance > 0;
+                    ?>
+                    <?php if ($show_app_fee_btn || $show_course_fee_btn): ?>
+                    <div class="box-footer" style="text-align:right;">
+                        <?php if ($show_app_fee_btn): ?>
+                        <a href="<?php echo base_url('public_admission/initiate_application_fee_payment'); ?>"
+                           class="btn btn-warning btn-lg"
+                           style="margin-right:8px;"
+                           onclick="return confirm('You will be redirected to the payment gateway to pay ₹<?php echo number_format($online_admission_amount, 2); ?> as Application Fee. Continue?');">
+                            <i class="fa fa-file-text-o"></i>
+                            Pay Application Fee &#8377; <?php echo number_format($online_admission_amount, 2); ?>
+                        </a>
+                        <?php endif; ?>
+                        <?php if ($show_course_fee_btn): ?>
+                        <a href="<?php echo base_url('public_admission/initiate_course_fee_payment'); ?>"
+                           class="btn btn-success btn-lg"
+                           onclick="return confirm('You will be redirected to the payment gateway to pay ₹<?php echo number_format($balance, 2); ?> as Course Fee. Continue?');">
+                            <i class="fa fa-credit-card"></i>
+                            Pay Course Fee &#8377; <?php echo number_format($balance, 2); ?>
+                        </a>
+                        <?php endif; ?>
+                    </div>
                     <?php endif; ?>
                 </div>
             </div>
