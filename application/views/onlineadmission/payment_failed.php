@@ -16,13 +16,38 @@
         <div class="row">
           <div class="col-lg-6 col-lg-offset-3">
             <div class="failedpayment">
-            <div class="failed-circle">
-              <div class="successpayment-icon"><i class="fa fa-close"></i></div>
-             </div>
-                <h1><?php echo $this->lang->line('payment_failed')?></h1>
-                <p><?php echo $this->lang->line('your_transaction_has_failed_due_to_some_technical_error')?></p>
-                <p><?php echo $this->lang->line('please_try_again'); ?></p>
-                <a href="<?php echo base_url("welcome/online_admission_review/".$reference_no); ?>" class="btn btn-info btn-lg mt30"><?php echo $this->lang->line("try_again"); ?></a>
+              <div class="failed-circle" style="background:#f39c12;">
+                <div class="successpayment-icon"><i class="fa fa-exclamation"></i></div>
+              </div>
+              <h1 style="color:#e67e22;">Your Application Has Been Saved</h1>
+              <p style="font-size:16px; margin-top:10px;">
+                Your application (Ref: <strong><?php echo htmlspecialchars($reference_no); ?></strong>) has been recorded.
+                However, your application will <strong>not be considered</strong> for the admission process until the
+                <strong>Application Fee</strong> has been paid.
+              </p>
+              <div style="background:#fff3cd; border:1px solid #ffc107; border-radius:6px; padding:15px 20px; margin:20px 0; text-align:left;">
+                <p style="margin:0 0 8px;"><strong>Please login to the Applicant Portal to pay the Application Fee:</strong></p>
+                <p style="margin:0 0 6px;">
+                  <i class="fa fa-link"></i>&nbsp;
+                  <a href="https://mce.beebasoft.com/site/applicantlogin" target="_blank">
+                    https://mce.beebasoft.com/site/applicantlogin
+                  </a>
+                </p>
+                <p style="margin:0 0 6px;">
+                  <i class="fa fa-user"></i>&nbsp; <strong>Username:</strong>
+                  <?php echo htmlspecialchars($reference_no); ?>
+                </p>
+                <p style="margin:0;">
+                  <i class="fa fa-key"></i>&nbsp; <strong>Default Password:</strong>
+                  <?php echo htmlspecialchars($reference_no); ?>@ApplicantPortal2026
+                </p>
+              </div>
+              <a href="<?php echo site_url('public_admission/applicant_dashboard'); ?>" class="btn btn-success btn-lg mt30" style="margin-right:8px;">
+                <i class="fa fa-tachometer"></i>&nbsp; Go to Dashboard
+              </a>
+              <a href="<?php echo site_url('site/applicantlogin'); ?>" class="btn btn-warning btn-lg mt30">
+                <i class="fa fa-sign-in"></i>&nbsp; Login to Pay Application Fee
+              </a>
             </div>
          </div>  
         </div>  

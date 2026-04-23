@@ -794,9 +794,15 @@ class Billdesk extends Student_Controller
                     // Payment Pending
                     // Determine module based on params for redirection
                     if ($module == 'online_admission_fee') {
-                        $online_student_details = $this->onlinestudent_model->get($params_from_gateway_ins['online_admission_id']);
-                        $this->session->set_flashdata('msg', '<div class="alert alert-warning">Payment is pending. Please check with your bank.</div>');
-                        redirect(base_url("onlineadmission/checkout/processinginvoice/" . $online_student_details['reference_no']));
+                        $source = $params_from_gateway_ins['source'] ?? '';
+                        if ($source === 'dashboard') {
+                            $this->session->set_flashdata('msg', '<div class="alert alert-warning">Payment is pending. Please check with your bank.</div>');
+                            redirect(base_url("public_admission/applicant_dashboard"));
+                        } else {
+                            $online_student_details = $this->onlinestudent_model->get($params_from_gateway_ins['online_admission_id']);
+                            $this->session->set_flashdata('msg', '<div class="alert alert-warning">Payment is pending. Please check with your bank.</div>');
+                            redirect(base_url("onlineadmission/checkout/processinginvoice/" . $online_student_details['reference_no']));
+                        }
                     } elseif ($module == 'online_course_fee') {
                         $this->session->set_flashdata('msg', '<div class="alert alert-warning">Course fee payment is pending. Please check with your bank.</div>');
                         redirect(base_url("public_admission/applicant_dashboard"));
@@ -808,9 +814,14 @@ class Billdesk extends Student_Controller
                     // Payment failed
                     // Determine module based on params for redirection
                     if ($module == 'online_admission_fee') {
-                        $online_student_details = $this->onlinestudent_model->get($params_from_gateway_ins['online_admission_id']);
                         $this->session->set_flashdata('msg', '<div class="alert alert-danger">Payment failed. Please try again.</div>');
-                        redirect(base_url("onlineadmission/checkout/paymentfailed/" . $online_student_details['reference_no']));
+                        $source = $params_from_gateway_ins['source'] ?? '';
+                        if ($source === 'dashboard') {
+                            redirect(base_url("public_admission/applicant_dashboard"));
+                        } else {
+                            $online_student_details = $this->onlinestudent_model->get($params_from_gateway_ins['online_admission_id']);
+                            redirect(base_url("onlineadmission/checkout/paymentfailed/" . $online_student_details['reference_no']));
+                        }
                     } elseif ($module == 'online_course_fee') {
                         $this->session->set_flashdata('msg', '<div class="alert alert-danger">Course fee payment failed. Please try again.</div>');
                         redirect(base_url("public_admission/applicant_dashboard"));
@@ -830,11 +841,16 @@ class Billdesk extends Student_Controller
                 }
                 $module = $params_from_gateway_ins['item_type'] ?? 'fees';
                 if ($module == 'online_admission_fee') {
-                    $ref = $params_from_gateway_ins['reference_no'] ?? '';
-                    if ($ref) {
-                        redirect(base_url("onlineadmission/checkout/paymentfailed/" . $ref));
+                    $source = $params_from_gateway_ins['source'] ?? '';
+                    if ($source === 'dashboard') {
+                        redirect(base_url("public_admission/applicant_dashboard"));
                     } else {
-                        redirect(base_url("onlineadmission/checkout"));
+                        $ref = $params_from_gateway_ins['reference_no'] ?? '';
+                        if ($ref) {
+                            redirect(base_url("onlineadmission/checkout/paymentfailed/" . $ref));
+                        } else {
+                            redirect(base_url("onlineadmission/checkout"));
+                        }
                     }
                 } elseif ($module == 'online_course_fee') {
                     redirect(base_url("public_admission/applicant_dashboard"));
@@ -850,11 +866,16 @@ class Billdesk extends Student_Controller
             $session_params = $this->session->userdata('params');
             $module = $session_params['item_type'] ?? 'fees';
             if ($module == 'online_admission_fee') {
-                $ref = $session_params['reference_no'] ?? '';
-                if ($ref) {
-                    redirect(base_url("onlineadmission/checkout/paymentfailed/" . $ref));
+                $source = $session_params['source'] ?? '';
+                if ($source === 'dashboard') {
+                    redirect(base_url("public_admission/applicant_dashboard"));
                 } else {
-                    redirect(base_url("onlineadmission/checkout"));
+                    $ref = $session_params['reference_no'] ?? '';
+                    if ($ref) {
+                        redirect(base_url("onlineadmission/checkout/paymentfailed/" . $ref));
+                    } else {
+                        redirect(base_url("onlineadmission/checkout"));
+                    }
                 }
             } elseif ($module == 'online_course_fee') {
                 redirect(base_url("public_admission/applicant_dashboard"));

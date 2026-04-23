@@ -1934,6 +1934,7 @@ class Public_admission extends Front_Controller
             'guardian_phone'      => $applicant_info->father_phone ?? '',
             'email'               => $applicant_info->email ?? '',
             'item_type'           => 'online_admission_fee',
+            'source'              => 'dashboard',
             'sch_setting_detail'  => $this->sch_setting_detail,
         ];
 
