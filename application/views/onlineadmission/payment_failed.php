@@ -42,11 +42,11 @@
                   <?php echo htmlspecialchars($reference_no); ?>@ApplicantPortal2026
                 </p>
               </div>
-              <a href="<?php echo site_url('public_admission/applicant_dashboard'); ?>" class="btn btn-success btn-lg mt30" style="margin-right:8px;">
-                <i class="fa fa-tachometer"></i>&nbsp; Go to Dashboard
+              <a href="<?php echo site_url('public_admission/online_admission_review/' . $reference_no); ?>" class="btn btn-info btn-lg mt30" style="margin-right:8px;">
+                <i class="fa fa-refresh"></i>&nbsp; Try Again
               </a>
               <a href="<?php echo site_url('site/applicantlogin'); ?>" class="btn btn-warning btn-lg mt30">
-                <i class="fa fa-sign-in"></i>&nbsp; Login to Pay Application Fee
+                <i class="fa fa-sign-in"></i>&nbsp; Login to Applicant Portal
               </a>
             </div>
          </div>  
