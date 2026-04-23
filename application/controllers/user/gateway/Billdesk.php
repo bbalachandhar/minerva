@@ -764,8 +764,13 @@ class Billdesk extends Student_Controller
                         // $this->mailsmsconf->mailsms('online_admission_payment_success', $online_data);
 
                         $online_student_details = $this->onlinestudent_model->get($online_admission_id);
-                        $this->session->set_flashdata('msg', '<div class="alert alert-success">Payment successful! Your online admission has been processed.</div>');
-                        redirect(base_url("onlineadmission/checkout/successinvoice/" . $online_student_details['reference_no']));
+                        $this->session->set_flashdata('msg', '<div class="alert alert-success">Payment successful! Your application fee has been received.</div>');
+                        $source = $params_from_gateway_ins['source'] ?? '';
+                        if ($source === 'dashboard') {
+                            redirect(base_url("public_admission/applicant_dashboard"));
+                        } else {
+                            redirect(base_url("onlineadmission/checkout/successinvoice/" . $online_student_details['reference_no']));
+                        }
                     } elseif ($module == 'online_course_fee') {
                         $online_admission_id = $params_from_gateway_ins['online_admission_id'];
                         $transaction_id = $response['transactionid'];

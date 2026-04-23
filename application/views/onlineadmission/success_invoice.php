@@ -22,7 +22,8 @@
                 <h1><?php echo $this->lang->line('success') ?></h1>
                 <p class="mb20"><?php echo $this->lang->line('your_online_admission_fees_is_successfully_submitted') ?></p>
                 <p><?php echo $this->lang->line('thank_you_for_payment') ?></p>
-                <a href='<?php echo base_url("welcome/online_admission_review/".$reference_no); ?>' class="btn btn-info btn-lg mt30"><?php echo $this->lang->line('payment_status'); ?></a>
+                <a href='<?php echo site_url("public_admission/applicant_dashboard"); ?>' class="btn btn-success btn-lg mt30"><i class="fa fa-tachometer"></i>&nbsp; Go to Dashboard</a>
+                <a href='<?php echo base_url("welcome/online_admission_review/".$reference_no); ?>' class="btn btn-info btn-lg mt30" style="margin-left:8px;"><?php echo $this->lang->line('payment_status'); ?></a>
             </div>
          </div>  
         </div>  
