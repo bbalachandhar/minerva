@@ -77,6 +77,15 @@ class Mailsmsconf
                     }
                 }
 
+                if (!empty($chk_mail_sms['whatsapp'])) {
+                    $this->CI->load->library('whatsappgateway');
+                    foreach ($contact_numbers as $key => $wa_number_raw) {
+                        $raw = preg_replace('/\D/', '', $wa_number_raw);
+                        $wa_number = (strlen($raw) === 10) ? '91' . $raw : $raw;
+                        $this->CI->whatsappgateway->sentRegisterWhatsapp($sender_details['student_id'], $wa_number, $chk_mail_sms['template'], $chk_mail_sms['template_id']);
+                    }
+                }
+
             } elseif ($send_for == "exam_result") {
 
                 $this->sendResult($chk_mail_sms, $sender_details, $chk_mail_sms['template'], $chk_mail_sms['subject'], $chk_mail_sms['template_id']);
@@ -346,6 +355,15 @@ $sender_details['parent_app_key']=$recipient_data['parent_app_key'];
                     $this->CI->smsgateway->sendStudentLoginCredential($chk_mail_sms, $sender_details, $chk_mail_sms['template'], $chk_mail_sms['template_id']);
                 }
                 }
+
+                if (!empty($chk_mail_sms['whatsapp'])) {
+                    $this->CI->load->library('whatsappgateway');
+                    foreach ($contact_numbers as $key => $contact_numbersvalue) {
+                        $raw = preg_replace('/\D/', '', $contact_numbersvalue);
+                        $sender_details['contact_no'] = (strlen($raw) === 10) ? '91' . $raw : $raw;
+                        $this->CI->whatsappgateway->sendStudentLoginCredential($chk_mail_sms, $sender_details, $chk_mail_sms['template'], $chk_mail_sms['template_id']);
+                    }
+                }
             } elseif ($send_for == "staff_login_credential" && $chk_mail_sms['staff_recipient']) {
 
                 if ($chk_mail_sms['mail'] && $chk_mail_sms['template'] != "") {
@@ -354,6 +372,11 @@ $sender_details['parent_app_key']=$recipient_data['parent_app_key'];
                 }
                 if ($chk_mail_sms['sms'] && $chk_mail_sms['template'] != "" && !empty($sms_detail)) {
                     $this->CI->smsgateway->sendStaffLoginCredential($chk_mail_sms, $sender_details, $chk_mail_sms['template'], $chk_mail_sms['template_id']);
+                }
+
+                if (!empty($chk_mail_sms['whatsapp'])) {
+                    $this->CI->load->library('whatsappgateway');
+                    $this->CI->whatsappgateway->sendStaffLoginCredential($chk_mail_sms, $sender_details, $chk_mail_sms['template'], $chk_mail_sms['template_id']);
                 }
             } elseif ($send_for == "student_apply_leave") {
 
@@ -400,6 +423,24 @@ $sender_details['parent_app_key']=$recipient_data['parent_app_key'];
                                 $sender_details['contact_no'] = $contactvalue;
                                 $this->CI->smsgateway->student_apply_leave($chk_mail_sms, $sender_details, $chk_mail_sms['template'], $chk_mail_sms['template_id']);
                             }
+                        }
+                    }
+                }
+
+                if (!empty($chk_mail_sms['whatsapp'])) {
+                    $this->CI->load->library('whatsappgateway');
+                    if ($chk_mail_sms['staff_recipient'] && isset($stafflist)) {
+                        foreach ($stafflist as $key => $value) {
+                            $raw = preg_replace('/\D/', '', $value['contact_no']);
+                            $sender_details['contact_no'] = (strlen($raw) === 10) ? '91' . $raw : $raw;
+                            $this->CI->whatsappgateway->student_apply_leave($sender_details, $chk_mail_sms['template'], $chk_mail_sms['template_id']);
+                        }
+                    }
+                    if ($chk_mail_sms['guardian_recipient'] && !empty($contact_numbers)) {
+                        foreach ($contact_numbers as $key => $contactvalue) {
+                            $raw = preg_replace('/\D/', '', $contactvalue);
+                            $sender_details['contact_no'] = (strlen($raw) === 10) ? '91' . $raw : $raw;
+                            $this->CI->whatsappgateway->student_apply_leave($sender_details, $chk_mail_sms['template'], $chk_mail_sms['template_id']);
                         }
                     }
                 }
@@ -519,6 +560,10 @@ $sender_details['parent_app_key']=$recipient_data['parent_app_key'];
                         $this->CI->smsgateway->sentExamResultNotification($detail, $template, $subject);
                     }
 
+                    if (!empty($chk_mail_sms['whatsapp'])) {
+                        $this->CI->load->library('whatsappgateway');
+                        $this->CI->whatsappgateway->sentExamResultWhatsapp($detail, $template, $template_id);
+                    }
 
                 }
             }
@@ -669,6 +714,12 @@ $sender_details['parent_app_key']=$recipient_data['parent_app_key'];
                     if ($chk_mail_sms['sms'] && !empty($sms_detail) && $chk_mail_sms['staff_recipient']) {
                         $this->CI->smsgateway->sentPresentStaffSMS($detail, $template, $template_id, $detail['contact_no']);
                     }
+                    if (!empty($chk_mail_sms['whatsapp']) && $chk_mail_sms['staff_recipient'] && !empty($detail['contact_no'])) {
+                        $this->CI->load->library('whatsappgateway');
+                        $raw = preg_replace('/\D/', '', $detail['contact_no']);
+                        $detail['contact_no'] = (strlen($raw) === 10) ? '91' . $raw : $raw;
+                        $this->CI->whatsappgateway->sentPresentStaffWhatsapp($detail, $template, $template_id);
+                    }
                 }
             }
         }
@@ -710,6 +761,12 @@ $sender_details['parent_app_key']=$recipient_data['parent_app_key'];
                     }
                     if ($chk_mail_sms['sms'] && !empty($sms_detail) && $chk_mail_sms['staff_recipient']) {
                         $this->CI->smsgateway->sentAbsentStaffSMS($detail, $template, $template_id, $detail['contact_no']);
+                    }
+                    if (!empty($chk_mail_sms['whatsapp']) && $chk_mail_sms['staff_recipient'] && !empty($detail['contact_no'])) {
+                        $this->CI->load->library('whatsappgateway');
+                        $raw = preg_replace('/\D/', '', $detail['contact_no']);
+                        $detail['contact_no'] = (strlen($raw) === 10) ? '91' . $raw : $raw;
+                        $this->CI->whatsappgateway->sentAbsentStaffWhatsapp($detail, $template, $template_id);
                     }
                 }
             }
