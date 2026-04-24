@@ -1191,6 +1191,20 @@ $sender_details['parent_app_key']=$recipient_data['parent_app_key'];
 
                 $this->CI->smsgateway->sentNotification($student_details['parent_app_key'],$student_details,$chk_mail_sms['subject'], $template);
             }
+
+            if (!empty($chk_mail_sms['whatsapp'])) {
+                $this->CI->load->library('whatsappgateway');
+                if ($chk_mail_sms['student_recipient'] && !empty($student_details['mobileno'])) {
+                    $raw = preg_replace('/\D/', '', $student_details['mobileno']);
+                    $wa_number = (strlen($raw) === 10) ? '91' . $raw : $raw;
+                    $this->CI->whatsappgateway->sendOnlineadmissionformsubmit($student_details, $template, $wa_number, $template_id);
+                }
+                if ($chk_mail_sms['guardian_recipient'] && !empty($student_details['guardian_phone'])) {
+                    $raw = preg_replace('/\D/', '', $student_details['guardian_phone']);
+                    $wa_number = (strlen($raw) === 10) ? '91' . $raw : $raw;
+                    $this->CI->whatsappgateway->sendOnlineadmissionformsubmit($student_details, $template, $wa_number, $template_id);
+                }
+            }
         }
     }
 
@@ -1228,6 +1242,20 @@ $sender_details['parent_app_key']=$recipient_data['parent_app_key'];
                 $student_details['mobileno']=$student_details['guardian_phone'];
                 $this->CI->smsgateway->sentOnlineadmissionFeesSMS($student_details, $template, $template_id, $student_details['guardian_phone']);
                 
+            }
+
+            if (!empty($chk_mail_sms['whatsapp'])) {
+                $this->CI->load->library('whatsappgateway');
+                if ($chk_mail_sms['student_recipient'] && !empty($student_details['mobileno'])) {
+                    $raw = preg_replace('/\D/', '', $student_details['mobileno']);
+                    $wa_number = (strlen($raw) === 10) ? '91' . $raw : $raw;
+                    $this->CI->whatsappgateway->sentstudentOnlineadmissionFeessubmissionWhatsapp($student_details, $template, $wa_number, $template_id);
+                }
+                if ($chk_mail_sms['guardian_recipient'] && !empty($student_details['guardian_phone'])) {
+                    $raw = preg_replace('/\D/', '', $student_details['guardian_phone']);
+                    $wa_number = (strlen($raw) === 10) ? '91' . $raw : $raw;
+                    $this->CI->whatsappgateway->sentstudentOnlineadmissionFeessubmissionWhatsapp($student_details, $template, $wa_number, $template_id);
+                }
             }
         }       
     }

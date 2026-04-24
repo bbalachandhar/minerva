@@ -760,8 +760,24 @@ class Billdesk extends Student_Controller
 
                         $this->onlinestudent_model->paymentSuccess($payment_data);
 
-                        // Send SMS/Email (optional, if required for online admissions)
-                        // $this->mailsmsconf->mailsms('online_admission_payment_success', $online_data);
+                        // Send Email/SMS/WhatsApp notification for application fee payment
+                        $online_data = $this->onlinestudent_model->get($online_admission_id);
+                        if (!empty($online_data)) {
+                            $fees_sender_details = array(
+                                'firstname'      => $online_data['firstname'],
+                                'lastname'       => $online_data['lastname'],
+                                'email'          => $online_data['email'],
+                                'mobileno'       => $online_data['mobileno'],
+                                'guardian_email' => $online_data['guardian_email'],
+                                'guardian_phone' => $online_data['guardian_phone'],
+                                'reference_no'   => $online_data['reference_no'],
+                                'amount'         => number_format($admission_fee_amount, 2),
+                                'date'           => date('d-m-Y'),
+                                'transaction_id' => $transaction_id,
+                                'payment_mode'   => 'Billdesk',
+                            );
+                            $this->mailsmsconf->mailsms('online_admission_fees_submission', $fees_sender_details);
+                        }
 
                         $this->session->set_flashdata('msg', '<div class="alert alert-success">Payment successful! Your application fee has been received.</div>');
                         $this->session->set_flashdata('show_app_fee_success', 1);
