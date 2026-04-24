@@ -4440,6 +4440,7 @@ CREATE TABLE `online_admissions` (
   `admission_type` varchar(20) DEFAULT NULL,
   `quota_type` varchar(20) DEFAULT NULL,
   `course_fee_total` decimal(12,2) DEFAULT NULL,
+  `first_login` tinyint(1) NOT NULL DEFAULT 1,
   PRIMARY KEY (`id`),
   KEY `class_section_id` (`class_section_id`),
   KEY `category_id` (`category_id`),
