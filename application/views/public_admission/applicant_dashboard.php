@@ -299,3 +299,31 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 <?php endif; ?>
+
+<?php if (!empty($show_app_fee_success)): ?>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    swal({
+        title: 'Application Fee Paid!',
+        html: true,
+        text: '<div style="text-align:left;font-size:14px;">'
+            + '<p style="color:#27ae60;font-weight:bold;font-size:16px;margin-bottom:12px;">&#10003; Your application fee payment was successful.</p>'
+            + '<p style="margin-bottom:8px;">Please <strong>save these login details</strong> to access the Applicant Portal in the future:</p>'
+            + '<table style="width:100%;border-collapse:collapse;margin-bottom:10px;">'
+            + '<tr><td style="padding:5px 8px;font-weight:bold;white-space:nowrap;">Login URL</td>'
+            + '<td style="padding:5px 8px;"><a href="<?php echo addslashes($applicant_login_url); ?>" target="_blank"><?php echo addslashes($applicant_login_url); ?></a></td></tr>'
+            + '<tr style="background:#f9f9f9;"><td style="padding:5px 8px;font-weight:bold;">Username</td>'
+            + '<td style="padding:5px 8px;"><?php echo addslashes($applicant_info->reference_no ?? ''); ?></td></tr>'
+            + '<tr><td style="padding:5px 8px;font-weight:bold;">Password</td>'
+            + '<td style="padding:5px 8px;"><?php echo addslashes($applicant_password_plain ?? ''); ?></td></tr>'
+            + '</table>'
+            + '<p style="color:#e67e22;font-size:13px;"><i class="fa fa-exclamation-triangle"></i> Screenshot or note these details — you will need them to log in again.</p>'
+            + '</div>',
+        type: 'success',
+        confirmButtonText: 'I have noted my credentials',
+        confirmButtonColor: '#27ae60',
+        closeOnClickOutside: false
+    });
+});
+</script>
+<?php endif; ?>

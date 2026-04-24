@@ -1743,6 +1743,10 @@ class Public_admission extends Front_Controller
             $this->db->update('online_admissions', ['first_login' => 0]);
         }
 
+        $show_app_fee_success = (bool) $this->session->flashdata('show_app_fee_success');
+        $current_year         = date('Y');
+        $applicant_password_plain = $applicant_info->reference_no . '@ApplicantPortal' . $current_year;
+
         $this->data['applicant_info']           = $applicant_info;
         $this->data['payment_history']          = $payment_history;
         $this->data['total_paid']               = $total_paid;
@@ -1754,6 +1758,9 @@ class Public_admission extends Front_Controller
         $this->data['online_admission_amount']  = $this->sch_setting_detail->online_admission_amount ?? 0;
         $this->data['assigned_exams']           = $assigned_exams;
         $this->data['is_first_login']           = $is_first_login;
+        $this->data['show_app_fee_success']     = $show_app_fee_success;
+        $this->data['applicant_password_plain'] = $applicant_password_plain;
+        $this->data['applicant_login_url']      = site_url('site/applicantlogin');
         $this->data['title']                    = 'Applicant Portal';
         $this->data['sch_name']                 = $this->sch_setting_detail->name ?? 'Applicant Portal';
 
