@@ -6519,6 +6519,7 @@ CREATE TABLE `student_fees_master` (
   `student_session_id` int(11) DEFAULT NULL,
   `fee_session_group_id` int(11) DEFAULT NULL,
   `amount` float(10,2) DEFAULT 0.00,
+  `cf_breakdown` text DEFAULT NULL COMMENT 'JSON breakdown of previous-session fees used to compute carry-forward (audit trail)',
   `is_active` varchar(10) NOT NULL DEFAULT 'no',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
