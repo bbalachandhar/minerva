@@ -86,6 +86,29 @@
   }
  ?> 
  <div class="alert alert-success" id="completeformdiv" ><?php echo $this->lang->line('form_has_been_submitted_successfully'); ?> </div>
+
+ <div class="alert alert-warning" style="border-left:5px solid #f39c12; padding:15px 20px;">
+   <h4 style="margin-top:0;"><i class="fa fa-exclamation-triangle"></i>&nbsp; Important: Pay Your Application Fee</h4>
+   <p style="margin-bottom:8px;">
+     Your application has been saved but will <strong>not be considered</strong> for the admission process
+     until the <strong>Application Fee</strong> is paid. Please login to the Applicant Portal to complete your payment.
+   </p>
+   <p style="margin-bottom:4px;">
+     <i class="fa fa-link"></i>&nbsp;
+     <strong>Login URL:</strong>&nbsp;
+     <a href="https://mce.beebasoft.com/site/applicantlogin" target="_blank">
+       https://mce.beebasoft.com/site/applicantlogin
+     </a>
+   </p>
+   <p style="margin-bottom:4px;">
+     <i class="fa fa-user"></i>&nbsp;
+     <strong>Username:</strong>&nbsp; <?php echo htmlspecialchars($reference_no); ?>
+   </p>
+   <p style="margin-bottom:0;">
+     <i class="fa fa-key"></i>&nbsp;
+     <strong>Default Password:</strong>&nbsp; <?php echo htmlspecialchars($reference_no); ?>@ApplicantPortal2026
+   </p>
+ </div>
    <div id="divtoprint" class="spaceb50">
     <div class="row" id="printheader">
       <img src="<?php echo base_url() ?>/uploads/print_headerfooter/online_admission_receipt/<?php echo $this->setting_model->get_onlineadmissionheader(); ?>" style="height: 100px;width: 100%;" />

@@ -73,6 +73,14 @@ class Feesforward extends Admin_Controller
 
                 $data['student_due_fee'] = $student_Array->student_Array;
                 $data['is_update']       = $student_Array->is_update;
+
+                $cf_breakdown_map = array();
+                foreach ($student_Array->student_Array as $s) {
+                    if (isset($s->breakdown)) {
+                        $cf_breakdown_map[$s->student_session_id] = $s->breakdown;
+                    }
+                }
+
                 $this->form_validation->set_rules('due_date', $this->lang->line('date'), 'trim|xss_clean');
                 $counter = $this->input->post('student_counter');
                 if ($this->form_validation->run() == true) {
@@ -90,6 +98,8 @@ class Feesforward extends Admin_Controller
                         }
                         $student_array['is_system']            = 1;
                         $student_array['fee_session_group_id'] = 0;
+                        $sess_id = $student_array['student_session_id'];
+                        $student_array['cf_breakdown']         = isset($cf_breakdown_map[$sess_id]) ? json_encode($cf_breakdown_map[$sess_id]) : null;
                         $student_data[]                        = $student_array;
                     }
 
@@ -136,7 +146,8 @@ class Feesforward extends Admin_Controller
                 $is_update = true;
                 foreach ($student_Array as $stkey => $eachstudent) {
 
-                    $eachstudent->balance = $this->findValueExists($record_exists, $eachstudent->student_session_id);
+                    $eachstudent->balance    = $this->findValueExists($record_exists, $eachstudent->student_session_id);
+                    $eachstudent->breakdown  = $this->findBreakdownExists($record_exists, $eachstudent->student_session_id);
                 }
             } else {
                 foreach ($student_Array as $stkey => $eachstudent) {
@@ -149,29 +160,47 @@ class Feesforward extends Admin_Controller
                     }
 
                     if (!empty($student_total_fees)) {
-                        $totalfee = 0;
-                        $deposit  = 0;
-                        $discount = 0;
-                        $balance  = 0;
+                        $totalfee  = 0;
+                        $deposit   = 0;
+                        $discount  = 0;
+                        $balance   = 0;
+                        $breakdown = array();
                         foreach ($student_total_fees as $student_total_fees_key => $student_total_fees_value) {
                             if (!empty($student_total_fees_value->fees)) {
                                 foreach ($student_total_fees_value->fees as $each_fee_key => $each_fee_value) {
-                                    $totalfee = $totalfee + $each_fee_value->amount;
+                                    $fee_demanded  = $each_fee_value->amount;
+                                    $fee_paid      = 0;
+                                    $fee_discount  = 0;
 
                                     $amount_detail = json_decode($each_fee_value->amount_detail);
                                     if ($amount_detail != null) {
                                         foreach ($amount_detail as $amount_detail_key => $amount_detail_value) {
-                                            $deposit  = $deposit + $amount_detail_value->amount;
-                                            $discount = $discount + $amount_detail_value->amount_discount;
+                                            $fee_paid     += $amount_detail_value->amount;
+                                            $fee_discount += $amount_detail_value->amount_discount;
                                         }
                                     }
+
+                                    $totalfee += $fee_demanded;
+                                    $deposit  += $fee_paid;
+                                    $discount += $fee_discount;
+
+                                    $breakdown[] = array(
+                                        'fee_group' => $each_fee_value->name,
+                                        'fee_type'  => $each_fee_value->type,
+                                        'demanded'  => $fee_demanded,
+                                        'paid'      => $fee_paid,
+                                        'discount'  => $fee_discount,
+                                        'balance'   => $fee_demanded - ($fee_paid + $fee_discount),
+                                    );
                                 }
                             }
                         }
 
-                        $eachstudent->balance = $totalfee - ($deposit + $discount);
+                        $eachstudent->balance   = $totalfee - ($deposit + $discount);
+                        $eachstudent->breakdown = $breakdown;
                     } else {
-                        $eachstudent->balance = "0";
+                        $eachstudent->balance   = "0";
+                        $eachstudent->breakdown = array();
                     }
                     //===================
                 }
@@ -191,6 +220,16 @@ class Feesforward extends Admin_Controller
 
         }
         return $amount;
+    }
+
+    public function findBreakdownExists($array, $find)
+    {
+        foreach ($array as $x_value) {
+            if ($x_value->student_session_id == $find) {
+                return !empty($x_value->cf_breakdown) ? json_decode($x_value->cf_breakdown) : array();
+            }
+        }
+        return array();
     }
 
     public function bulk_upload()

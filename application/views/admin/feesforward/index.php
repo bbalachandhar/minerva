@@ -106,6 +106,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                                             <?php } if ($sch_setting->father_name) { ?>
                                                                 <th class="text text-left"><?php echo $this->lang->line('father_name'); ?></th><?php } ?>
                                                             <th class="text-right"><?php echo $this->lang->line('balance'); ?> <span><?php echo "(" . $currency_symbol . ")"; ?></span></th>
+                                                            <th class="text-center"><?php echo $this->lang->line('details'); ?></th>
                                                         </tr>
                                                     </thead> 
                                                     <tbody>
@@ -131,6 +132,15 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                                                 <td class="text text-right">
 																	<span class="hidden"><?php echo convertBaseAmountCurrencyFormat($due_fee_value->balance); ?></span>
                                                                     <input type="text" name="amount[<?php echo $i; ?>]" class="form-control tddm200" value="<?php echo convertBaseAmountCurrencyFormat($due_fee_value->balance); ?>">
+                                                                </td>
+                                                                <td class="text-center">
+                                                                    <?php if (!empty($due_fee_value->breakdown)) { ?>
+                                                                    <button type="button" class="btn btn-info btn-xs cf-breakdown-btn"
+                                                                        data-breakdown="<?php echo htmlspecialchars(json_encode($due_fee_value->breakdown), ENT_QUOTES); ?>"
+                                                                        data-name="<?php echo htmlspecialchars($due_fee_value->name, ENT_QUOTES); ?>">
+                                                                        <i class="fa fa-info-circle"></i>
+                                                                    </button>
+                                                                    <?php } ?>
                                                                 </td>
                                                             </tr>
                                                             <?php
@@ -214,6 +224,78 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
             });
         }
     }
+</script>
+
+<!-- CF Breakdown Modal -->
+<div class="modal fade" id="cfBreakdownModal" tabindex="-1" role="dialog" aria-labelledby="cfBreakdownModalLabel">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title" id="cfBreakdownModalLabel">Previous Session Fee Breakdown &mdash; <span id="cfBreakdownStudentName"></span></h4>
+            </div>
+            <div class="modal-body">
+                <table class="table table-striped table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Fee Group / Type</th>
+                            <th class="text-right">Demanded</th>
+                            <th class="text-right">Paid</th>
+                            <th class="text-right">Discount</th>
+                            <th class="text-right">Balance</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cfBreakdownBody"></tbody>
+                    <tfoot>
+                        <tr class="active">
+                            <th><strong>Total</strong></th>
+                            <th class="text-right" id="cfTotalDemanded"></th>
+                            <th class="text-right" id="cfTotalPaid"></th>
+                            <th class="text-right" id="cfTotalDiscount"></th>
+                            <th class="text-right" id="cfTotalBalance"></th>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal"><?php echo $this->lang->line('close'); ?></button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    $(document).on('click', '.cf-breakdown-btn', function () {
+        var name      = $(this).data('name');
+        var breakdown = $(this).data('breakdown');
+        $('#cfBreakdownStudentName').text(name);
+        var html = '';
+        var totalDemanded = 0, totalPaid = 0, totalDiscount = 0, totalBalance = 0;
+        $.each(breakdown, function (i, row) {
+            var demanded = parseFloat(row.demanded) || 0;
+            var paid     = parseFloat(row.paid)     || 0;
+            var discount = parseFloat(row.discount) || 0;
+            var balance  = parseFloat(row.balance)  || 0;
+            totalDemanded += demanded;
+            totalPaid     += paid;
+            totalDiscount += discount;
+            totalBalance  += balance;
+            var label = row.fee_group + (row.fee_type ? ' / ' + row.fee_type : '');
+            html += '<tr>'
+                + '<td>' + $('<div>').text(label).html() + '</td>'
+                + '<td class="text-right">' + demanded.toFixed(2) + '</td>'
+                + '<td class="text-right">' + paid.toFixed(2) + '</td>'
+                + '<td class="text-right">' + discount.toFixed(2) + '</td>'
+                + '<td class="text-right">' + balance.toFixed(2) + '</td>'
+                + '</tr>';
+        });
+        $('#cfBreakdownBody').html(html);
+        $('#cfTotalDemanded').html('<strong>' + totalDemanded.toFixed(2) + '</strong>');
+        $('#cfTotalPaid').html('<strong>' + totalPaid.toFixed(2) + '</strong>');
+        $('#cfTotalDiscount').html('<strong>' + totalDiscount.toFixed(2) + '</strong>');
+        $('#cfTotalBalance').html('<strong>' + totalBalance.toFixed(2) + '</strong>');
+        $('#cfBreakdownModal').modal('show');
+    });
 </script>
 
 <script type="text/javascript">
