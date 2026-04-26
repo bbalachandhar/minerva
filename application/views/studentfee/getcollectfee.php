@@ -611,10 +611,45 @@ $(document).ready(function(){
         }
     }
 
+    function getSelectedDiscountLabels() {
+        var labels = [];
+        var seen = {};
+        $('input[name="fee_discount_group[]"]:checked').each(function () {
+            var labelText = $.trim($(this).closest('label').text());
+            if (labelText && !seen[labelText]) {
+                seen[labelText] = true;
+                labels.push(labelText);
+            }
+        });
+        return labels;
+    }
+
+    function setNoteFromSelections() {
+        var noteParts = [];
+        var discountLabels = getSelectedDiscountLabels();
+        if (discountLabels.length) {
+            noteParts = noteParts.concat(discountLabels);
+        } else {
+            var usePaidAdvance = $('input[name="use_paid_advance"]:checked').val() === 'yes';
+            var useDiscountAdvance = $('input[name="use_discount_advance"]:checked').val() === 'yes';
+            if (usePaidAdvance) {
+                noteParts.push('Paid Advance');
+            }
+            if (useDiscountAdvance) {
+                noteParts.push('Discount Advance');
+            }
+        }
+        if (!noteParts.length) {
+            $('#description').val('');
+            return;
+        }
+        $('#description').val(noteParts.join(', '));
+    }
+
     // Event listeners for the new radio buttons
-    $('input[name="use_paid_advance"]').on('change', applyAdvanceLogic);
-    $('input[name="use_discount_advance"]').on('change', applyAdvanceLogic);
-    $('.grp_discount').on('change', applyAdvanceLogic); // Also trigger on group discount change
+    $('input[name="use_paid_advance"]').on('change', function() { applyAdvanceLogic(); setNoteFromSelections(); });
+    $('input[name="use_discount_advance"]').on('change', function() { applyAdvanceLogic(); setNoteFromSelections(); });
+    $('.grp_discount').on('change', function() { applyAdvanceLogic(); setNoteFromSelections(); });
     $('#amount_fine').on('change keyup', applyAdvanceLogic); // And on fine change
 
     // Initial call to set the state based on default selections

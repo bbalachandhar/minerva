@@ -721,7 +721,7 @@ if ($this->module_lib->hasActive('expense')) {
                         <p class="text-uppercase mt10 clearfix">
                             <strong><?php echo $this->lang->line('unpaid'); ?>:</strong> <span class="fo-total-unpaid fo-skeleton">0</span>
                             <span class="pull-right"><span class="fo-unpaid-progress fo-skeleton">0</span>%</span><br/>
-                            <span style="font-size:12px;color:#888;">BAL SUM: <span class="fo-unpaid-sum fo-skeleton fo-line">0</span></span>
+                            <span style="font-size:12px;color:#888;">Paid: <span class="fo-unpaid-collected-sum fo-skeleton fo-line">0</span> &nbsp; Bal: <span class="fo-unpaid-sum fo-skeleton fo-line">0</span></span>
                         </p>
                         <div class="progress-group">
                             <div class="progress progress-minibar">
@@ -731,7 +731,7 @@ if ($this->module_lib->hasActive('expense')) {
                         <p class="text-uppercase mt10 clearfix">
                             <strong><?php echo $this->lang->line('partial'); ?>:</strong> <span class="fo-total-partial fo-skeleton">0</span>
                             <span class="pull-right"><span class="fo-partial-progress fo-skeleton">0</span>%</span><br/>
-                            <span style="font-size:12px;color:#888;">BAL SUM: <span class="fo-partial-sum fo-skeleton fo-line">0</span></span>
+                            <span style="font-size:12px;color:#888;">Paid: <span class="fo-partial-collected-sum fo-skeleton fo-line">0</span> &nbsp; Bal: <span class="fo-partial-sum fo-skeleton fo-line">0</span></span>
                         </p>
                         <div class="progress-group">
                             <div class="progress progress-minibar">
@@ -741,7 +741,7 @@ if ($this->module_lib->hasActive('expense')) {
                         <p class="text-uppercase mt10 clearfix">
                             <strong><?php echo $this->lang->line('paid'); ?>:</strong> <span class="fo-total-paid fo-skeleton">0</span>
                             <span class="pull-right"><span class="fo-paid-progress fo-skeleton">0</span>%</span><br/>
-                            <span style="font-size:12px;color:#888;">Sum: <span class="fo-paid-sum fo-skeleton fo-line">0</span></span>
+                            <span style="font-size:12px;color:#888;">Paid: <span class="fo-paid-sum fo-skeleton fo-line">0</span> &nbsp; Bal: <span class="fo-paid-balance-sum fo-skeleton fo-line">0</span></span>
                         </p>
                         <div class="progress-group">
                             <div class="progress progress-minibar">
@@ -1787,17 +1787,20 @@ if (($this->module_lib->hasActive('fees_collection')) || ($this->module_lib->has
                 // Update all widgets with the same data
                 $widget.find('.fo-total-unpaid').text(d.total_unpaid);
                 $widget.find('.fo-unpaid-progress').text(d.unpaid_progress);
+                $widget.find('.fo-unpaid-collected-sum').text(d.currency_zero);
                 $widget.find('.fo-unpaid-sum').text(d.unpaid_sum_formatted);
                 $widget.find('.fo-unpaid-bar').css('width', d.unpaid_progress + '%');
 
                 $widget.find('.fo-total-partial').text(d.total_partial);
                 $widget.find('.fo-partial-progress').text(d.partial_progress);
+                $widget.find('.fo-partial-collected-sum').text(d.partial_collected_sum_formatted);
                 $widget.find('.fo-partial-sum').text(d.partial_sum_formatted);
                 $widget.find('.fo-partial-bar').css('width', d.partial_progress + '%');
 
                 $widget.find('.fo-total-paid').text(d.total_paid);
                 $widget.find('.fo-paid-progress').text(d.paid_progress);
                 $widget.find('.fo-paid-sum').text(d.paid_sum_formatted);
+                $widget.find('.fo-paid-balance-sum').text(d.currency_zero);
                 $widget.find('.fo-paid-bar').css('width', d.paid_progress + '%');
 
                 // Use new backend fields for each card

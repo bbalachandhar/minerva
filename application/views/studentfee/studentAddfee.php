@@ -474,7 +474,15 @@ if ($feetype_balance == 0) {
         ?>
                                                 </td>
             <td class="text text-right"><?php
-                echo amountFormat($transport_fee_value->fees);
+                if (!empty($transport_fee_value->fee_override)) {
+                    echo '<span class="tr-fee-amount" data-trans_fee_id="' . $transport_fee_value->id . '">' . amountFormat($transport_fee_value->fees) . '</span>';
+                    echo ' <span class="label label-info" title="Custom override">custom</span>';
+                } else {
+                    echo '<span class="tr-fee-amount" data-trans_fee_id="' . $transport_fee_value->id . '">' . amountFormat($transport_fee_value->fees) . '</span>';
+                }
+                if ($feetype_balance > 0 && $this->rbac->hasPrivilege('collect_fees', 'can_add')) {
+                    echo ' <a href="#" class="tr-override-btn text-muted" data-trans_fee_id="' . $transport_fee_value->id . '" data-current_fee="' . $transport_fee_value->fees . '" data-has_override="' . (!empty($transport_fee_value->fee_override) ? '1' : '0') . '" title="Override fee"><i class="fa fa-pencil"></i></a>';
+                }
 
         if (($transport_fee_value->due_date != "0000-00-00" && $transport_fee_value->due_date != null) && (strtotime($transport_fee_value->due_date) < strtotime(date('Y-m-d')))) {
             $tr_fine_amount = $transport_fee_value->fine_amount;
@@ -1544,7 +1552,75 @@ $("#myFeesModal").on('shown.bs.modal', function (e) {
 $(document).on('change','#select_all',function(){
     $('input:checkbox').not(this).prop('checked', this.checked);
 });
+
+// Transport fee override
+$(document).on('click', '.tr-override-btn', function(e) {
+    e.preventDefault();
+    var $btn = $(this);
+    var trans_fee_id  = $btn.data('trans_fee_id');
+    var current_fee   = $btn.data('current_fee');
+    var has_override  = $btn.data('has_override');
+
+    $('#tr_override_fee_id').val(trans_fee_id);
+    $('#tr_override_amount').val(has_override == '1' ? current_fee : '');
+    $('#tr_override_clear_btn').toggle(has_override == '1');
+    $('#trFeeOverrideModal').modal('show');
+});
+
+$(document).on('click', '#trFeeOverrideSaveBtn', function() {
+    var trans_fee_id = $('#tr_override_fee_id').val();
+    var amount       = $.trim($('#tr_override_amount').val());
+    $.post('<?php echo base_url('studentfee/save_transport_fee_override'); ?>', {
+        trans_fee_id: trans_fee_id,
+        fee_override: amount
+    }, function(res) {
+        if (res.status === 'success') {
+            location.reload();
+        } else {
+            alert(res.error || 'Error saving override');
+        }
+    }, 'json');
+});
+
+$(document).on('click', '#tr_override_clear_btn', function() {
+    $('#tr_override_amount').val('');
+    $.post('<?php echo base_url('studentfee/save_transport_fee_override'); ?>', {
+        trans_fee_id: $('#tr_override_fee_id').val(),
+        fee_override: ''
+    }, function(res) {
+        if (res.status === 'success') {
+            location.reload();
+        } else {
+            alert(res.error || 'Error clearing override');
+        }
+    }, 'json');
+});
 </script>
+
+<!-- Transport fee override modal -->
+<div id="trFeeOverrideModal" class="modal fade" tabindex="-1" role="dialog">
+  <div class="modal-dialog modal-sm" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal">&times;</button>
+        <h4 class="modal-title">Override Transport Fee</h4>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="tr_override_fee_id">
+        <div class="form-group">
+          <label>Custom Fee Amount</label>
+          <input type="number" id="tr_override_amount" class="form-control" min="0" step="0.01" placeholder="Enter amount">
+          <p class="text-muted small">Leave empty and click Clear to restore route default.</p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" id="tr_override_clear_btn" class="btn btn-warning pull-left" style="display:none">Clear Override</button>
+        <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+        <button type="button" id="trFeeOverrideSaveBtn" class="btn btn-primary">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <script>
 $(document).ready(function() {

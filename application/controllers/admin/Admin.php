@@ -160,14 +160,17 @@ class Admin extends Admin_Controller
 
         // Q1 — Regular fee DEMAND grouped by student + feetype (excludes Balance Master and Advance Payments).
         // 'advance payments' has no demand in the original getTransStudentFees() switch — it only tracks paid.
+        // COALESCE(sfo.override_amount, fgf.amount) applies hostel fee per-student overrides stored in student_fee_overrides.
         $q1 = $this->db->query("
-            SELECT sfm.student_session_id, ft.type AS fee_type, SUM(fgf.amount) AS amount
+            SELECT sfm.student_session_id, ft.type AS fee_type, SUM(COALESCE(sfo.override_amount, fgf.amount)) AS amount
             FROM student_fees_master sfm
             INNER JOIN fee_session_groups fsg ON fsg.id  = sfm.fee_session_group_id
             INNER JOIN fee_groups         fg  ON fg.id   = fsg.fee_groups_id
             INNER JOIN fee_groups_feetype fgf ON fgf.fee_session_group_id = fsg.id
             INNER JOIN feetype            ft  ON ft.id   = fgf.feetype_id
             INNER JOIN student_session    ss  ON ss.id   = sfm.student_session_id
+            LEFT JOIN  student_fee_overrides sfo ON sfo.student_session_id = sfm.student_session_id
+                                                AND sfo.fee_groups_feetype_id = fgf.id
             WHERE ss.session_id = $sess
               AND ss.id IN ($in_ids)
               AND fg.name != 'Balance Master'
@@ -222,7 +225,7 @@ class Admin extends Admin_Controller
         // Q3 & Q4 — Transport demand + paid
         if ($transport_active) {
             $q3 = $this->db->query("
-                SELECT stf.student_session_id, SUM(rpp.fees) AS demand
+                SELECT stf.student_session_id, SUM(COALESCE(stf.fee_override, rpp.fees)) AS demand
                 FROM student_transport_fees stf
                 INNER JOIN route_pickup_point rpp ON rpp.id = stf.route_pickup_point_id
                 INNER JOIN student_session    ss  ON ss.id  = stf.student_session_id
@@ -683,7 +686,7 @@ class Admin extends Admin_Controller
             }
 
             $unpaid_count = 0; $unpaid_sum  = 0.0;
-            $partial_count = 0; $partial_sum = 0.0;
+            $partial_count = 0; $partial_sum = 0.0; $partial_collected = 0.0;
             $paid_count   = 0; $paid_sum    = 0.0;
             $total_demand = 0.0; $total_collection = 0.0; $total_awaiting = 0.0;
             $total_last_yr_cf = 0.0; $total_cf_paid = 0.0; $total_cf_balance = 0.0;
@@ -711,9 +714,13 @@ class Admin extends Admin_Controller
                 } elseif ($awaiting_value > 0 && $total_paid_sum > 0) {
                     $partial_count++;
                     $partial_sum += $awaiting_value;
+                    $partial_collected += $total_paid_sum;
                 } elseif ($awaiting_value <= 0 && $total_paid_sum > 0) {
                     $paid_count++;
-                    $paid_sum += $total_paid_sum;
+                    // Use $totalfee (demand fulfilled), not $total_paid_sum (actual collected),
+                    // so that: unpaid_bal + partial_paid + partial_bal + paid_demand = total_demand.
+                    // Over-payments / advance amounts are excluded from this equation intentionally.
+                    $paid_sum += $totalfee;
                 }
 
                 $total_demand     += $totalfee;
@@ -745,11 +752,14 @@ class Admin extends Admin_Controller
                     'partial_progress' => round($partial_progress, 2),
                     'partial_sum'      => $partial_sum,
                     'partial_sum_formatted' => $currency_symbol . number_format($partial_sum, 2),
+                    'partial_collected_sum'           => $partial_collected,
+                    'partial_collected_sum_formatted'  => $currency_symbol . number_format($partial_collected, 2),
 
                     'total_paid'    => $paid_count,
                     'paid_progress' => round($paid_progress, 2),
                     'paid_sum'      => $paid_sum,
                     'paid_sum_formatted' => $currency_symbol . number_format($paid_sum, 2),
+                    'currency_zero' => $currency_symbol . number_format(0, 2),
 
                     'total_counter'    => $total_counter,
                     'demand_count'     => $total_counter,
@@ -812,7 +822,8 @@ class Admin extends Admin_Controller
         $fmt = function ($v) use ($currency_symbol) { return $currency_symbol . number_format($v, 2); };
         return array('status' => 'success', 'data' => array(
             'total_unpaid' => 0, 'unpaid_progress' => 0, 'unpaid_sum' => 0, 'unpaid_sum_formatted' => $fmt(0),
-            'total_partial' => 0, 'partial_progress' => 0, 'partial_sum' => 0, 'partial_sum_formatted' => $fmt(0),
+            'total_partial' => 0, 'partial_progress' => 0, 'partial_sum' => 0, 'partial_sum_formatted' => $fmt(0), 'partial_collected_sum' => 0, 'partial_collected_sum_formatted' => $fmt(0),
+            'currency_zero' => $fmt(0),
             'total_paid' => 0, 'paid_progress' => 0, 'paid_sum' => 0, 'paid_sum_formatted' => $fmt(0),
             'total_counter' => 0, 'demand_count' => 0, 'demand_progress' => 0, 'demand_sum' => 0, 'demand_sum_formatted' => $fmt(0),
             'collection_count' => 0, 'collection_progress' => 0, 'collection_sum' => 0, 'collection_sum_formatted' => $fmt(0),

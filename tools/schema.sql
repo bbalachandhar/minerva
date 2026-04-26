@@ -6706,6 +6706,7 @@ CREATE TABLE `student_transport_fees` (
   `transport_feemaster_id` int(11) NOT NULL,
   `student_session_id` int(11) NOT NULL,
   `route_pickup_point_id` int(11) NOT NULL,
+  `fee_override` float(10,2) DEFAULT NULL COMMENT 'Per-student fee override; NULL = use route_pickup_point.fees',
   `generated_by` int(11) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
@@ -7935,3 +7936,24 @@ CREATE TABLE `vehicle_notification_config` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 INSERT INTO `vehicle_notification_config` (id, wa_template_id) VALUES (1, NULL);
+
+-- -------------------------------------------------------
+-- Hostel fee per-student override table (added 2025)
+-- -------------------------------------------------------
+DROP TABLE IF EXISTS `student_fee_overrides`;
+CREATE TABLE `student_fee_overrides` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `student_session_id` int(11) NOT NULL,
+  `fee_groups_feetype_id` int(11) NOT NULL,
+  `override_amount` decimal(10,2) NOT NULL,
+  `created_by` int(11) DEFAULT NULL,
+  `updated_by` int(11) DEFAULT NULL,
+  `note` varchar(255) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_student_feetype` (`student_session_id`,`fee_groups_feetype_id`),
+  KEY `fee_groups_feetype_id` (`fee_groups_feetype_id`),
+  CONSTRAINT `sfo_student_session_ibfk` FOREIGN KEY (`student_session_id`) REFERENCES `student_session` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `sfo_fee_groups_feetype_ibfk` FOREIGN KEY (`fee_groups_feetype_id`) REFERENCES `fee_groups_feetype` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;

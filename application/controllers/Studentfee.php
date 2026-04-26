@@ -196,6 +196,46 @@ class Studentfee extends Admin_Controller
                 }
             }
 
+            public function save_transport_fee_override()
+            {
+                $this->output->set_content_type('application/json');
+
+                if (!$this->rbac->hasPrivilege('collect_fees', 'can_add')) {
+                    echo json_encode(['status' => 'fail', 'error' => 'Access Denied']);
+                    return;
+                }
+
+                $trans_fee_id = (int) $this->input->post('trans_fee_id');
+                $raw_override = $this->input->post('fee_override');
+
+                if ($trans_fee_id <= 0) {
+                    echo json_encode(['status' => 'fail', 'error' => 'Invalid ID']);
+                    return;
+                }
+
+                // Verify the student_transport_fees row belongs to a valid session
+                $row = $this->db->get_where('student_transport_fees', ['id' => $trans_fee_id])->row();
+                if (!$row) {
+                    echo json_encode(['status' => 'fail', 'error' => 'Record not found']);
+                    return;
+                }
+
+                if ($raw_override === '' || $raw_override === null) {
+                    $override_val = null;
+                } else {
+                    $override_val = (float) $raw_override;
+                    if ($override_val < 0) {
+                        echo json_encode(['status' => 'fail', 'error' => 'Amount cannot be negative']);
+                        return;
+                    }
+                }
+
+                $this->db->where('id', $trans_fee_id)
+                         ->update('student_transport_fees', ['fee_override' => $override_val]);
+
+                echo json_encode(['status' => 'success', 'fee_override' => $override_val]);
+            }
+
             public function do_bulk_upload_transport_fees()
             {
                 $this->output->set_content_type('application/json');
