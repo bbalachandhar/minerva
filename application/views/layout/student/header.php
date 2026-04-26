@@ -124,6 +124,8 @@ if ($role == 'guest') {
     $function = 'user/user/dashboard';
 } elseif ($role == 'parent') {
     $function = 'user/user/dashboard';
+} else {
+    $function = 'site/userlogin';
 }?>
                 <a href="<?php echo base_url(); ?><?php echo $function; ?>" class="logo">
                 

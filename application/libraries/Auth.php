@@ -102,7 +102,7 @@ class Auth
 
             $user = $this->CI->session->userdata('student');
 
-            if ($user['role'] == "guest") {
+            if (($user['role'] ?? null) == "guest") {
 
                 return true;
             }

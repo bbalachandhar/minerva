@@ -2277,11 +2277,12 @@ class Customlib
     public function get_user_dashboard_setting_status($fieldname){
         
         $user       =   $this->CI->session->userdata('student');
-        $user_role  =   $user['role'];
+        $user_role  =   $user['role'] ?? null;
+        $status     =   null;
 
         if ($user_role == "student") {
             $status = $this->CI->student_model->get_student_dashboard_setting_status($fieldname);
-        }else if ($user_role == "parent") {
+        } else if ($user_role == "parent") {
             $status = $this->CI->student_model->get_parent_dashboard_setting_status($fieldname);
         }
         return $status;

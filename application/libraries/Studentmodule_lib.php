@@ -22,8 +22,8 @@ class StudentModule_lib
         if ($this->CI->session->has_userdata('student')) {
             $this->student = $this->CI->session->userdata('student');
 
-            $this->allModules = $this->CI->Module_model->get_userpermission($this->student['role']);
-            $role_name        = $this->student['role'];
+            $this->allModules = $this->CI->Module_model->get_userpermission($this->student['role'] ?? null);
+            $role_name        = $this->student['role'] ?? null;
             if (!empty($this->allModules)) {
                 foreach ($this->allModules as $mod_key => $mod_value) {
 
