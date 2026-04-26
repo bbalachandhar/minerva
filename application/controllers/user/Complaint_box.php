@@ -130,7 +130,7 @@ class Complaint_box extends Student_Controller
     {
         $id                 = (int)$id;
         $student_session_id = $this->session->userdata['current_class']['student_session_id'];
-        $row                = $this->complaint_Model->complaindetails($id);
+        $row                = $this->complaint_Model->complaint_list($id);
 
         if (!$row || (int)$row['student_session_id'] !== $student_session_id) {
             echo json_encode(['status' => 'fail', 'message' => 'Not found']);
