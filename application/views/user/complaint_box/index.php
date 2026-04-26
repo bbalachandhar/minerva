@@ -175,6 +175,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
                                     <th><?php echo $this->lang->line('priority'); ?></th>
                                     <th><?php echo $this->lang->line('status'); ?></th>
                                     <th><?php echo $this->lang->line('date'); ?></th>
+                                    <th><?php echo $this->lang->line('submitted_by'); ?></th>
                                     <th><?php echo $this->lang->line('action'); ?></th>
                                 </tr>
                             </thead>
@@ -195,6 +196,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
                                     <td data-priority="<?php echo $c['priority']; ?>"><span class="label label-<?php echo $pc; ?>"><?php echo ucfirst($c['priority']); ?></span></td>
                                     <td data-status="<?php echo $c['status']; ?>"><span class="label label-<?php echo $sc; ?>"><?php echo ucwords(str_replace('_',' ',$c['status'])); ?></span></td>
                                     <td><?php echo $display_date; ?></td>
+                                    <td><span class="label label-<?php echo $c['submitted_by'] === 'parent' ? 'info' : 'default'; ?>"><?php echo ucfirst($c['submitted_by'] ?? ''); ?></span></td>
                                     <td>
                                         <button class="btn btn-xs btn-info view-detail-btn" data-id="<?php echo $c['id']; ?>">
                                             <i class="fa fa-eye"></i> <?php echo $this->lang->line('view'); ?>
@@ -203,6 +205,20 @@ defined('BASEPATH') OR exit('No direct script access allowed');
                                         <a href="<?php echo base_url('uploads/front_office/complaints/'.urlencode($c['image'])); ?>" target="_blank" class="btn btn-xs btn-default" title="<?php echo $this->lang->line('download'); ?>">
                                             <i class="fa fa-download"></i>
                                         </a>
+                                        <?php endif; ?>
+                                        <?php if ($c['status'] === 'open' && empty($c['action_taken'])): ?>
+                                        <button class="btn btn-xs btn-warning edit-complaint-btn"
+                                            data-id="<?php echo $c['id']; ?>"
+                                            data-type="<?php echo htmlspecialchars($c['complaint_type'], ENT_QUOTES); ?>"
+                                            data-priority="<?php echo htmlspecialchars($c['priority'], ENT_QUOTES); ?>"
+                                            data-description="<?php echo htmlspecialchars($c['description'], ENT_QUOTES); ?>"
+                                            data-contact="<?php echo htmlspecialchars($c['contact'], ENT_QUOTES); ?>"
+                                            data-image="<?php echo htmlspecialchars($c['image'] ?? '', ENT_QUOTES); ?>">
+                                            <i class="fa fa-pencil"></i> <?php echo $this->lang->line('edit'); ?>
+                                        </button>
+                                        <button class="btn btn-xs btn-danger delete-complaint-btn" data-id="<?php echo $c['id']; ?>">
+                                            <i class="fa fa-trash"></i> <?php echo $this->lang->line('delete'); ?>
+                                        </button>
                                         <?php endif; ?>
                                     </td>
                                 </tr>
@@ -233,6 +249,60 @@ defined('BASEPATH') OR exit('No direct script access allowed');
             <div class="modal-footer">
                 <button type="button" class="btn btn-default" data-dismiss="modal"><?php echo $this->lang->line('close'); ?></button>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Complaint Modal -->
+<div class="modal fade" id="editcomplaintmodal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                <h4 class="modal-title"><?php echo $this->lang->line('edit'); ?> <?php echo $this->lang->line('complaint'); ?></h4>
+            </div>
+            <form id="edit-complaint-form" enctype="multipart/form-data">
+                <div class="modal-body">
+                    <input type="hidden" id="edit-complaint-id">
+                    <div class="form-group">
+                        <label><?php echo $this->lang->line('complaint_type'); ?> <span class="text-danger">*</span></label>
+                        <select name="complaint_type" id="edit-complaint-type" class="form-control">
+                            <option value="">-- <?php echo $this->lang->line('select'); ?> --</option>
+                            <?php foreach ($complaint_types as $ct): ?>
+                                <option value="<?php echo htmlspecialchars($ct['complaint_type']); ?>"><?php echo htmlspecialchars($ct['complaint_type']); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label><?php echo $this->lang->line('priority'); ?> <span class="text-danger">*</span></label>
+                        <select name="priority" id="edit-priority" class="form-control">
+                            <option value="low"><?php echo $this->lang->line('complaint_priority_low'); ?></option>
+                            <option value="medium"><?php echo $this->lang->line('complaint_priority_medium'); ?></option>
+                            <option value="high"><?php echo $this->lang->line('complaint_priority_high'); ?></option>
+                            <option value="critical"><?php echo $this->lang->line('complaint_priority_critical'); ?></option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label><?php echo $this->lang->line('phone'); ?></label>
+                        <input type="text" name="contact" id="edit-contact" class="form-control" maxlength="10">
+                    </div>
+                    <div class="form-group">
+                        <label><?php echo $this->lang->line('description'); ?> <span class="text-danger">*</span></label>
+                        <textarea name="description" id="edit-description" class="form-control" rows="4"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label><?php echo $this->lang->line('attach_document'); ?></label>
+                        <div id="edit-current-file" class="mb-1" style="margin-bottom:6px"></div>
+                        <input type="file" name="attachment" id="edit-attachment" class="form-control">
+                        <small class="text-muted"><?php echo $this->lang->line('upload_new_to_replace'); ?></small>
+                    </div>
+                    <div id="edit-form-msg"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal"><?php echo $this->lang->line('close'); ?></button>
+                    <button type="submit" class="btn btn-primary" id="edit-save-btn"><i class="fa fa-save"></i> <?php echo $this->lang->line('save'); ?></button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
@@ -321,6 +391,7 @@ $(function () {
             var prLabel = (res.priority || '').charAt(0).toUpperCase() + (res.priority || '').slice(1);
             var html    = '<table class="table table-bordered table-striped">';
             html += '<tr><th style="width:160px"><?php echo $this->lang->line("ticket_no"); ?></th><td><span class="label label-default">' + esc(res.ticket_no || '#' + res.id) + '</span></td></tr>';
+            html += '<tr><th><?php echo $this->lang->line("submitted_by"); ?></th><td><span class="label label-' + (res.submitted_by === 'parent' ? 'info' : 'default') + '">' + esc((res.submitted_by || '').charAt(0).toUpperCase() + (res.submitted_by || '').slice(1)) + '</span></td></tr>';
             html += '<tr><th><?php echo $this->lang->line("complaint_type"); ?></th><td>' + esc(res.complaint_type) + '</td></tr>';
             html += '<tr><th><?php echo $this->lang->line("priority"); ?></th><td><span class="label label-' + (prClass[res.priority] || 'default') + '">' + esc(prLabel) + '</span></td></tr>';
             html += '<tr><th><?php echo $this->lang->line("status"); ?></th><td><span class="label label-' + (stClass[res.status] || 'default') + '">' + esc(stLabel) + '</span></td></tr>';
@@ -351,6 +422,69 @@ $(function () {
     });
     $('#attachment-name').on('click', function () {
         $('#attachment').trigger('click');
+    });
+
+    // --- Delete complaint ---
+    $(document).on('click', '.delete-complaint-btn', function () {
+        var id = $(this).data('id');
+        if (!confirm('<?php echo $this->lang->line('are_you_sure_you_want_to_delete_this'); ?>')) return;
+        $.post('<?php echo site_url('user/complaint_box/delete_complaint'); ?>/' + id, {}, function (res) {
+            if (res.status === 'success') {
+                location.reload();
+            } else {
+                alert(res.message || 'Delete failed.');
+            }
+        }, 'json').fail(function () {
+            alert('An error occurred. Please try again.');
+        });
+    });
+
+    // --- Edit complaint: populate modal ---
+    $(document).on('click', '.edit-complaint-btn', function () {
+        var btn = $(this);
+        $('#edit-complaint-id').val(btn.data('id'));
+        $('#edit-complaint-type').val(btn.data('type'));
+        $('#edit-priority').val(btn.data('priority'));
+        $('#edit-description').val(btn.data('description'));
+        $('#edit-contact').val(btn.data('contact'));
+        var img = btn.data('image');
+        if (img) {
+            $('#edit-current-file').html('<small><?php echo $this->lang->line('current_file'); ?>: <a href="<?php echo base_url(); ?>uploads/front_office/complaints/' + $('<div>').text(img).html() + '" target="_blank"><i class="fa fa-file"></i> ' + $('<div>').text(img).html() + '</a></small>');
+        } else {
+            $('#edit-current-file').html('');
+        }
+        $('#edit-form-msg').html('');
+        $('#edit-attachment').val('');
+        $('#editcomplaintmodal').modal('show');
+    });
+
+    // --- Edit complaint: save ---
+    $('#edit-complaint-form').on('submit', function (e) {
+        e.preventDefault();
+        var id       = $('#edit-complaint-id').val();
+        var formData = new FormData(this);
+        $('#edit-save-btn').prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i>');
+        $.ajax({
+            url: '<?php echo site_url('user/complaint_box/update'); ?>/' + id,
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            dataType: 'json',
+            success: function (res) {
+                $('#edit-save-btn').prop('disabled', false).html('<i class="fa fa-save"></i> <?php echo $this->lang->line('save'); ?>');
+                if (res.status === 'success') {
+                    $('#editcomplaintmodal').modal('hide');
+                    location.reload();
+                } else {
+                    $('#edit-form-msg').html('<div class="alert alert-danger">' + (res.message || 'Error saving.') + '</div>');
+                }
+            },
+            error: function () {
+                $('#edit-save-btn').prop('disabled', false).html('<i class="fa fa-save"></i> <?php echo $this->lang->line('save'); ?>');
+                $('#edit-form-msg').html('<div class="alert alert-danger">An error occurred. Please try again.</div>');
+            }
+        });
     });
 });
 </script>

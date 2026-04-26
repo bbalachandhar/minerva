@@ -139,4 +139,68 @@ class Complaint_box extends Student_Controller
 
         echo json_encode($row);
     }
+
+    public function delete_complaint($id)
+    {
+        $id                 = (int)$id;
+        $student_session_id = $this->session->userdata['current_class']['student_session_id'];
+        $row                = $this->complaint_Model->complaint_list($id);
+
+        if (!$row || (int)$row['student_session_id'] !== $student_session_id) {
+            echo json_encode(['status' => 'fail', 'message' => 'Not found']);
+            return;
+        }
+        if ($row['status'] !== 'open' || !empty($row['action_taken'])) {
+            echo json_encode(['status' => 'fail', 'message' => 'Cannot delete after action has been taken.']);
+            return;
+        }
+        $this->complaint_Model->delete($id);
+        echo json_encode(['status' => 'success', 'message' => 'Complaint deleted successfully.']);
+    }
+
+    public function update($id)
+    {
+        $id                 = (int)$id;
+        $student_session_id = $this->session->userdata['current_class']['student_session_id'];
+        $row                = $this->complaint_Model->complaint_list($id);
+
+        if (!$row || (int)$row['student_session_id'] !== $student_session_id) {
+            echo json_encode(['status' => 'fail', 'message' => 'Not found']);
+            return;
+        }
+        if ($row['status'] !== 'open' || !empty($row['action_taken'])) {
+            echo json_encode(['status' => 'fail', 'message' => 'Cannot edit after action has been taken.']);
+            return;
+        }
+
+        $this->form_validation->set_rules('complaint_type', 'Complaint Type', 'trim|required|xss_clean');
+        $this->form_validation->set_rules('description',    'Description',    'trim|required|xss_clean');
+        $this->form_validation->set_rules('priority',       'Priority',       'trim|required|in_list[low,medium,high,critical]');
+
+        if ($this->form_validation->run() == false) {
+            echo json_encode(['status' => 'fail', 'message' => strip_tags(validation_errors())]);
+            return;
+        }
+
+        $update = [
+            'complaint_type' => $this->input->post('complaint_type', true),
+            'priority'       => $this->input->post('priority', true),
+            'description'    => $this->input->post('description', true),
+            'contact'        => $this->input->post('contact', true) ?: $row['contact'],
+            'updated_at'     => date('Y-m-d H:i:s'),
+        ];
+
+        if (isset($_FILES['attachment']) && $_FILES['attachment']['name'] != '' && $_FILES['attachment']['error'] == 0) {
+            $this->customlib->ensureDirectoryExists('./uploads/front_office/complaints/');
+            $upload_result = $this->media_storage->fileupload('attachment', './uploads/front_office/complaints/');
+            if ($upload_result['status'] === false) {
+                echo json_encode(['status' => 'fail', 'message' => $upload_result['message']]);
+                return;
+            }
+            $update['image'] = $upload_result['message'];
+        }
+
+        $this->complaint_Model->compalaint_update($id, $update);
+        echo json_encode(['status' => 'success', 'message' => $this->lang->line('record_updated_successfully')]);
+    }
 }
