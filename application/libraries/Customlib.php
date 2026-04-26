@@ -863,7 +863,7 @@ class Customlib
     public function getUserRole()
     {
         $user = $this->CI->session->userdata('student');
-        return $user['role'];
+        return $user['role'] ?? null;
     }
 
     public function getMonthNoDropdown($start_month = null)

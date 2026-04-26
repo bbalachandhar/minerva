@@ -526,6 +526,7 @@ class User extends Student_Controller
 
         // notification list start
         $user_role = $this->customlib->getUserRole();
+        $notifications = array();
         if ($user_role == 'student') {
             $student_id    = $this->customlib->getStudentSessionUserID();
             $notifications = $this->notification_model->getNotificationForStudent($student_id);
