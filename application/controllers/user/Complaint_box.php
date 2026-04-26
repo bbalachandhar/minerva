@@ -24,6 +24,16 @@ class Complaint_box extends Student_Controller
         $student_session_id      = $this->session->userdata['current_class']['student_session_id'];
         $data['complaints']      = $this->complaint_Model->getByStudentSession($student_session_id);
         $data['complaint_types'] = $this->complaint_Model->getComplaintType();
+
+        // Compute status counts from already-fetched complaints (no extra DB query)
+        $counts = ['open_count' => 0, 'in_progress_count' => 0, 'resolved_count' => 0, 'total_count' => count($data['complaints'])];
+        foreach ($data['complaints'] as $c) {
+            if     ($c['status'] === 'open')        $counts['open_count']++;
+            elseif ($c['status'] === 'in_progress') $counts['in_progress_count']++;
+            elseif ($c['status'] === 'resolved')    $counts['resolved_count']++;
+        }
+        $data['status_counts'] = $counts;
+
         $this->load->view('layout/student/header', $data);
         $this->load->view('user/complaint_box/index', $data);
         $this->load->view('layout/student/footer', $data);
