@@ -1,6 +1,7 @@
 <?php
 defined('BASEPATH') OR exit('No direct script access allowed');
 ?>
+<div class="content-wrapper">
 <section class="content-header">
     <h1><?php echo $this->lang->line('complaint_box'); ?></h1>
     <ol class="breadcrumb">
@@ -190,3 +191,4 @@ $(function () {
     });
 });
 </script>
+</div><!-- /.content-wrapper -->
