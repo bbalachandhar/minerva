@@ -31,6 +31,14 @@ $st = $complaint_data['status']   ?? 'open';
             <th><?php echo $this->lang->line('phone'); ?></th>
             <td><?php echo htmlspecialchars($complaint_data['contact']); ?></td>
         </tr>
+        <?php if (!empty($complaint_data['admission_no']) || !empty($complaint_data['class_name'])): ?>
+        <tr>
+            <th><?php echo $this->lang->line('admission_no'); ?></th>
+            <td><?php echo htmlspecialchars($complaint_data['admission_no'] ?? ''); ?></td>
+            <th><?php echo $this->lang->line('class'); ?> / <?php echo $this->lang->line('section'); ?></th>
+            <td><?php echo htmlspecialchars($complaint_data['class_name'] ?? ''); ?> <?php echo !empty($complaint_data['section_name']) ? '- ' . htmlspecialchars($complaint_data['section_name']) : ''; ?></td>
+        </tr>
+        <?php endif; ?>
         <tr>
             <th><?php echo $this->lang->line('date'); ?></th>
             <td><?php if ($complaint_data['date'] != '0000-00-00') echo date($this->customlib->getSchoolDateFormat(), $this->customlib->dateyyyymmddTodateformat($complaint_data['date'])); ?></td>

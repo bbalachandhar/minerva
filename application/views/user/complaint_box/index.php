@@ -392,6 +392,13 @@ $(function () {
             var html    = '<table class="table table-bordered table-striped">';
             html += '<tr><th style="width:160px"><?php echo $this->lang->line("ticket_no"); ?></th><td><span class="label label-default">' + esc(res.ticket_no || '#' + res.id) + '</span></td></tr>';
             html += '<tr><th><?php echo $this->lang->line("submitted_by"); ?></th><td><span class="label label-' + (res.submitted_by === 'parent' ? 'info' : 'default') + '">' + esc((res.submitted_by || '').charAt(0).toUpperCase() + (res.submitted_by || '').slice(1)) + '</span></td></tr>';
+            html += '<tr><th><?php echo $this->lang->line("name"); ?></th><td>' + esc(res.name) + '</td></tr>';
+            if (res.admission_no) {
+                html += '<tr><th><?php echo $this->lang->line("admission_no"); ?></th><td>' + esc(res.admission_no) + '</td></tr>';
+            }
+            if (res.class_name) {
+                html += '<tr><th><?php echo $this->lang->line("class"); ?> / <?php echo $this->lang->line("section"); ?></th><td>' + esc(res.class_name) + (res.section_name ? ' - ' + esc(res.section_name) : '') + '</td></tr>';
+            }
             html += '<tr><th><?php echo $this->lang->line("complaint_type"); ?></th><td>' + esc(res.complaint_type) + '</td></tr>';
             html += '<tr><th><?php echo $this->lang->line("priority"); ?></th><td><span class="label label-' + (prClass[res.priority] || 'default') + '">' + esc(prLabel) + '</span></td></tr>';
             html += '<tr><th><?php echo $this->lang->line("status"); ?></th><td><span class="label label-' + (stClass[res.status] || 'default') + '">' + esc(stLabel) + '</span></td></tr>';
