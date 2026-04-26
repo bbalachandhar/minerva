@@ -40,6 +40,24 @@
                                     <span class="text-danger"><?php echo form_error('source'); ?></span>
                                 </div>
                                 <div class="form-group">
+                                    <label><?php echo $this->lang->line('priority'); ?></label>
+                                    <select name="priority" class="form-control">
+                                        <option value="low"<?php if (set_value('priority', $complaint_data['priority']) == 'low') echo ' selected'; ?>><?php echo $this->lang->line('complaint_priority_low'); ?></option>
+                                        <option value="medium"<?php if (set_value('priority', $complaint_data['priority']) == 'medium') echo ' selected'; ?>><?php echo $this->lang->line('complaint_priority_medium'); ?></option>
+                                        <option value="high"<?php if (set_value('priority', $complaint_data['priority']) == 'high') echo ' selected'; ?>><?php echo $this->lang->line('complaint_priority_high'); ?></option>
+                                        <option value="critical"<?php if (set_value('priority', $complaint_data['priority']) == 'critical') echo ' selected'; ?>><?php echo $this->lang->line('complaint_priority_critical'); ?></option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label><?php echo $this->lang->line('status'); ?></label>
+                                    <select name="status" class="form-control">
+                                        <option value="open"<?php if (set_value('status', $complaint_data['status']) == 'open') echo ' selected'; ?>><?php echo $this->lang->line('complaint_status_open'); ?></option>
+                                        <option value="in_progress"<?php if (set_value('status', $complaint_data['status']) == 'in_progress') echo ' selected'; ?>><?php echo $this->lang->line('complaint_status_in_progress'); ?></option>
+                                        <option value="resolved"<?php if (set_value('status', $complaint_data['status']) == 'resolved') echo ' selected'; ?>><?php echo $this->lang->line('complaint_status_resolved'); ?></option>
+                                        <option value="closed"<?php if (set_value('status', $complaint_data['status']) == 'closed') echo ' selected'; ?>><?php echo $this->lang->line('complaint_status_closed'); ?></option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
                                     <label for="pwd"><?php echo $this->lang->line('complain_by'); ?></label> <small class="req"> *</small> 
                                     <input type="text" class="form-control" value="<?php echo set_value('name', $complaint_data['name']); ?>"  name="name">
                                     <span class="text-danger"><?php echo form_error('name'); ?></span>
@@ -71,8 +89,12 @@
                                 </div>
                                 <div class="form-group">
                                     <label for="pwd"><?php echo $this->lang->line('note'); ?></label>
-                                    <textarea class="form-control" id="description" name="note" name="note" rows="3"><?php echo set_value('note', $complaint_data['note']); ?></textarea>
+                                    <textarea class="form-control" id="description" name="note" rows="3"><?php echo set_value('note', $complaint_data['note']); ?></textarea>
                                     <span class="text-danger"><?php echo form_error('note'); ?></span>
+                                </div>
+                                <div class="form-group">
+                                    <label><?php echo $this->lang->line('admin_response'); ?></label> <small class="text-muted">(<?php echo $this->lang->line('visible_to_reporter'); ?>)</small>
+                                    <textarea class="form-control" name="admin_response" rows="3"><?php echo set_value('admin_response', $complaint_data['admin_response']); ?></textarea>
                                 </div>
                                 <div class="form-group">
                                     <label for="exampleInputFile"><?php echo $this->lang->line('attach_document'); ?></label>
@@ -101,6 +123,13 @@
                     <div class="box-header ptbnull">
                         <h3 class="box-title titlefix"><?php echo $this->lang->line('complaint_list'); ?></h3>
                         <div class="box-tools pull-right">
+                            <form method="get" action="<?php echo site_url('admin/complaint/edit/'.$complaint_data['id']); ?>" class="form-inline">
+                                <select name="session_id" class="form-control input-sm" style="width:100px;" onchange="this.form.submit()">
+                                    <?php foreach ($sessions as $sess): ?>
+                                        <option value="<?php echo $sess['id']; ?>" <?php if ((int)($filters['session_id'] ?? $current_session) == (int)$sess['id']) echo 'selected'; ?>><?php echo htmlspecialchars($sess['session']); ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </form>
                         </div><!-- /.box-tools -->
                     </div><!-- /.box-header -->
                     <div class="box-body">
@@ -110,10 +139,12 @@
                               <table class="table table-hover table-striped table-bordered example">
                                 <thead>
                                     <tr>
-                                        <th><?php echo $this->lang->line('complain'); ?> #</th>
+                                        <th><?php echo $this->lang->line('ticket_no'); ?></th>
                                         <th><?php echo $this->lang->line('complaint_type'); ?></th>
                                         <th><?php echo $this->lang->line('name'); ?> </th>
 										<th><?php echo $this->lang->line('phone'); ?> </th>
+										<th><?php echo $this->lang->line('priority'); ?></th>
+										<th><?php echo $this->lang->line('status'); ?></th>
                                         <th><?php echo $this->lang->line('date'); ?></th>
 										<th class="text-right noExport"><?php echo $this->lang->line('action'); ?></th>
                                     </tr>
@@ -126,15 +157,20 @@
                                         <?php
                                     } else {
                                         foreach ($complaint_list as $key => $value) {
+                                            $priority_class = ['low'=>'success','medium'=>'warning','high'=>'danger','critical'=>'danger'];
+                                            $status_class   = ['open'=>'danger','in_progress'=>'warning','resolved'=>'success','closed'=>'default'];
+                                            $p_label = $priority_class[$value['priority']] ?? 'default';
+                                            $s_label = $status_class[$value['status']] ?? 'default';
                                             ?>
                                             <tr>
-                                                <td class="mailbox-name"><?php echo $value['id']; ?></td>
+                                                <td><span class="label label-default"><?php echo $value['ticket_no'] ?: '#'.$value['id']; ?></span></td>
                                                 <td class="mailbox-name"><?php echo $value['complaint_type']; ?></td>
-                                                <td class="mailbox-name"><?php echo $value['name']; ?><?php if(!empty($value['email'])){ ?> ( <?php echo $value['email']; ?> )
-												<?php } ?> </td>
-                                                <td class="mailbox-name"> <?php echo $value['contact']; ?></td>
-                                                <td class="mailbox-name white-space-nowrap"> <?php if($value['date'] != '0000-00-00'){ echo date($this->customlib->getSchoolDateFormat(), $this->customlib->dateyyyymmddTodateformat($value['date'])); } ?></td>
-                                                <td class="mailbox-date pull-right white-space-nowrap">
+                                                <td class="mailbox-name"><?php echo $value['name']; ?><?php if(!empty($value['email'])){ ?> ( <?php echo $value['email']; ?> ) <?php } ?></td>
+                                                <td class="mailbox-name"><?php echo $value['contact']; ?></td>
+                                                <td><span class="label label-<?php echo $p_label; ?>"><?php echo ucfirst($value['priority'] ?? 'medium'); ?></span></td>
+                                                <td><span class="label label-<?php echo $s_label; ?>"><?php echo ucwords(str_replace('_',' ',$value['status'] ?? 'open')); ?></span></td>
+                                                <td class="white-space-nowrap"><?php if($value['date'] != '0000-00-00'){ echo date($this->customlib->getSchoolDateFormat(), $this->customlib->dateyyyymmddTodateformat($value['date'])); } ?></td>
+                                                <td class="pull-right white-space-nowrap">
                                                 
                                                     <a onclick="getRecord(<?php echo $value['id']; ?>)" class="btn btn-default btn-xs" data-target="#complaintdetails" title="<?php echo $this->lang->line('view') ?>" data-toggle="modal"  data-original-title="<?php echo $this->lang->line('view') ?>"><i class="fa fa-reorder"></i></a>        
                                                     

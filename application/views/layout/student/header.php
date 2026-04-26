@@ -449,6 +449,10 @@ if ($role == 'student' || $role == 'parent') {
                               <li class="<?php echo set_Topmenu('apply_leave'); ?>"><a href="<?php echo base_url(); ?>user/apply_leave"><i class="fa fa-check-square ftlayer"></i> <span><?php echo $this->lang->line('apply_leave'); ?></span></a></li>
                         <?php }?>
 
+                        <?php if ($this->studentmodule_lib->hasActive('complaint_box')) {?>
+                              <li class="<?php echo set_Topmenu('complaint_box'); ?>"><a href="<?php echo base_url(); ?>user/complaint_box"><i class="fa fa-commenting ftlayer"></i> <span><?php echo $this->lang->line('complaint_box'); ?></span></a></li>
+                        <?php }?>
+
                         <?php if ($this->studentmodule_lib->hasActive('visitor_book')) {?>
                               <li class="<?php echo set_Topmenu('visitors'); ?>"><a href="<?php echo base_url(); ?>user/visitors"><i class="fa fa-check-square ftlayer"></i> <span><?php echo $this->lang->line('visitor_book'); ?></span></a></li>
                         <?php }?>

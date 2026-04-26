@@ -347,7 +347,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                                         if (!empty($student["father_pic"])) {
                                                             echo base_url() . $student["father_pic"] . img_time();
                                                         } else {
-                                                            echo base_url() . "uploads/student_images/no_image.png" . img_time();
+                                                            echo base_url() . "uploads/student_images/default_male.jpg" . img_time();
                                                         }
             ?>
         "></td>
@@ -381,7 +381,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                                                                     if (!empty($student["mother_pic"])) {
                                                                                         echo base_url() . $student["mother_pic"] . img_time();
                                                                                     } else {
-                                                                                        echo base_url() . "uploads/student_images/no_image.png" . img_time();
+                                                                                        echo base_url() . "uploads/student_images/default_female.jpg" . img_time();
                                                                                     }
         ?>
         
@@ -412,7 +412,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                                                                 if (!empty($student["guardian_pic"])) {
                                                                                     echo base_url() . $student["guardian_pic"] . img_time();
                                                                                 } else {
-                                                                                    echo base_url() . "uploads/student_images/no_image.png" . img_time();
+                                                                                    echo base_url() . "uploads/student_images/default_user_placeholder.png" . img_time();
                                                                                 }
                                                                                 ?>
         

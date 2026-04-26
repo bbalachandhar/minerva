@@ -51,7 +51,11 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                                                                                                                                 if (!empty($student['image'])) {
                                                                                                                                                     echo base_url() . $student['image'] . img_time();
                                                                                                                                                 } else {
-                                                                                                                                                    echo base_url() . "uploads/student_images/no_image.png" . img_time();
+                                                                                                                                                    if (($student['gender'] ?? '') == 'Female') {
+                                                                                                                                                        echo base_url() . "uploads/student_images/default_female.jpg" . img_time();
+                                                                                                                                                    } else {
+                                                                                                                                                        echo base_url() . "uploads/student_images/default_male.jpg" . img_time();
+                                                                                                                                                    }
                                                                                                                                                 }
                                                                                                                                                 ?>" alt="User profile picture">
                                         <?php

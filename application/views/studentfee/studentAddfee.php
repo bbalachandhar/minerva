@@ -307,6 +307,12 @@ foreach ($student_due_fee as $key => $fee) {
             
             <td class="text text-right">
             <?php echo amountFormat($fee_value->amount);
+            if (!empty($fee_value->fee_override_amount)) {
+                echo ' <span class="label label-info" title="Custom override">custom</span>';
+            }
+            if ($feetype_balance > 0 && $fee_value->type == 'HOSTEL FEES' && $this->rbac->hasPrivilege('hostel_fee_override', 'can_add')) {
+                echo ' <a href="#" class="hostel-override-btn text-muted" data-fee_groups_feetype_id="' . $fee_value->fee_groups_feetype_id . '" data-student_session_id="' . $fee->student_session_id . '" data-current_fee="' . $fee_value->amount . '" data-has_override="' . (!empty($fee_value->fee_override_amount) ? '1' : '0') . '" title="Override hostel fee"><i class="fa fa-pencil"></i></a>';
+            }
             if (($fee_value->due_date != "0000-00-00" && $fee_value->due_date != null) && (strtotime($fee_value->due_date) < strtotime(date('Y-m-d')))) {
             ?>
             <span data-toggle="popover" class="text text-danger detail_popover"><?php echo " + " . amountFormat($fees_fine_amount); ?></span>
@@ -1621,6 +1627,82 @@ $(document).on('click', '#tr_override_clear_btn', function() {
     </div>
   </div>
 </div>
+
+<!-- Hostel fee override modal -->
+<div id="hostelFeeOverrideModal" class="modal fade" tabindex="-1" role="dialog">
+  <div class="modal-dialog modal-sm" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal">&times;</button>
+        <h4 class="modal-title">Override Hostel Fee</h4>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="hostel_override_fgt_id">
+        <input type="hidden" id="hostel_override_ss_id">
+        <div class="form-group">
+          <label>Custom Fee Amount</label>
+          <input type="number" id="hostel_override_amount" class="form-control" min="0" step="0.01" placeholder="Enter amount">
+        </div>
+        <div class="form-group">
+          <label>Note <small class="text-muted">(optional)</small></label>
+          <input type="text" id="hostel_override_note" class="form-control" placeholder="Reason for override">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" id="hostel_override_clear_btn" class="btn btn-warning pull-left" style="display:none">Clear Override</button>
+        <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+        <button type="button" id="hostelFeeOverrideSaveBtn" class="btn btn-primary">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+$(document).on('click', '.hostel-override-btn', function(e) {
+    e.preventDefault();
+    var $btn = $(this);
+    $('#hostel_override_fgt_id').val($btn.data('fee_groups_feetype_id'));
+    $('#hostel_override_ss_id').val($btn.data('student_session_id'));
+    var has_override = $btn.data('has_override');
+    $('#hostel_override_amount').val(has_override == '1' ? $btn.data('current_fee') : '');
+    $('#hostel_override_note').val('');
+    $('#hostel_override_clear_btn').toggle(has_override == '1');
+    $('#hostelFeeOverrideModal').modal('show');
+});
+
+$(document).on('click', '#hostelFeeOverrideSaveBtn', function() {
+    var amount = $.trim($('#hostel_override_amount').val());
+    if (amount === '' || parseFloat(amount) <= 0) {
+        alert('Please enter a valid amount.');
+        return;
+    }
+    $.post('<?php echo base_url('admin/hostel_fee_override/save'); ?>', {
+        student_session_id:    $('#hostel_override_ss_id').val(),
+        fee_groups_feetype_id: $('#hostel_override_fgt_id').val(),
+        override_amount:       amount,
+        note:                  $.trim($('#hostel_override_note').val())
+    }, function(res) {
+        if (res.status === 'success') {
+            location.reload();
+        } else {
+            alert(res.message || 'Error saving override');
+        }
+    }, 'json');
+});
+
+$(document).on('click', '#hostel_override_clear_btn', function() {
+    $.post('<?php echo base_url('admin/hostel_fee_override/delete'); ?>', {
+        student_session_id:    $('#hostel_override_ss_id').val(),
+        fee_groups_feetype_id: $('#hostel_override_fgt_id').val()
+    }, function(res) {
+        if (res.status === 'success') {
+            location.reload();
+        } else {
+            alert(res.message || 'Error clearing override');
+        }
+    }, 'json');
+});
+</script>
 
 <script>
 $(document).ready(function() {

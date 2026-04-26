@@ -596,6 +596,19 @@ foreach ($notifications as $notice_key => $notice_value) {
 }
   ?>
 
+<?php if ($this->rbac->hasPrivilege('complaint', 'can_view')): ?>
+                    <div class="col-md-3 col-sm-6">
+                        <div class="topprograssstart shadow" id="complaint-widget" data-url="<?php echo site_url('admin/complaint/widget'); ?>" style="background: linear-gradient(135deg, #ff5722 0%, #bf360c 100%); color: white; border-radius: 5px;">
+                            <p class="mt5 font14" style="color: white;"><i class="fa fa-commenting ftlayer" style="color: white;"></i>&nbsp;<?php echo $this->lang->line('complaint_box'); ?><span class="pull-right"><span class="cw-open fo-skeleton" style="color: white;">0</span>/<span class="cw-total fo-skeleton" style="color: white;">0</span></span></p>
+                            <div class="progress-group">
+                                <div class="progress progress-minibar" style="background-color: rgba(255,255,255,0.3);">
+                                    <div class="progress-bar cw-progress" style="width: 0%; background-color: #fff;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+<?php endif; ?>
+
             <?php
 if ($this->module_lib->hasActive('front_office')) {
     if ($this->rbac->hasPrivilege('conveted_leads_widegts', 'can_view')) {
@@ -1679,6 +1692,7 @@ if (($this->module_lib->hasActive('fees_collection')) || ($this->module_lib->has
                     $('#staff-approved-leave-widget .sal-approved, #staff-approved-leave-widget .sal-total').addClass('fo-skeleton');
                     $('#student-approved-leave-widget .stl-approved, #student-approved-leave-widget .stl-total').addClass('fo-skeleton');
                     $('#converted-leads-widget .cl-complete, #converted-leads-widget .cl-total').addClass('fo-skeleton');
+                    $('#complaint-widget .cw-open, #complaint-widget .cw-total').addClass('fo-skeleton');
                 });
                 // Remove skeleton loading on AJAX complete
                 $(document).ajaxStop(function() {
@@ -1706,6 +1720,7 @@ if (($this->module_lib->hasActive('fees_collection')) || ($this->module_lib->has
                     $('#staff-approved-leave-widget .sal-approved, #staff-approved-leave-widget .sal-total').removeClass('fo-skeleton');
                     $('#student-approved-leave-widget .stl-approved, #student-approved-leave-widget .stl-total').removeClass('fo-skeleton');
                     $('#converted-leads-widget .cl-complete, #converted-leads-widget .cl-total').removeClass('fo-skeleton');
+                    $('#complaint-widget .cw-open, #complaint-widget .cw-total').removeClass('fo-skeleton');
                 });
         // Function to update ticker animation properties
         function updateTickerAnimation() {
@@ -2311,6 +2326,30 @@ if (($this->module_lib->hasActive('fees_collection')) || ($this->module_lib->has
                     $convertedLeads.find('.fo-skeleton').removeClass('fo-skeleton');
                 }).fail(function() {
                     $convertedLeads.find('.fo-skeleton').removeClass('fo-skeleton');
+                });
+            }
+        }
+
+        var $complaintWidget = $('#complaint-widget');
+        if ($complaintWidget.length) {
+            var complaintUrl = $complaintWidget.data('url');
+            if (complaintUrl) {
+                $.ajax({
+                    url: complaintUrl,
+                    method: 'GET',
+                    dataType: 'json'
+                }).done(function(resp) {
+                    if (!resp || resp.status !== 'success' || !resp.data) {
+                        $complaintWidget.find('.fo-skeleton').removeClass('fo-skeleton');
+                        return;
+                    }
+                    $complaintWidget.find('.cw-open').text(resp.data.open || 0);
+                    $complaintWidget.find('.cw-total').text(resp.data.total || 0);
+                    var pct = resp.data.total > 0 ? Math.round((resp.data.open / resp.data.total) * 100) : 0;
+                    $complaintWidget.find('.cw-progress').css('width', pct + '%');
+                    $complaintWidget.find('.fo-skeleton').removeClass('fo-skeleton');
+                }).fail(function() {
+                    $complaintWidget.find('.fo-skeleton').removeClass('fo-skeleton');
                 });
             }
         }

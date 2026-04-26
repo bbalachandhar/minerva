@@ -1187,6 +1187,12 @@ DROP TABLE IF EXISTS `complaint`;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `complaint` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
+  `session_id` int(11) DEFAULT NULL,
+  `student_session_id` int(11) DEFAULT NULL,
+  `submitted_by` varchar(20) DEFAULT NULL,
+  `status` enum('open','in_progress','resolved','closed') NOT NULL DEFAULT 'open',
+  `priority` enum('low','medium','high','critical') NOT NULL DEFAULT 'medium',
+  `ticket_no` varchar(30) DEFAULT NULL,
   `complaint_type` varchar(255) NOT NULL,
   `source` varchar(255) NOT NULL,
   `name` varchar(100) NOT NULL,
@@ -1197,10 +1203,17 @@ CREATE TABLE `complaint` (
   `action_taken` varchar(200) NOT NULL,
   `assigned` varchar(50) NOT NULL,
   `note` text NOT NULL,
+  `admin_response` text DEFAULT NULL,
+  `responded_by` int(11) DEFAULT NULL,
+  `responded_at` datetime DEFAULT NULL,
   `image` varchar(100) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `idx_complaint_ticket` (`ticket_no`),
+  KEY `idx_complaint_student_session` (`student_session_id`),
+  KEY `idx_complaint_status` (`status`),
+  KEY `idx_session_id` (`session_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
