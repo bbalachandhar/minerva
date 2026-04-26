@@ -50,6 +50,8 @@ class Media_storage
             // Walk the path from root and create each missing segment individually
             // so we can chmod each one — plain recursive mkdir can leave intermediate
             // directories with restrictive inherited permissions.
+            // Use 0777 so the directory is writable regardless of which OS user
+            // (e.g. Apache daemon vs the deploy user) creates it.
             $segments = explode(DIRECTORY_SEPARATOR, ltrim($destination_dir, DIRECTORY_SEPARATOR));
             $built    = DIRECTORY_SEPARATOR;
             foreach ($segments as $segment) {
@@ -58,22 +60,16 @@ class Media_storage
                 }
                 $built .= $segment . DIRECTORY_SEPARATOR;
                 if (!is_dir($built)) {
-                    if (!@mkdir($built, 0755)) {
+                    if (!@mkdir($built, 0777)) {
                         log_message('error', 'Media_storage::fileupload — failed to create directory segment: ' . $built);
                         return array('status' => false, 'message' => 'Failed to create upload directory: ' . $built);
                     }
-                    @chmod($built, 0755);
+                    @chmod($built, 0777);
                 }
             }
         }
 
-        // Escalate permissions until the directory is writable
-        if (!is_writable($destination_dir)) {
-            @chmod($destination_dir, 0755);
-        }
-        if (!is_writable($destination_dir)) {
-            @chmod($destination_dir, 0775);
-        }
+        // If the directory already exists but isn't writable, try to fix it.
         if (!is_writable($destination_dir)) {
             @chmod($destination_dir, 0777);
         }

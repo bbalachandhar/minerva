@@ -38,7 +38,7 @@ class Customlib
          * Accepts relative paths (e.g. './uploads/...') or absolute paths.
          * Returns true if the directory exists and is writable, false otherwise.
          */
-        public function ensureDirectoryExists($path, $mode = 0755)
+        public function ensureDirectoryExists($path, $mode = 0777)
         {
             // Resolve relative paths (starting with './') to FCPATH
             if (strpos($path, './') === 0) {
@@ -52,6 +52,8 @@ class Customlib
             if (!is_dir($resolved)) {
                 // Create each missing path segment individually so every
                 // intermediate directory gets the right permissions applied.
+                // Use 0777 so the directory is writable regardless of which
+                // OS user (e.g. Apache daemon vs the deploy user) creates it.
                 $segments = explode(DIRECTORY_SEPARATOR, ltrim($resolved, DIRECTORY_SEPARATOR));
                 $built    = DIRECTORY_SEPARATOR;
                 foreach ($segments as $segment) {
@@ -69,12 +71,7 @@ class Customlib
                 }
             }
 
-            if (!is_writable($resolved)) {
-                @chmod($resolved, 0755);
-            }
-            if (!is_writable($resolved)) {
-                @chmod($resolved, 0775);
-            }
+            // If the directory already exists but isn't writable, escalate.
             if (!is_writable($resolved)) {
                 @chmod($resolved, 0777);
             }
