@@ -1,7 +1,7 @@
 <div class="content-wrapper">  
     <section class="content-header">
         <h1>
-            <i class="fa fa-ioxhost"></i> <?php echo $this->lang->line('front_office'); ?></h1>
+            <i class="fa fa-sitemap"></i> <?php echo $this->lang->line('human_resource'); ?></h1>
     </section>
     <section class="content">
         <div class="row">

@@ -21,7 +21,7 @@ class Complaint extends Admin_Controller
             access_denied();
         }
 
-        $this->session->set_userdata('top_menu', 'front_office');
+        $this->session->set_userdata('top_menu', 'human_resource');
         $this->session->set_userdata('sub_menu', 'admin/complaint');
 
         $this->form_validation->set_rules('name', $this->lang->line('complain_by'), 'required');

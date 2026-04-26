@@ -1,6 +1,6 @@
 <div class="content-wrapper">
     <section class="content-header">
-        <h1><i class="fa fa-ioxhost"></i> <?php echo $this->lang->line('front_office'); ?> &nbsp;<small><?php echo $this->lang->line('complaint_list'); ?></small></h1>
+        <h1><i class="fa fa-sitemap"></i> <?php echo $this->lang->line('human_resource'); ?> &nbsp;<small><?php echo $this->lang->line('complaint_list'); ?></small></h1>
         <ol class="breadcrumb">
             <li><a href="<?php echo site_url('admin/admin'); ?>"><i class="fa fa-home"></i> <?php echo $this->lang->line('home'); ?></a></li>
             <li class="active"><?php echo $this->lang->line('complaint_list'); ?></li>
