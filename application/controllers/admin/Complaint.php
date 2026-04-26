@@ -55,12 +55,15 @@ class Complaint extends Admin_Controller
             $this->load->view('admin/frontoffice/complaintview', $data);
             $this->load->view('layout/footer');
         } else {
-            $upload_result = $this->media_storage->fileupload("file", "./uploads/front_office/complaints/");
-            if ($upload_result['status'] === false) {
-                $this->session->set_flashdata('error', $upload_result['message']);
-                redirect('admin/complaint');
+            $img_name = '';
+            if (isset($_FILES['file']) && $_FILES['file']['name'] != '' && $_FILES['file']['error'] != UPLOAD_ERR_NO_FILE) {
+                $upload_result = $this->media_storage->fileupload("file", "./uploads/front_office/complaints/");
+                if ($upload_result['status'] === false) {
+                    $this->session->set_flashdata('error', $upload_result['message']);
+                    redirect('admin/complaint');
+                }
+                $img_name = $upload_result['message'];
             }
-            $img_name  = $upload_result['message'];
             $complaint = array(
                 'complaint_type' => $this->input->post('complaint'),
                 'source'         => 'Staff Portal',
