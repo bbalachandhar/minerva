@@ -539,11 +539,16 @@ foreach ($notifications as $notice_key => $notice_value) {
             }
             ?>
         </div>
-        <div class="row">
+        <style>
+        @media (min-width: 992px) {
+          #dashboard-widgets-row5 > div[class*="col-"] { width: 20%; }
+        }
+        </style>
+        <div class="row" id="dashboard-widgets-row5">
             <?php
             if ($this->module_lib->hasActive('fees_collection') && $this->rbac->hasPrivilege('fees_awaiting_payment_widegts', 'can_view')) {
             ?>
-                <div class="col-md-3 col-sm-6">
+                <div class="col-md-2 col-sm-6">
                     <div class="topprograssstart" style="background: linear-gradient(135deg, #ff9800 0%, #ff6d00 100%); color: white; border-radius: 5px;">
                         <p class="mt5 clearfix font14" style="color: white;"><i class="fa fa-money ftlayer" style="color: white;"></i><?php echo $this->lang->line('fees_awaiting_payment'); ?>
                             <span class="pull-right">
@@ -563,7 +568,7 @@ foreach ($notifications as $notice_key => $notice_value) {
                                         <?php 
                                             if ($this->rbac->hasPrivilege('staff_approved_leave_widegts', 'can_view')) {
                                                 ?>
-                                                            <div class="col-md-3 col-sm-6">
+                                                            <div class="col-md-2 col-sm-6">
                                                                 <div class="topprograssstart shadow" id="staff-approved-leave-widget" data-url="<?php echo site_url('admin/admin/staff_approved_leave_widget'); ?>" style="background: linear-gradient(135deg, #2196f3 0%, #1565c0 100%); color: white; border-radius: 5px;">
                                                                     <p class="mt5 font14" style="color: white;"><i class="fa fa-ioxhost ftlayer" style="color: white;"></i><?php echo $this->lang->line('staff_approved_leave'); ?><span class="pull-right"><span class="sal-approved fo-skeleton" style="color: white;">0</span>/<span class="sal-total fo-skeleton" style="color: white;">0</span></span>
                                                                     </p>
@@ -581,7 +586,7 @@ foreach ($notifications as $notice_key => $notice_value) {
 <?php
     if ($this->rbac->hasPrivilege('student_approved_leave_widegts', 'can_view')) {
         ?>
-                    <div class="col-md-3 col-sm-6">
+                    <div class="col-md-2 col-sm-6">
                         <div class="topprograssstart shadow" id="student-approved-leave-widget" data-url="<?php echo site_url('admin/admin/student_approved_leave_widget'); ?>" style="background: linear-gradient(135deg, #4caf50 0%, #2e7d32 100%); color: white; border-radius: 5px;">
                             <p class="mt5 font14" style="color: white;"><i class="fa fa-ioxhost ftlayer" style="color: white;"></i><?php echo $this->lang->line('student_approved_leave'); ?><span class="pull-right"><span class="stl-approved fo-skeleton" style="color: white;">0</span>/<span class="stl-total fo-skeleton" style="color: white;">0</span></span>
                             </p>
@@ -597,7 +602,7 @@ foreach ($notifications as $notice_key => $notice_value) {
   ?>
 
 <?php if ($this->rbac->hasPrivilege('complaint', 'can_view')): ?>
-                    <div class="col-md-3 col-sm-6">
+                    <div class="col-md-2 col-sm-6">
                         <div class="topprograssstart shadow" id="complaint-widget" data-url="<?php echo site_url('admin/complaint/widget'); ?>" style="background: linear-gradient(135deg, #ff5722 0%, #bf360c 100%); color: white; border-radius: 5px;">
                             <p class="mt5 font14" style="color: white;"><i class="fa fa-commenting ftlayer" style="color: white;"></i>&nbsp;<?php echo $this->lang->line('complaint_box'); ?><span class="pull-right"><span class="cw-open fo-skeleton" style="color: white;">0</span>/<span class="cw-total fo-skeleton" style="color: white;">0</span></span></p>
                             <div class="progress-group">
@@ -613,7 +618,7 @@ foreach ($notifications as $notice_key => $notice_value) {
 if ($this->module_lib->hasActive('front_office')) {
     if ($this->rbac->hasPrivilege('conveted_leads_widegts', 'can_view')) {
         ?>
-                    <div class="col-md-3 col-sm-6">
+                    <div class="col-md-2 col-sm-6">
                         <div class="topprograssstart" id="converted-leads-widget" data-url="<?php echo site_url('admin/admin/converted_leads_widget'); ?>" style="background: linear-gradient(135deg, #9c27b0 0%, #6a1b9a 100%); color: white; border-radius: 5px;">
                             <p class="mt5 clearfix font14" style="color: white;"><i class="fa fa-ioxhost ftlayer" style="color: white;"></i><?php echo $this->lang->line('converted_leads'); ?><span class="pull-right"><span class="cl-complete fo-skeleton" style="color: white;">0</span>/<span class="cl-total fo-skeleton" style="color: white;">0</span></span>
                             </p>
