@@ -28,17 +28,7 @@
                                     </select>
                                     <span class="text-danger"><?php echo form_error('complaint'); ?></span>
                                 </div>
-                                <div class="form-group">
-                                    <label for="pwd"><?php echo $this->lang->line('source'); ?></label>  
-                                    <select name="source" class="form-control">
-                                        <option value=""><?php echo $this->lang->line('select'); ?></option>  
-                                        <?php foreach ($complaintsource as $key => $value) { ?>
-                                            <option value="<?php echo $value['source']; ?>"<?php if (set_value('source', $complaint_data['source']) == $value['source']) echo "selected"; ?>><?php echo $value['source']; ?></option>
-                                        <?php }
-                                        ?>                 
-                                    </select>
-                                    <span class="text-danger"><?php echo form_error('source'); ?></span>
-                                </div>
+                                <input type="hidden" name="source" value="<?php echo htmlspecialchars($complaint_data['source']); ?>">
                                 <div class="form-group">
                                     <label><?php echo $this->lang->line('priority'); ?></label>
                                     <select name="priority" class="form-control">
@@ -106,9 +96,17 @@
                                 </div>
                                 <div class="form-group">
                                     <label for="exampleInputFile"><?php echo $this->lang->line('attach_document'); ?></label>
-                                    <div><input class="filestyle form-control" type='file' name='file'  />
+                                    <?php if (!empty($complaint_data['image'])): ?>
+                                    <div class="mb-1">
+                                        <a href="<?php echo base_url('admin/complaint/download/' . $complaint_data['id']); ?>" target="_blank" class="btn btn-default btn-xs"><i class="fa fa-paperclip"></i> <?php echo htmlspecialchars($complaint_data['image']); ?></a>
+                                        <small class="text-muted"><?php echo $this->lang->line('current_file'); ?></small>
                                     </div>
-                                    <span class="text-danger"><?php echo form_error('file'); ?></span></div>
+                                    <?php endif; ?>
+                                    <div><input class="filestyle form-control" type='file' name='file' />
+                                    </div>
+                                    <small class="text-muted"><?php echo $this->lang->line('upload_new_to_replace'); ?></small>
+                                    <span class="text-danger"><?php echo form_error('file'); ?></span>
+                                </div>
                             </div><!-- /.box-body -->
                             <div class="box-footer">
                                 <button type="submit" class="btn btn-info pull-right"><?php echo $this->lang->line('save'); ?></button>
