@@ -180,6 +180,7 @@ class Complaint extends Admin_Controller
             access_denied();
         }
         $data['complaint_data'] = $this->complaint_Model->complaint_list($id);
+        $data['staff_list']     = $this->staff_model->getAll(null, 1);
         $this->load->view('admin/frontoffice/Complaintmodalview', $data);
     }
 

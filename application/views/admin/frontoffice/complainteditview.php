@@ -75,7 +75,7 @@
                                 </div>
                                 <div class="form-group">
                                     <label><?php echo $this->lang->line('assigned'); ?></label>
-                                    <select class="form-control" name="assigned">
+                                    <select class="form-control" name="assigned" id="edit-assigned-select">
                                         <option value=""><?php echo $this->lang->line('select'); ?></option>
                                         <?php foreach ($staff_list as $s): ?>
                                         <option value="<?php echo htmlspecialchars($s['name']); ?>" <?php if (set_value('assigned', $complaint_data['assigned']) === $s['name']) echo 'selected'; ?>>
@@ -238,4 +238,10 @@
             }
         });
     }
+    $(function() {
+        $('#edit-assigned-select').select2({
+            placeholder: '<?php echo $this->lang->line('select'); ?>',
+            allowClear: true
+        });
+    });
 </script>

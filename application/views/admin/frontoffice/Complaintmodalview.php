@@ -98,7 +98,14 @@ $st = $complaint_data['status']   ?? 'open';
         <div class="col-md-4">
             <div class="form-group">
                 <label><?php echo $this->lang->line('assigned'); ?></label>
-                <input type="text" name="assigned" class="form-control" value="<?php echo htmlspecialchars($complaint_data['assigned']); ?>">
+                <select name="assigned" id="modal-assigned-<?php echo $complaint_data['id']; ?>" class="form-control assigned-select2">
+                    <option value=""><?php echo $this->lang->line('select'); ?></option>
+                    <?php foreach ($staff_list as $s): ?>
+                    <option value="<?php echo htmlspecialchars($s['name']); ?>" <?php if ($complaint_data['assigned'] === $s['name']) echo 'selected'; ?>>
+                        <?php echo htmlspecialchars($s['name']); ?>
+                    </option>
+                    <?php endforeach; ?>
+                </select>
             </div>
         </div>
     </div>
@@ -117,6 +124,13 @@ $st = $complaint_data['status']   ?? 'open';
 <?php endif; ?>
 
 <script>
+$(function() {
+    $('.assigned-select2').select2({
+        placeholder: '<?php echo $this->lang->line('select'); ?>',
+        allowClear: true,
+        dropdownParent: $('#complaintdetails')
+    });
+});
 function respondComplaint(id) {
     var form = $('#respond-form-' + id);
     $.post('<?php echo base_url(); ?>admin/complaint/respond/' + id, form.serialize(), function(res) {
