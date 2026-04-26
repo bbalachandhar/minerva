@@ -41,9 +41,11 @@ class Complaint_box extends Student_Controller
         if ($role === 'parent') {
             $data['submitter_name']     = $student['guardian_name'] ?? '';
             $data['submitter_role']     = 'Parent';
+            $data['submitter_phone']    = $student['guardian_phone'] ?? '';
         } else {
             $data['submitter_name']     = trim(($student['firstname'] ?? '') . ' ' . ($student['lastname'] ?? ''));
             $data['submitter_role']     = 'Student';
+            $data['submitter_phone']    = $student['mobileno'] ?? '';
         }
         $data['submitter_id_label'] = $student['admission_no'] ?? '';
 
@@ -82,7 +84,7 @@ class Complaint_box extends Student_Controller
         $role               = $this->customlib->getUserRole();
 
         $full_name = trim(($student['firstname'] ?? '') . ' ' . ($student['lastname'] ?? ''));
-        $mobile    = $student['mobileno'] ?? '';
+        $mobile    = trim($this->input->post('contact', true)) ?: ($student['mobileno'] ?? '');
         $email     = $student['email'] ?? '';
         $source    = ($role === 'parent') ? 'Parent Portal' : 'Student Portal';
         $submitted = ($role === 'parent') ? 'parent' : 'student';

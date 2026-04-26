@@ -74,6 +74,15 @@ defined('BASEPATH') OR exit('No direct script access allowed');
                             <?php endif; ?>
                         </div>
                         <div class="form-group">
+                            <label><?php echo $this->lang->line('phone'); ?></label>
+                            <input type="text" class="form-control" name="contact" id="contact" value="<?php echo htmlspecialchars($submitter_phone ?? ''); ?>" placeholder="<?php echo $this->lang->line('phone'); ?>">
+                            <?php if (!empty($submitter_phone)): ?>
+                            <small class="text-muted"><i class="fa fa-info-circle"></i> Pre-filled from your profile &mdash; edit if needed.</small>
+                            <?php else: ?>
+                            <small class="text-muted"><i class="fa fa-info-circle"></i> Enter your contact number.</small>
+                            <?php endif; ?>
+                        </div>
+                        <div class="form-group">
                             <label><?php echo $this->lang->line('complaint_type'); ?> <span class="text-danger">*</span></label>
                             <select name="complaint_type" id="complaint_type" class="form-control">
                                 <option value="">-- <?php echo $this->lang->line('select'); ?> --</option>

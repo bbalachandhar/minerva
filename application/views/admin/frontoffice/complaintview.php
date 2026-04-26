@@ -88,6 +88,7 @@
                             <div class="form-group">
                                 <label><?php echo $this->lang->line('phone'); ?></label>
                                 <input type="text" class="form-control" name="contact" value="<?php echo set_value('contact', htmlspecialchars($logged_in_contact)); ?>">
+                                <small class="text-muted"><i class="fa fa-info-circle"></i> Pre-filled from your profile &mdash; edit if you want a different contact number.</small>
                             </div>
                             <div class="form-group">
                                 <label><?php echo $this->lang->line('priority'); ?></label>
@@ -105,10 +106,6 @@
                             <div class="form-group">
                                 <label><?php echo $this->lang->line('description'); ?></label>
                                 <textarea class="form-control" name="description" rows="3"><?php echo set_value('description'); ?></textarea>
-                            </div>
-                            <div class="form-group">
-                                <label><?php echo $this->lang->line('assigned'); ?></label>
-                                <input type="text" class="form-control" name="assigned" value="<?php echo set_value('assigned'); ?>">
                             </div>
                             <div class="form-group">
                                 <label><?php echo $this->lang->line('note'); ?></label>
