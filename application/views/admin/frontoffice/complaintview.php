@@ -78,22 +78,16 @@
                                 </select>
                             </div>
                             <div class="form-group">
-                                <label><?php echo $this->lang->line('source'); ?></label>
-                                <select name="source" class="form-control">
-                                    <option value=""><?php echo $this->lang->line('select'); ?></option>
-                                    <?php foreach ($complaintsource as $v): ?>
-                                        <option value="<?php echo htmlspecialchars($v['source']); ?>" <?php if (set_value('source') == $v['source']) echo 'selected'; ?>><?php echo htmlspecialchars($v['source']); ?></option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                            <div class="form-group">
                                 <label><?php echo $this->lang->line('complain_by'); ?> <small class="req">*</small></label>
-                                <input type="text" class="form-control" name="name" value="<?php echo set_value('name'); ?>">
+                                <input type="text" class="form-control" name="name" value="<?php echo set_value('name', htmlspecialchars($logged_in_name)); ?>">
+                                <?php if (!empty($logged_in_empid)): ?>
+                                <small class="text-muted"><i class="fa fa-id-card-o"></i> <?php echo $this->lang->line('employee_id'); ?>: <?php echo htmlspecialchars($logged_in_empid); ?> &nbsp;<span class="label label-default">Staff</span></small>
+                                <?php endif; ?>
                                 <span class="text-danger"><?php echo form_error('name'); ?></span>
                             </div>
                             <div class="form-group">
                                 <label><?php echo $this->lang->line('phone'); ?></label>
-                                <input type="text" class="form-control" name="contact" value="<?php echo set_value('contact'); ?>">
+                                <input type="text" class="form-control" name="contact" value="<?php echo set_value('contact', htmlspecialchars($logged_in_contact)); ?>">
                             </div>
                             <div class="form-group">
                                 <label><?php echo $this->lang->line('priority'); ?></label>

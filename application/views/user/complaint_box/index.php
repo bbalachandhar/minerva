@@ -64,6 +64,15 @@ defined('BASEPATH') OR exit('No direct script access allowed');
                 </div>
                 <form id="submit-complaint-form" method="post" enctype="multipart/form-data">
                     <div class="box-body">
+                        <!-- Submitter info (read-only) -->
+                        <div class="callout callout-info" style="padding:8px 12px;margin-bottom:12px">
+                            <strong><i class="fa fa-user-circle"></i> <?php echo $this->lang->line('submitted_by'); ?></strong><br>
+                            <?php echo htmlspecialchars($submitter_name); ?>
+                            <span class="label label-info" style="margin-left:4px"><?php echo htmlspecialchars($submitter_role); ?></span>
+                            <?php if (!empty($submitter_id_label)): ?>
+                            <br><small class="text-muted"><?php echo $this->lang->line('admission_no'); ?>: <?php echo htmlspecialchars($submitter_id_label); ?></small>
+                            <?php endif; ?>
+                        </div>
                         <div class="form-group">
                             <label><?php echo $this->lang->line('complaint_type'); ?> <span class="text-danger">*</span></label>
                             <select name="complaint_type" id="complaint_type" class="form-control">
@@ -95,7 +104,15 @@ defined('BASEPATH') OR exit('No direct script access allowed');
                         </div>
                         <div class="form-group">
                             <label><?php echo $this->lang->line('attach_document'); ?></label>
-                            <input type="file" name="attachment" id="attachment" class="form-control" />
+                            <div class="input-group">
+                                <label class="input-group-btn" style="width:auto">
+                                    <span class="btn btn-default">
+                                        <i class="fa fa-folder-open"></i> Browse&hellip;
+                                        <input type="file" name="attachment" id="attachment" style="display:none">
+                                    </span>
+                                </label>
+                                <input type="text" class="form-control" id="attachment-name" placeholder="No file chosen" readonly style="cursor:pointer">
+                            </div>
                         </div>
                     </div>
                     <div class="box-footer">
@@ -315,6 +332,15 @@ $(function () {
 
     $(document).on('click', '.view-detail-btn', function () {
         getRecord($(this).data('id'));
+    });
+
+    // Custom file input — show chosen filename
+    $('#attachment').on('change', function () {
+        var name = this.files && this.files.length > 0 ? this.files[0].name : 'No file chosen';
+        $('#attachment-name').val(name);
+    });
+    $('#attachment-name').on('click', function () {
+        $('#attachment').trigger('click');
     });
 });
 </script>

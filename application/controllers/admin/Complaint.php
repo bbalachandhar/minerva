@@ -43,6 +43,13 @@ class Complaint extends Admin_Controller
             $data['current_session'] = $this->setting_model->getCurrentSession();
             $data['filters']         = $filters;
 
+            // Prepopulate add form with logged-in staff info
+            $admin_session = $this->session->userdata('admin');
+            $staff_row     = $this->staff_model->get($admin_session['id'] ?? 0);
+            $data['logged_in_name']    = $admin_session['username'] ?? '';
+            $data['logged_in_contact'] = $staff_row['mobileno']    ?? '';
+            $data['logged_in_empid']   = $staff_row['employee_id'] ?? '';
+
             $this->load->view('layout/header');
             $this->load->view('admin/frontoffice/complaintview', $data);
             $this->load->view('layout/footer');
@@ -55,7 +62,8 @@ class Complaint extends Admin_Controller
             $img_name  = $upload_result['message'];
             $complaint = array(
                 'complaint_type' => $this->input->post('complaint'),
-                'source'         => $this->input->post('source'),
+                'source'         => 'Staff Portal',
+                'submitted_by'   => 'staff',
                 'name'           => $this->input->post('name'),
                 'contact'        => $this->input->post('contact'),
                 'date'           => date('Y-m-d', $this->customlib->datetostrtotime($this->input->post('date'))),

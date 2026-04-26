@@ -34,6 +34,19 @@ class Complaint_box extends Student_Controller
         }
         $data['status_counts'] = $counts;
 
+        // Submitter info for the form header
+        $role       = $this->customlib->getUserRole(); // 'student' or 'parent'
+        $student_id = $this->customlib->getStudentSessionUserID();
+        $student    = $this->student_model->get($student_id);
+        if ($role === 'parent') {
+            $data['submitter_name']     = $student['guardian_name'] ?? '';
+            $data['submitter_role']     = 'Parent';
+        } else {
+            $data['submitter_name']     = trim(($student['firstname'] ?? '') . ' ' . ($student['lastname'] ?? ''));
+            $data['submitter_role']     = 'Student';
+        }
+        $data['submitter_id_label'] = $student['admission_no'] ?? '';
+
         $this->load->view('layout/student/header', $data);
         $this->load->view('user/complaint_box/index', $data);
         $this->load->view('layout/student/footer', $data);
