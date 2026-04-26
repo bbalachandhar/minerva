@@ -64,7 +64,8 @@
                                 </div>
                                 <div class="form-group">
                                     <label for="email"><?php echo $this->lang->line('phone'); ?></label> 
-                                    <input type="text" class="form-control" value="<?php echo set_value('contact', $complaint_data['contact']); ?>"  name="contact">
+                                    <input type="text" class="form-control" value="<?php echo set_value('contact', $complaint_data['contact']); ?>" name="contact" maxlength="10" pattern="[0-9]{10}" placeholder="10-digit mobile number">
+                                    <span class="text-danger"><?php echo form_error('contact'); ?></span>
                                 </div>
                                 <div class="form-group">
                                     <div class="form-group">
@@ -83,8 +84,15 @@
                                     <span class="text-danger"><?php echo form_error('action_taken'); ?></span>
                                 </div>
                                 <div class="form-group">
-                                    <label for="pwd"><?php echo $this->lang->line('assigned'); ?></label>
-                                    <input type="text" class="form-control" value="<?php echo set_value('assigned', $complaint_data['assigned']); ?>"  name="assigned">
+                                    <label><?php echo $this->lang->line('assigned'); ?></label>
+                                    <select class="form-control" name="assigned">
+                                        <option value=""><?php echo $this->lang->line('select'); ?></option>
+                                        <?php foreach ($staff_list as $s): ?>
+                                        <option value="<?php echo htmlspecialchars($s['name']); ?>" <?php if (set_value('assigned', $complaint_data['assigned']) === $s['name']) echo 'selected'; ?>>
+                                            <?php echo htmlspecialchars($s['name']); ?>
+                                        </option>
+                                        <?php endforeach; ?>
+                                    </select>
                                     <span class="text-danger"><?php echo form_error('assigned'); ?></span>
                                 </div>
                                 <div class="form-group">

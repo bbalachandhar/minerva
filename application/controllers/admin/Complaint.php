@@ -24,8 +24,9 @@ class Complaint extends Admin_Controller
         $this->session->set_userdata('top_menu', 'human_resource');
         $this->session->set_userdata('sub_menu', 'admin/complaint');
 
-        $this->form_validation->set_rules('name', $this->lang->line('complain_by'), 'required');
-        $this->form_validation->set_rules('file', $this->lang->line('file'), 'callback_handle_upload[file]');
+        $this->form_validation->set_rules('name',    $this->lang->line('complain_by'), 'required');
+        $this->form_validation->set_rules('contact', $this->lang->line('phone'),       'permit_empty|trim|regex_match[/^[0-9]{10}$/]');
+        $this->form_validation->set_rules('file',    $this->lang->line('file'),        'callback_handle_upload[file]');
 
         if ($this->form_validation->run() == false) {
             $filters = [];
@@ -86,8 +87,9 @@ class Complaint extends Admin_Controller
         if (!$this->rbac->hasPrivilege('complaint', 'can_edit')) {
             access_denied();
         }
-        $this->form_validation->set_rules('name', $this->lang->line('complaint_by'), 'required');
-        $this->form_validation->set_rules('file', $this->lang->line('file'), 'callback_handle_upload[file]');
+        $this->form_validation->set_rules('name',    $this->lang->line('complaint_by'), 'required');
+        $this->form_validation->set_rules('contact', $this->lang->line('phone'),        'permit_empty|trim|regex_match[/^[0-9]{10}$/]');
+        $this->form_validation->set_rules('file',    $this->lang->line('file'),         'callback_handle_upload[file]');
 
         $data['complaint_data'] = $this->complaint_Model->complaint_list($id);
 
@@ -101,6 +103,7 @@ class Complaint extends Admin_Controller
             $data['sessions']        = $this->complaint_Model->getSessions();
             $data['current_session'] = $this->setting_model->getCurrentSession();
             $data['filters']         = $edit_filters;
+            $data['staff_list']      = $this->staff_model->getAll(null, 1);
             $this->load->view('layout/header');
             $this->load->view('admin/frontoffice/complainteditview', $data);
             $this->load->view('layout/footer');

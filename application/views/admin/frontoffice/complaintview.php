@@ -87,8 +87,9 @@
                             </div>
                             <div class="form-group">
                                 <label><?php echo $this->lang->line('phone'); ?></label>
-                                <input type="text" class="form-control" name="contact" value="<?php echo set_value('contact', htmlspecialchars($logged_in_contact)); ?>">
+                                <input type="text" class="form-control" name="contact" value="<?php echo set_value('contact', htmlspecialchars($logged_in_contact)); ?>" maxlength="10" pattern="[0-9]{10}" placeholder="10-digit mobile number">
                                 <small class="text-muted"><i class="fa fa-info-circle"></i> Pre-filled from your profile &mdash; edit if you want a different contact number.</small>
+                                <span class="text-danger"><?php echo form_error('contact'); ?></span>
                             </div>
                             <div class="form-group">
                                 <label><?php echo $this->lang->line('priority'); ?></label>
