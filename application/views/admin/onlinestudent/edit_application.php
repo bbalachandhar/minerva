@@ -50,10 +50,15 @@ $current_community = isset($student['cast']) ? $student['cast'] : '';
                                         <label>Course Applied</label>
                                         <select class="form-control select2-course" name="admission_course_id" id="admission_course_id" style="width:100%;">
                                             <option value="">-- Select Course --</option>
-                                            <?php if (!empty($all_courses)) { foreach ($all_courses as $course) { ?>
+                                            <?php if (!empty($all_courses)) { foreach ($all_courses as $course) {
+                                                $level_label = strtoupper($course['course_level'] ?? '');
+                                                $type_raw    = strtolower($course['admission_type'] ?? '');
+                                                $type_label  = ($type_raw === 'lateral') ? 'LE' : 'First Year';
+                                                $display     = htmlspecialchars($course['course_name']) . ' [' . $level_label . ' – ' . $type_label . ']';
+                                            ?>
                                             <option value="<?php echo (int)$course['id']; ?>"
                                                 <?php echo (isset($selected_course_id) && (int)$selected_course_id === (int)$course['id']) ? 'selected' : ''; ?>>
-                                                <?php echo htmlspecialchars($course['course_name']); ?>
+                                                <?php echo $display; ?>
                                             </option>
                                             <?php } } ?>
                                         </select>
