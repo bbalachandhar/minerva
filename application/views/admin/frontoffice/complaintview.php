@@ -172,6 +172,7 @@
                                     <th><?php echo $this->lang->line('source'); ?></th>
                                     <th><?php echo $this->lang->line('priority'); ?></th>
                                     <th><?php echo $this->lang->line('status'); ?></th>
+                                    <th><?php echo $this->lang->line('assigned'); ?></th>
                                     <th><?php echo $this->lang->line('date'); ?></th>
                                     <th class="noExport"><?php echo $this->lang->line('action'); ?></th>
                                 </tr>
@@ -188,6 +189,7 @@
                                     <td><?php echo htmlspecialchars($v['source']); ?></td>
                                     <td><span class="label label-<?php echo $prLabels[$v['priority']] ?? 'default'; ?>"><?php echo ucfirst($v['priority']); ?></span></td>
                                     <td><span class="label label-<?php echo $stLabels[$v['status']] ?? 'default'; ?>"><?php echo ucwords(str_replace('_',' ',$v['status'])); ?></span></td>
+                                    <td><?php if (!empty($v['assigned'])): ?><span class="label label-primary"><?php echo htmlspecialchars($v['assigned']); ?></span><?php endif; ?></td>
                                     <td class="white-space-nowrap"><?php if ($v['date'] != '0000-00-00') echo date($this->customlib->getSchoolDateFormat(), $this->customlib->dateyyyymmddTodateformat($v['date'])); ?></td>
                                     <td class="white-space-nowrap">
                                         <a onclick="getRecord(<?php echo $v['id']; ?>)" class="btn btn-default btn-xs" data-target="#complaintdetails" data-toggle="modal" title="<?php echo $this->lang->line('view'); ?>"><i class="fa fa-eye"></i></a>
