@@ -116,6 +116,7 @@
                             <li>follow_up_date</li>
                             <li>city</li>
                             <li>state</li>
+                            <li>course <em style="color:#999;">(e.g. CSE, EEE, B.Com)</em></li>
                             <li>course_level</li>
                             <li>admission_type</li>
                             <li>description</li>
