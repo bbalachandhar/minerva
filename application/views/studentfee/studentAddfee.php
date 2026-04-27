@@ -40,15 +40,13 @@ foreach ($studentlistbysection as $stkey => $stvalue) {
         if ($stvalue['section_id'] == $snvalue["section_id"]) { ?>
                                         <div class="studentname">
                                             <a class="" href="<?php echo base_url() . "studentfee/addfee/" . $stvalue["student_session_id"] ?>">
-                                                <div class="icon"><img src="<?php
-if (!empty($stvalue['image'])) {
-    echo base_url() . $stvalue['image'] . img_time();
-} elseif ($stvalue['gender'] == 'Female') {
-    echo base_url() . 'uploads/student_images/default_female.jpg' . img_time();
-} else {
-    echo base_url() . 'uploads/student_images/default_male.jpg' . img_time();
-}
-?>" alt="User Image"></div>
+                                                <div class="icon"><?php if (!empty($stvalue['image'])): ?>
+                                                    <img src="<?php echo base_url() . $stvalue['image'] . img_time(); ?>" alt="User Image">
+                                                <?php else: $is_female = ($stvalue['gender'] == 'Female'); ?>
+                                                    <div style="width:40px;height:40px;border-radius:50%;background:<?php echo $is_female ? '#e91e8c' : '#1976d2'; ?>;text-align:center;line-height:40px;display:inline-block;">
+                                                        <i class="fa <?php echo $is_female ? 'fa-female' : 'fa-male'; ?>" style="color:#fff;font-size:20px;"></i>
+                                                    </div>
+                                                <?php endif; ?></div>
                                                 <div class="student-tittle"><?php echo $stvalue["firstname"] . " " . $stvalue["lastname"]; ?></div></a>
                                         </div>
                                         <?php
@@ -94,16 +92,13 @@ if (!empty($stvalue['image'])) {
                             <div class="col-md-12">
                                 <div class="sfborder-top-border">
                                     <div class="col-md-2">
-                                        <img width="115" height="115" class="mt5 mb10 sfborder-img-shadow img-responsive img-rounded" src="<?php
-if (!empty($student["image"])) {
-    echo $this->media_storage->getImageURL($student["image"]);
-} elseif ($student['gender'] == 'Female') {
-    echo $this->media_storage->getImageURL("uploads/student_images/default_female.jpg");
-} else {
-    echo $this->media_storage->getImageURL("uploads/student_images/default_male.jpg");
-}
-?>
-                " alt="No Image">
+                                        <?php if (!empty($student['image'])): ?>
+                                            <img width="115" height="115" class="mt5 mb10 sfborder-img-shadow img-responsive img-rounded" src="<?php echo $this->media_storage->getImageURL($student['image']); ?>" alt="Student Photo">
+                                        <?php else: $is_female = ($student['gender'] == 'Female'); ?>
+                                            <div class="mt5 mb10" style="width:115px;height:115px;border-radius:8px;background:<?php echo $is_female ? '#fce4ec' : '#e3f2fd'; ?>;text-align:center;line-height:115px;display:inline-block;border:1px solid <?php echo $is_female ? '#f48fb1' : '#90caf9'; ?>;">
+                                                <i class="fa <?php echo $is_female ? 'fa-female' : 'fa-male'; ?>" style="color:<?php echo $is_female ? '#e91e8c' : '#1976d2'; ?>;font-size:56px;vertical-align:middle;"></i>
+                                            </div>
+                                        <?php endif; ?>
                                     </div>
                                     <div class="col-md-10">
                                         <div class="row">
