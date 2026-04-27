@@ -6,16 +6,43 @@
 --              admission_refunds table for refund lifecycle management.
 -- ============================================================
 
--- 1. Add cancellation columns to online_admissions (idempotent)
-ALTER TABLE `online_admissions`
-    ADD COLUMN IF NOT EXISTS `admission_status`      ENUM('active','cancelled') NOT NULL DEFAULT 'active' COMMENT 'active=normal, cancelled=revoked by staff',
-    ADD COLUMN IF NOT EXISTS `cancelled_at`          DATETIME     DEFAULT NULL  COMMENT 'Timestamp when admission was cancelled',
-    ADD COLUMN IF NOT EXISTS `cancelled_by`          INT(11)      DEFAULT NULL  COMMENT 'Staff ID who cancelled the admission',
-    ADD COLUMN IF NOT EXISTS `cancellation_reason`   TEXT         DEFAULT NULL  COMMENT 'Reason provided by staff for cancellation';
+-- 1. Add cancellation columns to online_admissions (idempotent, MySQL 8.0 compatible)
+
+SET @sql = IF(
+  NOT EXISTS(SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='online_admissions' AND COLUMN_NAME='admission_status'),
+  'ALTER TABLE `online_admissions` ADD COLUMN `admission_status` ENUM(''active'',''cancelled'') NOT NULL DEFAULT ''active'' COMMENT ''active=normal, cancelled=revoked by staff''',
+  'SELECT 1 -- admission_status already exists'
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @sql = IF(
+  NOT EXISTS(SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='online_admissions' AND COLUMN_NAME='cancelled_at'),
+  'ALTER TABLE `online_admissions` ADD COLUMN `cancelled_at` DATETIME DEFAULT NULL COMMENT ''Timestamp when admission was cancelled''',
+  'SELECT 1 -- cancelled_at already exists'
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @sql = IF(
+  NOT EXISTS(SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='online_admissions' AND COLUMN_NAME='cancelled_by'),
+  'ALTER TABLE `online_admissions` ADD COLUMN `cancelled_by` INT(11) DEFAULT NULL COMMENT ''Staff ID who cancelled the admission''',
+  'SELECT 1 -- cancelled_by already exists'
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @sql = IF(
+  NOT EXISTS(SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='online_admissions' AND COLUMN_NAME='cancellation_reason'),
+  'ALTER TABLE `online_admissions` ADD COLUMN `cancellation_reason` TEXT DEFAULT NULL COMMENT ''Reason provided by staff for cancellation''',
+  'SELECT 1 -- cancellation_reason already exists'
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- 2. Index for fast filtered queries (skip cancelled on lists)
-ALTER TABLE `online_admissions`
-    ADD INDEX IF NOT EXISTS `idx_admission_status` (`admission_status`);
+SET @sql = IF(
+  NOT EXISTS(SELECT 1 FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='online_admissions' AND INDEX_NAME='idx_admission_status'),
+  'ALTER TABLE `online_admissions` ADD INDEX `idx_admission_status` (`admission_status`)',
+  'SELECT 1 -- index already exists'
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- 3. Refund tracking table
 CREATE TABLE IF NOT EXISTS `admission_refunds` (
