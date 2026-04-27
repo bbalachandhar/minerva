@@ -526,6 +526,15 @@ class Onlinestudent extends Admin_Controller
                     $deletebtn = "<a href='" . base_url() . 'admin/onlinestudent/delete/' . $value->id . "' class='btn btn-default btn-xs mt-5 pull-right' data-toggle='tooltip' title='" . $this->lang->line('delete') . "' onclick='return confirm(" . '"' . $this->lang->line('delete_confirm') . '"' . "  )'><i class='fa fa-remove'></i></a>";
                 }
 
+                // Revoke/Cancel admission button — only for non-enrolled, non-cancelled admissions
+                $revokebtn = '';
+                $admission_status_val = isset($value->admission_status) ? $value->admission_status : 'active';
+                if ($admission_status_val === 'cancelled') {
+                    $revokebtn = "<span class='label label-danger' style='display:inline-block;margin-top:4px;'><i class='fa fa-ban'></i> Revoked</span>";
+                } elseif (!$value->is_enroll && $this->rbac->hasPrivilege('admission_cancellation', 'can_add')) {
+                    $revokebtn = "<a class='btn btn-danger btn-xs mt-5 pull-right' data-toggle='tooltip' title='Cancel / Revoke Admission' onclick='openRevokeModal(" . $value->id . ")'><i class='fa fa-ban'></i></a>";
+                }
+
                 if (!empty($value->reference_no)) {
                     $printbtn = "<a target='_blank' href='" . $this->customlib->getBaseUrl() . 'welcome/online_admission_review/' . $value->reference_no . "'  class='btn btn-default btn-xs mt-5 pull-right' data-toggle='tooltip' title='" . $this->lang->line('print') . "' ><i class='fa fa-print'></i></a>";
                 } else {
@@ -626,7 +635,7 @@ class Onlinestudent extends Admin_Controller
                     }
                 }
 
-                $row[]     = $document . ' ' . $printbtn . ' ' . $eyebtn . ' ' . $editbtn . ' ' . $deletebtn . ' ' . $paybtn;
+                $row[]     = $document . ' ' . $printbtn . ' ' . $eyebtn . ' ' . $editbtn . ' ' . $deletebtn . ' ' . $paybtn . ' ' . $revokebtn;
                 $dt_data[] = $row;
             }
         }

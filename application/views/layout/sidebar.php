@@ -104,7 +104,8 @@ foreach ($side_list_value->submenus as $submenu_key => $submenu_value) {
                         if (!$sidebar_access && in_array((string) ($submenu_value->url ?? ''), [
                             'admin/staff/leaverequest',
                             'admin/leaverequest/leaverequest',
-                            'admin/leaverequest/recommender_leave_requests'
+                            'admin/leaverequest/recommender_leave_requests',
+                            'admin/complaint'
                         ], true)) {
                             $sidebar_access = true;
                         }

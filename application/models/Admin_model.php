@@ -249,18 +249,25 @@ class Admin_model extends CI_Model
     {
         $students = $this->db->select('reference_no, course_fee_total, paid_status')
             ->from('online_admissions')
+            ->where("COALESCE(admission_status, 'active')", 'active')   // exclude revoked
             ->get()
             ->result_array();
 
+        // Count revoked separately
+        $revoked_count = (int) $this->db
+            ->where("COALESCE(admission_status, 'active')", 'cancelled')
+            ->count_all_results('online_admissions');
+
         if (empty($students)) {
             return array(
-                'applications_total' => 0,
-                'fully_paid' => 0,
-                'partially_paid' => 0,
-                'not_paid' => 0,
-                'fully_paid_progress' => 0,
+                'applications_total'      => 0,
+                'fully_paid'              => 0,
+                'partially_paid'          => 0,
+                'not_paid'                => 0,
+                'fully_paid_progress'     => 0,
                 'partially_paid_progress' => 0,
-                'not_paid_progress' => 0,
+                'not_paid_progress'       => 0,
+                'revoked'                 => $revoked_count,
             );
         }
 
@@ -346,6 +353,7 @@ class Admin_model extends CI_Model
             'partially_paid'          => $partially_paid,
             'applied'                 => $applied,
             'not_paid'                => $not_paid,
+            'revoked'                 => $revoked_count,
             'fully_paid_progress'     => $applications_total > 0 ? round(($fully_paid * 100) / $applications_total, 2) : 0,
             'partially_paid_progress' => $applications_total > 0 ? round(($partially_paid * 100) / $applications_total, 2) : 0,
             'applied_progress'        => $applications_total > 0 ? round(($applied * 100) / $applications_total, 2) : 0,

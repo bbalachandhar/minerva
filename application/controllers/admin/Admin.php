@@ -1180,6 +1180,7 @@ class Admin extends Admin_Controller
         $partially_paid = isset($paymentOverview['partially_paid']) ? (int) $paymentOverview['partially_paid'] : 0;
         $applied = isset($paymentOverview['applied']) ? (int) $paymentOverview['applied'] : 0;
         $not_paid = isset($paymentOverview['not_paid']) ? (int) $paymentOverview['not_paid'] : 0;
+        $revoked  = isset($paymentOverview['revoked'])  ? (int) $paymentOverview['revoked']  : 0;
         $fully_paid_progress = isset($paymentOverview['fully_paid_progress']) ? (float) $paymentOverview['fully_paid_progress'] : 0;
         $partially_paid_progress = isset($paymentOverview['partially_paid_progress']) ? (float) $paymentOverview['partially_paid_progress'] : 0;
         $applied_progress = isset($paymentOverview['applied_progress']) ? (float) $paymentOverview['applied_progress'] : 0;
@@ -1201,6 +1202,7 @@ class Admin extends Admin_Controller
                 'applied_progress'              => $applied_progress,
                 'applications_partial'          => $not_paid,
                 'applications_partial_progress' => $not_paid_progress,
+                'revoked'                       => $revoked,
             );
         } else {
             $overview = array(
@@ -1215,6 +1217,7 @@ class Admin extends Admin_Controller
                 'applied_progress'              => $applied_progress,
                 'applications_partial'          => $not_paid,
                 'applications_partial_progress' => $not_paid_progress,
+                'revoked'                       => $revoked,
             );
         }
 

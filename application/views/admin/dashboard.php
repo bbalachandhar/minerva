@@ -532,6 +532,12 @@ foreach ($notifications as $notice_key => $notice_value) {
                                                 <div class="progress-bar progress-bar-aqua eo-applied-bar" style="width:0%"></div>
                                             </div>
                                         </div>
+                                        <p class="text-uppercase mt10 clearfix">
+                                            <span class="eo-revoked-count fo-skeleton">0</span> Revoked
+                                            <span class="pull-right">
+                                                <a href="<?php echo site_url('admin/admission_cancellation'); ?>" class="btn btn-xs btn-default" style="font-size:10px;padding:1px 5px;" title="View Revoked Admissions"><i class="fa fa-list"></i></a>
+                                            </span>
+                                        </p>
                                     </div><!--./topprograssstart-->
                                 </div><!--./col-md-2-->
                     <?php
@@ -1686,7 +1692,7 @@ if (($this->module_lib->hasActive('fees_collection')) || ($this->module_lib->has
                     $staffAttendance.find('.sfa-present-count, .sfa-present-percent, .sfa-late-count, .sfa-late-percent, .sfa-absent-count, .sfa-absent-percent, .sfa-halfday-count, .sfa-halfday-percent, .sfa-permission-count, .sfa-permission-percent').addClass('fo-skeleton');
 
                     var $enquiryOverview = $('#enquiry-overview-widget');
-                    $enquiryOverview.find('.eo-won-count, .eo-won-percent, .eo-active-count, .eo-active-percent, .eo-total-count, .eo-app-count, .eo-app-total-percent, .eo-applied-count, .eo-applied-percent').addClass('fo-skeleton');
+                    $enquiryOverview.find('.eo-won-count, .eo-won-percent, .eo-active-count, .eo-active-percent, .eo-total-count, .eo-app-count, .eo-app-total-percent, .eo-applied-count, .eo-applied-percent, .eo-revoked-count').addClass('fo-skeleton');
 
                     var $libraryOverview = $('#library-overview-widget');
                     $libraryOverview.find('.lib-dueforreturn, .lib-forreturn, .lib-total-issued, .lib-total, .lib-issued-progress, .lib-availble, .lib-availble-progress').addClass('fo-skeleton');
@@ -1714,7 +1720,7 @@ if (($this->module_lib->hasActive('fees_collection')) || ($this->module_lib->has
                     $staffAttendance.find('.sfa-present-count, .sfa-present-percent, .sfa-late-count, .sfa-late-percent, .sfa-absent-count, .sfa-absent-percent, .sfa-halfday-count, .sfa-halfday-percent, .sfa-permission-count, .sfa-permission-percent').removeClass('fo-skeleton');
 
                     var $enquiryOverview = $('#enquiry-overview-widget');
-                    $enquiryOverview.find('.eo-won-count, .eo-won-percent, .eo-active-count, .eo-active-percent, .eo-total-count, .eo-app-count, .eo-app-total-percent, .eo-applied-count, .eo-applied-percent').removeClass('fo-skeleton');
+                    $enquiryOverview.find('.eo-won-count, .eo-won-percent, .eo-active-count, .eo-active-percent, .eo-total-count, .eo-app-count, .eo-app-total-percent, .eo-applied-count, .eo-applied-percent, .eo-revoked-count').removeClass('fo-skeleton');
 
                     var $libraryOverview = $('#library-overview-widget');
                     $libraryOverview.find('.lib-dueforreturn, .lib-forreturn, .lib-total-issued, .lib-total, .lib-issued-progress, .lib-availble, .lib-availble-progress').removeClass('fo-skeleton');
@@ -2139,6 +2145,9 @@ if (($this->module_lib->hasActive('fees_collection')) || ($this->module_lib->has
                     var aplp = (parseFloat(d.applied_progress) || 0).toFixed(2);
                     $enquiryOverview.find('.eo-applied-percent').text(aplp + '%');
                     $enquiryOverview.find('.eo-applied-bar').css('width', aplp + '%');
+
+                    // Revoked count
+                    $enquiryOverview.find('.eo-revoked-count').text(d.revoked || 0);
 
                     $enquiryOverview.find('.fo-skeleton').removeClass('fo-skeleton');
                 }).fail(function() {

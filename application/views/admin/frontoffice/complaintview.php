@@ -60,7 +60,6 @@
         </div>
 
         <div class="row">
-            <?php if ($this->rbac->hasPrivilege('complaint', 'can_add')) { ?>
             <div class="col-md-3">
                 <div class="box box-primary">
                     <div class="box-header with-border">
@@ -125,9 +124,7 @@
                     </form>
                 </div>
             </div>
-            <?php } ?>
-
-            <div class="col-md-<?php echo $this->rbac->hasPrivilege('complaint', 'can_add') ? 9 : 12; ?>">
+            <div class="col-md-9">
                 <div class="box box-primary">
                     <div class="box-header with-border">
                         <h3 class="box-title titlefix"><?php echo $this->lang->line('complaint_list'); ?></h3>

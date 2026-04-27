@@ -17,10 +17,7 @@ class Complaint extends Admin_Controller
 
     public function index()
     {
-        if (!$this->rbac->hasPrivilege('complaint', 'can_view')) {
-            access_denied();
-        }
-
+        // Complaint is visible to all logged-in staff; only edit/delete are privilege-gated.
         $this->session->set_userdata('top_menu', 'human_resource');
         $this->session->set_userdata('sub_menu', 'admin/complaint');
 
@@ -177,9 +174,6 @@ class Complaint extends Admin_Controller
      */
     public function details($id)
     {
-        if (!$this->rbac->hasPrivilege('complaint', 'can_view')) {
-            access_denied();
-        }
         $data['complaint_data'] = $this->complaint_Model->complaint_list($id);
         $data['staff_list']     = $this->staff_model->getAll(null, 1);
         $this->load->view('admin/frontoffice/Complaintmodalview', $data);
@@ -190,10 +184,6 @@ class Complaint extends Admin_Controller
      */
     public function widget()
     {
-        if (!$this->rbac->hasPrivilege('complaint', 'can_view')) {
-            echo json_encode(['status' => 'fail', 'data' => ['open' => 0, 'total' => 0, 'percent' => 0]]);
-            return;
-        }
         $counts = $this->complaint_Model->getStatusCounts();
         $open   = (int)($counts['open_count'] ?? 0) + (int)($counts['in_progress_count'] ?? 0);
         $total  = (int)($counts['total_count'] ?? 0);

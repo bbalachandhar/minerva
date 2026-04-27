@@ -3194,3 +3194,27 @@ $lang['to_set_zoom_api'] = "To generate Zoom Api credential";
 $lang['set_zoom_redirect_url'] = "Zoom redirect URL";
 $lang['get_access_token'] = "Get Access Token";
 $lang['parent_live_class'] = "Parent Live Class";
+
+// Admission Cancellation & Refund
+$lang['revoked_admissions'] = "Revoked Admissions";
+$lang['revoked_admissions_list'] = "Revoked Admissions List";
+$lang['admission_cancellation'] = "Admission Cancellation";
+$lang['revoke_admission'] = "Revoke Admission";
+$lang['cancellation_reason'] = "Cancellation Reason";
+$lang['refund_amount'] = "Refund Amount";
+$lang['refund_mode'] = "Refund Mode";
+$lang['refund_reference_no'] = "Refund Reference No.";
+$lang['refund_status'] = "Refund Status";
+$lang['refund_pending'] = "Refund Pending";
+$lang['refund_processed'] = "Refund Processed";
+$lang['refund_rejected'] = "Refund Rejected";
+$lang['total_paid_amount'] = "Total Amount Paid";
+$lang['total_paid'] = "Total Paid";
+$lang['total_revoked'] = "Total Revoked";
+$lang['cancelled_by'] = "Cancelled By";
+$lang['cancelled_on'] = "Cancelled On";
+$lang['back_to_admissions'] = "Back to Admissions";
+$lang['processed'] = "Processed";
+$lang['rejected'] = "Rejected";
+$lang['revoke_confirm_message'] = "This action will revoke the applicant's admission. The admission will be marked as cancelled and a refund record will be created. This cannot be undone.";
+$lang['admission_revoked_successfully'] = "Admission revoked successfully. Refund record created with Pending status.";

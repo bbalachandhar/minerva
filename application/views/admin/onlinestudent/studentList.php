@@ -473,3 +473,162 @@
         });
     });
 </script>
+
+<?php if ($this->rbac->hasPrivilege('admission_cancellation', 'can_add')): ?>
+<!-- =====================================================================
+     REVOKE ADMISSION MODAL
+     ===================================================================== -->
+<div class="modal fade" id="revokeAdmissionModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <form id="revoke_admission_form">
+            <div class="modal-content">
+                <div class="modal-header bg-red-faint">
+                    <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                    <h4 class="modal-title text-danger"><i class="fa fa-ban"></i> <?php echo $this->lang->line('revoke_admission'); ?></h4>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="admission_id" id="revoke_admission_id">
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <div class="form-group">
+                                <label><?php echo $this->lang->line('reference_no'); ?></label>
+                                <input type="text" class="form-control" id="revoke_ref_no" readonly>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="form-group">
+                                <label><?php echo $this->lang->line('student_name'); ?></label>
+                                <input type="text" class="form-control" id="revoke_applicant_name" readonly>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label><?php echo $this->lang->line('total_paid_amount'); ?></label>
+                        <div class="input-group">
+                            <span class="input-group-addon"><?php echo $this->customlib->getSchoolCurrencyFormat(); ?></span>
+                            <input type="text" class="form-control" id="revoke_total_paid" readonly placeholder="Loading...">
+                        </div>
+                        <small class="text-muted">Total fees received via gateway + incidental collections</small>
+                    </div>
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <div class="form-group">
+                                <label><?php echo $this->lang->line('refund_amount'); ?></label>
+                                <div class="input-group">
+                                    <span class="input-group-addon"><?php echo $this->customlib->getSchoolCurrencyFormat(); ?></span>
+                                    <input type="number" name="refund_amount" class="form-control" id="revoke_refund_amount"
+                                           min="0" step="0.01" placeholder="0.00">
+                                </div>
+                                <small class="text-muted">Leave 0 if no refund applicable</small>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="form-group">
+                                <label><?php echo $this->lang->line('refund_mode'); ?></label>
+                                <select name="refund_mode" class="form-control" id="revoke_refund_mode">
+                                    <option value="">— Select Mode —</option>
+                                    <option value="cash">Cash</option>
+                                    <option value="neft">NEFT / IMPS</option>
+                                    <option value="upi">UPI</option>
+                                    <option value="cheque">Cheque</option>
+                                    <option value="dd">Demand Draft</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label><?php echo $this->lang->line('cancellation_reason'); ?> <span class="text-danger">*</span></label>
+                        <textarea name="cancellation_reason" class="form-control" rows="3" required
+                                  placeholder="State the reason for revoking this admission..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label><?php echo $this->lang->line('remarks'); ?></label>
+                        <textarea name="remarks" class="form-control" rows="2"
+                                  placeholder="Optional — additional notes"></textarea>
+                    </div>
+                    <div class="alert alert-warning">
+                        <i class="fa fa-exclamation-triangle"></i>
+                        <strong>Warning:</strong> <?php echo $this->lang->line('revoke_confirm_message'); ?>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal"><?php echo $this->lang->line('cancel'); ?></button>
+                    <button type="submit" class="btn btn-danger" id="revoke_submit_btn">
+                        <i class="fa fa-ban"></i> <?php echo $this->lang->line('revoke_admission'); ?>
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+(function ($) {
+    'use strict';
+
+    window.openRevokeModal = function (admissionId) {
+        // Reset form
+        $('#revoke_admission_form')[0].reset();
+        $('#revoke_admission_id').val(admissionId);
+        $('#revoke_ref_no').val('');
+        $('#revoke_applicant_name').val('');
+        $('#revoke_total_paid').val('Loading...');
+        $('#revoke_refund_amount').val('');
+
+        // Load payment summary
+        $.ajax({
+            url: '<?php echo site_url("admin/admission_cancellation/get_payment_summary"); ?>/' + admissionId,
+            type: 'GET',
+            dataType: 'json',
+            success: function (res) {
+                if (res.status === 'success') {
+                    $('#revoke_ref_no').val(res.ref_no || '');
+                    $('#revoke_applicant_name').val(res.name || '');
+                    $('#revoke_total_paid').val(parseFloat(res.total_paid || 0).toFixed(2));
+                    $('#revoke_refund_amount').val(parseFloat(res.total_paid || 0).toFixed(2));
+                } else {
+                    $('#revoke_total_paid').val('0.00');
+                    errorMsg(res.message || 'Could not load payment summary.');
+                }
+            },
+            error: function () {
+                $('#revoke_total_paid').val('0.00');
+            }
+        });
+
+        $('#revokeAdmissionModal').modal('show');
+    };
+
+    $(document).ready(function () {
+        $('#revoke_admission_form').on('submit', function (e) {
+            e.preventDefault();
+            var admissionId = $('#revoke_admission_id').val();
+            if (!admissionId) return;
+
+            var $btn = $('#revoke_submit_btn').prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Processing...');
+
+            $.ajax({
+                url: '<?php echo site_url("admin/admission_cancellation/cancel"); ?>/' + admissionId,
+                type: 'POST',
+                data: $(this).serialize(),
+                dataType: 'json',
+                success: function (res) {
+                    $btn.prop('disabled', false).html('<i class="fa fa-ban"></i> <?php echo $this->lang->line("revoke_admission"); ?>');
+                    if (res.status === 'success') {
+                        successMsg(res.message);
+                        $('#revokeAdmissionModal').modal('hide');
+                        $('.student-list').DataTable().ajax.reload();
+                    } else {
+                        errorMsg(res.message || 'Failed to revoke admission.');
+                    }
+                },
+                error: function () {
+                    $btn.prop('disabled', false).html('<i class="fa fa-ban"></i> <?php echo $this->lang->line("revoke_admission"); ?>');
+                    errorMsg('Server error. Please try again.');
+                }
+            });
+        });
+    });
+}(jQuery));
+</script>
+<?php endif; ?>
