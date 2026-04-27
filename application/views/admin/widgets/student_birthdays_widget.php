@@ -9,11 +9,17 @@
                                 <div class="staffleft-box">
                                     <?php
                                     $gender_icon = 'fa-user';
+                                    $bg_color = '#f8f9fa';
+                                    $icon_color = '#999';
                                     if (!empty($student["gender"])) {
                                         if (strtolower($student["gender"]) === 'male') {
                                             $gender_icon = 'fa-male';
+                                            $bg_color = '#1976d2';
+                                            $icon_color = '#fff';
                                         } elseif (strtolower($student["gender"]) === 'female') {
                                             $gender_icon = 'fa-female';
+                                            $bg_color = '#e91e8c';
+                                            $icon_color = '#fff';
                                         }
                                     }
                                     
@@ -21,8 +27,8 @@
                                         $image = "uploads/student_images/" . $student["image"];
                                         echo '<img src="' . base_url() . $image . '" alt="User Image">';
                                     } else {
-                                        echo '<div style="display: inline-block; width: 60px; height: 60px; background: #f8f9fa; border-radius: 50%; text-align: center; line-height: 60px;">';
-                                        echo '<i class="fa ' . $gender_icon . '" style="font-size: 30px; color: #999;"></i>';
+                                        echo '<div style="display: inline-block; width: 60px; height: 60px; background: ' . $bg_color . '; border-radius: 50%; text-align: center; line-height: 60px;">';
+                                        echo '<i class="fa ' . $gender_icon . '" style="font-size: 30px; color: ' . $icon_color . ';"></i>';
                                         echo '</div>';
                                     }
                                     ?>
