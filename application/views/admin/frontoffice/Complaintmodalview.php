@@ -39,6 +39,18 @@ $st = $complaint_data['status']   ?? 'open';
             <td><?php echo htmlspecialchars($complaint_data['class_name'] ?? ''); ?> <?php echo !empty($complaint_data['section_name']) ? '- ' . htmlspecialchars($complaint_data['section_name']) : ''; ?></td>
         </tr>
         <?php endif; ?>
+        <?php if (!empty($complaint_data['parent_name'])): ?>
+        <tr>
+            <th><?php echo $this->lang->line('guardian_name'); ?></th>
+            <td colspan="3"><?php echo htmlspecialchars($complaint_data['parent_name']); ?></td>
+        </tr>
+        <?php endif; ?>
+        <?php if (!empty($complaint_data['employee_id'])): ?>
+        <tr>
+            <th><?php echo $this->lang->line('employee_id'); ?></th>
+            <td colspan="3"><?php echo htmlspecialchars($complaint_data['employee_id']); ?></td>
+        </tr>
+        <?php endif; ?>
         <tr>
             <th><?php echo $this->lang->line('date'); ?></th>
             <td><?php if ($complaint_data['date'] != '0000-00-00') echo date($this->customlib->getSchoolDateFormat(), $this->customlib->dateyyyymmddTodateformat($complaint_data['date'])); ?></td>

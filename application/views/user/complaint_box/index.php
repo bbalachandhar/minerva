@@ -399,6 +399,9 @@ $(function () {
             if (res.class_name) {
                 html += '<tr><th><?php echo $this->lang->line("class"); ?> / <?php echo $this->lang->line("section"); ?></th><td>' + esc(res.class_name) + (res.section_name ? ' - ' + esc(res.section_name) : '') + '</td></tr>';
             }
+            if (res.parent_name) {
+                html += '<tr><th><?php echo $this->lang->line("guardian_name"); ?></th><td>' + esc(res.parent_name) + '</td></tr>';
+            }
             html += '<tr><th><?php echo $this->lang->line("complaint_type"); ?></th><td>' + esc(res.complaint_type) + '</td></tr>';
             html += '<tr><th><?php echo $this->lang->line("priority"); ?></th><td><span class="label label-' + (prClass[res.priority] || 'default') + '">' + esc(prLabel) + '</span></td></tr>';
             html += '<tr><th><?php echo $this->lang->line("status"); ?></th><td><span class="label label-' + (stClass[res.status] || 'default') + '">' + esc(stLabel) + '</span></td></tr>';

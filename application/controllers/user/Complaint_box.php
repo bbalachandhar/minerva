@@ -88,6 +88,7 @@ class Complaint_box extends Student_Controller
         $email     = $student['email'] ?? '';
         $source    = ($role === 'parent') ? 'Parent Portal' : 'Student Portal';
         $submitted = ($role === 'parent') ? 'parent' : 'student';
+        $parent_name = ($role === 'parent') ? ($student['guardian_name'] ?? '') : '';
 
         $image = '';
         if (isset($_FILES['attachment']) && $_FILES['attachment']['name'] != '' && $_FILES['attachment']['error'] == 0) {
@@ -109,6 +110,7 @@ class Complaint_box extends Student_Controller
             'admission_no'       => $student['admission_no'] ?? '',
             'class_name'         => $student['class'] ?? '',
             'section_name'       => $student['section'] ?? '',
+            'parent_name'        => $parent_name,
             'contact'            => $mobile,
             'email'              => $email,
             'date'               => date('Y-m-d'),

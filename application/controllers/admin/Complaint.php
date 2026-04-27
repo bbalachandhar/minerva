@@ -69,6 +69,7 @@ class Complaint extends Admin_Controller
                 'source'         => 'Staff Portal',
                 'submitted_by'   => 'staff',
                 'name'           => $this->input->post('name'),
+                'employee_id'    => $this->input->post('employee_id') ?? '',
                 'contact'        => $this->input->post('contact') ?? '',
                 'date'           => date('Y-m-d', $this->customlib->datetostrtotime($this->input->post('date'))),
                 'description'    => $this->input->post('description', true) ?? '',

@@ -1199,6 +1199,8 @@ CREATE TABLE `complaint` (
   `admission_no` varchar(50) NOT NULL DEFAULT '',
   `class_name` varchar(100) NOT NULL DEFAULT '',
   `section_name` varchar(100) NOT NULL DEFAULT '',
+  `parent_name` varchar(100) NOT NULL DEFAULT '',
+  `employee_id` varchar(50) NOT NULL DEFAULT '',
   `contact` varchar(15) NOT NULL,
   `email` varchar(200) NOT NULL,
   `date` date NOT NULL,

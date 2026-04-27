@@ -80,6 +80,7 @@
                             <div class="form-group">
                                 <label><?php echo $this->lang->line('complain_by'); ?> <small class="req">*</small></label>
                                 <input type="text" class="form-control" name="name" value="<?php echo set_value('name', htmlspecialchars($logged_in_name)); ?>">
+                                <input type="hidden" name="employee_id" value="<?php echo htmlspecialchars($logged_in_empid); ?>">
                                 <?php if (!empty($logged_in_empid)): ?>
                                 <small class="text-muted"><i class="fa fa-id-card-o"></i> <?php echo $this->lang->line('employee_id'); ?>: <?php echo htmlspecialchars($logged_in_empid); ?> &nbsp;<span class="label label-default">Staff</span></small>
                                 <?php endif; ?>
