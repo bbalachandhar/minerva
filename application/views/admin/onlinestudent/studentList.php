@@ -421,7 +421,7 @@
                         '</table>' +
                     '</div>' +
                     /* Summary */
-                    '<p class="text-right" style="margin:2px 0;"><strong>Total Course Fee:&nbsp;&nbsp;&#8377; ' + data.total_fee + '</strong></p>' +
+                    '<p class="text-right" style="margin:2px 0;"><strong>Total Fee:&nbsp;&nbsp;&#8377; ' + data.total_fee + '</strong></p>' +
                     '<p class="text-right" style="margin:2px 0;color:green;"><strong>Total Paid:&nbsp;&nbsp;&#8377; ' + data.total_paid + '</strong></p>' +
                     '<p class="text-right ' + (balance > 0 ? 'text-danger' : 'text-success') + '" style="margin:2px 0;"><strong>Balance Due:&nbsp;&nbsp;&#8377; ' + data.balance + '</strong></p>' +
                 '</div>';

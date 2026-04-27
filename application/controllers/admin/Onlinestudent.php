@@ -1025,6 +1025,16 @@ class Onlinestudent extends Admin_Controller
 
         $total_paid = array_sum(array_column($payments, 'amount_raw'));
         $total_fee  = (float) ($student['total_fee'] ?? 0);
+
+        // Add application fee payments to total fee so balance correctly reflects
+        // outstanding amount (application fee + course fee) minus all that's been paid.
+        $app_fee_paid = 0;
+        foreach ($payments as $p) {
+            if (stripos($p['fee_type'] ?? '', 'application') !== false) {
+                $app_fee_paid += (float) $p['amount_raw'];
+            }
+        }
+        $total_fee += $app_fee_paid;
         $balance    = $total_fee - $total_paid;
 
         $sch_setting = $this->sch_setting_detail;
