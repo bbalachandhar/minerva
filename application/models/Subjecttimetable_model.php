@@ -280,4 +280,21 @@ class Subjecttimetable_model extends MY_Model
         }
     }
 
+    public function getAllForGrid($class_id, $section_id)
+    {
+        $sql = "SELECT st.id, st.day, st.time_from, st.time_to, st.start_time, st.end_time,
+                       st.room_no, st.staff_id, st.subject_group_subject_id, st.subject_group_id,
+                       s.name AS subject_name, s.code, s.type,
+                       sf.name AS staff_name, sf.surname AS staff_surname, sf.employee_id
+                FROM subject_timetable st
+                JOIN subject_group_subjects sgs ON sgs.id = st.subject_group_subject_id
+                JOIN subjects s ON s.id = sgs.subject_id
+                LEFT JOIN staff sf ON sf.id = st.staff_id
+                WHERE st.class_id = " . $this->db->escape($class_id) . "
+                  AND st.section_id = " . $this->db->escape($section_id) . "
+                  AND st.session_id = " . $this->db->escape($this->current_session) . "
+                ORDER BY FIELD(st.day,'Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'), st.start_time ASC";
+        return $this->db->query($sql)->result();
+    }
+
 }

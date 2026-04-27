@@ -23,6 +23,8 @@
                         <h3 class="box-title"><i class="fa fa-search"></i> <?php echo $this->lang->line('select_criteria'); ?></h3>
                         <?php if($this->rbac->hasPrivilege('class_timetable', 'can_edit'))  { ?>
                         <div class="box-tools pull-right">
+                            <a href="<?php echo site_url('admin/timetable/grid') ?>" type="button" class="btn btn-sm btn-success" autocomplete="off"><i class="fa fa-th"></i> Grid Editor</a>
+                            &nbsp;
                             <a href="<?php echo site_url('admin/timetable/create') ?>" type="button"  class="btn btn-sm btn-primary" autocomplete="off"><i class="fa fa-plus"></i> <?php echo $this->lang->line('add'); ?></a>
                         </div>
                         <?php } ?>

@@ -655,4 +655,122 @@ class Timetable extends Admin_Controller
             ->set_content_type('application/json')
             ->set_output(json_encode($json_array));
     }
+
+    public function grid()
+    {
+        if (!$this->rbac->hasPrivilege('class_timetable', 'can_view')) {
+            access_denied();
+        }
+
+        $this->load->model('subjecttimetable_model');
+        $this->session->set_userdata('top_menu', 'Academics');
+        $this->session->set_userdata('sub_menu', 'Academics/timetable');
+
+        $this->load->model('department_model');
+        $data['departmentlist'] = $this->department_model->getDepartmentType();
+        $data['classlist']      = $this->class_model->get('', 'yes');
+        $data['subject_group_id'] = '';
+        $data['subjects']         = array();
+        $data['staff_list']       = array();
+        $data['timetable_slots']  = array();
+        $data['class_id']         = '';
+        $data['section_id']       = '';
+        $data['class_name']       = '';
+
+        if ($this->input->post('class_id')) {
+            $class_id   = (int) $this->input->post('class_id');
+            $section_id = (int) $this->input->post('section_id');
+
+            $data['class_id']   = $class_id;
+            $data['section_id'] = $section_id;
+
+            $groups = $this->subjectgroup_model->getGroupByClassandSection($class_id, $section_id);
+            if (!empty($groups)) {
+                $subject_group_id           = $groups[0]['subject_group_id'];
+                $data['subject_group_id']   = $subject_group_id;
+                $data['subjects']           = $this->subjectgroup_model->getGroupsubjects($subject_group_id);
+            }
+
+            $data['staff_list']      = $this->staff_model->getStaffbyrole(2);
+            $data['timetable_slots'] = $this->subjecttimetable_model->getAllForGrid($class_id, $section_id);
+
+            $class_info = $this->class_model->get($class_id);
+            $data['class_name'] = !empty($class_info) ? $class_info[0]['class'] : '';
+        }
+
+        $this->load->view('layout/header', $data);
+        $this->load->view('admin/timetable/timetableGrid', $data);
+        $this->load->view('layout/footer', $data);
+    }
+
+    public function savecell()
+    {
+        $this->load->model('subjecttimetable_model');
+        $session  = $this->setting_model->getCurrentSession();
+
+        $class_id                 = (int) $this->input->post('class_id');
+        $section_id               = (int) $this->input->post('section_id');
+        $subject_group_id         = (int) $this->input->post('subject_group_id');
+        $day                      = $this->input->post('day');
+        $time_from                = $this->input->post('time_from');
+        $time_to                  = $this->input->post('time_to');
+        $subject_group_subject_id = (int) $this->input->post('subject_group_subject_id');
+        $staff_id                 = (int) $this->input->post('staff_id');
+        $room_no                  = $this->input->post('room_no');
+        $cell_id                  = (int) $this->input->post('cell_id');
+
+        if (!$class_id || !$section_id || !$day || !$time_from || !$time_to || !$subject_group_subject_id) {
+            $this->output->set_content_type('application/json')
+                ->set_output(json_encode(array('status' => '0', 'message' => 'Missing required fields')));
+            return;
+        }
+
+        $insert_data = array(
+            'session_id'               => $session,
+            'class_id'                 => $class_id,
+            'section_id'               => $section_id,
+            'subject_group_id'         => $subject_group_id,
+            'subject_group_subject_id' => $subject_group_subject_id,
+            'staff_id'                 => $staff_id ? $staff_id : null,
+            'day'                      => $day,
+            'time_from'                => $time_from,
+            'time_to'                  => $time_to,
+            'start_time'               => $this->customlib->timeFormat($time_from, true),
+            'end_time'                 => $this->customlib->timeFormat($time_to, true),
+            'room_no'                  => $room_no,
+        );
+
+        $delete_array = ($cell_id > 0) ? array($cell_id) : array();
+        $result = $this->subjecttimetable_model->add($delete_array, array($insert_data), array());
+
+        if ($result) {
+            $this->output->set_content_type('application/json')
+                ->set_output(json_encode(array('status' => '1', 'message' => $this->lang->line('success_message'))));
+        } else {
+            $this->output->set_content_type('application/json')
+                ->set_output(json_encode(array('status' => '0', 'message' => $this->lang->line('something_went_wrong'))));
+        }
+    }
+
+    public function deletecell()
+    {
+        $this->load->model('subjecttimetable_model');
+        $cell_id = (int) $this->input->post('cell_id');
+
+        if (!$cell_id) {
+            $this->output->set_content_type('application/json')
+                ->set_output(json_encode(array('status' => '0', 'message' => 'Invalid ID')));
+            return;
+        }
+
+        $result = $this->subjecttimetable_model->add(array($cell_id), array(), array());
+
+        if ($result) {
+            $this->output->set_content_type('application/json')
+                ->set_output(json_encode(array('status' => '1', 'message' => $this->lang->line('success_message'))));
+        } else {
+            $this->output->set_content_type('application/json')
+                ->set_output(json_encode(array('status' => '0', 'message' => $this->lang->line('something_went_wrong'))));
+        }
+    }
 }

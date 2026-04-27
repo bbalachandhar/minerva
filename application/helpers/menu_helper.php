@@ -206,7 +206,7 @@ if (!function_exists('main_menu_array')) {
             ), 
             
             'academics' => array(                                 
-                'timetable'     => array('classreport','mytimetable','create'),                 
+                'timetable'     => array('classreport','mytimetable','create','grid'),                 
                 'teacher'       => array('assign_class_teacher','update_class_teacher'),                 
                 'stdtransfer'   => array('index'),                 
                 'subjectgroup'  => array('index','edit'),                 

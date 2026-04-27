@@ -692,9 +692,9 @@ class Enquiry extends Admin_Controller
 
         $filename = 'meta_leads_sample_template.csv';
         $rows = [
-            ['name', 'contact', 'email', 'source', 'enquiry_date', 'follow_up_date', 'city', 'state', 'course_level', 'admission_type', 'description'],
-            ['Aarthi S', '9876543210', 'aarthi@example.com', 'Meta Ads', date('Y-m-d'), date('Y-m-d', strtotime('+2 days')), 'Chennai', 'Tamil Nadu', 'ug', 'first_year', 'Interested in B.Com admissions'],
-            ['Karthik R', '9123456780', 'karthik@example.com', 'Meta Campaign', date('Y-m-d'), date('Y-m-d', strtotime('+3 days')), 'Coimbatore', 'Tamil Nadu', 'pg', 'first_year', 'Asked for MSc course details'],
+            ['name', 'contact', 'email', 'source', 'enquiry_date', 'follow_up_date', 'city', 'state', 'course', 'course_level', 'admission_type', 'description'],
+            ['Aarthi S', '9876543210', 'aarthi@example.com', 'Meta Ads', date('Y-m-d'), date('Y-m-d', strtotime('+2 days')), 'Chennai', 'Tamil Nadu', 'B.Com', 'ug', 'first_year', 'Interested in B.Com admissions'],
+            ['Karthik R', '9123456780', 'karthik@example.com', 'Meta Campaign', date('Y-m-d'), date('Y-m-d', strtotime('+3 days')), 'Coimbatore', 'Tamil Nadu', 'MSc CS', 'pg', 'first_year', 'Asked for MSc course details'],
         ];
 
         header('Content-Type: text/csv; charset=utf-8');
