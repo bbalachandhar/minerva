@@ -7975,3 +7975,69 @@ CREATE TABLE `student_fee_overrides` (
   CONSTRAINT `sfo_student_session_ibfk` FOREIGN KEY (`student_session_id`) REFERENCES `student_session` (`id`) ON DELETE CASCADE,
   CONSTRAINT `sfo_fee_groups_feetype_ibfk` FOREIGN KEY (`fee_groups_feetype_id`) REFERENCES `fee_groups_feetype` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+-- -------------------------------------------------------
+-- Admission Cancellation feature (added 2026-04-27)
+-- -------------------------------------------------------
+
+-- 1. Add admission_status column to online_admissions
+ALTER TABLE `online_admissions`
+  ADD COLUMN IF NOT EXISTS `admission_status` enum('active','cancelled') NOT NULL DEFAULT 'active'
+    COMMENT 'active = normal; cancelled = admission revoked',
+  ADD INDEX IF NOT EXISTS `idx_admission_status` (`admission_status`);
+
+-- 2. Admission refunds tracking table
+DROP TABLE IF EXISTS `admission_refunds`;
+CREATE TABLE `admission_refunds` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `online_admission_id` int(11) NOT NULL COMMENT 'FK → online_admissions.id',
+  `reference_no` varchar(50) NOT NULL COMMENT 'Applicant reference number (denormalised)',
+  `applicant_name` varchar(255) NOT NULL DEFAULT '' COMMENT 'Applicant full name (denormalised for reports)',
+  `total_paid_amount` decimal(12,2) NOT NULL DEFAULT 0.00 COMMENT 'Total amount paid by applicant at time of cancellation',
+  `refund_amount` decimal(12,2) NOT NULL DEFAULT 0.00 COMMENT 'Amount approved for refund (may be partial after deductions)',
+  `refund_mode` varchar(50) DEFAULT NULL COMMENT 'cash | neft | upi | cheque | dd | online',
+  `refund_reference_no` varchar(100) DEFAULT NULL COMMENT 'UTR / cheque no. / DD no. filled when processed',
+  `refund_status` enum('pending','processed','rejected') NOT NULL DEFAULT 'pending' COMMENT 'Refund lifecycle status',
+  `cancellation_reason` text DEFAULT NULL COMMENT 'Staff-entered reason for admission cancellation',
+  `remarks` text DEFAULT NULL COMMENT 'Additional notes (e.g. deduction reason)',
+  `initiated_by` int(11) DEFAULT NULL COMMENT 'Staff ID who initiated the cancellation',
+  `initiated_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `processed_by` int(11) DEFAULT NULL COMMENT 'Staff ID who marked refund as processed/rejected',
+  `processed_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_ar_oa_id` (`online_admission_id`),
+  KEY `idx_ar_reference` (`reference_no`),
+  KEY `idx_ar_status` (`refund_status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Tracks refunds for cancelled online admissions';
+
+-- 3. RBAC: permission_category row for Admission Cancellation module
+INSERT INTO `permission_category` (`id`, `perm_group_id`, `name`, `short_code`, `enable_view`, `enable_add`, `enable_edit`, `enable_delete`)
+VALUES (15015, 27, 'Admission Cancellation', 'admission_cancellation', 1, 1, 1, 1)
+ON DUPLICATE KEY UPDATE
+  `perm_group_id`=VALUES(`perm_group_id`),
+  `name`=VALUES(`name`),
+  `enable_view`=VALUES(`enable_view`),
+  `enable_add`=VALUES(`enable_add`),
+  `enable_edit`=VALUES(`enable_edit`),
+  `enable_delete`=VALUES(`enable_delete`);
+
+-- 4. RBAC: grant full access to admin role (role_id=1)
+INSERT IGNORE INTO `roles_permissions` (`role_id`, `perm_cat_id`, `can_view`, `can_add`, `can_edit`, `can_delete`)
+VALUES (1, 15015, 1, 1, 1, 1);
+
+-- 5. Sidebar: Revoked Admissions sub-menu under Admissions (sidebar_menu_id=40)
+INSERT INTO `sidebar_sub_menus`
+  (`id`, `sidebar_menu_id`, `menu`, `key`, `lang_key`, `url`, `level`,
+   `access_permissions`, `permission_group_id`, `activate_controller`,
+   `activate_methods`, `addon_permission`, `is_active`)
+VALUES
+  (271, 40, 'Revoked Admissions', NULL, 'revoked_admissions',
+   'admin/admission_cancellation', NULL,
+   '(''admission_cancellation'', ''can_view'')', NULL,
+   'Admission_cancellation', 'index', NULL, 1)
+ON DUPLICATE KEY UPDATE
+  `menu`=VALUES(`menu`),
+  `url`=VALUES(`url`),
+  `access_permissions`=VALUES(`access_permissions`),
+  `activate_controller`=VALUES(`activate_controller`),
+  `is_active`=VALUES(`is_active`);

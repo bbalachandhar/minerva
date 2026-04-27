@@ -290,29 +290,33 @@ class Admission_cancellation_model extends CI_Model
     // ------------------------------------------------------------------
 
     /**
-     * Sum all fee payments recorded for a given application reference no.
-     * Includes both incidental_fee_collections and online_admission_payment.
+     * Sum refundable fee payments for a given application reference no.
+     * Deliberately EXCLUDES application fee (incidental_fee_types with title LIKE '%application%')
+     * because application fee is non-refundable. Only course / tuition fees are returned.
      */
     private function _get_total_paid($ref_clean)
     {
-        // 1. Incidental fee collections
+        // 1. Incidental fee collections — exclude application fee type rows
         $row1 = $this->db
-            ->select('COALESCE(SUM(amount_collected), 0) as total', false)
-            ->from('incidental_fee_collections')
-            ->where("REPLACE(application_ref_no, ' ', '') = " . $this->db->escape($ref_clean), null, false)
-            ->where('application_ref_no IS NOT NULL', null, false)
-            ->where('application_ref_no !=', '')
+            ->select('COALESCE(SUM(ifc.amount_collected), 0) as total', false)
+            ->from('incidental_fee_collections ifc')
+            ->join('incidental_fee_types ift', 'ift.id = ifc.incidental_fee_type_id', 'left')
+            ->where("REPLACE(ifc.application_ref_no, ' ', '') = " . $this->db->escape($ref_clean), null, false)
+            ->where('ifc.application_ref_no IS NOT NULL', null, false)
+            ->where('ifc.application_ref_no !=', '')
+            ->where("LOWER(COALESCE(ift.title,'')) NOT LIKE '%application%'", null, false)
             ->get()
             ->row_array();
 
         $incidental_total = isset($row1['total']) ? (float) $row1['total'] : 0.0;
 
-        // 2. Online / gateway payments
+        // 2. Online / gateway payments — exclude application-fee payment_type rows
         $row2 = $this->db
             ->select('COALESCE(SUM(oap.paid_amount), 0) as total', false)
             ->from('online_admission_payment oap')
             ->join('online_admissions oa', 'oa.id = oap.online_admission_id', 'inner')
             ->where("REPLACE(oa.reference_no, ' ', '') = " . $this->db->escape($ref_clean), null, false)
+            ->where("LOWER(COALESCE(oap.payment_type,'')) NOT LIKE '%online_admission%'", null, false)
             ->get()
             ->row_array();
 

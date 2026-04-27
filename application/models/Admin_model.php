@@ -249,13 +249,13 @@ class Admin_model extends CI_Model
     {
         $students = $this->db->select('reference_no, course_fee_total, paid_status')
             ->from('online_admissions')
-            ->where("COALESCE(admission_status, 'active')", 'active')   // exclude revoked
+            ->where("COALESCE(admission_status, 'active') = 'active'", null, false)   // exclude revoked
             ->get()
             ->result_array();
 
         // Count revoked separately
         $revoked_count = (int) $this->db
-            ->where("COALESCE(admission_status, 'active')", 'cancelled')
+            ->where("COALESCE(admission_status, 'active') = 'cancelled'", null, false)
             ->count_all_results('online_admissions');
 
         if (empty($students)) {
@@ -283,18 +283,20 @@ class Admin_model extends CI_Model
         // Find reference_nos where APPLICATION FEE has been paid
         $app_fee_refs = array();
         if (!empty($reference_nos)) {
+            $escaped_refs = array_map(array($this->db, 'escape'), $reference_nos);
+            $in_list = implode(', ', $escaped_refs);
             $app_fee_rows = $this->db
                 ->select('REPLACE(incidental_fee_collections.application_ref_no, " ", "") as app_ref', false)
                 ->from('incidental_fee_collections')
                 ->join('incidental_fee_types', 'incidental_fee_types.id = incidental_fee_collections.incidental_fee_type_id', 'left')
-                ->where_in('REPLACE(incidental_fee_collections.application_ref_no, " ", "")', $reference_nos, false)
+                ->where("REPLACE(incidental_fee_collections.application_ref_no, ' ', '') IN ($in_list)", null, false)
                 ->where('incidental_fee_collections.application_ref_no IS NOT NULL', null, false)
                 ->where('incidental_fee_collections.application_ref_no !=', '')
                 ->where('LOWER(incidental_fee_types.title) LIKE "%application fee%"', null, false)
                 ->where('incidental_fee_collections.amount_collected >', 0)
                 ->group_by('REPLACE(incidental_fee_collections.application_ref_no, " ", "")', false)
-                ->get()
-                ->result_array();
+                ->get();
+            $app_fee_rows = $app_fee_rows ? $app_fee_rows->result_array() : array();
 
             foreach ($app_fee_rows as $row) {
                 $app_fee_refs[] = (string) $row['app_ref'];
@@ -305,17 +307,19 @@ class Admin_model extends CI_Model
         // Build tuition/other fee paid_map for ALL reference_nos
         $paid_map = array();
         if (!empty($reference_nos)) {
+            $escaped_refs = $escaped_refs ?? array_map(array($this->db, 'escape'), $reference_nos);
+            $in_list = $in_list ?? implode(', ', $escaped_refs);
             $paid_rows = $this->db
                 ->select('REPLACE(incidental_fee_collections.application_ref_no, " ", "") as app_ref, SUM(incidental_fee_collections.amount_collected) as paid_amount', false)
                 ->from('incidental_fee_collections')
                 ->join('incidental_fee_types', 'incidental_fee_types.id = incidental_fee_collections.incidental_fee_type_id', 'left')
-                ->where_in('REPLACE(incidental_fee_collections.application_ref_no, " ", "")', $reference_nos, false)
+                ->where("REPLACE(incidental_fee_collections.application_ref_no, ' ', '') IN ($in_list)", null, false)
                 ->where('incidental_fee_collections.application_ref_no IS NOT NULL', null, false)
                 ->where('incidental_fee_collections.application_ref_no !=', '')
                 ->where('(LOWER(incidental_fee_types.title) LIKE "%tuition%" OR LOWER(incidental_fee_types.title) LIKE "%tution%" OR LOWER(incidental_fee_types.title) LIKE "%other fee%")', null, false)
                 ->group_by('REPLACE(incidental_fee_collections.application_ref_no, " ", "")', false)
-                ->get()
-                ->result_array();
+                ->get();
+            $paid_rows = $paid_rows ? $paid_rows->result_array() : array();
 
             foreach ($paid_rows as $row) {
                 $paid_map[(string) $row['app_ref']] = (float) $row['paid_amount'];

@@ -503,12 +503,12 @@
                         </div>
                     </div>
                     <div class="form-group">
-                        <label><?php echo $this->lang->line('total_paid_amount'); ?></label>
+                        <label><?php echo $this->lang->line('total_paid_amount'); ?> <small class="text-muted">(excl. application fee)</small></label>
                         <div class="input-group">
                             <span class="input-group-addon"><?php echo $this->customlib->getSchoolCurrencyFormat(); ?></span>
                             <input type="text" class="form-control" id="revoke_total_paid" readonly placeholder="Loading...">
                         </div>
-                        <small class="text-muted">Total fees received via gateway + incidental collections</small>
+                        <small class="text-muted">Course / tuition fees only — application fee is non-refundable</small>
                     </div>
                     <div class="row">
                         <div class="col-sm-6">
@@ -517,9 +517,9 @@
                                 <div class="input-group">
                                     <span class="input-group-addon"><?php echo $this->customlib->getSchoolCurrencyFormat(); ?></span>
                                     <input type="number" name="refund_amount" class="form-control" id="revoke_refund_amount"
-                                           min="0" step="0.01" placeholder="0.00">
+                                           min="0" step="0.01" placeholder="0.00" max="0">
                                 </div>
-                                <small class="text-muted">Leave 0 if no refund applicable</small>
+                                <small class="text-muted">Cannot exceed course fee paid (application fee excluded)</small>
                             </div>
                         </div>
                         <div class="col-sm-6">
@@ -582,10 +582,13 @@
             dataType: 'json',
             success: function (res) {
                 if (res.status === 'success') {
+                    var refundable = parseFloat(res.refundable_amount || 0);
                     $('#revoke_ref_no').val(res.ref_no || '');
                     $('#revoke_applicant_name').val(res.name || '');
-                    $('#revoke_total_paid').val(parseFloat(res.total_paid || 0).toFixed(2));
-                    $('#revoke_refund_amount').val(parseFloat(res.total_paid || 0).toFixed(2));
+                    $('#revoke_total_paid').val(refundable.toFixed(2));
+                    $('#revoke_refund_amount')
+                        .val(refundable.toFixed(2))
+                        .attr('max', refundable.toFixed(2));
                 } else {
                     $('#revoke_total_paid').val('0.00');
                     errorMsg(res.message || 'Could not load payment summary.');
