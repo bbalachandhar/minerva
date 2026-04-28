@@ -102,7 +102,7 @@ class Onlinestudent_model extends MY_Model
             $this->datatables->where('online_admissions.referred_by_employee_id !=', 0);
         }
         if (!empty($course_id_filter)) {
-            $this->datatables->where('COALESCE(online_admissions.admission_course_id, online_admissions.ug_course_id)', intval($course_id_filter));
+            $this->datatables->where('COALESCE(online_admissions.admission_course_id, online_admissions.ug_course_id) = ' . intval($course_id_filter), null, false);
         }
         if (!empty($course_level_filter)) {
             $this->datatables->where('online_admissions.course_level', $course_level_filter);
