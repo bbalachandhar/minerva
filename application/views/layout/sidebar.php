@@ -69,6 +69,10 @@ if (!empty($side_list)) {
             }
         }
         if ($module_access) {
+            // CBSE Examination is only for School (K-12); hide entirely for College/Higher Education
+            if ($side_list_value->short_code === 'cbseexam' && $this->sch_setting_detail->institution_type === 'college') {
+                continue;
+            }
             if ($this->module_lib->hasModule($side_list_value->short_code) && $this->module_lib->hasActive($side_list_value->short_code)) {
 
                 ?>
