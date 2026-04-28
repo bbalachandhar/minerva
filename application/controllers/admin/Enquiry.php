@@ -785,15 +785,12 @@ class Enquiry extends Admin_Controller
                 $source = $vendor_name !== '' ? $vendor_name : 'Bulk Upload';
             }
 
-            $enq_date = trim($row['enquiry_date'] ?? ($row['date'] ?? ''));
-            if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $enq_date)) {
-                $enq_date = $today;
-            }
+            $enq_date_raw = $row['enquiry_date'] ?? ($row['date'] ?? ($row['created date'] ?? ($row['created_date'] ?? '')));
+            $enq_date = $this->_normalizeImportDate(trim($enq_date_raw), $today);
 
-            $followup = trim($row['follow_up_date'] ?? '');
-            if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $followup)) {
-                $followup = $default_followup;
-            }
+            $followup_raw = $row['follow_up_date'] ?? ($row['followup_date'] ?? ($row['follow up date']
+                ?? ($row['next_follow_up_date'] ?? ($row['next follow up date'] ?? ($row['followupdate'] ?? '')))));
+            $followup = $this->_normalizeImportDate(trim($followup_raw), $enq_date);
 
             $course_level   = trim($row['course_level'] ?? '');
             $admission_type = trim($row['admission_type'] ?? '');
@@ -876,6 +873,50 @@ class Enquiry extends Admin_Controller
         }
         fclose($output);
         exit;
+    }
+
+    /**
+     * Try to parse a date string in various formats and return YYYY-MM-DD.
+     * Returns $fallback if the value is empty or unrecognisable.
+     */
+    private function _normalizeImportDate($val, $fallback)
+    {
+        if ($val === '' || $val === null) {
+            return $fallback;
+        }
+
+        // Already YYYY-MM-DD
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $val)) {
+            return $val;
+        }
+
+        // DD/MM/YYYY or D/M/YYYY
+        if (preg_match('/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/', $val, $m)) {
+            return sprintf('%04d-%02d-%02d', $m[3], $m[2], $m[1]);
+        }
+
+        // DD-MM-YYYY or D-M-YYYY
+        if (preg_match('/^(\d{1,2})-(\d{1,2})-(\d{4})$/', $val, $m)) {
+            return sprintf('%04d-%02d-%02d', $m[3], $m[2], $m[1]);
+        }
+
+        // MM/DD/YYYY
+        if (preg_match('/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/', $val, $m)) {
+            return sprintf('%04d-%02d-%02d', $m[3], $m[1], $m[2]);
+        }
+
+        // YYYY/MM/DD
+        if (preg_match('/^(\d{4})\/(\d{2})\/(\d{2})$/', $val, $m)) {
+            return sprintf('%04d-%02d-%02d', $m[1], $m[2], $m[3]);
+        }
+
+        // Try PHP strtotime as last resort
+        $ts = strtotime($val);
+        if ($ts !== false && $ts > 0) {
+            return date('Y-m-d', $ts);
+        }
+
+        return $fallback;
     }
 
     private function parseMetaLeadsCsvForPreview($file_path)
