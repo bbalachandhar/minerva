@@ -115,6 +115,18 @@ if ($language_name != 'en') {
 <script src="<?php echo base_url(); ?>backend/plugins/chartjs/Chart.min.js"></script>
 <script src="<?php echo base_url(); ?>backend/plugins/fastclick/fastclick.min.js"></script>
 <script src="<?php echo base_url(); ?>backend/dist/js/app.min.js"></script>
+<script>
+// AdminLTE slimScroll re-fix: when a treeview menu is already expanded server-side
+// (menu-open class set by PHP), AdminLTE never runs its post-slideDown layout.fix().
+// slimScroll initialises in document.ready but captures scroll events without a proper
+// scrollable area, locking the sidebar. Re-running fixSidebar() on window.load (after
+// all content heights are final) ensures the correct scrollable height is calculated.
+$(window).on('load', function () {
+    if (typeof $.AdminLTE !== 'undefined' && typeof $.fn.slimScroll !== 'undefined') {
+        $.AdminLTE.layout.fixSidebar();
+    }
+});
+</script>
 <!--nprogress-->
 <script src="<?php echo base_url(); ?>backend/dist/js/nprogress.js"></script>
 <!--file dropify-->
