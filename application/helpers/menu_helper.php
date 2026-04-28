@@ -130,9 +130,10 @@ if (!function_exists('main_menu_array')) {
         $array = array(
 
             'admissions' => array(
-                'enquiry'         => array('index'),
-                'onlineadmission' => array('index','edit'),
-                'onlinestudent'   => array('index','edit'),
+                'enquiry'                => array('index'),
+                'onlineadmission'        => array('index','edit'),
+                'onlinestudent'          => array('index','edit'),
+                'admission_cancellation' => array('index'),
             ),
             
             'front_office' => array(
