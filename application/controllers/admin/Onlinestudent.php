@@ -31,6 +31,8 @@ class Onlinestudent extends Admin_Controller
         $this->session->set_userdata('sub_menu', 'onlinestudent');
         $data['title']       = 'Student List';
         $data['sch_setting'] = $this->sch_setting_detail;
+        $this->db->select('id, course_name, course_level')->from('online_admission_courses')->where('is_active', 1)->order_by('sort_order, course_name');
+        $data['courseList'] = $this->db->get()->result_array();
         $this->load->view('layout/header', $data);
         $this->load->view('admin/onlinestudent/studentList', $data);
         $this->load->view('layout/footer', $data);
@@ -482,7 +484,11 @@ class Onlinestudent extends Admin_Controller
             if ($dt) { $last_payment_date = $dt->format('Y-m-d'); }
         }
 
-        $student_result = $this->onlinestudent_model->getstudentlist(null, null, $quota_type_filter, $paid_status_filter, $submitted_by_filter, $submit_date_from, $submit_date_to, $last_payment_date);
+        $course_id_filter      = $this->input->post('course_id_filter')      ?: null;
+        $course_level_filter   = $this->input->post('course_level_filter')   ?: null;
+        $admission_type_filter = $this->input->post('admission_type_filter') ?: null;
+
+        $student_result = $this->onlinestudent_model->getstudentlist(null, null, $quota_type_filter, $paid_status_filter, $submitted_by_filter, $submit_date_from, $submit_date_to, $last_payment_date, $course_id_filter, $course_level_filter, $admission_type_filter);
 
         $m               = json_decode($student_result);
         $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
@@ -690,6 +696,10 @@ class Onlinestudent extends Admin_Controller
             if ($dt) { $last_payment_date = $dt->format('Y-m-d'); }
         }
 
+        $course_id_filter      = $this->input->get('course_id_filter')      ?: null;
+        $course_level_filter   = $this->input->get('course_level_filter')   ?: null;
+        $admission_type_filter = $this->input->get('admission_type_filter') ?: null;
+
         // --- Build the base query (mirrors getstudentlist) ---
         $this->db->select(
             'oa.id, oa.reference_no, oa.firstname, oa.middlename, oa.lastname,
@@ -722,6 +732,16 @@ class Onlinestudent extends Admin_Controller
         } elseif ($submitted_by_filter === 'staff') {
             $this->db->where('oa.referred_by_employee_id IS NOT NULL', null, false);
             $this->db->where('oa.referred_by_employee_id !=', 0);
+        }
+
+        if (!empty($course_id_filter)) {
+            $this->db->where('COALESCE(oa.admission_course_id, oa.ug_course_id)', intval($course_id_filter));
+        }
+        if (!empty($course_level_filter)) {
+            $this->db->where('oa.course_level', $course_level_filter);
+        }
+        if (!empty($admission_type_filter)) {
+            $this->db->where('oa.admission_type', $admission_type_filter);
         }
 
         // Course fee status filter (same logic as model)

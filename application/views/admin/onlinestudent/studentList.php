@@ -36,6 +36,22 @@
                                     <li><label style="font-weight:normal;margin:0;"><input type="checkbox" class="filter-quota-chk" value="government"> Government</label></li>
                                 </ul>
                             </div>
+                            <select id="filter_course" class="form-control input-sm" style="width:220px;max-width:220px;">
+                                <option value="">All Courses</option>
+                                <?php foreach ($courseList as $c): ?>
+                                <option value="<?php echo $c['id']; ?>"><?php echo htmlspecialchars($c['course_name']); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                            <select id="filter_course_level" class="form-control input-sm" style="width:120px;">
+                                <option value="">All Levels</option>
+                                <option value="ug">UG</option>
+                                <option value="pg">PG</option>
+                            </select>
+                            <select id="filter_admission_type" class="form-control input-sm" style="width:130px;">
+                                <option value="">All Admission Types</option>
+                                <option value="first_year">First Year</option>
+                                <option value="lateral">Lateral</option>
+                            </select>
                             <div style="display:flex;align-items:center;gap:4px;">
                                 <input type="text" id="filter_submit_from" class="form-control input-sm date datepicker-filter" placeholder="Submitted From" style="width:130px;" autocomplete="off" readonly>
                                 <span style="color:#555;">–</span>
@@ -155,12 +171,18 @@
         var submitFrom      = $('#filter_submit_from').val();
         var submitTo        = $('#filter_submit_to').val();
         var lastPaymentDate = $('#filter_last_payment_date').val();
+        var courseId        = $('#filter_course').val();
+        var courseLevel     = $('#filter_course_level').val();
+        var admissionType   = $('#filter_admission_type').val();
         if (quota.length   > 0) params.quota_type_filter  = quota;
         if (status.length  > 0) params.paid_status_filter = status;
         if (submittedBy     !== '') params.submitted_by_filter    = submittedBy;
         if (submitFrom      !== '') params.submit_date_from       = submitFrom;
         if (submitTo        !== '') params.submit_date_to         = submitTo;
         if (lastPaymentDate !== '') params.last_payment_date      = lastPaymentDate;
+        if (courseId        !== '') params.course_id_filter       = courseId;
+        if (courseLevel     !== '') params.course_level_filter    = courseLevel;
+        if (admissionType   !== '') params.admission_type_filter  = admissionType;
         return params;
     }
 
@@ -260,7 +282,7 @@
         });
 
         // Single-select change
-        $('#filter_submitted_by').on('change', function () {
+        $('#filter_submitted_by, #filter_course, #filter_course_level, #filter_admission_type').on('change', function () {
             studentTable.ajax.reload();
         });
 

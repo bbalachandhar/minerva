@@ -77,7 +77,7 @@ class Onlinestudent_model extends MY_Model
         }
     }
 
-    public function getstudentlist($carray = null, $id = null, $quota_type_filter = null, $paid_status_filter = null, $submitted_by_filter = null, $submit_date_from = null, $submit_date_to = null, $last_payment_date = null)
+    public function getstudentlist($carray = null, $id = null, $quota_type_filter = null, $paid_status_filter = null, $submitted_by_filter = null, $submit_date_from = null, $submit_date_to = null, $last_payment_date = null, $course_id_filter = null, $course_level_filter = null, $admission_type_filter = null)
     {
         $class_section_array=$this->customlib->get_myClassSection();        
 
@@ -100,6 +100,15 @@ class Onlinestudent_model extends MY_Model
         } elseif ($submitted_by_filter === 'staff') {
             $this->datatables->where('online_admissions.referred_by_employee_id IS NOT NULL', null, false);
             $this->datatables->where('online_admissions.referred_by_employee_id !=', 0);
+        }
+        if (!empty($course_id_filter)) {
+            $this->datatables->where('COALESCE(online_admissions.admission_course_id, online_admissions.ug_course_id)', intval($course_id_filter));
+        }
+        if (!empty($course_level_filter)) {
+            $this->datatables->where('online_admissions.course_level', $course_level_filter);
+        }
+        if (!empty($admission_type_filter)) {
+            $this->datatables->where('online_admissions.admission_type', $admission_type_filter);
         }
         if (!empty($paid_status_filter) && $paid_status_filter !== false) {
             $paid_status_list = is_array($paid_status_filter) ? $paid_status_filter : [$paid_status_filter];
