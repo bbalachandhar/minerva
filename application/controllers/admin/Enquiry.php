@@ -639,11 +639,29 @@ class Enquiry extends Admin_Controller
         $this->session->set_userdata('top_menu', 'front_office');
         $this->session->set_userdata('sub_menu', 'admin/enquiry');
 
-        $data['preview_rows'] = [];
-        $data['preview_columns'] = [];
-        $data['preview_count'] = 0;
+        $this->ensureLeadVendorTable();
+        $data['lead_vendor_list'] = $this->db
+            ->select('id, vendor_name, vendor_code')
+            ->from('lead_api_vendors')
+            ->where('is_active', 1)
+            ->order_by('vendor_name', 'ASC')
+            ->get()
+            ->result_array();
+
+        $data['preview_rows']      = [];
+        $data['preview_columns']   = [];
+        $data['preview_count']     = 0;
+        $data['is_preview']        = false;
+        $data['selected_vendor_id'] = 0;
 
         if ($this->input->method(TRUE) === 'POST') {
+            // Clean up any previously uploaded tmp file from session
+            $old_pending = $this->session->userdata('bulk_lead_import_pending');
+            if (!empty($old_pending['tmp_path']) && is_file($old_pending['tmp_path'])) {
+                @unlink($old_pending['tmp_path']);
+            }
+            $this->session->unset_userdata('bulk_lead_import_pending');
+
             if (!isset($_FILES['meta_leads_file']) || empty($_FILES['meta_leads_file']['name'])) {
                 $this->session->set_flashdata('msg', '<div class="alert alert-danger text-center">Please select a CSV file.</div>');
                 redirect('admin/enquiry/bulk_meta_leads_upload');
@@ -657,7 +675,7 @@ class Enquiry extends Admin_Controller
 
             $upload_dir = 'uploads/tmp/';
             $this->customlib->ensureDirectoryExists($upload_dir);
-            $temp_name = 'meta_leads_preview_' . time() . '_' . mt_rand(1000, 9999) . '.csv';
+            $temp_name = 'bulk_leads_' . time() . '_' . mt_rand(1000, 9999) . '.csv';
             $file_path = $upload_dir . $temp_name;
 
             if (!move_uploaded_file($_FILES['meta_leads_file']['tmp_name'], $file_path)) {
@@ -666,22 +684,172 @@ class Enquiry extends Admin_Controller
             }
 
             $parsed = $this->parseMetaLeadsCsvForPreview($file_path);
-            @unlink($file_path);
 
             if (!$parsed['success']) {
+                @unlink($file_path);
                 $this->session->set_flashdata('msg', '<div class="alert alert-danger text-center">' . $parsed['message'] . '</div>');
                 redirect('admin/enquiry/bulk_meta_leads_upload');
             }
 
-            $data['preview_rows'] = $parsed['rows'];
-            $data['preview_columns'] = $parsed['columns'];
-            $data['preview_count'] = $parsed['count'];
-            $data['is_preview'] = true;
+            $vendor_id = (int) $this->input->post('vendor_id');
+
+            // Store pending import data in session so confirm step can process the file
+            $this->session->set_userdata('bulk_lead_import_pending', [
+                'tmp_path'  => $file_path,
+                'vendor_id' => $vendor_id,
+                'count'     => $parsed['count'],
+            ]);
+
+            $data['preview_rows']       = $parsed['rows'];
+            $data['preview_columns']    = $parsed['columns'];
+            $data['preview_count']      = $parsed['count'];
+            $data['is_preview']         = true;
+            $data['selected_vendor_id'] = $vendor_id;
         }
 
         $this->load->view('layout/header', $data);
         $this->load->view('admin/frontoffice/bulk_meta_leads_upload', $data);
         $this->load->view('layout/footer', $data);
+    }
+
+    public function confirm_meta_leads_import()
+    {
+        if (!$this->rbac->hasPrivilege('admission_enquiry', 'can_add')) {
+            access_denied();
+        }
+
+        if ($this->input->method(TRUE) !== 'POST') {
+            redirect('admin/enquiry/bulk_meta_leads_upload');
+        }
+
+        $pending = $this->session->userdata('bulk_lead_import_pending');
+        if (empty($pending) || empty($pending['tmp_path']) || !is_readable($pending['tmp_path'])) {
+            $this->session->set_flashdata('msg', '<div class="alert alert-danger text-center">Import session expired or file not found. Please upload again.</div>');
+            redirect('admin/enquiry/bulk_meta_leads_upload');
+        }
+
+        $vendor_id   = (int) ($pending['vendor_id'] ?? 0);
+        $vendor_name = '';
+        if ($vendor_id > 0) {
+            $v = $this->db->select('vendor_name')->where('id', $vendor_id)->get('lead_api_vendors')->row_array();
+            $vendor_name = $v ? $v['vendor_name'] : '';
+        }
+
+        $file_path = $pending['tmp_path'];
+        $handle    = fopen($file_path, 'r');
+        $header    = fgetcsv($handle);
+        $columns   = array_map('trim', $header);
+
+        $userdata        = $this->customlib->getUserData();
+        $created_by      = (int) $userdata['id'];
+        $today           = date('Y-m-d');
+        $default_followup = date('Y-m-d', strtotime('+3 days'));
+        $allowed_columns = $this->db->list_fields('enquiry');
+
+        $inserted = 0;
+        $skipped  = 0;
+        $seq      = 1;
+
+        while (($line = fgetcsv($handle)) !== false) {
+            if ($line === [null]) {
+                continue;
+            }
+
+            // Skip blank rows
+            $all_empty = true;
+            foreach ($line as $cell) {
+                if (trim((string) $cell) !== '') {
+                    $all_empty = false;
+                    break;
+                }
+            }
+            if ($all_empty) {
+                continue;
+            }
+
+            $row = [];
+            foreach ($columns as $i => $col) {
+                $row[$col] = isset($line[$i]) ? trim((string) $line[$i]) : '';
+            }
+
+            $name    = trim($row['name'] ?? '');
+            $contact = preg_replace('/\D/', '', trim($row['contact'] ?? ''));
+
+            if ($name === '' || $contact === '') {
+                $skipped++;
+                continue;
+            }
+
+            $source = trim($row['source'] ?? '');
+            if ($source === '') {
+                $source = $vendor_name !== '' ? $vendor_name : 'Bulk Upload';
+            }
+
+            $enq_date = trim($row['enquiry_date'] ?? ($row['date'] ?? ''));
+            if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $enq_date)) {
+                $enq_date = $today;
+            }
+
+            $followup = trim($row['follow_up_date'] ?? '');
+            if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $followup)) {
+                $followup = $default_followup;
+            }
+
+            $course_level   = trim($row['course_level'] ?? '');
+            $admission_type = trim($row['admission_type'] ?? '');
+
+            $enquiry_data = [
+                'name'               => substr($name, 0, 100),
+                'contact'            => substr($contact, 0, 20),
+                'email'              => substr(trim($row['email'] ?? ''), 0, 50) ?: null,
+                'address'            => '',
+                'state'              => substr(trim($row['state'] ?? ''), 0, 100) ?: null,
+                'city'               => substr(trim($row['city'] ?? ''), 0, 100) ?: null,
+                'source'             => substr($source, 0, 50),
+                'reference'          => substr($source, 0, 20),
+                'date'               => $enq_date,
+                'follow_up_date'     => $followup,
+                'description'        => substr(trim($row['description'] ?? ''), 0, 500),
+                'note'               => '',
+                'class_id'           => null,
+                'admission_course_id'=> null,
+                'course_level'       => in_array($course_level, ['ug', 'pg'], true) ? $course_level : null,
+                'admission_type'     => in_array($admission_type, ['first_year', 'lateral'], true) ? $admission_type : null,
+                'status'             => 'active',
+                'created_by'         => $created_by,
+                'ref_no'             => 'ENQ-' . date('YmdHis') . str_pad($seq, 4, '0', STR_PAD_LEFT),
+            ];
+
+            if ($vendor_id > 0 && in_array('lead_vendor_id', $allowed_columns, true)) {
+                $enquiry_data['lead_vendor_id'] = $vendor_id;
+            }
+
+            // Strip columns not in enquiry table
+            $enquiry_data = array_intersect_key($enquiry_data, array_flip($allowed_columns));
+
+            $this->db->insert('enquiry', $enquiry_data);
+            if ($this->db->affected_rows() > 0) {
+                $inserted++;
+            } else {
+                $skipped++;
+            }
+            $seq++;
+        }
+
+        fclose($handle);
+        @unlink($file_path);
+        $this->session->unset_userdata('bulk_lead_import_pending');
+
+        if ($inserted > 0) {
+            $msg = '<div class="alert alert-success text-center">' . $inserted . ' lead(s) imported successfully.'
+                 . ($skipped > 0 ? ' ' . $skipped . ' row(s) skipped (missing name/contact).' : '')
+                 . '</div>';
+        } else {
+            $msg = '<div class="alert alert-warning text-center">No leads were imported. Ensure each row has a name and contact number.</div>';
+        }
+
+        $this->session->set_flashdata('msg', $msg);
+        redirect('admin/enquiry');
     }
 
     public function download_meta_leads_template()

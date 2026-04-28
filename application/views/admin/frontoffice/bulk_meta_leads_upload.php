@@ -1,8 +1,8 @@
 <div class="content-wrapper">
     <section class="content-header">
         <h1>
-            <i class="fa fa-upload"></i> Bulk Upload - Meta Leads
-            <small>Upload meta campaign enquiry leads using CSV</small>
+            <i class="fa fa-upload"></i> Bulk Upload
+            <small>Upload enquiry leads from CSV</small>
         </h1>
     </section>
 
@@ -48,6 +48,20 @@
                         <div class="box-body">
                             <?php echo $this->customlib->getCSRF(); ?>
                             <div class="form-group">
+                                <label class="col-sm-3 control-label">Lead Vendor</label>
+                                <div class="col-sm-9">
+                                    <select name="vendor_id" class="form-control">
+                                        <option value="">-- None (no vendor tag) --</option>
+                                        <?php if (!empty($lead_vendor_list)): foreach ($lead_vendor_list as $v): ?>
+                                        <option value="<?php echo (int)$v['id']; ?>" <?php echo (isset($selected_vendor_id) && $selected_vendor_id == $v['id']) ? 'selected' : ''; ?>>
+                                            <?php echo htmlspecialchars($v['vendor_name'] . ' (' . $v['vendor_code'] . ')'); ?>
+                                        </option>
+                                        <?php endforeach; endif; ?>
+                                    </select>
+                                    <p class="help-block" style="margin-top:4px;">Select the lead source vendor. All imported leads will be tagged with this vendor.</p>
+                                </div>
+                            </div>
+                            <div class="form-group">
                                 <label class="col-sm-3 control-label">CSV File <span class="text-danger">*</span></label>
                                 <div class="col-sm-9">
                                     <input type="file" id="meta_leads_file" name="meta_leads_file" class="form-control" accept=".csv" required>
@@ -90,6 +104,18 @@
                                 <?php endforeach; ?>
                             </tbody>
                         </table>
+                    </div>
+                    <div class="box-footer">
+                        <form method="post" action="<?php echo site_url('admin/enquiry/confirm_meta_leads_import'); ?>">
+                            <?php echo $this->customlib->getCSRF(); ?>
+                            <button type="submit" class="btn btn-success"
+                                onclick="return confirm('Import all <?php echo (int)$preview_count; ?> lead(s) into Enquiry? This cannot be undone.');">
+                                <i class="fa fa-check"></i> Confirm &amp; Import <?php echo (int)$preview_count; ?> Lead(s)
+                            </button>
+                            <a href="<?php echo site_url('admin/enquiry/bulk_meta_leads_upload'); ?>" class="btn btn-default">
+                                <i class="fa fa-times"></i> Cancel
+                            </a>
+                        </form>
                     </div>
                 </div>
                 <?php endif; ?>
