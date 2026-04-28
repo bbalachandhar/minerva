@@ -476,7 +476,7 @@ class Attendencereports extends Admin_Controller
         $role                        = $this->input->post("role");
         $month                       = $this->input->post('month');
         $searchyear                  = $this->input->post('year');
-        $data['month_selected']      = !empty($month) ? $month : date('n');
+        $data['month_selected']      = !empty($month) ? $month : date('F');
         $data['year_selected']       = !empty($searchyear) ? $searchyear : date('Y');
 
         $this->form_validation->set_rules('month', $this->lang->line('month'), 'trim|required|xss_clean');
