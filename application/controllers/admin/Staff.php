@@ -3327,7 +3327,13 @@ class Staff extends Admin_Controller
                         $present_cutoff = $settings->evening_session_end_time;
                     }
                     if ($present_cutoff && strtotime($out_time) >= strtotime($present_cutoff)) {
-                        $afternoon_session_status = 1; // P – full day
+                        // Guard: if in_time is also past the cutoff, both punches are after-hours.
+                        // Do not credit second-half presence for after-hours activity.
+                        if (strtotime($in_time) > strtotime($present_cutoff)) {
+                            $afternoon_session_status = 9; // after-hours, not second half present
+                        } else {
+                            $afternoon_session_status = 1; // P – full day
+                        }
                     } else {
                         $afternoon_session_status = 9; // SHA – left early in afternoon
                     }

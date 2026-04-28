@@ -1038,6 +1038,9 @@ class Payroll extends Admin_Controller
         $morning_type_id = null;
         if (!empty($role_settings[$role_id])) {
             foreach ($role_settings[$role_id] as $type_id => $window) {
+                // Skip unconfigured 00:00:00–00:00:00 placeholder windows; !empty('00:00:00')
+                // is TRUE in PHP so we must guard explicitly to avoid false window matches.
+                if ($window['from'] === '00:00:00' && $window['to'] === '00:00:00') continue;
                 if (!empty($window['from']) && !empty($window['to'])
                     && strtotime($in_time) >= strtotime($window['from'])
                     && strtotime($in_time) <= strtotime($window['to'])) {
@@ -1066,8 +1069,11 @@ class Payroll extends Admin_Controller
                 $morning_session_status = 1;
             } else {
                 $shl_window = isset($role_settings[$role_id][6]) ? $role_settings[$role_id][6] : null;
-                if ($shl_window && !empty($shl_window['to'])
-                    && strtotime($in_time) > strtotime($shl_window['to'])) {
+                // Guard against unconfigured 00:00:00–00:00:00 placeholder: !empty('00:00:00')
+                // is TRUE in PHP, so explicitly skip it to avoid false positive.
+                $shl_configured = $shl_window
+                    && !($shl_window['from'] === '00:00:00' && $shl_window['to'] === '00:00:00');
+                if ($shl_configured && strtotime($in_time) > strtotime($shl_window['to'])) {
                     $morning_session_status = 8;
                     $afternoon_session_status = 9;
                     $second_half_start = true;
@@ -1105,14 +1111,23 @@ class Payroll extends Admin_Controller
                     $afternoon_session_status = 9;
                 } else {
                     $present_cutoff = null;
-                    if ($shp_window && !empty($shp_window['to'])) {
+                    // Guard against unconfigured 00:00:00 SHP placeholder (same PHP !empty() trap).
+                    $shp_configured = $shp_window
+                        && !($shp_window['from'] === '00:00:00' && $shp_window['to'] === '00:00:00');
+                    if ($shp_configured && !empty($shp_window['to'])) {
                         $present_cutoff = $shp_window['to'];
                     } elseif (!empty($settings->evening_session_end_time)) {
                         $present_cutoff = $settings->evening_session_end_time;
                     }
 
                     if ($present_cutoff && strtotime($out_time) >= strtotime($present_cutoff)) {
-                        $afternoon_session_status = 1;
+                        // Guard: if in_time is also past the cutoff, both punches are after-hours.
+                        // Do not credit second-half presence for after-hours activity.
+                        if (strtotime($in_time) > strtotime($present_cutoff)) {
+                            $afternoon_session_status = 9; // after-hours, not second half present
+                        } else {
+                            $afternoon_session_status = 1;
+                        }
                     } else {
                         $afternoon_session_status = 9;
                     }
