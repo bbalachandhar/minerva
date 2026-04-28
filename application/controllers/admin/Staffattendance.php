@@ -712,7 +712,14 @@ class Staffattendance extends Admin_Controller
                                 }
 
                                 if ($present_cutoff && strtotime($out_time) >= strtotime($present_cutoff)) {
-                                    $afternoon_session_status = 1;
+                                    // Guard: if in_time is also past the present_cutoff, both punches are
+                                    // after working hours (e.g. 17:14 in / 17:43 out when SHP ends at 16:15).
+                                    // These are after-hours punches — do not credit second half presence.
+                                    if (strtotime($in_time) > strtotime($present_cutoff)) {
+                                        $afternoon_session_status = 9; // after-hours, not second half present
+                                    } else {
+                                        $afternoon_session_status = 1;
+                                    }
                                 } else {
                                     $afternoon_session_status = 9;
                                 }
