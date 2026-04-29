@@ -25,33 +25,30 @@ $this->session->unset_userdata('msg'); ?>
                             <?php echo $this->customlib->getCSRF(); ?>
                             <div class="col-sm-6 col-md-2 col-lg-2">
                                 <div class="form-group">
-                                    <label><?php echo $this->lang->line('department'); ?></label>
-                                    <select  id="department" name="department_id" class="form-control" >
-                                        <option value=""><?php echo $this->lang->line('select') ?></option>
-                                        <?php foreach ($department_list as $key => $value) {
-    ?>
-                                            <option <?php
-if ($value["id"] == $selected_department) {
-        echo "selected";
-    }
-    ?> value="<?php echo $value["id"] ?>"><?php echo $value["department_name"] ?></option>
-                                            <?php }?>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-sm-6 col-md-2 col-lg-2">
-                                <div class="form-group">
-                                    <label><?php echo $this->lang->line('class'); ?></label>
-                                    <select  id="class" name="class" class="form-control" >
-                                        <option value=""><?php echo $this->lang->line('select') ?></option>
-                                        <?php foreach ($class_list as $key => $value) {
-    ?>
-                                            <option <?php
-if ($value["id"] == $selected_class) {
-        echo "selected";
-    }
-    ?> value="<?php echo $value["id"] ?>"><?php echo $value["class"] ?></option>
-                                            <?php }?>
+                                    <label>Course</label>
+                                    <select id="admission_course_id_filter" name="admission_course_id_filter" class="form-control">
+                                        <option value="">All Courses</option>
+                                        <?php if (!empty($ug_first_year_courses)): ?>
+                                        <optgroup label="UG First Year">
+                                            <?php foreach ($ug_first_year_courses as $c): ?>
+                                            <option value="<?php echo (int)$c['id']; ?>"><?php echo html_escape($c['course_name']); ?></option>
+                                            <?php endforeach; ?>
+                                        </optgroup>
+                                        <?php endif; ?>
+                                        <?php if (!empty($ug_lateral_courses)): ?>
+                                        <optgroup label="UG Lateral">
+                                            <?php foreach ($ug_lateral_courses as $c): ?>
+                                            <option value="<?php echo (int)$c['id']; ?>"><?php echo html_escape($c['course_name']); ?></option>
+                                            <?php endforeach; ?>
+                                        </optgroup>
+                                        <?php endif; ?>
+                                        <?php if (!empty($pg_first_year_courses)): ?>
+                                        <optgroup label="PG First Year">
+                                            <?php foreach ($pg_first_year_courses as $c): ?>
+                                            <option value="<?php echo (int)$c['id']; ?>"><?php echo html_escape($c['course_name']); ?></option>
+                                            <?php endforeach; ?>
+                                        </optgroup>
+                                        <?php endif; ?>
                                     </select>
                                 </div>
                             </div>
@@ -164,6 +161,7 @@ if ($enkey == $status) {
                                                     <th>Reference No</th>
                                                     <th><?php echo $this->lang->line('name'); ?></th>
                                                     <th><?php echo $this->lang->line('phone'); ?></th>
+                                                    <th>Course Applied</th>
                                                     <th><?php echo $this->lang->line('source'); ?></th>
                                                     <th>Lead Vendor</th>
                                                     <th>Dup. Source</th>
@@ -636,11 +634,10 @@ if ($enkey == $status) {
 <script type="text/javascript">
     // Active filter state — updated when the user clicks Search
     var dtFilters = {
-        filter_status:             '<?php echo addslashes($status); ?>',
-        filter_class:              '<?php echo addslashes($selected_class); ?>',
-        filter_department_id:      '<?php echo addslashes($selected_department); ?>',
-        filter_source:             '<?php echo addslashes($source_select); ?>',
-        filter_lead_vendor_id:     '<?php echo (int)$selected_lead_vendor; ?>',
+        filter_status:                '<?php echo addslashes($status); ?>',
+        filter_admission_course_id:   '',
+        filter_source:                '<?php echo addslashes($source_select); ?>',
+        filter_lead_vendor_id:        '<?php echo (int)$selected_lead_vendor; ?>',
         filter_date_from:          '',
         filter_date_to:            '',
         filter_next_followup_from: '',
@@ -659,26 +656,27 @@ if ($enkey == $status) {
                 }
             },
             pageLength: 50,
-            order: [[6, 'desc']],
+            order: [[7, 'desc']],
             dom: "Bfrtip",
             columns: [
                 { data: 0,  orderable: true  },   // ref_no
                 { data: 1,  orderable: true  },   // name
                 { data: 2,  orderable: true  },   // contact
-                { data: 3,  orderable: true  },   // source
-                { data: 4,  orderable: false },   // lead vendor
-                { data: 5,  orderable: false },   // dup source
-                { data: 6,  orderable: true  },   // enquiry date
-                { data: 7,  orderable: true  },   // last follow-up
-                { data: 8,  orderable: true  },   // next follow-up
-                { data: 9,  orderable: true  },   // status
-                { data: 10, orderable: false },   // actions
-                { data: 11, visible: false, orderable: false, searchable: false }, // followup colour
-                { data: 12, visible: false, orderable: false, searchable: false }  // status colour
+                { data: 3,  orderable: false },   // course applied
+                { data: 4,  orderable: true  },   // source
+                { data: 5,  orderable: false },   // lead vendor
+                { data: 6,  orderable: false },   // dup source
+                { data: 7,  orderable: true  },   // enquiry date
+                { data: 8,  orderable: true  },   // last follow-up
+                { data: 9,  orderable: true  },   // next follow-up
+                { data: 10, orderable: true  },   // status
+                { data: 11, orderable: false },   // actions
+                { data: 12, visible: false, orderable: false, searchable: false }, // followup colour
+                { data: 13, visible: false, orderable: false, searchable: false }  // status colour
             ],
             createdRow: function (row, data) {
-                if (data[11]) { $('td', row).eq(8).addClass(data[11]); }
                 if (data[12]) { $('td', row).eq(9).addClass(data[12]); }
+                if (data[13]) { $('td', row).eq(10).addClass(data[13]); }
             },
             drawCallback: function () {
                 var info = this.api().page.info();
@@ -736,10 +734,9 @@ if ($enkey == $status) {
         // Intercept the filter form — update dtFilters and reload DT without a full page reload
         $('form[action$="admin/enquiry"]').on('submit', function (e) {
             e.preventDefault();
-            dtFilters.filter_status             = $('[name="status"]').val()             || '';
-            dtFilters.filter_class              = $('[name="class"]').val()               || '';
-            dtFilters.filter_department_id      = $('[name="department_id"]').val()       || '';
-            dtFilters.filter_source             = $('[name="source"]').val()              || '';
+            dtFilters.filter_status                = $('[name="status"]').val()                      || '';
+            dtFilters.filter_admission_course_id   = $('[name="admission_course_id_filter"]').val() || '';
+            dtFilters.filter_source                = $('[name="source"]').val()                      || '';
             dtFilters.filter_lead_vendor_id     = $('[name="lead_vendor_id"]').val()      || '';
             dtFilters.filter_date_from          = $('[name="from_date"]').val()           || '';
             dtFilters.filter_date_to            = $('[name="to_date"]').val()             || '';
@@ -768,26 +765,7 @@ if ($enkey == $status) {
         })
     })
 
-    $(document).on('change', '#department', function (e) {
-        $('#class').html('<option value=""><?php echo $this->lang->line('select'); ?></option>');
-        var department_id = $(this).val();
-        var base_url = '<?php echo base_url() ?>';
-        if (department_id != "") {
-            $.ajax({
-                type: "POST",
-                url: base_url + "report/getClassesByDepartment",
-                data: {'department_id': department_id},
-                dataType: "json",
-                success: function (data) {
-                    $.each(data, function (i, obj)
-                    {
-                        var sel = "";
-                        $('#class').append("<option value=" + obj.id + " " + sel + ">" + obj.class + "</option>");
-                    });
-                }
-            });
-        }
-    });
+
 
     // Load state and city data for Add modal
     var statesData = [];

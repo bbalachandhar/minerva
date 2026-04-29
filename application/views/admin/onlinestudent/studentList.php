@@ -10,60 +10,87 @@
                 <div class="box box-primary">
                     <div class="box-header with-border">
                         <h3 class="box-title"><?php echo $this->lang->line('student_list'); ?></h3>
-                        <div class="box-tools pull-right" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-                            <select id="filter_submitted_by" class="form-control input-sm" style="width:150px;">
-                                <option value="">All Submitted By</option>
-                                <option value="student">By Direct Student</option>
-                                <option value="staff">By Staff</option>
-                            </select>
-                            <div class="btn-group" id="filter_form_status_group">
-                                <button type="button" class="btn btn-default btn-sm dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" style="min-width:165px;text-align:left;">
-                                    <span id="filter_form_status_label">All Course Fee Status</span> <span class="caret" style="float:right;margin-top:5px;"></span>
-                                </button>
-                                <ul class="dropdown-menu" style="min-width:175px;padding:6px 10px;">
-                                    <li><label style="font-weight:normal;margin:0;"><input type="checkbox" class="filter-status-chk" value="applied"> Applied</label></li>
-                                    <li><label style="font-weight:normal;margin:0;"><input type="checkbox" class="filter-status-chk" value="0"> Not Paid</label></li>
-                                    <li><label style="font-weight:normal;margin:0;"><input type="checkbox" class="filter-status-chk" value="2"> Partially Paid</label></li>
-                                    <li><label style="font-weight:normal;margin:0;"><input type="checkbox" class="filter-status-chk" value="1"> Fully Paid</label></li>
-                                </ul>
-                            </div>
-                            <div class="btn-group" id="filter_quota_group">
-                                <button type="button" class="btn btn-default btn-sm dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" style="min-width:120px;text-align:left;">
-                                    <span id="filter_quota_label">All Quota</span> <span class="caret" style="float:right;margin-top:5px;"></span>
-                                </button>
-                                <ul class="dropdown-menu" style="min-width:130px;padding:6px 10px;">
-                                    <li><label style="font-weight:normal;margin:0;"><input type="checkbox" class="filter-quota-chk" value="management"> Management</label></li>
-                                    <li><label style="font-weight:normal;margin:0;"><input type="checkbox" class="filter-quota-chk" value="government"> Government</label></li>
-                                </ul>
-                            </div>
-                            <select id="filter_course" class="form-control input-sm" style="width:220px;max-width:220px;">
-                                <option value="">All Courses</option>
-                                <?php foreach ($courseList as $c): ?>
-                                <option value="<?php echo $c['id']; ?>"><?php echo htmlspecialchars($c['course_name']); ?></option>
-                                <?php endforeach; ?>
-                            </select>
-                            <select id="filter_course_level" class="form-control input-sm" style="width:120px;">
-                                <option value="">All Levels</option>
-                                <option value="ug">UG</option>
-                                <option value="pg">PG</option>
-                            </select>
-                            <select id="filter_admission_type" class="form-control input-sm" style="width:130px;">
-                                <option value="">All Admission Types</option>
-                                <option value="first_year">First Year</option>
-                                <option value="lateral">Lateral</option>
-                            </select>
-                            <div style="display:flex;align-items:center;gap:4px;">
-                                <input type="text" id="filter_submit_from" class="form-control input-sm date datepicker-filter" placeholder="Submitted From" style="width:130px;" autocomplete="off" readonly>
-                                <span style="color:#555;">–</span>
-                                <input type="text" id="filter_submit_to" class="form-control input-sm date datepicker-filter" placeholder="Submitted To" style="width:130px;" autocomplete="off" readonly>
-                                <button id="clear_submit_dates" class="btn btn-default btn-sm" title="Clear" style="display:none;"><i class="fa fa-times"></i></button>
-                            </div>
-                            <div style="display:flex;align-items:center;gap:4px;">
-                                <input type="text" id="filter_last_payment_date" class="form-control input-sm date datepicker-filter" placeholder="Last Payment Date" style="width:145px;" autocomplete="off" readonly>
-                                <button id="clear_payment_date" class="btn btn-default btn-sm" title="Clear" style="display:none;"><i class="fa fa-times"></i></button>
-                            </div>
-                        </div><!-- /.box-tools -->
                     </div><!-- /.box-header -->
+                    <!-- Filter Bar -->
+                    <div class="box-body" style="padding-bottom:8px;border-bottom:1px solid #f0f0f0;">
+                        <!-- Row 1: Course filters -->
+                        <div class="row" style="margin-bottom:8px;">
+                            <div class="col-sm-4 col-md-3">
+                                <select id="filter_course" class="form-control input-sm">
+                                    <option value="">All Courses</option>
+                                    <?php foreach ($courseList as $c): ?>
+                                    <option value="<?php echo $c['id']; ?>"><?php echo htmlspecialchars($c['course_name']); ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="col-sm-2 col-md-2">
+                                <select id="filter_course_level" class="form-control input-sm">
+                                    <option value="">All Levels</option>
+                                    <option value="ug">UG</option>
+                                    <option value="pg">PG</option>
+                                </select>
+                            </div>
+                            <div class="col-sm-3 col-md-2">
+                                <select id="filter_admission_type" class="form-control input-sm">
+                                    <option value="">All Admission Types</option>
+                                    <option value="first_year">First Year</option>
+                                    <option value="lateral">Lateral</option>
+                                </select>
+                            </div>
+                            <div class="col-sm-3 col-md-3">
+                                <div class="btn-group" id="filter_form_status_group" style="width:100%;">
+                                    <button type="button" class="btn btn-default btn-sm dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" style="width:100%;text-align:left;">
+                                        <span id="filter_form_status_label">All Course Fee Status</span> <span class="caret" style="float:right;margin-top:5px;"></span>
+                                    </button>
+                                    <ul class="dropdown-menu" style="min-width:175px;padding:6px 10px;">
+                                        <li><label style="font-weight:normal;margin:0;"><input type="checkbox" class="filter-status-chk" value="applied"> Applied</label></li>
+                                        <li><label style="font-weight:normal;margin:0;"><input type="checkbox" class="filter-status-chk" value="0"> Not Paid</label></li>
+                                        <li><label style="font-weight:normal;margin:0;"><input type="checkbox" class="filter-status-chk" value="2"> Partially Paid</label></li>
+                                        <li><label style="font-weight:normal;margin:0;"><input type="checkbox" class="filter-status-chk" value="1"> Fully Paid</label></li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="col-sm-2 col-md-2">
+                                <div class="btn-group" id="filter_quota_group" style="width:100%;">
+                                    <button type="button" class="btn btn-default btn-sm dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" style="width:100%;text-align:left;">
+                                        <span id="filter_quota_label">All Quota</span> <span class="caret" style="float:right;margin-top:5px;"></span>
+                                    </button>
+                                    <ul class="dropdown-menu" style="min-width:130px;padding:6px 10px;">
+                                        <li><label style="font-weight:normal;margin:0;"><input type="checkbox" class="filter-quota-chk" value="management"> Management</label></li>
+                                        <li><label style="font-weight:normal;margin:0;"><input type="checkbox" class="filter-quota-chk" value="government"> Government</label></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Row 2: Applicant / date filters -->
+                        <div class="row">
+                            <div class="col-sm-2 col-md-2">
+                                <select id="filter_submitted_by" class="form-control input-sm">
+                                    <option value="">All Submitted By</option>
+                                    <option value="student">By Direct Student</option>
+                                    <option value="staff">By Staff</option>
+                                </select>
+                            </div>
+                            <div class="col-sm-5 col-md-4">
+                                <div class="input-group input-group-sm">
+                                    <input type="text" id="filter_submit_from" class="form-control date datepicker-filter" placeholder="Submitted From" autocomplete="off" readonly>
+                                    <span class="input-group-addon" style="background:#f4f4f4;padding:0 6px;">–</span>
+                                    <input type="text" id="filter_submit_to" class="form-control date datepicker-filter" placeholder="Submitted To" autocomplete="off" readonly>
+                                    <span class="input-group-btn">
+                                        <button id="clear_submit_dates" class="btn btn-default" title="Clear" style="display:none;"><i class="fa fa-times"></i></button>
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="col-sm-3 col-md-3">
+                                <div class="input-group input-group-sm">
+                                    <input type="text" id="filter_last_payment_date" class="form-control date datepicker-filter" placeholder="Last Payment Date" autocomplete="off" readonly>
+                                    <span class="input-group-btn">
+                                        <button id="clear_payment_date" class="btn btn-default" title="Clear" style="display:none;"><i class="fa fa-times"></i></button>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div><!-- /.filter bar -->
                     <div class="box-body">
                       <div class="table-responsive">
                         <div class="mailbox-messages">

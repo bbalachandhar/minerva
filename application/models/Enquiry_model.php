@@ -381,13 +381,14 @@ class enquiry_model extends MY_Model
             0 => 'e.id',
             1 => 'e.name',
             2 => 'e.contact',
-            3 => 'e.source',
-            4 => 'lv.vendor_name',
-            5 => 'dsv.vendor_name',
-            6 => 'e.date',
-            7 => 'f.date',
-            8 => 'COALESCE(f.next_date, e.follow_up_date)',
-            9 => 'e.status',
+            3 => 'oac.course_name',
+            4 => 'e.source',
+            5 => 'lv.vendor_name',
+            6 => 'dsv.vendor_name',
+            7 => 'e.date',
+            8 => 'f.date',
+            9 => 'COALESCE(f.next_date, e.follow_up_date)',
+            10 => 'e.status',
         ];
         $order_col = isset($col_map[$order_col_idx]) ? $col_map[$order_col_idx] : 'e.id';
         $order_dir = strtoupper($order_dir) === 'ASC' ? 'ASC' : 'DESC';
@@ -398,11 +399,8 @@ class enquiry_model extends MY_Model
         if ($status !== 'all') {
             $filter_parts[] = "e.status = " . $db->escape($status);
         }
-        if (!empty($filter['class'])) {
-            $filter_parts[] = "e.class_id = " . (int) $filter['class'];
-        }
-        if (!empty($filter['department_id'])) {
-            $filter_parts[] = "c.department_id = " . (int) $filter['department_id'];
+        if (!empty($filter['admission_course_id'])) {
+            $filter_parts[] = "e.admission_course_id = " . (int) $filter['admission_course_id'];
         }
         if (!empty($filter['source'])) {
             $filter_parts[] = "e.source = " . $db->escape($filter['source']);

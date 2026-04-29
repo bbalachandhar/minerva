@@ -434,11 +434,10 @@ class Enquiry extends Admin_Controller
         $raw_ft  = trim((string) $this->input->get('filter_next_followup_to'));
 
         $filter = [
-            'status'           => $this->input->get('filter_status') ?: 'active',
-            'class'            => (int) $this->input->get('filter_class'),
-            'department_id'    => (int) $this->input->get('filter_department_id'),
-            'source'           => $this->input->get('filter_source'),
-            'lead_vendor_id'   => (int) $this->input->get('filter_lead_vendor_id'),
+            'status'               => $this->input->get('filter_status') ?: 'active',
+            'admission_course_id'  => (int) $this->input->get('filter_admission_course_id'),
+            'source'               => $this->input->get('filter_source'),
+            'lead_vendor_id'       => (int) $this->input->get('filter_lead_vendor_id'),
             'date_from'        => !empty($raw_df) ? date('Y-m-d', $this->customlib->datetostrtotime($raw_df)) : '',
             'date_to'          => !empty($raw_dt) ? date('Y-m-d', $this->customlib->datetostrtotime($raw_dt)) : '',
             'next_followup_from' => !empty($raw_ff) ? date('Y-m-d', $this->customlib->datetostrtotime($raw_ff)) : '',
@@ -507,16 +506,17 @@ class Enquiry extends Admin_Controller
                 $ref_no,                                                                                  // 0
                 htmlspecialchars($row['name']    ?? '', ENT_QUOTES),                                      // 1
                 htmlspecialchars($row['contact'] ?? '', ENT_QUOTES),                                      // 2
-                htmlspecialchars($row['source']  ?? '', ENT_QUOTES),                                      // 3
-                $lv_html,                                                                                  // 4
-                $dup_html,                                                                                 // 5
-                '<span data-order="' . $enq_date . '">' . $fmt($enq_date) . '</span>',                    // 6
-                $fmt($last_fu),                                                                            // 7
-                '<span data-order="' . $next_order . '">' . $fmt($display_next !== '0000-00-00' ? $display_next : '') . '</span>', // 8
-                $status_label,                                                                             // 9
-                $this->_enquiry_action_html($id, $status_key, (int) ($row['created_by'] ?? 0), $row['email'] ?? '', $row['name'] ?? '', $row['contact'] ?? ''), // 10
-                $fu_cls,   // 11 — hidden column, read by createdRow for follow-up cell colour
-                $st_cls,   // 12 — hidden column, read by createdRow for status cell colour
+                htmlspecialchars($row['admission_course_name'] ?? '', ENT_QUOTES),                        // 3
+                htmlspecialchars($row['source']  ?? '', ENT_QUOTES),                                      // 4
+                $lv_html,                                                                                  // 5
+                $dup_html,                                                                                 // 6
+                '<span data-order="' . $enq_date . '">' . $fmt($enq_date) . '</span>',                    // 7
+                $fmt($last_fu),                                                                            // 8
+                '<span data-order="' . $next_order . '">' . $fmt($display_next !== '0000-00-00' ? $display_next : '') . '</span>', // 9
+                $status_label,                                                                             // 10
+                $this->_enquiry_action_html($id, $status_key, (int) ($row['created_by'] ?? 0), $row['email'] ?? '', $row['name'] ?? '', $row['contact'] ?? ''), // 11
+                $fu_cls,   // 12 — hidden column, read by createdRow for follow-up cell colour
+                $st_cls,   // 13 — hidden column, read by createdRow for status cell colour
             ];
         }
 
@@ -578,18 +578,17 @@ class Enquiry extends Admin_Controller
         $raw_ft = trim((string) $this->input->get('filter_next_followup_to'));
 
         $filter = [
-            'status'           => $this->input->get('filter_status') ?: 'active',
-            'class'            => (int) $this->input->get('filter_class'),
-            'department_id'    => (int) $this->input->get('filter_department_id'),
-            'source'           => $this->input->get('filter_source'),
-            'lead_vendor_id'   => (int) $this->input->get('filter_lead_vendor_id'),
+            'status'               => $this->input->get('filter_status') ?: 'active',
+            'admission_course_id'  => (int) $this->input->get('filter_admission_course_id'),
+            'source'               => $this->input->get('filter_source'),
+            'lead_vendor_id'       => (int) $this->input->get('filter_lead_vendor_id'),
             'date_from'        => !empty($raw_df) ? date('Y-m-d', $this->customlib->datetostrtotime($raw_df)) : '',
             'date_to'          => !empty($raw_dt) ? date('Y-m-d', $this->customlib->datetostrtotime($raw_dt)) : '',
             'next_followup_from' => !empty($raw_ff) ? date('Y-m-d', $this->customlib->datetostrtotime($raw_ff)) : '',
             'next_followup_to'   => !empty($raw_ft) ? date('Y-m-d', $this->customlib->datetostrtotime($raw_ft)) : '',
         ];
 
-        $result   = $this->enquiry_model->dtenquirylist_ssp(0, 0, 99999, '', 6, 'desc', $filter);
+        $result   = $this->enquiry_model->dtenquirylist_ssp(0, 0, 99999, '', 7, 'desc', $filter);
         $date_fmt = $this->customlib->getSchoolDateFormat();
         $fmt      = function ($d) use ($date_fmt) {
             if (empty($d) || $d === '0000-00-00') {
