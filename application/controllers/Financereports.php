@@ -1246,36 +1246,38 @@ $data['department_id_selected'] = $this->input->post('department_id');
         $data['date_type']   = $this->customlib->date_type();
         $data['date_typeid'] = '';
         
-        // Get month and year filters from POST
-        $filter_month = $this->input->post('filter_month');
-        $filter_year = $this->input->post('filter_year');
+        // Default to last month on first visit; POST overrides
+        $lm = strtotime('first day of last month');
+        $filter_month = $this->input->post('filter_month') ?: date('F', $lm);
+        $filter_year  = $this->input->post('filter_year')  ?: (int)date('Y', $lm);
         $data['filter_month'] = $filter_month;
-        $data['filter_year'] = $filter_year;
+        $data['filter_year']  = $filter_year;
 
         if (isset($_POST['search_type']) && $_POST['search_type'] != '') {
-
             $dates               = $this->customlib->get_betweendate($_POST['search_type']);
             $data['search_type'] = $_POST['search_type'];
+            $start_date = date('Y-m-d', strtotime($dates['from_date']));
+            $end_date   = date('Y-m-d', strtotime($dates['to_date']));
         } else {
-
-            $dates               = $this->customlib->get_betweendate('this_year');
+            // Narrow to the selected month only — much faster than full-year scan
+            $mn = ctype_digit((string)$filter_month) ? (int)$filter_month : (int)date('n', strtotime($filter_month . ' 1 ' . $filter_year));
+            $start_date = $filter_year . '-' . str_pad($mn, 2, '0', STR_PAD_LEFT) . '-01';
+            $end_date   = date('Y-m-t', strtotime($start_date));
             $data['search_type'] = '';
         }
-
-        $start_date = date('Y-m-d', strtotime($dates['from_date']));
-        $end_date   = date('Y-m-d', strtotime($dates['to_date']));
 
         $data['label']        = date($this->customlib->getSchoolDateFormat(), strtotime($start_date)) . " " . $this->lang->line('to') . " " . date($this->customlib->getSchoolDateFormat(), strtotime($end_date));
         $data['payment_mode'] = $this->payment_mode;
 
-        $result              = $this->payroll_model->getbetweenpayrollReport($start_date, $end_date, $filter_month, $filter_year);
-        // attach allowance breakdown for each payslip row
+        $result = $this->payroll_model->getbetweenpayrollReport($start_date, $end_date, $filter_month, $filter_year);
+        // Bulk-fetch all allowances in 2 queries instead of 2 per row (N+1 fix)
+        $payslip_ids = !empty($result) ? array_column($result, 'id') : [];
+        $bulk_allowances = !empty($payslip_ids) ? $this->payroll_model->getAllowancesBulk($payslip_ids) : [];
         if (!empty($result)) {
             foreach ($result as &$row) {
-                // positive earnings other than basic
-                $row['earnings_breakdown'] = $this->payroll_model->getAllowance($row['id'], 'positive');
-                // negative deductions
-                $row['deductions_breakdown'] = $this->payroll_model->getAllowance($row['id'], 'negative');
+                $pid = $row['id'];
+                $row['earnings_breakdown']  = $bulk_allowances[$pid]['positive'] ?? [];
+                $row['deductions_breakdown'] = $bulk_allowances[$pid]['negative'] ?? [];
                 // if there is a leave deduction (LOP) add it to the breakdown so it shows under details
                 if (!empty($row['leave_deduction']) && $row['leave_deduction'] > 0) {
                     $row['deductions_breakdown'][] = array(
@@ -1329,14 +1331,16 @@ $data['department_id_selected'] = $this->input->post('department_id');
         $data['filter_category'] = $filter_category;
         $data['categories']      = $this->db->select('id, name')->order_by('id')->get('staff_designation_category')->result_array();
 
-        $filter_month         = $this->input->post('filter_month');
-        $filter_year          = $this->input->post('filter_year');
+        // Default to last month on first visit; POST overrides
+        $lm = strtotime('first day of last month');
+        $filter_month         = $this->input->post('filter_month') ?: date('F', $lm);
+        $filter_year          = $this->input->post('filter_year')  ?: (int)date('Y', $lm);
         $data['filter_month'] = $filter_month;
         $data['filter_year']  = $filter_year;
 
-        $dates      = $this->customlib->get_betweendate('this_year');
-        $start_date = date('Y-m-d', strtotime($dates['from_date']));
-        $end_date   = date('Y-m-d', strtotime($dates['to_date']));
+        $mn = ctype_digit((string)$filter_month) ? (int)$filter_month : (int)date('n', strtotime($filter_month . ' 1 ' . $filter_year));
+        $start_date = $filter_year . '-' . str_pad($mn, 2, '0', STR_PAD_LEFT) . '-01';
+        $end_date   = date('Y-m-t', strtotime($start_date));
 
         $data['label']        = date($this->customlib->getSchoolDateFormat(), strtotime($start_date)) . " " . $this->lang->line('to') . " " . date($this->customlib->getSchoolDateFormat(), strtotime($end_date));
         $data['payment_mode'] = $this->payment_mode;
@@ -1352,6 +1356,9 @@ $data['department_id_selected'] = $this->input->post('department_id');
                 return in_array($normalized, ['1', 'true', 'yes'], true);
             }));
         }
+        // Bulk-fetch allowances in 2 queries instead of 2 per row (N+1 fix)
+        $payslip_ids_sum = !empty($result) ? array_column($result, 'id') : [];
+        $bulk_allowances_sum = !empty($payslip_ids_sum) ? $this->payroll_model->getAllowancesBulk($payslip_ids_sum) : [];
         if (!empty($result)) {
             foreach ($result as &$row) {
                 $row['working_days'] = '';
@@ -1369,8 +1376,9 @@ $data['department_id_selected'] = $this->input->post('department_id');
                     }
                 }
 
-                $row['earnings_breakdown'] = $this->payroll_model->getAllowance($row['id'], 'positive');
-                $row['deductions_breakdown'] = $this->payroll_model->getAllowance($row['id'], 'negative');
+                $pid_s = $row['id'];
+                $row['earnings_breakdown']  = $bulk_allowances_sum[$pid_s]['positive'] ?? [];
+                $row['deductions_breakdown'] = $bulk_allowances_sum[$pid_s]['negative'] ?? [];
                 if (!empty($row['leave_deduction']) && $row['leave_deduction'] > 0) {
                     $row['deductions_breakdown'][] = array(
                         'allowance_type' => 'LOP',
@@ -1423,8 +1431,10 @@ $data['department_id_selected'] = $this->input->post('department_id');
         $data['filter_category'] = $filter_category;
         $data['categories']      = $this->db->select('id, name')->order_by('id')->get('staff_designation_category')->result_array();
 
-        $filter_month         = $this->input->post('filter_month');
-        $filter_year          = $this->input->post('filter_year');
+        // Default to last month on first visit; POST overrides
+        $lm = strtotime('first day of last month');
+        $filter_month         = $this->input->post('filter_month') ?: date('F', $lm);
+        $filter_year          = $this->input->post('filter_year')  ?: (int)date('Y', $lm);
         $data['filter_month'] = $filter_month;
         $data['filter_year']  = $filter_year;
 
@@ -1439,9 +1449,9 @@ $data['department_id_selected'] = $this->input->post('department_id');
         $filter_banks = is_array($filter_banks) ? array_values(array_filter(array_map('trim', $filter_banks))) : [];
         $data['filter_banks'] = $filter_banks;
 
-        $dates      = $this->customlib->get_betweendate('this_year');
-        $start_date = date('Y-m-d', strtotime($dates['from_date']));
-        $end_date   = date('Y-m-d', strtotime($dates['to_date']));
+        $mn_bc = ctype_digit((string)$filter_month) ? (int)$filter_month : (int)date('n', strtotime($filter_month . ' 1 ' . $filter_year));
+        $start_date = $filter_year . '-' . str_pad($mn_bc, 2, '0', STR_PAD_LEFT) . '-01';
+        $end_date   = date('Y-m-t', strtotime($start_date));
 
         $data['label'] = date($this->customlib->getSchoolDateFormat(), strtotime($start_date)) . " " . $this->lang->line('to') . " " . date($this->customlib->getSchoolDateFormat(), strtotime($end_date));
 
@@ -1492,9 +1502,10 @@ $data['department_id_selected'] = $this->input->post('department_id');
             $data['filter_category'] = $filter_category;
             $data['categories']      = $this->db->select('id, name')->order_by('id')->get('staff_designation_category')->result_array();
 
-            // month/year filters
-            $filter_month = $this->input->post('filter_month');
-            $filter_year  = $this->input->post('filter_year');
+            // Default to last month on first visit; POST overrides
+            $lm = strtotime('first day of last month');
+            $filter_month = $this->input->post('filter_month') ?: date('F', $lm);
+            $filter_year  = $this->input->post('filter_year')  ?: (int)date('Y', $lm);
             $display_month = $filter_month;
             if (!empty($filter_month) && !ctype_digit($filter_month)) {
                 $filter_month = date('m', strtotime($filter_month . ' 1'));
@@ -1506,13 +1517,13 @@ $data['department_id_selected'] = $this->input->post('department_id');
         if (isset($_POST['search_type']) && $_POST['search_type'] != '') {
             $dates               = $this->customlib->get_betweendate($_POST['search_type']);
             $data['search_type'] = $_POST['search_type'];
+            $start_date = date('Y-m-d', strtotime($dates['from_date']));
+            $end_date   = date('Y-m-d', strtotime($dates['to_date']));
         } else {
-            $dates               = $this->customlib->get_betweendate('this_year');
+            $start_date = $filter_year . '-' . str_pad((int)$filter_month, 2, '0', STR_PAD_LEFT) . '-01';
+            $end_date   = date('Y-m-t', strtotime($start_date));
             $data['search_type'] = '';
         }
-
-        $start_date = date('Y-m-d', strtotime($dates['from_date']));
-        $end_date   = date('Y-m-d', strtotime($dates['to_date']));
 
         $data['label'] = date($this->customlib->getSchoolDateFormat(), strtotime($start_date)) . " " . $this->lang->line('to') . " " . date($this->customlib->getSchoolDateFormat(), strtotime($end_date));
 
@@ -1613,9 +1624,10 @@ $data['department_id_selected'] = $this->input->post('department_id');
             $data['filter_category'] = $filter_category;
             $data['categories']      = $this->db->select('id, name')->order_by('id')->get('staff_designation_category')->result_array();
 
-            // month/year filters
-            $filter_month = $this->input->post('filter_month');
-            $filter_year  = $this->input->post('filter_year');
+            // Default to last month on first visit; POST overrides
+            $lm = strtotime('first day of last month');
+            $filter_month = $this->input->post('filter_month') ?: date('F', $lm);
+            $filter_year  = $this->input->post('filter_year')  ?: (int)date('Y', $lm);
             $display_month = $filter_month;
             if (!empty($filter_month) && !ctype_digit($filter_month)) {
                 $filter_month = date('m', strtotime($filter_month . ' 1'));
@@ -1627,13 +1639,13 @@ $data['department_id_selected'] = $this->input->post('department_id');
             if (isset($_POST['search_type']) && $_POST['search_type'] != '') {
                 $dates               = $this->customlib->get_betweendate($_POST['search_type']);
                 $data['search_type'] = $_POST['search_type'];
+                $start_date = date('Y-m-d', strtotime($dates['from_date']));
+                $end_date   = date('Y-m-d', strtotime($dates['to_date']));
             } else {
-                $dates               = $this->customlib->get_betweendate('this_year');
+                $start_date = $filter_year . '-' . str_pad((int)$filter_month, 2, '0', STR_PAD_LEFT) . '-01';
+                $end_date   = date('Y-m-t', strtotime($start_date));
                 $data['search_type'] = '';
             }
-
-            $start_date = date('Y-m-d', strtotime($dates['from_date']));
-            $end_date   = date('Y-m-d', strtotime($dates['to_date']));
 
             $data['label'] = date($this->customlib->getSchoolDateFormat(), strtotime($start_date)) . " " . $this->lang->line('to') . " " . date($this->customlib->getSchoolDateFormat(), strtotime($end_date));
 

@@ -520,6 +520,43 @@ class Payroll_model extends MY_Model
     }
 
     /**
+     * Fetch allowances for multiple payslip IDs in a single query (avoids N+1).
+     * Returns an array keyed by payslip_id => [ 'positive' => [...], 'negative' => [...] ]
+     */
+    public function getAllowancesBulk(array $payslip_ids)
+    {
+        if (empty($payslip_ids)) {
+            return [];
+        }
+        $ids = array_map('intval', array_unique($payslip_ids));
+        $this->db->select(
+            "payslip_allowance.payslip_id,
+            payslip_allowance.id,
+            payslip_allowance.allowance_type,
+            payroll_allowance_types.allowance_name as allowance_type_name,
+            payroll_allowance_types.allowance_code as allowance_code,
+            payslip_allowance.amount,
+            payslip_allowance.cal_type"
+        );
+        $this->db->from("payslip_allowance");
+        $this->db->join(
+            "payroll_allowance_types",
+            "payroll_allowance_types.allowance_code = payslip_allowance.allowance_type",
+            "left"
+        );
+        $this->db->where_in("payslip_allowance.payslip_id", $ids);
+        $rows = $this->db->get()->result_array();
+
+        $grouped = [];
+        foreach ($rows as $row) {
+            $pid  = $row['payslip_id'];
+            $type = $row['cal_type'];
+            $grouped[$pid][$type][] = $row;
+        }
+        return $grouped;
+    }
+
+    /**
      * Get all active allowance types from master table
      * @param string $category Optional - 'earning' or 'deduction'
      * @param bool $exclude_statutory If true, excludes auto-calculated items (EPF, ESI, TDS)

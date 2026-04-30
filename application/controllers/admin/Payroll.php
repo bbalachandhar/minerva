@@ -3833,8 +3833,9 @@ class Payroll extends Admin_Controller
         $this->session->set_userdata('top_menu', 'Reports');
         $this->session->set_userdata('sub_menu', 'Reports/human_resource');
         $this->session->set_userdata('subsub_menu', 'Reports/attendance/attendance_report');
-        $month                = $this->input->post("month");
-        $year                 = $this->input->post("year");
+        $lm                   = strtotime('first day of last month');
+        $month                = $this->input->post("month") ?: date('F', $lm);
+        $year                 = $this->input->post("year")  ?: date('Y', $lm);
         $role                 = $this->input->post("role");
         $data["month"]        = $month;
         $data["year"]         = $year;
