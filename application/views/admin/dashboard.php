@@ -494,19 +494,16 @@ foreach ($notifications as $notice_key => $notice_value) {
                 if ($this->rbac->hasPrivilege('enquiry_overview_widegts', 'can_view')) {
                     ?>
                                 <div class="col-md-2 col-sm-6 mb10">
-                                    <div class="topprograssstart flex-card" id="enquiry-overview-widget" data-url="<?php echo site_url('admin/admin/enquiry_overview_widget'); ?>">
-                                        <h5 class="pro-border widget-header-color widget-header-enquiry"><?php echo $this->lang->line('enquiry_overview'); ?></h5>
-                                        <p class="text-uppercase mt10 clearfix">
-                                            <span class="eo-total-count fo-skeleton">0</span> ENQUIRY RECEIVED
-                                        </p>
-                                        <p class="text-uppercase mt10 clearfix"><span class="eo-won-count fo-skeleton">0</span> APPLICATION RECEIVED<span class="pull-right"><span class="eo-won-percent fo-skeleton">0</span>%</span>
+                                    <div class="topprograssstart flex-card" id="enquiry-overview-widget" data-url="<?php echo site_url('admin/admin/enquiry_overview_widget'); ?>" style="height:auto !important; overflow:visible;">
+                                        <h5 class="pro-border widget-header-color widget-header-enquiry">Admission Overview</h5>
+                                        <p class="text-uppercase mt10 clearfix"><span class="eo-won-count fo-skeleton">0</span> APPLICATION RECEIVED <a href="<?php echo site_url('admin/onlinestudent?preset_filter=application_received'); ?>" class="btn btn-xs btn-default" style="font-size:10px;padding:1px 5px;margin-left:2px;" title="View Applications Received"><i class="fa fa-eye"></i></a><span class="pull-right"><span class="eo-won-percent fo-skeleton">0</span>%</span>
                                         </p>
                                         <div class="progress-group">
                                             <div class="progress progress-minibar">
                                                 <div class="progress-bar progress-bar-yellow eo-won-bar" style="width: 0%"></div>
                                             </div>
                                         </div>
-                                        <p class="text-uppercase mt10 clearfix"><span class="eo-active-count fo-skeleton">0</span> Fully Paid<span class="pull-right"><span class="eo-active-percent fo-skeleton">0</span>%</span>
+                                        <p class="text-uppercase mt10 clearfix"><span class="eo-active-count fo-skeleton">0</span> Fully Paid <a href="<?php echo site_url('admin/onlinestudent?preset_filter=fully_paid'); ?>" class="btn btn-xs btn-default" style="font-size:10px;padding:1px 5px;margin-left:2px;" title="View Fully Paid"><i class="fa fa-eye"></i></a><span class="pull-right"><span class="eo-active-percent fo-skeleton">0</span>%</span>
                                         </p>
                                         <div class="progress-group">
                                             <div class="progress progress-minibar">
@@ -515,7 +512,7 @@ foreach ($notifications as $notice_key => $notice_value) {
                                         </div>
                                         <!-- lost/dead removed per request -->
                                         <p class="text-uppercase mt10 clearfix">
-                                            <span class="eo-app-count fo-skeleton">0</span> Partially Paid
+                                            <span class="eo-app-count fo-skeleton">0</span> Partially Paid <a href="<?php echo site_url('admin/onlinestudent?preset_filter=partially_paid'); ?>" class="btn btn-xs btn-default" style="font-size:10px;padding:1px 5px;margin-left:2px;" title="View Partially Paid"><i class="fa fa-eye"></i></a>
                                             <span class="pull-right"><span class="eo-app-total-percent fo-skeleton">0</span></span>
                                         </p>
                                         <div class="progress-group">
@@ -524,7 +521,7 @@ foreach ($notifications as $notice_key => $notice_value) {
                                             </div>
                                         </div>
                                         <p class="text-uppercase mt10 clearfix">
-                                            <span class="eo-applied-count fo-skeleton">0</span> Only Application Fee Paid
+                                            <span class="eo-applied-count fo-skeleton">0</span> Only Application Fee Paid <a href="<?php echo site_url('admin/onlinestudent?preset_filter=only_app_fee_paid'); ?>" class="btn btn-xs btn-default" style="font-size:10px;padding:1px 5px;margin-left:2px;" title="View Only Application Fee Paid"><i class="fa fa-eye"></i></a>
                                             <span class="pull-right"><span class="eo-applied-percent fo-skeleton">0</span></span>
                                         </p>
                                         <div class="progress-group">
@@ -626,7 +623,7 @@ if ($this->module_lib->hasActive('front_office')) {
         ?>
                     <div class="col-md-2 col-sm-6">
                         <div class="topprograssstart" id="converted-leads-widget" data-url="<?php echo site_url('admin/admin/converted_leads_widget'); ?>" style="background: linear-gradient(135deg, #9c27b0 0%, #6a1b9a 100%); color: white; border-radius: 5px;">
-                            <p class="mt5 clearfix font14" style="color: white;"><i class="fa fa-ioxhost ftlayer" style="color: white;"></i><?php echo $this->lang->line('converted_leads'); ?><span class="pull-right"><span class="cl-complete fo-skeleton" style="color: white;">0</span>/<span class="cl-total fo-skeleton" style="color: white;">0</span></span>
+                            <p class="mt5 clearfix font14" style="color: white;"><i class="fa fa-ioxhost ftlayer" style="color: white;"></i> Converted Enquiry Leads<span class="pull-right"><span class="cl-complete fo-skeleton" style="color: white;">0</span>/<span class="cl-total fo-skeleton" style="color: white;">0</span></span>
                             </p>
                             <div class="progress-group">
                                 <div class="progress progress-minibar" style="background-color: rgba(255, 255, 255, 0.3);">

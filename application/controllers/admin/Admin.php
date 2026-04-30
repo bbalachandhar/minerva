@@ -1540,10 +1540,8 @@ class Admin extends Admin_Controller
             access_denied();
         }
 
-        $start_date = date('Y-m-01');
-        $end_date = date('Y-m-t');
-
-        $enquiry = $this->admin_model->getAllEnquiryCount($start_date, $end_date);
+        // No date filter — show all-time totals
+        $enquiry = $this->admin_model->getAllEnquiryCount();
         $total = isset($enquiry['total']) ? (int)$enquiry['total'] : 0;
         $complete = isset($enquiry['complete']) ? (int)$enquiry['complete'] : 0;
         $percent = ($total > 0) ? ($complete * 100) / $total : 0;

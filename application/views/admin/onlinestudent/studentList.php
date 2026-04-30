@@ -222,6 +222,27 @@
     }
 
     $(document).ready(function () {
+        // Pre-select filter from dashboard eye icon links (?preset_filter=...)
+        (function () {
+            var params = new URLSearchParams(window.location.search);
+            var preset = params.get('preset_filter');
+            if (!preset) return;
+            var map = {
+                'application_received': ['1', '2', 'applied'],
+                'fully_paid':           ['1'],
+                'partially_paid':       ['2'],
+                'only_app_fee_paid':    ['applied']
+            };
+            var vals = map[preset];
+            if (!vals) return;
+            $('.filter-status-chk').each(function () {
+                if (vals.indexOf($(this).val()) !== -1) {
+                    $(this).prop('checked', true);
+                }
+            });
+            updateDropdownLabel('filter-status-chk', 'filter_form_status_label', 'All Course Fee Status');
+        })();
+
         studentTable = $('.student-list').DataTable({
             dom: '<"top"f><Bl>r<t>ip',
             lengthMenu: [[10, 50, 100, -1], [10, 50, 100, "All"]],
