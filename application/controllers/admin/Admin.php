@@ -1385,10 +1385,12 @@ class Admin extends Admin_Controller
 
     public function whatsapp_sent_widget()
     {
+        $start = date('Y-m-01 00:00:00');
+        $end   = date('Y-m-t 23:59:59');
         $row = $this->db
             ->select_sum('recipient_count')
-            ->where('month', (int) date('n'))
-            ->where('year',  (int) date('Y'))
+            ->where('sent_at >=', $start)
+            ->where('sent_at <=', $end)
             ->get('whatsapp_message_log')->row();
 
         $count = $row ? (int) $row->recipient_count : 0;
