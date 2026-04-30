@@ -82,6 +82,16 @@ if ($value["source"] == $source_select) {
                                     </select>
                                 </div>
                             </div>
+                            <div class="col-sm-3 col-md-2 col-lg-2">
+                                <div class="form-group">
+                                    <label>Is Duplicate?</label>
+                                    <select id="is_duplicate" name="is_duplicate" class="form-control">
+                                        <option value="">All</option>
+                                        <option value="yes">Yes</option>
+                                        <option value="no">No</option>
+                                    </select>
+                                </div>
+                            </div>
                              <div class="col-sm-3 col-md-2 col-lg-2">
                                 <div class="form-group">
                                     <label><?php echo $this->lang->line('enquiry_from_date'); ?></label>
@@ -638,6 +648,7 @@ if ($enkey == $status) {
         filter_admission_course_id:   '',
         filter_source:                '<?php echo addslashes($source_select); ?>',
         filter_lead_vendor_id:        '<?php echo (int)$selected_lead_vendor; ?>',
+        filter_is_duplicate:          '',
         filter_date_from:          '',
         filter_date_to:            '',
         filter_next_followup_from: '',
@@ -738,6 +749,7 @@ if ($enkey == $status) {
             dtFilters.filter_admission_course_id   = $('[name="admission_course_id_filter"]').val() || '';
             dtFilters.filter_source                = $('[name="source"]').val()                      || '';
             dtFilters.filter_lead_vendor_id     = $('[name="lead_vendor_id"]').val()      || '';
+            dtFilters.filter_is_duplicate       = $('[name="is_duplicate"]').val()        || '';
             dtFilters.filter_date_from          = $('[name="from_date"]').val()           || '';
             dtFilters.filter_date_to            = $('[name="to_date"]').val()             || '';
             dtFilters.filter_next_followup_from = $('[name="last_follow_up_from"]').val() || '';

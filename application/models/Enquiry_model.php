@@ -408,6 +408,13 @@ class enquiry_model extends MY_Model
         if (!empty($filter['lead_vendor_id'])) {
             $filter_parts[] = "e.lead_vendor_id = " . (int) $filter['lead_vendor_id'];
         }
+        if (!empty($filter['is_duplicate'])) {
+            if ($filter['is_duplicate'] === 'yes') {
+                $filter_parts[] = "e.duplicate_source_vendor_id IS NOT NULL";
+            } elseif ($filter['is_duplicate'] === 'no') {
+                $filter_parts[] = "e.duplicate_source_vendor_id IS NULL";
+            }
+        }
         if (!empty($filter['date_from'])) {
             $filter_parts[] = "e.date >= " . $db->escape($filter['date_from']);
         }
