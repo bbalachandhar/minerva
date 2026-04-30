@@ -1,8 +1,39 @@
 -- ============================================================
 -- Minerva ERP - New Instance Bootstrap SQL
 -- Generated from mcekknagar on 2026-04-30 17:30:52 UTC
--- Usage: mysql -u <user> -p <new_db> < schema.sql
--- After import, update sch_settings: base_url, folder_path, name
+--
+-- HOW TO PROVISION A NEW INSTANCE
+-- --------------------------------
+-- 1. Create the database on the server:
+--      mysql -u meenakshi -p'<password>' -e "CREATE DATABASE <newdb> CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+--
+-- 2. Import this file:
+--      mysql -u meenakshi -p'<password>' <newdb> < tools/schema.sql
+--
+-- 3. Set the institution name and base URL:
+--      mysql -u meenakshi -p'<password>' <newdb> -e \
+--        "UPDATE sch_settings SET name='<School Name>', base_url='https://<subdomain>.beebasoft.com/', folder_path='https://<subdomain>.beebasoft.com/' WHERE 1;"
+--
+-- 4. Configure email (SES credentials were redacted in this file):
+--      Log in as admin → System Settings → Email Configuration
+--      Set your AWS SES Access Key and Secret Key there.
+--
+-- 5. Apache vhost: copy /etc/httpd/conf.d/mce.conf → <newname>.conf, update ServerName + DocumentRoot
+--      sudo apachectl configtest && sudo systemctl reload httpd
+--
+-- 6. SSL cert:
+--      sudo certbot --apache -d <subdomain>.beebasoft.com --non-interactive --agree-tos -m admin@beebasoft.com --redirect
+--
+-- 7. Clone/pull code:
+--      sudo git clone https://github.com/bbalachandhar/minerva.git /var/www/<newname>
+--      sudo chown -R apache:apache /var/www/<newname>
+--
+-- 8. Production config files (copy from an existing instance and edit):
+--      /var/www/<newname>/application/config/production/config.php   ← set base_url
+--      /var/www/<newname>/application/config/production/database.php ← set database name
+--
+-- NOTE: This file is regenerated from production (mcekknagar) when the schema changes.
+--       To refresh: run tools/new_institution/prepare_new_institution.sh or re-export from EC2.
 -- ============================================================
 
 -- MySQL dump 10.13  Distrib 8.0.44, for Linux (x86_64)
