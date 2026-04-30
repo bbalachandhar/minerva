@@ -522,6 +522,18 @@ echo display_custom_fields('staff');
                                                         <span class="text-danger"><?php echo form_error('is_esi_enabled'); ?></span>
                                                     </div>
                                                 </div>
+                                                <div class="col-md-4">
+                                                    <div class="form-group">
+                                                        <label>Skip Payroll Generation</label>
+                                                        <div class="checkbox">
+                                                            <label>
+                                                                <input type="checkbox" name="skip_payroll" value="1" />
+                                                                Exclude from payroll
+                                                            </label>
+                                                        </div>
+                                                        <small class="text-muted">If checked, this staff will be skipped during bulk payroll generation.</small>
+                                                    </div>
+                                                </div>
                                                 <?php if ($sch_setting->staff_basic_salary) {?>
                                                     <div class="col-md-4">
                                                         <div class="form-group">

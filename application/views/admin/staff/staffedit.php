@@ -526,6 +526,18 @@ if ($staff["marital_status"] == $mavalue) {
                                                 </div>
                                                 <div class="col-md-4">
                                                     <div class="form-group">
+                                                        <label>Skip Payroll Generation</label>
+                                                        <div class="checkbox">
+                                                            <label>
+                                                                <input type="checkbox" name="skip_payroll" value="1" <?php echo (!empty($staff['skip_payroll']) ? 'checked' : ''); ?> />
+                                                                Exclude from payroll
+                                                            </label>
+                                                        </div>
+                                                        <small class="text-muted">If checked, this staff will be skipped during bulk payroll generation.</small>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <div class="form-group">
                                                         <label for="tds_percentage">TDS % (Flat Override)</label>
                                                         <input id="tds_percentage" name="tds_percentage" type="number" step="0.01" min="0" max="100" class="form-control" value="<?php echo isset($staff['tds_percentage']) ? $staff['tds_percentage'] : ''; ?>" placeholder="e.g. 5 or 10" />
                                                         <small class="text-muted">If set, applies flat % on gross salary instead of the new-regime slab. Leave blank for slab-based TDS.</small>

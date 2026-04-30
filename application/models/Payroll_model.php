@@ -22,6 +22,8 @@ class Payroll_model extends MY_Model
                 $condition = " and roles.id != 7";
             } 
         }
+        // Always exclude staff marked as skip_payroll
+        $condition .= " and staff.skip_payroll != 1";
         
         $date_month = date("m", strtotime($year));
         if (!empty($role) && !empty($emp_name)) {

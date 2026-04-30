@@ -1466,6 +1466,7 @@ class Staff extends Admin_Controller
             $esi_no            = $this->input->post("esi_no");
             $is_epf_enabled    = $this->input->post("is_epf_enabled") ? 1 : 0;
             $is_esi_enabled    = $this->input->post("is_esi_enabled") ? 1 : 0;
+            $skip_payroll      = $this->input->post("skip_payroll") ? 1 : 0;
             $opening_ytd_income_raw = $this->input->post("opening_ytd_income");
             $opening_ytd_income = ($opening_ytd_income_raw !== '' && $opening_ytd_income_raw !== false && $opening_ytd_income_raw !== null && is_numeric($opening_ytd_income_raw)) ? round((float)$opening_ytd_income_raw, 2) : null;
             $opening_ytd_tax_raw = $this->input->post("opening_ytd_tax_deducted");
@@ -1583,6 +1584,7 @@ class Staff extends Admin_Controller
 
             $data_insert['is_epf_enabled'] = $is_epf_enabled;
             $data_insert['is_esi_enabled'] = $is_esi_enabled;
+            $data_insert['skip_payroll'] = $skip_payroll;
             $data_insert['opening_ytd_income'] = $opening_ytd_income;
             $data_insert['opening_ytd_tax_deducted'] = $opening_ytd_tax;
             $data_insert['opening_ytd_fy_start_year'] = $opening_ytd_fy_start_year;
@@ -1933,6 +1935,7 @@ class Staff extends Admin_Controller
             $esi_no = $this->input->post("esi_no");
             $is_epf_enabled = $this->input->post("is_epf_enabled") ? 1 : 0;
             $is_esi_enabled = $this->input->post("is_esi_enabled") ? 1 : 0;
+            $skip_payroll   = $this->input->post("skip_payroll") ? 1 : 0;
             $tds_pct_raw = $this->input->post("tds_percentage");
             $tds_percentage = ($tds_pct_raw !== '' && $tds_pct_raw !== false && $tds_pct_raw !== null && is_numeric($tds_pct_raw)) ? round((float)$tds_pct_raw, 2) : null;
             $opening_ytd_income_raw = $this->input->post("opening_ytd_income");
@@ -1994,6 +1997,7 @@ class Staff extends Admin_Controller
                 'subject_expertise' => $subject_expertise,
                 'is_epf_enabled' => $is_epf_enabled,
                 'is_esi_enabled' => $is_esi_enabled,
+                'skip_payroll' => $skip_payroll,
                 'category_id' => $category_id,
                 'tds_percentage' => $tds_percentage,
                 'opening_ytd_income' => $opening_ytd_income,
