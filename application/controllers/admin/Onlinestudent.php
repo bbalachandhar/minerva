@@ -577,6 +577,11 @@ class Onlinestudent extends Admin_Controller
                 $row[] = $value->firstname . " " . $middlename. " " . $last_name;
                 $row[] = !empty($value->course_name) ? $value->course_name : "N/A";
 
+                $at_raw = isset($value->admission_type) ? $value->admission_type : '';
+                if ($at_raw === 'lateral') $row[] = 'Lateral';
+                elseif ($at_raw === 'first_year') $row[] = 'First Year';
+                else $row[] = 'N/A';
+
                 $row[] = $application_date;
                 $submitted_by_name = trim((string) ($value->submitted_by_name ?? ''));
                 if (!empty($value->referred_by_employee_id)) {
@@ -586,10 +591,6 @@ class Onlinestudent extends Admin_Controller
                 }
                 $row[] = $this->lang->line(strtolower($value->gender));
                 $row[] = !empty($value->quota_type) ? $value->quota_type : "N/A";
-                $at_raw = isset($value->admission_type) ? $value->admission_type : '';
-                if ($at_raw === 'lateral') $row[] = 'Lateral';
-                elseif ($at_raw === 'first_year') $row[] = 'First Year';
-                else $row[] = 'N/A';
 
                 $application_ref_no = !empty($value->reference_no) ? preg_replace('/\s+/', '', (string) $value->reference_no) : '';
                 $course_fee = (isset($value->course_fee_total) && $value->course_fee_total !== null && $value->course_fee_total !== '') ? (float) $value->course_fee_total : 0;
