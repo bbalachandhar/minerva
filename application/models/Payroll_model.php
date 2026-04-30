@@ -595,6 +595,7 @@ class Payroll_model extends MY_Model
             $data = array('staff_payslip.month' => $month, 'staff_payslip.year' => $year, 'roles.name' => $role);
         }
         $data['staff.is_active'] = 1;
+        $data['staff.skip_payroll'] = 0;
 
         if (empty($statuses)) {
             $statuses = ['paid'];
@@ -732,7 +733,8 @@ class Payroll_model extends MY_Model
         $this->db->join("department", "staff.department = department.id", "left");
         $this->db->join("staff_roles", "staff_roles.staff_id = staff.id", "left");
         $this->db->join("roles", "staff_roles.role_id = roles.id", "left");        
-        $this->db->where($condition); 
+        $this->db->where($condition);
+        $this->db->where('staff.skip_payroll !=', 1);
         if ($this->session->has_userdata('admin')) {
             $getStaffRole     = $this->customlib->getStaffRole();
             $staffrole   =   json_decode($getStaffRole);       
