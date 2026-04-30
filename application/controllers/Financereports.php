@@ -1256,17 +1256,21 @@ $data['department_id_selected'] = $this->input->post('department_id');
         if (isset($_POST['search_type']) && $_POST['search_type'] != '') {
             $dates               = $this->customlib->get_betweendate($_POST['search_type']);
             $data['search_type'] = $_POST['search_type'];
-            $start_date = date('Y-m-d', strtotime($dates['from_date']));
-            $end_date   = date('Y-m-d', strtotime($dates['to_date']));
+            $start_date  = date('Y-m-d', strtotime($dates['from_date']));
+            $end_date    = date('Y-m-d', strtotime($dates['to_date']));
+            $label_start = $start_date;
+            $label_end   = $end_date;
         } else {
-            // Narrow to the selected month only — much faster than full-year scan
             $mn = ctype_digit((string)$filter_month) ? (int)$filter_month : (int)date('n', strtotime($filter_month . ' 1 ' . $filter_year));
-            $start_date = $filter_year . '-' . str_pad($mn, 2, '0', STR_PAD_LEFT) . '-01';
-            $end_date   = date('Y-m-t', strtotime($start_date));
+            $label_start = $filter_year . '-' . str_pad($mn, 2, '0', STR_PAD_LEFT) . '-01';
+            $label_end   = date('Y-m-t', strtotime($label_start));
+            // Year-wide payment_date range; month/year columns do the precise period filter
+            $start_date  = $filter_year . '-01-01';
+            $end_date    = $filter_year . '-12-31';
             $data['search_type'] = '';
         }
 
-        $data['label']        = date($this->customlib->getSchoolDateFormat(), strtotime($start_date)) . " " . $this->lang->line('to') . " " . date($this->customlib->getSchoolDateFormat(), strtotime($end_date));
+        $data['label']        = date($this->customlib->getSchoolDateFormat(), strtotime($label_start)) . " " . $this->lang->line('to') . " " . date($this->customlib->getSchoolDateFormat(), strtotime($label_end));
         $data['payment_mode'] = $this->payment_mode;
 
         $result = $this->payroll_model->getbetweenpayrollReport($start_date, $end_date, $filter_month, $filter_year);
@@ -1339,10 +1343,13 @@ $data['department_id_selected'] = $this->input->post('department_id');
         $data['filter_year']  = $filter_year;
 
         $mn = ctype_digit((string)$filter_month) ? (int)$filter_month : (int)date('n', strtotime($filter_month . ' 1 ' . $filter_year));
-        $start_date = $filter_year . '-' . str_pad($mn, 2, '0', STR_PAD_LEFT) . '-01';
-        $end_date   = date('Y-m-t', strtotime($start_date));
+        $label_start = $filter_year . '-' . str_pad($mn, 2, '0', STR_PAD_LEFT) . '-01';
+        $label_end   = date('Y-m-t', strtotime($label_start));
+        // Year-wide payment_date range; month/year columns do the precise period filter
+        $start_date  = $filter_year . '-01-01';
+        $end_date    = $filter_year . '-12-31';
 
-        $data['label']        = date($this->customlib->getSchoolDateFormat(), strtotime($start_date)) . " " . $this->lang->line('to') . " " . date($this->customlib->getSchoolDateFormat(), strtotime($end_date));
+        $data['label']        = date($this->customlib->getSchoolDateFormat(), strtotime($label_start)) . " " . $this->lang->line('to') . " " . date($this->customlib->getSchoolDateFormat(), strtotime($label_end));
         $data['payment_mode'] = $this->payment_mode;
 
         $result              = $this->payroll_model->getbetweenpayrollReport($start_date, $end_date, $filter_month, $filter_year, $data['filter_category']);
@@ -1450,10 +1457,13 @@ $data['department_id_selected'] = $this->input->post('department_id');
         $data['filter_banks'] = $filter_banks;
 
         $mn_bc = ctype_digit((string)$filter_month) ? (int)$filter_month : (int)date('n', strtotime($filter_month . ' 1 ' . $filter_year));
-        $start_date = $filter_year . '-' . str_pad($mn_bc, 2, '0', STR_PAD_LEFT) . '-01';
-        $end_date   = date('Y-m-t', strtotime($start_date));
+        $label_start_bc = $filter_year . '-' . str_pad($mn_bc, 2, '0', STR_PAD_LEFT) . '-01';
+        $label_end_bc   = date('Y-m-t', strtotime($label_start_bc));
+        // Year-wide payment_date range; month/year columns do the precise period filter
+        $start_date  = $filter_year . '-01-01';
+        $end_date    = $filter_year . '-12-31';
 
-        $data['label'] = date($this->customlib->getSchoolDateFormat(), strtotime($start_date)) . " " . $this->lang->line('to') . " " . date($this->customlib->getSchoolDateFormat(), strtotime($end_date));
+        $data['label'] = date($this->customlib->getSchoolDateFormat(), strtotime($label_start_bc)) . " " . $this->lang->line('to') . " " . date($this->customlib->getSchoolDateFormat(), strtotime($label_end_bc));
 
         $result = $this->payroll_model->getbetweenpayrollReport(
             $start_date,
@@ -1517,15 +1527,20 @@ $data['department_id_selected'] = $this->input->post('department_id');
         if (isset($_POST['search_type']) && $_POST['search_type'] != '') {
             $dates               = $this->customlib->get_betweendate($_POST['search_type']);
             $data['search_type'] = $_POST['search_type'];
-            $start_date = date('Y-m-d', strtotime($dates['from_date']));
-            $end_date   = date('Y-m-d', strtotime($dates['to_date']));
+            $start_date  = date('Y-m-d', strtotime($dates['from_date']));
+            $end_date    = date('Y-m-d', strtotime($dates['to_date']));
+            $label_start = $start_date;
+            $label_end   = $end_date;
         } else {
-            $start_date = $filter_year . '-' . str_pad((int)$filter_month, 2, '0', STR_PAD_LEFT) . '-01';
-            $end_date   = date('Y-m-t', strtotime($start_date));
+            $label_start = $filter_year . '-' . str_pad((int)$filter_month, 2, '0', STR_PAD_LEFT) . '-01';
+            $label_end   = date('Y-m-t', strtotime($label_start));
+            // Year-wide payment_date range; month/year columns do the precise period filter
+            $start_date  = $filter_year . '-01-01';
+            $end_date    = $filter_year . '-12-31';
             $data['search_type'] = '';
         }
 
-        $data['label'] = date($this->customlib->getSchoolDateFormat(), strtotime($start_date)) . " " . $this->lang->line('to') . " " . date($this->customlib->getSchoolDateFormat(), strtotime($end_date));
+        $data['label'] = date($this->customlib->getSchoolDateFormat(), strtotime($label_start)) . " " . $this->lang->line('to') . " " . date($this->customlib->getSchoolDateFormat(), strtotime($label_end));
 
         log_message('debug','epfreport fetch payroll range '.$start_date.' to '.$end_date);
         $result = $this->payroll_model->getbetweenpayrollReport($start_date, $end_date, $filter_month, $filter_year, $filter_category);
@@ -1639,15 +1654,20 @@ $data['department_id_selected'] = $this->input->post('department_id');
             if (isset($_POST['search_type']) && $_POST['search_type'] != '') {
                 $dates               = $this->customlib->get_betweendate($_POST['search_type']);
                 $data['search_type'] = $_POST['search_type'];
-                $start_date = date('Y-m-d', strtotime($dates['from_date']));
-                $end_date   = date('Y-m-d', strtotime($dates['to_date']));
+                $start_date  = date('Y-m-d', strtotime($dates['from_date']));
+                $end_date    = date('Y-m-d', strtotime($dates['to_date']));
+                $label_start = $start_date;
+                $label_end   = $end_date;
             } else {
-                $start_date = $filter_year . '-' . str_pad((int)$filter_month, 2, '0', STR_PAD_LEFT) . '-01';
-                $end_date   = date('Y-m-t', strtotime($start_date));
+                $label_start = $filter_year . '-' . str_pad((int)$filter_month, 2, '0', STR_PAD_LEFT) . '-01';
+                $label_end   = date('Y-m-t', strtotime($label_start));
+                // Year-wide payment_date range; month/year columns do the precise period filter
+                $start_date  = $filter_year . '-01-01';
+                $end_date    = $filter_year . '-12-31';
                 $data['search_type'] = '';
             }
 
-            $data['label'] = date($this->customlib->getSchoolDateFormat(), strtotime($start_date)) . " " . $this->lang->line('to') . " " . date($this->customlib->getSchoolDateFormat(), strtotime($end_date));
+            $data['label'] = date($this->customlib->getSchoolDateFormat(), strtotime($label_start)) . " " . $this->lang->line('to') . " " . date($this->customlib->getSchoolDateFormat(), strtotime($label_end));
 
             log_message('debug','esireport fetch payroll range '.$start_date.' to '.$end_date);
             $result = $this->payroll_model->getbetweenpayrollReport($start_date, $end_date, $filter_month, $filter_year, $filter_category);
