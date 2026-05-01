@@ -967,21 +967,41 @@ class Payroll_model extends MY_Model
             $seen[$leave_type_id] = true;
         }
 
-        usort($pool, function ($left, $right) use ($od_type_ids) {
-            $left_is_od = in_array((int) ($left['leave_type_id'] ?? 0), $od_type_ids, true) ? 1 : 0;
-            $right_is_od = in_array((int) ($right['leave_type_id'] ?? 0), $od_type_ids, true) ? 1 : 0;
+        // Build CPL-like type IDs: requires_balance_check=0 but not in od_type_ids.
+        // These are compensation leaves (e.g. CPL) that should be adjusted
+        // after OD but before regular paid leaves like CL.
+        $cpl_type_ids = [];
+        if ($this->db->field_exists('requires_balance_check', 'leave_types')) {
+            $cpl_rows = $this->db->select('id')->from('leave_types')
+                ->where('is_lop', 0)
+                ->where('requires_balance_check', 0)
+                ->get()->result_array();
+            foreach ($cpl_rows as $cpl_row) {
+                $cpl_id = (int) ($cpl_row['id'] ?? 0);
+                if ($cpl_id > 0 && !in_array($cpl_id, $od_type_ids, true)) {
+                    $cpl_type_ids[] = $cpl_id;
+                }
+            }
+        }
 
-            if ($left_is_od !== $right_is_od) {
-                return $right_is_od - $left_is_od;
+        // Sort into three tiers: OD (tier 0) → CPL-like (tier 1) → regular paid (tier 2).
+        // Within each tier, sort alphabetically by type name.
+        usort($pool, function ($left, $right) use ($od_type_ids, $cpl_type_ids) {
+            $left_id  = (int) ($left['leave_type_id']  ?? 0);
+            $right_id = (int) ($right['leave_type_id'] ?? 0);
+
+            $left_tier  = in_array($left_id,  $od_type_ids,  true) ? 0
+                        : (in_array($left_id,  $cpl_type_ids, true) ? 1 : 2);
+            $right_tier = in_array($right_id, $od_type_ids,  true) ? 0
+                        : (in_array($right_id, $cpl_type_ids, true) ? 1 : 2);
+
+            if ($left_tier !== $right_tier) {
+                return $left_tier - $right_tier;
             }
 
-            $left_type = strtolower(trim((string) ($left['type'] ?? '')));
+            $left_type  = strtolower(trim((string) ($left['type']  ?? '')));
             $right_type = strtolower(trim((string) ($right['type'] ?? '')));
-            if ($left_type === $right_type) {
-                return 0;
-            }
-
-            return ($left_type < $right_type) ? -1 : 1;
+            return strcmp($left_type, $right_type);
         });
 
         return $pool;
