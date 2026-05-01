@@ -598,7 +598,7 @@ class Payroll_model extends MY_Model
 
     public function getSalaryDetails($id)
     {
-        $query = $this->db->select("net_salary, total_allowance as earnings, total_deduction as deduction, basic as basic_salary, tax, leave_deduction")
+        $query = $this->db->select("net_salary, total_allowance as earnings, total_deduction as deduction, basic as basic_salary, tax, leave_deduction, employee_epf, employee_esi")
             ->where('staff_id', $id)
             ->where_in('status', ['paid', 'generated'])
             ->order_by('year', 'DESC')

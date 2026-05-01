@@ -197,6 +197,8 @@ class Staff extends Admin_Controller
                 'basic_salary'   => 0,
                 'tax'            => 0,
                 'leave_deduction'=> 0,
+                'employee_epf'   => 0,
+                'employee_esi'   => 0,
             ];
         } elseif (is_object($salary)) {
             $salary = (array) $salary;
@@ -208,6 +210,8 @@ class Staff extends Admin_Controller
         $salary['basic_salary']    = isset($salary['basic_salary']) ? $salary['basic_salary'] : 0;
         $salary['tax']             = isset($salary['tax']) ? $salary['tax'] : 0;
         $salary['leave_deduction'] = isset($salary['leave_deduction']) ? $salary['leave_deduction'] : 0;
+        $salary['employee_epf']    = isset($salary['employee_epf']) ? $salary['employee_epf'] : 0;
+        $salary['employee_esi']    = isset($salary['employee_esi']) ? $salary['employee_esi'] : 0;
 
         $attendencetypes             = $this->staffattendancemodel->getStaffAttendanceType();
         $data['attendencetypeslist'] = $attendencetypes;

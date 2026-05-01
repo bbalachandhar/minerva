@@ -707,7 +707,9 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                     <div class="staffprofile" style="background: linear-gradient(135deg, #f39c12, #e67e22);">
                                         <h5>Deduction</h5>
                                         <h4><?php
-                                            $deduction = $salary["deduction"] + $salary["tax"];
+                                            $deduction = $salary["deduction"] + $salary["tax"]
+                                                       + (float)($salary["employee_epf"] ?? 0)
+                                                       + (float)($salary["employee_esi"] ?? 0);
 
                                             if (!empty($deduction)) {
                                                 echo $currency_symbol . amountFormat($deduction);
@@ -737,7 +739,9 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                     <div class="staffprofile" style="background: linear-gradient(135deg, #95a5a6, #7f8c8d);">
                                         <h5>Total Deduction</h5>
                                         <h4><?php
-                                            $deduction = $salary["deduction"] + $salary["tax"];
+                                            $deduction = $salary["deduction"] + $salary["tax"]
+                                                       + (float)($salary["employee_epf"] ?? 0)
+                                                       + (float)($salary["employee_esi"] ?? 0);
                                             $total_deduction = $deduction + $salary["leave_deduction"];
 
                                             if (!empty($total_deduction)) {
