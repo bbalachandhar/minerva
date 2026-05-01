@@ -226,7 +226,7 @@ class Staff extends Admin_Controller
                     FROM staff_monthly_leave_balance b
                     WHERE b.staff_id = ?
                       AND b.leave_type_id = lt.id
-                      AND b.last_processed_date IS NOT NULL
+                      AND (b.used_for_lop_adjustment + b.used_for_leave_application) > 0
                     ORDER BY b.year DESC, b.month DESC, b.id DESC
                     LIMIT 1
                 ), 0) AS last_consumed,
