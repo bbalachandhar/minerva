@@ -221,6 +221,12 @@ class Staff extends Admin_Controller
                 COALESCE(smlb.closing_balance, sld.alloted_leave, 0) + COALESCE(smlb.admin_adjustment, 0) AS base_balance,
                 COALESCE(smlb.used_for_lop_adjustment, 0) AS used_for_lop_adjustment,
                 COALESCE(smlb.used_for_leave_application, 0) AS used_for_leave_application,
+                COALESCE((
+                    SELECT SUM(b.used_for_lop_adjustment + b.used_for_leave_application)
+                    FROM staff_monthly_leave_balance b
+                    WHERE b.staff_id = ?
+                      AND b.leave_type_id = lt.id
+                ), 0) AS total_consumed_all_months,
                 smlb.year,
                 smlb.month,
                 lt.credit_source_type_id,
@@ -270,7 +276,7 @@ class Staff extends Admin_Controller
                 )
             WHERE lt.is_active = 'yes'
             ORDER BY lt.type ASC
-        ", array($id, $id, $id, $id))->result_array();
+        ", array($id, $id, $id, $id, $id))->result_array();
 
         foreach ($leave_rows as $row) {
             $leave_type_id    = (int) ($row['leave_type_id'] ?? 0);
@@ -283,8 +289,8 @@ class Staff extends Admin_Controller
                     + (float) ($row['used_for_leave_application'] ?? 0)
                     + (float) ($row['extra_debit'] ?? 0);
             } elseif (!empty($row['year']) || !empty($row['month'])) {
-                $approve_leave = (float) ($row['used_for_lop_adjustment'] ?? 0)
-                    + (float) ($row['used_for_leave_application'] ?? 0);
+                // Sum consumed across all months so LOP adjustments from prior months are included.
+                $approve_leave = (float) ($row['total_consumed_all_months'] ?? 0);
             } else {
                 $count_leave_row = $this->leaverequest_model->countLeavesData($id, $leave_type_id);
                 $approve_leave = isset($count_leave_row['approve_leave']) ? (float) $count_leave_row['approve_leave'] : 0.0;
