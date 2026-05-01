@@ -1293,6 +1293,50 @@ class Payroll_model extends MY_Model
      * @param int $month Month (1-12)
      * @return array|null Monthly balance record
      */
+
+    /**
+     * Cascade a new closing balance to the next month's opening_balance if that
+     * row already exists. Recalculates the next month's closing_balance preserving
+     * its own consumed amounts. Does NOT recurse further.
+     */
+    private function cascadeClosingToNextMonth($staff_id, $leave_type_id, $year, $month, $new_closing)
+    {
+        $next_month = (int) $month + 1;
+        $next_year  = (int) $year;
+        if ($next_month > 12) {
+            $next_month = 1;
+            $next_year++;
+        }
+
+        $next_row = $this->db
+            ->where('staff_id', (int) $staff_id)
+            ->where('leave_type_id', (int) $leave_type_id)
+            ->where('year', $next_year)
+            ->where('month', $next_month)
+            ->limit(1)
+            ->get('staff_monthly_leave_balance')
+            ->row_array();
+
+        if (empty($next_row)) {
+            return; // Next month row not yet created — no cascade needed.
+        }
+
+        $earned       = floatval($next_row['earned_in_month']            ?? 0);
+        $used_lop     = floatval($next_row['used_for_lop_adjustment']    ?? 0);
+        $used_leave   = floatval($next_row['used_for_leave_application'] ?? 0);
+        $other_ded    = floatval($next_row['other_deductions']           ?? 0);
+        $admin_adj    = floatval($next_row['admin_adjustment']           ?? 0);
+
+        $new_next_closing = $new_closing + $admin_adj + $earned - $used_lop - $used_leave - $other_ded;
+
+        $this->db->where('id', (int) $next_row['id']);
+        $this->db->update('staff_monthly_leave_balance', [
+            'opening_balance' => $new_closing,
+            'closing_balance' => $new_next_closing,
+            'updated_at'      => date('Y-m-d H:i:s'),
+        ]);
+    }
+
     public function getOrCreateMonthlyBalance($staff_id, $leave_type_id, $year, $month)
     {
         // Check if record exists
@@ -1647,6 +1691,9 @@ class Payroll_model extends MY_Model
                 $this->logBalanceAudit($balance['id'], $staff_id, $leave['leave_type_id'], 'LOP_ADJUSTMENT', 
                                       $to_adjust, $available, $new_closing, $payslip_id, 'payslip', 
                                       'LOP adjustment for payroll');
+
+                // Propagate updated closing balance to next month's opening if that row exists.
+                $this->cascadeClosingToNextMonth($staff_id, (int) $leave['leave_type_id'], $year_int, $month_int, $new_closing);
             }
 
             if ($is_od_leave) {
