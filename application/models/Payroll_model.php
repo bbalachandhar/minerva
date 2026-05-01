@@ -1321,20 +1321,42 @@ class Payroll_model extends MY_Model
             return; // Next month row not yet created — no cascade needed.
         }
 
-        $earned       = floatval($next_row['earned_in_month']            ?? 0);
-        $used_lop     = floatval($next_row['used_for_lop_adjustment']    ?? 0);
-        $used_leave   = floatval($next_row['used_for_leave_application'] ?? 0);
-        $other_ded    = floatval($next_row['other_deductions']           ?? 0);
-        $admin_adj    = floatval($next_row['admin_adjustment']           ?? 0);
+        $earned           = floatval($next_row['earned_in_month']            ?? 0);
+        $used_lop         = floatval($next_row['used_for_lop_adjustment']    ?? 0);
+        $used_leave       = floatval($next_row['used_for_leave_application'] ?? 0);
+        $other_ded        = floatval($next_row['other_deductions']           ?? 0);
+        $admin_adj        = floatval($next_row['admin_adjustment']           ?? 0);
+        $orig_opening     = floatval($next_row['opening_balance']            ?? 0);
+        $old_next_closing = floatval($next_row['closing_balance']            ?? 0);
 
-        $new_next_closing = $new_closing + $admin_adj + $earned - $used_lop - $used_leave - $other_ded;
+        // Compute new closing while preserving the original opening_balance so the
+        // MONTHLY_CREDIT "After" in the transaction history reflects what balance was
+        // at the moment of the credit (before this cascade adjustment).
+        $new_next_closing = $orig_opening + $admin_adj + $earned - $used_lop - $used_leave - $other_ded
+                          + ($new_closing - $orig_opening); // apply the cascade delta
 
+        // Only update closing_balance — leave opening_balance as-is (historical creation value).
         $this->db->where('id', (int) $next_row['id']);
         $this->db->update('staff_monthly_leave_balance', [
-            'opening_balance' => $new_closing,
             'closing_balance' => $new_next_closing,
             'updated_at'      => date('Y-m-d H:i:s'),
         ]);
+
+        // Write an audit entry so the cascade adjustment is visible in the transaction history.
+        $cascade_delta = $old_next_closing - $new_next_closing;
+        if (abs($cascade_delta) > 0.001 && $this->db->table_exists('staff_leave_balance_audit')) {
+            $this->db->insert('staff_leave_balance_audit', [
+                'balance_id'     => (int) $next_row['id'],
+                'staff_id'       => (int) $staff_id,
+                'leave_type_id'  => (int) $leave_type_id,
+                'action_type'    => 'LOP_CASCADE',
+                'amount'         => round($cascade_delta, 4),
+                'balance_before' => round($old_next_closing, 4),
+                'balance_after'  => round($new_next_closing, 4),
+                'reason'         => 'LOP cascade from ' . sprintf('%04d-%02d', $year, $month) . ' payroll',
+                'created_at'     => date('Y-m-d H:i:s'),
+            ]);
+        }
     }
 
     public function getOrCreateMonthlyBalance($staff_id, $leave_type_id, $year, $month)
