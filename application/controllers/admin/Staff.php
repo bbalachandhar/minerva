@@ -222,11 +222,14 @@ class Staff extends Admin_Controller
                 COALESCE(smlb.used_for_lop_adjustment, 0) AS used_for_lop_adjustment,
                 COALESCE(smlb.used_for_leave_application, 0) AS used_for_leave_application,
                 COALESCE((
-                    SELECT SUM(b.used_for_lop_adjustment + b.used_for_leave_application)
+                    SELECT b.used_for_lop_adjustment + b.used_for_leave_application
                     FROM staff_monthly_leave_balance b
                     WHERE b.staff_id = ?
                       AND b.leave_type_id = lt.id
-                ), 0) AS total_consumed_all_months,
+                      AND b.last_processed_date IS NOT NULL
+                    ORDER BY b.year DESC, b.month DESC, b.id DESC
+                    LIMIT 1
+                ), 0) AS last_consumed,
                 smlb.year,
                 smlb.month,
                 lt.credit_source_type_id,
@@ -289,8 +292,8 @@ class Staff extends Admin_Controller
                     + (float) ($row['used_for_leave_application'] ?? 0)
                     + (float) ($row['extra_debit'] ?? 0);
             } elseif (!empty($row['year']) || !empty($row['month'])) {
-                // Sum consumed across all months so LOP adjustments from prior months are included.
-                $approve_leave = (float) ($row['total_consumed_all_months'] ?? 0);
+                // Use consumed from the last payroll-processed month row.
+                $approve_leave = (float) ($row['last_consumed'] ?? 0);
             } else {
                 $count_leave_row = $this->leaverequest_model->countLeavesData($id, $leave_type_id);
                 $approve_leave = isset($count_leave_row['approve_leave']) ? (float) $count_leave_row['approve_leave'] : 0.0;
