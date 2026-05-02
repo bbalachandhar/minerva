@@ -1340,18 +1340,20 @@ class Payroll_model extends MY_Model
                 ->count_all_results('staff_leave_balance_audit') > 0;
 
         if ($has_admin_override) {
-            // Admin-locked opening: close = admin-set opening + this month's activity only.
-            $new_next_closing = $orig_opening + $admin_adj + $earned - $used_lop - $used_leave - $other_ded;
-        } else {
-            // Normal cascade: apply the delta from the prior month's LOP change.
-            $new_next_closing = $orig_opening + $admin_adj + $earned - $used_lop - $used_leave - $other_ded
-                              + ($new_closing - $orig_opening);
+            // Admin explicitly set this month's opening — it is authoritative.
+            // Don't cascade into this month at all; admin's opening and closing stand.
+            return;
         }
 
-        // Only update closing_balance — leave opening_balance as-is (historical creation value).
+        // Normal cascade: prior month's closing becomes this month's new opening.
+        // Both opening_balance AND closing_balance are updated so payroll reads correct values.
+        $new_opening      = max(0.0, (float) $new_closing);
+        $new_next_closing = max(0.0, $new_opening + $admin_adj + $earned - $used_lop - $used_leave - $other_ded);
+
         $this->db->where('id', (int) $next_row['id']);
         $this->db->update('staff_monthly_leave_balance', [
-            'closing_balance' => max(0, $new_next_closing),
+            'opening_balance' => $new_opening,
+            'closing_balance' => $new_next_closing,
             'updated_at'      => date('Y-m-d H:i:s'),
         ]);
 
