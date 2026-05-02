@@ -296,8 +296,10 @@ class Staff extends Admin_Controller
                     + (float) ($row['used_for_leave_application'] ?? 0)
                     + (float) ($row['extra_debit'] ?? 0);
             } elseif (!empty($row['year']) || !empty($row['month'])) {
-                // Use consumed from the last payroll-processed month row.
-                $approve_leave = (float) ($row['last_consumed'] ?? 0);
+                // Use consumed directly from the current month's row (not last_consumed
+                // which incorrectly bleeds in older months' LOP when current month has none).
+                $approve_leave = (float) ($row['used_for_lop_adjustment'] ?? 0)
+                    + (float) ($row['used_for_leave_application'] ?? 0);
             } else {
                 $count_leave_row = $this->leaverequest_model->countLeavesData($id, $leave_type_id);
                 $approve_leave = isset($count_leave_row['approve_leave']) ? (float) $count_leave_row['approve_leave'] : 0.0;
