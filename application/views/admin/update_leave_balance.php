@@ -28,6 +28,12 @@
                             This is <em>not</em> a total-balance summary view.
                             Changes here persist across payroll re-runs and feed directly into LOP calculation as&nbsp;<code>Opening + Adj + Monthly Credit</code>.
                         </p>
+                        <p class="text-muted" style="margin:0 0 12px; font-size:12px; line-height:1.6;">
+                            <i class="fa fa-info-circle"></i>
+                            <strong>Opening</strong> = system-cascaded from prior month (read-only).&nbsp;
+                            <strong>Adj</strong> = your +/&#8722; override, persists across payroll re-runs.&nbsp;
+                            Payroll uses <code>Opening + Adj + Monthly Credit</code> for LOP.
+                        </p>
                         <form method="get" action="" class="form-inline" style="display:flex; flex-wrap:wrap; align-items:center; gap:10px;">
                             <label style="font-weight:600; margin-bottom:0;"><i class="fa fa-calendar"></i> Select Month:</label>
                             <select name="month" class="form-control input-sm" style="width:130px;">
@@ -70,21 +76,13 @@
 
                     <div class="box-body">
 
-                        <!-- Search + legend -->
+                        <!-- Search -->
                         <div class="row" style="margin-bottom:12px;">
                             <div class="col-md-4">
                                 <div class="input-group">
                                     <span class="input-group-addon"><i class="fa fa-search"></i></span>
                                     <input type="text" id="staffSearch" class="form-control" placeholder="Search by name or employee ID...">
                                 </div>
-                            </div>
-                            <div class="col-md-8 text-right" style="padding-top:6px;">
-                                <small class="text-muted">
-                                    <i class="fa fa-info-circle"></i>
-                                    <strong>Opening</strong> = system-cascaded from prior month (read-only).
-                                    <strong>Adj</strong> = your +/&#8722; override, persists across payroll re-runs.
-                                    Payroll uses <code>Opening + Adj + Monthly Credit</code> for LOP.
-                                </small>
                             </div>
                         </div>
 
