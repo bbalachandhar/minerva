@@ -1,3 +1,9 @@
+<style>
+/* ── Admin adjustment highlights ── */
+tr.row-has-adj > td:first-child { border-left: 4px solid #f39c12 !important; }
+td.adj-cell.adj-positive input.balance-input { background:#d4edda !important; border-color:#28a745 !important; font-weight:700; color:#155724; }
+td.adj-cell.adj-negative input.balance-input { background:#fff3cd !important; border-color:#ffc107 !important; font-weight:700; color:#856404; }
+</style>
 <div class="content-wrapper">
     <section class="content-header">
         <h1>
@@ -33,6 +39,11 @@
                             <strong>Opening</strong> = system-cascaded from prior month (read-only).&nbsp;
                             <strong>Adj</strong> = your +/&#8722; override, persists across payroll re-runs.&nbsp;
                             Payroll uses <code>Opening + Adj + Monthly Credit</code> for LOP.
+                        </p>
+                        <p style="margin:0; font-size:12px; line-height:1.8;">
+                            <span style="display:inline-block; width:14px; height:14px; background:#d4edda; border:1px solid #28a745; border-radius:2px; vertical-align:middle; margin-right:4px;"></span> Positive adjustment &nbsp;&nbsp;
+                            <span style="display:inline-block; width:14px; height:14px; background:#fff3cd; border:1px solid #ffc107; border-radius:2px; vertical-align:middle; margin-right:4px;"></span> Negative adjustment &nbsp;&nbsp;
+                            <span style="display:inline-block; width:4px; height:14px; background:#f39c12; vertical-align:middle; margin-right:4px;"></span> Row has at least one admin override
                         </p>
                         <form method="get" action="" class="form-inline" style="display:flex; flex-wrap:wrap; align-items:center; gap:10px;">
                             <label style="font-weight:600; margin-bottom:0;"><i class="fa fa-calendar"></i> Select Month:</label>
@@ -109,8 +120,15 @@
                                 </thead>
                                 <tbody>
                                 <?php foreach ($staff_list as $staff): ?>
-                                    <?php $sid = $staff['id']; ?>
-                                    <tr class="staff-row" data-search="<?php echo strtolower(htmlspecialchars($staff['name'] . ' ' . $staff['surname'] . ' ' . $staff['employee_id'])); ?>">
+                                    <?php
+                                        $sid = $staff['id'];
+                                        $has_any_adj = false;
+                                        foreach ($leave_types as $_lt) {
+                                            $_e = isset($balances[$sid][$_lt['id']]) ? $balances[$sid][$_lt['id']] : null;
+                                            if ($_e && floatval($_e['admin_adjustment']) != 0) { $has_any_adj = true; break; }
+                                        }
+                                    ?>
+                                    <tr class="staff-row<?php echo $has_any_adj ? ' row-has-adj' : ''; ?>" data-search="<?php echo strtolower(htmlspecialchars($staff['name'] . ' ' . $staff['surname'] . ' ' . $staff['employee_id'])); ?>">
                                         <td><?php echo htmlspecialchars(trim($staff['name'] . ' ' . $staff['surname'])); ?></td>
                                         <td><?php echo htmlspecialchars($staff['employee_id']); ?></td>
                                         <td><?php echo htmlspecialchars($staff['designation'] ?? '-'); ?></td>
@@ -131,7 +149,8 @@
                                                 <span style="font-size:13px; font-weight:600;"><?php echo number_format($opening, 1); ?></span>
                                             </td>
                                             <!-- Editable admin_adjustment -->
-                                            <td style="text-align:center; padding:4px 6px;">
+                                            <?php $adj_cls = floatval($adj) > 0 ? ' adj-positive' : (floatval($adj) < 0 ? ' adj-negative' : ''); ?>
+                                            <td class="adj-cell<?php echo $adj_cls; ?>" style="text-align:center; padding:4px 6px;">
                                                 <input type="number"
                                                     class="form-control input-sm balance-input"
                                                     style="width:75px; margin:auto; text-align:center;"
@@ -188,6 +207,22 @@ $(function () {
         var serverValue = $(this).attr('data-server-value');
         $(this).val(serverValue !== undefined ? serverValue : '');
     });
+
+    // ── Live highlight on input change ──────────────────────────────
+    function applyAdjHighlight(input) {
+        var val = parseFloat($(input).val()) || 0;
+        var td  = $(input).closest('td.adj-cell');
+        td.removeClass('adj-positive adj-negative');
+        if (val > 0)      td.addClass('adj-positive');
+        else if (val < 0) td.addClass('adj-negative');
+        var tr = $(input).closest('tr');
+        var hasAdj = false;
+        tr.find('input.balance-input').each(function () {
+            if ((parseFloat($(this).val()) || 0) !== 0) { hasAdj = true; return false; }
+        });
+        tr.toggleClass('row-has-adj', hasAdj);
+    }
+    $(document).on('input change', '.balance-input', function () { applyAdjHighlight(this); });
 
     // ── Live search ──────────────────────────────────────────────────
     $('#staffSearch').on('keyup', function () {
