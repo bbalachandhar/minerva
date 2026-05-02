@@ -1395,8 +1395,23 @@ class Payroll_model extends MY_Model
             // Include any admin-applied override delta so manual adjustments survive payroll re-runs.
             $opening_balance = (float) $prev_balance['closing_balance'] + (float) ($prev_balance['admin_adjustment'] ?? 0);
         } else {
-            // No previous month - get from staff_leave_details
-            if ($this->isManualSeedAllowedForLeaveType($leave_type_id)) {
+            // Previous month row doesn't exist (gap in months).
+            // Search for the most recent row before the target month so balances are
+            // never silently dropped when intermediate months were not processed.
+            $latest_prev = $this->db
+                ->where('staff_id', (int) $staff_id)
+                ->where('leave_type_id', (int) $leave_type_id)
+                ->where("(year < $year OR (year = $year AND month < $month))")
+                ->order_by('year', 'DESC')
+                ->order_by('month', 'DESC')
+                ->limit(1)
+                ->get('staff_monthly_leave_balance')
+                ->row_array();
+
+            if (!empty($latest_prev)) {
+                $opening_balance = (float) $latest_prev['closing_balance'] + (float) ($latest_prev['admin_adjustment'] ?? 0);
+            } elseif ($this->isManualSeedAllowedForLeaveType($leave_type_id)) {
+                // No any historical row - seed from staff_leave_details (regular leave types only).
                 $this->db->where('staff_id', $staff_id);
                 $this->db->where('leave_type_id', $leave_type_id);
                 $leave_query = $this->db->get('staff_leave_details');
