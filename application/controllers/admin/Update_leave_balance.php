@@ -9,6 +9,7 @@ class Update_leave_balance extends Admin_Controller {
         parent::__construct();
         $this->load->model('staff_model');
         $this->load->model('leavetypes_model');
+        $this->load->model('payroll_model');
     }
 
     public function index() {
@@ -230,6 +231,11 @@ class Update_leave_balance extends Admin_Controller {
                         'last_processed_date'     => null,
                         'updated_at'              => date('Y-m-d H:i:s'),
                     ]);
+
+                    // Cascade updated closing to next month's opening if that row exists.
+                    $this->payroll_model->cascadeClosingToNextMonth(
+                        $staff_id, $leave_type_id, $year, $month, $new_closing
+                    );
 
                     $effective_before = $opening + $old_adj;
                     $effective_after  = $opening + $new_adj;

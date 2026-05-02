@@ -2928,6 +2928,16 @@ class Payroll extends Admin_Controller
             $adjusted_lop_days = (float) ($lop_values['adjusted_lop_days'] ?? 0);
             $net_lop_days = (float) ($lop_values['net_lop_days'] ?? $actual_lop_days);
 
+            // When no LOP was adjusted against leave balances (LOP=0 or auto-adjust
+            // disabled), processLOPWithMonthlyBalance returns early without cascading.
+            // Explicitly cascade all leave type closings to next month here so that
+            // next month's opening_balance stays current regardless of LOP amount.
+            if (!$use_committed_lop && $adjusted_lop_days == 0) {
+                $this->payroll_model->cascadeAllBalancesForMonth(
+                    (int) $staff['id'], (int) $month_numeric, (int) $year
+                );
+            }
+
             $month_num = date('n', strtotime($year . '-' . $month . '-01'));
             $total_days_of_month = cal_days_in_month(CAL_GREGORIAN, $month_num, (int)$year);
             if (($lop_values['source'] ?? '') === 'stored') {

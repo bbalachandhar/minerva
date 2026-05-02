@@ -1236,10 +1236,11 @@ class Payroll_model extends MY_Model
             }
 
             $opening_balance = (float) ($balance['opening_balance'] ?? 0);
+            $admin_adjustment = (float) ($balance['admin_adjustment'] ?? 0);
             $used_for_lop_adjustment = (float) ($balance['used_for_lop_adjustment'] ?? 0);
             $used_for_leave_application = (float) ($balance['used_for_leave_application'] ?? 0);
             $other_deductions = (float) ($balance['other_deductions'] ?? 0);
-            $closing_balance = $opening_balance + $approved_days - $used_for_lop_adjustment - $used_for_leave_application - $other_deductions;
+            $closing_balance = $opening_balance + $admin_adjustment + $approved_days - $used_for_lop_adjustment - $used_for_leave_application - $other_deductions;
 
             $old_earned = (float) ($balance['earned_in_month'] ?? 0);
             $old_closing = (float) ($balance['closing_balance'] ?? 0);
@@ -1299,7 +1300,7 @@ class Payroll_model extends MY_Model
      * row already exists. Recalculates the next month's closing_balance preserving
      * its own consumed amounts. Does NOT recurse further.
      */
-    private function cascadeClosingToNextMonth($staff_id, $leave_type_id, $year, $month, $new_closing)
+    public function cascadeClosingToNextMonth($staff_id, $leave_type_id, $year, $month, $new_closing)
     {
         $next_month = (int) $month + 1;
         $next_year  = (int) $year;
@@ -1360,6 +1361,33 @@ class Payroll_model extends MY_Model
                 'reason'         => 'LOP cascade from ' . sprintf('%04d-%02d', $year, $month) . ' payroll',
                 'created_at'     => date('Y-m-d H:i:s'),
             ]);
+        }
+    }
+
+    /**
+     * Cascade closing balances for ALL leave types for a given staff+month to
+     * the following month's opening.  Used when processLOPWithMonthlyBalance
+     * returns early (LOP = 0 or auto-adjust disabled) and therefore never fires
+     * cascadeClosingToNextMonth() per-type.
+     */
+    public function cascadeAllBalancesForMonth($staff_id, $month, $year)
+    {
+        $rows = $this->db
+            ->select('leave_type_id, closing_balance')
+            ->where('staff_id', (int) $staff_id)
+            ->where('year', (int) $year)
+            ->where('month', (int) $month)
+            ->get('staff_monthly_leave_balance')
+            ->result_array();
+
+        foreach ($rows as $row) {
+            $this->cascadeClosingToNextMonth(
+                (int) $staff_id,
+                (int) $row['leave_type_id'],
+                (int) $year,
+                (int) $month,
+                (float) $row['closing_balance']
+            );
         }
     }
 
