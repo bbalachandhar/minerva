@@ -2908,9 +2908,9 @@ class Payroll extends Admin_Controller
                 $this->db->where('staff_id', $staff['id']);
                 $this->db->where('year', (int)$year);
                 $this->db->where('month', (int)$month_numeric);
-                // Reset LOP adjustment and recalculate closing balance
+                // Reset LOP adjustment and recalculate closing balance (include admin_adjustment)
                 $this->db->set('used_for_lop_adjustment', 0);
-                $this->db->set('closing_balance', 'opening_balance + earned_in_month - used_for_leave_application - other_deductions', FALSE);
+                $this->db->set('closing_balance', 'opening_balance + admin_adjustment + earned_in_month - used_for_leave_application - other_deductions', FALSE);
                 $this->db->set('last_processed_date', NULL);
                 $this->db->set('payslip_id', NULL);
                 $this->db->update('staff_monthly_leave_balance');
