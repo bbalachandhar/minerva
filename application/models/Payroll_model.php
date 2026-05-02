@@ -1333,20 +1333,9 @@ class Payroll_model extends MY_Model
         // ADMIN_OVERRIDE audit entry on this row), do NOT apply the prior-month
         // LOP cascade delta — the admin's opening is the authoritative starting point.
         // Instead, just recompute closing from that fixed opening + this month's activity.
-        $has_admin_override = $this->db->table_exists('staff_leave_balance_audit')
-            && $this->db
-                ->where('balance_id', (int) $next_row['id'])
-                ->where('action_type', 'ADMIN_OVERRIDE')
-                ->count_all_results('staff_leave_balance_audit') > 0;
-
-        if ($has_admin_override) {
-            // Admin explicitly set this month's opening — it is authoritative.
-            // Don't cascade into this month at all; admin's opening and closing stand.
-            return;
-        }
-
-        // Normal cascade: prior month's closing becomes this month's new opening.
-        // Both opening_balance AND closing_balance are updated so payroll reads correct values.
+        // Cascade: prior month's closing becomes this month's new opening_balance.
+        // admin_adjustment is NEVER touched — it is a persistent admin delta that
+        // must survive all cascade updates.
         $new_opening      = max(0.0, (float) $new_closing);
         $new_next_closing = max(0.0, $new_opening + $admin_adj + $earned - $used_lop - $used_leave - $other_ded);
 
@@ -1705,14 +1694,16 @@ class Payroll_model extends MY_Model
             }
             
             $opening_balance = floatval($balance['opening_balance'] ?? 0);
+            $admin_adjustment = floatval($balance['admin_adjustment'] ?? 0);
             $earned_in_month = floatval($balance['earned_in_month'] ?? 0);
             $used_for_lop_adjustment = floatval($balance['used_for_lop_adjustment'] ?? 0);
             $used_for_leave_application = floatval($balance['used_for_leave_application'] ?? 0);
             $other_deductions = floatval($balance['other_deductions'] ?? 0);
             
-            // Calculate currently available balance. Subtracting prior LOP usage
-            // keeps repeated payroll runs idempotent for the same month.
-            $available = $opening_balance + $earned_in_month - $used_for_lop_adjustment - $used_for_leave_application - $other_deductions;
+            // Available = opening + admin adjustment + earned - prior LOP usage.
+            // admin_adjustment is a persistent +/- delta set by admin on top of the
+            // system-cascaded opening; it survives payroll re-runs.
+            $available = $opening_balance + $admin_adjustment + $earned_in_month - $used_for_lop_adjustment - $used_for_leave_application - $other_deductions;
             
             if ($available <= 0) {
                 continue;
@@ -1723,7 +1714,7 @@ class Payroll_model extends MY_Model
             
             // Update monthly balance
             $new_used_lop = $used_for_lop_adjustment + $to_adjust;
-            $new_closing = $opening_balance + $earned_in_month - $new_used_lop - $used_for_leave_application - $other_deductions;
+            $new_closing = $opening_balance + $admin_adjustment + $earned_in_month - $new_used_lop - $used_for_leave_application - $other_deductions;
             
             $update_data = [
                 'used_for_lop_adjustment' => $new_used_lop,

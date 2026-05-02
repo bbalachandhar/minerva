@@ -49,7 +49,7 @@
                                     </select>
                                     <button type="submit" class="btn btn-default btn-sm"><i class="fa fa-arrow-right"></i> Load</button>
                                     <span class="text-muted" style="font-size:12px; margin-left:8px;">
-                                        Showing opening balances for <strong><?php echo date('F Y', mktime(0,0,0,$sel_month,1,$sel_year)); ?></strong>
+                                        Showing balances for <strong><?php echo date('F Y', mktime(0,0,0,$sel_month,1,$sel_year)); ?></strong>
                                     </span>
                                 </form>
                                 <input type="hidden" id="selYear"  value="<?php echo $sel_year; ?>">
@@ -57,7 +57,7 @@
                             </div>
                         </div>
 
-                        <!-- Filter bar -->
+                        <!-- Legend -->
                         <div class="row" style="margin-bottom:12px;">
                             <div class="col-md-4">
                                 <div class="input-group">
@@ -68,9 +68,9 @@
                             <div class="col-md-8 text-right" style="padding-top:6px;">
                                 <small class="text-muted">
                                     <i class="fa fa-info-circle"></i>
-                                    Values shown are the <strong>opening balance</strong> for the selected month — the seed value payroll starts from.
-                                    Saving writes directly to <code>opening_balance</code> and resets LOP so payroll recalculates cleanly on overwrite.
-                                    All changes are recorded in the audit log.
+                                    <strong>Opening</strong> = system-cascaded from prior month (read-only).
+                                    <strong>Adj</strong> = your +/&#8722; override, persists across payroll re-runs.
+                                    Payroll uses <code>Opening + Adj + Monthly Credit</code> for LOP.
                                 </small>
                             </div>
                         </div>
@@ -81,13 +81,19 @@
                             <table class="table table-bordered table-hover table-condensed" id="leaveBalanceTable">
                                 <thead>
                                     <tr style="background:#f5f5f5;">
-                                        <th style="min-width:160px;"><?php echo $this->lang->line('name'); ?></th>
-                                        <th style="min-width:120px;"><?php echo $this->lang->line('employee_id_number'); ?></th>
-                                        <th style="min-width:140px;"><?php echo $this->lang->line('designation'); ?></th>
+                                        <th style="min-width:160px;" rowspan="2"><?php echo $this->lang->line('name'); ?></th>
+                                        <th style="min-width:120px;" rowspan="2"><?php echo $this->lang->line('employee_id_number'); ?></th>
+                                        <th style="min-width:140px;" rowspan="2"><?php echo $this->lang->line('designation'); ?></th>
                                         <?php foreach ($leave_types as $lt): ?>
-                                            <th style="min-width:90px; text-align:center;"><?php echo htmlspecialchars($lt['type']); ?></th>
+                                            <th style="min-width:160px; text-align:center;" colspan="2"><?php echo htmlspecialchars($lt['type']); ?></th>
                                         <?php endforeach; ?>
-                                        <th style="min-width:80px; text-align:center;"><?php echo $this->lang->line('action'); ?></th>
+                                        <th style="min-width:80px; text-align:center;" rowspan="2"><?php echo $this->lang->line('action'); ?></th>
+                                    </tr>
+                                    <tr style="background:#fafafa; font-size:11px;">
+                                        <?php foreach ($leave_types as $lt): ?>
+                                            <th style="text-align:center; color:#555; font-weight:600;">Opening<br><small style="font-weight:400;">(system)</small></th>
+                                            <th style="text-align:center; color:#1a6e9e; font-weight:600;">Adj<br><small style="font-weight:400;">(admin ±)</small></th>
+                                        <?php endforeach; ?>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -99,32 +105,34 @@
                                         <td><?php echo htmlspecialchars($staff['designation'] ?? '-'); ?></td>
                                         <?php foreach ($leave_types as $lt): ?>
                                             <?php
-                                                $ltid    = $lt['id'];
-                                                $entry   = isset($balances[$sid][$ltid]) ? $balances[$sid][$ltid] : null;
-                                                $current = $entry !== null ? $entry['opening_balance'] : '';
-                                                $label   = $entry
-                                                    ? 'Opening balance for ' . date('M Y', mktime(0,0,0,$sel_month,1,$sel_year))
-                                                        . ($entry['row_exists'] ? '' : ' (estimated from prior month — no row yet)')
-                                                    : 'No data';
+                                                $ltid      = $lt['id'];
+                                                $entry     = isset($balances[$sid][$ltid]) ? $balances[$sid][$ltid] : null;
+                                                $opening   = $entry !== null ? $entry['opening_balance'] : 0;
+                                                $adj       = $entry !== null ? $entry['admin_adjustment'] : 0;
+                                                $row_exists = $entry && $entry['row_exists'];
+                                                $est_title  = 'Estimated from prior month closing — no row yet for this month. Saving creates one.';
                                             ?>
-                                            <td style="text-align:center; padding:4px 6px;">
-                                                <?php if ($entry && !$entry['row_exists']): ?>
-                                                    <span class="label label-default"
-                                                          style="font-size:9px; display:block; margin-bottom:2px; cursor:default;"
-                                                          title="No row exists for this month yet. Value is estimated from prior month closing. Saving will create it.">EST</span>
+                                            <!-- Read-only opening -->
+                                            <td style="text-align:center; padding:4px 6px; background:#f9f9f9; color:#555;">
+                                                <?php if ($entry && !$row_exists): ?>
+                                                    <span class="label label-default" style="font-size:9px; display:block; margin-bottom:2px;" title="<?php echo $est_title; ?>">EST</span>
                                                 <?php endif; ?>
+                                                <span style="font-size:13px; font-weight:600;"><?php echo number_format($opening, 1); ?></span>
+                                            </td>
+                                            <!-- Editable admin_adjustment -->
+                                            <td style="text-align:center; padding:4px 6px;">
                                                 <input type="number"
                                                     class="form-control input-sm balance-input"
-                                                    style="width:80px; margin:auto; text-align:center;"
-                                                    min="0" step="0.5"
+                                                    style="width:75px; margin:auto; text-align:center;"
+                                                    step="0.5"
                                                     name="balances[<?php echo $sid; ?>][<?php echo $ltid; ?>]"
                                                     data-staff-id="<?php echo $sid; ?>"
                                                     data-leave-type-id="<?php echo $ltid; ?>"
-                                                    data-server-value="<?php echo htmlspecialchars($current); ?>"
-                                                    value="<?php echo htmlspecialchars($current); ?>"
+                                                    data-server-value="<?php echo htmlspecialchars($adj); ?>"
+                                                    value="<?php echo htmlspecialchars($adj); ?>"
                                                     placeholder="0"
                                                     autocomplete="off"
-                                                    title="<?php echo htmlspecialchars($label); ?>">
+                                                    title="Admin adjustment for <?php echo htmlspecialchars($lt['type']); ?> — positive or negative">
                                             </td>
                                         <?php endforeach; ?>
                                         <td style="text-align:center; padding:4px 6px;">

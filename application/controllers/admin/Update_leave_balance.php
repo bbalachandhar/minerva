@@ -56,6 +56,7 @@ class Update_leave_balance extends Admin_Controller {
                 lt.id AS leave_type_id,
                 smlb.id AS row_id,
                 smlb.opening_balance,
+                smlb.admin_adjustment,
                 smlb.earned_in_month,
                 smlb.used_for_lop_adjustment,
                 smlb.used_for_leave_application,
@@ -85,20 +86,28 @@ class Update_leave_balance extends Admin_Controller {
 
         $data['balances'] = [];
         foreach ($rows as $row) {
-            if (!empty($row['row_id'])) {
-                // Row exists for this month — show opening_balance (what admin can edit for payroll)
-                $display = (float) $row['opening_balance'];
+            $row_exists = !empty($row['row_id']);
+
+            if ($row_exists) {
+                // System-controlled opening (cascade from prior month or seeded at payroll start)
+                $opening = (float) $row['opening_balance'];
+                // Admin-adjustable delta
+                $admin_adj = (float) ($row['admin_adjustment'] ?? 0);
             } elseif ($row['prior_closing'] !== null) {
-                $display = (float) $row['prior_closing'];
+                // No row yet — prior closing is the estimated opening
+                $opening   = (float) $row['prior_closing'];
+                $admin_adj = 0.0;
             } else {
-                $display = (float) ($row['alloted_leave'] ?? 0);
+                $opening   = (float) ($row['alloted_leave'] ?? 0);
+                $admin_adj = 0.0;
             }
 
             $data['balances'][$row['staff_id']][$row['leave_type_id']] = [
-                'opening_balance'         => $display,
-                'closing_balance'         => !empty($row['row_id']) ? (float) $row['closing_balance'] : null,
+                'opening_balance'         => $opening,
+                'admin_adjustment'        => $admin_adj,
+                'closing_balance'         => $row_exists ? (float) $row['closing_balance'] : null,
                 'used_for_lop_adjustment' => (float) ($row['used_for_lop_adjustment'] ?? 0),
-                'row_exists'              => !empty($row['row_id']),
+                'row_exists'              => $row_exists,
                 'year'                    => $row['year'] ?: $sel_year,
                 'month'                   => $row['month'] ?: $sel_month,
             ];
@@ -158,13 +167,19 @@ class Update_leave_balance extends Admin_Controller {
     }
 
     /**
-     * Save admin-set opening balances for a specific month.
-     * Writes directly to opening_balance, resets used_for_lop_adjustment=0
-     * so payroll overwrite recalculates LOP from scratch.
+     * Save admin adjustments for a specific month.
+     *
+     * The admin enters a +/- delta (admin_adjustment) which is stored separately
+     * from opening_balance. opening_balance is owned by the cascade system.
+     * Payroll LOP uses: opening_balance + admin_adjustment + earned_in_month.
+     *
+     * For months with no existing row (first-time seeding), the admin value is
+     * stored as opening_balance with admin_adjustment=0, since there is no
+     * system-cascaded opening yet.
      */
-    private function _save_balances(array $balances, int $year, int $month) {
-        $year  = max(2020, min((int) date('Y') + 1, $year ?: (int) date('Y')));
-        $month = max(1, min(12, $month ?: (int) date('n')));
+    private function _save_balances(array $balances, $year, $month) {
+        $year  = max(2020, min((int) date('Y') + 1, (int) $year ?: (int) date('Y')));
+        $month = max(1, min(12, (int) $month ?: (int) date('n')));
         $updated  = 0;
         $inserted = 0;
         $performed_by = $this->customlib->getStaffID();
@@ -175,11 +190,12 @@ class Update_leave_balance extends Admin_Controller {
             $staff_id = (int) $staff_id;
             if (!$staff_id) continue;
 
-            foreach ($leave_types as $leave_type_id => $new_opening) {
+            foreach ($leave_types as $leave_type_id => $new_adj_raw) {
                 $leave_type_id = (int) $leave_type_id;
                 if (!$leave_type_id) continue;
-                if ($new_opening === null || $new_opening === '') continue;
-                $new_opening = max(0, (float) $new_opening);
+                if ($new_adj_raw === null || $new_adj_raw === '') continue;
+                // admin_adjustment can be negative or positive
+                $new_adj = (float) $new_adj_raw;
 
                 // Find the row for this specific month
                 $existing = $this->db
@@ -192,77 +208,84 @@ class Update_leave_balance extends Admin_Controller {
                     ->row_array();
 
                 if (!empty($existing)) {
-                    $old_opening = (float) $existing['opening_balance'];
-                    if (abs($new_opening - $old_opening) < 0.001) continue; // no change
+                    $old_adj     = (float) ($existing['admin_adjustment'] ?? 0);
+                    if (abs($new_adj - $old_adj) < 0.001) continue; // no change
 
-                    // Recalculate closing without LOP (payroll fills that in on overwrite)
-                    $new_closing = $new_opening
-                        + (float) $existing['earned_in_month']
-                        - (float) $existing['used_for_leave_application']
-                        - (float) $existing['other_deductions'];
-                    $new_closing = max(0, $new_closing);
+                    $opening     = (float) $existing['opening_balance'];
+                    $earned      = (float) $existing['earned_in_month'];
+                    $used_lop    = (float) ($existing['used_for_lop_adjustment'] ?? 0);
+                    $used_leave  = (float) ($existing['used_for_leave_application'] ?? 0);
+                    $other_ded   = (float) ($existing['other_deductions'] ?? 0);
+
+                    // Recalculate closing with new admin_adjustment.
+                    // Reset used_for_lop_adjustment so payroll recalculates LOP from scratch on next run.
+                    $new_closing = max(0, $opening + $new_adj + $earned - $used_leave - $other_ded);
 
                     $this->db->where('id', $existing['id']);
                     $this->db->update('staff_monthly_leave_balance', [
-                        'opening_balance'         => $new_opening,
-                        'used_for_lop_adjustment' => 0,     // reset so overwrite payroll recalculates fresh
+                        'admin_adjustment'        => $new_adj,
+                        'used_for_lop_adjustment' => 0,   // reset — payroll will refill on overwrite run
                         'closing_balance'         => $new_closing,
-                        'admin_adjustment'        => 0,     // clear any old workaround adjustment
                         'payslip_id'              => null,
                         'last_processed_date'     => null,
                         'updated_at'              => date('Y-m-d H:i:s'),
                     ]);
 
+                    $effective_before = $opening + $old_adj;
+                    $effective_after  = $opening + $new_adj;
                     $this->db->insert('staff_leave_balance_audit', [
                         'balance_id'     => (int) $existing['id'],
                         'staff_id'       => $staff_id,
                         'leave_type_id'  => $leave_type_id,
                         'action_type'    => 'ADMIN_OVERRIDE',
-                        'amount'         => $new_opening - $old_opening,
-                        'balance_before' => $old_opening,
-                        'balance_after'  => $new_opening,
+                        'amount'         => $new_adj - $old_adj,
+                        'balance_before' => $effective_before,
+                        'balance_after'  => $effective_after,
                         'reference_id'   => null,
                         'reference_type' => 'admin_update_leave_balance',
                         'performed_by'   => $performed_by,
-                        'reason'         => 'Admin set opening balance for ' . date('M Y', mktime(0,0,0,$month,1,$year)),
+                        'reason'         => 'Admin adjustment for ' . date('M Y', mktime(0,0,0,$month,1,$year)),
                         'created_at'     => date('Y-m-d H:i:s'),
                     ]);
 
                     $updated++;
                 } else {
-                    // No row for this month yet — insert one so payroll picks it up
+                    // No row for this month yet (no prior payroll run).
+                    // Seed the opening_balance with the admin value; adjustment = 0.
+                    // Once payroll cascades from a prior month it will overwrite opening_balance properly.
+                    $seed = max(0, $new_adj); // treat as opening when no prior data
                     $this->db->insert('staff_monthly_leave_balance', [
                         'staff_id'                   => $staff_id,
                         'leave_type_id'              => $leave_type_id,
                         'year'                       => $year,
                         'month'                      => $month,
-                        'opening_balance'            => $new_opening,
+                        'opening_balance'            => $seed,
                         'earned_in_month'            => 0,
                         'used_for_lop_adjustment'    => 0,
                         'used_for_leave_application' => 0,
                         'other_deductions'           => 0,
-                        'closing_balance'            => $new_opening,
+                        'closing_balance'            => $seed,
                         'admin_adjustment'           => 0,
                         'last_processed_date'        => null,
-                        'notes'                      => 'Admin-seeded opening for ' . date('M Y', mktime(0,0,0,$month,1,$year)) . ' on ' . date('Y-m-d H:i:s'),
+                        'notes'                      => 'Admin-seeded for ' . date('M Y', mktime(0,0,0,$month,1,$year)) . ' on ' . date('Y-m-d H:i:s'),
                         'created_at'                 => date('Y-m-d H:i:s'),
                         'updated_at'                 => date('Y-m-d H:i:s'),
                     ]);
                     $new_id = $this->db->insert_id();
 
-                    if ($new_opening > 0) {
+                    if ($seed > 0) {
                         $this->db->insert('staff_leave_balance_audit', [
                             'balance_id'     => $new_id,
                             'staff_id'       => $staff_id,
                             'leave_type_id'  => $leave_type_id,
                             'action_type'    => 'ADMIN_OVERRIDE',
-                            'amount'         => $new_opening,
+                            'amount'         => $seed,
                             'balance_before' => 0,
-                            'balance_after'  => $new_opening,
+                            'balance_after'  => $seed,
                             'reference_id'   => null,
                             'reference_type' => 'admin_update_leave_balance',
                             'performed_by'   => $performed_by,
-                            'reason'         => 'Admin-seeded opening balance for ' . date('M Y', mktime(0,0,0,$month,1,$year)),
+                            'reason'         => 'Admin-seeded opening for ' . date('M Y', mktime(0,0,0,$month,1,$year)),
                             'created_at'     => date('Y-m-d H:i:s'),
                         ]);
                     }
