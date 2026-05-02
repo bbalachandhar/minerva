@@ -1329,16 +1329,29 @@ class Payroll_model extends MY_Model
         $orig_opening     = floatval($next_row['opening_balance']            ?? 0);
         $old_next_closing = floatval($next_row['closing_balance']            ?? 0);
 
-        // Compute new closing while preserving the original opening_balance so the
-        // MONTHLY_CREDIT "After" in the transaction history reflects what balance was
-        // at the moment of the credit (before this cascade adjustment).
-        $new_next_closing = $orig_opening + $admin_adj + $earned - $used_lop - $used_leave - $other_ded
-                          + ($new_closing - $orig_opening); // apply the cascade delta
+        // If admin has explicitly set this month's opening_balance (evidenced by an
+        // ADMIN_OVERRIDE audit entry on this row), do NOT apply the prior-month
+        // LOP cascade delta — the admin's opening is the authoritative starting point.
+        // Instead, just recompute closing from that fixed opening + this month's activity.
+        $has_admin_override = $this->db->table_exists('staff_leave_balance_audit')
+            && $this->db
+                ->where('balance_id', (int) $next_row['id'])
+                ->where('action_type', 'ADMIN_OVERRIDE')
+                ->count_all_results('staff_leave_balance_audit') > 0;
+
+        if ($has_admin_override) {
+            // Admin-locked opening: close = admin-set opening + this month's activity only.
+            $new_next_closing = $orig_opening + $admin_adj + $earned - $used_lop - $used_leave - $other_ded;
+        } else {
+            // Normal cascade: apply the delta from the prior month's LOP change.
+            $new_next_closing = $orig_opening + $admin_adj + $earned - $used_lop - $used_leave - $other_ded
+                              + ($new_closing - $orig_opening);
+        }
 
         // Only update closing_balance — leave opening_balance as-is (historical creation value).
         $this->db->where('id', (int) $next_row['id']);
         $this->db->update('staff_monthly_leave_balance', [
-            'closing_balance' => $new_next_closing,
+            'closing_balance' => max(0, $new_next_closing),
             'updated_at'      => date('Y-m-d H:i:s'),
         ]);
 
