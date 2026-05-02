@@ -278,6 +278,13 @@ class Staff extends Admin_Controller
                     FROM staff_monthly_leave_balance b
                     WHERE b.staff_id = ?
                       AND b.leave_type_id = lt.id
+                      AND (
+                            b.closing_balance  > 0
+                         OR b.opening_balance  > 0
+                         OR b.admin_adjustment != 0
+                         OR b.used_for_lop_adjustment   > 0
+                         OR b.used_for_leave_application > 0
+                      )
                     ORDER BY b.year DESC, b.month DESC, b.id DESC
                     LIMIT 1
                 )
