@@ -13,9 +13,54 @@
     <section class="content">
         <div class="row">
             <div class="col-md-12">
+
+                <!-- ── Page info + filter card ──────────────────────────── -->
+                <div class="box box-default" style="border-top:3px solid #00c0ef; margin-bottom:14px;">
+                    <div class="box-header with-border" style="background:#f0f8ff;">
+                        <h3 class="box-title" style="font-size:15px; font-weight:700;">
+                            <i class="fa fa-calendar-o text-info"></i>&nbsp; Staff Opening Leave Balances
+                        </h3>
+                    </div>
+                    <div class="box-body" style="background:#f0f8ff; padding:12px 15px 14px;">
+                        <p class="text-muted" style="margin:0 0 12px; font-size:12.5px; line-height:1.6;">
+                            <span class="label label-warning" style="font-size:11px; vertical-align:middle; margin-right:5px;">Note</span>
+                            This is an <strong>admin adjustment page</strong> — use it to add or subtract leave credits for the selected month.
+                            This is <em>not</em> a total-balance summary view.
+                            Changes here persist across payroll re-runs and feed directly into LOP calculation as&nbsp;<code>Opening + Adj + Monthly Credit</code>.
+                        </p>
+                        <form method="get" action="" class="form-inline" style="display:flex; flex-wrap:wrap; align-items:center; gap:10px;">
+                            <label style="font-weight:600; margin-bottom:0;"><i class="fa fa-calendar"></i> Select Month:</label>
+                            <select name="month" class="form-control input-sm" style="width:130px;">
+                                <?php
+                                $months = [1=>'January',2=>'February',3=>'March',4=>'April',5=>'May',6=>'June',
+                                           7=>'July',8=>'August',9=>'September',10=>'October',11=>'November',12=>'December'];
+                                foreach ($months as $mn => $mlabel): ?>
+                                    <option value="<?php echo $mn; ?>" <?php if ($mn == $sel_month) echo 'selected'; ?>>
+                                        <?php echo $mlabel; ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                            <select name="year" class="form-control input-sm" style="width:90px;">
+                                <?php for ($y = date('Y') - 3; $y <= date('Y') + 1; $y++): ?>
+                                    <option value="<?php echo $y; ?>" <?php if ($y == $sel_year) echo 'selected'; ?>>
+                                        <?php echo $y; ?>
+                                    </option>
+                                <?php endfor; ?>
+                            </select>
+                            <button type="submit" class="btn btn-info btn-sm"><i class="fa fa-arrow-right"></i> Load</button>
+                            <span class="label label-info" style="font-size:12px; padding:5px 10px; font-weight:500;">
+                                <i class="fa fa-table"></i>&nbsp; Showing:&nbsp;<strong><?php echo date('F Y', mktime(0,0,0,$sel_month,1,$sel_year)); ?></strong>
+                            </span>
+                        </form>
+                        <input type="hidden" id="selYear"  value="<?php echo $sel_year; ?>">
+                        <input type="hidden" id="selMonth" value="<?php echo $sel_month; ?>">
+                    </div>
+                </div>
+                <!-- ── End filter card ──────────────────────────────────── -->
+
                 <div class="box box-primary">
                     <div class="box-header with-border">
-                        <h3 class="box-title"><i class="fa fa-list"></i> Staff Opening Leave Balances <small class="text-muted" style="font-size:13px; font-weight:normal;">(Admin can update the opening balances, its not the total balance view window)</small></h3>
+                        <h3 class="box-title"><i class="fa fa-list"></i> Balance Table &mdash; <?php echo date('F Y', mktime(0,0,0,$sel_month,1,$sel_year)); ?></h3>
                         <div class="box-tools pull-right">
                             <button type="button" class="btn btn-success btn-sm" id="saveAllBtn">
                                 <i class="fa fa-save"></i> Save All
@@ -25,39 +70,7 @@
 
                     <div class="box-body">
 
-                        <!-- Month/Year picker -->
-                        <div class="row" style="margin-bottom:10px;">
-                            <div class="col-md-12">
-                                <form method="get" action="" class="form-inline" style="display:inline-flex; align-items:center; gap:8px;">
-                                    <label style="font-weight:600; margin-bottom:0;"><i class="fa fa-calendar"></i> Select Month:</label>
-                                    <select name="month" class="form-control input-sm" style="width:130px;">
-                                        <?php
-                                        $months = [1=>'January',2=>'February',3=>'March',4=>'April',5=>'May',6=>'June',
-                                                   7=>'July',8=>'August',9=>'September',10=>'October',11=>'November',12=>'December'];
-                                        foreach ($months as $mn => $mlabel): ?>
-                                            <option value="<?php echo $mn; ?>" <?php if ($mn == $sel_month) echo 'selected'; ?>>
-                                                <?php echo $mlabel; ?>
-                                            </option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                    <select name="year" class="form-control input-sm" style="width:90px;">
-                                        <?php for ($y = date('Y') - 3; $y <= date('Y') + 1; $y++): ?>
-                                            <option value="<?php echo $y; ?>" <?php if ($y == $sel_year) echo 'selected'; ?>>
-                                                <?php echo $y; ?>
-                                            </option>
-                                        <?php endfor; ?>
-                                    </select>
-                                    <button type="submit" class="btn btn-default btn-sm"><i class="fa fa-arrow-right"></i> Load</button>
-                                    <span class="text-muted" style="font-size:12px; margin-left:8px;">
-                                        Showing balances for <strong><?php echo date('F Y', mktime(0,0,0,$sel_month,1,$sel_year)); ?></strong>
-                                    </span>
-                                </form>
-                                <input type="hidden" id="selYear"  value="<?php echo $sel_year; ?>">
-                                <input type="hidden" id="selMonth" value="<?php echo $sel_month; ?>">
-                            </div>
-                        </div>
-
-                        <!-- Legend -->
+                        <!-- Search + legend -->
                         <div class="row" style="margin-bottom:12px;">
                             <div class="col-md-4">
                                 <div class="input-group">
