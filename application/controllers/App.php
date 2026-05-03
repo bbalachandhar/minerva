@@ -11,6 +11,7 @@ class App extends MY_Controller
     {
         parent::__construct();
         $this->load->model('setting_model');
+        $this->load->model('language_model');
         $this->load->library('customlib');
     }
 

@@ -9,6 +9,7 @@ class App extends CI_Controller
     {
         parent::__construct();
 
+        $this->load->model('setting_model');
         $this->load->model('student_model');
         $this->load->model('examschedule_model');
         $this->load->model('event_model');
@@ -16,29 +17,46 @@ class App extends CI_Controller
 
     public function index()
     {
-
-        $resp['public_events'] = $this->event_model->getPublicEvents(5);
-        $date_list             = array();
-        foreach ($resp['public_events'] as &$ev_tsk_value) {
-            $evt_array = array();
-            if ($ev_tsk_value->event_type == "public") {
-                $start = strtotime($ev_tsk_value->start_date);
-                $end   = strtotime($ev_tsk_value->end_date);
-
-                for ($st = $start; $st <= $end; $st += 86400) {
-                    $evt_array[] = date('Y-m-d', $st);
-                }
-                $date_list[]                = $evt_array;
-                $ev_tsk_value->events_lists = implode(",", $evt_array);
-            } elseif ($ev_tsk_value->event_type == "task") {
-
-                $evt_array[]                = date('Y-m-d', strtotime($ev_tsk_value->start_date));
-                $ev_tsk_value->events_lists = implode(",", $evt_array);
-                $date_list[]                = $evt_array;
-            }
+        $method = $this->input->server('REQUEST_METHOD');
+        if ($method !== 'POST' && $method !== 'GET') {
+            json_output(405, array('status' => 0, 'message' => 'Method Not Allowed'));
+            return;
         }
 
-        print_r($resp['public_events']);
+        $setting = $this->setting_model->getSetting();
+
+        $configured_mobile_api_url = isset($setting->mobile_api_url) ? trim((string) $setting->mobile_api_url) : '';
+        $site_root = rtrim($configured_mobile_api_url, '/');
+        // Strip trailing /api if present
+        if (substr($site_root, -4) === '/api') {
+            $site_root = substr($site_root, 0, -4);
+        }
+        $site_root = rtrim($site_root, '/');
+
+        // Fallback: derive site root from base_url config
+        if (empty($site_root)) {
+            $site_root = rtrim(base_url(), '/');
+        }
+
+        $app_logo = '';
+        if (isset($setting->app_logo) && $setting->app_logo) {
+            $app_logo = $site_root . '/uploads/school_content/logo/app_logo/' . $setting->app_logo;
+        }
+
+        json_output(200, array(
+            'status'                   => 1,
+            'url'                      => isset($setting->mobile_api_url) ? (string) $setting->mobile_api_url : '',
+            'site_url'                 => $site_root,
+            'attendence_type'          => isset($setting->attendence_type) ? (int) $setting->attendence_type : 0,
+            'app_logo'                 => $app_logo,
+            'app_primary_color_code'   => isset($setting->app_primary_color_code) ? (string) $setting->app_primary_color_code : '',
+            'app_secondary_color_code' => isset($setting->app_secondary_color_code) ? (string) $setting->app_secondary_color_code : '',
+            'lang_code'                => isset($setting->language_code) ? (string) $setting->language_code : '',
+            'school_name'              => isset($setting->name) ? (string) $setting->name : '',
+            'app_ver'                  => (string) $this->config->item('app_ver'),
+            'student_profile_edit'     => isset($setting->student_profile_edit) ? (int) $setting->student_profile_edit : 0,
+            'staff_profile_edit'       => isset($setting->staff_profile_edit) ? (int) $setting->staff_profile_edit : 0,
+        ));
     }
 
     public function index1()
