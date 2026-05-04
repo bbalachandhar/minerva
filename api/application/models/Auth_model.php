@@ -5,7 +5,7 @@ defined('BASEPATH') or exit('No direct script access allowed');
 class Auth_model extends CI_Model
 {
 
-    public $client_service               = "smartschool";
+    public $client_service               = "minervaerp";
     public $auth_key                     = "schoolAdmin@";
     public $security_authentication_flag = 0;
 
