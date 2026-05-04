@@ -10,9 +10,6 @@ class App extends CI_Controller
         parent::__construct();
 
         $this->load->model('setting_model');
-        $this->load->model('student_model');
-        $this->load->model('examschedule_model');
-        $this->load->model('event_model');
     }
 
     public function index()
