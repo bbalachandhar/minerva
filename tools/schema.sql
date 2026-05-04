@@ -8705,6 +8705,7 @@ INSERT INTO `permission_category` (`id`, `perm_group_id`, `name`, `short_code`, 
 INSERT INTO `permission_category` (`id`, `perm_group_id`, `name`, `short_code`, `enable_view`, `enable_add`, `enable_edit`, `enable_delete`, `created_at`, `updated_at`) VALUES (15012,NULL,'update_leave_balance',NULL,0,0,0,0,'2026-04-05 10:22:12','2026-04-05 10:22:12');
 INSERT INTO `permission_category` (`id`, `perm_group_id`, `name`, `short_code`, `enable_view`, `enable_add`, `enable_edit`, `enable_delete`, `created_at`, `updated_at`) VALUES (15013,NULL,'Admission Cancellation','admission_cancellation',0,0,0,0,'2026-04-27 16:22:04','2026-04-27 16:22:04');
 INSERT INTO `permission_category` (`id`, `perm_group_id`, `name`, `short_code`, `enable_view`, `enable_add`, `enable_edit`, `enable_delete`, `created_at`, `updated_at`) VALUES (15015,27,'Admission Cancellation','admission_cancellation',1,1,1,1,'2026-04-27 18:56:31','2026-04-27 18:56:31');
+INSERT INTO `permission_category` (`id`, `perm_group_id`, `name`, `short_code`, `enable_view`, `enable_add`, `enable_edit`, `enable_delete`, `created_at`, `updated_at`) VALUES (15016,2,'Hostel Fee Override','hostel_fee_override',1,1,0,1,'2026-05-04 00:00:00','2026-05-04 00:00:00');
 /*!40000 ALTER TABLE `permission_category` ENABLE KEYS */;
 UNLOCK TABLES;
 
