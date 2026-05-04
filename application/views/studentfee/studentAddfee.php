@@ -305,7 +305,7 @@ foreach ($student_due_fee as $key => $fee) {
             if (!empty($fee_value->fee_override_amount)) {
                 echo ' <span class="label label-info" title="Custom override">custom</span>';
             }
-            if ($feetype_balance > 0 && $fee_value->type == 'HOSTEL FEES' && $this->rbac->hasPrivilege('hostel_fee_override', 'can_add')) {
+            if ($fee_value->type == 'HOSTEL FEES' && $this->rbac->hasPrivilege('hostel_fee_override', 'can_add')) {
                 echo ' <a href="#" class="hostel-override-btn text-muted" data-fee_groups_feetype_id="' . $fee_value->fee_groups_feetype_id . '" data-student_session_id="' . $fee->student_session_id . '" data-current_fee="' . $fee_value->amount . '" data-has_override="' . (!empty($fee_value->fee_override_amount) ? '1' : '0') . '" title="Override hostel fee"><i class="fa fa-pencil"></i></a>';
             }
             if (($fee_value->due_date != "0000-00-00" && $fee_value->due_date != null) && (strtotime($fee_value->due_date) < strtotime(date('Y-m-d')))) {
@@ -481,7 +481,7 @@ if ($feetype_balance == 0) {
                 } else {
                     echo '<span class="tr-fee-amount" data-trans_fee_id="' . $transport_fee_value->id . '">' . amountFormat($transport_fee_value->fees) . '</span>';
                 }
-                if ($feetype_balance > 0 && $this->rbac->hasPrivilege('collect_fees', 'can_add')) {
+                if ($this->rbac->hasPrivilege('collect_fees', 'can_add')) {
                     echo ' <a href="#" class="tr-override-btn text-muted" data-trans_fee_id="' . $transport_fee_value->id . '" data-current_fee="' . $transport_fee_value->fees . '" data-has_override="' . (!empty($transport_fee_value->fee_override) ? '1' : '0') . '" title="Override fee"><i class="fa fa-pencil"></i></a>';
                 }
 
