@@ -21,7 +21,7 @@
                                     }
 								?>
 							
-	                			<img src="<?php echo $file.''.img_time(); ?>" class="img-rounded img-responsive img-h-150 mb-xs-1">						
+<img src="<?php echo $file.''.img_time(); ?>" onerror="this.onerror=null;this.src='<?php echo ($student_data['gender']=='Female')?base_url().'uploads/student_images/default_female.jpg':base_url().'uploads/student_images/default_male.jpg'; ?>';" class="img-rounded img-responsive img-h-150 mb-xs-1">
 								
 								
 											
@@ -189,7 +189,7 @@
 	                                    $profile_pic = 'uploads/staff_images/default_female.jpg';
 				            		} 
 			            		}?>
-			                    <img src="<?php echo base_url(); ?><?php echo $profile_pic.img_time(); ?>" alt="" class="img-circle msr-3 object-fit-cover fit-image-40" width="40" height="40">
+			                    <img src="<?php echo base_url(); ?><?php echo $profile_pic.img_time(); ?>" onerror="this.onerror=null;this.src='<?php echo ($timetablelist->gender=='Male')?base_url().'uploads/staff_images/default_male.jpg':base_url().'uploads/staff_images/default_female.jpg'; ?>';" alt="" class="img-circle msr-3 object-fit-cover fit-image-40" width="40" height="40">
 
 				                <div class="set-flex">
 					                <div class="media-title bmedium"><?php echo $timetablelist->name.' '.$timetablelist->surname.' (' . $timetablelist->employee_id .')'; ?> 
@@ -320,7 +320,7 @@
 											} 
 										}
 								?>
-			                    <img src="<?php echo base_url(); ?><?php echo $profile_pic.img_time(); ?>" alt="" class="img-circle msr-3 object-fit-cover fit-image-40" width="40" height="40">
+			                    <img src="<?php echo base_url(); ?><?php echo $profile_pic.img_time(); ?>" onerror="this.onerror=null;this.src='<?php echo ($teacher[0]->gender=='Male')?base_url().'uploads/staff_images/default_male.jpg':base_url().'uploads/staff_images/default_female.jpg'; ?>';" alt="" class="img-circle msr-3 object-fit-cover fit-image-40" width="40" height="40">
 
 				                <div class="set-flex">
 					                <div class="media-title bmedium"><?php echo $teacher[0]->name . " " . $teacher[0]->surname . "<br> (" . $teacher[0]->employee_id . ") " . $class_teacher ?>	 

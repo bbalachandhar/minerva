@@ -57,7 +57,7 @@ $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
                                                                                                                                                         echo base_url() . "uploads/student_images/default_male.jpg" . img_time();
                                                                                                                                                     }
                                                                                                                                                 }
-                                                                                                                                                ?>" alt="User profile picture">
+                                                                                                                                                ?>" onerror="this.onerror=null;this.src='<?php echo (($student['gender']??'')==='Female')?base_url().'uploads/student_images/default_female.jpg':base_url().'uploads/student_images/default_male.jpg'; ?>';" alt="User profile picture">
                                         <?php
                                         } ?>
                                     </div>
