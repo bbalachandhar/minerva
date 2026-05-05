@@ -6050,28 +6050,37 @@ class Webservice extends CI_Controller
             if ($check_auth_client == true) {
                 $response = $this->auth_model->auth();
                 if ($response['status'] == 200) {
-                    $post_data = $this->input->POST();
+                    // Support both JSON body (mobile) and form-encoded (web) requests
+                    $raw = file_get_contents('php://input');
+                    if (!empty($raw)) {
+                        $decoded = json_decode($raw, true);
+                        if (is_array($decoded)) {
+                            $_POST = array_merge($_POST, $decoded);
+                        }
+                    }
+                    $this->load->library('form_validation');
+                    $post_data = $this->input->post();
                     $this->form_validation->set_error_delimiters('', '');
                     $student_id = $this->input->post('student_id');
                     $data['id'] = $student_id;
                     $post_data = $this->input->post();
                     if (isset($post_data['firstname'])) {
-                        $this->form_validation->set_rules('firstname', 'first_name', 'trim|required|xss_clean');
+                        $this->form_validation->set_rules('firstname', 'first_name', 'trim|required');
                     }
                     if (isset($post_data['guardian_is'])) {
-                        $this->form_validation->set_rules('guardian_is', 'guardian', 'trim|required|xss_clean');
+                        $this->form_validation->set_rules('guardian_is', 'guardian', 'trim|required');
                     }
                     if (isset($post_data['dob'])) {
-                        $this->form_validation->set_rules('dob', 'date_of_birth', 'trim|required|xss_clean');
+                        $this->form_validation->set_rules('dob', 'date_of_birth', 'trim|required');
                     }
                     if (isset($post_data['gender'])) {
-                        $this->form_validation->set_rules('gender', 'gender', 'trim|required|xss_clean');
+                        $this->form_validation->set_rules('gender', 'gender', 'trim|required');
                     }
                     if (isset($post_data['guardian_name'])) {
-                        $this->form_validation->set_rules('guardian_name', 'guardian_name', 'trim|required|xss_clean');
+                        $this->form_validation->set_rules('guardian_name', 'guardian_name', 'trim|required');
                     }
                     if (isset($post_data['guardian_phone'])) {
-                        $this->form_validation->set_rules('guardian_phone', 'guardian_phone', 'trim|required|xss_clean');
+                        $this->form_validation->set_rules('guardian_phone', 'guardian_phone', 'trim|required');
                     }
 
                     $storage_array = "file,father_pic,mother_pic,guardian_pic";
