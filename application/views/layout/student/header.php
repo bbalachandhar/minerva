@@ -477,7 +477,7 @@ if ($role == 'student' || $role == 'parent') {
                         <?php }?>
                         
                         <?php  
-                        if ($this->module_lib->hasModule('cbseexam') && $this->module_lib->hasActive('cbseexam') && $this->studentmodule_lib->hasActive('cbseexam') && $this->sch_setting_detail->institution_type !== 'college') { ?>	
+                        if ($this->module_lib->hasModule('cbseexam') && $this->module_lib->hasActive('cbseexam') && $this->studentmodule_lib->hasActive('cbseexam') && isset($this->school_details->institution_type) && $this->school_details->institution_type !== 'college') { ?>	
 							
 							<li class="treeview <?php echo set_Topmenu('cbse_exam'); ?>">
                                 <a href="#">
