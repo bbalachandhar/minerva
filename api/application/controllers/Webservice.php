@@ -7439,7 +7439,13 @@ class Webservice extends CI_Controller
                             'description' => $this->input->post('description'),
                             'date' => date('Y-m-d'),
                             'student_session_id' => $student_session_id,
+                            'remark' => $this->input->post('remark') ?? '',
                         );
+
+                        // Remove empty id so MySQL auto_increment works on new records
+                        if (empty($data['id'])) {
+                            unset($data['id']);
+                        }
 
                         $upload_path = $this->config->item('upload_path') . "/homework/daily_assignment/";
                         $insert_id = $this->homework_model->adddailyassignment($data);
