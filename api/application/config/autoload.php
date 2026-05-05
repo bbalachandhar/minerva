@@ -12,7 +12,7 @@ $autoload['libraries'] = array('database', 'session');
 
 $autoload['drivers'] = array();
 
-$autoload['helper'] = array('url', 'json_output');
+$autoload['helper'] = array('url', 'json_output', 'custom');
 
 $autoload['config'] = array();
 
