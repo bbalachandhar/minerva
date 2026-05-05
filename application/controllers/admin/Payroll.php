@@ -2530,6 +2530,37 @@ class Payroll extends Admin_Controller
             $this->create($month, $year, $staff_id);
         } else {
 
+            // Recalculate total_allowance from individual earning rows to prevent BASIC double-counting.
+            // BASIC salary goes into the 'basic' column, not total_allowance.
+            $allowance_type_id_raw = $this->input->post("allowance_type_id");
+            $allowance_amount_raw  = $this->input->post("allowance_amount");
+            if (!empty($allowance_type_id_raw) && !empty($allowance_amount_raw)) {
+                $all_types_list = $this->payroll_model->getAllowanceTypes(null, false);
+                $type_code_map  = [];
+                foreach ($all_types_list as $atype) {
+                    $type_code_map[(int)$atype['id']] = strtoupper(trim($atype['allowance_code'] ?? ''));
+                }
+                $recalc_allowance  = 0;
+                $basic_from_earning = null;
+                foreach ($allowance_type_id_raw as $idx => $atype_id) {
+                    $atype_id = (int)$atype_id;
+                    if ($atype_id <= 0 || !isset($allowance_amount_raw[$idx])) {
+                        continue;
+                    }
+                    $acode   = $type_code_map[$atype_id] ?? '';
+                    $aamount = convertCurrencyFormatToBaseAmount($allowance_amount_raw[$idx]);
+                    if ($acode === 'BASIC') {
+                        $basic_from_earning = (float)$aamount;
+                        continue; // BASIC is the base salary, not an additional allowance
+                    }
+                    $recalc_allowance += (float)$aamount;
+                }
+                $total_allowance = $recalc_allowance;
+                if ($basic_from_earning !== null) {
+                    $basic = $this->resolvePayrollBasicAmount($basic_from_earning, null, (int)$staff_id);
+                }
+            }
+
             $data = array('staff_id' => $staff_id,
                 'basic'                  => $basic,
                 'total_allowance'        => $total_allowance,
