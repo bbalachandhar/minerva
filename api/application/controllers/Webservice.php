@@ -3981,10 +3981,7 @@ class Webservice extends CI_Controller
                             if (isset($_FILES["file"]) && !empty($_FILES['file']['name'])) {
 
                                 $img_name = $this->media_storage->fileupload("file", $upload_path);
-
-                                if ($img_name != '') {
-                                    $img_name = $img_name;
-                                }
+                                $img_name = $img_name ?? ''; // guard against null on upload failure
 
                                 if (IsNullOrEmptyString($img_name)) {  // check upload image has not uploaded successfully
                                     $total_documents_failed_size += $this->media_storage->getTmpFileSize('file');  // get temp size of image because of image not uploaded 
@@ -4005,7 +4002,8 @@ class Webservice extends CI_Controller
                                 $data_insert = array(
                                     'homework_id' => $this->input->post('homework_id'),
                                     'student_id' => $this->input->post('student_id'),
-                                    'message' => $this->input->post('message')
+                                    'message' => $this->input->post('message'),
+                                    'docs' => '',
                                 );
                                 $this->homework_model->add($data_insert);
                             }
@@ -9146,6 +9144,7 @@ class Webservice extends CI_Controller
                             $total_documents_failed_size = 0;
 
                             $img_name = $this->media_storage->fileupload("file", $upload_path);
+                            $img_name = $img_name ?? ''; // guard against null on upload failure
 
                             if (IsNullOrEmptyString($img_name)) {
                                 $total_documents_failed_size += $this->media_storage->getTmpFileSize('file');

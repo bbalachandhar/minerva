@@ -43,6 +43,10 @@ $config['log_path']            = '';
 $config['log_file_extension']  = '';
 $config['log_file_permissions'] = 0644;
 $config['log_date_format']     = 'Y-m-d H:i:s';
+
+// Upload path relative to FCPATH (which is the /api/ directory).
+// ../uploads resolves to the uploads/ folder at the project root.
+$config['upload_path']         = '../uploads';
 $config['error_views_path']    = '';
 $config['cache_path']          = '';
 $config['cache_query_string']  = FALSE;
