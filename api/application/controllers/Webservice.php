@@ -7412,6 +7412,7 @@ class Webservice extends CI_Controller
 
                     $data = $this->input->POST();
 
+                    $this->load->library('form_validation');
                     $this->form_validation->set_rules('title', 'title', 'required|trim');
                     $this->form_validation->set_rules('subject', 'subject', 'required|trim');
 
