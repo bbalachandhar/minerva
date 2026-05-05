@@ -8,7 +8,7 @@ $autoload['packages'] = array();
  * Auto-load the database library so $this->db is available in all models.
  * Everything else is loaded manually in each controller/library as needed.
  */
-$autoload['libraries'] = array('database', 'session');
+$autoload['libraries'] = array('database', 'session', 'form_validation');
 
 $autoload['drivers'] = array();
 

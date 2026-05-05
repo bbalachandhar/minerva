@@ -6058,7 +6058,6 @@ class Webservice extends CI_Controller
                             $_POST = array_merge($_POST, $decoded);
                         }
                     }
-                    $this->load->library('form_validation');
                     $post_data = $this->input->post();
                     $this->form_validation->set_error_delimiters('', '');
                     $student_id = $this->input->post('student_id');
@@ -7412,7 +7411,6 @@ class Webservice extends CI_Controller
 
                     $data = $this->input->POST();
 
-                    $this->load->library('form_validation');
                     $this->form_validation->set_rules('title', 'title', 'required|trim');
                     $this->form_validation->set_rules('subject', 'subject', 'required|trim');
 
