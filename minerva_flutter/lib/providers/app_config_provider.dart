@@ -341,6 +341,7 @@ class AppConfigProvider extends ChangeNotifier {
   }
 
   Future<void> loadAppConfig() async {
+    if (_isLoading) return; // Prevent concurrent calls
     _isLoading = true;
     _error = null;
     _isNetworkError = false;

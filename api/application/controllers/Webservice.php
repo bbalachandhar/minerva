@@ -3473,7 +3473,7 @@ class Webservice extends CI_Controller
 
             if ($check_auth_client == true) {
 
-                $_POST = json_decode(file_get_contents("php://input"), true);
+                $_POST = json_decode(file_get_contents("php://input"), true) ?? [];
                 $this->form_validation->set_data($_POST);
                 $this->form_validation->set_error_delimiters('', '');
                 $this->form_validation->set_rules('event_title', 'Title', 'required|trim');
@@ -3519,7 +3519,7 @@ class Webservice extends CI_Controller
             $check_auth_client = $this->auth_model->check_auth_client();
             if ($check_auth_client == true) {
 
-                $_POST = json_decode(file_get_contents("php://input"), true);
+                $_POST = json_decode(file_get_contents("php://input"), true) ?? [];
                 $this->form_validation->set_data($_POST);
                 $this->form_validation->set_error_delimiters('', '');
                 $this->form_validation->set_rules('task_id', 'Task ID', 'required|trim');
@@ -3555,7 +3555,7 @@ class Webservice extends CI_Controller
             $check_auth_client = $this->auth_model->check_auth_client();
             if ($check_auth_client == true) {
 
-                $_POST = json_decode(file_get_contents("php://input"), true);
+                $_POST = json_decode(file_get_contents("php://input"), true) ?? [];
                 $this->form_validation->set_data($_POST);
                 $this->form_validation->set_error_delimiters('', '');
                 $this->form_validation->set_rules('task_id', 'Task ID', 'required|trim');
@@ -3587,7 +3587,7 @@ class Webservice extends CI_Controller
             $check_auth_client = $this->auth_model->check_auth_client();
             if ($check_auth_client == true) {
 
-                $_POST = json_decode(file_get_contents("php://input"), true);
+                $_POST = json_decode(file_get_contents("php://input"), true) ?? [];
                 $this->form_validation->set_data($_POST);
                 $this->form_validation->set_error_delimiters('', '');
                 $this->form_validation->set_rules('deviceToken', 'deviceToken', 'required|trim');
@@ -3618,7 +3618,7 @@ class Webservice extends CI_Controller
             json_output(400, array('status' => 400, 'message' => 'Bad request.'));
         } else {
 
-            $_POST = json_decode(file_get_contents("php://input"), true);
+            $_POST = json_decode(file_get_contents("php://input"), true) ?? [];
             $this->form_validation->set_error_delimiters('', '');
             $this->form_validation->set_data($_POST);
             $this->form_validation->set_rules('site_url', 'URL', 'trim|required');
@@ -3812,7 +3812,7 @@ class Webservice extends CI_Controller
             if ($check_auth_client == true) {
                 $response = $this->auth_model->auth();
                 if ($response['status'] == 200) {
-                    $_POST = json_decode(file_get_contents("php://input"), true);
+                    $_POST = json_decode(file_get_contents("php://input"), true) ?? [];
                     $student_id = $this->input->post('student_id');
                     $student_doc = $this->student_model->getstudentdoc($student_id);
                     json_output($response['status'], $student_doc);
@@ -3831,7 +3831,7 @@ class Webservice extends CI_Controller
             if ($check_auth_client == true) {
                 $response = $this->auth_model->auth();
                 if ($response['status'] == 200) {
-                    $_POST = json_decode(file_get_contents("php://input"), true);
+                    $_POST = json_decode(file_get_contents("php://input"), true) ?? [];
                     $homework_id = $this->input->post('homework_id');                 
 
                     $resulthomework = $this->homework_model->getHomeworkById($homework_id); 
@@ -3854,7 +3854,7 @@ class Webservice extends CI_Controller
             if ($check_auth_client == true) {
                 $response = $this->auth_model->auth();
                 if ($response['status'] == 200) {
-                    $_POST = json_decode(file_get_contents("php://input"), true);
+                    $_POST = json_decode(file_get_contents("php://input"), true) ?? [];
                     $student_id = $this->input->post('student_id');
                     $homework_status = $this->input->post('homework_status');
                     $subject_group_subject_id = $this->input->post('subject_group_subject_id');
@@ -3915,7 +3915,7 @@ class Webservice extends CI_Controller
             if ($check_auth_client == true) {
                 $response = $this->auth_model->auth();
                 if ($response['status'] == 200) {
-                    $_POST = json_decode(file_get_contents("php://input"), true);
+                    $_POST = json_decode(file_get_contents("php://input"), true) ?? [];
                     $student_id = $this->input->post('student_id');
                     $result = $this->student_model->get($student_id);
                     $class_id = $result->class_id;
@@ -4855,7 +4855,7 @@ class Webservice extends CI_Controller
                 $response = $this->auth_model->auth();
                 if ($response['status'] == 200) {
                     ///===================
-                    $_POST = json_decode(file_get_contents("php://input"), true);
+                    $_POST = json_decode(file_get_contents("php://input"), true) ?? [];
 
                     $year = $this->input->post('year');
                     $month = $this->input->post('month');
@@ -4903,7 +4903,7 @@ class Webservice extends CI_Controller
                 if ($response['status'] == 200) {
                     $school_setting = $this->setting_model->getSchoolDetail();
 
-                    $_POST = json_decode(file_get_contents("php://input"), true);
+                    $_POST = json_decode(file_get_contents("php://input"), true) ?? [];
                     $year = $this->input->post('year');
                     $month = $this->input->post('month');
                     $student_id = $this->input->post('student_id');
@@ -4960,7 +4960,7 @@ class Webservice extends CI_Controller
             if ($check_auth_client == true) {
                 $response = $this->auth_model->auth();
                 if ($response['status'] == 200) {
-                    $_POST = json_decode(file_get_contents("php://input"), true);
+                    $_POST = json_decode(file_get_contents("php://input"), true) ?? [];
                     $student_id = $this->input->post('student_id');
                     $data = array();
                     $stu_record = $this->student_model->getRecentRecord($student_id);
@@ -4985,7 +4985,7 @@ class Webservice extends CI_Controller
             if ($check_auth_client == true) {
                 $response = $this->auth_model->auth();
                 if ($response['status'] == 200) {
-                    $_POST = json_decode(file_get_contents("php://input"), true);
+                    $_POST = json_decode(file_get_contents("php://input"), true) ?? [];
                     $this->form_validation->set_data($_POST);
                     $exam_id = $this->input->post('exam_id');
                     $section_id = $this->input->post('section_id');
@@ -5008,7 +5008,7 @@ class Webservice extends CI_Controller
             if ($check_auth_client == true) {
                 $response = $this->auth_model->auth();
                 if ($response['status'] == 200) {
-                    $_POST = json_decode(file_get_contents("php://input"), true);
+                    $_POST = json_decode(file_get_contents("php://input"), true) ?? [];
                     $this->form_validation->set_data($_POST);
                     $student_id = $this->input->post('student_id');
                     $date_from = $this->input->post('date_from');
@@ -5049,7 +5049,7 @@ class Webservice extends CI_Controller
             if ($check_auth_client == true) {
                 $response = $this->auth_model->auth();
                 if ($response['status'] == 200) {
-                    $_POST = json_decode(file_get_contents("php://input"), true);
+                    $_POST = json_decode(file_get_contents("php://input"), true) ?? [];
                     $this->form_validation->set_data($_POST);
                     $subject_syllabus_id = $this->input->post('subject_syllabus_id');
                     $syllabus['data'] = $this->syllabus_model->getSyllabusDetail($subject_syllabus_id);
@@ -5070,7 +5070,7 @@ class Webservice extends CI_Controller
             if ($check_auth_client == true) {
                 $response = $this->auth_model->auth();
                 if ($response['status'] == 200) {
-                    $_POST = json_decode(file_get_contents("php://input"), true);
+                    $_POST = json_decode(file_get_contents("php://input"), true) ?? [];
                     $this->form_validation->set_data($_POST);
                     $student_id = $this->input->post('student_id');
                     $stu_record = $this->student_model->getRecentRecord($student_id);
@@ -5095,7 +5095,7 @@ class Webservice extends CI_Controller
             if ($check_auth_client == true) {
                 $response = $this->auth_model->auth();
                 if ($response['status'] == 200) {
-                    $_POST = json_decode(file_get_contents("php://input"), true);
+                    $_POST = json_decode(file_get_contents("php://input"), true) ?? [];
                     $this->form_validation->set_data($_POST);
                     $subject_group_subject_id = $this->input->post('subject_group_subject_id');
                     $subject_group_class_sections_id = $this->input->post('subject_group_class_sections_id');
@@ -5118,7 +5118,7 @@ class Webservice extends CI_Controller
             if ($check_auth_client == true) {
                 $response = $this->auth_model->auth();
                 if ($response['status'] == 200) {
-                    $_POST = json_decode(file_get_contents("php://input"), true);
+                    $_POST = json_decode(file_get_contents("php://input"), true) ?? [];
                     $this->form_validation->set_data($_POST);
                     $subject_syllabus_id = $this->input->post('subject_syllabus_id');
                     $forummessage = $this->syllabus_model->getstudentmessage($subject_syllabus_id);
@@ -5147,7 +5147,7 @@ class Webservice extends CI_Controller
             if ($check_auth_client == true) {
                 $response = $this->auth_model->auth();
                 if ($response['status'] == 200) {
-                    $_POST = json_decode(file_get_contents("php://input"), true);
+                    $_POST = json_decode(file_get_contents("php://input"), true) ?? [];
                     $subject_syllabus_id = $this->input->post('subject_syllabus_id');
                     $student_id = $this->input->post('student_id');
                     $message = $this->input->post('message');
@@ -5179,7 +5179,7 @@ class Webservice extends CI_Controller
             $check_auth_client = $this->auth_model->check_auth_client();
             if ($check_auth_client == true) {
 
-                $_POST = json_decode(file_get_contents("php://input"), true);
+                $_POST = json_decode(file_get_contents("php://input"), true) ?? [];
                 $this->form_validation->set_data($_POST);
                 $this->form_validation->set_error_delimiters('', '');
                 $this->form_validation->set_rules('lesson_plan_forum_id', 'Forum ID', 'required|trim');
@@ -5215,7 +5215,7 @@ class Webservice extends CI_Controller
                 if ($response['status'] == 200) {
                     $data = array();
                     $pay_method = $this->paymentsetting_model->getActiveMethod();
-                    $_POST = json_decode(file_get_contents("php://input"), true);
+                    $_POST = json_decode(file_get_contents("php://input"), true) ?? [];
                     $student_id = $this->input->post('student_id');  
                     $student = $this->student_model->get($student_id);
  
@@ -5404,7 +5404,7 @@ class Webservice extends CI_Controller
             if ($check_auth_client == true) {
                 $response = $this->auth_model->auth();
                 if ($response['status'] == 200) {
-                    $_POST = json_decode(file_get_contents("php://input"), true);
+                    $_POST = json_decode(file_get_contents("php://input"), true) ?? [];
                     $student_id = $this->input->post('student_id');
                     $student = $this->student_model->get($student_id);
                     $class_id = $student->class_id;
@@ -5433,7 +5433,7 @@ class Webservice extends CI_Controller
             if ($check_auth_client == true) {
                 $response = $this->auth_model->auth();
                 if ($response['status'] == 200) {
-                    $_POST = json_decode(file_get_contents("php://input"), true);
+                    $_POST = json_decode(file_get_contents("php://input"), true) ?? [];
                     $exam_group_class_batch_exam_id = $this->input->post('exam_group_class_batch_exam_id');
                     $student_id = $this->input->post('student_id');
                     $student = $this->student_model->get($student_id);
@@ -5687,7 +5687,7 @@ class Webservice extends CI_Controller
                 if ($response['status'] == 200) {
                     $array = array();
 
-                    $_POST = json_decode(file_get_contents("php://input"), true);
+                    $_POST = json_decode(file_get_contents("php://input"), true) ?? [];
                     $parent_id = $this->input->post('parent_id');
                     $students_array = $this->student_model->read_siblings_students($parent_id);
                     $array['childs'] = $students_array;
@@ -5708,7 +5708,7 @@ class Webservice extends CI_Controller
             if ($check_auth_client == true) {
                 $response = $this->auth_model->auth();
                 if ($response['status'] == 200) {
-                    $_POST = json_decode(file_get_contents("php://input"), true);
+                    $_POST = json_decode(file_get_contents("php://input"), true) ?? [];
                     $user = $this->input->post('user');
                     $resp['module_list'] = $this->module_model->get($user);
                     json_output($response['status'], $resp);
@@ -5820,7 +5820,7 @@ class Webservice extends CI_Controller
             if ($check_auth_client == true) {
                 $response = $this->auth_model->auth();
                 if ($response['status'] == 200) {
-                    $_POST = json_decode(file_get_contents("php://input"), true);
+                    $_POST = json_decode(file_get_contents("php://input"), true) ?? [];
                     $student_id = $this->input->post('student_id');
                     $result = $this->student_model->get($student_id);
                     if (empty($result)) {
@@ -5859,7 +5859,7 @@ class Webservice extends CI_Controller
             if ($check_auth_client == true) {
                 $response = $this->auth_model->auth();
                 if ($response['status'] == 200) {
-                    $_POST = json_decode(file_get_contents("php://input"), true);
+                    $_POST = json_decode(file_get_contents("php://input"), true) ?? [];
                     $live_classes = $this->conference_model->getzoomsettings();
 
                     $data["live_classes"] = $live_classes;
@@ -5879,7 +5879,7 @@ class Webservice extends CI_Controller
             if ($check_auth_client == true) {
                 $response = $this->auth_model->auth();
                 if ($response['status'] == 200) {
-                    $_POST = json_decode(file_get_contents("php://input"), true);
+                    $_POST = json_decode(file_get_contents("php://input"), true) ?? [];
                     $insert_data = array(
                         'student_id' => $this->input->post('student_id'),
                         'conference_id' => $this->input->post('conference_id'),
@@ -5902,7 +5902,7 @@ class Webservice extends CI_Controller
             if ($check_auth_client == true) {
                 $response = $this->auth_model->auth();
                 if ($response['status'] == 200) {
-                    $_POST = json_decode(file_get_contents("php://input"), true);
+                    $_POST = json_decode(file_get_contents("php://input"), true) ?? [];
                     $student_id = $this->input->post('student_id');
 
                     if (!$this->db->table_exists('gmeet') || !$this->db->table_exists('gmeet_sections')) {
@@ -5942,7 +5942,7 @@ class Webservice extends CI_Controller
             if ($check_auth_client == true) {
                 $response = $this->auth_model->auth();
                 if ($response['status'] == 200) {
-                    $_POST = json_decode(file_get_contents("php://input"), true);
+                    $_POST = json_decode(file_get_contents("php://input"), true) ?? [];
                     $live_classes = $this->gmeet_model->getgmeetsettings();
                     $data["live_classes"] = $live_classes;
                     json_output($response['status'], $data);
@@ -5961,7 +5961,7 @@ class Webservice extends CI_Controller
             if ($check_auth_client == true) {
                 $response = $this->auth_model->auth();
                 if ($response['status'] == 200) {
-                    $_POST = json_decode(file_get_contents("php://input"), true);
+                    $_POST = json_decode(file_get_contents("php://input"), true) ?? [];
                     $insert_data = array(
                         'student_id' => $this->input->post('student_id'),
                         'gmeet_id' => $this->input->post('gmeet_id'),
@@ -6007,7 +6007,7 @@ class Webservice extends CI_Controller
                 $response = $this->auth_model->auth();
                 if ($response['status'] == 200) {
 
-                    $_POST = json_decode(file_get_contents("php://input"), true);
+                    $_POST = json_decode(file_get_contents("php://input"), true) ?? [];
                     $student_id = $this->input->post('student_id');
                     $inserted_fields = $this->student_edit_field_model->get();
                     $result['id'] = $student_id;
@@ -6581,7 +6581,7 @@ class Webservice extends CI_Controller
             if ($check_auth_client == true) {
                 $response = $this->auth_model->auth();
                 if ($response['status'] == 200) {
-                    $_POST = json_decode(file_get_contents("php://input"), true);
+                    $_POST = json_decode(file_get_contents("php://input"), true) ?? [];
                     $pay_method = $this->paymentsetting_model->getActiveMethod();
                     $student_id = $this->input->post('student_id');
                     $result = $this->student_model->get($student_id);
@@ -6690,7 +6690,7 @@ class Webservice extends CI_Controller
             if ($check_auth_client == true) {
                 $response = $this->auth_model->auth();
                 if ($response['status'] == 200) {
-                    $_POST = json_decode(file_get_contents("php://input"), true);
+                    $_POST = json_decode(file_get_contents("php://input"), true) ?? [];
                     $this->form_validation->set_data($_POST);
                     $course_id = $this->input->post('course_id');
                     $student_id = $this->input->post('student_id');
@@ -6718,7 +6718,7 @@ class Webservice extends CI_Controller
             if ($check_auth_client == true) {
                 $response = $this->auth_model->auth();
                 if ($response['status'] == 200) {
-                    $_POST = json_decode(file_get_contents("php://input"), true);
+                    $_POST = json_decode(file_get_contents("php://input"), true) ?? [];
                     $this->form_validation->set_data($_POST);
                     $course_id = $this->input->post('course_id');
                     $student_id = $this->input->post('student_id');
@@ -6741,7 +6741,7 @@ class Webservice extends CI_Controller
             if ($check_auth_client == true) {
                 $response = $this->auth_model->auth();
                 if ($response['status'] == 200) {
-                    $_POST = json_decode(file_get_contents("php://input"), true);
+                    $_POST = json_decode(file_get_contents("php://input"), true) ?? [];
                     $this->form_validation->set_data($_POST);
                     $lesson_id = $this->input->post('lesson_id');
                     
@@ -6798,7 +6798,7 @@ class Webservice extends CI_Controller
             if ($check_auth_client == true) {
                 $response = $this->auth_model->auth();
                 if ($response['status'] == 200) {
-                    $_POST = json_decode(file_get_contents("php://input"), true);
+                    $_POST = json_decode(file_get_contents("php://input"), true) ?? [];
                     $this->form_validation->set_data($_POST);
                     $quiz_id = $this->input->post('quiz_id');
                     $student_id = $this->input->post('student_id');
@@ -6823,7 +6823,7 @@ class Webservice extends CI_Controller
             if ($check_auth_client == true) {
                 $response = $this->auth_model->auth();
                 if ($response['status'] == 200) {
-                    $_POST = json_decode(file_get_contents("php://input"), true);
+                    $_POST = json_decode(file_get_contents("php://input"), true) ?? [];
                     $this->form_validation->set_data($_POST);
                     $quiz_id = $this->input->post('quiz_id');
                     $answerlist = '';
@@ -7508,7 +7508,7 @@ class Webservice extends CI_Controller
             $check_auth_client = $this->auth_model->check_auth_client();
             if ($check_auth_client == true) {
 
-                $_POST = json_decode(file_get_contents("php://input"), true);
+                $_POST = json_decode(file_get_contents("php://input"), true) ?? [];
                 $this->form_validation->set_data($_POST);
                 $this->form_validation->set_error_delimiters('', '');
                 $this->form_validation->set_rules('id', 'Id', 'required|trim');
@@ -7709,7 +7709,7 @@ class Webservice extends CI_Controller
             $check_auth_client = $this->auth_model->check_auth_client();
             if ($check_auth_client == true) {
 
-                $_POST = json_decode(file_get_contents("php://input"), true);
+                $_POST = json_decode(file_get_contents("php://input"), true) ?? [];
                 $this->form_validation->set_data($_POST);
                 $this->form_validation->set_error_delimiters('', '');
                 $this->form_validation->set_rules('id', 'Id', 'required|trim');
@@ -8190,7 +8190,7 @@ class Webservice extends CI_Controller
             if ($check_auth_client == true) {
                 $response = $this->auth_model->auth();
                 if ($response['status'] == 200) {
-                    $_POST = json_decode(file_get_contents("php://input"), true);
+                    $_POST = json_decode(file_get_contents("php://input"), true) ?? [];
                     $user = $this->input->post('user');
 
                     $modulearray = array('homework', 'daily_assignment', 'lesson_plan', 'online_examination', 'download_center', 'online_course', 'live_classes', 'gmeet_live_classes');
@@ -8264,7 +8264,7 @@ class Webservice extends CI_Controller
             if ($check_auth_client == true) {
                 $response = $this->auth_model->auth();
                 if ($response['status'] == 200) {
-                    $_POST = json_decode(file_get_contents("php://input"), true);
+                    $_POST = json_decode(file_get_contents("php://input"), true) ?? [];
                     $user = $this->input->post('user');
 
                     $modulearray = array('class_timetable', 'syllabus_status', 'attendance', 'examinations', 'student_timeline', 'mydocuments', 'behaviour_records', 'cbseexam');
@@ -8338,7 +8338,7 @@ class Webservice extends CI_Controller
             if ($check_auth_client == true) {
                 $response = $this->auth_model->auth();
                 if ($response['status'] == 200) {
-                    $_POST = json_decode(file_get_contents("php://input"), true);
+                    $_POST = json_decode(file_get_contents("php://input"), true) ?? [];
                     $user = $this->input->post('user');
 
                     $modulearray = array('notice_board');
@@ -8384,7 +8384,7 @@ class Webservice extends CI_Controller
             if ($check_auth_client == true) {
                 $response = $this->auth_model->auth();
                 if ($response['status'] == 200) {
-                    $_POST = json_decode(file_get_contents("php://input"), true);
+                    $_POST = json_decode(file_get_contents("php://input"), true) ?? [];
                     $user = $this->input->post('user');
 
                     $modulearray = array('fees', 'apply_leave', 'visitor_book', 'transport_routes', 'hostel_rooms', 'calendar_to_do_list', 'library', 'teachers_rating');
@@ -8498,7 +8498,7 @@ class Webservice extends CI_Controller
             if ($check_auth_client == true) {
                 $response = $this->auth_model->auth();
                 if ($response['status'] == 200) {
-                    $_POST = json_decode(file_get_contents("php://input"), true);
+                    $_POST = json_decode(file_get_contents("php://input"), true) ?? [];
 
                     $setting = $this->setting_model->getSetting();
                     $resp['maintenance_mode'] = $setting->maintenance_mode;
@@ -8520,7 +8520,7 @@ class Webservice extends CI_Controller
             if ($check_auth_client == true) {
                 $response = $this->auth_model->auth();
                 if ($response['status'] == 200) {
-                    $_POST = json_decode(file_get_contents("php://input"), true);
+                    $_POST = json_decode(file_get_contents("php://input"), true) ?? [];
 
                     $setting = $this->setting_model->getSetting();
 
@@ -8543,7 +8543,7 @@ class Webservice extends CI_Controller
             if ($check_auth_client == true) {
                 $response = $this->auth_model->auth();
                 if ($response['status'] == 200) {
-                    $_POST = json_decode(file_get_contents("php://input"), true);
+                    $_POST = json_decode(file_get_contents("php://input"), true) ?? [];
 
                     $setting = $this->setting_model->getSetting();
 
@@ -8566,7 +8566,7 @@ class Webservice extends CI_Controller
             if ($check_auth_client == true) {
                 $response = $this->auth_model->auth();
                 if ($response['status'] == 200) {
-                    $_POST = json_decode(file_get_contents("php://input"), true);
+                    $_POST = json_decode(file_get_contents("php://input"), true) ?? [];
 
                     $setting = $this->setting_model->getSetting();
 
@@ -8589,7 +8589,7 @@ class Webservice extends CI_Controller
             if ($check_auth_client == true) {
                 $response = $this->auth_model->auth();
                 if ($response['status'] == 200) {
-                    $_POST = json_decode(file_get_contents("php://input"), true);
+                    $_POST = json_decode(file_get_contents("php://input"), true) ?? [];
                     $student_id = $_POST['student_id'];
                     $student = $this->student_model->get($student_id);
 
@@ -8655,7 +8655,7 @@ class Webservice extends CI_Controller
                 $response = $this->auth_model->auth();
                 if ($response['status'] == 200) {
 
-                    $_POST = json_decode(file_get_contents("php://input"), true);
+                    $_POST = json_decode(file_get_contents("php://input"), true) ?? [];
 
                     $id = $_POST['id'];
                     $user_type = $_POST['user_type'];
@@ -8855,7 +8855,7 @@ class Webservice extends CI_Controller
             if ($check_auth_client == true) {
                 $response = $this->auth_model->auth();
                 if ($response['status'] == 200) {
-                    $_POST = json_decode(file_get_contents("php://input"), true);
+                    $_POST = json_decode(file_get_contents("php://input"), true) ?? [];
 
                     $student_session_id = $_POST['student_session_id'];
                     $resp['result'] = $this->cbseexam_model->getStudentExamTimetable($student_session_id);

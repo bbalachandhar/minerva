@@ -60,7 +60,7 @@ class Route extends CI_Controller
                 if ($response['status'] == 200) {
                     //==================================
                     $this->load->library('form_validation');
-                    $_POST = json_decode(file_get_contents("php://input"), true);
+                    $_POST = json_decode(file_get_contents("php://input"), true) ?? [];
 
                     $this->form_validation->set_rules('route_title', 'route_title', 'required');
                     $this->form_validation->set_rules('note', 'note', 'required');
@@ -98,7 +98,7 @@ class Route extends CI_Controller
 
                     //==================================
                     $this->load->library('form_validation');
-                    $_POST = json_decode(file_get_contents("php://input"), true);
+                    $_POST = json_decode(file_get_contents("php://input"), true) ?? [];
                     $this->form_validation->set_data($_POST);
                     $this->form_validation->set_rules('route_title', 'route_title', 'required');
                     $this->form_validation->set_rules('note', 'note', 'required');

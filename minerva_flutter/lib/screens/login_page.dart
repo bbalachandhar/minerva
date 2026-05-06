@@ -161,7 +161,9 @@ class _LoginPageUIState extends State<LoginPageUI> {
         });
       }
 
-      // 3. If still empty, fetch from API once (provider not yet initialized)
+      // 3. Fetch fresh config from API to update colors (and logo if empty).
+      // When logo is already cached, fire-and-forget so the login screen
+      // appears immediately while colors update reactively in the background.
       if (resolvedLogo.isEmpty) {
         await appConfigProvider.loadAppConfig();
 
@@ -193,6 +195,10 @@ class _LoginPageUIState extends State<LoginPageUI> {
             if (freshName.isNotEmpty) schoolName = freshName;
           });
         }
+      } else {
+        // Logo is cached — fire a background refresh so colors are updated
+        // from the server without blocking the login screen from appearing.
+        appConfigProvider.loadAppConfig().catchError((_) {});
       }
     } catch (e) {
       if (kDebugMode) debugPrint('[LoginPage] loadSchoolInfo error: $e');
@@ -853,7 +859,7 @@ class _LoginPageUIState extends State<LoginPageUI> {
           suffix: IconButton(
             icon: Icon(
               _obscurePassword ? Icons.visibility_off : Icons.visibility,
-              color: const Color(0xFF666666),
+              color: context.secondaryText,
               size: isTablet ? 28 : 22.0,
             ),
             onPressed: () =>
@@ -926,7 +932,7 @@ class _LoginPageUIState extends State<LoginPageUI> {
             Text(
               'Remember Me',
               style: TextStyle(
-                color: Colors.black87,
+                color: context.primaryText,
                 fontSize: fontSize,
                 fontWeight: FontWeight.w500,
               ),
@@ -1015,14 +1021,14 @@ class _LoginPageUIState extends State<LoginPageUI> {
         children: [
           Icon(
             Icons.search_rounded,
-            color: const Color(0xFF666666),
+            color: context.secondaryText,
             size: iconSize,
           ),
           const SizedBox(width: 6),
           Text(
             'Forgot Password?',
             style: TextStyle(
-              color: Colors.black87,
+              color: context.primaryText,
               fontSize: fontSize,
               fontWeight: FontWeight.w500,
             ),
@@ -1108,13 +1114,9 @@ class _LoginPageUIState extends State<LoginPageUI> {
           // Privacy Policy - Bottom Left, No Background
           GestureDetector(
             onTap: _launchPrivacyPolicy,
-            child: const Text(
+            child: Text(
               'Privacy Policy',
-              style: TextStyle(
-                color: Colors.black87,
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-              ),
+              style: TextStyle(color: context.primaryText),
             ),
           ),
 
