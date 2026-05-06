@@ -4755,16 +4755,15 @@ class Webservice extends CI_Controller
                     $studentList = $this->student_model->get($student_id);
 
                     $resp = $this->webservice_model->getHostelList();
-                    foreach ($resp as $key => $value) {
+                    $studentRoom = array();
+                    foreach ($resp as $value) {
                         if ($studentList->hostel_room_id == $value['id']) {
-                            $resp[$key]['assign'] = 1;
-                        } else {
-                            $resp[$key]['assign'] = 0;
+                            $value['assign'] = 1;
+                            $studentRoom[] = $value;
                         }
-                        $resp[$key]['cost_per_bed'] = $value['cost_per_bed'];
                     }
 
-                    $data['hostelarray'] = $resp;
+                    $data['hostelarray'] = $studentRoom;
                     json_output($response['status'], $data);
                 }
             }
@@ -4913,10 +4912,29 @@ class Webservice extends CI_Controller
                     $data = array();
                     $data['attendence_type'] = $school_setting->attendence_type;
                     if ($school_setting->attendence_type) {
-                        $timestamp = strtotime($date);
-                        $day = date('l', $timestamp);
-                        $attendence_result = $this->attendencetype_model->studentAttendanceByDate($student->class_id, $student->section_id, $day, $date, $student_session_id);
-                        $data['data'] = $attendence_result;
+                        // Subject-wise attendance: loop through the month and aggregate to daily status
+                        $new_date = "01-" . $month . "-" . $year;
+                        $totalDays = cal_days_in_month(CAL_GREGORIAN, $month, $year);
+                        $fst_day_str = strtotime($new_date);
+                        $array = array();
+                        for ($loop_day = 1; $loop_day <= $totalDays; $loop_day++) {
+                            $loop_date = date('Y-m-d', $fst_day_str);
+                            $day_name = date('l', $fst_day_str);
+                            $subject_attendance = $this->attendencetype_model->studentAttendanceByDate($student->class_id, $student->section_id, $day_name, $loop_date, $student_session_id);
+                            if (!empty($subject_attendance)) {
+                                $type = 'Absent';
+                                foreach ($subject_attendance as $subj_att) {
+                                    $att_type = isset($subj_att->type) ? $subj_att->type : '';
+                                    if (strtolower($att_type) === 'present' || strtolower($att_type) === 'late') {
+                                        $type = $att_type;
+                                        break;
+                                    }
+                                }
+                                $array[] = array('date' => $loop_date, 'type' => $type);
+                            }
+                            $fst_day_str = ($fst_day_str + 86400);
+                        }
+                        $data['data'] = $array;
                     } else {
 
                         $result = array();
