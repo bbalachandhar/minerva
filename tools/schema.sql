@@ -11269,6 +11269,62 @@ INSERT INTO `transport_feemaster` (`id`, `session_id`, `month`, `due_date`, `fin
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
+--
+-- Table structure for table `behaviour_settings`
+--
+
+CREATE TABLE IF NOT EXISTS `behaviour_settings` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `comment_option` varchar(50) NOT NULL DEFAULT '',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--
+-- Table structure for table `student_behaviour`
+--
+
+CREATE TABLE IF NOT EXISTS `student_behaviour` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `title` varchar(200) NOT NULL,
+  `point` int NOT NULL DEFAULT '0',
+  `description` text,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--
+-- Table structure for table `student_incidents`
+--
+
+CREATE TABLE IF NOT EXISTS `student_incidents` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `student_id` int NOT NULL,
+  `incident_id` int NOT NULL,
+  `session_id` int NOT NULL,
+  `assign_by` int NOT NULL DEFAULT '1',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--
+-- Table structure for table `student_incident_comments`
+--
+
+CREATE TABLE IF NOT EXISTS `student_incident_comments` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `student_incident_id` int NOT NULL,
+  `comment` text,
+  `type` varchar(20) NOT NULL DEFAULT 'staff',
+  `created_date` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `staff_id` int DEFAULT NULL,
+  `student_id` int DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
 /*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
 /*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;
