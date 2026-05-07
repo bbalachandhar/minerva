@@ -203,7 +203,7 @@ class Webservice_model extends CI_Model
 
     public function getLibraryBooks()
     {
-        $q = $this->db->select('*')->from('books')->order_by('books.id','desc')->get();
+        $q = $this->db->select('*')->from('books')->order_by('books.id','desc')->limit(10)->get();
 
         if ($q->num_rows() == 0) {
             return array('success' => 0, 'status' => 401, 'errorMsg' => 'No books found.');
