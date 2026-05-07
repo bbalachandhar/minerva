@@ -2633,31 +2633,10 @@ class Webservice extends CI_Controller
                 }
             }
 
-            // Credit-style leave types (requires_balance_check = 0) should increase
-            // balance only after approval. Pending/disapproved must not affect balance.
-            if ($requires_balance_check === 0) {
-                $approved_credit_row = $this->db
-                    ->select('SUM(leave_days) as approved_leave_days')
-                    ->where('staff_id', $staff_id)
-                    ->where('status', 'approved')
-                    ->where('leave_type_id', $type_id)
-                    ->get('staff_leave_request')
-                    ->row_array();
-
-                $approved_credit_days = (float) ($approved_credit_row['approved_leave_days'] ?? 0);
-                $used = 0.0;
-                $remaining = $allocated + $approved_credit_days;
-
-                $balance[] = array(
-                    'leave_type_id' => $type_id,
-                    'type' => $leave_type['type'],
-                    'requires_balance_check' => $requires_balance_check,
-                    'allocated' => round($allocated, 2),
-                    'used' => round($used, 2),
-                    'remaining' => round($remaining, 2),
-                );
-                continue;
-            }
+            // For all leave types (including requires_balance_check=0 like OD),
+            // use the monthly balance table as the primary source to match web app logic.
+            // The monthly cron tracks OD credits via closing_balance; summing raw approved
+            // requests would double-count credits already consumed for LOP/CPL adjustments.
 
             if ($use_monthly_balance) {
                 try {
