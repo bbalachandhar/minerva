@@ -396,4 +396,49 @@ class Webservice_model extends CI_Model
         }
     }
 
+    // -------- Complaints --------
+
+    public function getComplaintTypes()
+    {
+        $this->db->select('id, complaint_type, description');
+        $this->db->from('complaint_type');
+        $this->db->order_by('complaint_type', 'asc');
+        return $this->db->get()->result_array();
+    }
+
+    public function getMyComplaints($student_session_id = null, $employee_id = null, $submitted_by = null)
+    {
+        $this->db->select('id, complaint_type, source, name, date, description, action_taken, note, status, priority, ticket_no, admin_response, assigned, created_at');
+        $this->db->from('complaint');
+
+        if (!empty($student_session_id)) {
+            $this->db->where('student_session_id', $student_session_id);
+        } elseif (!empty($employee_id)) {
+            $this->db->where('employee_id', $employee_id);
+        } elseif (!empty($submitted_by)) {
+            $this->db->where('submitted_by', $submitted_by);
+        } else {
+            return array();
+        }
+
+        $this->db->order_by('id', 'desc');
+        return $this->db->get()->result_array();
+    }
+
+    public function submitComplaint($data)
+    {
+        // Generate unique ticket number
+        $ticket_no = 'TKT-' . date('Ymd') . '-' . strtoupper(substr(md5(uniqid(rand(), true)), 0, 5));
+        $data['ticket_no'] = $ticket_no;
+        $data['status'] = 'open';
+        $data['created_at'] = date('Y-m-d H:i:s');
+
+        $this->db->insert('complaint', $data);
+        $insert_id = $this->db->insert_id();
+        if ($insert_id) {
+            return array('success' => true, 'id' => $insert_id, 'ticket_no' => $ticket_no);
+        }
+        return array('success' => false);
+    }
+
 }

@@ -9896,6 +9896,130 @@ class Webservice extends CI_Controller
         }
     }
 
+    // -------- Complaints --------
+
+    public function getComplaintTypes()
+    {
+        $method = $this->input->server('REQUEST_METHOD');
+        if ($method != 'POST') {
+            json_output(400, array('status' => 400, 'message' => 'Bad request.'));
+            return;
+        }
+        if ($this->auth_model->check_auth_client() !== true) {
+            return;
+        }
+        $response = $this->auth_model->auth();
+        if ($response['status'] != 200) {
+            json_output($response['status'], $response);
+            return;
+        }
+        $types = $this->webservice_model->getComplaintTypes();
+        json_output(200, array('status' => 1, 'complaint_types' => $types));
+    }
+
+    public function getMyComplaints()
+    {
+        $method = $this->input->server('REQUEST_METHOD');
+        if ($method != 'POST') {
+            json_output(400, array('status' => 400, 'message' => 'Bad request.'));
+            return;
+        }
+        if ($this->auth_model->check_auth_client() !== true) {
+            return;
+        }
+        $response = $this->auth_model->auth();
+        if ($response['status'] != 200) {
+            json_output($response['status'], $response);
+            return;
+        }
+        $params = json_decode(file_get_contents('php://input'), true);
+        $student_session_id = isset($params['student_session_id']) ? $params['student_session_id'] : null;
+        $employee_id = isset($params['employee_id']) ? $params['employee_id'] : null;
+        $submitted_by = isset($params['submitted_by']) ? $params['submitted_by'] : null;
+
+        $complaints = $this->webservice_model->getMyComplaints($student_session_id, $employee_id, $submitted_by);
+        json_output(200, array('status' => 1, 'complaints' => $complaints));
+    }
+
+    public function submitComplaint()
+    {
+        $method = $this->input->server('REQUEST_METHOD');
+        if ($method != 'POST') {
+            json_output(400, array('status' => 400, 'message' => 'Bad request.'));
+            return;
+        }
+        if ($this->auth_model->check_auth_client() !== true) {
+            return;
+        }
+        $response = $this->auth_model->auth();
+        if ($response['status'] != 200) {
+            json_output($response['status'], $response);
+            return;
+        }
+        $params = json_decode(file_get_contents('php://input'), true);
+
+        $complaint_type = isset($params['complaint_type']) ? $this->security->xss_clean(trim($params['complaint_type'])) : '';
+        $description = isset($params['description']) ? $this->security->xss_clean(trim($params['description'])) : '';
+        $name = isset($params['name']) ? $this->security->xss_clean(trim($params['name'])) : '';
+        $source = isset($params['source']) ? $this->security->xss_clean(trim($params['source'])) : 'student';
+        $priority = isset($params['priority']) ? $params['priority'] : 'low';
+        $date = isset($params['date']) ? $params['date'] : date('Y-m-d');
+
+        if (empty($complaint_type) || empty($description)) {
+            json_output(422, array('status' => 0, 'message' => 'complaint_type and description are required.'));
+            return;
+        }
+
+        $valid_priorities = array('low', 'medium', 'high', 'critical');
+        if (!in_array($priority, $valid_priorities)) {
+            $priority = 'low';
+        }
+
+        $data = array(
+            'complaint_type' => $complaint_type,
+            'description'    => $description,
+            'name'           => $name,
+            'source'         => $source,
+            'priority'       => $priority,
+            'date'           => $date,
+        );
+
+        if (!empty($params['student_session_id'])) {
+            $data['student_session_id'] = (int) $params['student_session_id'];
+        }
+        if (!empty($params['admission_no'])) {
+            $data['admission_no'] = $this->security->xss_clean(trim($params['admission_no']));
+        }
+        if (!empty($params['class_name'])) {
+            $data['class_name'] = $this->security->xss_clean(trim($params['class_name']));
+        }
+        if (!empty($params['section_name'])) {
+            $data['section_name'] = $this->security->xss_clean(trim($params['section_name']));
+        }
+        if (!empty($params['employee_id'])) {
+            $data['employee_id'] = (int) $params['employee_id'];
+        }
+        if (!empty($params['contact'])) {
+            $data['contact'] = $this->security->xss_clean(trim($params['contact']));
+        }
+        if (!empty($params['email'])) {
+            $data['email'] = $this->security->xss_clean(trim($params['email']));
+        }
+        if (!empty($params['submitted_by'])) {
+            $data['submitted_by'] = $this->security->xss_clean(trim($params['submitted_by']));
+        }
+        if (!empty($params['session_id'])) {
+            $data['session_id'] = (int) $params['session_id'];
+        }
+
+        $result = $this->webservice_model->submitComplaint($data);
+        if ($result['success']) {
+            json_output(200, array('status' => 1, 'message' => 'Complaint submitted successfully.', 'ticket_no' => $result['ticket_no'], 'id' => $result['id']));
+        } else {
+            json_output(500, array('status' => 0, 'message' => 'Failed to submit complaint. Please try again.'));
+        }
+    }
+
 
 
 }
