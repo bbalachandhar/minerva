@@ -1308,6 +1308,22 @@ CREATE TABLE `complaint_type` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Dumping data for table `complaint_type`
+--
+
+INSERT INTO `complaint_type` (`complaint_type`, `description`) VALUES
+('Academic', 'Complaints related to teaching, curriculum, or academic performance'),
+('Administration', 'Complaints about administrative processes or staff behavior'),
+('Fees & Payments', 'Complaints regarding fee collection, receipts, or payment issues'),
+('Facilities', 'Complaints about school infrastructure, classrooms, or amenities'),
+('Transport', 'Complaints related to school bus routes, timing, or driver conduct'),
+('Hostel', 'Complaints about hostel accommodation, food, or warden conduct'),
+('Library', 'Complaints about library books, services, or timings'),
+('Canteen', 'Complaints about canteen food quality, hygiene, or pricing'),
+('Safety & Security', 'Complaints about student safety or security concerns'),
+('Other', 'Any other complaint not covered by the above categories');
+
+--
 -- Table structure for table `conference_sections`
 --
 
