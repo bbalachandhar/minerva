@@ -437,6 +437,7 @@ class Notification extends Admin_Controller
                                 'user_id'  => $staff_value['id'],
                                 'email'    => $staff_value['email'],
                                 'mobileno' => $staff_value['contact_no'],
+                                'app_key'  => $staff_value['app_key'], //app key for mobile app notification
                                 'role'     => 'staff'
                             );
                             $user_array[] = $array;
@@ -466,7 +467,7 @@ class Notification extends Admin_Controller
                     }
             }
             }
-            //mobile app notification will only send to the students
+            //mobile app notification sends to students, parents, and staff
             if(isset($mobile_notification) && $mobile_notification==1){
             if (!empty($user_array)) {
                     foreach ($user_array as $user_mail_key => $user_mail_value) {
@@ -474,8 +475,8 @@ class Notification extends Admin_Controller
                             'title' => $message_title,
                             'body'  => $message,
                         );
-                        if($user_mail_value['role']=='student' || $user_mail_value['role']=='parent'){                         
-                            if($user_mail_value['app_key'] != "") {
+                        if(in_array($user_mail_value['role'], array('student', 'parent', 'staff'))) {
+                            if(!empty($user_mail_value['app_key'])) {
                                 $this->pushnotification->send($user_mail_value['app_key'], $push_array, "mail_sms");
                             }
                         }
@@ -634,6 +635,7 @@ class Notification extends Admin_Controller
                                 'user_id'  => $staff_value['id'],
                                 'email'    => $staff_value['email'],
                                 'mobileno' => $staff_value['contact_no'],
+                                'app_key'  => $staff_value['app_key'], //app key for mobile app notification
                                 'role'     => 'staff'
                             );
                             $user_array[] = $array;
@@ -664,7 +666,7 @@ class Notification extends Admin_Controller
                     }
                 }
             }
-            //mobile app notification will only send to the students
+            //mobile app notification sends to students, parents, and staff
             if(isset($mobile_notification) && $mobile_notification==1){
                 if (!empty($user_array)) {
                     foreach ($user_array as $user_mail_key => $user_mail_value) {
@@ -672,8 +674,8 @@ class Notification extends Admin_Controller
                             'title' => $message_title,
                             'body'  => $message,
                         );
-                        if($user_mail_value['role']=='student' || $user_mail_value['role']=='parent'){                         
-                            if($user_mail_value['app_key'] != "") {
+                        if(in_array($user_mail_value['role'], array('student', 'parent', 'staff'))) {
+                            if(!empty($user_mail_value['app_key'])) {
                                 $this->pushnotification->send($user_mail_value['app_key'], $push_array, "mail_sms");
                             }
                         }
