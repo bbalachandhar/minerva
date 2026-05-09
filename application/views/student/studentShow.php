@@ -368,7 +368,7 @@ $currency_symbol = $admin_session['currency_symbol'];
 
                         <!------- CBSE Exam Start-------->
                         <?php
-                        if ($this->module_lib->hasModule('cbseexam')) {
+                        if ($this->module_lib->hasModule('cbseexam') && $sch_setting->institution_type != 'college') {
                         ?>
                             <li class=""><a href="#cbseexam" data-toggle="tab" aria-expanded="true"><?php echo $this->lang->line('cbse_exam'); ?></a></li>
                         <?php
@@ -927,7 +927,7 @@ $currency_symbol = $admin_session['currency_symbol'];
 
                         <!------- CBSE Exam Start-------->
                         <?php
-                        if ($this->module_lib->hasModule('cbseexam')) {  ?>
+                        if ($this->module_lib->hasModule('cbseexam') && $sch_setting->institution_type != 'college') {  ?>
                             <div class="tab-pane" id="cbseexam">
                                 <div class="dt-buttons btn-group pull-right miusDM42">
                                     <a class="btn btn-default btn-xs dt-button no_print border0" id="print" data-toggle="tooltip" data-placement="bottom" title="Print" onclick="printDivCbse()"><i class="fa fa-print"></i></a>
