@@ -1,0 +1,201 @@
+================================================================================
+  APPRAISAL ANALYSIS — DETAILED SUMMARY DOCUMENT
+  Sheet: Apprisal Data
+  Generated: 29 April 2026, 02:16
+  Source: Book1 (003).xlsx → Sheet 'Apprisal Data'
+================================================================================
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. DATA OVERVIEW
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Total Employee Records  : 593
+  Columns                 : Empcode, Name, DOJ, Supervisor, Director,
+                             Actual Designation, Client, Band, Grade,
+                             Rating, Promotion, Appraisal, MIS Remarks
+  Data Source             : Excel sheet 'Apprisal Data' in Book1 (003).xlsx
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2. APPRAISAL ELIGIBILITY — SOURCE: 'Apprisal' + 'MIS Remarks' columns
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Fully Eligible          :  150  (25%)
+    → MIS Remark: 'Full year Covered'
+    → Employees who joined on or before Apr 1, 2025
+
+  Partially Eligible      :  208  (35%)
+    → MIS Remark: 'Full year not covered'
+    → Joined Oct 2024 – Apr 2025; merit increment will be pro-rated
+
+  Not Eligible            :  235  (39%)
+    → MIS Remark: 'Joined after 1st Oct 2025'
+    → Rating column shows 'NA'; excluded from performance cycle
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+3. PERFORMANCE RATINGS — SOURCE: 'Rating' column
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Rating 4 (Exceeds Expectations)  :  107  (18%)
+  Rating 3 (Meets Expectations)    :  250  (42%)
+  Rating 2 (Below Expectations)    :    1  (0%)
+  Not Applicable (NA)              :  235  (39%)
+  Total Rated Employees            :  358  (60%)
+
+  RATING BY BAND:
+    Band 1 (481 emp): R4=66, R3=211, R2=1, NA=203
+    Band 2 (105 emp): R4=38, R3=36, R2=0, NA=31
+    Band 3 (7 emp): R4=3, R3=3, R2=0, NA=1
+
+  RATING BY DIRECTOR:
+    Muzzafar Sheriff (422 emp): R4=90, R3=178, R2=0, NA=154
+    Payal Jain (132 emp): R4=12, R3=50, R2=0, NA=70
+    Mohit Agrawal (39 emp): R4=5, R3=22, R2=1, NA=11
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+4. PROMOTIONS — SOURCE: 'Promotion' column
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Promoted (Yes)          :   74  (12%)
+  Not Promoted (No)       :  519  (87%)
+
+  BY BAND:
+    Band 1: 48 promoted of 481 (9%)
+    Band 2: 25 promoted of 105 (23%)
+    Band 3: 1 promoted of 7 (14%)
+
+  BY DIRECTOR:
+    Muzzafar Sheriff: 57 promoted of 422 (13%)
+    Payal Jain: 4 promoted of 132 (3%)
+    Mohit Agrawal: 13 promoted of 39 (33%)
+
+  BY DESIGNATION (promoted):
+    Senior Client Partner: 27
+    Client Specialist: 14
+    Senior Client Specialist: 7
+    Finance Analyst – II: 6
+    Finance Analyst – I: 6
+    Assistant Delivery Manager: 4
+    Deputy Delivery Manager: 3
+    Senior Finance Analyst: 2
+    Group Leader: 2
+    Senior Group Leader: 2
+    Delivery Manager: 1
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+5. BAND DISTRIBUTION — SOURCE: 'Band' column
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Band 1:  481 employees (81%)
+  Band 2:  105 employees (17%)
+  Band 3:    7 employees (1%)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+6. GRADE DISTRIBUTION — SOURCE: 'Grade' column
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  1C1         :  153 (25%)
+  1C2         :  116 (19%)
+  1B2         :  101 (17%)
+  1D1         :   85 (14%)
+  2A2         :   37 (6%)
+  2A1         :   32 (5%)
+  1D2         :   26 (4%)
+  2A3         :   15 (2%)
+  2B1         :   10 (1%)
+  2B2         :    9 (1%)
+  3A1         :    5 (0%)
+  2IC D1      :    2 (0%)
+  3B2         :    1 (0%)
+  3B1         :    1 (0%)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+7. DIRECTOR PORTFOLIO — SOURCE: 'Director' column
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Muzzafar Sheriff: 422 employees (71%)
+  Payal Jain: 132 employees (22%)
+  Mohit Agrawal: 39 employees (6%)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+8. CLIENT DISTRIBUTION — SOURCE: 'Client' column
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Asset Living, LLC: 505 employees (85%)
+  Devoted Health: 28 employees (4%)
+  Datavant: 21 employees (3%)
+  Virgate Accounts Ltd.,: 13 employees (2%)
+  Machinify: 5 employees (0%)
+  Beauty by Imagination: 4 employees (0%)
+  INS TopCo LLC.,: 3 employees (0%)
+  New Benevis Inc.,: 3 employees (0%)
+  NGP Drillbit Partners, LP: 3 employees (0%)
+  American Cricket Enterprises LLC.,: 2 employees (0%)
+  Emergenc Health: 2 employees (0%)
+  IOG Capital, L.P.,: 2 employees (0%)
+  Innovista Health solutions.,: 1 employees (0%)
+  TELEMED2U, INC,: 1 employees (0%)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+9. DESIGNATION DISTRIBUTION — SOURCE: 'Actual Designation' column
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Client Partner: 153
+  Senior Client Partner: 116
+  Assistant Client Partner: 101
+  Client Specialist: 85
+  Finance Analyst – I: 32
+  Senior Client Specialist: 26
+  Finance Analyst – II: 23
+  Group Leader: 14
+  Senior Finance Analyst: 10
+  Assistant Delivery Manager: 10
+  Deputy Delivery Manager: 9
+  Senior Group Leader: 5
+  Delivery Manager: 5
+  Legal Advisor: 2
+  Deputy Director: 1
+  Assistant Director: 1
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+10. TOP SUPERVISORS — SOURCE: 'Supervisor' column
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  lajjaparekh.n: 45 reportees
+  faizuddin.s2: 39 reportees
+  devan.radhakris: 32 reportees
+  harihara.subram1: 30 reportees
+  thilagavathy.g: 29 reportees
+  m.deepan: 28 reportees
+  sawanjain.p: 28 reportees
+  mirazn.makhani: 24 reportees
+  saravanan.v11: 24 reportees
+  mohammed.akheel: 23 reportees
+  karthik.v14: 18 reportees
+  narayanan.nagap: 18 reportees
+  gaushik.karthik: 17 reportees
+  krishnan.tv: 16 reportees
+  d.chandrasekar: 16 reportees
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+11. DATA QUALITY NOTES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Records with missing Rating : 0
+  Records with missing Name   : 0
+  Note: 'Rating' column header has a trailing space in source Excel
+  Note: 'Promotion' column header has a trailing space in source Excel
+  Note: 'MIS Remarks' column header has a trailing space in source Excel
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+12. DATA POINT ORIGIN MAP
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Every metric in this report traces directly to a column in the source sheet.
+
+  Metric                              Source Column
+  ----------------------------------- ------------------------------
+  Total Headcount                     Count of all rows
+  Appraisal Eligibility               'Apprisal' column + 'MIS Remarks'
+  Performance Rating (4/3/2)          'Rating' column (numeric)
+  Not Eligible / NA                   'Rating' = 'NA'
+  Promotion Status                    'Promotion' column ('Yes'/'No')
+  Band Classification                 'Band' column (1/2/3)
+  Grade                               'Grade' column (alphanumeric)
+  Director Portfolio                  'Director' column
+  Client Account                      'Client' column
+  Designation                         'Actual Designation' column
+  Supervisor Coverage                 'Supervisor' column
+  Date of Joining                     'DOJ' column (datetime)
+  Employee Identifier                 'Empcode' column
+
+================================================================================
+END OF SUMMARY
+================================================================================

@@ -1,0 +1,501 @@
+================================================================================
+  CEO APPRAISAL PRESENTATION — DATA DERIVATION & METHODOLOGY DOCUMENT
+================================================================================
+  Presentation File : CEO_Appraisal_Presentation.pptx
+  Source File       : Book1 (003).xlsx
+  Sheets Used       : 'Apprisal Data'  (Sheet 1)  and  'AL'  (Sheet 2)
+  Document Prepared : 29 April 2026, 02:44
+  Total Records     : Apprisal Data = 593  |  AL = 505
+================================================================================
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  PART A — SOURCE DATA OVERVIEW                                               ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+
+┌─ A1. Sheet Structure — 'Apprisal Data' (Sheet 1) ─────────────────────────────
+
+  Total data rows : 593  (row 2 to row 594 in Excel)
+  Columns present : 13
+
+  No.  Column Name (exact)       Description / Used For
+  --------------------------------------------------------------------------
+   1.  Empcode                      Unique employee identifier
+   2.  Name                         Employee full name
+   3.  DOJ                          Date of Joining — used to determine eligibility
+   4.  Supervisor                   Immediate reporting manager
+   5.  Director                     Director responsible — used for director-level analysis
+   6.  Actual Designation           Current role/title — used for designation breakdown & promotions
+   7.  Client                       Client account employee is mapped to
+   8.  Band                         Seniority band (1=front-line, 2=mid, 3=senior)
+   9.  Grade                        Grade code (e.g. 1C1, 2A2) — used in grade distribution
+  10.  Rating                       Performance rating (4 / 3 / 2 / NA) — core appraisal metric
+  11.  Promotion                    Promotion decision (Yes / No)
+  12.  Apprisal                     Eligibility status (Fully Eligible / Partially Eligible / Not Eligible)
+  13.  MIS Remarks                  MIS note explaining eligibility status
+
+
+┌─ A2. Sheet Structure — 'AL' (Sheet 2) ────────────────────────────────────────
+
+  Total data rows : 505  (Asset Living LLC employees only)
+  Columns         : Identical to 'Apprisal Data' sheet
+  Scope           : All 505 rows belong to Client = 'Asset Living LLC'
+  Purpose         : Dedicated client-level performance spotlight for the last slide
+
+  NOTE: 'Apprisal Data' contains ALL clients (including AL employees).
+  The 'AL' sheet is a client-filtered subset — used for the final CEO spotlight slide.
+
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  PART B — METRIC DERIVATION LOGIC (SLIDE BY SLIDE)                           ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+
+┌─ SLIDE 1 — Title Slide ───────────────────────────────────────────────────────
+
+  Content    : Organisation name, presentation title, date, total headcount
+
+  ┌ Total Employees Covered: 593
+  │ Source Sheet  : Apprisal Data
+  │ Derivation    : COUNT of all non-blank rows in the sheet (rows 2 onwards)
+  │ Formula       : len([row for row in sheet if any value in row])
+  └ Result        : 593
+
+
+┌─ SLIDE 2 — Executive Snapshot (KPI Dashboard) ────────────────────────────────
+
+  Source Sheet  : Apprisal Data (all 593 records)
+  All KPIs are derived from this sheet unless stated otherwise.
+
+  ─── ROW 1 KPI CARDS ───────────────────────────────────────────────────
+
+  Metric              : Total Employees
+  Source Sheet        : Apprisal Data
+  Source Column       : All rows
+  Formula / Logic     : COUNT of all data rows → 593
+
+  Metric              : Fully Eligible
+  Source Sheet        : Apprisal Data
+  Source Column       : 'Apprisal' column
+  Formula / Logic     : COUNT WHERE 'Apprisal' column = 'Fully Eligible' → 150 (25%)
+
+  Metric              : Partially Eligible
+  Source Sheet        : Apprisal Data
+  Source Column       : 'Apprisal' column
+  Formula / Logic     : COUNT WHERE 'Apprisal' column = 'Partially Eligible' → 208 (35%)
+
+  Metric              : Not Eligible
+  Source Sheet        : Apprisal Data
+  Source Column       : 'Apprisal' column + 'MIS Remarks' column
+  Formula / Logic     : COUNT WHERE 'Apprisal' column = 'Not Eligible' → 235 (39%)
+                        These employees have Rating = 'NA' and joined after 1 Oct 2025
+                        MIS Remarks confirms: 'Joined after 1st Oct 2025'
+
+  ─── ROW 2 KPI CARDS ───────────────────────────────────────────────────
+
+  Metric              : Rated Employees
+  Source Sheet        : Apprisal Data
+  Source Column       : 'Rating' column
+  Formula / Logic     : COUNT WHERE 'Rating' column IN (4, 3, 2) — excludes 'NA'
+                        → 358 (60% of total)
+
+  Metric              : Rating 4 — Exceeds
+  Source Sheet        : Apprisal Data
+  Source Column       : 'Rating' column
+  Formula / Logic     : COUNT WHERE 'Rating' = '4' → 107 (18%)
+
+  Metric              : Rating 3 — Meets
+  Source Sheet        : Apprisal Data
+  Source Column       : 'Rating' column
+  Formula / Logic     : COUNT WHERE 'Rating' = '3' → 250 (42%)
+
+  Metric              : Promoted
+  Source Sheet        : Apprisal Data
+  Source Column       : 'Promotion' column
+  Formula / Logic     : COUNT WHERE 'Promotion' column = 'Yes' → 74 (12%)
+
+  ─── BAND SUMMARY BAR ────────────────────────────────────────────────────
+
+  Metric              : Band 1 Count
+  Source Sheet        : Apprisal Data
+  Source Column       : 'Band' column
+  Formula / Logic     : COUNT WHERE 'Band' = 1 → 481
+
+  Metric              : Band 2 Count
+  Source Sheet        : Apprisal Data
+  Source Column       : 'Band' column
+  Formula / Logic     : COUNT WHERE 'Band' = 2 → 105
+
+  Metric              : Band 3 Count
+  Source Sheet        : Apprisal Data
+  Source Column       : 'Band' column
+  Formula / Logic     : COUNT WHERE 'Band' = 3 → 7
+
+  ─── DIRECTOR PORTFOLIO BAR ──────────────────────────────────────────────
+
+  Metric              : Muzzafar Sheriff
+  Source Sheet        : Apprisal Data
+  Source Column       : 'Director' column
+  Formula / Logic     : COUNT WHERE 'Director' = 'Muzzafar Sheriff' → 422 (71%)
+
+  Metric              : Payal Jain
+  Source Sheet        : Apprisal Data
+  Source Column       : 'Director' column
+  Formula / Logic     : COUNT WHERE 'Director' = 'Payal Jain' → 132 (22%)
+
+  Metric              : Mohit Agrawal
+  Source Sheet        : Apprisal Data
+  Source Column       : 'Director' column
+  Formula / Logic     : COUNT WHERE 'Director' = 'Mohit Agrawal' → 39 (6%)
+
+
+┌─ SLIDE 3 — Eligibility & Performance Ratings ─────────────────────────────────
+
+  Source Sheet  : Apprisal Data
+  Two-panel layout: Pie chart (eligibility) on left | Column chart (ratings) on right
+
+  ─── LEFT PANEL: ELIGIBILITY PIE ─────────────────────────────────────────
+
+  The 'Apprisal' column uses the following exact text values:
+    'Fully Eligible'     →  150 employees
+    'Partially Eligible' →  208 employees
+    'Not Eligible'       →  235 employees
+
+  Eligibility is determined by 'DOJ' (Date of Joining) relative to the appraisal cycle:
+    • Fully Eligible     : DOJ on or before 1 April 2025 (full year in service)
+    • Partially Eligible : DOJ between 1 October 2024 and 31 March 2025
+    • Not Eligible       : DOJ after 1 October 2025 (MIS marks them NA)
+  The 'Apprisal' column stores the pre-computed eligibility label.
+  The 'MIS Remarks' column stores the reason text confirming each category.
+
+  ─── RIGHT PANEL: RATING DISTRIBUTION ────────────────────────────────────
+
+  Source Column : 'Rating'  (note: column header has a trailing space in Excel)
+  Distinct values found:
+    Rating = '2' →    1 employees  (0%)
+    Rating = '3' →  250 employees  (42%)
+    Rating = '4' →  107 employees  (18%)
+    Rating = 'NA' →  235 employees  (39%)
+
+  Logic:
+    Rating 4 (Exceeds) : 'Rating' = '4'  — awarded to top performers
+    Rating 3 (Meets)   : 'Rating' = '3'  — awarded to on-track performers
+    Rating 2 (Below)   : 'Rating' = '2'  — below expectations
+    NA                 : 'Rating' = 'NA' — Not Applicable; assigned to Not Eligible
+
+  % calculation : (count of rating / total rows) × 100
+
+
+┌─ SLIDE 4 — Director Performance ──────────────────────────────────────────────
+
+  Source Sheet  : Apprisal Data
+  Grouped by 'Director' column — cross-tabulated with 'Rating' and 'Promotion'
+
+  ─── COLUMN CHART: Rating by Director ───────────────────────────────────
+
+  Director                      Total    R4    R3    NA  Promoted  Promo%
+  --------------------------------------------------------------------
+  Muzzafar Sheriff                422    90   178   154        57     13%
+  Payal Jain                      132    12    50    70         4      3%
+  Mohit Agrawal                    39     5    22    11        13     33%
+
+  Derivation for each cell:
+    Total       : COUNT WHERE 'Director' = [name]
+    R4          : COUNT WHERE 'Director' = [name] AND 'Rating' = '4'
+    R3          : COUNT WHERE 'Director' = [name] AND 'Rating' = '3'
+    NA          : COUNT WHERE 'Director' = [name] AND 'Rating' = 'NA'
+    Promoted    : COUNT WHERE 'Director' = [name] AND 'Promotion' = 'Yes'
+    Promo%      : (Promoted / Total) × 100
+
+  ─── BAND TABLE ──────────────────────────────────────────────────────────
+
+  Band        Total    R4    R3    NA  Promoted
+  --------------------------------------------
+  Band 1        481    66   211   203        48
+  Band 2        105    38    36    31        25
+  Band 3          7     3     3     1         1
+
+  Derivation: Same logic as Director table but grouped by 'Band' column (value 1, 2, or 3)
+
+
+┌─ SLIDE 5 — Promotions Analysis ───────────────────────────────────────────────
+
+  Source Sheet  : Apprisal Data
+  Source Column : 'Promotion'  (note: trailing space in header)
+
+  Overall:  Yes = 74  (12%)  |  No = 519  (87%)
+
+  ─── PIE CHART: Promoted vs Not ─────────────────────────────────────────
+
+    Promoted (Yes) : COUNT WHERE 'Promotion' = 'Yes' → 74
+    Not Promoted   : COUNT WHERE 'Promotion' = 'No'  → 519
+
+  ─── COLUMN CHART: Promotions by Band ──────────────────────────────────
+
+  Band         Promoted   Not Promoted   Total  Promo Rate
+  ------------------------------------------------------
+  Band 1              48            433     481          9%
+  Band 2              25             80     105         23%
+  Band 3               1              6       7         14%
+
+    Derivation: COUNT WHERE 'Band' = [b] AND 'Promotion' = 'Yes' / 'No'
+
+  ─── BAR CHART: Top Promoted Designations ───────────────────────────────
+
+  Designation                           Promoted
+  -----------------------------------------------
+  Senior Client Partner                       27
+  Client Specialist                           14
+  Senior Client Specialist                     7
+  Finance Analyst – II                         6
+  Finance Analyst – I                          6
+  Assistant Delivery Manager                   4
+  Deputy Delivery Manager                      3
+  Senior Finance Analyst                       2
+  Group Leader                                 2
+  Senior Group Leader                          2
+  Delivery Manager                             1
+
+    Derivation: COUNT WHERE 'Promotion' = 'Yes' grouped by 'Actual Designation'
+    Sorted: Descending by promoted count; top 10 shown as horizontal bars
+
+
+┌─ SLIDE 6 — Client & Grade Distribution ───────────────────────────────────────
+
+  Source Sheet  : Apprisal Data
+
+  ─── BAR CHART: Headcount by Client ────────────────────────────────────
+
+  Client                                     Count      %
+  -------------------------------------------------------
+  Asset Living, LLC                            505    85%
+  Devoted Health                                28     4%
+  Datavant                                      21     3%
+  Virgate Accounts Ltd.,                        13     2%
+  Machinify                                      5     0%
+  Beauty by Imagination                          4     0%
+  INS TopCo LLC.,                                3     0%
+  New Benevis Inc.,                              3     0%
+  NGP Drillbit Partners, LP                      3     0%
+  American Cricket Enterprises LLC.,             2     0%
+  Emergenc Health                                2     0%
+  IOG Capital, L.P.,                             2     0%
+  Innovista Health solutions.,                   1     0%
+  TELEMED2U, INC,                                1     0%
+
+    Derivation: COUNT of rows grouped by 'Client' column, sorted descending
+
+  ─── TABLE: Grade Breakdown ─────────────────────────────────────────────
+
+  Grade          Count      %   Promoted
+  --------------------------------------
+  1C1              153    25%          0
+  1C2              116    19%         27
+  1B2              101    17%          0
+  1D1               85    14%         14
+  2A2               37     6%          8
+  2A1               32     5%          6
+  1D2               26     4%          7
+  2A3               15     2%          4
+  2B1               10     1%          4
+  2B2                9     1%          3
+  3A1                5     0%          1
+  2IC D1             2     0%          0
+  3B2                1     0%          0
+  3B1                1     0%          0
+
+    Derivation:
+      Count    : COUNT of rows grouped by 'Grade' column
+      %        : (count / total) × 100
+      Promoted : COUNT WHERE 'Grade' = [grade] AND 'Promotion' = 'Yes'
+
+
+┌─ SLIDE 7 — Key Observations & Recommendations ────────────────────────────────
+
+  Source Sheet  : Apprisal Data (all derived metrics from earlier analysis)
+  This slide is an interpretive summary — no new raw column is introduced.
+  Each observation references computed metrics described in earlier slides.
+
+  ● 01 — Eligibility Gap
+     'Apprisal' column + 'MIS Remarks'
+          235 employees = Not Eligible. Joined after Oct 2025.
+          Percentage = 235/593 = 39%
+
+  ● 02 — Rating Concentration
+     'Rating' column values.
+          R3=250 vs R4=107. Ratio = 250/107 = 2.0× more at R3 than R4.
+          Recommendation is interpretive — signals calibration need.
+
+  ● 03 — Promotion Rate
+     'Promotion' column + 'Band' column.
+          74 promoted out of 593 = 12%.
+          Band 1 rate = 48/481 = 9%
+
+  ● 04 — Director Portfolio Concentration
+     'Director' column.
+          Muzzafar Sheriff manages 422 employees = 71% of total workforce.
+          Promotions under Sheriff = 57
+
+  ● 05 — Partial Eligibility Action
+     'Apprisal' column.
+          208 employees are Partially Eligible = 35%.
+          Requires pro-rated increment computation based on months of service.
+
+
+┌─ SLIDE 8 — Asset Living LLC (AL Sheet) — Final Slide ─────────────────────────
+
+  Source Sheet  : AL  (second sheet in Book1 (003).xlsx)
+  Total Records : 505
+  Scope         : All 505 records belong to Client = 'Asset Living LLC'
+  Column structure is identical to 'Apprisal Data'
+
+  ─── 6 KPI CARDS ─────────────────────────────────────────────────────────
+
+  Total Headcount           = 505                ← COUNT of all rows in AL sheet
+  Fully Eligible            = 118 (23%)          ← COUNT WHERE 'Apprisal' = 'Fully Eligible'
+  Partially Eligible        = 180 (35%)          ← COUNT WHERE 'Apprisal' = 'Partially Eligible'
+  Not Eligible              = 207 (40%)          ← COUNT WHERE 'Apprisal' = 'Not Eligible'  (Rating = NA)
+  Rating 4 (Top)            = 83 (16%)           ← COUNT WHERE 'Rating' = '4'
+  Promoted                  = 52 (10%)           ← COUNT WHERE 'Promotion' = 'Yes'
+
+  ─── DIRECTOR RATING CHART ──────────────────────────────────────────────
+
+  Director                      Total    R4    R3    NA  Promoted  Promo%
+  --------------------------------------------------------------------
+  Muzzafar Sheriff                377    71   165   141        48     12%
+  Payal Jain                      127    12    49    66         4      3%
+  Mohit Agrawal                     1     0     1     0         0      0%
+
+    Source Column : 'Director' cross-tabulated with 'Rating' and 'Promotion'
+    Same derivation logic as Slide 4 but applied to the AL sheet only
+
+  ─── BAND BREAKDOWN TABLE ───────────────────────────────────────────────
+
+  Band        Total    R4    R3    NA  Promoted  Promo%
+  --------------------------------------------------
+  Band 1        421    50   186   185        34      8%
+  Band 2         77    30    26    21        17     22%
+  Band 3          7     3     3     1         1     14%
+
+    Source Columns: 'Band', 'Rating', 'Promotion'
+    Derivation    : Grouped COUNT with cross-filter on each column
+
+  ─── TOP PROMOTED DESIGNATIONS ──────────────────────────────────────────
+
+  Designation                           Promoted
+  -----------------------------------------------
+  Senior Client Partner                       19
+  Client Specialist                           10
+  Senior Client Specialist                     5
+  Finance Analyst – II                         4
+  Assistant Delivery Manager                   3
+  Deputy Delivery Manager                      3
+  Senior Finance Analyst                       2
+  Group Leader                                 2
+  Senior Group Leader                          2
+  Finance Analyst – I                          1
+
+    Source Column : 'Actual Designation' cross-tabulated with 'Promotion'
+    Derivation    : COUNT WHERE 'Promotion' = 'Yes' grouped by designation
+    Display       : Horizontal bars — bar width scaled to max promoted count
+
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  PART C — COMPLETE DATA DICTIONARY                                           ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+
+┌─ C1. Column Reference Table ──────────────────────────────────────────────────
+
+  Column                       Distinct Values / Type              Used In Slides
+  ------------------------------------------------------------------------------
+  Empcode                      Alphanumeric ID                     None (identifier only)
+  Name                         Free text — employee name           None (identifier only)
+  DOJ                          Date (datetime type in Excel)       Eligibility note reference
+  Supervisor                   Text — manager name                 Slide 4 reference
+  Director                     Text — 3 directors present          Slides 2, 4, 8
+  Actual Designation           Text — approx 15+ role titles       Slides 5, 6, 8
+  Client                       Text — 7 distinct clients           Slides 2, 6
+  Band                         Integer 1, 2, 3                     Slides 2, 4, 5, 8
+  Grade                        Alphanumeric code (e.g. 1C1, 2A2)   Slide 6
+  Rating                       '4' / '3' / '2' / 'NA'              Slides 2, 3, 4, 8
+  Promotion                    'Yes' / 'No'                        Slides 2, 5, 8
+  Apprisal                     'Fully Eligible' / 'Partially Eligible' / 'Not Eligible' Slides 2, 3
+  MIS Remarks                  Text — reason for eligibility status Slide 3 notes
+
+
+┌─ C2. Percentage Calculation Method ───────────────────────────────────────────
+
+  All percentages in the presentation use integer floor division:
+  Formula: ( count / total_rows ) × 100  [floor — no rounding]
+  Example: 74 promoted / 593 total = 12% (displayed)
+           Actual: 12.48% — displayed as 12% (floor)
+
+
+┌─ C3. Director Name Mapping ───────────────────────────────────────────────────
+
+  Exact values in 'Director' column → displayed in charts:
+    'Muzzafar Sheriff'  → 'Sheriff'  (truncated to last name in charts)
+    'Payal Jain'        → 'Jain'
+    'Mohit Agrawal'     → 'Agrawal'
+
+
+┌─ C4. Data Quality Notes ──────────────────────────────────────────────────────
+
+  • The column headers 'Rating', 'Promotion', and 'MIS Remarks' have a
+    trailing space character in the Excel file.
+    Resolution: Code strips whitespace from column names before matching.
+
+  • 'Apprisal' column is misspelled in the source (should be 'Appraisal').
+    This is treated as-is; the document and code use the exact source spelling.
+
+  • The 'AL' sheet is a subset of 'Apprisal Data' filtered to Asset Living LLC.
+    Metrics in Slide 8 will add up to a sub-total, not the full 593.
+
+  • Rating '2' appears only once in 'Apprisal Data' (0 in AL sheet).
+    It is included for completeness but is not visible in bar charts due to scale.
+
+
+┌─ C5. Eligibility Logic Detail ────────────────────────────────────────────────
+
+  The 'Apprisal' column stores computed eligibility. The underlying logic is:
+
+  IF DOJ <= 1 April 2025         → 'Fully Eligible'     (full 12 months in cycle)
+  IF DOJ between 1 Oct 2024
+     and 31 March 2025           → 'Partially Eligible' (6–11 months in cycle)
+  IF DOJ > 1 October 2025        → 'Not Eligible'       (< 6 months; MIS = joined after Oct 2025)
+
+  Pro-rata increments: Partially Eligible employees receive a merit increment
+  proportional to the number of months worked in the appraisal year.
+
+
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  PART D — SUMMARY COMPARISON: APPRISAL DATA VS AL SHEET                      ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+  Metric                                 Apprisal Data     AL Sheet   Difference
+  ------------------------------------------------------------------------------
+  Total Employees                           593 (100%)   505 (100%)          +88
+  Fully Eligible                             150 (25%)    118 (23%)          +32
+  Partially Eligible                         208 (35%)    180 (35%)          +28
+  Not Eligible                               235 (39%)    207 (40%)          +28
+  Rated (R4+R3+R2)                           358 (60%)    298 (59%)          +60
+  Rating 4 (Exceeds)                         107 (18%)     83 (16%)          +24
+  Rating 3 (Meets)                           250 (42%)    215 (42%)          +35
+  Rating 2 (Below)                              1 (0%)       0 (0%)           +1
+  Not Applicable (NA)                        235 (39%)    207 (40%)          +28
+  Promoted (Yes)                              74 (12%)     52 (10%)          +22
+  Not Promoted (No)                          519 (87%)    453 (89%)          +66
+  Band 1 Employees                           481 (81%)    421 (83%)          +60
+  Band 2 Employees                           105 (17%)     77 (15%)          +28
+  Band 3 Employees                              7 (1%)       7 (1%)           +0
+
+  NOTE: AL Sheet is a SUBSET of Apprisal Data (Asset Living LLC employees only).
+        Differences represent non-AL employees in the Apprisal Data sheet.
+
+================================================================================
+END OF DATA DERIVATION DOCUMENT
+Generated: 29 April 2026, 02:44
+File: CEO_Appraisal_Presentation.pptx  |  Source: Book1 (003).xlsx
+================================================================================

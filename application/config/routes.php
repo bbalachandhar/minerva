@@ -48,6 +48,10 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 |
 */
 $route['default_controller'] = 'site/login';
+
+// Public hall ticket verification (no auth required — QR code landing page)
+$route['verify/(:any)'] = 'verify/index/$1';
+$route['verify']            = 'verify/index';
 $route['admin/librarycategory/import'] = 'admin/librarycategory/import';
 $route['admin/librarysubcategory/import'] = 'admin/librarysubcategory/import';
 $route['admin/librarypublisher/import'] = 'admin/librarypublisher/import';

@@ -427,6 +427,16 @@ if (!function_exists('main_menu_array')) {
             'naac' => array(
                             'naac' => array('configuration', 'iiqa', 'ssr', 'aqar'),
                         ),
+
+            'coe' => array(
+                'coe_setup'        => array('index', 'add', 'edit'),
+                'coe_application'  => array('index', 'add', 'edit'),
+                'coe_eligibility'  => array('index'),
+                'coe_hallticket'   => array('index', 'generate'),
+                'coe_nominalroll'  => array('index'),
+                'coe_seating'      => array('index', 'generate'),
+                'coe_invigilation' => array('index', 'assign'),
+            ),
                             
                         
                         

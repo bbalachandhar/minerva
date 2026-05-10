@@ -415,3 +415,7 @@ class Front_Controller extends CI_Controller
 if (file_exists(APPPATH . 'core/MY_Addon_CBSEController.php')) {
     require_once(APPPATH . 'core/MY_Addon_CBSEController.php');
 }
+
+if (file_exists(APPPATH . 'core/MY_Addon_CoeController.php')) {
+    require_once(APPPATH . 'core/MY_Addon_CoeController.php');
+}

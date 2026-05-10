@@ -73,6 +73,10 @@ if (!empty($side_list)) {
             if ($side_list_value->short_code === 'cbseexam' && $this->sch_setting_detail->institution_type === 'college') {
                 continue;
             }
+            // CoE (Controller of Examinations) is only for College/Higher Education
+            if ($side_list_value->short_code === 'coe' && $this->sch_setting_detail->institution_type !== 'college') {
+                continue;
+            }
             if ($this->module_lib->hasModule($side_list_value->short_code) && $this->module_lib->hasActive($side_list_value->short_code)) {
 
                 ?>
