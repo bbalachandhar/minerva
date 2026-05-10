@@ -25,44 +25,52 @@
 
     <section class="content">
 
-        <!-- Student Info Card -->
+        <!-- Student Info + SGPA History Row -->
         <div class="row">
             <div class="col-md-6">
-                <div class="box box-primary">
-                    <div class="box-header with-border">
+                <div class="box box-primary" style="margin-bottom:10px">
+                    <div class="box-header with-border" style="padding:8px 14px">
                         <h3 class="box-title"><i class="fa fa-user-circle"></i> Student Information</h3>
                     </div>
-                    <div class="box-body">
-                        <table class="table table-condensed" style="margin-bottom:0">
-                            <tr>
-                                <th style="width:140px">Full Name</th>
-                                <td><strong><?php echo htmlspecialchars($student->full_name); ?></strong></td>
-                            </tr>
-                            <tr>
-                                <th>Register No.</th>
-                                <td><?php echo htmlspecialchars($student->register_no ?: '—'); ?></td>
-                            </tr>
-                            <tr>
-                                <th>Admission No.</th>
-                                <td><?php echo htmlspecialchars($student->admission_no ?: '—'); ?></td>
-                            </tr>
-                            <tr>
-                                <th>Class</th>
-                                <td><?php echo htmlspecialchars($student->class_name ?? '—'); ?></td>
-                            </tr>
-                            <tr>
-                                <th>Department</th>
-                                <td><?php echo htmlspecialchars($student->department_name ?? '—'); ?></td>
-                            </tr>
-                        </table>
+                    <div class="box-body" style="padding:10px 14px">
+                        <div class="row" style="margin:0">
+                            <div class="col-sm-6" style="padding:0 8px 0 0">
+                                <table class="table table-condensed" style="margin-bottom:0">
+                                    <tr>
+                                        <th style="width:110px;border-top:0">Full Name</th>
+                                        <td style="border-top:0"><strong><?php echo htmlspecialchars($student->full_name); ?></strong></td>
+                                    </tr>
+                                    <tr>
+                                        <th>Register No.</th>
+                                        <td><?php echo htmlspecialchars($student->register_no ?: '—'); ?></td>
+                                    </tr>
+                                    <tr>
+                                        <th>Admission No.</th>
+                                        <td><?php echo htmlspecialchars($student->admission_no ?: '—'); ?></td>
+                                    </tr>
+                                </table>
+                            </div>
+                            <div class="col-sm-6" style="padding:0 0 0 8px;border-left:1px solid #f0f0f0">
+                                <table class="table table-condensed" style="margin-bottom:0">
+                                    <tr>
+                                        <th style="width:90px;border-top:0">Class</th>
+                                        <td style="border-top:0"><?php echo htmlspecialchars($student->class_name ?? '—'); ?></td>
+                                    </tr>
+                                    <tr>
+                                        <th>Department</th>
+                                        <td><?php echo htmlspecialchars($student->department_name ?? '—'); ?></td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <!-- SGPA History -->
             <div class="col-md-6">
-                <div class="box box-info">
-                    <div class="box-header with-border">
+                <div class="box box-info" style="margin-bottom:10px">
+                    <div class="box-header with-border" style="padding:8px 14px">
                         <h3 class="box-title"><i class="fa fa-line-chart"></i> SGPA History</h3>
                     </div>
                     <div class="box-body" style="padding:0">
