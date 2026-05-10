@@ -80,7 +80,15 @@ class Coe_application_model extends CI_Model
      */
     public function generateApplications($batch_exam_id, $exam_group_id)
     {
-        // Get all subjects for this batch exam
+        $batch_exam_id  = (int) $batch_exam_id;
+        $exam_group_id  = (int) $exam_group_id;
+
+        // Resolve exam_category from the exam_group so we can branch logic
+        $eg = $this->db->select('exam_category')->from('exam_groups')
+            ->where('id', $exam_group_id)->get()->row();
+        $exam_category = $eg ? $eg->exam_category : 'main';
+
+        // Subjects configured for this batch exam
         $subjects = $this->db
             ->where('exam_group_class_batch_exams_id', $batch_exam_id)
             ->where('is_active', 1)
@@ -90,7 +98,7 @@ class Coe_application_model extends CI_Model
             return ['inserted' => 0, 'skipped' => 0, 'error' => 'no_subjects'];
         }
 
-        // Get all active students enrolled in this batch exam
+        // Students enrolled in this batch exam (admin-controlled pool)
         $students = $this->db
             ->where('exam_group_class_batch_exam_id', $batch_exam_id)
             ->where('is_active', 1)
@@ -100,13 +108,100 @@ class Coe_application_model extends CI_Model
             return ['inserted' => 0, 'skipped' => 0, 'error' => 'no_students'];
         }
 
+        // Index students by student_id for fast lookup
+        $student_map = [];
+        foreach ($students as $st) {
+            $student_map[$st->student_id] = $st;
+        }
+
         $inserted = 0;
         $skipped  = 0;
         $now      = date('Y-m-d H:i:s');
 
+        // ---------------------------------------------------------------
+        // ARREAR / SUPPLEMENTARY — smart per-subject eligibility check
+        // ---------------------------------------------------------------
+        if (in_array($exam_category, ['arrear', 'supplementary'], true)) {
+
+            // Build one query to get all (student_id, subject_id) pairs that
+            // have an active arrear among the enrolled student pool.
+            //
+            // A pair is an "active arrear" when:
+            //   1. There exists a coe_student_results row with result_status='fail'
+            //      for that (student, subject) in an end-semester exam.
+            //   2. There is NO later coe_student_results row with result_status='pass'
+            //      for the same (student, subject) — i.e. not yet cleared.
+
+            $student_ids = array_column($students, 'student_id');
+            $subject_ids = array_column($subjects,  'subject_id');
+
+            $sid_list = implode(',', array_map('intval', $student_ids));
+            $sub_list = implode(',', array_map('intval', $subject_ids));
+
+            $sql = "
+                SELECT DISTINCT sr.student_id, sr.subject_id
+                FROM coe_student_results sr
+                JOIN exam_group_class_batch_exams egcbe
+                    ON egcbe.id = sr.exam_group_class_batch_exam_id
+                JOIN exam_groups eg ON eg.id = egcbe.exam_group_id
+                WHERE sr.result_status   = 'fail'
+                  AND eg.is_end_semester = 1
+                  AND sr.student_id IN ({$sid_list})
+                  AND sr.subject_id IN ({$sub_list})
+                  -- Net arrear: no subsequent pass for same student+subject
+                  AND NOT EXISTS (
+                      SELECT 1
+                      FROM coe_student_results sr2
+                      JOIN exam_group_class_batch_exams e2
+                          ON e2.id = sr2.exam_group_class_batch_exam_id
+                      WHERE sr2.student_id    = sr.student_id
+                        AND sr2.subject_id    = sr.subject_id
+                        AND sr2.result_status = 'pass'
+                        AND e2.date_from      > egcbe.date_from
+                  )
+            ";
+
+            $arrear_pairs = $this->db->query($sql)->result();
+
+            foreach ($arrear_pairs as $pair) {
+                $student = $student_map[$pair->student_id] ?? null;
+                if (!$student) {
+                    continue; // student no longer in enrolled pool
+                }
+
+                $exists = $this->db
+                    ->where('exam_group_class_batch_exam_id', $batch_exam_id)
+                    ->where('student_id', $pair->student_id)
+                    ->where('subject_id', $pair->subject_id)
+                    ->count_all_results('coe_exam_applications');
+
+                if ($exists > 0) {
+                    $skipped++;
+                    continue;
+                }
+
+                $this->db->insert('coe_exam_applications', [
+                    'exam_group_id'                  => $exam_group_id,
+                    'exam_group_class_batch_exam_id' => $batch_exam_id,
+                    'student_id'                     => $pair->student_id,
+                    'student_session_id'             => $student->student_session_id,
+                    'subject_id'                     => $pair->subject_id,
+                    'is_arrear'                      => 1,
+                    'cbcs_category'                  => 'core',
+                    'application_status'             => 'pending',
+                    'applied_at'                     => $now,
+                ]);
+                $inserted++;
+            }
+
+            return ['inserted' => $inserted, 'skipped' => $skipped, 'mode' => 'arrear'];
+        }
+
+        // ---------------------------------------------------------------
+        // REGULAR (main) exam — enroll every student for every subject
+        // ---------------------------------------------------------------
         foreach ($students as $student) {
             foreach ($subjects as $subject) {
-                // Check if already exists
                 $exists = $this->db
                     ->where('exam_group_class_batch_exam_id', $batch_exam_id)
                     ->where('student_id', $student->student_id)
@@ -133,7 +228,7 @@ class Coe_application_model extends CI_Model
             }
         }
 
-        return ['inserted' => $inserted, 'skipped' => $skipped];
+        return ['inserted' => $inserted, 'skipped' => $skipped, 'mode' => 'regular'];
     }
 
     // ------------------------------------------------------------------

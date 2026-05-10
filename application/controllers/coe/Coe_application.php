@@ -104,7 +104,15 @@ class Coe_application extends MY_Addon_CoeController
             $this->session->set_flashdata('msg', '<div class="alert alert-warning text-left">' . ($msg_map[$result['error']] ?? 'Error generating applications.') . '</div>');
         } else {
             $this->Coe_audit_model->log('applications_generated', 'exam_group_class_batch_exams', $batch_exam_id, null, $result);
-            $this->session->set_flashdata('msg', '<div class="alert alert-success text-left">' . $this->lang->line('coe_applications_generated') . ' Inserted: ' . $result['inserted'] . ', Skipped (duplicate): ' . $result['skipped'] . '</div>');
+            $mode_label = ($result['mode'] ?? 'regular') === 'arrear'
+                ? 'Arrear-smart mode: only students with active arrears in each subject were enrolled.'
+                : 'Regular mode: all enrolled students added for all subjects.';
+            $this->session->set_flashdata('msg', '<div class="alert alert-success text-left">'
+                . $this->lang->line('coe_applications_generated')
+                . ' Inserted: ' . $result['inserted']
+                . ', Skipped (duplicate): ' . $result['skipped']
+                . '<br><small>' . $mode_label . '</small>'
+                . '</div>');
         }
 
         redirect('coe/coe_application/view/' . $batch_exam_id);
