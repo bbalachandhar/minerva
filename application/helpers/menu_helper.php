@@ -429,13 +429,24 @@ if (!function_exists('main_menu_array')) {
                         ),
 
             'coe' => array(
+                'coe_dashboard'    => array('index'),
                 'coe_setup'        => array('index', 'add', 'edit'),
                 'coe_application'  => array('index', 'add', 'edit'),
                 'coe_eligibility'  => array('index'),
                 'coe_hallticket'   => array('index', 'generate'),
                 'coe_nominalroll'  => array('index'),
-                'coe_seating'      => array('index', 'generate'),
+                'coe_seating'      => array('index', 'generate', 'manage', 'create_room', 'auto_assign', 'view_room', 'print_seating', 'clear_room', 'delete_room', 'halls', 'save_hall', 'delete_hall'),
                 'coe_invigilation' => array('index', 'assign'),
+                'coe_qpd'          => array('index', 'manage', 'upload', 'download', 'delete'),
+                'coe_attendance'   => array('index', 'rooms', 'sheet', 'save', 'qr_scan'),
+                'coe_ufm'          => array('index', 'listing', 'report', 'save', 'view', 'review', 'delete'),
+                'coe_answer_scripts' => array('index', 'listing', 'upload', 'save_upload', 'view', 'update_status', 'delete'),
+                'coe_osm'            => array('index', 'dashboard', 'create_from_scripts', 'assign', 'mark', 'save_marks', 'submit', 'lock'),
+                'coe_revaluation'    => array('index', 'listing', 'add', 'save_request', 'view', 'update_payment', 'assign', 'save_evaluation', 'reject'),
+                'coe_moderation'     => array('index', 'listing', 'save_rule', 'preview', 'apply', 'delete'),
+                'coe_marks'          => array('index', 'listing', 'enter', 'save_marks', 'configure_subjects', 'save_config', 'compute_sgpa', 'recompute_grades', 'student_card'),
+                'coe_results'        => array('index', 'listing', 'publish', 'unpublish', 'student_result', 'export', 'tabulation', 'merit_list'),
+                'coe_arrear'         => array('index', 'student'),
             ),
                             
                         
