@@ -25,6 +25,74 @@
 
     <section class="content">
 
+        <!-- Filter Bar -->
+        <div class="box box-default" style="margin-bottom:10px">
+            <div class="box-header with-border" style="padding:8px 14px">
+                <h3 class="box-title"><i class="fa fa-filter"></i> Filter Arrear History</h3>
+                <div class="box-tools">
+                    <button class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i></button>
+                </div>
+            </div>
+            <div class="box-body" style="padding:10px 14px">
+                <form method="get" class="form-inline">
+                    <?php
+                    $base_url = site_url('coe/coe_arrear/student/' . $student->id);
+                    $f = $filters;
+                    ?>
+                    <div class="form-group" style="margin-right:10px">
+                        <label>Academic Session &nbsp;</label>
+                        <select name="session_id" class="form-control input-sm"
+                                onchange="this.form.submit()">
+                            <option value="">All Sessions</option>
+                            <?php foreach ($student_sessions as $sess): ?>
+                            <option value="<?php echo $sess->id; ?>"
+                                <?php echo $f['session_id'] == $sess->id ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($sess->session); ?>
+                            </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-right:10px">
+                        <label>Exam Event &nbsp;</label>
+                        <select name="batch_exam_id" class="form-control input-sm"
+                                onchange="this.form.submit()">
+                            <option value="">All Events</option>
+                            <?php foreach ($student_events as $evt): ?>
+                            <option value="<?php echo $evt->batch_exam_id; ?>"
+                                <?php echo $f['batch_exam_id'] == $evt->batch_exam_id ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($evt->label); ?>
+                            </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <?php if ($f['session_id']): ?>
+                    <input type="hidden" name="session_id" value="<?php echo $f['session_id']; ?>">
+                    <?php endif; ?>
+                    <div class="form-group" style="margin-right:12px">
+                        <label>
+                            <input type="checkbox" name="active_only" value="1"
+                                <?php echo !empty($f['active_only']) ? 'checked' : ''; ?>
+                                onchange="this.form.submit()">
+                            &nbsp;Active arrears only
+                            <small class="text-muted">(exclude already cleared)</small>
+                        </label>
+                    </div>
+                    <button type="submit" class="btn btn-sm btn-primary">
+                        <i class="fa fa-search"></i> Apply
+                    </button>
+                    <a href="<?php echo site_url('coe/coe_arrear/student/' . $student->id); ?>"
+                       class="btn btn-sm btn-default">
+                        <i class="fa fa-times"></i> Clear
+                    </a>
+                    <?php if ($f['session_id'] || $f['batch_exam_id'] || $f['active_only']): ?>
+                    <span class="label label-warning" style="margin-left:8px;vertical-align:middle">
+                        <i class="fa fa-filter"></i> Filtered
+                    </span>
+                    <?php endif; ?>
+                </form>
+            </div>
+        </div>
+
         <!-- Student Info + SGPA History Row -->
         <div class="row">
             <div class="col-md-6">
@@ -131,6 +199,9 @@
                 <h3 class="box-title">
                     <i class="fa fa-exclamation-triangle"></i> Failed Subjects History
                     <span class="badge bg-red"><?php echo count($arrears); ?></span>
+                    <?php if (!empty($filters['active_only'])): ?>
+                    <small class="text-warning" style="margin-left:6px"><i class="fa fa-filter"></i> Active arrears only</small>
+                    <?php endif; ?>
                 </h3>
             </div>
             <div class="box-body" style="padding:0">

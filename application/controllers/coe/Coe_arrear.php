@@ -51,13 +51,25 @@ class Coe_arrear extends MY_Addon_CoeController
         }
 
         $student_id = (int) $student_id;
-        $data['student']      = $this->Coe_arrear_model->getStudentInfo($student_id);
+        $data['student'] = $this->Coe_arrear_model->getStudentInfo($student_id);
         if (empty($data['student'])) {
             show_404();
         }
 
-        $data['arrears']      = $this->Coe_arrear_model->getStudentArrears($student_id);
-        $data['sgpa_history'] = $this->Coe_arrear_model->getStudentSGPAHistory($student_id);
+        // Filter params
+        $filters = [
+            'session_id'    => (int) $this->input->get('session_id')    ?: null,
+            'batch_exam_id' => (int) $this->input->get('batch_exam_id') ?: null,
+            'active_only'   => (bool) $this->input->get('active_only'),
+        ];
+        $data['filters'] = $filters;
+
+        // Sessions and events for filter dropdowns (only sessions where student has results)
+        $data['student_sessions'] = $this->Coe_arrear_model->getStudentResultSessions($student_id);
+        $data['student_events']   = $this->Coe_arrear_model->getStudentResultEvents($student_id, $filters['session_id']);
+
+        $data['arrears']      = $this->Coe_arrear_model->getStudentArrears($student_id, $filters);
+        $data['sgpa_history'] = $this->Coe_arrear_model->getStudentSGPAHistory($student_id, $filters['session_id']);
 
         $this->load->view('layout/header', $data);
         $this->load->view('admin/coe/coe_arrear/student', $data);

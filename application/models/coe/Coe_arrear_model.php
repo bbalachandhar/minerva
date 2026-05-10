@@ -69,29 +69,102 @@ class Coe_arrear_model extends CI_Model
     }
 
     /**
-     * Full arrear history for one student — all exams, all failed subjects.
+     * Arrear history for one student — all (or filtered) failed subjects.
+     *
+     * @param int   $student_id
+     * @param array $filters  Keys: session_id, batch_exam_id, active_only (bool)
      */
-    public function getStudentArrears($student_id)
+    public function getStudentArrears($student_id, $filters = [])
     {
-        return $this->db
-            ->select('
-                sr.id, sr.subject_id, sr.internal_marks, sr.external_marks,
-                sr.total_marks, sr.grade, sr.result_status, sr.moderation_applied,
-                sub.code AS subject_code, sub.name AS subject_name,
-                egcbe.exam AS batch_exam_name, egcbe.date_from, egcbe.date_to,
-                s.session, eg.name AS event_name
-            ')
-            ->from('coe_student_results sr')
-            ->join('subjects sub', 'sub.id = sr.subject_id', 'left')
-            ->join('exam_group_class_batch_exams egcbe', 'egcbe.id = sr.exam_group_class_batch_exam_id')
-            ->join('exam_groups eg', 'eg.id = egcbe.exam_group_id')
-            ->join('sessions s', 's.id = egcbe.session_id', 'left')
-            ->where('sr.student_id', (int) $student_id)
-            ->where('sr.result_status', 'fail')
-            ->where('eg.is_end_semester', 1)
-            ->order_by('egcbe.date_from', 'ASC')
-            ->order_by('sub.code', 'ASC')
-            ->get()->result();
+        $student_id = (int) $student_id;
+
+        $where_parts = [
+            "sr.student_id   = $student_id",
+            "sr.result_status = 'fail'",
+            "eg.is_end_semester = 1",
+        ];
+
+        if (!empty($filters['session_id'])) {
+            $where_parts[] = 'egcbe.session_id = ' . (int) $filters['session_id'];
+        }
+        if (!empty($filters['batch_exam_id'])) {
+            $where_parts[] = 'sr.exam_group_class_batch_exam_id = ' . (int) $filters['batch_exam_id'];
+        }
+
+        // "Active only" — exclude subjects where a subsequent pass exists
+        $active_clause = '';
+        if (!empty($filters['active_only'])) {
+            $active_clause = "AND NOT EXISTS (
+                SELECT 1
+                FROM coe_student_results sr2
+                JOIN exam_group_class_batch_exams e2 ON e2.id = sr2.exam_group_class_batch_exam_id
+                WHERE sr2.student_id    = sr.student_id
+                  AND sr2.subject_id    = sr.subject_id
+                  AND sr2.result_status = 'pass'
+                  AND e2.date_from      > egcbe.date_from
+            )";
+        }
+
+        $where_sql = implode(' AND ', $where_parts);
+
+        $sql = "
+            SELECT sr.id, sr.subject_id, sr.internal_marks, sr.external_marks,
+                   sr.total_marks, sr.grade, sr.result_status, sr.moderation_applied,
+                   sub.code AS subject_code, sub.name AS subject_name,
+                   egcbe.id AS batch_exam_id, egcbe.exam AS batch_exam_name,
+                   egcbe.date_from, egcbe.date_to, egcbe.session_id,
+                   s.session, eg.name AS event_name
+            FROM coe_student_results sr
+            JOIN subjects sub                        ON sub.id  = sr.subject_id
+            JOIN exam_group_class_batch_exams egcbe  ON egcbe.id = sr.exam_group_class_batch_exam_id
+            JOIN exam_groups eg                       ON eg.id   = egcbe.exam_group_id
+            JOIN sessions s                           ON s.id    = egcbe.session_id
+            WHERE $where_sql
+            $active_clause
+            ORDER BY egcbe.date_from ASC, sub.code ASC
+        ";
+
+        return $this->db->query($sql)->result();
+    }
+
+    /**
+     * All academic sessions in which this student has any end-semester results.
+     */
+    public function getStudentResultSessions($student_id)
+    {
+        $sql = "
+            SELECT DISTINCT s.id, s.session
+            FROM coe_student_results sr
+            JOIN exam_group_class_batch_exams egcbe ON egcbe.id = sr.exam_group_class_batch_exam_id
+            JOIN exam_groups eg ON eg.id = egcbe.exam_group_id
+            JOIN sessions s    ON s.id  = egcbe.session_id
+            WHERE sr.student_id     = ?
+              AND eg.is_end_semester = 1
+            ORDER BY s.id DESC
+        ";
+        return $this->db->query($sql, [(int) $student_id])->result();
+    }
+
+    /**
+     * Exam events (batch exams) for a student in a given session,
+     * where they have end-semester results.
+     */
+    public function getStudentResultEvents($student_id, $session_id = null)
+    {
+        $sid = (int) $student_id;
+        $cond = $session_id ? 'AND egcbe.session_id = ' . (int)$session_id : '';
+        $sql = "
+            SELECT DISTINCT egcbe.id AS batch_exam_id,
+                            CONCAT(eg.name, ' — ', egcbe.exam) AS label
+            FROM coe_student_results sr
+            JOIN exam_group_class_batch_exams egcbe ON egcbe.id = sr.exam_group_class_batch_exam_id
+            JOIN exam_groups eg ON eg.id = egcbe.exam_group_id
+            WHERE sr.student_id     = $sid
+              AND eg.is_end_semester = 1
+              $cond
+            ORDER BY egcbe.date_from DESC
+        ";
+        return $this->db->query($sql)->result();
     }
 
     /**
@@ -117,20 +190,22 @@ class Coe_arrear_model extends CI_Model
     }
 
     /**
-     * Full SGPA history for one student (all semesters)
+     * Full SGPA history for one student (all semesters, optional session filter)
      */
-    public function getStudentSGPAHistory($student_id)
+    public function getStudentSGPAHistory($student_id, $session_id = null)
     {
-        return $this->db
+        $q = $this->db
             ->select('sg.sgpa, sg.cgpa, sg.arrear_count, sg.result_status,
                       sg.total_credits_earned, sg.total_credits_registered,
                       egcbe.exam AS batch_exam_name, s.session')
             ->from('coe_sgpa_summary sg')
             ->join('exam_group_class_batch_exams egcbe', 'egcbe.id = sg.exam_group_class_batch_exam_id')
             ->join('sessions s', 's.id = egcbe.session_id', 'left')
-            ->where('sg.student_id', (int) $student_id)
-            ->order_by('egcbe.date_from', 'ASC')
-            ->get()->result();
+            ->where('sg.student_id', (int) $student_id);
+        if ($session_id) {
+            $q->where('egcbe.session_id', (int) $session_id);
+        }
+        return $q->order_by('egcbe.date_from', 'ASC')->get()->result();
     }
 
     /**
