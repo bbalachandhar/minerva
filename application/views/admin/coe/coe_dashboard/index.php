@@ -186,6 +186,25 @@
             $pending_items[] = ['fa-refresh',            $kpis['rev_pending'].' revaluation request(s) awaiting action',     'coe/coe_revaluation', 'Review'];
         ?>
         <?php if (!empty($pending_items)): ?>
+        <style>
+            .pending-action-btn {
+                background: #fff;
+                color: #a67c00;
+                border: 1px solid #a67c00;
+                border-radius: 3px;
+                padding: 1px 7px;
+                font-size: 11px;
+                text-decoration: none;
+                display: inline-block;
+                line-height: 1.6;
+            }
+            .pending-action-btn:hover, .pending-action-btn:focus {
+                background: #6d4c00;
+                color: #fff;
+                border-color: #6d4c00;
+                text-decoration: none;
+            }
+        </style>
         <div class="row" style="margin-bottom:5px">
             <div class="col-md-12">
                 <div class="alert alert-warning" style="padding:8px 14px;margin-bottom:0">
@@ -194,7 +213,7 @@
                         <?php foreach ($pending_items as $pi): ?>
                         <div class="col-md-3 col-sm-6" style="margin-bottom:4px">
                             <span><i class="fa <?php echo $pi[0]; ?> fa-fw"></i> <?php echo $pi[1]; ?></span>
-                            &nbsp;<a href="<?php echo site_url($pi[2]); ?>" class="btn btn-xs btn-warning"><?php echo $pi[3]; ?> &rarr;</a>
+                            &nbsp;<a href="<?php echo site_url($pi[2]); ?>" class="pending-action-btn"><?php echo $pi[3]; ?> &rarr;</a>
                         </div>
                         <?php endforeach; ?>
                     </div>
