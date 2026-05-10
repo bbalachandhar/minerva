@@ -14,9 +14,9 @@
     <section class="content">
 
         <!-- Session Selector -->
-        <div class="row">
+        <div class="row" style="margin-bottom:5px">
             <div class="col-md-12">
-                <form method="get" class="form-inline" style="margin-bottom:15px">
+                <form method="get" class="form-inline" style="margin-bottom:8px">
                     <div class="form-group">
                         <label style="margin-right:8px"><i class="fa fa-calendar"></i> Academic Session &nbsp;</label>
                         <select name="session_id" class="form-control" onchange="this.form.submit()">
@@ -32,143 +32,105 @@
             </div>
         </div>
 
-        <!-- KPI Cards Row 1 -->
-        <div class="row">
+        <!-- KPI Cards Row 1 — 6 unique-color cards -->
+        <div class="row" style="margin-bottom:0">
             <div class="col-lg-2 col-md-4 col-sm-6">
                 <div class="small-box bg-aqua">
-                    <div class="inner">
-                        <h3><?php echo $kpis['total_events']; ?></h3>
-                        <p>Exam Events</p>
-                    </div>
+                    <div class="inner"><h3><?php echo $kpis['total_events']; ?></h3><p>Exam Events</p></div>
                     <div class="icon"><i class="fa fa-calendar-check-o"></i></div>
                     <a href="<?php echo site_url('coe/coe_application'); ?>" class="small-box-footer">
                         View Events <i class="fa fa-arrow-circle-right"></i>
                     </a>
                 </div>
             </div>
-
             <div class="col-lg-2 col-md-4 col-sm-6">
                 <div class="small-box bg-green">
-                    <div class="inner">
-                        <h3><?php echo $kpis['total_apps']; ?></h3>
-                        <p>Total Applicants</p>
-                    </div>
+                    <div class="inner"><h3><?php echo $kpis['total_apps']; ?></h3><p>Total Applicants</p></div>
                     <div class="icon"><i class="fa fa-users"></i></div>
                     <a href="<?php echo site_url('coe/coe_eligibility'); ?>" class="small-box-footer">
                         Eligibility <i class="fa fa-arrow-circle-right"></i>
                     </a>
                 </div>
             </div>
-
             <div class="col-lg-2 col-md-4 col-sm-6">
-                <div class="small-box bg-blue">
-                    <div class="inner">
-                        <h3><?php echo $kpis['total_ht']; ?></h3>
-                        <p>Hall Tickets</p>
-                    </div>
+                <div class="small-box bg-light-blue">
+                    <div class="inner"><h3><?php echo $kpis['total_ht']; ?></h3><p>Hall Tickets</p></div>
                     <div class="icon"><i class="fa fa-id-card-o"></i></div>
                     <a href="<?php echo site_url('coe/coe_hallticket'); ?>" class="small-box-footer">
                         Hall Tickets <i class="fa fa-arrow-circle-right"></i>
                     </a>
                 </div>
             </div>
-
             <div class="col-lg-2 col-md-4 col-sm-6">
                 <div class="small-box bg-yellow">
-                    <div class="inner">
-                        <h3><?php echo $kpis['pass_pct']; ?>%</h3>
-                        <p>Overall Pass Rate</p>
-                    </div>
+                    <div class="inner"><h3><?php echo $kpis['pass_pct']; ?>%</h3><p>Overall Pass Rate</p></div>
                     <div class="icon"><i class="fa fa-line-chart"></i></div>
                     <a href="<?php echo site_url('coe/coe_results'); ?>" class="small-box-footer">
                         Results <i class="fa fa-arrow-circle-right"></i>
                     </a>
                 </div>
             </div>
-
             <?php $sgpa = $kpis['avg_sgpa']; ?>
             <div class="col-lg-2 col-md-4 col-sm-6">
-                <div class="small-box <?php echo $sgpa >= 8 ? 'bg-green' : ($sgpa >= 6 ? 'bg-yellow' : ($sgpa > 0 ? 'bg-orange' : 'bg-gray')); ?>">
-                    <div class="inner">
-                        <h3><?php echo $sgpa > 0 ? number_format($sgpa, 2) : '—'; ?></h3>
-                        <p>Avg. SGPA</p>
-                    </div>
+                <div class="small-box bg-purple">
+                    <div class="inner"><h3><?php echo $sgpa > 0 ? number_format($sgpa, 2) : '—'; ?></h3><p>Avg. SGPA</p></div>
                     <div class="icon"><i class="fa fa-star-half-o"></i></div>
                     <a href="<?php echo site_url('coe/coe_results'); ?>" class="small-box-footer">
                         SGPA Details <i class="fa fa-arrow-circle-right"></i>
                     </a>
                 </div>
             </div>
-
             <div class="col-lg-2 col-md-4 col-sm-6">
                 <div class="small-box bg-orange">
-                    <div class="inner">
-                        <h3><?php echo $kpis['arrear_students']; ?></h3>
-                        <p>Arrear Students</p>
-                    </div>
+                    <div class="inner"><h3><?php echo $kpis['arrear_students']; ?></h3><p>Arrear Students</p></div>
                     <div class="icon"><i class="fa fa-exclamation-triangle"></i></div>
                     <a href="<?php echo site_url('coe/coe_arrear?session_id='.$session_id); ?>" class="small-box-footer">
                         Arrear Register <i class="fa fa-arrow-circle-right"></i>
                     </a>
                 </div>
             </div>
-
-            <div class="col-lg-2 col-md-4 col-sm-6">
-                <div class="small-box <?php echo $kpis['ufm_count'] > 0 ? 'bg-red' : 'bg-gray'; ?>">
-                    <div class="inner">
-                        <h3><?php echo $kpis['ufm_count']; ?></h3>
-                        <p>UFM Incidents</p>
-                    </div>
-                    <div class="icon"><i class="fa fa-ban"></i></div>
-                    <a href="<?php echo site_url('coe/coe_ufm'); ?>" class="small-box-footer">
-                        UFM Register <i class="fa fa-arrow-circle-right"></i>
-                    </a>
-                </div>
-            </div>
         </div><!-- /.row KPI row 1 -->
 
-        <!-- KPI Cards Row 2 -->
-        <div class="row">
+        <!-- KPI Cards Row 2 — 4 unique-color cards + progress widget -->
+        <div class="row" style="margin-bottom:0">
             <div class="col-lg-2 col-md-4 col-sm-6">
-                <div class="small-box bg-blue">
-                    <div class="inner">
-                        <h3><?php echo $kpis['published_events']; ?> / <?php echo $kpis['total_events']; ?></h3>
-                        <p>Results Published</p>
-                    </div>
+                <div class="small-box bg-teal">
+                    <div class="inner"><h3><?php echo $kpis['published_events']; ?> / <?php echo $kpis['total_events']; ?></h3><p>Results Published</p></div>
                     <div class="icon"><i class="fa fa-bullhorn"></i></div>
                     <a href="<?php echo site_url('coe/coe_results'); ?>" class="small-box-footer">
                         Publish <i class="fa fa-arrow-circle-right"></i>
                     </a>
                 </div>
             </div>
-
             <div class="col-lg-2 col-md-4 col-sm-6">
-                <div class="small-box <?php echo $kpis['rev_pending'] > 0 ? 'bg-red' : 'bg-gray'; ?>">
-                    <div class="inner">
-                        <h3><?php echo $kpis['rev_pending']; ?></h3>
-                        <p>Revaluation Pending</p>
-                    </div>
+                <div class="small-box <?php echo $kpis['rev_pending'] > 0 ? 'bg-red' : 'bg-maroon'; ?>">
+                    <div class="inner"><h3><?php echo $kpis['rev_pending']; ?></h3><p>Revaluation Pending</p></div>
                     <div class="icon"><i class="fa fa-refresh"></i></div>
                     <a href="<?php echo site_url('coe/coe_revaluation'); ?>" class="small-box-footer">
                         Revaluation <i class="fa fa-arrow-circle-right"></i>
                     </a>
                 </div>
             </div>
-
             <div class="col-lg-2 col-md-4 col-sm-6">
-                <div class="small-box bg-teal">
-                    <div class="inner">
-                        <h3><?php echo $kpis['total_computed']; ?></h3>
-                        <p>SGPA Computed</p>
-                    </div>
+                <div class="small-box bg-navy">
+                    <div class="inner"><h3><?php echo $kpis['total_computed']; ?></h3><p>SGPA Computed</p></div>
                     <div class="icon"><i class="fa fa-calculator"></i></div>
                     <a href="<?php echo site_url('coe/coe_marks'); ?>" class="small-box-footer">
                         Marks Module <i class="fa fa-arrow-circle-right"></i>
                     </a>
                 </div>
             </div>
+            <div class="col-lg-2 col-md-4 col-sm-6">
+                <div class="small-box <?php echo $kpis['ufm_count'] > 0 ? 'bg-red' : 'bg-gray'; ?>">
+                    <div class="inner"><h3><?php echo $kpis['ufm_count']; ?></h3><p>UFM Incidents</p></div>
+                    <div class="icon"><i class="fa fa-ban"></i></div>
+                    <a href="<?php echo site_url('coe/coe_ufm'); ?>" class="small-box-footer">
+                        UFM Register <i class="fa fa-arrow-circle-right"></i>
+                    </a>
+                </div>
+            </div>
 
-            <div class="col-lg-6 col-md-8 col-sm-12">
+            <div class="col-lg-4 col-md-8 col-sm-12">
                 <?php
                 $max_apps = max(1, $kpis['total_apps']);
                 $pct_ht   = min(100, round($kpis['total_ht']        / $max_apps * 100));
@@ -212,40 +174,37 @@
         </div><!-- /.row KPI row 2 -->
 
         <!-- Pending Tasks Alert -->
-        <?php if ($pending_tasks['no_hall_tickets'] + $pending_tasks['no_marks'] + $pending_tasks['no_results'] > 0): ?>
-        <div class="row">
+        <?php
+        $pending_items = [];
+        if ($pending_tasks['no_hall_tickets'] > 0)
+            $pending_items[] = ['fa-id-card-o',         $pending_tasks['no_hall_tickets'].' event(s) missing hall tickets', 'coe/coe_hallticket',  'Generate'];
+        if ($pending_tasks['no_marks'] > 0)
+            $pending_items[] = ['fa-edit',               $pending_tasks['no_marks'].' event(s) have no marks entered',       'coe/coe_marks',       'Enter Marks'];
+        if ($pending_tasks['no_results'] > 0)
+            $pending_items[] = ['fa-calculator',         $pending_tasks['no_results'].' event(s) have no SGPA computed',     'coe/coe_marks',       'Compute SGPA'];
+        if ($kpis['rev_pending'] > 0)
+            $pending_items[] = ['fa-refresh',            $kpis['rev_pending'].' revaluation request(s) awaiting action',     'coe/coe_revaluation', 'Review'];
+        ?>
+        <?php if (!empty($pending_items)): ?>
+        <div class="row" style="margin-bottom:5px">
             <div class="col-md-12">
-                <div class="callout callout-warning">
-                    <h4><i class="fa fa-clock-o"></i> Pending Actions</h4>
-                    <ul style="margin-bottom:0">
-                        <?php if ($pending_tasks['no_hall_tickets'] > 0): ?>
-                        <li><?php echo $pending_tasks['no_hall_tickets']; ?> event(s) have no hall tickets generated yet.
-                            <a href="<?php echo site_url('coe/coe_hallticket'); ?>">Generate &rarr;</a>
-                        </li>
-                        <?php endif; ?>
-                        <?php if ($pending_tasks['no_marks'] > 0): ?>
-                        <li><?php echo $pending_tasks['no_marks']; ?> event(s) have no marks entered yet.
-                            <a href="<?php echo site_url('coe/coe_marks'); ?>">Enter Marks &rarr;</a>
-                        </li>
-                        <?php endif; ?>
-                        <?php if ($pending_tasks['no_results'] > 0): ?>
-                        <li><?php echo $pending_tasks['no_results']; ?> event(s) have no SGPA computed yet.
-                            <a href="<?php echo site_url('coe/coe_marks'); ?>">Compute SGPA &rarr;</a>
-                        </li>
-                        <?php endif; ?>
-                        <?php if ($kpis['rev_pending'] > 0): ?>
-                        <li><?php echo $kpis['rev_pending']; ?> revaluation request(s) awaiting action.
-                            <a href="<?php echo site_url('coe/coe_revaluation'); ?>">Review &rarr;</a>
-                        </li>
-                        <?php endif; ?>
-                    </ul>
+                <div class="alert alert-warning" style="padding:8px 14px;margin-bottom:0">
+                    <strong><i class="fa fa-clock-o"></i> Pending Actions</strong>
+                    <div class="row" style="margin-top:6px">
+                        <?php foreach ($pending_items as $pi): ?>
+                        <div class="col-md-3 col-sm-6" style="margin-bottom:4px">
+                            <span><i class="fa <?php echo $pi[0]; ?> fa-fw"></i> <?php echo $pi[1]; ?></span>
+                            &nbsp;<a href="<?php echo site_url($pi[2]); ?>" class="btn btn-xs btn-warning"><?php echo $pi[3]; ?> &rarr;</a>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
                 </div>
             </div>
         </div>
         <?php endif; ?>
 
         <!-- Event Pipeline Table -->
-        <div class="row">
+        <div class="row" style="margin-top:5px">
             <div class="col-md-12">
                 <div class="box box-primary">
                     <div class="box-header with-border">
