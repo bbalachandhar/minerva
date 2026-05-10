@@ -24,7 +24,7 @@ class Coe_qpd_model extends CI_Model
     public function getPapersByBatchExam($batch_exam_id)
     {
         return $this->db
-            ->select('qpd.*, sub.name AS subject_name, sub.code AS subject_code, CONCAT(st.firstname, " ", st.lastname) AS uploaded_by_name')
+            ->select('qpd.*, sub.name AS subject_name, sub.code AS subject_code, CONCAT(st.name, " ", st.surname) AS uploaded_by_name')
             ->from('coe_qpd_papers qpd')
             ->join('subjects sub', 'sub.id = qpd.subject_id', 'left')
             ->join('staff st', 'st.id = qpd.created_by', 'left')
@@ -91,10 +91,11 @@ class Coe_qpd_model extends CI_Model
     public function getSubjectsByBatchExam($batch_exam_id)
     {
         return $this->db
-            ->select('DISTINCT sub.id, sub.name, sub.code')
+            ->distinct()
+            ->select('sub.id, sub.name, sub.code')
             ->from('exam_group_class_batch_exam_subjects egcbs')
             ->join('subjects sub', 'sub.id = egcbs.subject_id')
-            ->where('egcbs.exam_group_class_batch_exam_id', (int) $batch_exam_id)
+            ->where('egcbs.exam_group_class_batch_exams_id', (int) $batch_exam_id)
             ->order_by('sub.name ASC')
             ->get()->result();
     }

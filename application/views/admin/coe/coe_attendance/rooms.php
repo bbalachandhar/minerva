@@ -4,7 +4,7 @@
         <h1>
             <i class="fa fa-check-square-o"></i> Exam Attendance
             <small><?php echo htmlspecialchars($event->exam_group_name); ?> — <?php echo htmlspecialchars($event->exam); ?></small>
-        </h1>
+        <button type="button" class="coe-info-btn" data-toggle="modal" data-target="#coeHelpModal"><i class="fa fa-info-circle"></i></button></h1>
         <ol class="breadcrumb">
             <li><a href="<?php echo site_url('coe/coe_attendance'); ?>"><i class="fa fa-arrow-left"></i> Back to Events</a></li>
         </ol>
@@ -61,3 +61,5 @@
         </div>
     </section>
 </div>
+
+<?php $this->load->view('admin/coe/_help_modal', ['help_key' => 'attendance']); ?>

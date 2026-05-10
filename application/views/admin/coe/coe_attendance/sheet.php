@@ -4,7 +4,10 @@
         <h1>
             <i class="fa fa-check-square-o"></i> Attendance Sheet
             <small>Room <?php echo $room_id; ?> | <?php echo date('d M Y', strtotime($exam_date)); ?> | <?php echo $session_slot; ?></small>
-        </h1>
+        <button type="button" class="coe-info-btn" data-toggle="modal" data-target="#coeHelpModal"><i class="fa fa-info-circle"></i></button></h1>
+        <ol class="breadcrumb">
+            <li><a href="<?php echo site_url('coe/coe_attendance/rooms/' . $batch_exam_id); ?>"><i class="fa fa-arrow-left"></i> Back to Rooms</a></li>
+        </ol>
     </section>
     <section class="content">
         <?php echo $this->session->flashdata('msg'); ?>
@@ -64,7 +67,6 @@
                                         <th style="width:50px">Seat</th>
                                         <th>Hall Ticket No</th>
                                         <th>Student</th>
-                                        <th>Subject</th>
                                         <th style="width:80px">Present</th>
                                         <th>Remarks</th>
                                         <th>QR</th>
@@ -76,7 +78,6 @@
                                         <td><?php echo htmlspecialchars($s->seat_number ?? '—'); ?></td>
                                         <td><strong><?php echo htmlspecialchars($s->hall_ticket_no); ?></strong></td>
                                         <td><?php echo htmlspecialchars($s->student_name); ?></td>
-                                        <td><?php echo htmlspecialchars($s->subject_code . ' – ' . $s->subject_name); ?></td>
                                         <td class="text-center">
                                             <input type="checkbox" name="present_ids[]"
                                                    value="<?php echo $s->hall_ticket_id; ?>"
@@ -115,3 +116,5 @@ document.getElementById('markAllAbsent').addEventListener('click', function() {
     document.querySelectorAll('.present-cb').forEach(function(cb) { cb.checked = false; });
 });
 </script>
+
+<?php $this->load->view('admin/coe/_help_modal', ['help_key' => 'attendance']); ?>

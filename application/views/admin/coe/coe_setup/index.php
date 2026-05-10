@@ -1,7 +1,7 @@
 <!-- Content Wrapper -->
 <div class="content-wrapper">
     <section class="content-header">
-        <h1><i class="fa fa-university"></i> <?php echo $this->lang->line('coe_exam_regulations'); ?></h1>
+        <h1><i class="fa fa-university"></i> <?php echo $this->lang->line('coe_exam_regulations'); ?><button type="button" class="coe-info-btn" data-toggle="modal" data-target="#coeHelpModal"><i class="fa fa-info-circle"></i></button></h1>
     </section>
 
     <section class="content">
@@ -117,3 +117,5 @@ $(document).on('click', '.confirm_delete', function(e) {
     });
 });
 </script>
+
+<?php $this->load->view('admin/coe/_help_modal', ['help_key' => 'exam_regulations']); ?>

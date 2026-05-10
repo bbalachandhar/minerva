@@ -37,7 +37,7 @@ class Coe_qpd extends MY_Addon_CoeController
             access_denied();
         }
 
-        $session_id = $this->input->get('session_id') ?: $this->current_session['id'];
+        $session_id = $this->input->get('session_id') ?: $this->current_session;
 
         $data['title']            = 'Question Paper Distribution';
         $data['session_list']     = $this->session_model->getAllSession();

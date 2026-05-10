@@ -58,7 +58,7 @@
             <?php if ($selected_event && isset($data['event_detail'])): ?>
             <small class="text-muted" style="font-size:14px;">&mdash; <?php echo htmlspecialchars($data['event_detail']->exam_group_name ?? ''); ?></small>
             <?php endif; ?>
-        </h1>
+        <button type="button" class="coe-info-btn" data-toggle="modal" data-target="#coeHelpModal"><i class="fa fa-info-circle"></i></button></h1>
         <ol class="breadcrumb">
             <li><a href="<?php echo site_url('coe/coe_eligibility'); ?>"><?php echo $this->lang->line('coe_eligibility'); ?></a></li>
             <li class="active">Check Eligibility</li>
@@ -476,3 +476,5 @@ $(function () {
     }
 });
 </script>
+
+<?php $this->load->view('admin/coe/_help_modal', ['help_key' => 'eligibility']); ?>

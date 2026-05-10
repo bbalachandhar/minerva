@@ -7,7 +7,7 @@
 
 <div class="content-wrapper">
   <section class="content-header">
-    <h1><?php echo lang('coe_seating'); ?> <small>Room: <?php echo htmlspecialchars($room->hall_name); ?></small></h1>
+    <h1><?php echo lang('coe_seating'); ?> <small>Room: <?php echo htmlspecialchars($room->hall_name); ?></small><button type="button" class="coe-info-btn" data-toggle="modal" data-target="#coeHelpModal"><i class="fa fa-info-circle"></i></button></h1>
     <ol class="breadcrumb">
       <li><a href="<?php echo site_url('dashboard'); ?>"><i class="fa fa-dashboard"></i> Home</a></li>
       <li><a href="<?php echo site_url('coe/coe_seating'); ?>">Seating</a></li>
@@ -120,3 +120,5 @@ $(document).ready(function(){
   });
 });
 </script>
+
+<?php $this->load->view('admin/coe/_help_modal', ['help_key' => 'seating']); ?>

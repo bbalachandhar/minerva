@@ -31,7 +31,7 @@ class Coe_attendance extends MY_Addon_CoeController
             access_denied();
         }
 
-        $session_id = $this->input->get('session_id') ?: $this->current_session['id'];
+        $session_id = $this->input->get('session_id') ?: $this->current_session;
 
         $data['title']            = 'Exam Attendance';
         $data['session_list']     = $this->session_model->getAllSession();
@@ -81,12 +81,13 @@ class Coe_attendance extends MY_Addon_CoeController
         $exam_date    = date('Y-m-d', strtotime($exam_date));
         $session_slot = in_array($session_slot, ['FN', 'AN']) ? $session_slot : 'FN';
 
-        $data['title']        = 'Attendance Sheet';
-        $data['room_id']      = $room_id;
-        $data['exam_date']    = $exam_date;
-        $data['session_slot'] = $session_slot;
-        $data['students']     = $this->Coe_attendance_model->getSeatedStudentsForRoom($room_id, $exam_date, $session_slot);
-        $data['summary']      = $this->Coe_attendance_model->getSummaryByRoom($room_id, $exam_date, $session_slot);
+        $data['title']          = 'Attendance Sheet';
+        $data['room_id']        = $room_id;
+        $data['exam_date']      = $exam_date;
+        $data['session_slot']   = $session_slot;
+        $data['batch_exam_id']  = $this->Coe_attendance_model->getBatchExamIdByRoom($room_id);
+        $data['students']       = $this->Coe_attendance_model->getSeatedStudentsForRoom($room_id, $exam_date, $session_slot);
+        $data['summary']        = $this->Coe_attendance_model->getSummaryByRoom($room_id, $exam_date, $session_slot);
 
         $this->load->view('layout/header', $data);
         $this->load->view('admin/coe/coe_attendance/sheet', $data);

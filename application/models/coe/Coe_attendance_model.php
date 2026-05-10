@@ -19,6 +19,17 @@ class Coe_attendance_model extends CI_Model
     }
 
     // ------------------------------------------------------------------
+    // Get the batch_exam_id for a given seating room (for breadcrumb)
+    // ------------------------------------------------------------------
+    public function getBatchExamIdByRoom($room_id)
+    {
+        $row = $this->db->select('exam_group_class_batch_exam_id')
+            ->where('id', (int) $room_id)
+            ->get('coe_seating_rooms')->row();
+        return $row ? $row->exam_group_class_batch_exam_id : null;
+    }
+
+    // ------------------------------------------------------------------
     // Get attendance records for a seating room + date + slot
     // ------------------------------------------------------------------
     public function getRoomAttendance($seating_room_id, $exam_date, $session_slot)
@@ -26,12 +37,11 @@ class Coe_attendance_model extends CI_Model
         return $this->db
             ->select('att.*, ht.hall_ticket_no, ht.student_id, 
                       CONCAT(st.firstname, " ", st.lastname) AS student_name,
-                      sr.seat_number, sub.name AS subject_name, sub.code AS subject_code')
+                      sa.seat_number')
             ->from('coe_exam_attendance att')
             ->join('coe_hall_tickets ht', 'ht.id = att.coe_hall_ticket_id')
             ->join('students st', 'st.id = ht.student_id', 'left')
-            ->join('coe_seating_assignments sr', 'sr.coe_hall_ticket_id = ht.id AND sr.seating_room_id = att.seating_room_id', 'left')
-            ->join('subjects sub', 'sub.id = ht.subject_id', 'left')
+            ->join('coe_seating_assignments sa', 'sa.hall_ticket_id = ht.id AND sa.seating_room_id = att.seating_room_id', 'left')
             ->where('att.seating_room_id', (int) $seating_room_id)
             ->where('att.exam_date', $exam_date)
             ->where('att.session_slot', $session_slot)
@@ -47,18 +57,15 @@ class Coe_attendance_model extends CI_Model
         return $this->db
             ->select('ht.id AS hall_ticket_id, ht.hall_ticket_no, ht.student_id,
                       CONCAT(st.firstname, " ", st.lastname) AS student_name,
-                      sa.seat_number, sub.name AS subject_name, sub.code AS subject_code,
+                      sa.seat_number,
                       att.id AS att_id, att.is_present, att.qr_scanned, att.remarks')
             ->from('coe_seating_assignments sa')
-            ->join('coe_hall_tickets ht', 'ht.id = sa.coe_hall_ticket_id')
+            ->join('coe_hall_tickets ht', 'ht.id = sa.hall_ticket_id')
             ->join('students st', 'st.id = ht.student_id', 'left')
-            ->join('subjects sub', 'sub.id = ht.subject_id', 'left')
             ->join('coe_exam_attendance att',
                    'att.coe_hall_ticket_id = ht.id AND att.seating_room_id = sa.seating_room_id AND att.exam_date = "' . $this->db->escape_str($exam_date) . '" AND att.session_slot = "' . $this->db->escape_str($session_slot) . '"',
                    'left')
             ->where('sa.seating_room_id', (int) $seating_room_id)
-            ->where('sa.exam_date', $exam_date)
-            ->where('sa.session_slot', $session_slot)
             ->order_by('sa.seat_number ASC')
             ->get()->result();
     }
@@ -145,10 +152,12 @@ class Coe_attendance_model extends CI_Model
     public function getRoomsByBatchExam($batch_exam_id)
     {
         return $this->db
-            ->select('DISTINCT sr.id, sr.hall_name, sr.exam_date, sr.session_slot, sr.seating_capacity')
+            ->distinct()
+            ->select('sr.id, h.name AS hall_name, sr.exam_date, sr.session_slot, COALESCE(sr.capacity_override, h.capacity) AS seating_capacity')
             ->from('coe_seating_rooms sr')
-            ->where('sr.batch_exam_id', (int) $batch_exam_id)
-            ->order_by('sr.exam_date ASC, sr.session_slot ASC, sr.hall_name ASC')
+            ->join('halls h', 'h.id = sr.hall_id', 'left')
+            ->where('sr.exam_group_class_batch_exam_id', (int) $batch_exam_id)
+            ->order_by('sr.exam_date ASC, sr.session_slot ASC, h.name ASC')
             ->get()->result();
     }
 }

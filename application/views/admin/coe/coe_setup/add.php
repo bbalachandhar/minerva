@@ -1,7 +1,7 @@
 <!-- Content Wrapper -->
 <div class="content-wrapper">
     <section class="content-header">
-        <h1><i class="fa fa-university"></i> <?php echo $this->lang->line('coe_add_regulation'); ?></h1>
+        <h1><i class="fa fa-university"></i> <?php echo $this->lang->line('coe_add_regulation'); ?><button type="button" class="coe-info-btn" data-toggle="modal" data-target="#coeHelpModal"><i class="fa fa-info-circle"></i></button></h1>
         <ol class="breadcrumb">
             <li><a href="<?php echo site_url('coe/coe_setup'); ?>"><?php echo $this->lang->line('coe_exam_regulations'); ?></a></li>
             <li class="active"><?php echo $this->lang->line('add'); ?></li>
@@ -195,3 +195,5 @@ $('#internal_pct, #external_pct').on('input', function() {
     }
 });
 </script>
+
+<?php $this->load->view('admin/coe/_help_modal', ['help_key' => 'exam_regulations']); ?>

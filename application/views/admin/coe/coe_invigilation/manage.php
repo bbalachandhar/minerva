@@ -33,7 +33,7 @@ foreach ($duties as $d) {
 
 <div class="content-wrapper">
   <section class="content-header">
-    <h1><?php echo lang('coe_invigilation'); ?> <small><?php echo htmlspecialchars($batch_exam->exam); ?></small></h1>
+    <h1><?php echo lang('coe_invigilation'); ?> <small><?php echo htmlspecialchars($batch_exam->exam); ?></small><button type="button" class="coe-info-btn" data-toggle="modal" data-target="#coeHelpModal"><i class="fa fa-info-circle"></i></button></h1>
     <ol class="breadcrumb">
       <li><a href="<?php echo site_url('dashboard'); ?>"><i class="fa fa-dashboard"></i> Home</a></li>
       <li><a href="<?php echo site_url('coe/coe_invigilation'); ?>">Invigilation</a></li>
@@ -249,3 +249,5 @@ document.querySelectorAll('.confirm-remove').forEach(function(btn){
   });
 });
 </script>
+
+<?php $this->load->view('admin/coe/_help_modal', ['help_key' => 'invigilation']); ?>

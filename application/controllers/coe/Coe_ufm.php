@@ -34,7 +34,7 @@ class Coe_ufm extends MY_Addon_CoeController
             access_denied();
         }
 
-        $session_id = $this->input->get('session_id') ?: $this->current_session['id'];
+        $session_id = $this->input->get('session_id') ?: $this->current_session;
 
         $data['title']            = 'UFM / Malpractice';
         $data['session_list']     = $this->session_model->getAllSession();

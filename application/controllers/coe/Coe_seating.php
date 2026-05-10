@@ -263,4 +263,94 @@ class Coe_seating extends MY_Addon_CoeController
         $this->session->set_flashdata('msg', '<div class="alert alert-success">Room deleted.</div>');
         redirect('coe/coe_seating/manage/' . $batch_exam_id);
     }
+
+    // =========================================================================
+    // HALLS — list all exam halls with CRUD
+    // =========================================================================
+    public function halls()
+    {
+        if (!$this->rbac->hasPrivilege('coe_seating', 'can_view')) {
+            access_denied();
+        }
+        $this->session->set_userdata('top_menu', 'coe');
+        $this->session->set_userdata('sub_menu', 'coe/coe_seating');
+
+        $halls = $this->Coe_seating_model->getAllHalls();
+
+        $data = [
+            'title' => lang('coe_seating') . ' — Exam Halls',
+            'halls' => $halls,
+        ];
+
+        $this->load->view('layout/header', $data);
+        $this->load->view('admin/coe/coe_seating/halls', $data);
+        $this->load->view('layout/footer', $data);
+    }
+
+    // =========================================================================
+    // SAVE_HALL — POST: insert or update an exam hall
+    // =========================================================================
+    public function save_hall()
+    {
+        if (!$this->rbac->hasPrivilege('coe_seating', 'can_add')) {
+            access_denied();
+        }
+
+        $id       = (int)$this->input->post('id');
+        $name     = trim($this->input->post('name'));
+        $capacity = (int)$this->input->post('capacity');
+        $location = trim($this->input->post('location'));
+        $block    = trim($this->input->post('block'));
+        $floor    = trim($this->input->post('floor'));
+        $is_active = (int)(bool)$this->input->post('is_active');
+
+        if (!$name || $capacity < 1) {
+            $this->session->set_flashdata('msg', '<div class="alert alert-danger">Hall name and capacity are required.</div>');
+            redirect('coe/coe_seating/halls');
+        }
+
+        $row = [
+            'name'      => $name,
+            'capacity'  => $capacity,
+            'location'  => $location,
+            'description' => $block . ($floor ? ' | Floor: ' . $floor : ''),
+            'is_active' => $is_active,
+            'updated_at' => date('Y-m-d H:i:s'),
+        ];
+
+        if ($id) {
+            $this->Coe_seating_model->updateHall($id, $row);
+            $this->Coe_audit_model->log('exam_hall_updated', 'halls', $id, null, $row);
+            $this->session->set_flashdata('msg', '<div class="alert alert-success">Exam hall updated.</div>');
+        } else {
+            $row['created_at'] = date('Y-m-d H:i:s');
+            $new_id = $this->Coe_seating_model->insertHall($row);
+            $this->Coe_audit_model->log('exam_hall_created', 'halls', $new_id, null, $row);
+            $this->session->set_flashdata('msg', '<div class="alert alert-success">Exam hall added.</div>');
+        }
+
+        redirect('coe/coe_seating/halls');
+    }
+
+    // =========================================================================
+    // DELETE_HALL — remove an exam hall (only if no seating rooms reference it)
+    // =========================================================================
+    public function delete_hall($id)
+    {
+        if (!$this->rbac->hasPrivilege('coe_seating', 'can_delete')) {
+            access_denied();
+        }
+
+        $id = (int)$id;
+        $in_use = $this->db->where('hall_id', $id)->count_all_results('coe_seating_rooms');
+        if ($in_use > 0) {
+            $this->session->set_flashdata('msg', '<div class="alert alert-danger">Cannot delete: this hall is assigned to ' . $in_use . ' seating room(s). Remove those rooms first.</div>');
+            redirect('coe/coe_seating/halls');
+        }
+
+        $this->Coe_seating_model->deleteHall($id);
+        $this->Coe_audit_model->log('exam_hall_deleted', 'halls', $id, null, null);
+        $this->session->set_flashdata('msg', '<div class="alert alert-success">Exam hall deleted.</div>');
+        redirect('coe/coe_seating/halls');
+    }
 }

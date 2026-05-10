@@ -33,7 +33,7 @@
     <section class="content-header">
         <h1><i class="fa fa-list-alt"></i> <?php echo $data['title']; ?>
             <small style="font-size:14px;color:#888;">&mdash; <?php echo htmlspecialchars($event->exam_name ?? $event->name ?? ''); ?></small>
-        </h1>
+        <button type="button" class="coe-info-btn" data-toggle="modal" data-target="#coeHelpModal"><i class="fa fa-info-circle"></i></button></h1>
         <ol class="breadcrumb">
             <li><a href="<?php echo site_url('coe/coe_application'); ?>"><?php echo $this->lang->line('coe_exam_events'); ?></a></li>
             <li class="active">Applications</li>
@@ -206,3 +206,5 @@
     });
 })();
 </script>
+
+<?php $this->load->view('admin/coe/_help_modal', ['help_key' => 'exam_events']); ?>

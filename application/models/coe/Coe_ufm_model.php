@@ -23,18 +23,19 @@ class Coe_ufm_model extends CI_Model
         $this->db
             ->select('ufm.*, ht.hall_ticket_no, ht.student_id,
                       CONCAT(st.firstname, " ", st.lastname) AS student_name,
-                      sr.hall_name,
-                      CONCAT(rep.firstname, " ", rep.lastname) AS reported_by_name,
-                      CONCAT(rev.firstname, " ", rev.lastname) AS reviewed_by_name')
+                      h.name AS hall_name,
+                      CONCAT(rep.name, " ", rep.surname) AS reported_by_name,
+                      CONCAT(rev.name, " ", rev.surname) AS reviewed_by_name')
             ->from('coe_ufm_incidents ufm')
             ->join('coe_hall_tickets ht', 'ht.id = ufm.coe_hall_ticket_id', 'left')
             ->join('students st', 'st.id = ht.student_id', 'left')
             ->join('coe_seating_rooms sr', 'sr.id = ufm.seating_room_id', 'left')
+            ->join('halls h', 'h.id = sr.hall_id', 'left')
             ->join('staff rep', 'rep.id = ufm.reported_by', 'left')
             ->join('staff rev', 'rev.id = ufm.reviewed_by', 'left');
 
         if (!empty($filters['batch_exam_id'])) {
-            $this->db->where('sr.batch_exam_id', (int) $filters['batch_exam_id']);
+            $this->db->where('sr.exam_group_class_batch_exam_id', (int) $filters['batch_exam_id']);
         }
         if (!empty($filters['status'])) {
             $this->db->where('ufm.status', $filters['status']);
@@ -54,12 +55,13 @@ class Coe_ufm_model extends CI_Model
         return $this->db
             ->select('ufm.*, ht.hall_ticket_no, ht.student_id,
                       CONCAT(st.firstname, " ", st.lastname) AS student_name,
-                      sr.hall_name, sr.batch_exam_id,
-                      CONCAT(rep.firstname, " ", rep.lastname) AS reported_by_name')
+                      h.name AS hall_name, sr.exam_group_class_batch_exam_id AS batch_exam_id,
+                      CONCAT(rep.name, " ", rep.surname) AS reported_by_name')
             ->from('coe_ufm_incidents ufm')
             ->join('coe_hall_tickets ht', 'ht.id = ufm.coe_hall_ticket_id', 'left')
             ->join('students st', 'st.id = ht.student_id', 'left')
             ->join('coe_seating_rooms sr', 'sr.id = ufm.seating_room_id', 'left')
+            ->join('halls h', 'h.id = sr.hall_id', 'left')
             ->join('staff rep', 'rep.id = ufm.reported_by', 'left')
             ->where('ufm.id', (int) $id)
             ->get()->row();
@@ -110,9 +112,11 @@ class Coe_ufm_model extends CI_Model
     public function getRoomsByBatchExam($batch_exam_id)
     {
         return $this->db
-            ->select('id, hall_name, exam_date, session_slot')
-            ->where('batch_exam_id', (int) $batch_exam_id)
-            ->order_by('exam_date ASC, session_slot ASC, hall_name ASC')
-            ->get('coe_seating_rooms')->result();
+            ->select('sr.id, h.name AS hall_name, sr.exam_date, sr.session_slot')
+            ->from('coe_seating_rooms sr')
+            ->join('halls h', 'h.id = sr.hall_id', 'left')
+            ->where('sr.exam_group_class_batch_exam_id', (int) $batch_exam_id)
+            ->order_by('sr.exam_date ASC, sr.session_slot ASC, h.name ASC')
+            ->get()->result();
     }
 }

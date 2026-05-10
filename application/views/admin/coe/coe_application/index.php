@@ -1,7 +1,7 @@
 <!-- Content Wrapper -->
 <div class="content-wrapper">
     <section class="content-header">
-        <h1><i class="fa fa-calendar-check-o"></i> <?php echo $this->lang->line('coe_exam_events'); ?></h1>
+        <h1><i class="fa fa-calendar-check-o"></i> <?php echo $this->lang->line('coe_exam_events'); ?><button type="button" class="coe-info-btn" data-toggle="modal" data-target="#coeHelpModal"><i class="fa fa-info-circle"></i></button></h1>
     </section>
 
     <section class="content">
@@ -151,3 +151,5 @@
         </div>
     </section>
 </div>
+
+<?php $this->load->view('admin/coe/_help_modal', ['help_key' => 'exam_events']); ?>

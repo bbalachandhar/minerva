@@ -234,11 +234,49 @@ class Coe_seating_model extends CI_Model
     }
 
     // -------------------------------------------------------------------------
-    // Get halls list for form dropdown
+    // Get halls list for form dropdown (active only)
     // -------------------------------------------------------------------------
     public function getHalls()
     {
         return $this->db->where('is_active', 1)->get('halls')->result();
+    }
+
+    // -------------------------------------------------------------------------
+    // Get ALL halls (for management CRUD page)
+    // -------------------------------------------------------------------------
+    public function getAllHalls()
+    {
+        return $this->db->query(
+            "SELECT h.*,
+                (SELECT COUNT(*) FROM coe_seating_rooms sr WHERE sr.hall_id = h.id) AS rooms_count
+             FROM halls h
+             ORDER BY h.is_active DESC, h.name ASC"
+        )->result();
+    }
+
+    // -------------------------------------------------------------------------
+    // Insert a new hall
+    // -------------------------------------------------------------------------
+    public function insertHall($data)
+    {
+        $this->db->insert('halls', $data);
+        return $this->db->insert_id();
+    }
+
+    // -------------------------------------------------------------------------
+    // Update an existing hall
+    // -------------------------------------------------------------------------
+    public function updateHall($id, $data)
+    {
+        $this->db->where('id', (int)$id)->update('halls', $data);
+    }
+
+    // -------------------------------------------------------------------------
+    // Delete a hall record
+    // -------------------------------------------------------------------------
+    public function deleteHall($id)
+    {
+        $this->db->where('id', (int)$id)->delete('halls');
     }
 
     // -------------------------------------------------------------------------

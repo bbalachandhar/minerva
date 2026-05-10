@@ -17,7 +17,7 @@
 
 <div class="content-wrapper">
   <section class="content-header">
-    <h1><?php echo lang('coe_seating'); ?> <small>Manage Rooms — <?php echo htmlspecialchars($batch_exam->exam); ?></small></h1>
+    <h1><?php echo lang('coe_seating'); ?> <small>Manage Rooms — <?php echo htmlspecialchars($batch_exam->exam); ?></small><button type="button" class="coe-info-btn" data-toggle="modal" data-target="#coeHelpModal"><i class="fa fa-info-circle"></i></button></h1>
     <ol class="breadcrumb">
       <li><a href="<?php echo site_url('dashboard'); ?>"><i class="fa fa-dashboard"></i> Home</a></li>
       <li><a href="<?php echo site_url('coe/coe_seating'); ?>">Seating</a></li>
@@ -115,7 +115,12 @@
         <div class="box box-default">
           <div class="box-header with-border" style="display:flex;align-items:center;justify-content:space-between;">
             <h3 class="box-title"><i class="fa fa-building"></i> Exam Rooms (<?php echo count($rooms); ?>)</h3>
-            <a href="<?php echo site_url('coe/coe_seating'); ?>" class="btn btn-default btn-sm"><i class="fa fa-arrow-left"></i> Back</a>
+            <div style="display:flex;gap:6px;">
+              <a href="<?php echo site_url('coe/coe_seating/halls'); ?>" class="btn btn-info btn-sm">
+                <i class="fa fa-building-o"></i> Manage Exam Halls
+              </a>
+              <a href="<?php echo site_url('coe/coe_seating'); ?>" class="btn btn-default btn-sm"><i class="fa fa-arrow-left"></i> Back</a>
+            </div>
           </div>
           <div class="box-body">
             <?php if (empty($rooms)): ?>
@@ -214,3 +219,5 @@
   confirmAction('.confirm-delete','Delete Room?','This will delete {name} and all its assignments.','#c62828');
 })();
 </script>
+
+<?php $this->load->view('admin/coe/_help_modal', ['help_key' => 'seating']); ?>

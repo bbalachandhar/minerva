@@ -19,7 +19,7 @@
 
 <div class="content-wrapper">
   <section class="content-header">
-    <h1><?php echo lang('coe_invigilation'); ?> <small>Duty Roster Management</small></h1>
+    <h1><?php echo lang('coe_invigilation'); ?> <small>Duty Roster Management</small><button type="button" class="coe-info-btn" data-toggle="modal" data-target="#coeHelpModal"><i class="fa fa-info-circle"></i></button></h1>
     <ol class="breadcrumb">
       <li><a href="<?php echo site_url('dashboard'); ?>"><i class="fa fa-dashboard"></i> Home</a></li>
       <li><a href="<?php echo site_url('coe/coe_setup'); ?>">CoE</a></li>
@@ -164,3 +164,5 @@
   }
 })();
 </script>
+
+<?php $this->load->view('admin/coe/_help_modal', ['help_key' => 'invigilation']); ?>
