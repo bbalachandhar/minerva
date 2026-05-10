@@ -22,11 +22,13 @@ class Coe_dashboard extends MY_Addon_CoeController
 
         $session_id = (int) ($this->input->get('session_id') ?: $this->current_session);
 
-        $data['session_id']    = $session_id;
-        $data['kpis']          = $this->Coe_dashboard_model->getKPIs($session_id);
-        $data['events']        = $this->Coe_dashboard_model->getEventPipeline($session_id);
-        $data['recent_audit']  = $this->Coe_dashboard_model->getRecentAudit(12);
-        $data['pending_tasks'] = $this->Coe_dashboard_model->getPendingTasks($session_id);
+        $data['session_id']      = $session_id;
+        $data['kpis']            = $this->Coe_dashboard_model->getKPIs($session_id);
+        $data['events']          = $this->Coe_dashboard_model->getEventPipeline($session_id);
+        $data['recent_audit']    = $this->Coe_dashboard_model->getRecentAudit(12);
+        $data['pending_tasks']   = $this->Coe_dashboard_model->getPendingTasks($session_id);
+        $data['dept_stats']      = $this->Coe_dashboard_model->getDepartmentStats($session_id);
+        $data['subject_stats']   = $this->Coe_dashboard_model->getSubjectStats($session_id);
 
         // Sessions dropdown
         $data['sessions'] = $this->db

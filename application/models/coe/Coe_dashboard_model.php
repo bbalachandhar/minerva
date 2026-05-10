@@ -95,6 +95,25 @@ class Coe_dashboard_model extends CI_Model
 
         $pass_pct = ($total_computed > 0) ? round($pass_count / $total_computed * 100, 1) : 0;
 
+        $total_ht = (int) $this->db
+            ->select('COUNT(*) AS cnt')
+            ->from('coe_hall_tickets ht')
+            ->join('exam_group_class_batch_exams egcbe', 'egcbe.id = ht.exam_group_class_batch_exam_id')
+            ->join('exam_groups eg', 'eg.id = egcbe.exam_group_id')
+            ->where('egcbe.session_id', $sid)
+            ->where('eg.is_end_semester', 1)
+            ->get()->row()->cnt;
+
+        $avg_sgpa_row = $this->db
+            ->select('ROUND(AVG(sg.sgpa), 2) AS avg_sgpa')
+            ->from('coe_sgpa_summary sg')
+            ->join('exam_group_class_batch_exams egcbe', 'egcbe.id = sg.exam_group_class_batch_exam_id')
+            ->join('exam_groups eg', 'eg.id = egcbe.exam_group_id')
+            ->where('egcbe.session_id', $sid)
+            ->where('eg.is_end_semester', 1)
+            ->get()->row();
+        $avg_sgpa = $avg_sgpa_row ? (float) $avg_sgpa_row->avg_sgpa : 0.0;
+
         return [
             'total_events'    => $total_events,
             'total_apps'      => $total_apps,
@@ -104,6 +123,8 @@ class Coe_dashboard_model extends CI_Model
             'ufm_count'       => $ufm_count,
             'arrear_students' => $arrear_students,
             'total_computed'  => $total_computed,
+            'total_ht'        => $total_ht,
+            'avg_sgpa'        => $avg_sgpa,
         ];
     }
 
@@ -237,5 +258,57 @@ class Coe_dashboard_model extends CI_Model
     private function _cnt($table, $col, $val)
     {
         return (int) $this->db->where($col, (int) $val)->count_all_results($table);
+    }
+
+    // ---------------------------------------------------------------
+    // Department-wise pass rates for a session
+    // ---------------------------------------------------------------
+    public function getDepartmentStats($session_id)
+    {
+        $sid = (int) $session_id;
+        return $this->db->query(
+            "SELECT d.department_name,
+                    COUNT(DISTINCT sg.student_id) AS total_students,
+                    SUM(CASE WHEN sg.result_status = 'pass' THEN 1 ELSE 0 END) AS passed,
+                    SUM(CASE WHEN sg.result_status = 'fail' THEN 1 ELSE 0 END) AS failed,
+                    ROUND(AVG(sg.sgpa), 2) AS avg_sgpa,
+                    ROUND(AVG(sg.cgpa), 2) AS avg_cgpa,
+                    SUM(sg.arrear_count) AS total_arrears
+             FROM coe_sgpa_summary sg
+             JOIN exam_group_class_batch_exams egcbe ON egcbe.id = sg.exam_group_class_batch_exam_id
+             JOIN exam_groups eg ON eg.id = egcbe.exam_group_id
+             JOIN student_session ss ON ss.student_id = sg.student_id AND ss.session_id = egcbe.session_id
+             JOIN classes c ON c.id = ss.class_id
+             JOIN department d ON d.id = c.department_id
+             WHERE egcbe.session_id = ? AND eg.is_end_semester = 1
+             GROUP BY d.id, d.department_name
+             ORDER BY avg_sgpa DESC",
+            [$sid]
+        )->result();
+    }
+
+    // ---------------------------------------------------------------
+    // Subject-wise performance across all events in a session
+    // ---------------------------------------------------------------
+    public function getSubjectStats($session_id)
+    {
+        $sid = (int) $session_id;
+        return $this->db->query(
+            "SELECT sub.name AS subject_name, sub.code AS subject_code,
+                    COUNT(*) AS total,
+                    SUM(CASE WHEN sr.result_status = 'pass' THEN 1 ELSE 0 END) AS passed,
+                    SUM(CASE WHEN sr.result_status = 'fail' THEN 1 ELSE 0 END) AS failed,
+                    ROUND(AVG(sr.total_marks), 2) AS avg_marks,
+                    ROUND(MAX(sr.total_marks), 2) AS max_marks,
+                    ROUND(MIN(sr.total_marks), 2) AS min_marks
+             FROM coe_student_results sr
+             JOIN subjects sub ON sub.id = sr.subject_id
+             JOIN exam_group_class_batch_exams egcbe ON egcbe.id = sr.exam_group_class_batch_exam_id
+             JOIN exam_groups eg ON eg.id = egcbe.exam_group_id
+             WHERE egcbe.session_id = ? AND eg.is_end_semester = 1
+             GROUP BY sr.subject_id, sub.name, sub.code
+             ORDER BY (SUM(CASE WHEN sr.result_status = 'pass' THEN 1 ELSE 0 END)/COUNT(*)) ASC",
+            [$sid]
+        )->result();
     }
 }
