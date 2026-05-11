@@ -61,6 +61,20 @@ class Coe_arrear_model extends CI_Model
                 ->group_end();
         }
 
+        // Active only: exclude rows where student later passed this subject
+        if (!empty($filters['active_only'])) {
+            $this->db->where("
+                NOT EXISTS (
+                    SELECT 1
+                    FROM coe_student_results sr2
+                    JOIN exam_group_class_batch_exams e2 ON e2.id = sr2.exam_group_class_batch_exam_id
+                    WHERE sr2.student_id    = sr.student_id
+                      AND sr2.subject_id    = sr.subject_id
+                      AND sr2.result_status = 'pass'
+                      AND e2.date_from      > egcbe.date_from
+                )", null, false);
+        }
+
         return $this->db
             ->group_by('sr.student_id')
             ->order_by('arrear_count', 'DESC')

@@ -27,6 +27,7 @@ class Coe_arrear extends MY_Addon_CoeController
             'department_id'  => $this->input->get('department_id'),
             'class_id'       => $this->input->get('class_id'),
             'search'         => $this->input->get('search'),
+            'active_only'    => (bool) $this->input->get('active_only'),
         ];
 
         $data['session_id']  = $session_id;

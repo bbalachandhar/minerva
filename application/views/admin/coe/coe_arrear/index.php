@@ -64,6 +64,14 @@
                         <input type="text" name="search" class="form-control input-sm"
                                placeholder="Name / Reg. No." value="<?php echo htmlspecialchars($filters['search'] ?? ''); ?>">
                     </div>
+                    <div class="form-group" style="margin-right:10px">
+                        <label style="font-weight:normal">
+                            <input type="checkbox" name="active_only" value="1"
+                                <?php echo !empty($filters['active_only']) ? 'checked' : ''; ?>
+                                onchange="this.form.submit()">
+                            &nbsp;Active arrears only
+                        </label>
+                    </div>
                     <button type="submit" class="btn btn-sm btn-primary">
                         <i class="fa fa-search"></i> Apply
                     </button>

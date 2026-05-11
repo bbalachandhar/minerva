@@ -27,7 +27,7 @@ class Coe_application_model extends CI_Model
     public function getExamEventsBySession($session_id)
     {
         return $this->db
-            ->select('eg.id, eg.name, eg.exam_category, eg.exam_type, eg.is_active, egcbe.id AS batch_exam_id, egcbe.exam, egcbe.date_from, egcbe.date_to, egcbe.session_id, egcbe.is_publish, egcbe.coe_locked, s.session, (SELECT COUNT(*) FROM coe_exam_applications capp WHERE capp.exam_group_class_batch_exam_id = egcbe.id) AS application_count')
+            ->select('eg.id, eg.name, eg.exam_category, eg.exam_type, eg.is_active, egcbe.id AS batch_exam_id, egcbe.exam, egcbe.class_id, egcbe.date_from, egcbe.date_to, egcbe.session_id, egcbe.is_publish, egcbe.coe_locked, s.session, (SELECT COUNT(*) FROM coe_exam_applications capp WHERE capp.exam_group_class_batch_exam_id = egcbe.id) AS application_count')
             ->from('exam_groups eg')
             ->join('exam_group_class_batch_exams egcbe', 'egcbe.exam_group_id = eg.id')
             ->join('sessions s', 's.id = egcbe.session_id', 'left')

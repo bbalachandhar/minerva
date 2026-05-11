@@ -54,8 +54,15 @@ class Coe_setup extends MY_Addon_CoeController
         $data['title']           = $this->lang->line('coe_add_regulation');
         $data['session_list']    = $this->session_model->getAllSession();
         $data['current_session'] = $this->current_session;
-        $data['class_list']      = $this->class_model->getAll();
         $data['department_list'] = $this->department_model->getDepartmentType();
+        // Classes grouped by department for multi-select UI
+        $data['class_list_grouped'] = $this->db
+            ->select('c.id, c.class, d.department_name')
+            ->from('classes c')
+            ->join('department d', 'd.id = c.department_id', 'left')
+            ->where('c.class_type', 'academic')
+            ->order_by('d.department_name ASC, c.class ASC')
+            ->get()->result_array();
 
         $this->load->view('layout/header', $data);
         $this->load->view('admin/coe/coe_setup/add', $data);
@@ -80,7 +87,6 @@ class Coe_setup extends MY_Addon_CoeController
         }
 
         $this->form_validation->set_rules('session_id',          $this->lang->line('session'),              'trim|required|integer');
-        $this->form_validation->set_rules('class_id',            $this->lang->line('class'),                'trim|required|integer');
         $this->form_validation->set_rules('regulation_type',     $this->lang->line('coe_regulation_type'),  'trim|required|in_list[affiliated,autonomous]');
         $this->form_validation->set_rules('min_attendance_pct',  $this->lang->line('coe_min_attendance_pct'), 'trim|required|decimal');
         $this->form_validation->set_rules('internal_marks_pct',  $this->lang->line('coe_internal_marks_pct'), 'trim|required|decimal');
@@ -101,13 +107,11 @@ class Coe_setup extends MY_Addon_CoeController
             redirect($is_edit ? 'coe/coe_setup/edit/' . $id : 'coe/coe_setup/add');
         }
 
-        $data = [
+        $base_data = [
             'session_id'            => (int) $this->input->post('session_id'),
-            'class_id'              => (int) $this->input->post('class_id'),
-            'department_id'         => $this->input->post('department_id') ?: null,
             'regulation_type'       => $this->input->post('regulation_type'),
             'affiliated_university' => $this->input->post('affiliated_university') ?: 'Anna University',
-            'min_attendance_pct'    => $internal !== 0 ? (float) $this->input->post('min_attendance_pct') : 75.00,
+            'min_attendance_pct'    => (float) $this->input->post('min_attendance_pct'),
             'internal_marks_pct'    => $internal,
             'external_marks_pct'    => $external,
             'pass_marks_pct'        => (float) $this->input->post('pass_marks_pct'),
@@ -121,14 +125,49 @@ class Coe_setup extends MY_Addon_CoeController
         ];
 
         if ($is_edit) {
+            // Edit always operates on a single class_id
+            $data = $base_data;
+            $data['class_id']      = (int) $this->input->post('class_id');
+            $data['department_id'] = $this->input->post('department_id') ?: null;
             $this->Coe_setup_model->update($id, $data);
             $this->Coe_audit_model->log('regulation_updated', 'coe_exam_regulations', $id, null, $data);
+            $this->session->set_flashdata('msg', '<div class="alert alert-success text-left">' . $this->lang->line('coe_regulation_saved') . '</div>');
         } else {
-            $inserted_id = $this->Coe_setup_model->insert($data);
-            $this->Coe_audit_model->log('regulation_created', 'coe_exam_regulations', $inserted_id, null, $data);
+            // Add supports multiple classes
+            $class_ids = $this->input->post('class_id');
+            if (empty($class_ids) || !is_array($class_ids)) {
+                $this->session->set_flashdata('msg', '<div class="alert alert-danger text-left">Please select at least one class.</div>');
+                redirect('coe/coe_setup/add');
+            }
+
+            $saved = 0;
+            $skipped = 0;
+            foreach ($class_ids as $class_id) {
+                $class_id = (int) $class_id;
+                if ($class_id <= 0) { continue; }
+                // Skip if regulation already exists for this class+session
+                $existing = $this->Coe_setup_model->getByClassSession($class_id, $base_data['session_id']);
+                if ($existing) { $skipped++; continue; }
+
+                // Derive department_id from class
+                $class_row = $this->db->select('department_id')->where('id', $class_id)->get('classes')->row();
+                $data = $base_data;
+                $data['class_id']      = $class_id;
+                $data['department_id'] = $class_row ? $class_row->department_id : null;
+
+                $inserted_id = $this->Coe_setup_model->insert($data);
+                $this->Coe_audit_model->log('regulation_created', 'coe_exam_regulations', $inserted_id, null, $data);
+                $saved++;
+            }
+
+            $msg = '<div class="alert alert-success text-left">'.$saved.' regulation(s) saved.';
+            if ($skipped > 0) {
+                $msg .= ' '.$skipped.' class(es) skipped — regulation already exists for this session.';
+            }
+            $msg .= '</div>';
+            $this->session->set_flashdata('msg', $msg);
         }
 
-        $this->session->set_flashdata('msg', '<div class="alert alert-success text-left">' . $this->lang->line('coe_regulation_saved') . '</div>');
         redirect('coe/coe_setup');
     }
 

@@ -68,20 +68,24 @@ class Coe_eligibility extends MY_Addon_CoeController
             redirect('coe/coe_eligibility?batch_exam_id=' . $batch_exam_id);
         }
 
-        // Get regulation for this event's class/session
-        $egcbe = $this->db->where('id', $batch_exam_id)->get('exam_group_class_batch_exams')->row();
-        // Determine class_id from the student batch (via student_session)
-        $class_id = $this->db->query(
-            "SELECT DISTINCT ss.class_id FROM exam_group_class_batch_exam_students egcbes JOIN student_session ss ON ss.id = egcbes.student_session_id WHERE egcbes.exam_group_class_batch_exam_id = ? LIMIT 1",
-            [$batch_exam_id]
-        )->row();
+        // class_id is now stored directly on egcbe
+        $egcbe        = $this->db->where('id', $batch_exam_id)->get('exam_group_class_batch_exams')->row();
+        $class_id_val = !empty($egcbe->class_id) ? (int) $egcbe->class_id : null;
 
-        $class_id_val = $class_id ? $class_id->class_id : null;
-        $regulation   = null;
-
-        if ($class_id_val) {
-            $regulation = $this->Coe_setup_model->getByClassSession($class_id_val, $egcbe->session_id);
+        // Fallback for records created before class_id column was added
+        if (!$class_id_val) {
+            $class_row    = $this->db->query(
+                "SELECT DISTINCT ss.class_id FROM exam_group_class_batch_exam_students egcbes
+                 JOIN student_session ss ON ss.id = egcbes.student_session_id
+                 WHERE egcbes.exam_group_class_batch_exam_id = ? LIMIT 1",
+                [$batch_exam_id]
+            )->row();
+            $class_id_val = $class_row ? (int) $class_row->class_id : null;
         }
+
+        $regulation = $class_id_val
+            ? $this->Coe_setup_model->getByClassSession($class_id_val, $egcbe->session_id)
+            : null;
 
         if (empty($regulation)) {
             $this->session->set_flashdata('msg', '<div class="alert alert-danger text-left">No CoE exam regulation found for this class/session. Please create one in <a href="' . site_url('coe/coe_setup') . '">Exam Regulations</a> first.</div>');

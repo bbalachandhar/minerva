@@ -94,6 +94,34 @@ class Coe_application extends MY_Addon_CoeController
             redirect('coe/coe_application');
         }
 
+        // Check: regulation must allow arrear / supplementary exams
+        if (in_array($event->exam_category, ['arrear', 'supplementary'], true)) {
+            // class_id is stored directly on egcbe; fallback to student_session for pre-migration rows
+            $class_id_for_reg = !empty($event->class_id) ? (int) $event->class_id : null;
+            if (!$class_id_for_reg) {
+                $class_row        = $this->db->query(
+                    "SELECT DISTINCT ss.class_id FROM exam_group_class_batch_exam_students egcbes
+                     JOIN student_session ss ON ss.id = egcbes.student_session_id
+                     WHERE egcbes.exam_group_class_batch_exam_id = ? LIMIT 1",
+                    [$batch_exam_id]
+                )->row();
+                $class_id_for_reg = $class_row ? (int) $class_row->class_id : null;
+            }
+            $regulation = $class_id_for_reg
+                ? $this->Coe_setup_model->getByClassSession($class_id_for_reg, $event->session_id)
+                : null;
+            if (!empty($regulation)) {
+                if ($event->exam_category === 'arrear' && empty($regulation->arrear_allowed)) {
+                    $this->session->set_flashdata('msg', '<div class="alert alert-danger text-left">Arrear exams are not allowed for this class under the current exam regulation. Enable "Allow Arrear Exams" in <a href="' . site_url('coe/coe_setup') . '">Exam Regulations</a> first.</div>');
+                    redirect('coe/coe_application/view/' . $batch_exam_id);
+                }
+                if ($event->exam_category === 'supplementary' && empty($regulation->supplementary_allowed)) {
+                    $this->session->set_flashdata('msg', '<div class="alert alert-danger text-left">Supplementary exams are not allowed for this class under the current exam regulation. Enable "Allow Supplementary Exams" in <a href="' . site_url('coe/coe_setup') . '">Exam Regulations</a> first.</div>');
+                    redirect('coe/coe_application/view/' . $batch_exam_id);
+                }
+            }
+        }
+
         $result = $this->Coe_application_model->generateApplications($batch_exam_id, $event->exam_group_id);
 
         if (isset($result['error'])) {

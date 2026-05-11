@@ -8,13 +8,12 @@
         <?php echo $this->session->flashdata('msg'); ?>
         <div class="row">
 
-            <!-- Session filter + Mark exam as CoE -->
+            <!-- Session filter -->
             <div class="col-md-12">
                 <div class="box box-default">
                     <div class="box-body">
                         <div class="row">
-                            <!-- Session selector -->
-                            <div class="col-md-3">
+                            <div class="col-md-4">
                                 <form method="get" action="<?php echo site_url('coe/coe_application'); ?>">
                                     <div class="form-group">
                                         <label><?php echo $this->lang->line('session'); ?></label>
@@ -26,54 +25,13 @@
                                     </div>
                                 </form>
                             </div>
-
-                            <?php if ($this->rbac->hasPrivilege('coe_application', 'can_add')): ?>
-                            <!-- Mark exam_group as CoE -->
-                            <div class="col-md-9">
-                                <form method="post" action="<?php echo site_url('coe/coe_application/mark_end_semester'); ?>">
-                                    <div class="row">
-                                        <div class="col-md-5">
-                                            <div class="form-group">
-                                                <label>Mark Exam Group as CoE End-Semester</label>
-                                                <select name="exam_group_id" class="form-control" required>
-                                                    <option value="">— Select Exam Group —</option>
-                                                    <?php foreach ($all_exam_groups as $eg): ?>
-                                                        <option value="<?php echo $eg->id; ?>" <?php echo $eg->is_end_semester ? 'style="color:#3c8dbc"' : ''; ?>>
-                                                            <?php echo htmlspecialchars($eg->name); ?><?php echo $eg->is_end_semester ? ' ✓ CoE' : ''; ?>
-                                                        </option>
-                                                    <?php endforeach; ?>
-                                                </select>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-3">
-                                            <div class="form-group">
-                                                <label>Category</label>
-                                                <select name="exam_category" class="form-control" required>
-                                                    <option value="main"><?php echo $this->lang->line('coe_exam_category_main'); ?></option>
-                                                    <option value="arrear"><?php echo $this->lang->line('coe_exam_category_arrear'); ?></option>
-                                                    <option value="supplementary"><?php echo $this->lang->line('coe_exam_category_supplementary'); ?></option>
-                                                </select>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-2">
-                                            <div class="form-group">
-                                                <label>Mode</label>
-                                                <select name="exam_type" class="form-control" required>
-                                                    <option value="theory">Theory</option>
-                                                    <option value="practical">Practical</option>
-                                                    <option value="project">Project</option>
-                                                    <option value="viva">Viva</option>
-                                                    <option value="online">Online</option>
-                                                </select>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-2" style="margin-top:25px;">
-                                            <button type="submit" class="btn btn-primary btn-sm">Mark as CoE Exam</button>
-                                        </div>
-                                    </div>
-                                </form>
+                            <div class="col-md-8" style="padding-top:24px;">
+                                <div class="callout callout-info" style="padding:8px 14px;font-size:12px;">
+                                    <i class="fa fa-info-circle"></i>
+                                    Exam events are now managed in <a href="<?php echo site_url('coe/coe_event'); ?>"><strong>Exam Events</strong></a>.
+                                    Use that page to create exam events and add class batches. Applications (View / Generate) are available here.
+                                </div>
                             </div>
-                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
