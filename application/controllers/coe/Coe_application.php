@@ -75,6 +75,38 @@ class Coe_application extends MY_Addon_CoeController
     }
 
     // ------------------------------------------------------------------
+    // SAVE SUBJECTS for a batch exam
+    // ------------------------------------------------------------------
+    public function save_subjects($batch_exam_id)
+    {
+        if (!$this->rbac->hasPrivilege('coe_application', 'can_add')) {
+            access_denied();
+        }
+
+        $batch_exam_id = (int) $batch_exam_id;
+        $batch = $this->db->where('id', $batch_exam_id)->get('exam_group_class_batch_exams')->row();
+        if (!$batch) {
+            show_404();
+        }
+        if ($batch->coe_locked) {
+            $this->session->set_flashdata('msg', '<div class="alert alert-danger text-left">Cannot modify subjects: exam is locked by CoE.</div>');
+            redirect('coe/coe_application/view/' . $batch_exam_id);
+        }
+
+        $subject_ids = $this->input->post('subject_ids') ?: [];
+        if (!is_array($subject_ids)) {
+            $subject_ids = [];
+        }
+        $subject_ids = array_values(array_unique(array_filter(array_map('intval', $subject_ids))));
+
+        $this->Coe_application_model->saveBatchSubjects($batch_exam_id, $subject_ids, $batch->date_from);
+        $this->Coe_audit_model->log('batch_subjects_saved', 'exam_group_class_batch_exams', $batch_exam_id, null, ['subject_count' => count($subject_ids)]);
+
+        $this->session->set_flashdata('msg', '<div class="alert alert-success text-left"><strong>' . count($subject_ids) . ' subjects</strong> configured for this batch exam.</div>');
+        redirect('coe/coe_application/view/' . $batch_exam_id);
+    }
+
+    // ------------------------------------------------------------------
     // GENERATE applications for a batch exam
     // ------------------------------------------------------------------
     public function generate($batch_exam_id)
@@ -160,16 +192,33 @@ class Coe_application extends MY_Addon_CoeController
             show_404();
         }
 
+        $this->session->set_userdata('top_menu', 'coe');
+        $this->session->set_userdata('sub_menu', 'coe/coe_application');
+
         $filters = [
             'application_status' => $this->input->get('application_status'),
             'cbcs_category'      => $this->input->get('cbcs_category'),
         ];
+
+        $is_arrear = in_array($event->exam_category, ['arrear', 'supplementary'], true);
 
         $data['title']          = $this->lang->line('coe_exam_events') . ' — ' . $event->exam;
         $data['event']          = $event;
         $data['applications']   = $this->Coe_application_model->getApplicationsByBatchExam($batch_exam_id, $filters);
         $data['stats']          = $this->Coe_application_model->getApplicationStats($batch_exam_id);
         $data['filters']        = $filters;
+        $data['is_arrear']      = $is_arrear;
+
+        // For arrear/supplementary: pass subject setup data and candidate preview
+        if ($is_arrear) {
+            $data['subjects_data'] = $this->Coe_application_model->getSubjectsWithArrears($batch_exam_id);
+            $data['candidates']    = empty($data['subjects_data']->configured_ids)
+                                     ? ['students' => [], 'total_pairs' => 0, 'subject_ids' => []]
+                                     : $this->Coe_application_model->getArrearCandidates($batch_exam_id);
+        } else {
+            $data['subjects_data'] = null;
+            $data['candidates']    = null;
+        }
 
         $this->load->view('layout/header', $data);
         $this->load->view('admin/coe/coe_application/view', $data);

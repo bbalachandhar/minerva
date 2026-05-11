@@ -252,7 +252,6 @@ class Coe_event extends MY_Addon_CoeController
             show_404();
         }
 
-        $this->form_validation->set_rules('class_id',   'Class',      'trim|required|integer');
         $this->form_validation->set_rules('session_id', 'Session',    'trim|required|integer');
         $this->form_validation->set_rules('exam',       'Batch Label','trim|required|max_length[250]');
         $this->form_validation->set_rules('date_from',  'Date From',  'trim|required');
@@ -263,41 +262,62 @@ class Coe_event extends MY_Addon_CoeController
             redirect('coe/coe_event/manage/' . $group_id);
         }
 
-        $class_id   = (int) $this->input->post('class_id');
-        $session_id = (int) $this->input->post('session_id');
-
-        // Prevent duplicate: same group + class + session
-        $dup = $this->db->where('exam_group_id', $group_id)->where('class_id', $class_id)->where('session_id', $session_id)->count_all_results('exam_group_class_batch_exams');
-        if ($dup > 0) {
-            $this->session->set_flashdata('msg', '<div class="alert alert-warning">A batch exam for this class/session already exists in this event.</div>');
+        // Validate class_id[] array (multi-select)
+        $raw_class_ids = $this->input->post('class_id');
+        if (empty($raw_class_ids) || !is_array($raw_class_ids)) {
+            $this->session->set_flashdata('msg', '<div class="alert alert-danger">Please select at least one class.</div>');
+            redirect('coe/coe_event/manage/' . $group_id);
+        }
+        $class_ids = array_values(array_unique(array_filter(array_map('intval', $raw_class_ids))));
+        if (empty($class_ids)) {
+            $this->session->set_flashdata('msg', '<div class="alert alert-danger">Please select at least one class.</div>');
             redirect('coe/coe_event/manage/' . $group_id);
         }
 
-        $this->db->insert('exam_group_class_batch_exams', [
-            'exam'             => $this->input->post('exam'),
-            'exam_group_id'    => $group_id,
-            'class_id'         => $class_id,
-            'session_id'       => $session_id,
-            'date_from'        => $this->input->post('date_from'),
-            'date_to'          => $this->input->post('date_to'),
-            'passing_percentage' => (float)($this->input->post('passing_percentage') ?: 50),
-            'is_end_semester'  => 1,
-            'is_active'        => 1,
-            'coe_locked'       => 0,
-            'is_publish'       => 0,
-        ]);
-        $batch_id = $this->db->insert_id();
+        $session_id     = (int) $this->input->post('session_id');
+        $total_enrolled = 0;
+        $created        = 0;
+        $skipped        = 0;
 
-        // Auto-enroll all active students from this class/session
-        $enrolled = $this->_auto_enroll_students($batch_id, $class_id, $session_id);
+        foreach ($class_ids as $class_id) {
+            // Skip duplicates: same group + class + session
+            $dup = $this->db->where('exam_group_id', $group_id)->where('class_id', $class_id)->where('session_id', $session_id)->count_all_results('exam_group_class_batch_exams');
+            if ($dup > 0) {
+                $skipped++;
+                continue;
+            }
 
-        $this->Coe_audit_model->log('coe_batch_created', 'exam_group_class_batch_exams', $batch_id, null, [
-            'group_id'       => $group_id,
-            'class_id'       => $class_id,
-            'students_added' => $enrolled,
-        ]);
+            $this->db->insert('exam_group_class_batch_exams', [
+                'exam'               => $this->input->post('exam'),
+                'exam_group_id'      => $group_id,
+                'class_id'           => $class_id,
+                'session_id'         => $session_id,
+                'date_from'          => date('Y-m-d', $this->customlib->datetostrtotime($this->input->post('date_from'))),
+                'date_to'            => date('Y-m-d', $this->customlib->datetostrtotime($this->input->post('date_to'))),
+                'passing_percentage' => (float)($this->input->post('passing_percentage') ?: 50),
+                'is_end_semester'    => 1,
+                'is_active'          => 1,
+                'coe_locked'         => 0,
+                'is_publish'         => 0,
+            ]);
+            $batch_id = $this->db->insert_id();
+            $created++;
 
-        $this->session->set_flashdata('msg', '<div class="alert alert-success">Batch exam added. <strong>' . $enrolled . '</strong> students auto-enrolled.</div>');
+            $enrolled        = $this->_auto_enroll_students($batch_id, $class_id, $session_id);
+            $total_enrolled += $enrolled;
+
+            $this->Coe_audit_model->log('coe_batch_created', 'exam_group_class_batch_exams', $batch_id, null, [
+                'group_id'       => $group_id,
+                'class_id'       => $class_id,
+                'students_added' => $enrolled,
+            ]);
+        }
+
+        $msg = '<strong>' . $created . '</strong> batch(es) created, <strong>' . $total_enrolled . '</strong> students auto-enrolled.';
+        if ($skipped > 0) {
+            $msg .= ' <strong>' . $skipped . '</strong> skipped (batch already exists for that class/session).';
+        }
+        $this->session->set_flashdata('msg', '<div class="alert alert-success">' . $msg . '</div>');
         redirect('coe/coe_event/manage/' . $group_id);
     }
 
@@ -325,8 +345,8 @@ class Coe_event extends MY_Addon_CoeController
 
         $this->db->where('id', $batch_id)->update('exam_group_class_batch_exams', [
             'exam'               => $this->input->post('exam'),
-            'date_from'          => $this->input->post('date_from'),
-            'date_to'            => $this->input->post('date_to'),
+            'date_from'          => date('Y-m-d', $this->customlib->datetostrtotime($this->input->post('date_from'))),
+            'date_to'            => date('Y-m-d', $this->customlib->datetostrtotime($this->input->post('date_to'))),
             'passing_percentage' => (float)($this->input->post('passing_percentage') ?: 50),
             'description'        => $this->input->post('description'),
         ]);

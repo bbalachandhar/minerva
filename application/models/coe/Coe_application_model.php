@@ -126,17 +126,16 @@ class Coe_application_model extends CI_Model
             // Build one query to get all (student_id, subject_id) pairs that
             // have an active arrear among the enrolled student pool.
             //
-            // A pair is an "active arrear" when:
-            //   1. There exists a coe_student_results row with result_status='fail'
-            //      for that (student, subject) in an end-semester exam.
-            //   2. There is NO later coe_student_results row with result_status='pass'
-            //      for the same (student, subject) — i.e. not yet cleared.
+            // For arrear exams we also auto-enroll any student found in results
+            // who isn't yet in exam_group_class_batch_exam_students.
 
-            $student_ids = array_column($students, 'student_id');
-            $subject_ids = array_column($subjects,  'subject_id');
+            $subject_ids_cfg = array_column((array)$subjects, 'subject_id');
+            $sub_list        = implode(',', array_map('intval', $subject_ids_cfg));
 
-            $sid_list = implode(',', array_map('intval', $student_ids));
-            $sub_list = implode(',', array_map('intval', $subject_ids));
+            // Get batch class_id for scoping
+            $batch_row    = $this->db->where('id', $batch_exam_id)->get('exam_group_class_batch_exams')->row();
+            $class_id_flt = !empty($batch_row->class_id) ? (int) $batch_row->class_id : null;
+            $class_filter = $class_id_flt ? "AND egcbe.class_id = {$class_id_flt}" : '';
 
             $sql = "
                 SELECT DISTINCT sr.student_id, sr.subject_id
@@ -146,8 +145,8 @@ class Coe_application_model extends CI_Model
                 JOIN exam_groups eg ON eg.id = egcbe.exam_group_id
                 WHERE sr.result_status   = 'fail'
                   AND eg.is_end_semester = 1
-                  AND sr.student_id IN ({$sid_list})
                   AND sr.subject_id IN ({$sub_list})
+                  {$class_filter}
                   -- Net arrear: no subsequent pass for same student+subject
                   AND NOT EXISTS (
                       SELECT 1
@@ -162,6 +161,50 @@ class Coe_application_model extends CI_Model
             ";
 
             $arrear_pairs = $this->db->query($sql)->result();
+
+            // Auto-enroll any arrear students not yet in the student pool
+            $all_arrear_student_ids = array_unique(array_column((array)$arrear_pairs, 'student_id'));
+            foreach ($all_arrear_student_ids as $stu_id) {
+                $stu_id = (int) $stu_id;
+                if (!isset($student_map[$stu_id])) {
+                    // Find their student_session for this batch's session
+                    $ss = $this->db
+                        ->select('id AS student_session_id, student_id')
+                        ->from('student_session')
+                        ->where('student_id', $stu_id)
+                        ->where('session_id', $batch_row->session_id)
+                        ->where('is_active !=', 'no')
+                        ->get()->row();
+
+                    // If no session row for this session, use the latest active one
+                    if (!$ss) {
+                        $ss = $this->db
+                            ->select('id AS student_session_id, student_id')
+                            ->from('student_session')
+                            ->where('student_id', $stu_id)
+                            ->where('is_active !=', 'no')
+                            ->order_by('id', 'DESC')
+                            ->limit(1)
+                            ->get()->row();
+                    }
+
+                    if ($ss) {
+                        $enrolled_chk = $this->db
+                            ->where('exam_group_class_batch_exam_id', $batch_exam_id)
+                            ->where('student_id', $stu_id)
+                            ->count_all_results('exam_group_class_batch_exam_students');
+                        if ($enrolled_chk === 0) {
+                            $this->db->insert('exam_group_class_batch_exam_students', [
+                                'exam_group_class_batch_exam_id' => $batch_exam_id,
+                                'student_id'                     => $ss->student_id,
+                                'student_session_id'             => $ss->student_session_id,
+                                'is_active'                      => 1,
+                            ]);
+                        }
+                        $student_map[$stu_id] = $ss;
+                    }
+                }
+            }
 
             foreach ($arrear_pairs as $pair) {
                 $student = $student_map[$pair->student_id] ?? null;
@@ -268,6 +311,189 @@ class Coe_application_model extends CI_Model
             [$batch_exam_id]
         )->row();
         return $row;
+    }
+
+    // ------------------------------------------------------------------
+    // SUBJECT SETUP — list, save, detect
+    // ------------------------------------------------------------------
+
+    /**
+     * Return subjects that have active (uncleared) arrears for this batch's class,
+     * annotated with arrear_count and whether they are already configured.
+     */
+    public function getSubjectsWithArrears($batch_exam_id)
+    {
+        $batch    = $this->db->where('id', $batch_exam_id)->get('exam_group_class_batch_exams')->row();
+        if (!$batch) {
+            return (object)['subjects' => [], 'configured_ids' => []];
+        }
+
+        $class_id     = !empty($batch->class_id) ? (int) $batch->class_id : null;
+        $class_filter = $class_id ? "AND egcbe.class_id = {$class_id}" : '';
+
+        // Subjects with at least one net-fail (fail with no subsequent pass)
+        $sql = "
+            SELECT sub.id, sub.name, sub.code, sub.type,
+                   COUNT(DISTINCT sr.student_id) AS arrear_count
+            FROM coe_student_results sr
+            JOIN exam_group_class_batch_exams egcbe ON egcbe.id = sr.exam_group_class_batch_exam_id
+            JOIN exam_groups eg ON eg.id = egcbe.exam_group_id
+            JOIN subjects sub ON sub.id = sr.subject_id
+            WHERE sr.result_status = 'fail'
+              AND eg.is_end_semester = 1
+              {$class_filter}
+              AND NOT EXISTS (
+                  SELECT 1 FROM coe_student_results sr2
+                  JOIN exam_group_class_batch_exams e2 ON e2.id = sr2.exam_group_class_batch_exam_id
+                  WHERE sr2.student_id = sr.student_id
+                    AND sr2.subject_id = sr.subject_id
+                    AND sr2.result_status = 'pass'
+                    AND e2.date_from > egcbe.date_from
+              )
+            GROUP BY sub.id
+            ORDER BY sub.name
+        ";
+        $subjects = $this->db->query($sql)->result();
+
+        // Already-configured subject IDs for this batch
+        $configured_rows = $this->db
+            ->select('subject_id')
+            ->where('exam_group_class_batch_exams_id', $batch_exam_id)
+            ->where('is_active', 1)
+            ->get('exam_group_class_batch_exam_subjects')
+            ->result_array();
+        $configured_ids  = array_column($configured_rows, 'subject_id');
+        $configured_set  = array_flip($configured_ids);
+
+        // Flag each subject and also surface any manually-added ones not in results
+        foreach ($subjects as $s) {
+            $s->is_configured = isset($configured_set[$s->id]) ? 1 : 0;
+        }
+        $found_ids = array_column((array) $subjects, 'id');
+        foreach ($configured_ids as $sub_id) {
+            if (!in_array($sub_id, $found_ids)) {
+                $extra = $this->db->select('id, name, code, type')->where('id', $sub_id)->get('subjects')->row();
+                if ($extra) {
+                    $extra->arrear_count  = 0;
+                    $extra->is_configured = 1;
+                    $subjects[]           = $extra;
+                }
+            }
+        }
+
+        return (object)['subjects' => $subjects, 'configured_ids' => $configured_ids];
+    }
+
+    /**
+     * Save (replace) subject list for a batch exam.
+     * Deactivates existing, re-activates or inserts the new selection.
+     */
+    public function saveBatchSubjects($batch_exam_id, array $subject_ids, $date_from)
+    {
+        // Deactivate all current
+        $this->db->where('exam_group_class_batch_exams_id', $batch_exam_id)
+                 ->update('exam_group_class_batch_exam_subjects', ['is_active' => 0]);
+
+        foreach ($subject_ids as $sub_id) {
+            $sub_id = (int) $sub_id;
+            $exists = $this->db
+                ->where('exam_group_class_batch_exams_id', $batch_exam_id)
+                ->where('subject_id', $sub_id)
+                ->count_all_results('exam_group_class_batch_exam_subjects');
+
+            if ($exists > 0) {
+                $this->db->where('exam_group_class_batch_exams_id', $batch_exam_id)
+                         ->where('subject_id', $sub_id)
+                         ->update('exam_group_class_batch_exam_subjects', ['is_active' => 1]);
+            } else {
+                $this->db->insert('exam_group_class_batch_exam_subjects', [
+                    'exam_group_class_batch_exams_id' => $batch_exam_id,
+                    'subject_id'                      => $sub_id,
+                    'date_from'                       => $date_from,
+                    'time_from'                       => '09:00:00',
+                    'duration'                        => '3 Hours',
+                    'is_active'                       => 1,
+                ]);
+            }
+        }
+    }
+
+    /**
+     * Return arrear candidates grouped by student, for the configured subjects
+     * of this batch exam. Each student entry lists the subjects they have
+     * active (uncleared) arrears in.
+     */
+    public function getArrearCandidates($batch_exam_id)
+    {
+        $subject_rows = $this->db
+            ->select('subject_id')
+            ->where('exam_group_class_batch_exams_id', $batch_exam_id)
+            ->where('is_active', 1)
+            ->get('exam_group_class_batch_exam_subjects')
+            ->result_array();
+        $subject_ids  = array_column($subject_rows, 'subject_id');
+
+        if (empty($subject_ids)) {
+            return ['students' => [], 'total_pairs' => 0, 'subject_ids' => []];
+        }
+
+        $sub_list = implode(',', array_map('intval', $subject_ids));
+
+        $batch    = $this->db->where('id', $batch_exam_id)->get('exam_group_class_batch_exams')->row();
+        $class_id = !empty($batch->class_id) ? (int) $batch->class_id : null;
+        $class_filter = $class_id ? "AND egcbe.class_id = {$class_id}" : '';
+
+        $sql = "
+            SELECT DISTINCT sr.student_id, sr.subject_id,
+                   st.firstname, st.lastname, st.register_no,
+                   sub.name AS subject_name, sub.code AS subject_code
+            FROM coe_student_results sr
+            JOIN exam_group_class_batch_exams egcbe ON egcbe.id = sr.exam_group_class_batch_exam_id
+            JOIN exam_groups eg ON eg.id = egcbe.exam_group_id
+            JOIN students st ON st.id = sr.student_id
+            JOIN subjects sub ON sub.id = sr.subject_id
+            WHERE sr.result_status = 'fail'
+              AND eg.is_end_semester = 1
+              AND sr.subject_id IN ({$sub_list})
+              {$class_filter}
+              AND NOT EXISTS (
+                  SELECT 1 FROM coe_student_results sr2
+                  JOIN exam_group_class_batch_exams e2 ON e2.id = sr2.exam_group_class_batch_exam_id
+                  WHERE sr2.student_id = sr.student_id
+                    AND sr2.subject_id = sr.subject_id
+                    AND sr2.result_status = 'pass'
+                    AND e2.date_from > egcbe.date_from
+              )
+            ORDER BY st.firstname, st.lastname, sub.name
+        ";
+
+        $rows = $this->db->query($sql)->result();
+
+        $students    = [];
+        $total_pairs = count($rows);
+        foreach ($rows as $row) {
+            $sid = $row->student_id;
+            if (!isset($students[$sid])) {
+                $students[$sid] = [
+                    'student_id'  => $sid,
+                    'firstname'   => $row->firstname,
+                    'lastname'    => $row->lastname,
+                    'register_no' => $row->register_no,
+                    'subjects'    => [],
+                ];
+            }
+            $students[$sid]['subjects'][] = [
+                'subject_id'   => $row->subject_id,
+                'subject_name' => $row->subject_name,
+                'subject_code' => $row->subject_code,
+            ];
+        }
+
+        return [
+            'students'    => array_values($students),
+            'total_pairs' => $total_pairs,
+            'subject_ids' => $subject_ids,
+        ];
     }
 
     // ------------------------------------------------------------------

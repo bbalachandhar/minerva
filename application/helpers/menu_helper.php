@@ -447,6 +447,7 @@ if (!function_exists('main_menu_array')) {
                 'coe_marks'          => array('index', 'listing', 'enter', 'save_marks', 'configure_subjects', 'save_config', 'compute_sgpa', 'recompute_grades', 'student_card'),
                 'coe_results'        => array('index', 'listing', 'publish', 'unpublish', 'student_result', 'export', 'tabulation', 'merit_list'),
                 'coe_arrear'         => array('index', 'student'),
+                'coe_event'          => array('index', 'add', 'save', 'edit', 'update', 'delete', 'manage', 'save_batch', 'update_batch', 'delete_batch'),
             ),
                             
                         

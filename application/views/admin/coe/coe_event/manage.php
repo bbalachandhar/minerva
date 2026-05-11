@@ -14,7 +14,7 @@
         <ol class="breadcrumb">
             <li><a href="<?php echo site_url('coe/coe_dashboard'); ?>"><i class="fa fa-home"></i> CoE</a></li>
             <li><a href="<?php echo site_url('coe/coe_event'); ?>">Exam Events</a></li>
-            <li class="active">Manage</li>
+            <li class="active"><?php echo htmlspecialchars($event->name); ?></li>
         </ol>
     </section>
 
@@ -26,7 +26,13 @@
             <div class="col-md-12">
                 <div class="box box-primary">
                     <div class="box-header with-border">
-                        <h3 class="box-title">Class Batch Exams</h3>
+                        <h3 class="box-title">
+                            <i class="fa fa-calendar-check-o"></i>
+                            <?php echo htmlspecialchars($event->name); ?>
+                            &nbsp;<span class="label <?php echo $cat_cls; ?>"><?php echo ucfirst($event->exam_category); ?></span>
+                            &nbsp;<span class="label label-default"><?php echo ucfirst($event->exam_type); ?></span>
+                            <small class="text-muted" style="font-size:12px;font-weight:normal;"> &mdash; Class Batch Exams</small>
+                        </h3>
                         <div class="box-tools pull-right">
                             <?php if ($this->rbac->hasPrivilege('coe_event', 'can_edit')): ?>
                             <a href="<?php echo site_url('coe/coe_event/edit/' . $event->id); ?>" class="btn btn-default btn-xs">
@@ -161,15 +167,15 @@
                                 <div class="col-md-2">
                                     <div class="form-group">
                                         <label>Date From <span class="text-danger">*</span></label>
-                                        <input type="date" name="date_from" class="form-control"
-                                               value="<?php echo $edit_batch->date_from; ?>" required>
+                                        <input type="text" name="date_from" class="form-control date"
+                                               value="<?php echo $this->customlib->dateyyyymmddTodateformat($edit_batch->date_from); ?>" autocomplete="off" required>
                                     </div>
                                 </div>
                                 <div class="col-md-2">
                                     <div class="form-group">
                                         <label>Date To <span class="text-danger">*</span></label>
-                                        <input type="date" name="date_to" class="form-control"
-                                               value="<?php echo $edit_batch->date_to; ?>" required>
+                                        <input type="text" name="date_to" class="form-control date"
+                                               value="<?php echo $this->customlib->dateyyyymmddTodateformat($edit_batch->date_to); ?>" autocomplete="off" required>
                                     </div>
                                 </div>
                             </div>
@@ -204,12 +210,17 @@
                     <form method="post" action="<?php echo site_url('coe/coe_event/save_batch/' . $event->id); ?>" id="add-batch-form">
                         <div class="box-body">
                             <div class="row">
-                                <!-- Class -->
-                                <div class="col-md-3">
+                                <!-- Class (multi-select) -->
+                                <div class="col-md-4">
                                     <div class="form-group">
-                                        <label for="class_id">Class <span class="text-danger">*</span></label>
-                                        <select name="class_id" id="class_id" class="form-control select2-class" required>
-                                            <option value="">— Select Class —</option>
+                                        <label for="class_id">
+                                            Class <span class="text-danger">*</span> <small class="text-muted">(select one or more)</small>
+                                            <span class="pull-right" style="font-weight:normal;font-size:11px;">
+                                                <a href="#" id="class-select-all">Select All</a> &nbsp;|&nbsp;
+                                                <a href="#" id="class-clear-all">Clear</a>
+                                            </span>
+                                        </label>
+                                        <select name="class_id[]" id="class_id" class="form-control select2-class" multiple>
                                             <?php
                                             $last_dept = '';
                                             foreach ($class_list as $cls):
@@ -247,28 +258,31 @@
                                         <label for="exam">Batch Label <span class="text-danger">*</span></label>
                                         <input type="text" name="exam" id="exam" class="form-control"
                                                placeholder="e.g. Nov/Dec 2026 - CSE" maxlength="250" required>
-                                        <p class="help-block" style="font-size:11px;">Auto-suggested on class select — editable.</p>
+                                        <p class="help-block" style="font-size:11px;">Auto-filled when one class selected; editable. One batch is created per class.</p>
                                     </div>
                                 </div>
 
+                            </div>
+
+                            <div class="row">
                                 <!-- Date From -->
-                                <div class="col-md-2">
+                                <div class="col-md-3">
                                     <div class="form-group">
                                         <label for="date_from">Date From <span class="text-danger">*</span></label>
-                                        <input type="date" name="date_from" id="date_from" class="form-control" required>
+                                        <input type="text" name="date_from" id="date_from" class="form-control date"
+                                               placeholder="Select date" autocomplete="off" required>
                                     </div>
                                 </div>
 
                                 <!-- Date To -->
-                                <div class="col-md-2">
+                                <div class="col-md-3">
                                     <div class="form-group">
                                         <label for="date_to">Date To <span class="text-danger">*</span></label>
-                                        <input type="date" name="date_to" id="date_to" class="form-control" required>
+                                        <input type="text" name="date_to" id="date_to" class="form-control date"
+                                               placeholder="Select date" autocomplete="off" required>
                                     </div>
                                 </div>
-                            </div>
 
-                            <div class="row">
                                 <!-- Pass % -->
                                 <div class="col-md-2">
                                     <div class="form-group">
@@ -277,12 +291,14 @@
                                                class="form-control" value="50" min="0" max="100" step="0.01">
                                     </div>
                                 </div>
+                            </div>
 
-                                <div class="col-md-10">
-                                    <div class="callout callout-info" style="margin-top:24px;padding:8px 12px;font-size:12px;">
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <div class="callout callout-info" style="padding:8px 12px;font-size:12px;">
                                         <i class="fa fa-info-circle"></i>
-                                        On save, all <strong>active students</strong> enrolled in the selected class &amp; session will be
-                                        automatically added to this batch exam.
+                                        On save, <strong>one batch exam per selected class</strong> is created, and all active students
+                                        in each class &amp; session are automatically enrolled. Existing class/session combinations are skipped.
                                     </div>
                                 </div>
                             </div>
@@ -304,16 +320,35 @@
 
 <script>
 $(function () {
-    // Select2 for class selector
-    $('.select2-class').select2({ placeholder: 'Search class…', allowClear: true, width: '100%' });
+    // Select2 for class multi-selector
+    $('.select2-class').select2({ placeholder: 'Search and select class(es)…', allowClear: true, width: '100%' });
 
-    // Auto-suggest batch label when class changes
+    // Select All / Clear All
+    $('#class-select-all').on('click', function (e) {
+        e.preventDefault();
+        $('#class_id option').prop('selected', true);
+        $('#class_id').trigger('change');
+    });
+    $('#class-clear-all').on('click', function (e) {
+        e.preventDefault();
+        $('#class_id').val(null).trigger('change');
+        $('#exam').val('');
+    });
+
+    // Auto-suggest batch label from selected class names
     var eventName = <?php echo json_encode($event->name); ?>;
     $('#class_id').on('change', function () {
-        var txt = $(this).find('option:selected').text().trim();
-        if (txt && txt !== '— Select Class —') {
-            $('#exam').val(eventName + ' - ' + txt);
+        var selected = $(this).find('option:selected');
+        if (selected.length === 0) { return; }
+
+        var names = selected.map(function () { return $(this).text().trim(); }).get();
+        var suffix;
+        if (names.length <= 2) {
+            suffix = names.join(', ');
+        } else {
+            suffix = names[0] + ', ' + names[1] + ' (+' + (names.length - 2) + ' more)';
         }
+        $('#exam').val(eventName + ' - ' + suffix);
     });
 });
 </script>
