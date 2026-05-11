@@ -113,7 +113,17 @@ class Coe_arrear_model extends CI_Model
                    sub.code AS subject_code, sub.name AS subject_name,
                    egcbe.id AS batch_exam_id, egcbe.exam AS batch_exam_name,
                    egcbe.date_from, egcbe.date_to, egcbe.session_id,
-                   s.session, eg.name AS event_name
+                   s.session, eg.name AS event_name,
+                   -- 1 if the student later passed this same subject in a subsequent exam
+                   EXISTS (
+                       SELECT 1
+                       FROM coe_student_results sr2
+                       JOIN exam_group_class_batch_exams e2 ON e2.id = sr2.exam_group_class_batch_exam_id
+                       WHERE sr2.student_id    = sr.student_id
+                         AND sr2.subject_id    = sr.subject_id
+                         AND sr2.result_status = 'pass'
+                         AND e2.date_from      > egcbe.date_from
+                   ) AS later_pass
             FROM coe_student_results sr
             JOIN subjects sub                        ON sub.id  = sr.subject_id
             JOIN exam_group_class_batch_exams egcbe  ON egcbe.id = sr.exam_group_class_batch_exam_id
