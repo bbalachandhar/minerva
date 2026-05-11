@@ -410,14 +410,12 @@ class Book_model extends MY_Model
             ->where('LOWER(books.available)', 'yes');
 
         if ($term !== '') {
-            // book_no must be an exact whole-word match (not a substring of a barcode/isbn);
-            // book_title uses contains-match so partial title searches still work.
-            // isbn_no and barcode are intentionally excluded: they are not shown in the
-            // dropdown label and cause unrelated results when their values happen to
-            // contain the search term as a substring.
+            // Search by book title (contains) or book_no (contains).
+            // isbn_no and barcode are excluded: they are not visible in the
+            // dropdown and caused unrelated results via substring matches.
             $this->db->group_start()
                 ->like('books.book_title', $term)
-                ->or_where('books.book_no', $term)
+                ->or_like('books.book_no', $term)
                 ->group_end();
         }
 
