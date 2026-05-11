@@ -437,7 +437,14 @@ class Collect_incidental_fee extends Admin_Controller {
         }
         $application_fee_amount = max($configured_app_fee, $billed_app_fee);
         $total_payable_amount = $course_fee_total + $application_fee_amount;
-        $total_paid_so_far = $online_paid_total + $incidental_paid_total;
+
+        // Prevent double-counting: when an online application payment (Billdesk etc.)
+        // is also manually receipted as an incidental APPLICATION FEE collection, both
+        // entries represent the same physical payment. Subtract the overlap so the
+        // remaining fee is not under-stated.
+        $app_fee_overlap = min($billed_app_fee, $online_paid_total);
+        $total_paid_so_far = $online_paid_total + $incidental_paid_total - $app_fee_overlap;
+
         $remaining_fee = $total_payable_amount - $total_paid_so_far;
         if ($remaining_fee < 0) {
             $remaining_fee = 0.0;
