@@ -250,9 +250,10 @@
                             </td>
                             <td class="text-danger"><strong>U</strong></td>
                             <td>
-                                <span class="label label-danger">FAIL</span>
                                 <?php if (!empty($arr->later_pass)): ?>
-                                <br><span class="label label-success" title="Student passed this subject in a later exam"><i class="fa fa-check"></i> Cleared</span>
+                                <span class="label label-success" title="Student passed this subject in a later exam"><i class="fa fa-check"></i> Cleared</span>
+                                <?php else: ?>
+                                <span class="label label-danger">FAIL</span>
                                 <?php endif; ?>
                                 <?php if ($arr->moderation_applied > 0): ?>
                                 <br><small class="text-warning">+<?php echo $arr->moderation_applied; ?> grace</small>
