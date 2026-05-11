@@ -26,6 +26,10 @@
 /application/config/production/*
 !/application/config/production/*.example
 
+# Root index.php — contains ENVIRONMENT setting that differs per deployment
+# (local = development, production = production). Never commit from local.
+/index.php
+
 # Instance-specific configs — each deployment has its own copy.
 # Track *.example versions instead (no credentials, placeholder values).
 /application/config/database.php
