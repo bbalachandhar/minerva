@@ -36,6 +36,21 @@ class Multi_common_model extends MY_Model
         $school['total_student'] = $this->db_default->count_all_results('students');
         $school['db_name']       = $default_db;
         $school['session']       = $current_db->session;
+        // gender breakdown
+        $gq = $this->db_default->query(
+            "SELECT students.gender, COUNT(DISTINCT students.id) as cnt
+             FROM students
+             INNER JOIN student_session ON student_session.student_id = students.id
+             INNER JOIN users ON users.user_id = students.id
+             WHERE student_session.session_id = ? AND users.role = 'student' AND students.is_active = 'yes'
+             GROUP BY students.gender",
+            [$current_db->session_id]
+        );
+        $school['male_students'] = $school['female_students'] = 0;
+        foreach ($gq->result() as $gr) {
+            if (strtolower($gr->gender) === 'male')   $school['male_students']   = (int)$gr->cnt;
+            if (strtolower($gr->gender) === 'female') $school['female_students'] = (int)$gr->cnt;
+        }
         //====================
 
         $results[$default_db] = $school;
@@ -69,6 +84,21 @@ class Multi_common_model extends MY_Model
                 $school['total_student']   = $db_dynamic->count_all_results('students');
                 $school['db_name']         = $db_dynamic_name;
                 $school['session']         = $current_db->session;
+                // gender breakdown
+                $gq = $db_dynamic->query(
+                    "SELECT students.gender, COUNT(DISTINCT students.id) as cnt
+                     FROM students
+                     INNER JOIN student_session ON student_session.student_id = students.id
+                     INNER JOIN users ON users.user_id = students.id
+                     WHERE student_session.session_id = ? AND users.role = 'student' AND students.is_active = 'yes'
+                     GROUP BY students.gender",
+                    [$current_db->session_id]
+                );
+                $school['male_students'] = $school['female_students'] = 0;
+                foreach ($gq->result() as $gr) {
+                    if (strtolower($gr->gender) === 'male')   $school['male_students']   = (int)$gr->cnt;
+                    if (strtolower($gr->gender) === 'female') $school['female_students'] = (int)$gr->cnt;
+                }
                 $results[$db_dynamic_name] = $school;
                 //====================
 
@@ -154,6 +184,13 @@ class Multi_common_model extends MY_Model
         $this->db_default->where('staff.is_active', 1);
         $school['total_staff'] = $this->db_default->count_all_results('staff');
         $school['db_name']     = $default_db;
+        // gender breakdown
+        $gq = $this->db_default->query("SELECT gender, COUNT(*) as cnt FROM staff WHERE is_active = 1 GROUP BY gender");
+        $school['male_staff'] = $school['female_staff'] = 0;
+        foreach ($gq->result() as $gr) {
+            if (strtolower($gr->gender) === 'male')   $school['male_staff']   = (int)$gr->cnt;
+            if (strtolower($gr->gender) === 'female') $school['female_staff'] = (int)$gr->cnt;
+        }
 
         //====================
 
@@ -185,6 +222,13 @@ class Multi_common_model extends MY_Model
 
                 $school['total_staff'] = $db_dynamic->count_all_results('staff');
                 $school['db_name']     = $db_dynamic_name;
+                // gender breakdown
+                $gq = $db_dynamic->query("SELECT gender, COUNT(*) as cnt FROM staff WHERE is_active = 1 GROUP BY gender");
+                $school['male_staff'] = $school['female_staff'] = 0;
+                foreach ($gq->result() as $gr) {
+                    if (strtolower($gr->gender) === 'male')   $school['male_staff']   = (int)$gr->cnt;
+                    if (strtolower($gr->gender) === 'female') $school['female_staff'] = (int)$gr->cnt;
+                }
 
                 $results[$db_dynamic_name] = $school;
                 //====================

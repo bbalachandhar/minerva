@@ -16,10 +16,22 @@ if (!empty($branch_list)) {
 }
 
 // Grand totals from server-side (fast COUNT queries)
-$grand_students = 0;
-$grand_staff    = 0;
-foreach ($school_students as $sv) { $grand_students += $sv['total_student']; }
-foreach ($staff_list      as $sv) { $grand_staff    += $sv['total_staff']; }
+$grand_students        = 0;
+$grand_staff           = 0;
+$grand_male_students   = 0;
+$grand_female_students = 0;
+$grand_male_staff      = 0;
+$grand_female_staff    = 0;
+foreach ($school_students as $sv) {
+    $grand_students        += $sv['total_student'];
+    $grand_male_students   += isset($sv['male_students'])   ? $sv['male_students']   : 0;
+    $grand_female_students += isset($sv['female_students']) ? $sv['female_students'] : 0;
+}
+foreach ($staff_list as $sv) {
+    $grand_staff        += $sv['total_staff'];
+    $grand_male_staff   += isset($sv['male_staff'])   ? $sv['male_staff']   : 0;
+    $grand_female_staff += isset($sv['female_staff']) ? $sv['female_staff'] : 0;
+}
 
 // Build arrays for JS
 $js_branch_order  = [];
@@ -59,8 +71,12 @@ function mcc_abbr($db_name) {
     $is_home  = ($ci === 0);
     $card_url = $is_home ? base_url('admin') : (isset($branch_url_map[$db_name]) ? $branch_url_map[$db_name] : '#');
     $disp_name= $is_home ? $home_name : $bi->name;
-    $students = isset($school_students[$db_name]) ? $school_students[$db_name]['total_student'] : 0;
-    $staff    = isset($staff_list[$db_name])      ? $staff_list[$db_name]['total_staff']        : 0;
+    $students        = isset($school_students[$db_name]) ? $school_students[$db_name]['total_student']  : 0;
+    $male_students   = isset($school_students[$db_name]) ? $school_students[$db_name]['male_students']  : 0;
+    $female_students = isset($school_students[$db_name]) ? $school_students[$db_name]['female_students']: 0;
+    $staff           = isset($staff_list[$db_name])      ? $staff_list[$db_name]['total_staff']         : 0;
+    $male_staff      = isset($staff_list[$db_name])      ? $staff_list[$db_name]['male_staff']          : 0;
+    $female_staff    = isset($staff_list[$db_name])      ? $staff_list[$db_name]['female_staff']        : 0;
     $ci++;
 ?>
 <div class="mcc-inst-card" style="border-top:3px solid <?php echo $color; ?>">
@@ -79,11 +95,19 @@ function mcc_abbr($db_name) {
             <i class="fa fa-users" style="color:<?php echo $color; ?>"></i>
             <span class="mcc-stat-num"><?php echo number_format($students); ?></span>
             <span class="mcc-stat-lbl">Students</span>
+            <span class="mcc-gender-line">
+                <span class="mcc-gender-m" title="Male">&#9794; <?php echo number_format($male_students); ?></span>
+                <span class="mcc-gender-f" title="Female">&#9792; <?php echo number_format($female_students); ?></span>
+            </span>
         </div>
         <div class="mcc-inst-stat">
             <i class="fa fa-id-badge" style="color:<?php echo $color; ?>"></i>
             <span class="mcc-stat-num"><?php echo number_format($staff); ?></span>
             <span class="mcc-stat-lbl">Staff</span>
+            <span class="mcc-gender-line">
+                <span class="mcc-gender-m" title="Male">&#9794; <?php echo number_format($male_staff); ?></span>
+                <span class="mcc-gender-f" title="Female">&#9792; <?php echo number_format($female_staff); ?></span>
+            </span>
         </div>
         <div class="mcc-inst-stat">
             <i class="fa fa-money" style="color:<?php echo $color; ?>"></i>
@@ -104,6 +128,11 @@ function mcc_abbr($db_name) {
         <div class="mcc-kpi-body">
             <div class="mcc-kpi-val"><?php echo number_format($grand_students); ?></div>
             <div class="mcc-kpi-label">Total Students</div>
+            <div class="mcc-kpi-gender">
+                <span class="mcc-gender-m">&#9794; <?php echo number_format($grand_male_students); ?></span>
+                &nbsp;
+                <span class="mcc-gender-f">&#9792; <?php echo number_format($grand_female_students); ?></span>
+            </div>
         </div>
     </div>
     <div class="mcc-kpi-tile" style="--kpi-color:#605ca8">
@@ -111,6 +140,11 @@ function mcc_abbr($db_name) {
         <div class="mcc-kpi-body">
             <div class="mcc-kpi-val"><?php echo number_format($grand_staff); ?></div>
             <div class="mcc-kpi-label">Total Staff</div>
+            <div class="mcc-kpi-gender">
+                <span class="mcc-gender-m">&#9794; <?php echo number_format($grand_male_staff); ?></span>
+                &nbsp;
+                <span class="mcc-gender-f">&#9792; <?php echo number_format($grand_female_staff); ?></span>
+            </div>
         </div>
     </div>
     <div class="mcc-kpi-tile" style="--kpi-color:#00a65a">

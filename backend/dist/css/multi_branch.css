@@ -181,6 +181,20 @@
 .mcc-akpi i { margin-right: 3px; }
 .mcc-akpi-val { font-weight: 700; color: #d68910; }
 
+/* ---- Gender breakdown ---- */
+.mcc-gender-line {
+    display: flex; gap: 6px; justify-content: center;
+    margin-top: 3px; flex-wrap: wrap;
+}
+.mcc-gender-m { color: #3c8dbc; font-size: 10px; font-weight: 600; white-space: nowrap; }
+.mcc-gender-f { color: #e91e63; font-size: 10px; font-weight: 600; white-space: nowrap; }
+.mcc-kpi-gender {
+    font-size: 11px; margin-top: 4px;
+    display: flex; gap: 8px; flex-wrap: wrap;
+}
+.mcc-kpi-gender .mcc-gender-m,
+.mcc-kpi-gender .mcc-gender-f { font-size: 11px; }
+
 /* ---- Load error ---- */
 .mcc-load-err {
     text-align: center; color: #cc0000;
