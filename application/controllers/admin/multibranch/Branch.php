@@ -232,182 +232,159 @@ class Branch extends MY_Addon_MBController
             access_denied();
         }
 
-        // Load required models
-        $this->load->model('Student_model');
-        $this->load->model('Customstudentfeemaster_model');
-        $this->load->model('Studentfeemaster_model');
-
-        $branches = $this->multibranch_model->getSchoolCurrentSessions();
+        $branches        = $this->multibranch_model->getSchoolCurrentSessions();
+        $branches_list   = $this->multibranch_model->get();
         $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
 
-        $rows = array();
-        $chart_labels = array();
-        $chart_total_fees = array();
-        $chart_total_paid = array();
-        $chart_total_balance = array();
+        // Build branch_id lookup map
+        $branch_id_map = [];
+        foreach ($branches_list as $b) {
+            $branch_id_map[$b->database_name] = $b->id;
+        }
+
+        $rows                = [];
+        $chart_labels        = [];
+        $chart_total_fees    = [];
+        $chart_total_paid    = [];
+        $chart_total_balance = [];
 
         foreach ($branches as $db_name => $branch_info) {
             $session_id = $branch_info->session_id;
 
-            $total_fees = 0;
-            $total_paid = 0;
-            $total_balance = 0;
-
-            // Get students using the model (will use default DB for home branch)
+            // Pick correct DB connection
             if ($db_name === $this->db->database) {
-                // Home branch - use controller's already loaded models
-                $students = $this->Student_model->getStudentsBySession($session_id);
-
-                if (!empty($students)) {
-                    foreach ($students as $student) {
-                        $student_session_id = $student['student_session_id'];
-                        $fees_data = $this->Customstudentfeemaster_model->getTransStudentFees($student_session_id);
-                        $advance_balances = $this->Studentfeemaster_model->get_advance_balance($student_session_id);
-                        
-                        $advance_paid = isset($advance_balances['paid_advance_balance']) ? $advance_balances['paid_advance_balance'] : 0;
-                        $advance_discount = isset($advance_balances['discount_advance_balance']) ? $advance_balances['discount_advance_balance'] : 0;
-
-                        $totalfee = 0;
-                        if (!empty($fees_data->fees)) {
-                            foreach ($fees_data->fees as $fee_item) {
-                                $totalfee += $fee_item->amount;
-                            }
-                        }
-
-                        $total_paid_sum = 0;
-                        if ($fees_data) {
-                            $total_paid_sum = $fees_data->tuition_paid + $fees_data->other_paid + $fees_data->hostel_paid + $fees_data->transport_paid;
-                        }
-
-                        $previous_session_balance_data = $this->Customstudentfeemaster_model->getPreviousSessionBalance($student_session_id);
-                        $last_yr_cf = !empty($previous_session_balance_data) ? $previous_session_balance_data->amount : 0;
-                        $cf_paid = $this->Customstudentfeemaster_model->getPreviousSessionPaid($student_session_id);
-                        $cf_balance = $last_yr_cf - $cf_paid;
-
-                        if ($totalfee == 0 && $cf_balance == 0) {
-                            continue;
-                        }
-
-                        $balance = $totalfee - $total_paid_sum;
-                        $balance += $cf_balance;
-                        $net_balance = $balance - ($advance_paid + $advance_discount);
-
-                        $total_fees += $totalfee;
-                        $total_paid += $total_paid_sum;
-                        $total_balance += $net_balance;
-                    }
-                }
+                $db = $this->db;
+            } elseif (isset($branch_id_map[$db_name])) {
+                $db = $this->load->database('branch_' . $branch_id_map[$db_name], true);
             } else {
-                // Other branches - need to load branch database
-                $branches_list = $this->multibranch_model->get();
-                $branch_id = null;
-                
-                foreach ($branches_list as $branch) {
-                    if ($branch->database_name === $db_name) {
-                        $branch_id = $branch->id;
-                        break;
-                    }
-                }
-                
-                if ($branch_id) {
-                    $branch_db = $this->load->database('branch_' . $branch_id, true);
-                    
-                    // Get students for this branch
-                    $branch_db->select('students.id, student_session.id as student_session_id');
-                    $branch_db->from('student_session');
-                    $branch_db->join('students', 'student_session.student_id = students.id');
-                    $branch_db->where('student_session.session_id', $session_id);
-                    $branch_db->where('students.is_active', 'yes');
-                    $students_query = $branch_db->get();
-                    $students = $students_query->result_array();
-                    
-                    if (!empty($students)) {
-                        // Temporarily switch models to use branch database
-                        $original_db = $this->Customstudentfeemaster_model->db;
-                        $original_student_db = $this->Student_model->db;
-                        $original_fee_db = $this->Studentfeemaster_model->db;
-                        
-                        $this->Customstudentfeemaster_model->db = $branch_db;
-                        $this->Customstudentfeemaster_model->current_session = $session_id;
-                        $this->Student_model->db = $branch_db;
-                        $this->Studentfeemaster_model->db = $branch_db;
-                        
-                        foreach ($students as $student) {
-                            $student_session_id = $student['student_session_id'];
-                            $fees_data = $this->Customstudentfeemaster_model->getTransStudentFees($student_session_id);
-                            $advance_balances = $this->Studentfeemaster_model->get_advance_balance($student_session_id);
-                            
-                            $advance_paid = isset($advance_balances['paid_advance_balance']) ? $advance_balances['paid_advance_balance'] : 0;
-                            $advance_discount = isset($advance_balances['discount_advance_balance']) ? $advance_balances['discount_advance_balance'] : 0;
-
-                            $totalfee = 0;
-                            if (!empty($fees_data->fees)) {
-                                foreach ($fees_data->fees as $fee_item) {
-                                    $totalfee += $fee_item->amount;
-                                }
-                            }
-
-                            $total_paid_sum = 0;
-                            if ($fees_data) {
-                                $total_paid_sum = $fees_data->tuition_paid + $fees_data->other_paid + $fees_data->hostel_paid + $fees_data->transport_paid;
-                            }
-
-                            $previous_session_balance_data = $this->Customstudentfeemaster_model->getPreviousSessionBalance($student_session_id);
-                            $last_yr_cf = !empty($previous_session_balance_data) ? $previous_session_balance_data->amount : 0;
-                            $cf_paid = $this->Customstudentfeemaster_model->getPreviousSessionPaid($student_session_id);
-                            $cf_balance = $last_yr_cf - $cf_paid;
-
-                            if ($totalfee == 0 && $cf_balance == 0) {
-                                continue;
-                            }
-
-                            $balance = $totalfee - $total_paid_sum;
-                            $balance += $cf_balance;
-                            $net_balance = $balance - ($advance_paid + $advance_discount);
-
-                            $total_fees += $totalfee;
-                            $total_paid += $total_paid_sum;
-                            $total_balance += $net_balance;
-                        }
-                        
-                        // Restore original database connections
-                        $this->Customstudentfeemaster_model->db = $original_db;
-                        $this->Student_model->db = $original_student_db;
-                        $this->Studentfeemaster_model->db = $original_fee_db;
-                    }
-                }
+                continue;
             }
 
-            $rows[] = array(
-                'db_name' => $db_name,
-                'total_fees' => $total_fees,
-                'total_paid' => $total_paid,
-                'total_balance' => $total_balance,
-                'total_fees_formatted' => $currency_symbol . amountFormat($total_fees),
-                'total_paid_formatted' => $currency_symbol . amountFormat($total_paid),
-                'total_balance_formatted' => $currency_symbol . amountFormat($total_balance),
-            );
+            list($total_fees, $total_paid) = $this->_mcc_fees_summary($db, $session_id);
+            $total_balance = $total_fees - $total_paid;
 
-            $chart_labels[] = $branch_info->name;
-            $chart_total_fees[] = $total_fees;
-            $chart_total_paid[] = $total_paid;
+            $rows[] = [
+                'db_name'                 => $db_name,
+                'name'                    => $branch_info->name,
+                'session'                 => $branch_info->session,
+                'total_fees'              => $total_fees,
+                'total_paid'              => $total_paid,
+                'total_balance'           => $total_balance,
+                'total_fees_formatted'    => $currency_symbol . amountFormat($total_fees),
+                'total_paid_formatted'    => $currency_symbol . amountFormat($total_paid),
+                'total_balance_formatted' => $currency_symbol . amountFormat($total_balance),
+                'collection_pct'          => $total_fees > 0 ? round(($total_paid / $total_fees) * 100, 1) : 0,
+            ];
+
+            $chart_labels[]        = $branch_info->name;
+            $chart_total_fees[]    = $total_fees;
+            $chart_total_paid[]    = $total_paid;
             $chart_total_balance[] = $total_balance;
         }
 
-        $response = array(
-            'status' => 'success',
-            'rows' => $rows,
-            'chart' => array(
-                'labels' => $chart_labels,
-                'total_fees' => $chart_total_fees,
-                'total_paid' => $chart_total_paid,
-                'total_balance' => $chart_total_balance,
-            ),
-        );
-
         return $this->output
             ->set_content_type('application/json')
-            ->set_output(json_encode($response));
+            ->set_output(json_encode([
+                'status' => 'success',
+                'rows'   => $rows,
+                'chart'  => [
+                    'labels'        => $chart_labels,
+                    'total_fees'    => $chart_total_fees,
+                    'total_paid'    => $chart_total_paid,
+                    'total_balance' => $chart_total_balance,
+                ],
+            ]));
+    }
+
+    /**
+     * Aggregate fees summary for one branch/session using 3 SQL queries
+     * instead of N×4 per-student queries.
+     * Returns [total_billed, total_collected].
+     */
+    private function _mcc_fees_summary($db, $session_id)
+    {
+        // ── 1. Total billed (tuition + other + hostel; no advance) ────────────
+        $billed_row = $db->query(
+            "SELECT SUM(COALESCE(sfo.override_amount, fgf.amount)) AS total_billed
+             FROM student_fees_master sfm
+             JOIN student_session ss  ON ss.id  = sfm.student_session_id
+             JOIN students s          ON s.id   = ss.student_id AND s.is_active = 'yes'
+             JOIN fee_session_groups fsg ON fsg.id = sfm.fee_session_group_id
+             JOIN fee_groups_feetype fgf ON fgf.fee_session_group_id = fsg.id
+             JOIN feetype ft           ON ft.id  = fgf.feetype_id
+                                      AND LOWER(ft.type) NOT IN ('advance payments')
+             LEFT JOIN student_fee_overrides sfo
+                    ON sfo.student_session_id   = sfm.student_session_id
+                   AND sfo.fee_groups_feetype_id = fgf.id
+             WHERE ss.session_id = ? AND sfm.is_active = 'yes'",
+            [$session_id]
+        )->row();
+        $total_billed = $billed_row ? (float)$billed_row->total_billed : 0;
+
+        // ── 2. Transport billed ────────────────────────────────────────────────
+        $transport_billed = 0;
+        if ($db->table_exists('student_transport_fees') && $db->table_exists('route_pickup_point')) {
+            $tb_row = $db->query(
+                "SELECT SUM(COALESCE(stf.fee_override, rpp.fees)) AS transport_billed
+                 FROM student_transport_fees stf
+                 JOIN student_session ss ON ss.id = stf.student_session_id
+                 JOIN students s         ON s.id  = ss.student_id AND s.is_active = 'yes'
+                 JOIN route_pickup_point rpp ON rpp.id = stf.route_pickup_point_id
+                 WHERE ss.session_id = ?",
+                [$session_id]
+            )->row();
+            $transport_billed = $tb_row ? (float)$tb_row->transport_billed : 0;
+        }
+        $total_billed += $transport_billed;
+
+        // ── 3. Total collected (parse JSON amount_detail in PHP) ──────────────
+        $deposits = $db->query(
+            "SELECT sfd.amount_detail
+             FROM student_fees_deposite sfd
+             JOIN student_fees_master sfm ON sfm.id = sfd.student_fees_master_id
+                                         AND sfm.is_active = 'yes'
+             JOIN student_session ss ON ss.id = sfm.student_session_id
+             JOIN students s         ON s.id  = ss.student_id AND s.is_active = 'yes'
+             WHERE ss.session_id = ?
+               AND sfd.amount_detail IS NOT NULL AND sfd.amount_detail != '0'",
+            [$session_id]
+        )->result();
+
+        $total_collected = 0;
+        foreach ($deposits as $dep) {
+            $detail = json_decode($dep->amount_detail);
+            if (!is_object($detail)) continue;
+            foreach ($detail as $payment) {
+                $total_collected += (float)$payment->amount;
+                if (isset($payment->amount_discount)) {
+                    $total_collected += (float)$payment->amount_discount;
+                }
+            }
+        }
+
+        // Transport collected (stored with student_transport_fee_id)
+        $transport_deposits = $db->query(
+            "SELECT sfd.amount_detail
+             FROM student_fees_deposite sfd
+             JOIN student_transport_fees stf ON stf.id = sfd.student_transport_fee_id
+             JOIN student_session ss ON ss.id = stf.student_session_id
+             WHERE ss.session_id = ?
+               AND sfd.amount_detail IS NOT NULL AND sfd.amount_detail != '0'",
+            [$session_id]
+        )->result();
+
+        foreach ($transport_deposits as $dep) {
+            $detail = json_decode($dep->amount_detail);
+            if (!is_object($detail)) continue;
+            foreach ($detail as $payment) {
+                $total_collected += (float)$payment->amount;
+                if (isset($payment->amount_discount)) {
+                    $total_collected += (float)$payment->amount_discount;
+                }
+            }
+        }
+
+        return [$total_billed, $total_collected];
     }
 
     public function upload()
