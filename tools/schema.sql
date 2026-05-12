@@ -1923,6 +1923,9 @@ CREATE TABLE `exam_group_class_batch_exams` (
   `is_rank_generated` int NOT NULL DEFAULT '0',
   `description` text,
   `is_active` int DEFAULT '0',
+  `is_end_semester` tinyint(1) NOT NULL DEFAULT '0',
+  `coe_locked` tinyint(1) NOT NULL DEFAULT '0',
+  `class_id` int DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
@@ -2022,6 +2025,8 @@ CREATE TABLE `exam_groups` (
   `exam_type` varchar(250) DEFAULT NULL,
   `description` text,
   `is_active` int DEFAULT '1',
+  `is_end_semester` tinyint(1) NOT NULL DEFAULT '0',
+  `exam_category` enum('main','arrear','supplementary') NOT NULL DEFAULT 'main',
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
@@ -8722,6 +8727,26 @@ INSERT INTO `permission_category` (`id`, `perm_group_id`, `name`, `short_code`, 
 INSERT INTO `permission_category` (`id`, `perm_group_id`, `name`, `short_code`, `enable_view`, `enable_add`, `enable_edit`, `enable_delete`, `created_at`, `updated_at`) VALUES (15013,NULL,'Admission Cancellation','admission_cancellation',0,0,0,0,'2026-04-27 16:22:04','2026-04-27 16:22:04');
 INSERT INTO `permission_category` (`id`, `perm_group_id`, `name`, `short_code`, `enable_view`, `enable_add`, `enable_edit`, `enable_delete`, `created_at`, `updated_at`) VALUES (15015,27,'Admission Cancellation','admission_cancellation',1,1,1,1,'2026-04-27 18:56:31','2026-04-27 18:56:31');
 INSERT INTO `permission_category` (`id`, `perm_group_id`, `name`, `short_code`, `enable_view`, `enable_add`, `enable_edit`, `enable_delete`, `created_at`, `updated_at`) VALUES (15016,2,'Hostel Fee Override','hostel_fee_override',1,1,0,1,'2026-05-04 00:00:00','2026-05-04 00:00:00');
+INSERT INTO `permission_category` (`id`, `perm_group_id`, `name`, `short_code`, `enable_view`, `enable_add`, `enable_edit`, `enable_delete`, `created_at`, `updated_at`) VALUES (2001,2000,'CoE Exam Regulations','coe_setup',1,1,1,1,'2026-05-10 01:58:00','2026-05-10 01:58:00');
+INSERT INTO `permission_category` (`id`, `perm_group_id`, `name`, `short_code`, `enable_view`, `enable_add`, `enable_edit`, `enable_delete`, `created_at`, `updated_at`) VALUES (2002,2000,'CoE Exam Applications','coe_application',1,1,1,0,'2026-05-10 01:58:00','2026-05-10 01:58:00');
+INSERT INTO `permission_category` (`id`, `perm_group_id`, `name`, `short_code`, `enable_view`, `enable_add`, `enable_edit`, `enable_delete`, `created_at`, `updated_at`) VALUES (2003,2000,'CoE Eligibility','coe_eligibility',1,1,0,0,'2026-05-10 01:58:00','2026-05-10 01:58:00');
+INSERT INTO `permission_category` (`id`, `perm_group_id`, `name`, `short_code`, `enable_view`, `enable_add`, `enable_edit`, `enable_delete`, `created_at`, `updated_at`) VALUES (2004,2000,'CoE Eligibility Override','coe_override',1,1,0,0,'2026-05-10 01:58:00','2026-05-10 01:58:00');
+INSERT INTO `permission_category` (`id`, `perm_group_id`, `name`, `short_code`, `enable_view`, `enable_add`, `enable_edit`, `enable_delete`, `created_at`, `updated_at`) VALUES (2005,2000,'CoE Hall Tickets','coe_hallticket',1,1,0,0,'2026-05-10 01:58:00','2026-05-10 01:58:00');
+INSERT INTO `permission_category` (`id`, `perm_group_id`, `name`, `short_code`, `enable_view`, `enable_add`, `enable_edit`, `enable_delete`, `created_at`, `updated_at`) VALUES (2006,2000,'CoE Nominal Roll','coe_nominalroll',1,1,0,0,'2026-05-10 01:58:00','2026-05-10 01:58:00');
+INSERT INTO `permission_category` (`id`, `perm_group_id`, `name`, `short_code`, `enable_view`, `enable_add`, `enable_edit`, `enable_delete`, `created_at`, `updated_at`) VALUES (2007,2000,'CoE Seating Arrangement','coe_seating',1,1,1,1,'2026-05-10 01:58:00','2026-05-10 01:58:00');
+INSERT INTO `permission_category` (`id`, `perm_group_id`, `name`, `short_code`, `enable_view`, `enable_add`, `enable_edit`, `enable_delete`, `created_at`, `updated_at`) VALUES (2008,2000,'CoE Invigilation Duties','coe_invigilation',1,1,1,1,'2026-05-10 01:58:00','2026-05-10 01:58:00');
+INSERT INTO `permission_category` (`id`, `perm_group_id`, `name`, `short_code`, `enable_view`, `enable_add`, `enable_edit`, `enable_delete`, `created_at`, `updated_at`) VALUES (15017,2000,'CoE Question Paper Distribution','coe_qpd',1,1,1,1,'2026-05-10 05:38:04','2026-05-10 05:38:04');
+INSERT INTO `permission_category` (`id`, `perm_group_id`, `name`, `short_code`, `enable_view`, `enable_add`, `enable_edit`, `enable_delete`, `created_at`, `updated_at`) VALUES (15018,2000,'CoE Exam Attendance','coe_attendance',1,1,1,0,'2026-05-10 05:38:04','2026-05-10 05:38:04');
+INSERT INTO `permission_category` (`id`, `perm_group_id`, `name`, `short_code`, `enable_view`, `enable_add`, `enable_edit`, `enable_delete`, `created_at`, `updated_at`) VALUES (15019,2000,'CoE UFM / Malpractice','coe_ufm',1,1,1,1,'2026-05-10 05:38:04','2026-05-10 05:38:04');
+INSERT INTO `permission_category` (`id`, `perm_group_id`, `name`, `short_code`, `enable_view`, `enable_add`, `enable_edit`, `enable_delete`, `created_at`, `updated_at`) VALUES (15020,2000,'CoE Answer Scripts','coe_answer_scripts',1,1,1,1,'2026-05-10 21:37:42','2026-05-10 21:37:42');
+INSERT INTO `permission_category` (`id`, `perm_group_id`, `name`, `short_code`, `enable_view`, `enable_add`, `enable_edit`, `enable_delete`, `created_at`, `updated_at`) VALUES (15021,2000,'CoE OSM Marking','coe_osm',1,1,1,0,'2026-05-10 21:37:42','2026-05-10 21:37:42');
+INSERT INTO `permission_category` (`id`, `perm_group_id`, `name`, `short_code`, `enable_view`, `enable_add`, `enable_edit`, `enable_delete`, `created_at`, `updated_at`) VALUES (15022,2000,'CoE Revaluation','coe_revaluation',1,1,1,1,'2026-05-10 21:37:42','2026-05-10 21:37:42');
+INSERT INTO `permission_category` (`id`, `perm_group_id`, `name`, `short_code`, `enable_view`, `enable_add`, `enable_edit`, `enable_delete`, `created_at`, `updated_at`) VALUES (15023,2000,'CoE Moderation','coe_moderation',1,1,1,1,'2026-05-10 21:37:42','2026-05-10 21:37:42');
+INSERT INTO `permission_category` (`id`, `perm_group_id`, `name`, `short_code`, `enable_view`, `enable_add`, `enable_edit`, `enable_delete`, `created_at`, `updated_at`) VALUES (15024,2000,'CoE Marks & Results','coe_marks',1,1,1,0,'2026-05-10 21:37:42','2026-05-10 21:37:42');
+INSERT INTO `permission_category` (`id`, `perm_group_id`, `name`, `short_code`, `enable_view`, `enable_add`, `enable_edit`, `enable_delete`, `created_at`, `updated_at`) VALUES (15025,2000,'CoE Result Publication','coe_results',1,1,0,0,'2026-05-10 21:37:42','2026-05-10 21:37:42');
+INSERT INTO `permission_category` (`id`, `perm_group_id`, `name`, `short_code`, `enable_view`, `enable_add`, `enable_edit`, `enable_delete`, `created_at`, `updated_at`) VALUES (15026,2000,'CoE Exam Events CRUD','coe_event',1,1,1,1,'2026-05-11 21:28:53','2026-05-11 21:28:53');
+INSERT INTO `permission_category` (`id`, `perm_group_id`, `name`, `short_code`, `enable_view`, `enable_add`, `enable_edit`, `enable_delete`, `created_at`, `updated_at`) VALUES (15027,2000,'CoE Dashboard','coe_dashboard',1,0,0,0,'2026-05-10 23:08:07','2026-05-10 23:08:07');
+INSERT INTO `permission_category` (`id`, `perm_group_id`, `name`, `short_code`, `enable_view`, `enable_add`, `enable_edit`, `enable_delete`, `created_at`, `updated_at`) VALUES (15028,2000,'CoE Arrear Register','coe_arrear',1,0,0,0,'2026-05-10 23:08:07','2026-05-10 23:08:07');
 /*!40000 ALTER TABLE `permission_category` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -8765,6 +8790,7 @@ INSERT INTO `permission_group` (`id`, `name`, `short_code`, `is_active`, `system
 INSERT INTO `permission_group` (`id`, `name`, `short_code`, `is_active`, `system`, `created_at`, `updated_at`) VALUES (900,'CBSE Examination','cbseexam',1,0,'2023-05-25 12:04:56','2026-03-05 21:29:42');
 INSERT INTO `permission_group` (`id`, `name`, `short_code`, `is_active`, `system`, `created_at`, `updated_at`) VALUES (1000,'Multi Branch','multi_branch',1,0,'2022-11-17 05:23:36','2025-11-08 01:23:13');
 INSERT INTO `permission_group` (`id`, `name`, `short_code`, `is_active`, `system`, `created_at`, `updated_at`) VALUES (1500,'Whatsapp Messaging','whatsapp_messaging',1,0,'2025-01-10 04:36:34','2025-10-04 06:41:15');
+INSERT INTO `permission_group` (`id`, `name`, `short_code`, `is_active`, `system`, `created_at`, `updated_at`) VALUES (2000,'CoE (Examinations)','coe',1,0,'2026-05-10 01:58:00','2026-05-10 01:58:00');
 /*!40000 ALTER TABLE `permission_group` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -10799,6 +10825,7 @@ INSERT INTO `sidebar_menus` (`id`, `product_name`, `permission_group_id`, `icon`
 INSERT INTO `sidebar_menus` (`id`, `product_name`, `permission_group_id`, `icon`, `menu`, `activate_menu`, `lang_key`, `system_level`, `level`, `sidebar_display`, `access_permissions`, `is_active`, `created_at`, `updated_at`) VALUES (38,'',18,'fa fa-book ftlayer','Hall Management','hall_management','hall_management',150,17,1,'(\'hall_master\', \'can_view\') || (\'hall_bookings\', \'can_view\') || (\'approval_configuration\', \'can_view\')',1,'2023-01-10 01:49:37','2025-10-25 17:07:28');
 INSERT INTO `sidebar_menus` (`id`, `product_name`, `permission_group_id`, `icon`, `menu`, `activate_menu`, `lang_key`, `system_level`, `level`, `sidebar_display`, `access_permissions`, `is_active`, `created_at`, `updated_at`) VALUES (39,'',18,'fa fa-book ftlayer','NAAC','naac','naac',150,18,1,'(\'naac_configuration\', \'can_view\') || (\'naac_iiqa\', \'can_view\') || (\'naac_ssr\', \'can_view\') || (\'naac_aqar\', \'can_view\')',1,'2023-01-10 01:49:37','2025-10-25 17:07:28');
 INSERT INTO `sidebar_menus` (`id`, `product_name`, `permission_group_id`, `icon`, `menu`, `activate_menu`, `lang_key`, `system_level`, `level`, `sidebar_display`, `access_permissions`, `is_active`, `created_at`, `updated_at`) VALUES (40,'',17,'fa fa-graduation-cap','Admissions','admissions','admissions',0,0,1,'(\'admission_enquiry\', \'can_view\')||(\'online_admission\', \'can_view\')',1,'2026-02-11 20:29:16','2026-02-11 20:29:16');
+INSERT INTO `sidebar_menus` (`id`, `product_name`, `permission_group_id`, `icon`, `menu`, `activate_menu`, `lang_key`, `system_level`, `level`, `sidebar_display`, `access_permissions`, `is_active`, `created_at`, `updated_at`) VALUES (43,'minerva',2000,'fa fa-university','CoE Examinations','coe','coe_examinations',0,1,1,'(\'coe_setup\', \'can_view\')||(\'coe_application\', \'can_view\')||(\'coe_eligibility\', \'can_view\')||(\'coe_hallticket\', \'can_view\')||(\'coe_nominalroll\', \'can_view\')||(\'coe_seating\', \'can_view\')||(\'coe_invigilation\', \'can_view\')',1,'2026-05-10 01:58:00','2026-05-10 01:58:00');
 /*!40000 ALTER TABLE `sidebar_menus` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -11028,6 +11055,25 @@ INSERT INTO `sidebar_sub_menus` (`id`, `sidebar_menu_id`, `menu`, `key`, `lang_k
 INSERT INTO `sidebar_sub_menus` (`id`, `sidebar_menu_id`, `menu`, `key`, `lang_key`, `url`, `level`, `access_permissions`, `permission_group_id`, `activate_controller`, `activate_methods`, `addon_permission`, `is_active`, `created_at`, `updated_at`) VALUES (269,15,'apply_leave',NULL,'apply_leave','admin/leaverequest/applyleave',1,'(\'apply_leave\', \'can_view\')',NULL,NULL,'applyleave',NULL,1,'2026-03-28 00:36:21','2026-03-28 00:36:21');
 INSERT INTO `sidebar_sub_menus` (`id`, `sidebar_menu_id`, `menu`, `key`, `lang_key`, `url`, `level`, `access_permissions`, `permission_group_id`, `activate_controller`, `activate_methods`, `addon_permission`, `is_active`, `created_at`, `updated_at`) VALUES (270,15,'update_leave_balance','update_leave_balance','update_leave_balance','admin/update_leave_balance/index',NULL,'(\'update_leave_balance\', \'can_view\')',NULL,'update_leave_balance',NULL,NULL,1,'2026-04-05 10:22:12','2026-04-05 10:22:12');
 INSERT INTO `sidebar_sub_menus` (`id`, `sidebar_menu_id`, `menu`, `key`, `lang_key`, `url`, `level`, `access_permissions`, `permission_group_id`, `activate_controller`, `activate_methods`, `addon_permission`, `is_active`, `created_at`, `updated_at`) VALUES (271,40,'Revoked Admissions',NULL,'revoked_admissions','admin/admission_cancellation',NULL,'(\'admission_cancellation\', \'can_view\')',NULL,'Admission_cancellation','index',NULL,1,'2026-04-27 18:56:31','2026-04-27 18:56:31');
+INSERT INTO `sidebar_sub_menus` (`id`, `sidebar_menu_id`, `menu`, `key`, `lang_key`, `url`, `level`, `access_permissions`, `permission_group_id`, `activate_controller`, `activate_methods`, `addon_permission`, `is_active`, `created_at`, `updated_at`) VALUES (286,43,'Exam Regulations','coe_setup','coe_exam_regulations','coe/coe_setup',3,'(\'coe_setup\', \'can_view\')',1000,'coe_setup','index',NULL,1,'2026-05-10 01:58:00','2026-05-10 01:58:00');
+INSERT INTO `sidebar_sub_menus` (`id`, `sidebar_menu_id`, `menu`, `key`, `lang_key`, `url`, `level`, `access_permissions`, `permission_group_id`, `activate_controller`, `activate_methods`, `addon_permission`, `is_active`, `created_at`, `updated_at`) VALUES (287,43,'Exam Events','coe_event','coe_exam_events','coe/coe_event',1,'("coe_event", "can_view")',1000,'coe_event','index,add,save,edit,update,delete,manage,save_batch,update_batch,delete_batch',NULL,1,'2026-05-10 01:58:00','2026-05-10 01:58:00');
+INSERT INTO `sidebar_sub_menus` (`id`, `sidebar_menu_id`, `menu`, `key`, `lang_key`, `url`, `level`, `access_permissions`, `permission_group_id`, `activate_controller`, `activate_methods`, `addon_permission`, `is_active`, `created_at`, `updated_at`) VALUES (288,43,'Eligibility Check','coe_eligibility','coe_eligibility','coe/coe_eligibility',1,'(\'coe_eligibility\', \'can_view\')',1000,'coe_eligibility','index',NULL,1,'2026-05-10 01:58:00','2026-05-10 01:58:00');
+INSERT INTO `sidebar_sub_menus` (`id`, `sidebar_menu_id`, `menu`, `key`, `lang_key`, `url`, `level`, `access_permissions`, `permission_group_id`, `activate_controller`, `activate_methods`, `addon_permission`, `is_active`, `created_at`, `updated_at`) VALUES (289,43,'Hall Tickets','coe_hallticket','coe_hallticket','coe/coe_hallticket',1,'(\'coe_hallticket\', \'can_view\')',1000,'coe_hallticket','index',NULL,1,'2026-05-10 01:58:00','2026-05-10 01:58:00');
+INSERT INTO `sidebar_sub_menus` (`id`, `sidebar_menu_id`, `menu`, `key`, `lang_key`, `url`, `level`, `access_permissions`, `permission_group_id`, `activate_controller`, `activate_methods`, `addon_permission`, `is_active`, `created_at`, `updated_at`) VALUES (290,43,'Nominal Roll','coe_nominalroll','coe_nominal_roll','coe/coe_nominalroll',1,'(\'coe_nominalroll\', \'can_view\')',1000,'coe_nominalroll','index',NULL,1,'2026-05-10 01:58:00','2026-05-10 01:58:00');
+INSERT INTO `sidebar_sub_menus` (`id`, `sidebar_menu_id`, `menu`, `key`, `lang_key`, `url`, `level`, `access_permissions`, `permission_group_id`, `activate_controller`, `activate_methods`, `addon_permission`, `is_active`, `created_at`, `updated_at`) VALUES (291,43,'Seating Arrangement','coe_seating','coe_seating','coe/coe_seating',1,'(\'coe_seating\', \'can_view\')',1000,'coe_seating','index',NULL,1,'2026-05-10 01:58:00','2026-05-10 01:58:00');
+INSERT INTO `sidebar_sub_menus` (`id`, `sidebar_menu_id`, `menu`, `key`, `lang_key`, `url`, `level`, `access_permissions`, `permission_group_id`, `activate_controller`, `activate_methods`, `addon_permission`, `is_active`, `created_at`, `updated_at`) VALUES (292,43,'Invigilation Duty','coe_invigilation','coe_invigilation','coe/coe_invigilation',1,'(\'coe_invigilation\', \'can_view\')',1000,'coe_invigilation','index',NULL,1,'2026-05-10 01:58:00','2026-05-10 01:58:00');
+INSERT INTO `sidebar_sub_menus` (`id`, `sidebar_menu_id`, `menu`, `key`, `lang_key`, `url`, `level`, `access_permissions`, `permission_group_id`, `activate_controller`, `activate_methods`, `addon_permission`, `is_active`, `created_at`, `updated_at`) VALUES (293,43,'Question Paper Dist.','coe_qpd','coe_qpd','coe/coe_qpd',1,'(\'coe_qpd\', \'can_view\')',2000,'coe_qpd','index',NULL,1,'2026-05-10 05:38:04','2026-05-10 05:38:04');
+INSERT INTO `sidebar_sub_menus` (`id`, `sidebar_menu_id`, `menu`, `key`, `lang_key`, `url`, `level`, `access_permissions`, `permission_group_id`, `activate_controller`, `activate_methods`, `addon_permission`, `is_active`, `created_at`, `updated_at`) VALUES (294,43,'Exam Attendance','coe_attendance','coe_attendance','coe/coe_attendance',1,'(\'coe_attendance\', \'can_view\')',2000,'coe_attendance','index',NULL,1,'2026-05-10 05:38:04','2026-05-10 05:38:04');
+INSERT INTO `sidebar_sub_menus` (`id`, `sidebar_menu_id`, `menu`, `key`, `lang_key`, `url`, `level`, `access_permissions`, `permission_group_id`, `activate_controller`, `activate_methods`, `addon_permission`, `is_active`, `created_at`, `updated_at`) VALUES (295,43,'UFM / Malpractice','coe_ufm','coe_ufm','coe/coe_ufm',1,'(\'coe_ufm\', \'can_view\')',2000,'coe_ufm','index',NULL,1,'2026-05-10 05:38:04','2026-05-10 05:38:04');
+INSERT INTO `sidebar_sub_menus` (`id`, `sidebar_menu_id`, `menu`, `key`, `lang_key`, `url`, `level`, `access_permissions`, `permission_group_id`, `activate_controller`, `activate_methods`, `addon_permission`, `is_active`, `created_at`, `updated_at`) VALUES (296,43,'Answer Scripts','coe_answer_scripts',NULL,'coe/coe_answer_scripts',2,'(\'coe_answer_scripts\', \'can_view\')',2000,'coe_answer_scripts','index',NULL,1,'2026-05-10 21:37:42','2026-05-10 21:37:42');
+INSERT INTO `sidebar_sub_menus` (`id`, `sidebar_menu_id`, `menu`, `key`, `lang_key`, `url`, `level`, `access_permissions`, `permission_group_id`, `activate_controller`, `activate_methods`, `addon_permission`, `is_active`, `created_at`, `updated_at`) VALUES (297,43,'OSM Marking','coe_osm',NULL,'coe/coe_osm',2,'(\'coe_osm\', \'can_view\')',2000,'coe_osm','index',NULL,1,'2026-05-10 21:37:42','2026-05-10 21:37:42');
+INSERT INTO `sidebar_sub_menus` (`id`, `sidebar_menu_id`, `menu`, `key`, `lang_key`, `url`, `level`, `access_permissions`, `permission_group_id`, `activate_controller`, `activate_methods`, `addon_permission`, `is_active`, `created_at`, `updated_at`) VALUES (298,43,'Revaluation','coe_revaluation',NULL,'coe/coe_revaluation',2,'(\'coe_revaluation\', \'can_view\')',2000,'coe_revaluation','index',NULL,1,'2026-05-10 21:37:42','2026-05-10 21:37:42');
+INSERT INTO `sidebar_sub_menus` (`id`, `sidebar_menu_id`, `menu`, `key`, `lang_key`, `url`, `level`, `access_permissions`, `permission_group_id`, `activate_controller`, `activate_methods`, `addon_permission`, `is_active`, `created_at`, `updated_at`) VALUES (299,43,'Moderation','coe_moderation',NULL,'coe/coe_moderation',2,'(\'coe_moderation\', \'can_view\')',2000,'coe_moderation','index',NULL,1,'2026-05-10 21:37:42','2026-05-10 21:37:42');
+INSERT INTO `sidebar_sub_menus` (`id`, `sidebar_menu_id`, `menu`, `key`, `lang_key`, `url`, `level`, `access_permissions`, `permission_group_id`, `activate_controller`, `activate_methods`, `addon_permission`, `is_active`, `created_at`, `updated_at`) VALUES (300,43,'Marks & Results','coe_marks',NULL,'coe/coe_marks',2,'(\'coe_marks\', \'can_view\')',2000,'coe_marks','index',NULL,1,'2026-05-10 21:37:42','2026-05-10 21:37:42');
+INSERT INTO `sidebar_sub_menus` (`id`, `sidebar_menu_id`, `menu`, `key`, `lang_key`, `url`, `level`, `access_permissions`, `permission_group_id`, `activate_controller`, `activate_methods`, `addon_permission`, `is_active`, `created_at`, `updated_at`) VALUES (301,43,'Result Publication','coe_results',NULL,'coe/coe_results',2,'(\'coe_results\', \'can_view\')',2000,'coe_results','index',NULL,1,'2026-05-10 21:37:42','2026-05-10 21:37:42');
+INSERT INTO `sidebar_sub_menus` (`id`, `sidebar_menu_id`, `menu`, `key`, `lang_key`, `url`, `level`, `access_permissions`, `permission_group_id`, `activate_controller`, `activate_methods`, `addon_permission`, `is_active`, `created_at`, `updated_at`) VALUES (302,43,'CoE Dashboard','coe_dashboard','coe_dashboard','coe/coe_dashboard',NULL,'(\'coe_dashboard\', \'can_view\')',NULL,'coe_dashboard','index',NULL,1,'2026-05-10 23:08:07','2026-05-10 23:08:07');
+INSERT INTO `sidebar_sub_menus` (`id`, `sidebar_menu_id`, `menu`, `key`, `lang_key`, `url`, `level`, `access_permissions`, `permission_group_id`, `activate_controller`, `activate_methods`, `addon_permission`, `is_active`, `created_at`, `updated_at`) VALUES (303,43,'Arrear Register','coe_arrear','coe_arrear','coe/coe_arrear',4,'(\'coe_arrear\', \'can_view\')',NULL,'coe_arrear','index,student',NULL,1,'2026-05-10 23:08:07','2026-05-10 23:08:07');
+INSERT INTO `sidebar_sub_menus` (`id`, `sidebar_menu_id`, `menu`, `key`, `lang_key`, `url`, `level`, `access_permissions`, `permission_group_id`, `activate_controller`, `activate_methods`, `addon_permission`, `is_active`, `created_at`, `updated_at`) VALUES (306,43,'Exam Applications','coe_application','coe_exam_applications','coe/coe_application',1,'("coe_application", "can_view")',1000,'coe_application','index,view,generate,mark_end_semester',NULL,1,'2026-05-11 21:39:28','2026-05-11 21:39:28');
 /*!40000 ALTER TABLE `sidebar_sub_menus` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -11340,6 +11386,424 @@ CREATE TABLE IF NOT EXISTS `student_incident_comments` (
   `student_id` int DEFAULT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--
+-- CoE (Controller of Examinations) tables
+--
+
+CREATE TABLE IF NOT EXISTS `coe_answer_scripts` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `exam_group_class_batch_exam_id` int NOT NULL,
+  `coe_hall_ticket_id` int NOT NULL,
+  `seating_room_id` int DEFAULT NULL,
+  `subject_id` int DEFAULT NULL,
+  `exam_date` date DEFAULT NULL,
+  `session_slot` enum('FN','AN') DEFAULT 'FN',
+  `barcode_token` varchar(64) DEFAULT NULL,
+  `scanned_filename` varchar(255) DEFAULT NULL,
+  `scan_status` enum('pending','scanned','uploaded') NOT NULL DEFAULT 'pending',
+  `page_count` smallint DEFAULT NULL,
+  `uploaded_by` int DEFAULT NULL,
+  `uploaded_at` datetime DEFAULT NULL,
+  `remarks` text,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `barcode_token` (`barcode_token`),
+  KEY `idx_batch_exam` (`exam_group_class_batch_exam_id`),
+  KEY `idx_hall_ticket` (`coe_hall_ticket_id`),
+  KEY `idx_subject` (`subject_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE IF NOT EXISTS `coe_audit_log` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `action` varchar(100) NOT NULL,
+  `entity` varchar(50) NOT NULL,
+  `entity_id` int DEFAULT NULL,
+  `old_value` text,
+  `new_value` text,
+  `performed_by` int NOT NULL,
+  `ip_address` varchar(45) DEFAULT NULL,
+  `performed_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_coe_audit_entity` (`entity`,`entity_id`),
+  KEY `idx_coe_audit_staff` (`performed_by`),
+  KEY `idx_coe_audit_date` (`performed_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='CoE: tamper-proof audit log';
+
+CREATE TABLE IF NOT EXISTS `coe_eligibility_overrides` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `application_id` int NOT NULL,
+  `override_reason` text NOT NULL,
+  `override_by` int NOT NULL,
+  `override_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_coe_override_app` (`application_id`),
+  KEY `idx_coe_override_staff` (`override_by`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='CoE: manual eligibility override log';
+
+CREATE TABLE IF NOT EXISTS `coe_exam_applications` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `exam_group_id` int NOT NULL,
+  `exam_group_class_batch_exam_id` int NOT NULL,
+  `student_id` int NOT NULL,
+  `student_session_id` int NOT NULL,
+  `subject_id` int NOT NULL,
+  `is_arrear` tinyint(1) NOT NULL DEFAULT '0',
+  `cbcs_category` enum('core','elective','open_elective','audit') NOT NULL DEFAULT 'core',
+  `application_status` enum('pending','eligible','ineligible','override_eligible') NOT NULL DEFAULT 'pending',
+  `ineligible_reason` enum('attendance','fee_dues','both') DEFAULT NULL,
+  `attendance_pct` decimal(5,2) DEFAULT NULL,
+  `applied_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `processed_at` timestamp NULL DEFAULT NULL,
+  `processed_by` int DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_coe_app_student_subject` (`exam_group_class_batch_exam_id`,`student_id`,`subject_id`),
+  KEY `idx_coe_app_exam_group` (`exam_group_id`),
+  KEY `idx_coe_app_student` (`student_id`),
+  KEY `idx_coe_app_status` (`application_status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='CoE: per-subject exam applications per student';
+
+CREATE TABLE IF NOT EXISTS `coe_exam_attendance` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `coe_hall_ticket_id` int NOT NULL,
+  `seating_room_id` int NOT NULL,
+  `exam_date` date NOT NULL,
+  `session_slot` enum('FN','AN') NOT NULL DEFAULT 'FN',
+  `is_present` tinyint(1) DEFAULT '0',
+  `marked_by` int DEFAULT NULL,
+  `marked_at` datetime DEFAULT NULL,
+  `qr_scanned` tinyint(1) DEFAULT '0',
+  `remarks` text,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_attendance` (`coe_hall_ticket_id`,`exam_date`,`session_slot`),
+  KEY `idx_att_room` (`seating_room_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE IF NOT EXISTS `coe_exam_regulations` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `session_id` int NOT NULL,
+  `class_id` int NOT NULL,
+  `department_id` int DEFAULT NULL,
+  `regulation_type` enum('affiliated','autonomous') NOT NULL DEFAULT 'affiliated',
+  `affiliated_university` varchar(255) NOT NULL DEFAULT 'Anna University',
+  `min_attendance_pct` decimal(5,2) NOT NULL DEFAULT '75.00',
+  `internal_marks_pct` decimal(5,2) NOT NULL DEFAULT '25.00',
+  `external_marks_pct` decimal(5,2) NOT NULL DEFAULT '75.00',
+  `pass_marks_pct` decimal(5,2) NOT NULL DEFAULT '50.00',
+  `has_credit_system` tinyint(1) NOT NULL DEFAULT '1',
+  `grading_scheme` enum('ten_point','seven_point','percentage') NOT NULL DEFAULT 'ten_point',
+  `arrear_allowed` tinyint(1) NOT NULL DEFAULT '1',
+  `supplementary_allowed` tinyint(1) NOT NULL DEFAULT '0',
+  `check_fee_dues` tinyint(1) NOT NULL DEFAULT '0',
+  `is_active` tinyint(1) NOT NULL DEFAULT '1',
+  `created_by` int DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_coe_reg_session_class` (`session_id`,`class_id`),
+  KEY `idx_coe_reg_session` (`session_id`),
+  KEY `idx_coe_reg_class` (`class_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='CoE: exam regulations config per programme per session';
+
+CREATE TABLE IF NOT EXISTS `coe_hall_tickets` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `exam_group_id` int NOT NULL,
+  `exam_group_class_batch_exam_id` int NOT NULL,
+  `student_id` int NOT NULL,
+  `student_session_id` int NOT NULL,
+  `hall_ticket_no` varchar(30) NOT NULL,
+  `qr_hash` varchar(64) NOT NULL,
+  `is_valid` tinyint(1) NOT NULL DEFAULT '1',
+  `generated_by` int DEFAULT NULL,
+  `generated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `printed_at` timestamp NULL DEFAULT NULL,
+  `downloaded_count` int NOT NULL DEFAULT '0',
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_coe_ht_student_exam` (`exam_group_class_batch_exam_id`,`student_id`),
+  UNIQUE KEY `uq_coe_ht_no` (`hall_ticket_no`),
+  UNIQUE KEY `uq_coe_ht_qr` (`qr_hash`),
+  KEY `idx_coe_ht_exam_group` (`exam_group_id`),
+  KEY `idx_coe_ht_student` (`student_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='CoE: generated hall tickets with QR hashes';
+
+CREATE TABLE IF NOT EXISTS `coe_invigilation_duties` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `seating_room_id` int NOT NULL,
+  `staff_id` int NOT NULL,
+  `duty_type` enum('chief_superintendent','invigilator','deputy','flying_squad') NOT NULL DEFAULT 'invigilator',
+  `remarks` text,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_coe_inv_room_staff` (`seating_room_id`,`staff_id`),
+  KEY `idx_coe_inv_staff` (`staff_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='CoE: invigilation duty assignments per room';
+
+CREATE TABLE IF NOT EXISTS `coe_moderation_rules` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `exam_group_class_batch_exam_id` int NOT NULL,
+  `subject_id` int DEFAULT NULL,
+  `class_id` int DEFAULT NULL,
+  `rule_type` enum('grace','moderation','normalisation','scaling') NOT NULL,
+  `value_type` enum('flat','percentage') NOT NULL DEFAULT 'flat',
+  `value` decimal(6,2) NOT NULL DEFAULT '0.00',
+  `max_cap` decimal(5,2) DEFAULT NULL,
+  `applies_to` enum('external','internal','total') NOT NULL DEFAULT 'external',
+  `is_applied` tinyint(1) NOT NULL DEFAULT '0',
+  `applied_by` int DEFAULT NULL,
+  `applied_at` datetime DEFAULT NULL,
+  `reason` text,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_batch_exam` (`exam_group_class_batch_exam_id`),
+  KEY `idx_subject` (`subject_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE IF NOT EXISTS `coe_nominal_rolls` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `exam_group_id` int NOT NULL,
+  `exam_group_class_batch_exam_id` int NOT NULL,
+  `subject_id` int NOT NULL,
+  `exam_date` date NOT NULL,
+  `total_students` int NOT NULL DEFAULT '0',
+  `generated_by` int NOT NULL,
+  `generated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `is_final` tinyint(1) NOT NULL DEFAULT '0',
+  `roll_snapshot` longtext,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_coe_nr_exam` (`exam_group_class_batch_exam_id`),
+  KEY `idx_coe_nr_subject` (`subject_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='CoE: nominal roll snapshots per subject per exam';
+
+CREATE TABLE IF NOT EXISTS `coe_osm_marks` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `osm_script_id` int NOT NULL,
+  `question_no` tinyint unsigned NOT NULL,
+  `sub_question` varchar(5) DEFAULT NULL,
+  `max_marks` decimal(5,2) NOT NULL DEFAULT '0.00',
+  `marks_awarded` decimal(5,2) NOT NULL DEFAULT '0.00',
+  `awarded_by` int DEFAULT NULL,
+  `awarded_at` datetime DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_osm_question` (`osm_script_id`,`question_no`,`sub_question`),
+  KEY `idx_osm` (`osm_script_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE IF NOT EXISTS `coe_osm_scripts` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `answer_script_id` int NOT NULL,
+  `assigned_evaluator` int DEFAULT NULL,
+  `stage` tinyint(1) NOT NULL DEFAULT '1',
+  `total_marks` decimal(6,2) DEFAULT NULL,
+  `status` enum('pending','assigned','marking','done','locked') NOT NULL DEFAULT 'pending',
+  `assigned_at` datetime DEFAULT NULL,
+  `submitted_at` datetime DEFAULT NULL,
+  `locked_by` int DEFAULT NULL,
+  `locked_at` datetime DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_script` (`answer_script_id`),
+  KEY `idx_evaluator` (`assigned_evaluator`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE IF NOT EXISTS `coe_qpd_papers` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `exam_group_class_batch_exam_id` int NOT NULL,
+  `subject_id` int NOT NULL,
+  `original_filename` varchar(500) NOT NULL,
+  `stored_filename` varchar(500) NOT NULL,
+  `encryption_key_iv` varchar(64) NOT NULL,
+  `unlock_at` datetime NOT NULL,
+  `download_count` int DEFAULT '0',
+  `is_distributed` tinyint(1) DEFAULT '0',
+  `distributed_at` datetime DEFAULT NULL,
+  `distributed_by` int DEFAULT NULL,
+  `created_by` int DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_qpd_batch` (`exam_group_class_batch_exam_id`),
+  KEY `idx_qpd_subject` (`subject_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE IF NOT EXISTS `coe_revaluation_assignments` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `revaluation_request_id` int NOT NULL,
+  `assigned_evaluator` int DEFAULT NULL,
+  `assigned_by` int DEFAULT NULL,
+  `assigned_at` datetime DEFAULT NULL,
+  `original_marks` decimal(5,2) DEFAULT NULL,
+  `revised_marks` decimal(5,2) DEFAULT NULL,
+  `remarks` text,
+  `status` enum('assigned','completed','returned') NOT NULL DEFAULT 'assigned',
+  `completed_at` datetime DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_request` (`revaluation_request_id`),
+  KEY `idx_evaluator` (`assigned_evaluator`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE IF NOT EXISTS `coe_revaluation_requests` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `student_id` int NOT NULL,
+  `exam_group_class_batch_exam_id` int NOT NULL,
+  `subject_id` int NOT NULL,
+  `original_marks` decimal(5,2) DEFAULT NULL,
+  `request_date` date NOT NULL,
+  `payment_status` enum('pending','paid','waived') NOT NULL DEFAULT 'pending',
+  `payment_ref` varchar(100) DEFAULT NULL,
+  `payment_amount` decimal(8,2) DEFAULT NULL,
+  `payment_date` date DEFAULT NULL,
+  `stage` tinyint(1) NOT NULL DEFAULT '1',
+  `status` enum('pending','assigned','completed','rejected') NOT NULL DEFAULT 'pending',
+  `remarks` text,
+  `created_by` int DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_student` (`student_id`),
+  KEY `idx_batch_exam` (`exam_group_class_batch_exam_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE IF NOT EXISTS `coe_seating_assignments` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `seating_room_id` int NOT NULL,
+  `student_id` int NOT NULL,
+  `student_session_id` int NOT NULL,
+  `hall_ticket_id` int DEFAULT NULL,
+  `seat_number` varchar(20) NOT NULL,
+  `is_present` tinyint(1) NOT NULL DEFAULT '0',
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_coe_seat` (`seating_room_id`,`seat_number`),
+  UNIQUE KEY `uq_coe_seat_student` (`seating_room_id`,`student_id`),
+  KEY `idx_coe_sa_student` (`student_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='CoE: student seat assignments per room per exam';
+
+CREATE TABLE IF NOT EXISTS `coe_seating_rooms` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `exam_group_id` int NOT NULL,
+  `exam_group_class_batch_exam_id` int NOT NULL,
+  `hall_id` int NOT NULL,
+  `subject_id` int DEFAULT NULL,
+  `exam_date` date NOT NULL,
+  `session_slot` enum('FN','AN') NOT NULL DEFAULT 'FN',
+  `capacity_override` int DEFAULT NULL,
+  `chief_superintendent_id` int DEFAULT NULL,
+  `is_active` tinyint(1) NOT NULL DEFAULT '1',
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_coe_sr_exam` (`exam_group_class_batch_exam_id`),
+  KEY `idx_coe_sr_hall` (`hall_id`),
+  KEY `idx_coe_sr_date` (`exam_date`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='CoE: seating rooms — halls assigned to exam dates';
+
+CREATE TABLE IF NOT EXISTS `coe_sgpa_summary` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `student_id` int NOT NULL,
+  `exam_group_class_batch_exam_id` int NOT NULL,
+  `class_id` int DEFAULT NULL,
+  `total_credits_earned` decimal(6,2) DEFAULT NULL,
+  `total_credits_registered` decimal(6,2) DEFAULT NULL,
+  `sgpa` decimal(5,2) DEFAULT NULL,
+  `cgpa` decimal(5,2) DEFAULT NULL,
+  `arrear_count` tinyint unsigned DEFAULT '0',
+  `result_status` enum('pass','fail','withheld') NOT NULL DEFAULT 'fail',
+  `computed_at` datetime DEFAULT NULL,
+  `is_published` tinyint(1) NOT NULL DEFAULT '0',
+  `published_at` datetime DEFAULT NULL,
+  `published_by` int DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_student_exam` (`student_id`,`exam_group_class_batch_exam_id`),
+  KEY `idx_student` (`student_id`),
+  KEY `idx_batch_exam` (`exam_group_class_batch_exam_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE IF NOT EXISTS `coe_student_results` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `student_id` int NOT NULL,
+  `exam_group_class_batch_exam_id` int NOT NULL,
+  `subject_id` int NOT NULL,
+  `class_id` int DEFAULT NULL,
+  `internal_marks` decimal(5,2) DEFAULT NULL,
+  `external_marks` decimal(5,2) DEFAULT NULL,
+  `total_marks` decimal(5,2) DEFAULT NULL,
+  `max_internal` decimal(5,2) DEFAULT '30.00',
+  `max_external` decimal(5,2) DEFAULT '70.00',
+  `max_total` decimal(5,2) DEFAULT '100.00',
+  `credits` tinyint unsigned DEFAULT NULL,
+  `grade` varchar(4) DEFAULT NULL,
+  `grade_points` decimal(4,2) DEFAULT NULL,
+  `result_status` enum('pass','fail','absent','withheld','detained') NOT NULL DEFAULT 'fail',
+  `is_arrear` tinyint(1) NOT NULL DEFAULT '0',
+  `moderation_applied` decimal(5,2) DEFAULT '0.00',
+  `is_published` tinyint(1) NOT NULL DEFAULT '0',
+  `published_at` datetime DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_student_subject` (`student_id`,`exam_group_class_batch_exam_id`,`subject_id`),
+  KEY `idx_student` (`student_id`),
+  KEY `idx_batch_exam` (`exam_group_class_batch_exam_id`),
+  KEY `idx_published` (`is_published`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE IF NOT EXISTS `coe_subject_config` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `exam_group_class_batch_exam_id` int NOT NULL,
+  `subject_id` int NOT NULL,
+  `credits` tinyint unsigned NOT NULL DEFAULT '3',
+  `max_internal` decimal(5,2) NOT NULL DEFAULT '30.00',
+  `max_external` decimal(5,2) NOT NULL DEFAULT '70.00',
+  `pass_internal` decimal(5,2) NOT NULL DEFAULT '12.00',
+  `pass_external` decimal(5,2) NOT NULL DEFAULT '28.00',
+  `pass_total` decimal(5,2) NOT NULL DEFAULT '50.00',
+  `scheme` enum('CBCS','NEP2020') NOT NULL DEFAULT 'NEP2020',
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_exam_subject` (`exam_group_class_batch_exam_id`,`subject_id`),
+  KEY `idx_batch_exam` (`exam_group_class_batch_exam_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE IF NOT EXISTS `coe_ufm_incidents` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `coe_hall_ticket_id` int NOT NULL,
+  `seating_room_id` int NOT NULL,
+  `exam_date` date NOT NULL,
+  `session_slot` enum('FN','AN') NOT NULL DEFAULT 'FN',
+  `incident_type` enum('copying','mobile_phone','impersonation','unfair_material','communication','other') NOT NULL,
+  `description` text,
+  `material_seized` text,
+  `reported_by` int NOT NULL,
+  `witness_staff_id` int DEFAULT NULL,
+  `status` enum('reported','under_review','penalised','dismissed') DEFAULT 'reported',
+  `penalty` text,
+  `reviewed_by` int DEFAULT NULL,
+  `reviewed_at` datetime DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_ufm_ticket` (`coe_hall_ticket_id`),
+  KEY `idx_ufm_room` (`seating_room_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
 /*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
