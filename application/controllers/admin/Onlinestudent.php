@@ -1295,16 +1295,16 @@ class Onlinestudent extends Admin_Controller
             if ($ug_details) {
                 $ug_data = array(
                     'id' => $ug_details['id'],
-                    'school_name' => $school_name,
-                    'tenth_passing' => $tenth_passing,
+                    'school_name_x' => $school_name,
+                    'passing_year_x' => $tenth_passing,
                 );
                 $this->db->where('id', $ug_data['id']);
                 $this->db->update('online_admission_ug_details', $ug_data);
             } elseif ($school_name !== '' || $tenth_passing !== '') {
                 $ug_data = array(
                     'online_admission_id' => $id,
-                    'school_name' => $school_name,
-                    'tenth_passing' => $tenth_passing,
+                    'school_name_x' => $school_name,
+                    'passing_year_x' => $tenth_passing,
                 );
                 $this->db->insert('online_admission_ug_details', $ug_data);
             }
