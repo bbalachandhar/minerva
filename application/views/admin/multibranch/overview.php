@@ -551,7 +551,10 @@ function loadFees() {
             );
         }
 
-        // Chart
+        $('#fees-chart-skeleton').hide(); $('#fees-table-skeleton').hide();
+        $('#fees-chart-box').show();      $('#fees-table-box').show();
+
+        // Chart — must build AFTER box is visible so canvas has dimensions
         if (resp.chart) {
             var c=resp.chart;
             buildGroupedBar(
@@ -564,9 +567,6 @@ function loadFees() {
                 ]
             );
         }
-
-        $('#fees-chart-skeleton').hide(); $('#fees-table-skeleton').hide();
-        $('#fees-chart-box').show();      $('#fees-table-box').show();
 
     }).fail(function(){
         $('#fees-chart-skeleton').html('<p class="mcc-load-err">Failed to load fee data.</p>');
@@ -628,6 +628,10 @@ function loadHR() {
             mkStatCard('#f39c12','Attendance Today', attPct)
         );
 
+        $('#hr-chart-skeleton').hide(); $('#hr-table-skeleton').hide();
+        $('#hr-chart-box').show();      $('#hr-table-box').show();
+
+        // Chart — must build AFTER box is visible so canvas has dimensions
         if (resp.chart) {
             var c=resp.chart;
             buildGroupedBar(
@@ -639,9 +643,6 @@ function loadHR() {
                 ]
             );
         }
-
-        $('#hr-chart-skeleton').hide(); $('#hr-table-skeleton').hide();
-        $('#hr-chart-box').show();      $('#hr-table-box').show();
 
     }).fail(function(){
         $('#hr-chart-skeleton').html('<p class="mcc-load-err">Failed to load HR data.</p>');
@@ -708,6 +709,10 @@ function loadAssets() {
         );
         $('#assets-institution-panels').html(panelsHtml);
 
+        $('#assets-chart-skeleton').hide(); $('#assets-table-skeleton').hide();
+        $('#assets-chart-box').show();      $('#assets-table-box').show();
+
+        // Chart — must build AFTER box is visible so canvas has dimensions
         if (resp.chart) {
             var c=resp.chart;
             new Chart(document.getElementById('assets_chart').getContext('2d'), {
@@ -729,9 +734,6 @@ function loadAssets() {
                 }
             });
         }
-
-        $('#assets-chart-skeleton').hide(); $('#assets-table-skeleton').hide();
-        $('#assets-chart-box').show();      $('#assets-table-box').show();
 
     }).fail(function(){
         $('#assets-chart-skeleton').html('<p class="mcc-load-err">Failed to load asset data.</p>');
