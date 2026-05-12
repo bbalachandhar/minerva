@@ -2097,6 +2097,33 @@ $onepay_result = check_in_array('onepay', $paymentlist);
                                                         <span class="help-block" style="font-size:11px;color:#888;">UAT &rarr; <code>uat1.billdesk.com</code> &nbsp;|&nbsp; Production &rarr; <code>api.billdesk.com</code></span>
                                                     </div>
                                                 </div>
+                                                <!-- BillDesk Charge Mode -->
+                                                <div class="form-group">
+                                                    <label class="col-sm-5 control-label">Processing Charges Collected By</label>
+                                                    <div class="col-sm-7">
+                                                        <div class="row">
+                                                            <div class="col-sm-6">
+                                                                <label class="radio-inline">
+                                                                    <input type="radio" name="billdesk_charge_mode" value="gateway"
+                                                                        <?php echo (!isset($billdesk_result->billdesk_charge_mode) || $billdesk_result->billdesk_charge_mode === 'gateway') ? 'checked="checked"' : ''; ?>>
+                                                                    BillDesk (at checkout)
+                                                                </label>
+                                                            </div>
+                                                            <div class="col-sm-6">
+                                                                <label class="radio-inline">
+                                                                    <input type="radio" name="billdesk_charge_mode" value="school"
+                                                                        <?php echo (isset($billdesk_result->billdesk_charge_mode) && $billdesk_result->billdesk_charge_mode === 'school') ? 'checked="checked"' : ''; ?>>
+                                                                    School (added to amount)
+                                                                </label>
+                                                            </div>
+                                                        </div>
+                                                        <span class="help-block" style="font-size:11px;color:#888;">
+                                                            <strong>BillDesk:</strong> We send only the base fee — BillDesk adds convenience charges on their payment page (recommended for most contracts).<br>
+                                                            <strong>School:</strong> We calculate charges from the slab table below and add them to the amount before sending to BillDesk.
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <!-- /BillDesk Charge Mode -->
                                                   <!-- processing charge -->
                                                   <div class="form-group">
                                                     <label class="control-label col-lg-5 col-md-5 col-sm-5 col-xs-12" for="exampleInputEmail1">

@@ -4716,6 +4716,7 @@ CREATE TABLE `payment_settings` (
   `paytm_industrytype` varchar(255) NOT NULL,
   `charge_type` varchar(255) DEFAULT NULL,
   `charge_value` varchar(255) DEFAULT NULL,
+  `billdesk_charge_mode` varchar(20) NOT NULL DEFAULT 'gateway' COMMENT 'gateway=BillDesk collects fee on their page; school=we add charge to order amount',
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)

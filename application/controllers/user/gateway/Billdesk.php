@@ -75,9 +75,12 @@ class Billdesk extends Student_Controller
             redirect($_SERVER['HTTP_REFERER'] ?? base_url());
         }
 
-        // Server-side fee re-computation when using per-method slab pricing
+        // Server-side fee re-computation — only when school is collecting the charge (mode = 'school').
+        // When mode = 'gateway', BillDesk adds its own charge on their payment page, so we send
+        // the base amount only.  Sending a charge from our end in gateway mode causes double-charging.
+        $charge_mode = $data['params']['billdesk_charge_mode'] ?? 'gateway';
         $posted_payment_method = $this->input->post('billdesk_payment_method');
-        if (!empty($posted_payment_method)) {
+        if ($charge_mode === 'school' && !empty($posted_payment_method)) {
             $slabs      = $this->paymentsetting_model->getBilldeskSlabs();
             $base_amt   = (float)($data['params']['total'] ?? 0)
                         + (float)($data['params']['fine_amount_balance'] ?? 0)
@@ -101,6 +104,13 @@ class Billdesk extends Student_Controller
             $data['params']['billdesk_payment_method']   = $posted_payment_method;
             $this->session->set_userdata('params', $data['params']);
             log_message('error', 'BILLDESK_SLAB: method=' . $posted_payment_method . ' base=' . $base_amt . ' fee=' . $computed_charge);
+        } else {
+            // Gateway mode — zero out any charge so it is never added to the order amount
+            $data['params']['gateway_processing_charge'] = 0.00;
+            if (!empty($posted_payment_method)) {
+                $data['params']['billdesk_payment_method'] = $posted_payment_method;
+            }
+            $this->session->set_userdata('params', $data['params']);
         }
 
         $module = $data['params']['item_type'] ?? 'fees'; // Determine module early

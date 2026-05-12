@@ -376,11 +376,10 @@ class Payment extends Studentgateway_Controller
                                             $this->session->set_flashdata('error', '<div class="alert alert-danger">Billdesk settings not available</div>');
                                             redirect($_SERVER['HTTP_REFERER']);
                                         } else {
-                                            // For Billdesk, charge is computed per-method at checkout — zero here
                                             $params['gateway_processing_charge'] = 0;
                                             $params['processing_charge_type']    = 'slab';
-                                            // Pass active slabs so checkout view can build method selector + JS fee calc
-                                            $params['billdesk_slabs'] = $this->paymentsetting_model->getBilldeskSlabs();
+                                            $params['billdesk_slabs']            = $this->paymentsetting_model->getBilldeskSlabs();
+                                            $params['billdesk_charge_mode']      = isset($pay_method->billdesk_charge_mode) ? $pay_method->billdesk_charge_mode : 'gateway';
                                             $this->session->set_userdata("params", $params);
                                             redirect(base_url("user/gateway/billdesk"));
                                         }
@@ -837,10 +836,10 @@ class Payment extends Studentgateway_Controller
                             $this->session->set_flashdata('error', '<div class="alert alert-danger">Billdesk settings not available</div>');
                             redirect($_SERVER['HTTP_REFERER']);
                         } else {
-                            // For Billdesk, charge is computed per-method at checkout — zero here
                             $params['gateway_processing_charge'] = 0;
                             $params['processing_charge_type']    = 'slab';
-                            $params['billdesk_slabs'] = $this->paymentsetting_model->getBilldeskSlabs();
+                            $params['billdesk_slabs']            = $this->paymentsetting_model->getBilldeskSlabs();
+                            $params['billdesk_charge_mode']      = isset($pay_method->billdesk_charge_mode) ? $pay_method->billdesk_charge_mode : 'gateway';
                             $this->session->set_userdata("params", $params);
                             redirect(base_url("user/gateway/billdesk"));
                         }

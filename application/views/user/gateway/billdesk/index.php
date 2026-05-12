@@ -142,24 +142,35 @@
                                     foreach ($params['billdesk_slabs'] as $s) {
                                         if ($s->is_active) {
                                             $slabs_for_js[] = [
-                                                'key'             => $s->payment_method,
-                                                'label'           => $s->label,
-                                                'charge_type'     => $s->charge_type,
-                                                'charge_value'    => (float)$s->charge_value,
-                                                'amount_threshold'=> (float)$s->amount_threshold,
+                                                'key'                => $s->payment_method,
+                                                'label'              => $s->label,
+                                                'charge_type'        => $s->charge_type,
+                                                'charge_value'       => (float)$s->charge_value,
+                                                'amount_threshold'   => (float)$s->amount_threshold,
                                                 'charge_value_above' => (float)$s->charge_value_above,
                                             ];
                                         }
                                     }
                                 }
-                                $base_amount = ($params['total'] ?? 0) + ($params['fine_amount_balance'] ?? 0) - ($params['applied_fee_discount'] ?? 0);
-                                $currency_sym = $setting[0]['currency_symbol'];
+                                $base_amount   = ($params['total'] ?? 0) + ($params['fine_amount_balance'] ?? 0) - ($params['applied_fee_discount'] ?? 0);
+                                $currency_sym  = $setting[0]['currency_symbol'];
+                                $charge_mode   = $params['billdesk_charge_mode'] ?? 'gateway';
+                                $gateway_mode  = ($charge_mode === 'gateway'); // BillDesk adds fee on their page
                                 ?>
 
                                 <?php if (!empty($slabs_for_js)): ?>
-                                <!-- Payment Method Selector -->
+                                <!-- Payment Method Info / Selector -->
                                 <div style="margin-bottom:12px;">
-                                    <p style="font-weight:600;margin-bottom:8px;font-size:13px;color:#444;">Select Payment Method:</p>
+                                    <?php if ($gateway_mode): ?>
+                                        <p style="font-weight:600;margin-bottom:6px;font-size:13px;color:#444;">Payment Method <small class="text-muted">(indicative rates — BillDesk adds the fee at checkout)</small></p>
+                                        <div style="background:#fffbe6;border:1px solid #ffe58f;border-radius:4px;padding:8px 10px;margin-bottom:10px;font-size:12px;color:#7d6608;">
+                                            <i class="fa fa-info-circle"></i>
+                                            Any applicable convenience charge will be added by BillDesk on their payment page based on the method you choose there.
+                                            The rates shown below are <strong>for your reference only</strong> — they are not added to the amount you pay here.
+                                        </div>
+                                    <?php else: ?>
+                                        <p style="font-weight:600;margin-bottom:8px;font-size:13px;color:#444;">Select Payment Method:</p>
+                                    <?php endif; ?>
                                     <?php foreach ($slabs_for_js as $slab): ?>
                                     <label class="bd-method-label" style="display:block;padding:7px 10px;border:1px solid #ddd;border-radius:4px;margin-bottom:5px;cursor:pointer;">
                                         <input type="radio" name="bd_method_radio" value="<?php echo $slab['key']; ?>"
@@ -176,7 +187,7 @@
                                             } elseif ($slab['charge_value'] == 0 && $slab['charge_value_above'] == 0) {
                                                 echo 'Free';
                                             } elseif ($slab['amount_threshold'] > 0) {
-                                                echo $slab['charge_value'] . '% (≤₹' . number_format($slab['amount_threshold'], 0) . ') / ' . $slab['charge_value_above'] . '% (above)';
+                                                echo $slab['charge_value'] . '% (&le;&#8377;' . number_format($slab['amount_threshold'], 0) . ') / ' . $slab['charge_value_above'] . '% (above)';
                                             } else {
                                                 echo $slab['charge_value'] . '%';
                                             }
@@ -188,25 +199,20 @@
 
                                 <script>
                                 (function() {
-                                    var baseAmount = <?php echo json_encode((float)$base_amount); ?>;
-                                    var currSym    = <?php echo json_encode($currency_sym); ?>;
+                                    var baseAmount  = <?php echo json_encode((float)$base_amount); ?>;
+                                    var currSym     = <?php echo json_encode($currency_sym); ?>;
+                                    var gatewayMode = <?php echo $gateway_mode ? 'true' : 'false'; ?>;
 
                                     function computeFee(radio) {
-                                        var type      = parseFloat(radio.getAttribute('data-val'));
-                                        var chargeType= radio.getAttribute('data-type');
-                                        var threshold = parseFloat(radio.getAttribute('data-threshold'));
-                                        var valAbove  = parseFloat(radio.getAttribute('data-val-above'));
-                                        var fee = 0;
-                                        if (chargeType === 'flat') {
-                                            fee = type; // type holds charge_value
-                                        } else {
-                                            if (threshold > 0 && baseAmount > threshold) {
-                                                fee = (baseAmount * valAbove) / 100;
-                                            } else {
-                                                fee = (baseAmount * type) / 100;
-                                            }
+                                        var chargeType = radio.getAttribute('data-type');
+                                        var val        = parseFloat(radio.getAttribute('data-val'));
+                                        var threshold  = parseFloat(radio.getAttribute('data-threshold'));
+                                        var valAbove   = parseFloat(radio.getAttribute('data-val-above'));
+                                        if (chargeType === 'flat') { return val; }
+                                        if (threshold > 0 && baseAmount > threshold) {
+                                            return Math.round(baseAmount * valAbove) / 100;
                                         }
-                                        return Math.round(fee * 100) / 100;
+                                        return Math.round(baseAmount * val) / 100;
                                     }
 
                                     function amountFormat(n) {
@@ -215,30 +221,36 @@
 
                                     document.querySelectorAll('input[name="bd_method_radio"]').forEach(function(radio) {
                                         radio.addEventListener('change', function() {
-                                            var fee   = computeFee(this);
-                                            var total = baseAmount + fee;
-
-                                            // Update hidden inputs for form submit
-                                            document.getElementById('bd_payment_method').value = this.value;
-                                            document.getElementById('bd_computed_charge').value = fee.toFixed(2);
-
-                                            // Update fee row in summary table
-                                            var feeRow = document.getElementById('bd_fee_row');
-                                            if (fee > 0) {
-                                                feeRow.style.display = '';
-                                                document.getElementById('bd_fee_amount').textContent = amountFormat(fee);
-                                            } else {
-                                                feeRow.style.display = 'none';
-                                            }
-                                            document.getElementById('bd_total_cell').textContent = amountFormat(total);
+                                            var fee = computeFee(this);
 
                                             // Highlight selected label
                                             document.querySelectorAll('.bd-method-label').forEach(function(l){ l.style.background=''; l.style.borderColor='#ddd'; });
                                             this.parentElement.style.background = '#f0f8ff';
                                             this.parentElement.style.borderColor = '#0084B4';
 
-                                            // Enable pay button
-                                            document.querySelector('.submit_button').disabled = false;
+                                            if (gatewayMode) {
+                                                // In gateway mode: update the hidden method field but do NOT add fee to total.
+                                                // BillDesk handles the charge on their page.
+                                                document.getElementById('bd_payment_method').value  = this.value;
+                                                document.getElementById('bd_computed_charge').value = '0.00';
+                                                document.getElementById('bd_fee_row').style.display  = 'none';
+                                                // total stays at base amount
+                                                document.getElementById('bd_total_cell').textContent = amountFormat(baseAmount);
+                                            } else {
+                                                // School mode: add fee to total sent to BillDesk
+                                                var total = baseAmount + fee;
+                                                document.getElementById('bd_payment_method').value  = this.value;
+                                                document.getElementById('bd_computed_charge').value = fee.toFixed(2);
+                                                var feeRow = document.getElementById('bd_fee_row');
+                                                if (fee > 0) {
+                                                    feeRow.style.display = '';
+                                                    document.getElementById('bd_fee_amount').textContent = amountFormat(fee);
+                                                } else {
+                                                    feeRow.style.display = 'none';
+                                                }
+                                                document.getElementById('bd_total_cell').textContent = amountFormat(total);
+                                                document.querySelector('.submit_button').disabled = false;
+                                            }
                                         });
                                     });
                                 })();
@@ -248,8 +260,13 @@
                                 <form class="paddtlrb" action="<?php echo site_url('user/gateway/billdesk/pay') ?>" method="POST" id="billdeskForm">
                                     <input type="hidden" id="bd_payment_method" name="billdesk_payment_method" value="">
                                     <input type="hidden" id="bd_computed_charge" name="billdesk_computed_charge" value="0">
-                                    <button type="button" onclick="window.history.go(-1); return false;" name="search"  value="" class="btn btn-info"><i class="fa fa fa-chevron-left"></i> <?php echo $this->lang->line('back')?></button>
-                                    <button type="submit" class="btn cfees pull-right submit_button" <?php echo !empty($slabs_for_js) ? 'disabled="disabled"' : ''; ?>><i class="fa fa fa-money"></i> Pay With Billdesk </button>
+                                    <button type="button" onclick="window.history.go(-1); return false;" name="search" value="" class="btn btn-info"><i class="fa fa fa-chevron-left"></i> <?php echo $this->lang->line('back')?></button>
+                                    <?php
+                                    // In gateway mode the Pay button is always enabled (method selection is informational only).
+                                    // In school mode it starts disabled until a method is chosen.
+                                    $btn_disabled = (!$gateway_mode && !empty($slabs_for_js)) ? 'disabled="disabled"' : '';
+                                    ?>
+                                    <button type="submit" class="btn cfees pull-right submit_button" <?php echo $btn_disabled; ?>><i class="fa fa fa-money"></i> Pay With Billdesk </button>
                                 </form>
                             </div>
                         </div>

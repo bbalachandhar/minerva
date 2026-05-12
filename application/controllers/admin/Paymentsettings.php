@@ -841,15 +841,16 @@ class Paymentsettings extends Admin_Controller
         if ($this->form_validation->run()) {
 
             $data = array(
-                'api_secret_key'      => $this->input->post('billdesk_api_secret_key'),
-                'api_publishable_key' => $this->input->post('billdesk_api_publishable_key'),
-                'api_password'        => $this->input->post('billdesk_api_password'),
-                'salt'                => $this->input->post('billdesk_salt'),
-                'api_signature'       => $this->input->post('billdesk_api_signature'),
-                'gateway_mode'        => (int) $this->input->post('billdesk_gateway_mode'),
-                'payment_type'        => 'billdesk',
-                'charge_type'         => $this->input->post('charge_type'),
-                'charge_value'        => $this->input->post('billdesk_charge_value'),
+                'api_secret_key'       => $this->input->post('billdesk_api_secret_key'),
+                'api_publishable_key'  => $this->input->post('billdesk_api_publishable_key'),
+                'api_password'         => $this->input->post('billdesk_api_password'),
+                'salt'                 => $this->input->post('billdesk_salt'),
+                'api_signature'        => $this->input->post('billdesk_api_signature'),
+                'gateway_mode'         => (int) $this->input->post('billdesk_gateway_mode'),
+                'payment_type'         => 'billdesk',
+                'charge_type'          => $this->input->post('charge_type'),
+                'charge_value'         => $this->input->post('billdesk_charge_value'),
+                'billdesk_charge_mode' => $this->input->post('billdesk_charge_mode') === 'school' ? 'school' : 'gateway',
             );
 
             $this->paymentsetting_model->add($data);
