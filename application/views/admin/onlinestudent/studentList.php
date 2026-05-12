@@ -89,6 +89,17 @@
                                     </span>
                                 </div>
                             </div>
+                            <div class="col-sm-3 col-md-3">
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-addon" style="background:#f4f4f4;padding:0 8px;font-size:11px;white-space:nowrap;">Cut-Off</span>
+                                    <input type="number" id="filter_cutoff_from" class="form-control" placeholder="From" min="0" max="300" step="0.01" autocomplete="off">
+                                    <span class="input-group-addon" style="background:#f4f4f4;padding:0 6px;">–</span>
+                                    <input type="number" id="filter_cutoff_to" class="form-control" placeholder="To" min="0" max="300" step="0.01" autocomplete="off">
+                                    <span class="input-group-btn">
+                                        <button id="clear_cutoff" class="btn btn-default" title="Clear" style="display:none;"><i class="fa fa-times"></i></button>
+                                    </span>
+                                </div>
+                            </div>
                         </div>
                     </div><!-- /.filter bar -->
                     <div class="box-body">
@@ -108,6 +119,7 @@
                                         <th><?php echo $this->lang->line('submitted_by'); ?></th>
                                         <th><?php echo $this->lang->line('gender'); ?></th>
                                         <th>Quota Type</th>
+                                        <th>Cut-Off</th>
                                                                                 <th>Course Fee</th>
                                                                                 <th>Paid Amount</th>
                                           <?php if ($sch_setting->mobile_no) {?>
@@ -198,6 +210,8 @@
         var submitFrom      = $('#filter_submit_from').val();
         var submitTo        = $('#filter_submit_to').val();
         var lastPaymentDate = $('#filter_last_payment_date').val();
+        var cutoffFrom      = $('#filter_cutoff_from').val();
+        var cutoffTo        = $('#filter_cutoff_to').val();
         var courseId        = $('#filter_course').val();
         var courseLevel     = $('#filter_course_level').val();
         var admissionType   = $('#filter_admission_type').val();
@@ -210,6 +224,8 @@
         if (courseId        !== '') params.course_id_filter       = courseId;
         if (courseLevel     !== '') params.course_level_filter    = courseLevel;
         if (admissionType   !== '') params.admission_type_filter  = admissionType;
+        if (cutoffFrom      !== '') params.cutoff_from             = cutoffFrom;
+        if (cutoffTo        !== '') params.cutoff_to               = cutoffTo;
         return params;
     }
 
@@ -374,6 +390,24 @@
 
         $('#clear_payment_date').on('click', function () {
             $('#filter_last_payment_date').val('');
+            $(this).hide();
+            studentTable.ajax.reload();
+        });
+
+        // Cutoff filter — reload on input change
+        $(document).on('input change', '#filter_cutoff_from, #filter_cutoff_to', function () {
+            var cf = $('#filter_cutoff_from').val();
+            var ct = $('#filter_cutoff_to').val();
+            if (cf !== '' || ct !== '') {
+                $('#clear_cutoff').show();
+            } else {
+                $('#clear_cutoff').hide();
+            }
+            studentTable.ajax.reload();
+        });
+
+        $('#clear_cutoff').on('click', function () {
+            $('#filter_cutoff_from, #filter_cutoff_to').val('');
             $(this).hide();
             studentTable.ajax.reload();
         });

@@ -487,8 +487,10 @@ class Onlinestudent extends Admin_Controller
         $course_id_filter      = $this->input->post('course_id_filter')      ?: null;
         $course_level_filter   = $this->input->post('course_level_filter')   ?: null;
         $admission_type_filter = $this->input->post('admission_type_filter') ?: null;
+        $cutoff_from           = $this->input->post('cutoff_from')           ?: null;
+        $cutoff_to             = $this->input->post('cutoff_to')             ?: null;
 
-        $student_result = $this->onlinestudent_model->getstudentlist(null, null, $quota_type_filter, $paid_status_filter, $submitted_by_filter, $submit_date_from, $submit_date_to, $last_payment_date, $course_id_filter, $course_level_filter, $admission_type_filter);
+        $student_result = $this->onlinestudent_model->getstudentlist(null, null, $quota_type_filter, $paid_status_filter, $submitted_by_filter, $submit_date_from, $submit_date_to, $last_payment_date, $course_id_filter, $course_level_filter, $admission_type_filter, $cutoff_from, $cutoff_to);
 
         $m               = json_decode($student_result);
         $currency_symbol = $this->customlib->getSchoolCurrencyFormat();
@@ -591,6 +593,8 @@ class Onlinestudent extends Admin_Controller
                 }
                 $row[] = $this->lang->line(strtolower($value->gender));
                 $row[] = !empty($value->quota_type) ? $value->quota_type : "N/A";
+
+                $row[] = ($value->cutoff_marks !== null && $value->cutoff_marks !== '') ? $value->cutoff_marks : '—';
 
                 $application_ref_no = !empty($value->reference_no) ? preg_replace('/\s+/', '', (string) $value->reference_no) : '';
                 $course_fee = (isset($value->course_fee_total) && $value->course_fee_total !== null && $value->course_fee_total !== '') ? (float) $value->course_fee_total : 0;
@@ -700,6 +704,8 @@ class Onlinestudent extends Admin_Controller
         $course_id_filter      = $this->input->get('course_id_filter')      ?: null;
         $course_level_filter   = $this->input->get('course_level_filter')   ?: null;
         $admission_type_filter = $this->input->get('admission_type_filter') ?: null;
+        $cutoff_from_export    = $this->input->get('cutoff_from')           ?: null;
+        $cutoff_to_export      = $this->input->get('cutoff_to')             ?: null;
 
         // --- Build the base query (mirrors getstudentlist) ---
         $this->db->select(
@@ -711,7 +717,8 @@ class Onlinestudent extends Admin_Controller
              COALESCE(oa.course_fee_total,
                  IF(oa.quota_type = "management", oac.mgt_fee, oac.govt_fee)
              ) AS course_fee_total,
-             IFNULL(oac.course_name, "N/A") AS course_name',
+             IFNULL(oac.course_name, "N/A") AS course_name,
+             oa.cutoff_marks',
             false
         );
         $this->db->from('online_admissions oa');
@@ -798,6 +805,13 @@ class Onlinestudent extends Admin_Controller
             );
         }
 
+        if ($cutoff_from_export !== null && $cutoff_from_export !== '') {
+            $this->db->where('oa.cutoff_marks >=', (float) $cutoff_from_export);
+        }
+        if ($cutoff_to_export !== null && $cutoff_to_export !== '') {
+            $this->db->where('oa.cutoff_marks <=', (float) $cutoff_to_export);
+        }
+
         $this->db->order_by('oa.id', 'DESC');
         $rows = $this->db->get()->result_array();
 
@@ -826,6 +840,7 @@ class Onlinestudent extends Admin_Controller
         $headers[] = 'Submitted By';
         $headers[] = 'Gender';
         $headers[] = 'Quota Type';
+        $headers[] = 'Cut-Off';
         $headers[] = 'Admission Type';
         $headers[] = 'Course Fee';
         $headers[] = 'Paid Amount';
@@ -895,6 +910,7 @@ class Onlinestudent extends Admin_Controller
             }
             $cell_data[] = $r['gender'];
             $cell_data[] = !empty($r['quota_type']) ? $r['quota_type'] : 'N/A';
+            $cell_data[] = ($r['cutoff_marks'] !== null && $r['cutoff_marks'] !== '') ? $r['cutoff_marks'] : '';
             $at_r = isset($r['admission_type']) ? $r['admission_type'] : '';
             if ($at_r === 'lateral') $cell_data[] = 'Lateral';
             elseif ($at_r === 'first_year') $cell_data[] = 'First Year';
