@@ -26,6 +26,9 @@
 /application/config/production/*
 !/application/config/production/*.example
 
+# Server-side root-level config directory (production credentials, not tracked)
+/config/
+
 # Root index.php — contains ENVIRONMENT setting that differs per deployment
 # (local = development, production = production). Never commit from local.
 /index.php
