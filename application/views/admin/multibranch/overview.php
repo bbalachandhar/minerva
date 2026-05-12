@@ -437,6 +437,8 @@ function mcc_abbr($db_name) {
 
 <script src="<?php echo base_url(); ?>backend/js/Chart.min.js"></script>
 <script>
+// Save Chart.js v2 reference immediately — footer.php loads v1.0.2 which overwrites Chart global
+var ChartV2 = Chart;
 var MCC = {
     urls: {
         fees:      '<?php echo site_url("admin/multibranch/branch/fees_overview_async"); ?>',
@@ -464,12 +466,12 @@ function escHtml(str) {
 function numFmt(v) { return Number(v).toLocaleString('en-IN'); }
 
 // ---- Chart.js v2 defaults ----
-Chart.defaults.global.defaultFontFamily = "'Helvetica Neue',Helvetica,Arial,sans-serif";
-Chart.defaults.global.defaultFontSize   = 11;
+ChartV2.defaults.global.defaultFontFamily = "'Helvetica Neue',Helvetica,Arial,sans-serif";
+ChartV2.defaults.global.defaultFontSize   = 11;
 
 function buildGroupedBar(ctx, labels, datasets, opts) {
     opts = opts || {};
-    return new Chart(ctx, {
+    return new ChartV2(ctx, {
         type: 'bar',
         data: { labels: labels, datasets: datasets },
         options: {
@@ -727,7 +729,7 @@ function loadAssets() {
         // Chart — must build AFTER box is visible so canvas has dimensions
         if (resp.chart) {
             var c=resp.chart;
-            new Chart(document.getElementById('assets_chart').getContext('2d'), {
+            new ChartV2(document.getElementById('assets_chart').getContext('2d'), {
                 type: 'horizontalBar',
                 data: {
                     labels: c.labels,
