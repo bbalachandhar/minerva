@@ -98,6 +98,15 @@ function mcc_abbr($db_name) {
 .mcc-fees-collected   { font-size: 13px; font-weight: 600; color: #00a65a; }
 #mcc-nav > li > a     { font-weight: 600; font-size: 13px; }
 #mcc-nav > li.active > a { color: #3c8dbc; }
+/* Card badge+name — flexbox so badge never overlaps text */
+.mcc-card-header-row { display: flex; align-items: flex-start; gap: 8px; }
+.mcc-card-badge      { flex: 0 0 auto; }
+.mcc-card-name-wrap  { flex: 1 1 0; min-width: 0; }
+/* KPI strip — equal tile heights via flex stretch */
+.mcc-kpi-row { display: flex !important; flex-wrap: wrap; align-items: stretch; margin-right: -15px; margin-left: -15px; }
+.mcc-kpi-row > [class*='col-'] { display: flex; float: none; }
+.mcc-kpi-row .info-box { flex: 1; min-height: 0; margin-bottom: 15px; }
+.mcc-kpi-row .info-box-icon { display: flex; align-items: center; justify-content: center; height: auto; min-height: 0; line-height: normal; }
 </style>
 
 <div class="content-wrapper" style="background:#f0f2f5">
@@ -132,13 +141,11 @@ function mcc_abbr($db_name) {
 <div class="col-xs-12 col-sm-6 col-md-3">
   <div class="mcc-inst-box" style="border-top:4px solid <?php echo $color; ?>">
     <div class="mcc-inst-box-header">
-      <div style="display:table; width:100%; table-layout:fixed">
-        <div style="display:table-cell; vertical-align:top; width:1%; white-space:nowrap; padding-right:8px; padding-top:2px">
-          <span style="background:<?php echo $color; ?>; color:#fff; font-size:10px; font-weight:700; padding:3px 9px; border-radius:20px; letter-spacing:.5px; white-space:nowrap"><?php echo $abbr; ?><?php if($is_home): ?> <i class="fa fa-home"></i><?php endif; ?></span>
-        </div>
-        <div style="display:table-cell; vertical-align:top; overflow:hidden">
+      <div class="mcc-card-header-row">
+        <span class="mcc-card-badge" style="background:<?php echo $color; ?>; color:#fff; font-size:10px; font-weight:700; padding:3px 9px; border-radius:20px; letter-spacing:.5px; white-space:nowrap"><?php echo $abbr; ?><?php if($is_home): ?> <i class="fa fa-home"></i><?php endif; ?></span>
+        <div class="mcc-card-name-wrap">
           <a href="<?php echo $card_url; ?>" target="_blank" class="mcc-inst-name-link" title="<?php echo htmlspecialchars($disp_name); ?>"><?php echo htmlspecialchars($disp_name); ?></a>
-          <span style="font-size:11px; color:#bbb; display:block"><?php echo htmlspecialchars($bi->session); ?></span>
+          <span style="font-size:11px; color:#bbb; display:block; line-height:1.3"><?php echo htmlspecialchars($bi->session); ?></span>
         </div>
       </div>
     </div>
@@ -180,10 +187,10 @@ function mcc_abbr($db_name) {
 </div>
 
 <!-- KPI STRIP -->
-<div class="row" style="margin-bottom:6px">
+<div class="row mcc-kpi-row" style="margin-bottom:6px">
   <div class="col-xs-6 col-sm-4 col-md-2">
-    <div class="info-box" style="border-radius:4px; min-height:auto; margin-bottom:15px">
-      <span class="info-box-icon" style="background:#3c8dbc; min-height:72px; line-height:72px; width:60px; font-size:26px"><i class="fa fa-graduation-cap"></i></span>
+    <div class="info-box" style="border-radius:4px; margin-bottom:0">
+      <span class="info-box-icon" style="background:#3c8dbc; width:60px; font-size:26px"><i class="fa fa-graduation-cap"></i></span>
       <div class="info-box-content" style="padding:10px 10px 8px">
         <span class="info-box-text" style="font-size:11px; text-transform:uppercase; letter-spacing:.4px">Students</span>
         <span class="info-box-number" style="font-size:22px; line-height:1.1"><?php echo number_format($grand_students); ?></span>
@@ -195,8 +202,8 @@ function mcc_abbr($db_name) {
     </div>
   </div>
   <div class="col-xs-6 col-sm-4 col-md-2">
-    <div class="info-box" style="border-radius:4px; min-height:auto; margin-bottom:15px">
-      <span class="info-box-icon" style="background:#605ca8; min-height:72px; line-height:72px; width:60px; font-size:26px"><i class="fa fa-id-badge"></i></span>
+    <div class="info-box" style="border-radius:4px; margin-bottom:0">
+      <span class="info-box-icon" style="background:#605ca8; width:60px; font-size:26px"><i class="fa fa-id-badge"></i></span>
       <div class="info-box-content" style="padding:10px 10px 8px">
         <span class="info-box-text" style="font-size:11px; text-transform:uppercase; letter-spacing:.4px">Staff</span>
         <span class="info-box-number" style="font-size:22px; line-height:1.1"><?php echo number_format($grand_staff); ?></span>
@@ -208,8 +215,8 @@ function mcc_abbr($db_name) {
     </div>
   </div>
   <div class="col-xs-6 col-sm-4 col-md-2">
-    <div class="info-box" style="border-radius:4px; min-height:auto; margin-bottom:15px">
-      <span class="info-box-icon" style="background:#00a65a; min-height:72px; line-height:72px; width:60px; font-size:26px"><i class="fa fa-inr"></i></span>
+    <div class="info-box" style="border-radius:4px; margin-bottom:0">
+      <span class="info-box-icon" style="background:#00a65a; width:60px; font-size:26px"><i class="fa fa-inr"></i></span>
       <div class="info-box-content" style="padding:10px 10px 8px">
         <span class="info-box-text" style="font-size:11px; text-transform:uppercase; letter-spacing:.4px">Fees Collected</span>
         <span class="info-box-number" id="kpi-fees-collected" style="font-size:20px; line-height:1.2"><span class="sk-shimmer sk-inline"></span></span>
@@ -217,8 +224,8 @@ function mcc_abbr($db_name) {
     </div>
   </div>
   <div class="col-xs-6 col-sm-4 col-md-2">
-    <div class="info-box" style="border-radius:4px; min-height:auto; margin-bottom:15px">
-      <span class="info-box-icon" style="background:#f39c12; min-height:72px; line-height:72px; width:60px; font-size:26px"><i class="fa fa-cubes"></i></span>
+    <div class="info-box" style="border-radius:4px; margin-bottom:0">
+      <span class="info-box-icon" style="background:#f39c12; width:60px; font-size:26px"><i class="fa fa-cubes"></i></span>
       <div class="info-box-content" style="padding:10px 10px 8px">
         <span class="info-box-text" style="font-size:11px; text-transform:uppercase; letter-spacing:.4px">Asset Value</span>
         <span class="info-box-number" id="kpi-asset-value" style="font-size:20px; line-height:1.2"><span class="sk-shimmer sk-inline"></span></span>
@@ -226,8 +233,8 @@ function mcc_abbr($db_name) {
     </div>
   </div>
   <div class="col-xs-6 col-sm-4 col-md-2">
-    <div class="info-box" style="border-radius:4px; min-height:auto; margin-bottom:15px">
-      <span class="info-box-icon" style="background:#00c0ef; min-height:72px; line-height:72px; width:60px; font-size:26px"><i class="fa fa-book"></i></span>
+    <div class="info-box" style="border-radius:4px; margin-bottom:0">
+      <span class="info-box-icon" style="background:#00c0ef; width:60px; font-size:26px"><i class="fa fa-book"></i></span>
       <div class="info-box-content" style="padding:10px 10px 8px">
         <span class="info-box-text" style="font-size:11px; text-transform:uppercase; letter-spacing:.4px">Library Books</span>
         <span class="info-box-number" id="kpi-total-books" style="font-size:20px; line-height:1.2"><span class="sk-shimmer sk-inline" style="width:65px"></span></span>
