@@ -11836,12 +11836,19 @@ CREATE TABLE IF NOT EXISTS `billdesk_charge_slabs` (
   UNIQUE KEY `uq_payment_method` (`payment_method`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- Seed data: actual BillDesk LOI rates (dated 18.2.2025, Meenakshi Ammal Trust)
+-- UPI/RuPay = Nil (Merchant-borne); Visa/MC Debit two-slab 0.35%/0.85%;
+-- Credit Visa/MC/RuPay 1.00%; Amex 1.50%; Diners 1.25%;
+-- Net Banking: Cat I (HDFC/SBI) ₹16, Cat II (AXIS/ICICI) ₹11, Other ₹7 flat.
 INSERT IGNORE INTO `billdesk_charge_slabs`
-  (`id`, `payment_method`, `label`, `charge_type`, `charge_value`, `amount_threshold`, `charge_value_above`, `is_active`, `sort_order`)
+  (`payment_method`, `label`, `charge_type`, `charge_value`, `amount_threshold`, `charge_value_above`, `is_active`, `sort_order`)
 VALUES
-  (1, 'debit_visa_mc',  'Debit Card (Visa/MC)',    'percentage', 0.0000, 2000.00, 0.0000, 1, 1),
-  (2, 'debit_rupay',    'Debit Card (RuPay)',       'percentage', 0.0000,    0.00, 0.0000, 1, 2),
-  (3, 'credit_card',    'Credit Card',              'percentage', 0.0000,    0.00, 0.0000, 1, 3),
-  (4, 'net_banking',    'Net Banking',              'flat',       0.0000,    0.00, 0.0000, 1, 4),
-  (5, 'upi',            'UPI',                      'percentage', 0.0000,    0.00, 0.0000, 1, 5),
-  (6, 'wallet',         'Wallet',                   'percentage', 0.0000,    0.00, 0.0000, 1, 6);
+  ('upi',              'UPI / Bank Account',                      'percentage',  0.0000,    0.00,    0.0000, 1, 1),
+  ('debit_visa_mc',    'Debit Card (Visa / MasterCard)',          'percentage',  0.3500, 2000.00,    0.8500, 1, 2),
+  ('debit_rupay',      'Debit Card (RuPay)',                      'percentage',  0.0000,    0.00,    0.0000, 1, 3),
+  ('credit_card',      'Credit Card (Visa / MasterCard / RuPay)','percentage',  1.0000,    0.00,    0.0000, 1, 4),
+  ('credit_amex',      'Credit Card (American Express)',          'percentage',  1.5000,    0.00,    0.0000, 1, 5),
+  ('credit_diners',    'Credit Card (Diners)',                    'percentage',  1.2500,    0.00,    0.0000, 1, 6),
+  ('netbanking_cat1',  'Net Banking – Cat I (HDFC / SBI)',        'flat',       16.0000,    0.00,    0.0000, 1, 7),
+  ('netbanking_cat2',  'Net Banking – Cat II (AXIS / ICICI)',     'flat',       11.0000,    0.00,    0.0000, 1, 8),
+  ('netbanking_other', 'Net Banking – Other Banks',               'flat',        7.0000,    0.00,    0.0000, 1, 9);
